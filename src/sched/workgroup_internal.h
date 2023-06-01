@@ -29,19 +29,6 @@
 
 namespace ffrt {
 
-typedef struct LoadData {
-    int frameNum;
-    int frameLen[MAX_FRAME_BUFFER];
-    int sumFrameLen;
-    int avgFrameLen;
-    int curIndex;
-    int curLoadLevel;
-    int calmTimer;
-    bool paddingStatus;
-    std::chrono::steady_clock::time_point lastEndTime;
-    std::chrono::steady_clock::time_point lastStartTime;
-} LoadData;
-
 enum WgType {
     TYPE_DEFAULT = 0,
     TYPE_RS = 1,
@@ -53,7 +40,6 @@ struct Workgroup {
     int rtgId;
     int tids[MAX_WG_THREADS];
     uint64_t interval;
-    LoadData ld;
     WgType type;
 };
 

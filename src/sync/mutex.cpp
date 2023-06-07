@@ -27,20 +27,39 @@
 #include "internal_inc/osal.h"
 #include "sync/mutex_private.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
-
 bool mutexPrivate::try_lock()
 {
     int v = sync_detail::UNLOCK;
-    return l.compare_exchange_strong(v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
+    bool ret = l.compare_exchange_strong(v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    if (ret) {
+        uint64_t task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
+        MutexGraph::Instance().AddNode(task, 0, false);
+        owner.store(task, std::memory_order_relaxed);
+    }
+#endif
+    return ret;
 }
 
 void mutexPrivate::lock()
 {
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    uint64_t task;
+    uint64_t ownerTask;
+    task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
+    ownerTask = owner.load(std::memory_order_relaxed);
+    if (ownerTask) {
+        MutexGraph::Instance().AddNode(task, ownerTask, true);
+    } else {
+        MutexGraph::Instance().AddNode(task, 0, false);
+    }
+#endif
     int v = sync_detail::UNLOCK;
     if (l.compare_exchange_strong(v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed)) {
-        return;
+        goto lock_out;
     }
     if (l.load(std::memory_order_relaxed) == sync_detail::WAIT) {
         wait();
@@ -48,10 +67,21 @@ void mutexPrivate::lock()
     while (l.exchange(sync_detail::WAIT, std::memory_order_acquire) != sync_detail::UNLOCK) {
         wait();
     }
+
+lock_out:
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    owner.store(task, std::memory_order_relaxed);
+#endif
+    return;
 }
 
 void mutexPrivate::unlock()
 {
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    owner.store(0, std::memory_order_relaxed);
+    uint64_t task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
+    MutexGraph::Instance().RemoveNode(task);
+#endif
     if (l.exchange(sync_detail::UNLOCK, std::memory_order_release) == sync_detail::WAIT) {
         wake();
     }
@@ -73,6 +103,7 @@ void mutexPrivate::wait()
         ctx->wn.cv.wait(lk);
         return;
     } else {
+        FFRT_BLOCK_TRACER(task->gid, mtx);
         CoWait([this](TaskCtx* inTask) -> bool {
             wlock.lock();
             if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {
@@ -85,6 +116,7 @@ void mutexPrivate::wait()
         });
     }
 }
+
 void mutexPrivate::wake()
 {
     wlock.lock();
@@ -93,6 +125,10 @@ void mutexPrivate::wake()
         return;
     }
     WaitEntry* we = list.PopFront(&WaitEntry::node);
+    if (we == nullptr) {
+        wlock.unlock();
+        return;
+    }
     TaskCtx* task = we->task;
     if (we->weType == 2) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
@@ -110,66 +146,68 @@ void mutexPrivate::wake()
 extern "C" {
 #endif
 API_ATTRIBUTE((visibility("default")))
-int ffrt_mtx_init(ffrt_mtx_t *mutex, int type)
+int ffrt_mutex_init(ffrt_mutex_t *mutex, const ffrt_mutexattr_t* attr)
 {
     if (!mutex) {
         FFRT_LOGE("mutex should not be empty");
-        return ffrt_thrd_error;
+        return ffrt_error_inval;
     }
-    if (!(type == ffrt_mtx_plain)) {
-        assert(false);
+    if (attr != nullptr) {
+        FFRT_LOGE("only support normal mutex");
+        return ffrt_error;
     }
     static_assert(sizeof(ffrt::mutexPrivate) <= ffrt_mutex_storage_size,
         "size must be less than ffrt_mutex_storage_size");
 
     new (mutex)ffrt::mutexPrivate();
-    return ffrt_thrd_success;
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_mtx_lock(ffrt_mtx_t* mutex)
+int ffrt_mutex_lock(ffrt_mutex_t* mutex)
 {
     if (!mutex) {
         FFRT_LOGE("mutex should not be empty");
-        return ffrt_thrd_error;
+        return ffrt_error_inval;
     }
     auto p = (ffrt::mutexPrivate*)mutex;
     p->lock();
-    return ffrt_thrd_success;
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_mtx_unlock(ffrt_mtx_t* mutex)
+int ffrt_mutex_unlock(ffrt_mutex_t* mutex)
 {
     if (!mutex) {
         FFRT_LOGE("mutex should not be empty");
-        return ffrt_thrd_error;
+        return ffrt_error_inval;
     }
     auto p = (ffrt::mutexPrivate*)mutex;
     p->unlock();
-    return ffrt_thrd_success;
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_mtx_trylock(ffrt_mtx_t* mutex)
+int ffrt_mutex_trylock(ffrt_mutex_t* mutex)
 {
     if (!mutex) {
         FFRT_LOGE("mutex should not be empty");
-        return ffrt_thrd_error;
+        return ffrt_error_inval;
     }
     auto p = (ffrt::mutexPrivate*)mutex;
-    return p->try_lock() ? ffrt_thrd_success : ffrt_thrd_busy;
+    return p->try_lock() ? ffrt_success : ffrt_error_busy;
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_mtx_destroy(ffrt_mtx_t* mutex)
+int ffrt_mutex_destroy(ffrt_mutex_t* mutex)
 {
     if (!mutex) {
         FFRT_LOGE("mutex should not be empty");
-        return;
+        return ffrt_error_inval;
     }
     auto p = (ffrt::mutexPrivate*)mutex;
     p->~mutexPrivate();
+    return ffrt_success;
 }
 #ifdef __cplusplus
 }

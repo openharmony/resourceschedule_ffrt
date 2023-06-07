@@ -16,20 +16,17 @@
 #define FFRT_INTERFACE_TASK_H
 
 #include "c/type_def.h"
-#include "internal_inc/non_copyable.h"
+#include "util/task_deleter.h"
 
 namespace ffrt {
 class IHandler;
-class ITask : private NonCopyable {
+class ITask : public TaskDeleter {
 public:
-    virtual ~ITask() = default;
-
-    virtual ITask* SetQueHandler(IHandler* handler) = 0;
     virtual void Wait() = 0;
     virtual void Notify() = 0;
-    virtual void IncDeleteRef() = 0;
-    virtual void DecDeleteRef() = 0;
+    virtual ITask* SetQueHandler(IHandler* handler) = 0;
 
+    bool isFinished_ = false;
     IHandler* handler_ = nullptr;
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 };

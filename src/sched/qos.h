@@ -86,7 +86,7 @@ public:
 
     static constexpr int Min()
     {
-        return qos_unspecified;
+        return qos_background;
     }
 
     static constexpr int Max()
@@ -97,7 +97,5 @@ public:
 private:
     enum qos qos;
 };
-
 }; // namespace ffrt
-
 #endif

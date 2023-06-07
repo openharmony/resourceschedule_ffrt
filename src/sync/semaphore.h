@@ -30,7 +30,6 @@
 #endif
 
 namespace ffrt {
-
 #ifndef _MSC_VER
 class semaphore {
     uint64_t data;
@@ -83,6 +82,5 @@ public:
     }
 };
 #endif
-
 } // namespace ffrt
 #endif

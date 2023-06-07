@@ -21,7 +21,6 @@
 
 
 namespace ffrt {
-
 class CPUWorker : public WorkerThread {
 public:
     CPUWorker(const QoS& qos, CpuWorkerOps&& ops) : WorkerThread(qos), ops(ops)

@@ -27,7 +27,6 @@
 #include "internal_inc/non_copyable.h"
 
 namespace ffrt {
-
 struct WakeData {
     int fd;
     void* data;

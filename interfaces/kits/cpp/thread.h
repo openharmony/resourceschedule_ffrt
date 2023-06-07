@@ -15,6 +15,7 @@
 #ifndef FFRT_API_CPP_THREAD_H
 #define FFRT_API_CPP_THREAD_H
 #include <memory>
+#include <functional>
 #include "task.h"
 
 namespace ffrt {
@@ -24,28 +25,49 @@ public:
     {
     }
 
-    template <typename Fn, typename... Args>
-    explicit thread(std::string& name, enum qos qos, Fn&& fn, Args&&... args)
+    template <typename Fn, typename... Args,
+        class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, thread>>>
+    explicit thread(const char* name, enum qos qos, Fn&& fn, Args&&... args)
     {
         is_joinable = std::make_unique<bool>(true);
-        ffrt::submit(std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...), {}, {is_joinable.get()},
-            ffrt::task_attr().name(name.c_str()).qos(qos));
+        using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
+        auto tup = new Target(std::forward<Fn>(fn), std::forward<Args>(args)...);
+        ffrt::submit([tup]() {
+            execute(*tup, std::make_index_sequence<std::tuple_size_v<Target>>());
+            delete tup;
+            }, {}, {is_joinable.get()}, ffrt::task_attr().name(name).qos(qos));
     }
 
-    template <typename Fn, typename... Args>
+    template <typename Fn, typename... Args,
+        class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, thread>>>
     explicit thread(enum qos qos, Fn&& fn, Args&&... args)
     {
         is_joinable = std::make_unique<bool>(true);
-        ffrt::submit(std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...), {}, {is_joinable.get()},
-            ffrt::task_attr().qos(qos));
+        using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
+        auto tup = new Target(std::forward<Fn>(fn), std::forward<Args>(args)...);
+        ffrt::submit([tup]() {
+            execute(*tup, std::make_index_sequence<std::tuple_size_v<Target>>());
+            delete tup;
+            }, {}, {is_joinable.get()}, ffrt::task_attr().qos(qos));
     }
 
-    template <typename Fn, typename... Args>
+    template <class Fn, class... Args,
+        class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, thread>>,
+        class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, char*>>,
+        class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, qos>>>
     explicit thread(Fn&& fn, Args&& ... args)
     {
         is_joinable = std::make_unique<bool>(true);
-        ffrt::submit(std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...), {}, {is_joinable.get()});
+        using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
+        auto tup = new Target (std::forward<Fn>(fn), std::forward<Args>(args)...);
+        ffrt::submit([tup]() {
+            execute(*tup, std::make_index_sequence<std::tuple_size_v<Target>>());
+            delete tup;
+            }, {}, {is_joinable.get()});
     }
+
+    thread(const thread&) = delete;
+    thread& operator=(const thread&) = delete;
 
     thread(thread&& th) noexcept
     {
@@ -85,6 +107,13 @@ public:
     }
 
 private:
+    template<class Target, size_t... Idxs>
+    static inline void execute(Target& tup,
+        std::index_sequence<Idxs...>)
+    {
+        std::invoke(std::move(std::get<Idxs>(tup))...);
+    }
+
     void swap(thread& other) noexcept
     {
         is_joinable.swap(other.is_joinable);

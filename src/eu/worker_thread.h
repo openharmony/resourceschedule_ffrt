@@ -23,7 +23,6 @@
 #include "core/task_ctx.h"
 
 namespace ffrt {
-
 class WorkerThread {
 public:
     TaskCtx* curTask = nullptr;
@@ -99,6 +98,7 @@ public:
         return this->thread;
     }
 
+    void WorkerSetup(WorkerThread* wthread, const QoS& qos);
 private:
     void NativeConfig();
 

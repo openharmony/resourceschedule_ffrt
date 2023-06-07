@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstring>
+#include <climits>
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
 
@@ -34,7 +35,6 @@ constexpr int RTG_IPC_CMDID = 0xCD;
 #define RTG_IPC_CMD _IOWR(RTG_IPC_MAGIC, RTG_IPC_CMDID, class RTGMsg)
 
 namespace ffrt {
-
 enum RTGCtrlCmd {
     CMD_CREATE_RTG,
     CMD_RELEASE_RTG,
@@ -168,8 +168,15 @@ private:
 
 RTGCtrl::RTGCtrl()
 {
-    std::string fileName = "/proc/" + std::to_string(GetTID()) + "/ffrt";
-    fd = open(fileName.c_str(), O_RDWR);
+    char filePath[PATH_MAX];
+
+    std::string fileName = "/proc/self/ffrt";
+    if (realpath(fileName.c_str(), filePath) == nullptr) {
+        FFRT_LOGE("Invalid file Path %s", fileName.c_str());
+        return;
+    }
+
+    fd = open(filePath, O_RDWR);
     if (fd < 0) {
         FFRT_LOGE("Failed to open RTG, Ret %d", fd);
     }
@@ -319,5 +326,4 @@ bool RTGCtrl::RTGIOCtrl(RTGMsg& msg)
 
     return true;
 }
-
 }; // namespace ffrt

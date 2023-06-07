@@ -328,7 +328,7 @@ def parse_and_convert_task_trace(logs, pid):
 
             continue
 
-        if state == "E":
+        if "FFRT::[" in state:
             if gid in task_records.keys():
                 timestamp = extract_timestamp(log)
                 tid = extract_thread_id(log)
@@ -344,6 +344,7 @@ def parse_and_convert_task_trace(logs, pid):
                 infos = generate_counter_info(suffix, task_records, "running", gid, pid_counters_dict, pid)
                 for info in infos:
                     logs_supplement.append(info)
+            logs_supplement.append(log)
 
             continue
 

@@ -15,15 +15,11 @@
 
 #include "sched/interval.h"
 
-#include <mutex>
-#include <chrono>
-
 #include "core/dependence_manager.h"
 #include "eu/execute_unit.h"
 #include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
-
 void Deadline::Update(uint64_t deadlineUs)
 {
     if (deadlineUs != ToUs()) {
@@ -75,6 +71,9 @@ void PerfCtrl::Update(bool force)
 
 void PerfCtrl::Update(uint64_t deadlineNs, uint64_t load, bool force)
 {
+    if (deadlineNs == 0) {
+        deadlineNs = 1;
+    }
     predUtil = (load << SCHED_CAPACITY_SHIFT) / deadlineNs;
     if (predUtil > SCHED_MAX_CAPACITY) {
         FFRT_LOGW("Predict Util %lu Exceeds Max Capacity", predUtil);
@@ -234,5 +233,4 @@ void DefaultInterval::UpdateTaskSwitch(TaskSwitchState state)
 
     lt.Record(state);
 }
-
 } // namespace ffrt

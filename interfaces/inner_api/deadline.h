@@ -17,62 +17,94 @@
 #include "c/deadline.h"
 
 namespace ffrt {
-using qos_interval_t = ffrt_qos_interval_t;
+using interval = ffrt_interval_t;
 
 /**
     @brief app create an anonymous interval, the number is limited. should specify the deadline
 */
-static inline qos_interval_t qos_interval_create(uint64_t deadline_us, int8_t qos = qos_default)
+static inline interval frame_interval_create()
 {
-    return ffrt_qos_interval_create(deadline_us, static_cast<ffrt_qos_t>(qos));
-}
-
-/**
-    @brief destroy a interval
-*/
-static inline void qos_interval_destroy(qos_interval_t it)
-{
-    ffrt_qos_interval_destroy(it);
+    return ffrt_frame_interval_create();
 }
 
 /**
     @brief start the interval
 */
-static inline int qos_interval_begin(qos_interval_t it)
+static inline int frame_interval_begin(interval it)
 {
-    return ffrt_qos_interval_begin(it);
+    return ffrt_frame_interval_begin(it);
 }
 
 /**
     @brief update interval
 */
-static inline void qos_interval_update(qos_interval_t it, uint64_t new_deadline_us)
+static inline int frame_interval_update(interval it, uint64_t deadline_us)
 {
-    ffrt_qos_interval_update(it, new_deadline_us);
+    return ffrt_frame_interval_update(it, deadline_us);
 }
 
 /**
-    @brief interval become inactive util next begin
+    @brief interval become inactive until next begin
 */
-static inline void qos_interval_end(qos_interval_t it)
+static inline int frame_interval_end(interval it)
 {
-    ffrt_qos_interval_end(it);
+    return ffrt_frame_interval_end(it);
+}
+
+/**
+    @brief app create an anonymous interval, the number is limited. should specify the deadline
+*/
+static inline interval qos_interval_create(uint64_t deadline_us, enum qos qos = qos_deadline_request)
+{
+    return ffrt_interval_create(deadline_us, static_cast<ffrt_qos_t>(qos));
+}
+
+/**
+    @brief destroy a interval
+*/
+static inline void qos_interval_destroy(interval it)
+{
+    ffrt_interval_destroy(it);
+}
+
+/**
+    @brief start the interval
+*/
+static inline int qos_interval_begin(interval it)
+{
+    return ffrt_interval_begin(it);
+}
+
+/**
+    @brief update interval
+*/
+static inline int qos_interval_update(interval it, uint64_t deadline_us)
+{
+    return ffrt_interval_update(it, deadline_us);
+}
+
+/**
+    @brief interval become inactive until next begin
+*/
+static inline int qos_interval_end(interval it)
+{
+    return ffrt_interval_end(it);
 }
 
 /**
     @brief current task or thread join an interval, only allow FIXED number of threads to join a interval
 */
-static inline void qos_interval_join(qos_interval_t it)
+static inline int qos_interval_join(interval it)
 {
-    ffrt_qos_interval_join(it);
+    return ffrt_interval_join(it);
 }
 
 /**
     @brief current task or thread leave an interval
 */
-static inline void qos_interval_leave(qos_interval_t it)
+static inline int qos_interval_leave(interval it)
 {
-    ffrt_qos_interval_leave(it);
+    return ffrt_interval_leave(it);
 }
 
 }; // namespace ffrt

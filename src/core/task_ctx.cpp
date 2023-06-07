@@ -12,13 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "core/task_ctx.h"
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+#include <dlfcn.h>
+#include "libunwind.h"
+#endif
 #include "core/dependence_manager.h"
 #include "util/slab.h"
+#include "internal_inc/osal.h"
 
 namespace ffrt {
-
 static std::atomic<uint64_t> s_gid(0);
 static inline const char* DenpenceStr(Denpence d)
 {
@@ -46,7 +49,7 @@ TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t 
     } else {
         label = parent->label + "." + std::to_string(rank);
     }
-    if (parent != nullptr) {
+    if (!IsRoot()) {
         FFRT_SUBMIT_MARKER(label, gid);
     }
     FFRT_LOGI("create task name:%s gid=%lu", label.c_str(), gid);
@@ -85,6 +88,7 @@ void TaskCtx::DecDepRef()
 {
     if (--depRefCnt == 0) {
         FFRT_LOGI("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
+        FFRT_WAKE_TRACER(this->gid);
         this->UpdateState(TaskState::READY);
 #ifdef FFRT_BBOX_ENABLE
         TaskEnQueuCounterInc();
@@ -116,6 +120,7 @@ void TaskCtx::DecChildRef()
     if (parent->parent == nullptr) {
         parent->childWaitCond_.notify_all();
     } else {
+        FFRT_WAKE_TRACER(parent->gid);
         parent->UpdateState(TaskState::READY);
     }
 #else
@@ -142,6 +147,7 @@ void TaskCtx::DecWaitDataRef()
     if (parent == nullptr) {
         dataWaitCond_.notify_all();
     } else {
+        FFRT_WAKE_TRACER(this->gid);
         this->UpdateState(TaskState::READY);
 #ifdef FFRT_BBOX_ENABLE
         TaskEnQueuCounterInc();
@@ -157,11 +163,11 @@ bool TaskCtx::IsPrevTask(const TaskCtx* task) const
     std::list<uint64_t> ThisTaskIds;
     std::list<uint64_t> OtherTaskIds;
     const TaskCtx* now = this;
-    while (now != DependenceManager::Root()) {
+    while (now != nullptr && now != DependenceManager::Root()) {
         ThisTaskIds.push_front(now->rank);
         now = now->parent;
     }
-    while (task != DependenceManager::Root()) {
+    while (task != nullptr && task != DependenceManager::Root()) {
         OtherTaskIds.push_front(task->rank);
         task = task->parent;
     }
@@ -186,4 +192,65 @@ void TaskCtx::MultiDepenceAdd(Denpence depType)
     FFRT_LOGD("task(%s) ADD_DENPENCE(%s)", this->label.c_str(), DenpenceStr(depType));
     denpenceStatus = depType;
 }
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+void TaskCtx::DumpTask(TaskCtx* task)
+{
+    unw_context_t ctx;
+    unw_cursor_t unw_cur;
+    unw_proc_info_t unw_proc;
+    if (ExecuteCtx::Cur()->task == task || task == nullptr) {
+        unw_getcontext(&ctx);
+    } else {
+#if defined(__aarch64__)
+        ctx.uc_mcontext.regs[UNW_AARCH64_X29] = task->coRoutine->ctx.regs[10];
+        ctx.uc_mcontext.sp = task->coRoutine->ctx.regs[13];
+        ctx.uc_mcontext.pc = task->coRoutine->ctx.regs[11];
+#elif defined(__x86_64__)
+        ctx.uc_mcontext.gregs[REG_RBX] = task->coRoutine->ctx.regs[0];
+        ctx.uc_mcontext.gregs[REG_RBP] = task->coRoutine->ctx.regs[1];
+        ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.regs[6];
+        ctx.uc_mcontext.gregs[REG_RIP] = *(reinterpret_cast<greg_t *>(ctx.uc_mcontext.gregs[REG_RSP] - 8));
+#endif
+    }
+
+    int ret;
+    int frame_id = 0;
+    ret = unw_init_local(&unw_cur, &ctx);
+    if (ret < 0) {
+        return;
+    }
+
+    Dl_info info;
+    unw_word_t prevPc = 0;
+    unw_word_t offset;
+    char symbol[512];
+    do {
+        ret = unw_get_proc_info(&unw_cur, &unw_proc);
+        if (ret) {
+            break;
+        }
+
+        if (prevPc == unw_proc.start_ip) {
+            break;
+        }
+
+        prevPc = unw_proc.start_ip;
+
+        ret = dladdr(reinterpret_cast<void *>(unw_proc.start_ip), &info);
+        if (!ret) {
+            break;
+        }
+
+        memset(symbol, 0, sizeof(symbol));
+        if (unw_get_proc_name(&unw_cur, symbol, sizeof(symbol), &offset) == 0) {
+            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p) %s", frame_id, unw_proc.start_ip, info.dli_fname,
+                      (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)), symbol);
+        } else {
+            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
+                      (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+        }
+        ++frame_id;
+    } while (unw_step(&unw_cur) > 0);
+}
+#endif
 } /* namespace ffrt */

@@ -23,7 +23,6 @@
 
 
 namespace ffrt {
-
 constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000000;
 
 struct WorkerSleepCtl {
@@ -58,7 +57,6 @@ public:
     }
 
     void NotifyTaskAdded(enum qos qos) override;
-    void SetTidToCGroup(const std::string &path, const std::string &name, int32_t pid) override;
 
     std::mutex* GetSleepCtl(int qos) override
     {
@@ -84,6 +82,5 @@ private:
     WorkerSleepCtl sleepCtl[QoS::Max()];
     bool tearDown = false;
 };
-
 } // namespace ffrt
 #endif

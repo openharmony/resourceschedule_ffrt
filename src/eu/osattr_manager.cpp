@@ -20,12 +20,20 @@
 #include <fcntl.h>
 #include <array>
 #include "eu/qos_interface.h"
-#include "eu/qos_policy.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "eu/osattr_manager.h"
 
 namespace ffrt {
 const int fd_buffer_len = 20;
+
+bool OSAttrManager::CheckSchedAttrPara(const std::string &name, int min, int max, int paraValue)
+{
+    if (paraValue < min || paraValue > max) {
+        FFRT_LOGE("OSAttrManager::CheckAttrPara para %s is invalid", name.c_str());
+        return false;
+    }
+    return true;
+}
 
 int OSAttrManager::UpdateSchedAttr(enum qos qos, ffrt_os_sched_attr *attr)
 {
@@ -36,94 +44,110 @@ int OSAttrManager::UpdateSchedAttr(enum qos qos, ffrt_os_sched_attr *attr)
         return -1;
     }
 
-    SetCGroupCtlPara(cpuctlGroupIvePath, cpuSharesNode, attr->shares);
-    SetCGroupCtlPara(cpuctlGroupIvePath, cpuLatencyniceNode, attr->latency_nice);
-    SetCGroupCtlPara(cpuctlGroupIvePath, cpuUclampminNode, attr->uclamp_min);
-    SetCGroupSetPara(cpusetGroupIvePath, cpuMapNode, static_cast<std::string>(attr->cpumap));
+    struct SchedParaCheckInfo {
+        std::string paraName;
+        int min;
+        int max;
+        int paraValue;
+    };
+
+    std::vector<SchedParaCheckInfo> checkInfo {
+        { "share",        CGROUP_SHARES_MIN,    CGROUP_SHARES_MAX,     attr->shares},
+        { "latencynice",  CGROUP_LAT_NICE_MIN,  CGROUP_LAT_NICE_MAX,   attr->latency_nice},
+        { "uclampmin",    CGROUP_UCLAMP_MIN,    CGROUP_UCLAMP_MAX,     attr->uclamp_min},
+        { "uclampmax",    CGROUP_UCLAMP_MIN,    CGROUP_UCLAMP_MAX,     attr->uclamp_max},
+        { "vipprio",      CGROUP_VIPPRIO_MIN,   CGROUP_VIPPRIO_MAX,    attr->vip_prio},
+    };
+
+    for (const auto &tmpPara : checkInfo) {
+        if (!CheckSchedAttrPara(tmpPara.paraName, tmpPara.min, tmpPara.max, tmpPara.paraValue)) {
+            return -1;
+        }
+    }
+
+    SetCGroupCtlPara(cpuSharesNode, attr->shares);
+    SetCGroupCtlPara(cpuLatencyniceNode, attr->latency_nice);
+    SetCGroupCtlPara(cpuUclampminNode, attr->uclamp_min);
+    SetCGroupCtlPara(cpuUclampmaxNode, attr->uclamp_max);
+    SetCGroupCtlPara(cpuvipprioNode, attr->vip_prio);
+    SetCGroupSetPara(cpuMapNode, static_cast<std::string>(attr->cpumap));
     return 0;
 }
 
-void OSAttrManager::SetCGroupCtlPara(const std::string &path, const std::string &name, int32_t value)
+void OSAttrManager::SetCGroupCtlPara(const std::string &name, int32_t value)
 {
-    const std::string filename = path + name;
-    char filePath[PATH_MAX_LENS] = {0};
-    if (filename.empty()) {
-        FFRT_LOGE("invalid parai,filename is empty");
-        return;
-    }
-
-    if ((strlen(filename.c_str()) > PATH_MAX_LENS) || (realpath(filename.c_str(), filePath) == nullptr)) {
-        FFRT_LOGE("invalid file path:%s, error:%s\n", filename.c_str(), strerror(errno));
-        return;
-    }
-
-    int32_t fd = open(filePath, O_RDWR);
-    if (fd < 0) {
-        FFRT_LOGE("fail to open cgroup Path:%s, fd=%d, errno=%d", filePath, fd, errno);
-        return;
-    }
-
-    const std::string valueStr = std::to_string(value);
-    int32_t ret = write(fd, valueStr.c_str(), valueStr.size());
-    if (ret < 0) {
-        FFRT_LOGE("fail to write valueStr:%s to fd:%d, errno:%d", valueStr.c_str(), fd, errno);
-    }
-    close(fd);
-
-    fd = open(filePath, O_RDONLY);
-    if (fd < 0) {
-        FFRT_LOGE("fail to open cgroup Path:%s, errno=%d", filePath, errno);
-        return;
-    }
-    const uint32_t bufferLen = fd_buffer_len;
-    std::array<char, bufferLen> buffer {};
-    int32_t count = read(fd, buffer.data(), bufferLen);
-    if (count <= 0) {
-        FFRT_LOGE("fail to read valueStr:%s to fd:%d, errno:%d", buffer.data(), fd, errno);
-    } else {
-        FFRT_LOGE("[%d]success to read %s buffer:%s", __LINE__, name.c_str(), buffer.data());
-    }
-    close(fd);
+    const std::string filename = cpuctlGroupIvePath + name;
+    SetCGroupPara(filename, value);
 }
 
-void OSAttrManager::SetCGroupSetPara(const std::string &path, const std::string &name, const std::string &value)
+void OSAttrManager::SetCGroupSetPara(const std::string &name, const std::string &value)
 {
-    const std::string filename = path + name;
+    const std::string filename = cpusetGroupIvePath + name;
+    SetCGroupPara(filename, value);
+}
+
+void OSAttrManager::SetTidToCGroup(int32_t pid)
+{
+    SetTidToCGroupPrivate(cpuctlGroupIvePath + cpuThreadNode, pid);
+    SetTidToCGroupPrivate(cpusetGroupIvePath + cpuThreadNode, pid);
+}
+
+void OSAttrManager::SetTidToCGroupPrivate(const std::string &filename, int32_t pid)
+{
+    constexpr int32_t maxThreadId = 0xffff;
+    if (pid <= 0 || pid >= maxThreadId) {
+        FFRT_LOGE("[cgroup_ctrl] invalid pid[%d]\n", pid);
+        return;
+    }
+    SetCGroupPara(filename, pid);
+}
+
+template <typename T>
+void OSAttrManager::SetCGroupPara(const std::string &filename, T& value)
+{
     char filePath[PATH_MAX_LENS] = {0};
     if (filename.empty()) {
-        FFRT_LOGE("invalid para,filename is empty");
+        FFRT_LOGE("[cgroup_ctrl] invalid para, filename is empty");
         return;
     }
 
     if ((strlen(filename.c_str()) > PATH_MAX_LENS) || (realpath(filename.c_str(), filePath) == nullptr)) {
-        FFRT_LOGE("invalid file path:%s, error:%s\n", filename.c_str(), strerror(errno));
+        FFRT_LOGE("[cgroup_ctrl] invalid file path:%s, error:%s\n", filename.c_str(), strerror(errno));
         return;
     }
 
     int32_t fd = open(filePath, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGE("fail to open cgroup cpus Path:%s, fd=%d, errno=%d", filePath, fd, errno);
+        FFRT_LOGE("[cgroup_ctrl] fail to open filePath:%s", filePath);
         return;
     }
 
-    int32_t ret = write(fd, value.c_str(), value.size());
+    std::string valueStr;
+    if constexpr (std::is_same<T, int32_t>::value) {
+        valueStr = std::to_string(value);
+    } else if constexpr (std::is_same<T, const std::string>::value) {
+        valueStr = value;
+    } else {
+        FFRT_LOGE("[cgroup_ctrl] invalid value type\n");
+        close(fd);
+        return;
+    }
+
+    int32_t ret = write(fd, valueStr.c_str(), valueStr.size());
     if (ret < 0) {
-        FFRT_LOGE("fail to write value:%s to fd:%d, errno:%d", value.c_str(), fd, errno);
-    }
-    close(fd);
-
-    fd = open(filePath, O_RDONLY);
-    if (fd < 0) {
-        FFRT_LOGE("fail to open cgroup cpus Path:%s, errno=%d", filePath, errno);
+        FFRT_LOGE("[cgroup_ctrl] fail to write path:%s valueStr:%s to fd:%d, errno:%d",
+            filePath, valueStr.c_str(), fd, errno);
+        close(fd);
         return;
     }
+
     const uint32_t bufferLen = fd_buffer_len;
     std::array<char, bufferLen> buffer {};
     int32_t count = read(fd, buffer.data(), bufferLen);
     if (count <= 0) {
-        FFRT_LOGE("fail to read value:%s to fd:%d, errno:%d", buffer.data(), fd, errno);
+        FFRT_LOGE("[cgroup_ctrl] fail to read value:%s to fd:%d, errno:%d", buffer.data(), fd, errno);
     } else {
-        FFRT_LOGE("[%d]success to read %s buffer:%s", __LINE__, name.c_str(), buffer.data());
+        FFRT_LOGI("[cgroup_ctrl] success to read %s buffer:%s", filePath, buffer.data());
     }
     close(fd);
 }

@@ -36,6 +36,8 @@ public:
     enum qos qos_;
     std::string name_;
     uint64_t delay_ = 0;
+    uint64_t timeout_ = 0;
+    ffrt_function_header_t* timeoutCb_ = nullptr;
 };
 }
 #endif

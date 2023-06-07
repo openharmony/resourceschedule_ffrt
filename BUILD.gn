@@ -22,6 +22,7 @@ config("ffrt_config") {
     "src/dfx/log",
     "//third_party/jsoncpp/include",
     "//foundation/resourceschedule/frame_aware_sched/common/include/",
+    "//third_party/libunwind/include",
   ]
 
   ffrt_defaults_cflags = [
@@ -49,6 +50,9 @@ config("ffrt_config") {
   ffrt_debug_defines = [
     "FFRT_LOG_LEVEL=3",
     "FFRT_BBOX_ENABLE",
+    "FFRT_MUTEX_DEADLOCK_CHECK",
+    "FFRT_OH_EVENT_RECORD",
+    "FFRT_CO_BACKTRACE_OH_ENABLE",
   ]
 
   #ffrt_release_defines = [
@@ -80,12 +84,11 @@ ohos_shared_library("libffrt") {
     "src/eu/execute_unit.cpp",
     "src/eu/rtg_ioctl.cpp",
     "src/eu/rtg_perf_ctrl.c",
-    "src/eu/single_workgroup.c",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
+    "src/eu/qos_config.cpp",
     "src/eu/qos_interface.cpp",
     "src/eu/osattr_manager.cpp",
-    "src/internal_inc/osal.cpp",
     "src/queue/serial_queue_api.cpp",
     "src/queue/serial_handler.cpp",
     "src/queue/serial_task.cpp",
@@ -110,16 +113,19 @@ ohos_shared_library("libffrt") {
     "src/sync/sync.cpp",
     "src/sync/wait_queue.cpp",
     "src/sync/thread.cpp",
+    "src/util/graph_check.cpp",
   ]
 
   external_deps = [
     "hiviewdfx_hilog_native:libhilog",
     "ipc:ipc_core",
+    "hisysevent_native:libhisysevent",
   ]
 
   deps = [
     "//foundation/resourceschedule/frame_aware_sched/interfaces/innerkits/frameintf:rtg_interface",
     "//third_party/bounds_checking_function:libsec_shared",
+    "//third_party/libunwind:libunwind",
   ]
 
   output_extension = "so"

@@ -27,37 +27,19 @@
 #include <list>
 #include <memory>
 #include "internal_inc/types.h"
-#include "internal_inc/non_copyable.h"
 #include "sched/task_state.h"
 #include "sched/interval.h"
 #include "eu/co_routine.h"
 #include "task_attr_private.h"
 #include "util/slab.h"
+#include "util/task_deleter.h"
 #include "dfx/bbox/bbox.h"
 
 namespace ffrt {
 struct TaskCtx;
 struct VersionCtx;
 
-struct TaskCtxDeleter {
-    inline void IncDeleteRef()
-    {
-        rc.fetch_add(1);
-    }
-
-    inline void DecDeleteRef()
-    {
-        auto v = rc.fetch_sub(1);
-        if (v == 1) {
-            BboxCheckAndFreeze();
-            SimpleAllocator<TaskCtx>::freeMem(reinterpret_cast<TaskCtx *>(this));
-        }
-    }
-
-    std::atomic_uint32_t rc = 0;
-};
-
-struct TaskCtx : public TaskCtxDeleter, NonCopyable {
+struct TaskCtx : public TaskDeleter {
     TaskCtx(const task_attr_private* attr,
         TaskCtx* parent, const uint64_t& id, const char *identity = nullptr, const QoS& qos = QoS());
     WaitEntry fq_we; // used on fifo fast que
@@ -116,6 +98,12 @@ struct TaskCtx : public TaskCtxDeleter, NonCopyable {
     QoS qos;
     void ChargeQoSSubmit(const QoS& qos);
 
+    inline void freeMem() override
+    {
+        BboxCheckAndFreeze();
+        SimpleAllocator<TaskCtx>::freeMem(this);
+    }
+
     inline void IncDepRef()
     {
         ++depRefCnt;
@@ -171,6 +159,9 @@ struct TaskCtx : public TaskCtxDeleter, NonCopyable {
             traceTag.pop_back();
         }
     }
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    static void DumpTask(TaskCtx* task);
+#endif
 };
 } /* namespace ffrt */
 #endif

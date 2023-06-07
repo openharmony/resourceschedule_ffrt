@@ -16,6 +16,7 @@
 #include "co_routine.h"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include "dfx/trace/ffrt_trace.h"
 #include "core/dependence_manager.h"
@@ -61,7 +62,7 @@ static inline void CoStartEntry(void* arg)
     }
     FFRT_TASKDONE_MARKER(co->task->gid);
     co->task->UpdateState(ffrt::TaskState::EXITED);
-    co->status = static_cast<int>(CoStatus::CO_UNINITIALIZED);
+    co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
     CoExit(co);
 }
 
@@ -80,9 +81,9 @@ static void CoSetStackProt(CoRoutine* co, int prot)
      * and 1~2 page table space will be wasted
      */
 #ifndef _MSC_VER
-    int p_size = getpagesize();
+    size_t p_size = getpagesize();
 #else
-    int p_size = 4 * 1024;
+    size_t p_size = 4 * 1024;
 #endif
     if (CoStackAttr::Instance()->size < p_size * 3) {
         abort();
@@ -91,10 +92,10 @@ static void CoSetStackProt(CoRoutine* co, int prot)
 #ifndef _MSC_VER
     uint64_t mp = reinterpret_cast<uint64_t>(co->stkMem.stk);
     mp = (mp + p_size - 1) / p_size * p_size;
-    int ret = mprotect(reinterpret_cast<char*>(mp), p_size, PROT_READ);
+    int ret = mprotect(reinterpret_cast<void *>(static_cast<uintptr_t>(mp)), p_size, PROT_READ);
     if (ret < 0) {
-        printf("coroutine size:%lu, 0x%p, mp:0x%lx, stk_top:0x%p, page_size:%d,result:%d,prot:%d, err:%d,%s.\n",
-            static_cast<unsigned long>(sizeof(struct CoRoutine)), co, static_cast<unsigned long>(mp), co->stkMem.stk,
+        printf("coroutine size:%lu, mp:0x%lx, page_size:%zu,result:%d,prot:%d, err:%d,%s.\n",
+            static_cast<unsigned long>(sizeof(struct CoRoutine)), static_cast<unsigned long>(mp),
             p_size, ret, prot, errno, strerror(errno));
         abort();
     }
@@ -103,7 +104,7 @@ static void CoSetStackProt(CoRoutine* co, int prot)
 
 static inline CoRoutine* AllocNewCoRoutine(void)
 {
-    std::size_t stack_size = (sizeof(CoRoutine) - 8 + CoStackAttr::Instance()->size);
+    std::size_t stack_size = CoStackAttr::Instance()->size + sizeof(CoRoutine) - 8;
     CoRoutine* co = ffrt::QSimpleAllocator<CoRoutine>::allocMem(stack_size);
     if (co == nullptr) {
         abort();
@@ -114,7 +115,7 @@ static inline CoRoutine* AllocNewCoRoutine(void)
     if (CoStackAttr::Instance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_READ);
     }
-    co->status = static_cast<int>(CoStatus::CO_UNINITIALIZED);
+    co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
     return co;
 }
 
@@ -124,6 +125,14 @@ static inline void CoMemFree(CoRoutine* co)
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
     ffrt::QSimpleAllocator<CoRoutine>::freeMem(co);
+}
+
+void CoWorkerExit()
+{
+    if (g_CoThreadEnv) {
+        ::free(g_CoThreadEnv);
+        g_CoThreadEnv = nullptr;
+    }
 }
 
 static inline void BindNewCoRoutione(ffrt::TaskCtx* task)
@@ -163,7 +172,7 @@ static inline int CoCreat(ffrt::TaskCtx* task)
 {
     CoAlloc(task);
     auto co = task->coRoutine;
-    if (co->status == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
+    if (co->status.load() == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
         co2_init_context(&co->ctx, CoStartEntry, static_cast<void*>(co), co->stkMem.stk, co->stkMem.size);
     }
     return 0;
@@ -173,24 +182,26 @@ static inline void CoStackCheck(CoRoutine* co)
 {
     if (co->stkMem.magic != STACK_MAGIC) {
         FFRT_LOGE("sp offset:%lu.\n", (uint64_t)co->stkMem.stk +
-            static_cast<uint64_t>(CoStackAttr::Instance()->size) - co->ctx.regs[REG_SP]);
+            CoStackAttr::Instance()->size - co->ctx.regs[REG_SP]);
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
         abort();
     }
 }
 
-void CoSwitchInTrace(ffrt::TaskCtx* task)
+static inline void CoSwitchInTrace(ffrt::TaskCtx* task)
 {
     if (task->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
         for (auto name : task->traceTag) {
             FFRT_TRACE_BEGIN(name.c_str());
         }
     }
+    FFRT_FAKE_TRACE_MARKER(task->gid);
 }
 
-void CoSwitchOutTrace(ffrt::TaskCtx* task)
+static inline void CoSwitchOutTrace(ffrt::TaskCtx* task)
 {
-    int traceTagNum = task->traceTag.size();
+    FFRT_FAKE_TRACE_MARKER(task->gid);
+    int traceTagNum = static_cast<int>(task->traceTag.size());
     for (int i = 0; i < traceTagNum; ++i) {
         FFRT_TRACE_END();
     }
@@ -199,6 +210,13 @@ void CoSwitchOutTrace(ffrt::TaskCtx* task)
 // called by thread work
 void CoStart(ffrt::TaskCtx* task)
 {
+    if (task->coRoutine) {
+        int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
+        if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
+            FFRT_BBOX_LOG("executed by worker suddenly, ignore backtrace");
+            return;
+        }
+    }
     CoCreat(task);
     auto co = task->coRoutine;
 
@@ -209,13 +227,9 @@ void CoStart(ffrt::TaskCtx* task)
     for (;;) {
         FFRT_LOGI("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
-        FFRT_RUNNING_MARKER(task->gid);
         FFRT_TASK_BEGIN(task->label, task->gid);
         CoSwitchInTrace(task);
-        int ret = __atomic_exchange_n(&co->status, static_cast<int>(CoStatus::CO_RUNNING), __ATOMIC_SEQ_CST);
-        if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
-            return;
-        }
+
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
@@ -236,6 +250,7 @@ void CoStart(ffrt::TaskCtx* task)
 #endif
             return;
         }
+        FFRT_WAKE_TRACER(task->gid); // fast path wk
         g_CoThreadEnv->runningCo = co;
     }
 }
@@ -244,15 +259,19 @@ void CoStart(ffrt::TaskCtx* task)
 void CoYield(void)
 {
     CoRoutine* co = static_cast<CoRoutine*>(g_CoThreadEnv->runningCo);
-    co->status = static_cast<int>(CoStatus::CO_NOT_FINISH);
+    co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
     g_CoThreadEnv->runningCo = nullptr;
     CoSwitchOutTrace(co->task);
     FFRT_BLOCK_MARKER(co->task->gid);
     CoSwitch(&co->ctx, &g_CoThreadEnv->schCtx);
-    if (GetBboxEnableState() != 0) {
+    while (GetBboxEnableState() != 0) {
+        if (GetBboxEnableState() != gettid()) {
+            BboxFreeze(); // freeze non-crash thread
+            return;
+        }
         const int IGNORE_DEPTH = 3;
         backtrace(IGNORE_DEPTH);
-        co->status = static_cast<int>(CoStatus::CO_UNINITIALIZED);
+        co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH)); // recovery to old state
         CoExit(co);
     }
 }
@@ -265,8 +284,13 @@ void CoWait(const std::function<bool(ffrt::TaskCtx*)>& pred)
 
 void CoWake(ffrt::TaskCtx* task, bool timeOut)
 {
+    if (task == nullptr) {
+        FFRT_LOGE("task is nullptr");
+        return;
+    }
     // Fast path: state transition without lock
     FFRT_LOGI("Cowake task[%lu], name[%s], timeOut[%d]", task->gid, task->label.c_str(), timeOut);
     task->wakeupTimeOut = timeOut;
+    FFRT_WAKE_TRACER(task->gid);
     task->UpdateState(ffrt::TaskState::READY);
 }

@@ -18,11 +18,12 @@
 #include "sched/execute_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace/ffrt_trace.h"
 
 #include <cassert>
 
 namespace ffrt {
-constexpr int DEFAULT_CPUINDEX_LIMIT = 7;
+constexpr unsigned int DEFAULT_CPUINDEX_LIMIT = 7;
 struct IOPollerInstance: public IOPoller {
     IOPollerInstance() noexcept: m_runner([&] { RunForever(); })
     {
@@ -34,7 +35,7 @@ struct IOPollerInstance: public IOPoller {
         pid_t pid = syscall(SYS_gettid);
         cpu_set_t mask;
         CPU_ZERO(&mask);
-        for (int i = 0; i < DEFAULT_CPUINDEX_LIMIT; ++i) {
+        for (unsigned int i = 0; i < DEFAULT_CPUINDEX_LIMIT; ++i) {
             CPU_SET(i, &mask);
         }
         syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
@@ -72,6 +73,7 @@ IOPoller::IOPoller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
 {
     assert(m_epFd >= 0);
     {
+        m_wakeData.data = nullptr;
         m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         assert(m_wakeData.fd >= 0);
         epoll_event ev{ .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
@@ -109,6 +111,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
     struct WakeData data = {.fd = fd, .data = static_cast<void *>(ctx->task)};
 
     epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&data)} };
+    FFRT_BLOCK_TRACER(ctx->task->gid, fd);
     CoWait([&](TaskCtx *task)->bool {
         (void)task;
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
@@ -122,7 +125,12 @@ void IOPoller::WaitFdEvent(int fd) noexcept
 void IOPoller::PollOnce(int timeout) noexcept
 {
     int ndfs = epoll_wait(m_epFd, m_events.data(), m_events.size(), timeout);
-    for (int i = 0; i < ndfs; ++i) {
+    if (ndfs <= 0) {
+        FFRT_LOGE("epoll_wait error: efd = %d, errorno= %d", m_epFd, errno);
+        return;
+    }
+
+    for (unsigned int i = 0; i < static_cast<unsigned int>(ndfs); ++i) {
         struct WakeData *data = reinterpret_cast<struct WakeData *>(m_events[i].data.ptr);
 
         if (data->fd == m_wakeData.fd) {

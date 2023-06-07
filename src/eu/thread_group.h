@@ -167,7 +167,6 @@ private:
     int tgid = -1;
     bool isbegin = false;
 };
-
 }; // namespace ffrt
 
 #endif

@@ -57,7 +57,6 @@ public:
 private:
     std::atomic<bool> isTraceEnable_;
 };
-
 } // namespace ffrt
 
 
@@ -78,10 +77,12 @@ private:
 #define FFRT_WORKER_IDLE_END_MARKER()
 #define FFRT_SUBMIT_MARKER(tag, gid)
 #define FFRT_READY_MARKER(gid)
-#define FFRT_RUNNING_MARKER(gid)
 #define FFRT_BLOCK_MARKER(gid)
 #define FFRT_TASKDONE_MARKER(gid)
+#define FFRT_FAKE_TRACE_MARKER(gid)
 #define FFRT_TASK_BEGIN(tag, gid)
 #define FFRT_TASK_END()
+#define FFRT_BLOCK_TRACER(gid, tag)
+#define FFRT_WAKE_TRACER(gid)
 #endif
 #endif

@@ -18,42 +18,37 @@
 namespace ffrt {
 int SerialHandler::Cancel(ITask* task)
 {
-    FFRT_COND_TRUE_DO_ERR((task == nullptr), "submit task is nullptr", return -1);
-    FFRT_COND_TRUE_DO_ERR((looper_ == nullptr || looper_->m_queue == nullptr), "queue is nullptr", return -1);
-
-    int ret = looper_->m_queue->RemoveTask(task);
+    FFRT_COND_DO_ERR((task == nullptr), return -1, "submit task is nullptr");
+    FFRT_COND_DO_ERR((looper_ == nullptr || looper_->queue_ == nullptr), return -1, "queue is nullptr");
+    int ret = looper_->queue_->RemoveTask(task);
+    FFRT_LOGI("cancel serial task [0x%x] return [%d]", task, ret);
     if (ret == 0) {
         DestroyTask(task);
     }
-    FFRT_LOGD("Cancel Task [0x%x] succ", task);
     return ret;
 }
 
 void SerialHandler::DispatchTask(ITask* task)
 {
-    FFRT_LOGD("DispatchTask Task [0x%x] begin", task);
-    FFRT_COND_TRUE_DO_ERR((task == nullptr), "failed to dispatch, task is nullptr", return);
+    FFRT_COND_DO_ERR((task == nullptr), return, "failed to dispatch, task is nullptr");
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-    FFRT_LOGD("task->func_storage [0x%x], f->exec [0x%x]", task->func_storage, f->exec);
     f->exec(f);
     f->destroy(f);
     DestroyTask(task);
-    FFRT_LOGD("DispatchTask Task [0x%x] succ", task);
+    FFRT_LOGI("dispatch serial task [0x%x] succ", task);
 }
 
 int SerialHandler::SubmitDelayed(ITask* task, uint64_t delayUs)
 {
-    FFRT_COND_TRUE_DO_ERR((task == nullptr), "submit task is nullptr", return -1);
-    FFRT_COND_TRUE_DO_ERR((looper_ == nullptr || looper_->m_queue == nullptr), "queue is nullptr", return -1);
-
+    FFRT_COND_DO_ERR((task == nullptr), return -1, "submit task is nullptr");
+    FFRT_COND_DO_ERR((looper_ == nullptr || looper_->queue_ == nullptr), return -1, "queue is nullptr");
+    FFRT_LOGI("submit serial task [0x%x] with delay [%llu us]", task, delayUs);
     auto nowUs = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     uint64_t upTime = static_cast<uint64_t>(nowUs.time_since_epoch().count());
     if (delayUs > 0) {
         upTime = upTime + delayUs;
     }
-
-    FFRT_LOGD("SubmitDelayed Task [0x%x] succ", task);
-    return looper_->m_queue->PushTask(task, upTime);
+    return looper_->queue_->PushTask(task, upTime);
 }
 
 void SerialHandler::DestroyTask(ITask* task)

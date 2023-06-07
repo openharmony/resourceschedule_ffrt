@@ -33,7 +33,7 @@ void CPUMonitor::HandleBlocked(const QoS& qos)
     }
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-    int exeValue = workerCtrl.executionNum;
+    size_t exeValue = static_cast<uint32_t>(workerCtrl.executionNum);
     workerCtrl.lock.unlock();
     size_t blockedNum = CountBlockedNum(qos);
     if (blockedNum > 0 && (exeValue - blockedNum < workerCtrl.maxConcurrency) && exeValue < workerCtrl.hardLimit) {
@@ -48,15 +48,23 @@ void MonitorMain(CPUMonitor* monitor)
     if (ret) {
         FFRT_LOGE("[SERVER] wgcm register server failed ret is %{public}d", ret);
     }
-    monitor->monitorTid = syscall(SYS_gettid);
-    for (int i = 0; i < static_cast<int>(QoS::Max()); i++) {
+
+    ret = syscall(SYS_gettid);
+    if (ret == -1) {
+        monitor->monitorTid = 0;
+        FFRT_LOGE("syscall(SYS_gettid) failed");
+    } else {
+        monitor->monitorTid = static_cast<uint32_t>(ret);
+    }
+
+    for (unsigned int i = 0; i < static_cast<unsigned int>(QoS::Max()); i++) {
         struct wgcm_workergrp_data grp = {0};
         grp.gid = i;
         grp.min_concur_workers = DEFAULT_MINCONCURRENCY;
         grp.max_workers_sum = DEFAULT_HARDLIMIT;
         ret = prctl(PR_WGCM_CTL, WGCM_CTL_SET_GRP, &grp, 0, 0);
         if (ret) {
-            FFRT_LOGE("[SERVER] wgcm group %d register failed\n ret is %{public}d", i, ret);
+            FFRT_LOGE("[SERVER] wgcm group %u register failed\n ret is %{public}d", i, ret);
         }
     }
 
@@ -86,7 +94,7 @@ void CPUMonitor::SetupMonitor()
 {
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT;
-        ctrlQueue[qos].workerManagerID = qos;
+        ctrlQueue[qos].workerManagerID = static_cast<uint32_t>(qos);
         ctrlQueue[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(static_cast<enum qos>(qos));
     }
 }
@@ -159,7 +167,7 @@ void CPUMonitor::DecExeNumRef(const QoS& qos)
     workerCtrl.lock.unlock();
 }
 
-int CPUMonitor::CountBlockedNum(const QoS& qos)
+size_t CPUMonitor::CountBlockedNum(const QoS& qos)
 {
     struct wgcm_workergrp_data grp = {0};
     grp.gid = static_cast<uint32_t>(qos);
@@ -224,7 +232,7 @@ void CPUMonitor::Poke(const QoS& qos)
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
     FFRT_LOGI("qos[%d] exe num[%d] slp num[%d]", (int)qos, workerCtrl.executionNum, workerCtrl.sleepingWorkerNum);
-    if (workerCtrl.executionNum < workerCtrl.maxConcurrency) {
+    if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.maxConcurrency) {
         if (workerCtrl.sleepingWorkerNum == 0) {
             workerCtrl.executionNum++;
             workerCtrl.lock.unlock();
@@ -237,5 +245,4 @@ void CPUMonitor::Poke(const QoS& qos)
         workerCtrl.lock.unlock();
     }
 }
-
 }

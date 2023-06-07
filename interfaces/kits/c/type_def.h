@@ -15,6 +15,7 @@
 #ifndef FFRT_API_C_TYPE_DEF_H
 #define FFRT_API_C_TYPE_DEF_H
 #include <stdint.h>
+#include <errno.h>
 
 #ifdef __cplusplus
 #define FFRT_C_API  extern "C"
@@ -24,7 +25,6 @@
 
 typedef enum {
     ffrt_qos_inherit = -1,
-    ffrt_qos_unspecified,
     ffrt_qos_background,
     ffrt_qos_utility,
     ffrt_qos_default,
@@ -39,64 +39,84 @@ typedef enum {
     ffrt_stack_protect_strong
 } ffrt_stack_protect_t;
 
-typedef void(*ffrt_function_ptr_t)(void*);
+typedef void(*ffrt_function_t)(void*);
 typedef struct {
-    ffrt_function_ptr_t exec;
-    ffrt_function_ptr_t destroy;
+    ffrt_function_t exec;
+    ffrt_function_t destroy;
     uint64_t reserve[2];
 } ffrt_function_header_t;
 
-const int ffrt_task_attr_storage_size = 128;
-const int ffrt_auto_managed_function_storage_size = 64 + sizeof(ffrt_function_header_t);
-const int ffrt_mutex_storage_size = 128;
-const int ffrt_cnd_storage_size = 512;
+typedef enum {
+    ffrt_task_attr_storage_size = 128,
+    ffrt_auto_managed_function_storage_size = 64 + sizeof(ffrt_function_header_t),
+    ffrt_mutex_storage_size = 64,
+    ffrt_cond_storage_size = 64,
+    ffrt_thread_attr_storage_size = 64,
+    ffrt_queue_attr_storage_size = 128,
+} ffrt_storage_size_t;
+
+typedef enum {
+    ffrt_function_kind_general,
+    ffrt_function_kind_queue
+} ffrt_function_kind_t;
 
 typedef struct {
     uint32_t len;
     const void* const * items;
 } ffrt_deps_t;
 
-typedef struct __attribute__ ((aligned(4))) {
-    char storage[ffrt_task_attr_storage_size];
+typedef struct {
+    uint32_t storage[(ffrt_task_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_task_attr_t;
 
-typedef struct __attribute__ ((aligned(4))) {
-    char storage[ffrt_task_attr_storage_size];
+typedef struct {
+    uint32_t storage[(ffrt_queue_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_queue_attr_t;
 
 typedef void* ffrt_task_handle_t;
 
 typedef enum {
-    ffrt_mtx_plain,
-    ffrt_mtx_recursive,
-    ffrt_mtx_timed
-} ffrt_mtx_type_t;
+    ffrt_error = -1,
+    ffrt_success = 0,
+    ffrt_error_nomem = ENOMEM,
+    ffrt_error_timedout = ETIMEDOUT,
+    ffrt_error_busy = EBUSY,
+    ffrt_error_inval = EINVAL
+} ffrt_error_t;
 
-typedef enum {
-    ffrt_thrd_success,
-    ffrt_thrd_nomem,
-    ffrt_thrd_timedout,
-    ffrt_thrd_busy,
-    ffrt_thrd_error
-} ffrt_thrd_state_t;
+typedef struct {
+    long storage;
+} ffrt_condattr_t;
 
-typedef struct __attribute__ ((aligned(4))) {
-    char storage [ffrt_mutex_storage_size];
-} ffrt_mtx_t;
+typedef struct {
+    long storage;
+} ffrt_mutexattr_t;
 
-typedef struct __attribute__ ((aligned(4))) {
-    char storage[ffrt_cnd_storage_size];
-} ffrt_cnd_t;
+typedef struct {
+    uint32_t storage[(ffrt_thread_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
+} ffrt_thread_attr_t;
 
-constexpr unsigned int MAX_CPUMAP_LENGTH = 100;
+typedef struct {
+    uint32_t storage[(ffrt_mutex_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
+} ffrt_mutex_t;
+
+typedef struct {
+    uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
+} ffrt_cond_t;
+
+constexpr unsigned int MAX_CPUMAP_LENGTH = 100; // this is in c and code style
 typedef struct {
     int shares;
     int latency_nice;
     int uclamp_min;
+    int uclamp_max;
+    int vip_prio;
     char cpumap[MAX_CPUMAP_LENGTH];
 } ffrt_os_sched_attr;
 
-typedef void* ffrt_qos_interval_t;
+typedef void* ffrt_thread_t;
+
+typedef void* ffrt_interval_t;
 
 typedef enum {
     ffrt_sys_event_type_read,
@@ -111,13 +131,10 @@ typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
 
-typedef void* ffrt_thrd_t;
-
 #ifdef __cplusplus
 namespace ffrt {
 enum qos {
     qos_inherit = ffrt_qos_inherit,
-    qos_unspecified = ffrt_qos_unspecified,
     qos_background = ffrt_qos_background,
     qos_utility = ffrt_qos_utility,
     qos_default = ffrt_qos_default,

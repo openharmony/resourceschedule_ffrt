@@ -55,7 +55,7 @@ public:
     uint32_t monitorTid = 0;
 
 private:
-    int CountBlockedNum(const QoS& qos);
+    size_t CountBlockedNum(const QoS& qos);
     void SetupMonitor();
     void StartMonitor();
     void Poke(const QoS& qos);

@@ -27,7 +27,7 @@ struct SListNode {
     {
         return next != this;
     }
-    SListNode(SListNode* p) noexcept : next {p}
+    explicit SListNode(SListNode* p) noexcept : next {p}
     {
     }
     SListNode() noexcept = default;

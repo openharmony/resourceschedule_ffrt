@@ -34,36 +34,45 @@ public:
     queue_attr(const queue_attr&) = delete;
     queue_attr& operator=(const queue_attr&) = delete;
 
-    /**
-    @brief set qos
-    */
+    // set qos
     inline queue_attr& qos(enum qos qos)
     {
         ffrt_queue_attr_set_qos(this, static_cast<ffrt_qos_t>(qos));
         return *this;
     }
 
-    /**
-    @brief get qos
-    */
+    // get qos
     inline enum qos qos() const
     {
         return static_cast<enum qos>(ffrt_queue_attr_get_qos(this));
     }
+
+    // set timeout
+    inline queue_attr& timeout(uint64_t timeout_us)
+    {
+        ffrt_queue_attr_set_timeout(this, timeout_us);
+        return *this;
+    }
+
+    // get timeout
+    inline uint64_t timeout() const
+    {
+        return ffrt_queue_attr_get_timeout(this);
+    }
+
+    // set timeoutCb
+    inline queue_attr& timeoutCb(std::function<void()>& func)
+    {
+        ffrt_queue_attr_set_timeoutCb(this, create_function_wrapper(func, ffrt_function_kind_queue));
+        return *this;
+    }
+
+    // get timeoutCb
+    inline ffrt_function_header_t* timeoutCb() const
+    {
+        return ffrt_queue_attr_get_timeoutCb(this);
+    }
 };
-
-template<class T>
-inline ffrt_function_header_t* create_queue_func_wrapper(T&& func)
-{
-    using function_type = function<std::decay_t<T>>;
-    static_assert(sizeof(function_type) <= ffrt_auto_managed_function_storage_size,
-        "size of function must be less than ffrt_auto_managed_function_storage_size");
-
-    auto p = ffrt_alloc_auto_free_queue_func_storage_base();
-    auto f =
-        new (p)function_type({ exec_function_wrapper<T>, destroy_function_wrapper<T>, { 0 } }, std::forward<T>(func));
-    return reinterpret_cast<ffrt_function_header_t *>(f);
-}
 
 class queue {
 public:
@@ -80,34 +89,57 @@ public:
     queue(queue const&) = delete;
     void operator=(queue const&) = delete;
 
-    inline void submit(std::function<void()>& func, const task_attr& attr = {})
+    // submit
+    inline void submit(std::function<void()>& func)
     {
-        (void) ffrt_queue_submit_raw(queue_handle, create_queue_func_wrapper(func), &attr);
+        ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
     }
 
-    inline void submit(std::function<void()>&& func, const task_attr& attr = {})
+    inline void submit(std::function<void()>& func, const task_attr& attr)
     {
-        (void) ffrt_queue_submit_raw(queue_handle, create_queue_func_wrapper(std::move(func)), &attr);
+        ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
     }
 
-    inline task_handle submit_h(std::function<void()>& func, const task_attr& attr = {})
+    inline void submit(std::function<void()>&& func)
     {
-        ffrt_task_handle_t handle = ffrt_queue_submit_raw(queue_handle, create_queue_func_wrapper(func), &attr);
-        return task_handle(handle, ffrt_queue_destroy_task_handle);
+        ffrt_queue_submit(queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), nullptr);
     }
 
-    inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
+    inline void submit(std::function<void()>&& func, const task_attr& attr)
     {
-        ffrt_task_handle_t handle =
-            ffrt_queue_submit_raw(queue_handle, create_queue_func_wrapper(std::move(func)), &attr);
-        return task_handle(handle, ffrt_queue_destroy_task_handle);
+        ffrt_queue_submit(queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), &attr);
     }
 
+    // submit_h
+    inline task_handle submit_h(std::function<void()>& func)
+    {
+        return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
+    }
+
+    inline task_handle submit_h(std::function<void()>& func, const task_attr& attr)
+    {
+        return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
+    }
+
+    inline task_handle submit_h(std::function<void()>&& func)
+    {
+        return ffrt_queue_submit_h(
+            queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), nullptr);
+    }
+
+    inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr)
+    {
+        return ffrt_queue_submit_h(
+            queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), &attr);
+    }
+
+    // cancel
     inline int cancel(task_handle& handle)
     {
         return ffrt_queue_cancel(handle);
     }
 
+    // wait
     inline void wait(task_handle& handle)
     {
         return ffrt_queue_wait(handle);

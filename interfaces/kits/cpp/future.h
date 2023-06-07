@@ -18,8 +18,8 @@
 #include <optional>
 #include <chrono>
 #include <cassert>
-#include "task.h"
 #include "condition_variable.h"
+#include "thread.h"
 
 namespace ffrt {
 struct non_copyable {
@@ -36,13 +36,14 @@ template <typename Derived>
 struct shared_state_base : private non_copyable {
     void wait() const noexcept
     {
-        wait_();
+        std::unique_lock lk(this->m_mtx);
+        wait_(lk);
     }
 
     template <typename Rep, typename Period>
     future_status wait_for(const std::chrono::duration<Rep, Period>& waitTime) const noexcept
     {
-        std::unique_lock lk(m_mtx);
+        std::unique_lock<mutex> lk(m_mtx);
         return m_cv.wait_for(lk, waitTime, [this] { return get_derived().has_value(); }) ? future_status::ready :
             future_status::timeout;
     }
@@ -50,15 +51,16 @@ struct shared_state_base : private non_copyable {
     template <typename Clock, typename Duration>
     future_status wait_until(const std::chrono::time_point<Clock, Duration>& tp) const noexcept
     {
-        std::unique_lock lk(m_mtx);
+        std::unique_lock<mutex> lk(m_mtx);
         return m_cv.wait_until(lk, tp, [this] { return get_derived().has_value(); }) ? future_status::ready :
             future_status::timeout;
     }
 
 protected:
-    void wait_() const noexcept
+    void wait_(std::unique_lock<mutex>& lk) const noexcept
     {
-        ffrt::wait({(char*)this});
+        assert(lk.owns_lock());
+        m_cv.wait(lk, [this] { return get_derived().has_value(); });
     }
 
     mutable mutex m_mtx;
@@ -76,7 +78,7 @@ struct shared_state : shared_state_base<shared_state<R>> {
     void set_value(const R& value) noexcept
     {
         {
-            std::unique_lock lk(this->m_mtx);
+            std::unique_lock<mutex> lk(this->m_mtx);
             assert(!m_res.has_value());
             m_res.emplace(value);
         }
@@ -86,7 +88,7 @@ struct shared_state : shared_state_base<shared_state<R>> {
     void set_value(R&& value) noexcept
     {
         {
-            std::unique_lock lk(this->m_mtx);
+            std::unique_lock<mutex> lk(this->m_mtx);
             assert(!m_res.has_value());
             m_res.emplace(std::move(value));
         }
@@ -95,7 +97,8 @@ struct shared_state : shared_state_base<shared_state<R>> {
 
     R& get() noexcept
     {
-        this->wait_();
+        std::unique_lock lk(this->m_mtx);
+        this->wait_(lk);
         assert(m_res.has_value());
         return m_res.value();
     }
@@ -114,7 +117,7 @@ struct shared_state<void> : shared_state_base<shared_state<void>> {
     void set_value() noexcept
     {
         {
-            std::unique_lock lk(this->m_mtx);
+            std::unique_lock<mutex> lk(this->m_mtx);
             assert(!m_hasValue);
             m_hasValue = true;
         }
@@ -123,7 +126,8 @@ struct shared_state<void> : shared_state_base<shared_state<void>> {
 
     void get() noexcept
     {
-        this->wait_();
+        std::unique_lock lk(this->m_mtx);
+        this->wait_(lk);
         assert(m_hasValue);
     }
 
@@ -145,11 +149,11 @@ class future : private non_copyable {
     template <typename>
     friend struct packaged_task;
 
-    future(std::shared_ptr<detail::shared_state<R>>& state) noexcept : m_state(state)
+public:
+    explicit future(const std::shared_ptr<detail::shared_state<R>>& state) noexcept : m_state(state)
     {
     }
 
-public:
     future() noexcept = default;
 
     future(future&& fut) noexcept
@@ -206,7 +210,7 @@ public:
         std::swap(m_state, rhs.m_state);
     }
 
-    // private:
+private:
     std::shared_ptr<detail::shared_state<R>> m_state;
 };
 
@@ -363,7 +367,8 @@ future<std::invoke_result_t<std::decay_t<F>, std::decay_t<Args>...>> async(F&& f
     using R = std::invoke_result_t<std::decay_t<F>, std::decay_t<Args>...>;
     packaged_task<R(std::decay_t<Args>...)> pt {std::forward<F>(f)};
     auto fut {pt.get_future()};
-    ffrt::submit(std::bind(std::move(pt), std::forward<Args>(args)...), {}, {fut.m_state.get()});
+    auto th = ffrt::thread(std::move(pt), std::forward<Args>(args)...);
+    th.detach();
     return fut;
 }
 } // namespace ffrt

@@ -18,50 +18,9 @@
 #include "qos_interface.h"
 
 namespace ffrt {
-class QosPolicys {
-public:
-    QosPolicys();
-
-    ~QosPolicys() {}
-
-    static QosPolicys& Instance()
-    {
-        static QosPolicys instance;
-        return instance;
-    }
-
-    void setPolicyDefault();
-
-    struct QosPolicyDatas& getPolicyDefault()
-    {
-        return g_defaultQosPolicy;
-    }
-
-    void setPolicyForeground();
-
-    struct QosPolicyDatas& getPolicyForeground()
-    {
-        return g_foregroundQosPolicy;
-    }
-
-    void setPolicyBackground();
-
-    struct QosPolicyDatas& getPolicyBackground()
-    {
-        return g_backgroundQosPolicy;
-    }
-
-    void setPolicySystem();
-
-    struct QosPolicyDatas& getPolicySystem()
-    {
-        return g_systemServerQosPolicy;
-    }
-private:
-    struct QosPolicyDatas g_defaultQosPolicy;
-    struct QosPolicyDatas g_foregroundQosPolicy;
-    struct QosPolicyDatas g_backgroundQosPolicy;
-    struct QosPolicyDatas g_systemServerQosPolicy;
-};
+constexpr int MAX_USER_RT_PRIO = 100;
+constexpr int DEFAULT_PRIO = 120;
+int SetAffinity(unsigned long affinity, int tid);
+int SetPriority(unsigned char priority, WorkerThread* thread);
 }
 #endif /* QOS_POLICY_H */

@@ -26,7 +26,8 @@
 
 namespace ffrt {
 class Interval;
-
+constexpr uint64_t NS_PER_US = 1000;
+constexpr uint64_t NS_PER_MS = 1000000;
 class Deadline {
 public:
     Deadline(uint64_t deadlineUs)
@@ -41,20 +42,21 @@ public:
 
     uint64_t ToUs() const
     {
-        uint64_t us = deadlineNs / 1000;
+        uint64_t us = deadlineNs / NS_PER_US;
         return us > 0 ? us : 1;
     }
 
     uint64_t ToMs() const
     {
-        uint64_t ms = deadlineNs / 1000000;
+        uint64_t ms = deadlineNs / NS_PER_MS;
         return ms > 0 ? ms : 1;
     }
 
     uint64_t LeftNs() const
     {
-        int64_t left = absDeadlineNs - AbsNowNs();
-        return left > 0 ? left : 1;
+        uint64_t nowNs = AbsNowNs();
+        uint64_t left = (absDeadlineNs > nowNs) ? (absDeadlineNs - nowNs) : 1;
+        return left;
     }
 
     void Update(uint64_t deadlineUs);
@@ -62,8 +64,8 @@ public:
 private:
     static uint64_t AbsNowNs();
 
-    uint64_t deadlineNs;
-    uint64_t absDeadlineNs;
+    uint64_t deadlineNs = 0;
+    uint64_t absDeadlineNs = 0;
 };
 
 class PerfCtrl {
@@ -155,6 +157,11 @@ private:
 
 class IntervalLoadPredictor {
 public:
+    IntervalLoadPredictor()
+    {
+        cpLoad.resize(1);
+    }
+
     void ResetCPIndex()
     {
         cpLoadIndex = 0;
@@ -250,7 +257,6 @@ private:
 
     fast_mutex mutex;
 };
-
 } // namespace ffrt
 
 #endif

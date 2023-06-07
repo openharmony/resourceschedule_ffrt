@@ -23,6 +23,7 @@
 #include "util/linked_list.h"
 
 namespace ffrt {
+using time_point_t = std::chrono::steady_clock::time_point;
 
 enum class TaskTimeoutState {
     INIT,
@@ -51,13 +52,15 @@ struct WaitEntry {
 };
 
 struct WaitUntilEntry : WaitEntry {
-    WaitUntilEntry() : WaitEntry(), status(we_status::INIT)
+    WaitUntilEntry() : WaitEntry(), status(we_status::INIT), hasWaitTime(false)
     {
     }
-    WaitUntilEntry(TaskCtx* inTask) : WaitEntry(inTask), status(we_status::INIT)
+    WaitUntilEntry(TaskCtx* inTask) : WaitEntry(inTask), status(we_status::INIT), hasWaitTime(false)
     {
     }
-    int status;
+    std::atomic_int32_t status;
+    bool hasWaitTime;
+    time_point_t tp;
     std::function<void(WaitEntry*)> cb;
     std::mutex wl;
     std::condition_variable cv;

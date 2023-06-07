@@ -20,7 +20,6 @@
 #include "core/task_ctx.h"
 
 namespace ffrt {
-
 template <typename Derived>
 class RunQueue {
 public:
@@ -84,7 +83,6 @@ private:
     LinkedList list;
     int size = 0;
 };
-
 } // namespace ffrt
 
 #endif

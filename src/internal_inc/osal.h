@@ -28,34 +28,48 @@
 #define likely(x)       __builtin_expect(!!(x), 1)
 #endif
 
-/*
- * get environment variable
- */
-std::string GetEnv(const char* name);
-
 #ifdef __linux__
 #include <sys/syscall.h>
 #include <unistd.h>
-static inline unsigned int GetPid()
+static inline unsigned int GetPid(void)
 {
     return getpid();
 }
-static inline unsigned int GetTid()
+static inline unsigned int GetTid(void)
 {
     return syscall(SYS_gettid);
+}
+static inline std::string GetEnv(const char* name)
+{
+    char* val = std::getenv(name);
+    if (val == nullptr) {
+        return "";
+    }
+    return val;
 }
 
 #elif defined(_MSC_VER)
 #include <windows.h>
 
-static inline unsigned int GetPid()
+static inline unsigned int GetPid(void)
 {
     return GetCurrentProcessId();
 }
-static inline unsigned int GetTid()
+static inline unsigned int GetTid(void)
 {
     return GetCurrentThreadId();
 }
+static inline std::string GetEnv(const char* name)
+{
+    char* r = nullptr;
+    size_t len = 0;
 
+    if (_dupenv_s(&r, &len, name) == 0 && r != nullptr) {
+        std::string val(r, len);
+        std::free(r);
+        return val;
+    }
+    return "";
+}
 #endif
 #endif

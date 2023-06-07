@@ -17,7 +17,7 @@
 #define FFRT_EXECUTE_UNIT_HPP
 
 
-#include "eu/workgroup_internal.h"
+#include "sched/workgroup_internal.h"
 #include "eu/worker_manager.h"
 #include "eu/thread_group.h"
 #include "core/task_ctx.h"

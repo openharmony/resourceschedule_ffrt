@@ -16,9 +16,9 @@
 #define FFRT_API_C_MUTEX_H
 #include "type_def.h"
 
-FFRT_C_API int ffrt_mtx_init(ffrt_mtx_t* mutex, int type);
-FFRT_C_API int ffrt_mtx_lock(ffrt_mtx_t* mutex);
-FFRT_C_API int ffrt_mtx_unlock(ffrt_mtx_t* mutex);
-FFRT_C_API int ffrt_mtx_trylock(ffrt_mtx_t* mutex);
-FFRT_C_API void ffrt_mtx_destroy(ffrt_mtx_t* mutex);
+FFRT_C_API int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr);
+FFRT_C_API int ffrt_mutex_lock(ffrt_mutex_t* mutex);
+FFRT_C_API int ffrt_mutex_unlock(ffrt_mutex_t* mutex);
+FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
+FFRT_C_API int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 #endif

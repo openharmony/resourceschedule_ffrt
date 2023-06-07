@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "queue/serial_queue.h"
+#include "serial_queue.h"
 #include <chrono>
 #include "dfx/log/ffrt_log_api.h"
 
@@ -25,8 +25,8 @@ SerialQueue::~SerialQueue()
 
 void SerialQueue::Quit()
 {
-    FFRT_LOGI("quit serial queue %s", name_.c_str());
     std::unique_lock lock(mutex_);
+    FFRT_LOGD("quit serial queue %s enter", name_.c_str());
     if (isExit_) {
         return;
     }
@@ -42,15 +42,16 @@ void SerialQueue::Quit()
         }
     }
     whenMap_.clear();
+    FFRT_LOGD("quit serial queue %s leave", name_.c_str());
 }
 
 int SerialQueue::PushTask(ITask* task, uint64_t upTime)
 {
-    FFRT_COND_TRUE_DO_ERR((task == nullptr), "failed to push task, task is nullptr", return -1);
     std::unique_lock lock(mutex_);
+    FFRT_COND_DO_ERR((task == nullptr), return -1, "failed to push task, task is nullptr");
     whenMap_[upTime].emplace_back(task);
     if (upTime == whenMap_.begin()->first) {
-        FFRT_LOGD("%s, Push Serial Task, Notify All", name_.c_str());
+        FFRT_LOGD("serial task [0x%x] notify all", task);
         cond_.notify_all();
     }
     return 0;
@@ -58,9 +59,9 @@ int SerialQueue::PushTask(ITask* task, uint64_t upTime)
 
 int SerialQueue::RemoveTask(const ITask* task)
 {
-    FFRT_COND_TRUE_DO_ERR((task == nullptr), "failed to remove task, task is nullptr", return -1);
-
     std::unique_lock lock(mutex_);
+    FFRT_COND_DO_ERR((task == nullptr), return -1, "failed to remove task, task is nullptr");
+    FFRT_LOGD("remove serial task [0x%x] enter", task);
     for (auto it = whenMap_.begin(); it != whenMap_.end();) {
         for (auto itList = it->second.begin(); itList != it->second.end();) {
             if ((*itList) != task) {
@@ -68,6 +69,7 @@ int SerialQueue::RemoveTask(const ITask* task)
                 continue;
             }
             it->second.erase(itList++);
+            FFRT_LOGD("remove serial task [0x%x] leave", task);
             // a task can be submitted only once through the C interface
             return 0;
         }
@@ -78,7 +80,7 @@ int SerialQueue::RemoveTask(const ITask* task)
             it++;
         }
     }
-
+    FFRT_LOGD("remove serial task [0x%x] failed, task not in ready queue", task);
     return 1;
 }
 
@@ -86,12 +88,12 @@ ITask* SerialQueue::Next()
 {
     std::unique_lock lock(mutex_);
     while (whenMap_.empty() && !isExit_) {
-        FFRT_LOGD("Serial Queue %s is Empty, Begin to Wait", name_.c_str());
+        FFRT_LOGD("serial queue [%s] is empty, begin to wait", name_.c_str());
         cond_.wait(lock);
     }
 
     if (isExit_) {
-        FFRT_LOGD("Serial Queue %s is Exit", name_.c_str());
+        FFRT_LOGD("serial queue [%s] is exit", name_.c_str());
         return nullptr;
     }
 

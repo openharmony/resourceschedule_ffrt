@@ -23,7 +23,6 @@
 #include <mutex>
 
 namespace ffrt {
-
 struct MutexStatistic {
     ~MutexStatistic();
     std::mutex mtx_;
@@ -33,7 +32,6 @@ struct MutexStatistic {
 void AddMutexCycles(std::string key, uint32_t val);
 
 namespace xx {
-
 class mutex : public std::mutex {
 public:
     mutex() : label_("undefined") {};
@@ -68,9 +66,7 @@ private:
     std::string label_;
     std::mutex impl_;
 };
-
 } // namespace xx
-
 } // namespace ffrt
 
 #endif

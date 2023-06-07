@@ -21,18 +21,21 @@
 #include <thread>
 #include <linux/futex.h>
 namespace ffrt {
-
 DelayedWorker::DelayedWorker() : futex(0)
 {
     std::thread t([this]() {
         prctl(PR_SET_NAME, "delayed_worker");
         for (;;) {
+            lock.lock();
             if (futex < 0) {
+                lock.unlock();
+                exited = true;
                 break;
             }
             struct timespec ts;
             struct timespec *p = &ts;
             HandleWork(&p);
+            lock.unlock();
             syscall(SYS_futex, &futex, FUTEX_WAIT_BITSET, 0, p, 0, -1);
         }
     });
@@ -43,14 +46,16 @@ DelayedWorker::~DelayedWorker()
 {
     lock.lock();
     futex = -1;
-    syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
     lock.unlock();
+
+    while (!exited) {
+        syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
+    }
 }
 
 void DelayedWorker::HandleWork(struct timespec** p)
 {
     const int NS_PER_SEC = 1000000000;
-    std::lock_guard<decltype(lock)> l(lock);
 
     while (!map.empty()) {
         time_point_t now = std::chrono::steady_clock::now();
@@ -61,6 +66,9 @@ void DelayedWorker::HandleWork(struct timespec** p)
             lock.unlock();
             (*w.cb)(w.we);
             lock.lock();
+            if (futex < 0) {
+                return;
+            }
         } else {
             std::chrono::nanoseconds ns = cur->first.time_since_epoch();
             (*p)->tv_sec = ns.count() / NS_PER_SEC;

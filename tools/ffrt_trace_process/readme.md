@@ -8,7 +8,7 @@ FFRT Trace工具包，目前包含两类工具：
 使用方法：
 ~~~
 # 使用脚本复原trace，会在输入文件同目录下复原一个以_ffrt_recover后缀的新文件
-python ffrt_trace_recover.py -f in_trace.ftrace
+python3 ffrt_trace_recover.py -f in_trace.ftrace
 ~~~
 
 ## 2、trace分析工具

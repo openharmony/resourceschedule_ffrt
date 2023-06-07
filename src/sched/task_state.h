@@ -24,7 +24,6 @@
 #include <chrono>
 
 namespace ffrt {
-
 struct TaskCtx;
 
 class TaskState {
@@ -127,7 +126,6 @@ private:
 
     static std::array<Op, static_cast<size_t>(TaskState::MAX)> ops;
 };
-
 } // namespace ffrt
 
 #endif

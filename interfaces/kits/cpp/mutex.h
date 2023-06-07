@@ -17,16 +17,16 @@
 #include "c/mutex.h"
 
 namespace ffrt {
-class mutex : public ffrt_mtx_t {
+class mutex : public ffrt_mutex_t {
 public:
     mutex()
     {
-        ffrt_mtx_init(this, ffrt_mtx_plain);
+        ffrt_mutex_init(this, nullptr);
     }
 
     ~mutex()
     {
-        ffrt_mtx_destroy(this);
+        ffrt_mutex_destroy(this);
     }
 
     mutex(mutex const&) = delete;
@@ -34,17 +34,17 @@ public:
 
     inline bool try_lock()
     {
-        return ffrt_mtx_trylock(this) == ffrt_thrd_success ? true : false;
+        return ffrt_mutex_trylock(this) == ffrt_success ? true : false;
     }
 
     inline void lock()
     {
-        ffrt_mtx_lock(this);
+        ffrt_mutex_lock(this);
     }
 
     inline void unlock()
     {
-        ffrt_mtx_unlock(this);
+        ffrt_mutex_unlock(this);
     }
 };
 } // namespace ffrt

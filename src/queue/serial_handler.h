@@ -15,14 +15,16 @@
 #ifndef FFRT_SERIAL_HANDLER_H
 #define FFRT_SERIAL_HANDLER_H
 
-#include "queue/ihandler.h"
-#include "queue/serial_looper.h"
+#include "ihandler.h"
+#include "serial_looper.h"
 
 namespace ffrt {
 class ITask;
 class SerialHandler : public IHandler {
 public:
-    explicit SerialHandler(const std::shared_ptr<SerialLooper>& looper) : looper_(looper) {}
+    explicit SerialHandler(const std::shared_ptr<SerialLooper>& looper) : looper_(looper)
+    {
+    }
 
     int Cancel(ITask* task) override;
     void DispatchTask(ITask* task) override;

@@ -15,12 +15,8 @@
 
 #ifndef __PERF_COUNTER_H__
 #define __PERF_COUNTER_H__
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <unistd.h>
-#include <sys/time.h>
-#include <ctime>
 
 constexpr int RECORD_NUM = 1024 * 32 * 16;
 constexpr int NAME_LEN = 32;
@@ -68,9 +64,9 @@ struct perf_stat_t {
 unsigned long perf_begin(const char* name, int id);
 void perf_end(int id, unsigned long rd);
 
-void perf_counter_output_all();
-void perf_counter_output_single();
-void perf_counter_clear();
+void perf_counter_output_all(void);
+void perf_counter_output_single(void);
+void perf_counter_clear(void);
 #else
 static unsigned long perf_begin(const char* name, int id)
 {
@@ -78,8 +74,8 @@ static unsigned long perf_begin(const char* name, int id)
 };
 static void perf_end(int id, unsigned long rd) {};
 
-static void perf_counter_output_all() {};
-static void perf_counter_output_single() {};
-static void perf_counter_clear() {};
+static void perf_counter_output_all(void) {};
+static void perf_counter_output_single(void) {};
+static void perf_counter_clear(void) {};
 #endif
 #endif

@@ -308,3 +308,25 @@ int QosPolicy(struct QosPolicyDatas *policyDatas)
     close(fd);
     return ret;
 }
+
+Func_affinity funcAffinity = nullptr;
+void setFuncAffinity(Func_affinity func)
+{
+    funcAffinity = func;
+}
+
+Func_affinity getFuncAffinity()
+{
+    return funcAffinity;
+}
+
+Func_priority funcPriority = nullptr;
+void setFuncPriority(Func_priority func)
+{
+    funcPriority = func;
+}
+
+Func_priority getFuncPriority()
+{
+    return funcPriority;
+}

@@ -1,3 +1,5 @@
+
+
 /*
  * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,26 +15,33 @@
  * limitations under the License.
  */
 
-#include <string>
+#ifndef UTIL_TASK_DELETER_HPP
+#define UTIL_TASK_DELETER_HPP
 
-std::string GetEnv(const char* name)
-{
-#ifdef _MSC_VER
-    char* r = nullptr;
-    size_t len = 0;
+#include <atomic>
+#include "internal_inc/non_copyable.h"
 
-    if (_dupenv_s(&r, &len, name) == 0 && r != nullptr) {
-        std::string val(r, len);
-        std::free(r);
-        return val;
+namespace ffrt {
+class TaskDeleter : private NonCopyable {
+public:
+    virtual ~TaskDeleter() {};
+    virtual void freeMem() = 0;
+
+    inline void IncDeleteRef()
+    {
+        rc.fetch_add(1);
     }
-    return "";
 
-#else
-    char* val = std::getenv(name);
-    if (val == nullptr) {
-        return "";
+    inline void DecDeleteRef()
+    {
+        auto v = rc.fetch_sub(1);
+        if (v == 1) {
+            freeMem();
+        }
     }
-    return val;
-#endif
-}
+
+    std::atomic_uint32_t rc = 1;
+};
+} // namespace ffrt
+
+#endif // UTIL_TASK_DELETER_HPP

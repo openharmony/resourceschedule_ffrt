@@ -26,6 +26,7 @@
 #include "eu/co_routine.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "cpp/sleep.h"
 
 namespace ffrt {
@@ -38,7 +39,7 @@ TaskCtx* ExecuteCtxTask()
     return ctx->task;
 }
 
-void sleep_until(const time_point_t& to)
+void sleep_until_impl(const time_point_t& to)
 {
     if (ExecuteCtxTask() == nullptr) {
         std::this_thread::sleep_until(to);
@@ -49,6 +50,7 @@ void sleep_until(const time_point_t& to)
 #else
     // be careful about local-var use-after-free here
     std::function<void(WaitEntry*)> cb([](WaitEntry* we) { CoWake(we->task, false); });
+    FFRT_BLOCK_TRACER(ExecuteCtxTask()->gid, slp);
     CoWait([&](TaskCtx* inTask) -> bool { return DelayedWakeup(to, &inTask->fq_we, cb); });
 
 #endif
@@ -68,6 +70,7 @@ void ffrt_yield()
         std::this_thread::yield();
         return;
     }
+    FFRT_BLOCK_TRACER(ffrt::this_task::ExecuteCtxTask()->gid, yld);
     CoWait([](ffrt::TaskCtx* inTask) -> bool {
         CoWake(inTask, false);
         return true;
@@ -75,17 +78,13 @@ void ffrt_yield()
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_sleep(const struct timespec* duration)
+int ffrt_usleep(uint64_t usec)
 {
-    if (!duration) {
-        FFRT_LOGE("duration should not be empty");
-        return ffrt_thrd_error;
-    }
-    auto sleep_tv = std::chrono::seconds{duration->tv_sec} + std::chrono::microseconds{duration->tv_nsec / 1000};
-    auto to = std::chrono::steady_clock::now() + sleep_tv;
+    auto duration = std::chrono::microseconds{usec};
+    auto to = std::chrono::steady_clock::now() + duration;
 
-    ffrt::this_task::sleep_until(to);
-    return ffrt_thrd_success;
+    ffrt::this_task::sleep_until_impl(to);
+    return ffrt_success;
 }
 
 #ifdef __cplusplus

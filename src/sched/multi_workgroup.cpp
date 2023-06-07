@@ -31,7 +31,6 @@ constexpr int RS_RTG_ID = 10;
 using namespace OHOS::ConcurrentTask;
 
 namespace ffrt {
-
 static int wgId = -1;
 static int wgCount = 0;
 static std::mutex wgLock;

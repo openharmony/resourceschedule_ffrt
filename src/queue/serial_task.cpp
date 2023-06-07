@@ -13,9 +13,20 @@
  * limitations under the License.
  */
 #include "serial_task.h"
+#include "dfx/log/ffrt_log_api.h"
 #include "util/slab.h"
 
 namespace ffrt {
+SerialTask::SerialTask()
+{
+    FFRT_LOGD("ctor serial task [0x%x]", this);
+}
+
+SerialTask::~SerialTask()
+{
+    FFRT_LOGD("dtor serial task [0x%x]", this);
+}
+
 ITask* SerialTask::SetQueHandler(IHandler* handler)
 {
     handler_ = handler;
@@ -25,7 +36,7 @@ ITask* SerialTask::SetQueHandler(IHandler* handler)
 void SerialTask::Wait()
 {
     std::unique_lock lock(mutex_);
-    while (!m_isFinished) {
+    while (!isFinished_) {
         cond_.wait(lock);
     }
 }
@@ -33,20 +44,12 @@ void SerialTask::Wait()
 void SerialTask::Notify()
 {
     std::unique_lock lock(mutex_);
-    m_isFinished = true;
+    isFinished_ = true;
     cond_.notify_all();
 }
 
-void SerialTask::IncDeleteRef()
+void SerialTask::freeMem()
 {
-    rc.fetch_add(1);
-}
-
-void SerialTask::DecDeleteRef()
-{
-    auto v = rc.fetch_sub(1);
-    if (v == 1) {
-        SimpleAllocator<SerialTask>::freeMem(this);
-    }
+    SimpleAllocator<SerialTask>::freeMem(this);
 }
 } // namespace ffrt

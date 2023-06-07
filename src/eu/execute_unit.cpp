@@ -19,7 +19,6 @@
 #include "eu/cpuworker_manager.h"
 
 namespace ffrt {
-
 ExecuteUnit::ExecuteUnit()
 {
     auto create = [&](const DevType dev) {
@@ -59,5 +58,4 @@ void ExecuteUnit::UnbindTG(const DevType dev, QoS& qos)
 {
     wManager[static_cast<size_t>(dev)]->LeaveTG(qos);
 }
-
 } // namespace ffrt

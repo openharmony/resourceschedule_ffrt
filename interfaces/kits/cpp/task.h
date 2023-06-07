@@ -88,22 +88,19 @@ public:
     }
 };
 
-// ffrt_queue_destroy_task_handle
-typedef void (*destroy_func_t)(ffrt_task_handle_t);
-
 class task_handle {
 public:
-    task_handle(destroy_func_t func = ffrt_task_handle_destroy) : p(nullptr), destroy_func(func)
+    task_handle() : p(nullptr)
     {
     }
-    task_handle(ffrt_task_handle_t p, destroy_func_t func = ffrt_task_handle_destroy) : p(p), destroy_func(func)
+    task_handle(ffrt_task_handle_t p) : p(p)
     {
     }
 
     ~task_handle()
     {
-        if (p && destroy_func) {
-            destroy_func(p);
+        if (p) {
+            ffrt_task_handle_destroy(p);
         }
     }
 
@@ -117,8 +114,8 @@ public:
 
     inline task_handle& operator=(task_handle&& h)
     {
-        if (p && destroy_func) {
-            destroy_func(p);
+        if (p) {
+            ffrt_task_handle_destroy(p);
         }
         p = h.p;
         h.p = nullptr;
@@ -132,7 +129,6 @@ public:
 
 private:
     ffrt_task_handle_t p = nullptr;
-    destroy_func_t destroy_func = nullptr;
 };
 
 template<class T>
@@ -158,16 +154,17 @@ void destroy_function_wrapper(void* t)
 }
 
 template<class T>
-inline ffrt_function_header_t* create_function_wrapper(T&& func)
+inline ffrt_function_header_t* create_function_wrapper(T&& func,
+    ffrt_function_kind_t kind = ffrt_function_kind_general)
 {
     using function_type = function<std::decay_t<T>>;
     static_assert(sizeof(function_type) <= ffrt_auto_managed_function_storage_size,
         "size of function must be less than ffrt_auto_managed_function_storage_size");
 
-    auto p = ffrt_alloc_auto_free_function_storage_base();
+    auto p = ffrt_alloc_auto_managed_function_storage_base(kind);
     auto f =
         new (p)function_type({ exec_function_wrapper<T>, destroy_function_wrapper<T>, { 0 } }, std::forward<T>(func));
-    return reinterpret_cast<ffrt_function_header_t *>(f);
+    return reinterpret_cast<ffrt_function_header_t*>(f);
 }
 
 /**
@@ -391,13 +388,21 @@ static inline void wait()
 static inline void wait(std::initializer_list<const void*> deps)
 {
     ffrt_deps_t d{static_cast<uint32_t>(deps.size()), deps.begin()};
-    ffrt_wait_deps_without_copy_base(&d);
+    ffrt_wait_deps(&d);
 }
 
 static inline void wait(const std::vector<const void*>& deps)
 {
     ffrt_deps_t d{static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt_wait_deps(&d);
+}
+
+/**
+@brief config
+*/
+static inline int set_cgroup_attr(enum qos qos, ffrt_os_sched_attr *attr)
+{
+    return ffrt_set_cgroup_attr(static_cast<ffrt_qos_t>(qos), attr);
 }
 
 void sync_io(int fd);
@@ -407,8 +412,15 @@ void set_trace_tag(const std::string& name);
 void clear_trace_tag();
 
 namespace this_task {
-int update_qos(enum qos qos);
-uint64_t get_id();
+static inline int update_qos(enum qos qos)
+{
+    return ffrt_this_task_update_qos(static_cast<ffrt_qos_t>(qos));
+}
+
+static inline uint64_t get_id()
+{
+    return ffrt_this_task_get_id();
+}
 } // namespace this_task
 } // namespace ffrt
 #endif

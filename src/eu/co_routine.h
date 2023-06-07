@@ -16,6 +16,7 @@
 #ifndef FFRT_CO_ROUTINE_HPP
 #define FFRT_CO_ROUTINE_HPP
 #include <functional>
+#include <atomic>
 #include "co2_context.h"
 #if defined(__aarch64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
@@ -43,11 +44,11 @@ enum class CoStackProtectType {
 };
 
 #if defined(__aarch64__)
-    constexpr int STACK_SIZE = 1 << 20; // 至少3*PAGE_SIZE
+    constexpr uint64_t STACK_SIZE = 1 << 20; // 至少3*PAGE_SIZE
 #elif defined(__arm__)
-    constexpr int STACK_SIZE = 1 << 15;
+    constexpr uint64_t STACK_SIZE = 1 << 15;
 #else
-    constexpr int STACK_SIZE = 1 << 20;
+    constexpr uint64_t STACK_SIZE = 1 << 20;
 #endif
 
 using CoCtx = struct co2_context;
@@ -65,7 +66,7 @@ struct StackMem {
 };
 
 struct CoRoutine {
-    int status;
+    std::atomic_int status;
     CoRoutineEnv* thEnv;
     ffrt::TaskCtx* task;
     CoCtx ctx;
@@ -74,22 +75,25 @@ struct CoRoutine {
 
 struct CoStackAttr {
 public:
-    explicit CoStackAttr(int coSize = STACK_SIZE, CoStackProtectType coType = CoStackProtectType::CO_STACK_WEAK_PROTECT)
+    explicit CoStackAttr(uint64_t coSize = STACK_SIZE, CoStackProtectType coType =
+        CoStackProtectType::CO_STACK_WEAK_PROTECT)
     {
         size = coSize;
         type = coType;
     }
     ~CoStackAttr() {}
-    int size;
+    uint64_t size;
     CoStackProtectType type;
 
-    static inline CoStackAttr* Instance(int coSize = STACK_SIZE,
+    static inline CoStackAttr* Instance(uint64_t coSize = STACK_SIZE,
         CoStackProtectType coType = CoStackProtectType::CO_STACK_WEAK_PROTECT)
     {
         static CoStackAttr inst(coSize, coType);
         return &inst;
     }
 };
+
+void CoWorkerExit();
 
 void CoStart(ffrt::TaskCtx* task);
 void CoYield(void);

@@ -19,7 +19,6 @@
 #include <shared_mutex>
 
 namespace ffrt {
-
 template <typename T>
 class TSList {
 public:
@@ -57,7 +56,6 @@ private:
     std::list<T> list_;
     std::shared_mutex mtx_;
 };
-
 } // namespace ffrt
 
 #endif

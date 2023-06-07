@@ -16,9 +16,7 @@
 #define FFRT_API_C_THREAD_H
 #include "type_def.h"
 
-typedef int(*ffrt_thrd_start_t)(void*);
-FFRT_C_API int ffrt_thrd_create(ffrt_thrd_t* thr, ffrt_thrd_start_t func, void* arg);
-FFRT_C_API int ffrt_thrd_join(ffrt_thrd_t* thr);
-FFRT_C_API int ffrt_thrd_detach(ffrt_thrd_t* thr);
-FFRT_C_API void ffrt_thrd_exit(ffrt_thrd_t* thr);
+FFRT_C_API int ffrt_thread_create(ffrt_thread_t* thr, const ffrt_thread_attr_t* attr, void*(*func)(void*), void* arg);
+FFRT_C_API int ffrt_thread_join(ffrt_thread_t thr, void** res);
+FFRT_C_API int ffrt_thread_detach(ffrt_thread_t thr);
 #endif

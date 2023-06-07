@@ -21,7 +21,6 @@
 #define GET_TID() syscall(SYS_gettid)
 
 namespace ffrt {
-
 FrameInterval::FrameInterval(uint64_t deadline, const QoS& qos) : Interval(deadline, qos), qos(qos)
 {
     wg = nullptr;
@@ -87,5 +86,4 @@ void FrameInterval::Join()
     int tid = GET_TID();
     WorkgroupJoin(wg, tid);
 }
-
 }

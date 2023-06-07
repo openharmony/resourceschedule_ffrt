@@ -93,6 +93,5 @@ enum SkipStatus {
 };
 
 #define FORCE_INLINE
-
 } // namespace ffrt
 #endif

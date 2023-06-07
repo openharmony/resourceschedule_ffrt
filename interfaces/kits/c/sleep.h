@@ -17,6 +17,6 @@
 #include <time.h>
 #include "type_def.h"
 
-FFRT_C_API int ffrt_sleep(const struct timespec* duration);
-FFRT_C_API void ffrt_yield();
+FFRT_C_API int ffrt_usleep(uint64_t usec);
+FFRT_C_API void ffrt_yield(void);
 #endif

@@ -15,26 +15,23 @@
 #ifndef FFRT_SERIAL_TASK_H
 #define FFRT_SERIAL_TASK_H
 
-#include <atomic>
-#include <functional>
 #include "cpp/condition_variable.h"
-#include "queue/itask.h"
+#include "itask.h"
 
 namespace ffrt {
 class IHandler;
 class SerialTask : public ITask {
 public:
+    SerialTask();
+    ~SerialTask() override;
     void Wait() override;
     void Notify() override;
-    void IncDeleteRef() override;
-    void DecDeleteRef() override;
     ITask* SetQueHandler(IHandler* handler) override;
 
 private:
+    void freeMem() override;
     ffrt::mutex mutex_;
     ffrt::condition_variable cond_;
-    bool m_isFinished = false;
-    std::atomic_int rc = {1};
 };
 } // namespace ffrt
 

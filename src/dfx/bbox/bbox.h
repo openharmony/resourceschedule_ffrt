@@ -22,20 +22,20 @@ extern void TaskEnQueuCounterInc(void);
 extern void TaskRunCounterInc(void);
 extern void TaskSwitchCounterInc(void);
 extern void TaskFinishCounterInc(void);
-extern int GetBboxEnableState(void);
+extern unsigned int GetBboxEnableState(void);
 
 // undefine in header for non-inline to explain why stop
-void BboxFreeze();
+void BboxFreeze(void);
 
 // define in header for inline to speedup
-static inline void BboxCheckAndFreeze()
+static inline void BboxCheckAndFreeze(void)
 {
     if (GetBboxEnableState() != 0) {
         BboxFreeze();
     }
 }
 #else
-static inline void BboxCheckAndFreeze()
+static inline void BboxCheckAndFreeze(void)
 {}
 #endif /* FFRT_BBOX_ENABLE */
 void backtrace(int ignoreDepth);

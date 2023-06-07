@@ -23,7 +23,7 @@
 namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)
 {
-    FFRT_TRACE_SCOPE(2, Run);
+    FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
 #ifdef EU_COROUTINE
     CoStart(task);
 #else
@@ -63,6 +63,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             }
         }
 
+        BboxCheckAndFreeze();
         UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
 
         FFRT_LOGD("EU pick task[%lu]", task->gid);
@@ -78,8 +79,8 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         ctx->task = nullptr;
     }
 
+    CoWorkerExit();
     FFRT_LOGD("ExecutionThread exited");
     worker->ops.WorkerRetired(worker);
 }
-
 } // namespace ffrt

@@ -52,7 +52,7 @@ public:
         this->cpu_worker_num[static_cast<int>(qos)] = static_cast<size_t>(num);
     }
 
-    int getCpuWorkerNum(enum qos qos)
+    size_t getCpuWorkerNum(enum qos qos)
     {
         return this->cpu_worker_num[static_cast<int>(qos)];
     }
@@ -71,7 +71,7 @@ private:
     GlobalConfig()
     {
         for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
-            if (qos == (QoS::Max() - 1)) {
+            if (qos == qos_user_interactive) {
                 this->cpu_worker_num[qos] = INTERACTIVE_MAXCONCURRENCY;
             } else {
                 this->cpu_worker_num[qos] = DEFAULT_MAXCONCURRENCY;

@@ -38,14 +38,12 @@
 
 #define FFRT_LOGE(format, ...) FFRT_LOG(FFRT_LOG_ERROR, format, ##__VA_ARGS__)
 
-#ifndef FFRT_COND_TRUE_DO_ERR
-#define FFRT_COND_TRUE_DO_ERR(cond, logInfo, expr) \
-    do {                                           \
-        if ((cond) == true) {                      \
-            FFRT_LOGE(logInfo);                    \
-            expr;                                  \
-        }                                          \
-    } while (0)
-#endif
+#define FFRT_COND_DO_ERR(cond, expr, format, ...) \
+    if (cond) {                                   \
+        FFRT_LOGE(format, ##__VA_ARGS__);         \
+        {                                         \
+            expr;                                 \
+        }                                         \
+    }
 
 #endif // __FFRT_LOG_API_H__

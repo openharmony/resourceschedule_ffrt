@@ -19,14 +19,16 @@
 #include <new>
 #include <vector>
 #include <mutex>
+#ifdef FFRT_BBOX_ENABLE
+#include <unordered_set>
+#endif
 #ifndef _MSC_VER
 #include <sys/mman.h>
 #endif
 #include "sync/sync.h"
 
 namespace ffrt {
-
-const std::size_t BatchAllocSize = 2 * 1024 * 1024;
+const std::size_t BatchAllocSize = 0.5 * 1024 * 1024;
 
 template <typename T, size_t MmapSz = BatchAllocSize>
 class SimpleAllocator {
@@ -64,45 +66,60 @@ private:
 #else
     fast_mutex lock;
 #endif
-    std::vector<T*> cache;
-    std::vector<T*> mempools;
+    std::vector<T*> primaryCache;
+#ifdef FFRT_BBOX_ENABLE
+    std::unordered_set<T*> secondaryCache;
+#endif
+    T* basePtr = nullptr;
     uint32_t count = 0;
-
-    void expand()
-    {
-        T* bufs = reinterpret_cast<T*>(::operator new(MmapSz));
-        mempools.push_back(bufs);
-        cache.reserve(cache.size() + MmapSz / sizeof(T));
-        for (std::size_t i = 0; i < MmapSz / sizeof(T); ++i) {
-            cache.push_back(&bufs[i]);
-        }
-        count = MmapSz / sizeof(T);
-    }
 
     std::vector<T*> getUnfreed()
     {
         lock.lock();
         std::vector<T*> ret;
-        ret.reserve(mempools.size() * MmapSz / sizeof(T) - cache.size());
-        for (auto bufs : mempools) {
-            for (std::size_t i = 0; i < MmapSz / sizeof(T); ++i) {
-                if (std::find(cache.begin(), cache.end(), &bufs[i]) == cache.end()) {
-                    ret.push_back(&bufs[i]);
-                }
+#ifdef FFRT_BBOX_ENABLE
+        ret.reserve(MmapSz / sizeof(T) + secondaryCache.size());
+        for (std::size_t i = 0; i < MmapSz / sizeof(T); ++i) {
+            if (basePtr != nullptr &&
+                std::find(primaryCache.begin(), primaryCache.end(), &basePtr[i]) == primaryCache.end()) {
+                ret.push_back(&basePtr[i]);
             }
         }
+        for (auto ite = secondaryCache.cbegin(); ite != secondaryCache.cend(); ite++) {
+            ret.push_back(*ite);
+        }
+#endif
         lock.unlock();
         return ret;
     }
 
-    inline T* alloc()
+    void init()
+    {
+        basePtr = reinterpret_cast<T*>(::operator new(MmapSz));
+        count = MmapSz / sizeof(T);
+        primaryCache.reserve(count);
+        for (std::size_t i = 0; i < count; ++i) {
+            primaryCache.push_back(&basePtr[i]);
+        }
+    }
+
+    T* alloc()
     {
         lock.lock();
+        T* t = nullptr;
         if (count == 0) {
-            expand();
+            if (basePtr != nullptr) {
+                t = reinterpret_cast<T*>(::operator new(sizeof(T)));
+#ifdef FFRT_BBOX_ENABLE
+                secondaryCache.insert(t);
+#endif
+                lock.unlock();
+                return t;
+            }
+            init();
         }
-        T* t = cache.back();
-        cache.pop_back();
+        t = primaryCache.back();
+        primaryCache.pop_back();
         count--;
         lock.unlock();
         return t;
@@ -111,8 +128,18 @@ private:
     void free(T* t)
     {
         lock.lock();
-        cache.push_back(t);
-        count++;
+        if (basePtr != nullptr &&
+            basePtr <= t &&
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(basePtr)) + MmapSz) {
+            primaryCache.push_back(t);
+            count++;
+        } else {
+            ::operator delete(t);
+#ifdef FFRT_BBOX_ENABLE
+            secondaryCache.erase(t);
+#endif
+        }
         lock.unlock();
     }
 
@@ -121,8 +148,13 @@ private:
     }
     ~SimpleAllocator()
     {
-        for (auto ite = mempools.cbegin(); ite != mempools.cend(); ite++) {
+#ifdef FFRT_BBOX_ENABLE
+        for (auto ite = secondaryCache.cbegin(); ite != secondaryCache.cend(); ite++) {
             ::operator delete(*ite);
+        }
+#endif
+        if (basePtr) {
+            ::operator delete(basePtr);
         }
     }
 };
@@ -189,7 +221,7 @@ class QSimpleAllocator {
     }
 
 public:
-    QSimpleAllocator(std::size_t size = sizeof(T))
+    explicit QSimpleAllocator(std::size_t size = sizeof(T))
     {
         TSize = size;
     }
@@ -207,7 +239,5 @@ public:
     }
 };
 #endif
-
 } // namespace ffrt
-
 #endif /* UTIL_SLAB_H */

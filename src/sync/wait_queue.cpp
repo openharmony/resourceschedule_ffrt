@@ -18,10 +18,10 @@
 #include "core/task_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "sync/mutex_private.h"
 
 namespace ffrt {
-
 TaskWithNode::TaskWithNode()
 {
     auto ctx = ExecuteCtx::Cur();
@@ -49,9 +49,9 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
     wqlock.lock();
     push_back(wn);
     wqlock.unlock();
-    lk->unlock();
     {
         std::unique_lock<std::mutex> nl(wn->wl);
+        lk->unlock();
         if (wn->cv.wait_until(nl, tp) == std::cv_status::timeout) {
             ret = true;
         }
@@ -72,6 +72,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
         return;
     }
     task->wue = new WaitUntilEntry(task);
+    FFRT_BLOCK_TRACER(task->gid, cnd);
     CoWait([&](TaskCtx* inTask) -> bool {
         wqlock.lock();
         push_back(inTask->wue);
@@ -84,6 +85,19 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
     lk->lock();
 }
 
+bool WeTimeoutProc(WaitUntilEntry* wue)
+{
+    int expected = we_status::INIT;
+    if (!atomic_compare_exchange_strong_explicit(
+        &wue->status, &expected, we_status::TIMEOUT, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
+        // The critical point wue->status has been written, notify will no longer access wue, it can be deleted
+        delete wue;
+        return false;
+    }
+
+    return true;
+}
+
 bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept
 {
     bool ret = false;
@@ -94,7 +108,9 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     }
 
     task->wue = new WaitUntilEntry(task);
-    task->wue->cb = ([&](WaitEntry* we) {
+    task->wue->hasWaitTime = true;
+    task->wue->tp = tp;
+    task->wue->cb = ([](WaitEntry* we) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         ffrt::TaskCtx* task = wue->task;
         if (!WeTimeoutProc(wue)) {
@@ -103,13 +119,14 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         FFRT_LOGD("task(%s) timeout out", task->label.c_str());
         CoWake(task, true);
     });
-    CoWait([&, tp](TaskCtx* inTask) -> bool {
+    FFRT_BLOCK_TRACER(task->gid, cnt);
+    CoWait([&](TaskCtx* inTask) -> bool {
         WaitUntilEntry* we = inTask->wue;
         wqlock.lock();
         push_back(we);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
         wqlock.unlock();
-        if (DelayedWakeup(tp, we, we->cb)) {
+        if (DelayedWakeup(we->tp, we, we->cb)) {
             return true;
         } else {
             if (!WeTimeoutProc(we)) {
@@ -126,19 +143,20 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     return ret;
 }
 
-bool WaitQueue::WeTimeoutProc(WaitUntilEntry* wue)
+bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
 {
-    int expected = we_status::INIT;
-    if (!__atomic_compare_exchange_n(
-        &wue->status, &expected, we_status::TIMEOUT, 0, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
-        // The critical point wue->status has been written, notify will no longer access wue, it can be deleted
-        delete wue;
+    if (!we->hasWaitTime) {
+        return true;
+    }
+
+    auto expected = we_status::INIT;
+    if (!atomic_compare_exchange_strong_explicit(
+        &we->status, &expected, we_status::NOTIFIED, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
+        // The critical point we->status has been written, notify will no longer access we, it can be deleted
+        delete we;
         return false;
     }
-    wqlock.lock();
-    remove(wue);
-    wqlock.unlock();
-    delete wue;
+
     return true;
 }
 
@@ -156,13 +174,10 @@ void WaitQueue::NotifyOne() noexcept
         wqlock.unlock();
         we->cv.notify_one();
     } else {
-        int expected = we_status::INIT;
-        if (!__atomic_compare_exchange_n(
-            &we->status, &expected, we_status::NOTIFIED, 0, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
-            wqlock.unlock(); // we->status已经写入超时,
+        wqlock.unlock();
+        if (!WeNotifyProc(we)) {
             return;
         }
-        wqlock.unlock();
         CoWake(task, false);
     }
 }
@@ -177,18 +192,14 @@ void WaitQueue::NotifyAll() noexcept
             wqlock.unlock();
             we->cv.notify_one();
         } else {
-            int expected = we_status::INIT;
-            if (!__atomic_compare_exchange_n(&we->status, &expected, we_status::NOTIFIED, 0, std::memory_order_seq_cst,
-                std::memory_order_seq_cst)) {
-                wqlock.unlock();
-                return;
-            }
             wqlock.unlock();
+            if (!WeNotifyProc(we)) {
+                continue;
+            }
             CoWake(task, false);
         }
         wqlock.lock();
     }
     wqlock.unlock();
 }
-
 } // namespace ffrt

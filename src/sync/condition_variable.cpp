@@ -28,84 +28,85 @@ using condition_variable_private = WaitQueue;
 extern "C" {
 #endif
 API_ATTRIBUTE((visibility("default")))
-int ffrt_cnd_init(ffrt_cnd_t* cnd)
+int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr)
 {
-    if (!cnd) {
-        FFRT_LOGE("cnd should not be empty");
-        return ffrt_thrd_error;
+    if (!cond) {
+        FFRT_LOGE("cond should not be empty");
+        return ffrt_error_inval;
     }
-    static_assert(sizeof(ffrt::condition_variable_private) <= ffrt_cnd_storage_size,
-        "size must be less than ffrt_cnd_storage_size");
+    static_assert(sizeof(ffrt::condition_variable_private) <= ffrt_cond_storage_size,
+        "size must be less than ffrt_cond_storage_size");
 
-    new (cnd) ffrt::condition_variable_private();
-    return ffrt_thrd_success;
+    new (cond) ffrt::condition_variable_private();
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_cnd_signal(ffrt_cnd_t* cnd)
+int ffrt_cond_signal(ffrt_cond_t* cond)
 {
-    if (!cnd) {
-        FFRT_LOGE("cnd should not be empty");
-        return ffrt_thrd_error;
+    if (!cond) {
+        FFRT_LOGE("cond should not be empty");
+        return ffrt_error_inval;
     }
-    auto p = (ffrt::condition_variable_private*)cnd;
+    auto p = (ffrt::condition_variable_private*)cond;
     p->NotifyOne();
-    return ffrt_thrd_success;
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_cnd_broadcast(ffrt_cnd_t* cnd)
+int ffrt_cond_broadcast(ffrt_cond_t* cond)
 {
-    if (!cnd) {
-        FFRT_LOGE("cnd should not be empty");
-        return ffrt_thrd_error;
+    if (!cond) {
+        FFRT_LOGE("cond should not be empty");
+        return ffrt_error_inval;
     }
-    auto p = (ffrt::condition_variable_private*)cnd;
+    auto p = (ffrt::condition_variable_private*)cond;
     p->NotifyAll();
-    return ffrt_thrd_success;
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_cnd_wait(ffrt_cnd_t* cnd, ffrt_mtx_t* mutex)
+int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex)
 {
-    if (!cnd || !mutex) {
-        FFRT_LOGE("cnd and mutex should not be empty");
-        return ffrt_thrd_error;
+    if (!cond || !mutex) {
+        FFRT_LOGE("cond and mutex should not be empty");
+        return ffrt_error_inval;
     }
-    auto pc = (ffrt::condition_variable_private*)cnd;
+    auto pc = (ffrt::condition_variable_private*)cond;
     auto pm = (ffrt::mutexPrivate*)mutex;
     pc->SuspendAndWait(pm);
-    return ffrt_thrd_success;
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_cnd_timedwait(ffrt_cnd_t* cnd, ffrt_mtx_t* mutex, const struct timespec* time_point)
+int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct timespec* time_point)
 {
-    if (!cnd || !mutex || !time_point) {
-        FFRT_LOGE("cnd, mutex and time_point should not be empty");
-        return ffrt_thrd_error;
+    if (!cond || !mutex || !time_point) {
+        FFRT_LOGE("cond, mutex and time_point should not be empty");
+        return ffrt_error_inval;
     }
-    auto pc = (ffrt::condition_variable_private*)cnd;
+    auto pc = (ffrt::condition_variable_private*)cond;
     auto pm = (ffrt::mutexPrivate*)mutex;
 
     using namespace std::chrono;
-    auto duration = seconds{time_point->tv_sec} + nanoseconds{time_point->tv_nsec};
+    auto duration = seconds{ time_point->tv_sec } + nanoseconds{ time_point->tv_nsec };
     auto tp = ffrt::time_point_t {
         duration_cast<steady_clock::duration>(duration_cast<nanoseconds>(duration))
     };
 
-    return pc->SuspendAndWaitUntil(pm, tp) ? ffrt_thrd_timedout : ffrt_thrd_success;
+    return pc->SuspendAndWaitUntil(pm, tp) ? ffrt_error_timedout : ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_cnd_destroy(ffrt_cnd_t* cnd)
+int ffrt_cond_destroy(ffrt_cond_t* cond)
 {
-    if (!cnd) {
-        FFRT_LOGE("cnd should not be empty");
-        return;
+    if (!cond) {
+        FFRT_LOGE("cond should not be empty");
+        return ffrt_error_inval;
     }
-    auto p = (ffrt::condition_variable_private*)cnd;
+    auto p = (ffrt::condition_variable_private*)cond;
     p->~WaitQueue();
+    return ffrt_success;
 }
 #ifdef __cplusplus
 }

@@ -65,5 +65,4 @@ uint64_t GetLoad(TaskCtx* task)
 }
 #endif // PER_TASK_LOAD_TRACKING
 } // namespace TaskLoadTracking
-
 } // namespace ffrt

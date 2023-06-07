@@ -94,7 +94,7 @@ struct UserSpaceLoadTracking::HistPoint {
     std::chrono::time_point<std::chrono::steady_clock> tp;
 };
 
-UserSpaceLoadTracking::UserSpaceLoadTracking(DefaultInterval& it) : LoadTracking<KernelLoadTracking>(it)
+UserSpaceLoadTracking::UserSpaceLoadTracking(DefaultInterval& it) : LoadTracking<UserSpaceLoadTracking>(it)
 {
     uRecord.SetEnable(true);
 }
@@ -182,7 +182,7 @@ std::vector<UserSpaceLoadTracking::HistPoint> UserSpaceLoadTracking::CollectHist
         // deal task begin
         if (cur.state != TaskSwitchState::END && index + 1 < size) {
             const auto& next = *++it;
-            double load = (next.load - cur.load) / (next.tp - cur.tp).count();
+            double load = static_cast<double>(next.load - cur.load) / static_cast<double>((next.tp - cur.tp).count());
             histList.emplace_back(HistPoint {&cur, TaskSwitchState::BEGIN, load, cur.tp});
             --it;
         }
@@ -208,9 +208,8 @@ std::vector<UserSpaceLoadTracking::HistPoint> UserSpaceLoadTracking::CollectHist
     }
 
     std::sort(histList.begin(), histList.end(),
-        [](const HistPoint& x, const HistPoint& y) { return x.tp < y.tp || x.state > y.state; });
+        [](const HistPoint& x, const HistPoint& y) { return x.tp < y.tp || ((x.tp == y.tp) && (x.state > y.state)); });
 
     return histList;
 }
-
 }; // namespace ffrt

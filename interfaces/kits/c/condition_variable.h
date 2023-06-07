@@ -17,10 +17,20 @@
 #include <time.h>
 #include "type_def.h"
 
-FFRT_C_API int ffrt_cnd_init(ffrt_cnd_t* cnd);
-FFRT_C_API int ffrt_cnd_signal(ffrt_cnd_t* cnd);
-FFRT_C_API int ffrt_cnd_broadcast(ffrt_cnd_t* cnd);
-FFRT_C_API int ffrt_cnd_wait(ffrt_cnd_t* cnd, ffrt_mtx_t* mutex);
-FFRT_C_API int ffrt_cnd_timedwait(ffrt_cnd_t* cnd, ffrt_mtx_t* mutex, const struct timespec* time_point);
-FFRT_C_API void ffrt_cnd_destroy(ffrt_cnd_t* cnd);
+typedef enum {
+    ffrt_clock_realtime = CLOCK_REALTIME,
+    ffrt_clock_monotonic = CLOCK_MONOTONIC
+} ffrt_clockid_t;
+
+FFRT_C_API int ffrt_condattr_init(ffrt_condattr_t* attr);
+FFRT_C_API int ffrt_condattr_destroy(ffrt_condattr_t* attr);
+FFRT_C_API int ffrt_condattr_setclock(ffrt_condattr_t* attr, ffrt_clockid_t clock);
+FFRT_C_API int ffrt_condattr_getclock(const ffrt_condattr_t* attr, ffrt_clockid_t* clock);
+
+FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
+FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
+FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
+FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
+FFRT_C_API int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct timespec* time_point);
+FFRT_C_API int ffrt_cond_destroy(ffrt_cond_t* cond);
 #endif

@@ -21,10 +21,14 @@ typedef enum { ffrt_queue_serial, ffrt_queue_max } ffrt_queue_type_t;
 typedef void* ffrt_queue_t;
 
 // attr
-FFRT_C_API int ffrt_queue_attr_init(ffrt_queue_attr_t *attr);
-FFRT_C_API void ffrt_queue_attr_destroy(ffrt_queue_attr_t *attr);
-FFRT_C_API void ffrt_queue_attr_set_qos(ffrt_queue_attr_t *attr, ffrt_qos_t qos);
-FFRT_C_API ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t *attr);
+FFRT_C_API int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
+FFRT_C_API void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
+FFRT_C_API void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
+FFRT_C_API ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
+FFRT_C_API void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
+FFRT_C_API uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
+FFRT_C_API void ffrt_queue_attr_set_timeoutCb(ffrt_queue_attr_t* attr, ffrt_function_header_t* f);
+FFRT_C_API ffrt_function_header_t* ffrt_queue_attr_get_timeoutCb(const ffrt_queue_attr_t* attr);
 
 // create serial queue
 FFRT_C_API ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr);
@@ -33,14 +37,9 @@ FFRT_C_API ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* na
 FFRT_C_API void ffrt_queue_destroy(ffrt_queue_t queue);
 
 // submit to serial queue
-FFRT_C_API void *ffrt_alloc_auto_free_queue_func_storage_base();
-FFRT_C_API void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* func);
-FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* func);
-FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_raw(ffrt_queue_t queue, ffrt_function_header_t* func,
-    const ffrt_task_attr_t *attr);
-
-// destroy serial task_handle
-FFRT_C_API void ffrt_queue_destroy_task_handle(ffrt_task_handle_t handle);
+FFRT_C_API void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_h(
+    ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
 
 // wait serial task
 FFRT_C_API void ffrt_queue_wait(ffrt_task_handle_t handle);

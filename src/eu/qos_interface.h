@@ -16,6 +16,7 @@
 #ifndef QOS_INTERFACE_H
 #define QOS_INTERFACE_H
 #include "internal_inc/config.h"
+#include "eu/worker_thread.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -67,7 +68,7 @@ enum AuthCtrlCmdid {
  * qos ctrl
  */
 
-constexpr unsigned char NR_QOS = 7;
+constexpr unsigned char NR_QOS = 6;
 constexpr unsigned char QOS_NUM_MAX = 10;
 
 constexpr unsigned char AF_QOS_ALL = 0x0003;
@@ -180,6 +181,12 @@ int QosApplyForOther(unsigned int level, int tid);
 int QosLeave(void);
 int QosLeaveForOther(int tid);
 int QosPolicy(struct QosPolicyDatas *policyDatas);
+typedef int (*Func_affinity)(unsigned long affinity, int tid);
+void setFuncAffinity(Func_affinity func);
+Func_affinity getFuncAffinity();
+typedef int (*Func_priority)(unsigned char priority, ffrt::WorkerThread* thread);
+void setFuncPriority(Func_priority func);
+Func_priority getFuncPriority();
 
 #ifdef __cplusplus
 }

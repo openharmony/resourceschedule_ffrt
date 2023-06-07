@@ -16,7 +16,6 @@
 #include "mutex_perf.h"
 
 namespace ffrt {
-
 MutexStatistic::~MutexStatistic()
 {
     printf("***Mutex Cycles Statistic***\n");
@@ -36,5 +35,4 @@ void AddMutexCycles(std::string key, uint32_t val)
         gMutexStatistic.cycles_[key] = val;
     }
 }
-
 } // namespace ffrt

@@ -20,7 +20,6 @@
 #include <cstdint>
 
 namespace ffrt {
-
 class LinkedList {
 public:
     LinkedList() : prev(this), next(this)
@@ -246,7 +245,5 @@ private:
     LinkedList* prev;
     LinkedList* next;
 };
-
 } // namespace ffrt
-
 #endif

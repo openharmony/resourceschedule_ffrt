@@ -19,12 +19,10 @@
 #include "sched/scheduler.h"
 
 namespace ffrt {
-
 namespace TaskLoadTracking {
 void Begin(TaskCtx* task);
 void End(TaskCtx* task);
 uint64_t GetLoad(TaskCtx* task);
 } // namespace TaskLoadTracking
-
 } // namespace ffrt
 #endif

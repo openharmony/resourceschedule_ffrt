@@ -107,8 +107,8 @@ private:
     uint64_t GetLoadImpl();
 };
 
-class UserSpaceLoadTracking : public LoadTracking<KernelLoadTracking> {
-    friend class LoadTracking<KernelLoadTracking>;
+class UserSpaceLoadTracking : public LoadTracking<UserSpaceLoadTracking> {
+    friend class LoadTracking<UserSpaceLoadTracking>;
     struct HistPoint;
     using RecordList = typename std::list<TaskSwitchRecord>;
 
@@ -127,7 +127,6 @@ private:
 
     std::unordered_map<std::thread::id, RecordList> records;
 };
-
 }; // namespace ffrt
 
 #endif

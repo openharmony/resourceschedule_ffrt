@@ -22,7 +22,6 @@
 #include "core/task_ctx.h"
 #include "internal_inc/types.h"
 namespace ffrt {
-
 /* The relationship of VersionCtx is implemented using a doubly linked list：
  * 0、data represents the root node of this data signature
  * 1、Non-nested scenes: v1<—>v2<—>v3<—>data
@@ -102,6 +101,5 @@ protected:
         v->myProducer->outs.erase(v->myProducer->outs.find(v));
     }
 };
-
 } /* namespace ffrt */
 #endif

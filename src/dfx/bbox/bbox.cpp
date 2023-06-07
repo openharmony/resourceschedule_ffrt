@@ -71,7 +71,7 @@ static inline void SaveCurrent()
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
     auto t = ExecuteCtx::Cur()->task;
     if (t) {
-        FFRT_BBOX_LOG("current task id %lu qos %d name %s",
+        FFRT_BBOX_LOG("current: thread id %u, task id %lu, qos %d, name %s", gettid(),
             t->gid, t->qos(), t->label.c_str());
     }
 
@@ -149,17 +149,17 @@ static inline void SaveTaskStatus()
         for (auto t : tmp) {
             FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx++,
                 tmp.size(), t->gid, t->qos(), t->label.c_str());
-            if (t->coRoutine && (t->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
                 CoStart(t);
             }
         }
     };
 
-    apply("block by co task", [](TaskCtx* t) {
+    apply("blocked by synchronization primitive(mutex etc)", [](TaskCtx* t) {
         return (t->state == TaskState::RUNNING) && t->coRoutine &&
-            t->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH);
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
     });
-    apply("block by deps task", [](TaskCtx* t) {
+    apply("blocked by task dependence", [](TaskCtx* t) {
         return t->state == TaskState::BLOCKED;
     });
     apply("pending task", [](TaskCtx* t) {
@@ -167,40 +167,74 @@ static inline void SaveTaskStatus()
     });
 }
 
+static std::atomic_uint g_bbox_tid_is_dealing {0};
+static std::atomic_uint g_bbox_called_times {0};
 static std::condition_variable g_bbox_cv;
 static std::mutex g_bbox_mtx;
 
 void BboxFreeze()
 {
     std::unique_lock<std::mutex> lk(g_bbox_mtx);
-    g_bbox_cv.wait(lk);
+    g_bbox_cv.wait(lk, [] { return g_bbox_tid_is_dealing.load() == 0; });
 }
 
 void backtrace(int ignoreDepth)
 {
     FFRT_BBOX_LOG("backtrace");
 
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    TaskCtx::DumpTask(nullptr);
+#endif
 }
 
-static std::atomic_int g_bbox_is_enable {0};
-
-int GetBboxEnableState(void)
+unsigned int GetBboxEnableState(void)
 {
-    return g_bbox_is_enable.load();
+    return g_bbox_tid_is_dealing.load();
 }
 
-static void SaveTheBbox()
+bool FFRTIsWork()
 {
-    if (g_bbox_is_enable.fetch_add(1) != 0) {
+    if (g_taskSubmitCounter.load() == 0) {
+        return false;
+    } else if (g_taskSubmitCounter.load() == g_taskDoneCounter.load()) {
+        FFRT_BBOX_LOG("ffrt already finished, TaskSubmitCounter:%u, TaskDoneCounter:%u",
+            g_taskSubmitCounter.load(), g_taskDoneCounter.load());
+        return false;
+    }
+
+    return true;
+}
+
+void SaveTheBbox()
+{
+    unsigned int expect = 0;
+    unsigned int tid = static_cast<unsigned int>(gettid());
+    if (!g_bbox_tid_is_dealing.compare_exchange_strong(expect, tid)) {
+        if (tid == g_bbox_tid_is_dealing.load()) {
+            FFRT_BBOX_LOG("thread %u black box save failed", tid);
+            g_bbox_tid_is_dealing.store(0);
+            g_bbox_cv.notify_all();
+        } else {
+            FFRT_BBOX_LOG("thread %u trigger signal again, when thread %u is saving black box",
+                tid, g_bbox_tid_is_dealing.load());
+            BboxFreeze(); // hold other thread's signal resend
+        }
         return;
     }
-    FFRT_BBOX_LOG("<<<=== ffrt black box start ===>>>");
-    SaveCurrent();
-    SaveTaskCounter();
-    SaveWorkerStatus();
-    SaveReadyQueueStatus();
-    SaveTaskStatus();
-    FFRT_BBOX_LOG("<<<=== ffrt black box finish ===>>>");
+
+    if (g_bbox_called_times.fetch_add(1) == 0) { // only save once
+        FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
+        SaveCurrent();
+        SaveTaskCounter();
+        SaveWorkerStatus();
+        SaveReadyQueueStatus();
+        SaveTaskStatus();
+        FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
+    }
+
+    std::lock_guard lk(g_bbox_mtx);
+    g_bbox_tid_is_dealing.store(0);
+    g_bbox_cv.notify_all();
 }
 
 static void ResendSignal(siginfo_t* info)
@@ -211,9 +245,28 @@ static void ResendSignal(siginfo_t* info)
     }
 }
 
+static const char* GetSigName(const siginfo_t* info)
+{
+    switch (info->si_signo) {
+        case SIGABRT: return "SIGABRT";
+        case SIGBUS: return "SIGBUS";
+        case SIGFPE: return "SIGFPE";
+        case SIGILL: return "SIGILL";
+        case SIGSEGV: return "SIGSEGV";
+        case SIGSTKFLT: return "SIGSTKFLT";
+        case SIGSTOP: return "SIGSTOP";
+        case SIGSYS: return "SIGSYS";
+        case SIGTRAP: return "SIGTRAP";
+        default: return "?";
+    }
+}
+
 static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
 {
-    SaveTheBbox();
+    if (FFRTIsWork()) {
+        FFRT_BBOX_LOG("recv signal %d (%s) code %d", signo, GetSigName(info), info->si_code);
+        SaveTheBbox();
+    }
 
     // we need to deregister our signal handler for that signal before continuing.
     sigaction(signo, &s_oldSa[signo], nullptr);
@@ -239,6 +292,8 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGSTKFLT);
     SignalReg(SIGSYS);
     SignalReg(SIGTRAP);
+    SignalReg(SIGINT);
+    SignalReg(SIGKILL);
 }
 
 #endif /* FFRT_BBOX_ENABLE */

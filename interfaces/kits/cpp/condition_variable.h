@@ -22,16 +22,16 @@
 namespace ffrt {
 enum class cv_status { no_timeout, timeout };
 
-class condition_variable : public ffrt_cnd_t {
+class condition_variable : public ffrt_cond_t {
 public:
     condition_variable()
     {
-        ffrt_cnd_init(this);
+        ffrt_cond_init(this, nullptr);
     }
 
     ~condition_variable() noexcept
     {
-        ffrt_cnd_destroy(this);
+        ffrt_cond_destroy(this);
     }
 
     condition_variable(const condition_variable&) = delete;
@@ -56,9 +56,9 @@ public:
     }
 
     template <typename Rep, typename Period>
-    cv_status wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleepTime) noexcept
+    cv_status wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleep_time) noexcept
     {
-        return _wait_for(lk, sleepTime);
+        return _wait_for(lk, sleep_time);
     }
 
     template <typename Rep, typename Period, typename Pred>
@@ -78,17 +78,17 @@ public:
 
     void wait(std::unique_lock<mutex>& lk)
     {
-        ffrt_cnd_wait(this, lk.mutex());
+        ffrt_cond_wait(this, lk.mutex());
     }
 
     void notify_one() noexcept
     {
-        ffrt_cnd_signal(this);
+        ffrt_cond_signal(this);
     }
 
     void notify_all() noexcept
     {
-        ffrt_cnd_broadcast(this);
+        ffrt_cond_broadcast(this);
     }
 
 private:
@@ -96,14 +96,14 @@ private:
     cv_status _wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& dur) noexcept
     {
         timespec ts;
-        std::chrono::nanoseconds _T0 = std::chrono::steady_clock::now().time_since_epoch();
-        _T0 += std::chrono::duration_cast<std::chrono::nanoseconds>(dur);
-        ts.tv_sec = std::chrono::duration_cast<std::chrono::seconds>(_T0).count();
-        _T0 -= std::chrono::seconds(ts.tv_sec);
-        ts.tv_nsec = static_cast<long>(_T0.count());
+        std::chrono::nanoseconds ns = std::chrono::steady_clock::now().time_since_epoch();
+        ns += std::chrono::duration_cast<std::chrono::nanoseconds>(dur);
+        ts.tv_sec = std::chrono::duration_cast<std::chrono::seconds>(ns).count();
+        ns -= std::chrono::seconds(ts.tv_sec);
+        ts.tv_nsec = static_cast<long>(ns.count());
 
-        auto ret = ffrt_cnd_timedwait(this, lk.mutex(), &ts);
-        if (ret == ffrt_thrd_success) {
+        auto ret = ffrt_cond_timedwait(this, lk.mutex(), &ts);
+        if (ret == ffrt_success) {
             return cv_status::no_timeout;
         }
         return cv_status::timeout;

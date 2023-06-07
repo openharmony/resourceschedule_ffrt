@@ -32,6 +32,7 @@ class DelayedWorker {
     std::multimap<time_point_t, DelayedWork> map;
     std::mutex lock;
     std::atomic_int futex;
+    bool exited = false;
 
     void HandleWork(struct timespec** p);
 
@@ -45,6 +46,5 @@ public:
 
     bool dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
 };
-
 } // namespace ffrt
 #endif

@@ -28,10 +28,14 @@ static inline void yield()
 template <class _Rep, class _Period>
 inline void sleep_for(const std::chrono::duration<_Rep, _Period>& d)
 {
-    auto secs = std::chrono::duration_cast<std::chrono::seconds>(d);
-    auto nanosecs = std::chrono::duration_cast<std::chrono::nanoseconds>(d - secs);
-    timespec ts{secs.count(), static_cast<long>(nanosecs.count())};
-    ffrt_sleep(&ts);
+    ffrt_usleep(std::chrono::duration_cast<std::chrono::microseconds>(d).count());
+}
+
+template<class _Clock, class _Duration>
+inline void sleep_until(
+    const std::chrono::time_point<_Clock, _Duration>& abs_time)
+{
+    sleep_for(abs_time.time_since_epoch() - _Clock::now().time_since_epoch());
 }
 } // namespace this_task
 } // namespace ffrt

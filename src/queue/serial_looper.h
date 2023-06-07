@@ -18,23 +18,37 @@
 #include <atomic>
 #include <memory>
 #include <string>
-#include "c/type_def.h"
+#include "cpp/task.h"
 #include "internal_inc/non_copyable.h"
-#include "queue/serial_queue.h"
+#include "serial_queue.h"
+#include "serial_task.h"
 
 namespace ffrt {
+inline SerialTask* GetSerialTaskByFuncStorageOffset(ffrt_function_header_t* f)
+{
+    return reinterpret_cast<SerialTask*>(static_cast<uintptr_t>(static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) -
+        (reinterpret_cast<size_t>(&((reinterpret_cast<SerialTask*>(0))->func_storage)))));
+}
+
 class SerialLooper : public NonCopyable {
 public:
-    explicit SerialLooper(const char* name, enum qos qos);
+    SerialLooper(const char* name, enum qos qos, uint64_t timeout = 0, ffrt_function_header_t* timeoutCb = nullptr);
     ~SerialLooper();
     void Quit();
-    std::shared_ptr<SerialQueue> m_queue;
+    std::shared_ptr<SerialQueue> queue_;
 
 private:
     void Run();
+    void SetTimeoutMonitor(ITask* task);
+    void RunTimeOutCallback(ITask* task);
+
     std::string name_ = "serial_queue_";
     std::atomic_bool isExit_ = {false};
-    ffrt_task_handle_t handle = nullptr;
+    task_handle handle;
+    // for timeout watchdog
+    const uint64_t timeout_;
+    ffrt_function_header_t* timeoutCb_;
+    std::atomic_int delayedCbCnt_ = 0;
 };
 } // namespace ffrt
 

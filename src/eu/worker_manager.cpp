@@ -17,7 +17,6 @@
 #include "sched/workgroup_internal.h"
 
 namespace ffrt {
-
 void WorkerManager::JoinRtg(QoS& qos)
 {
     auto& tgwrap = groupCtl[qos];
@@ -85,5 +84,4 @@ void WorkerManager::LeaveTG(QoS& qos)
         }
     }
 }
-
 }; // namespace ffrt

@@ -26,7 +26,7 @@
 
 #define MAX_WG_THREADS 32
 #define MAX_FRAME_BUFFER 6
-
+#define gettid() syscall(SYS_gettid)
 namespace ffrt {
 
 enum WgType {
@@ -96,7 +96,5 @@ inline bool JoinWG(int tid)
 }
 
 #endif /* QOS_FRAME_RTG */
-
 }
-
 #endif

@@ -20,7 +20,7 @@
 #include <string>
 #include "cpp/condition_variable.h"
 #include "internal_inc/non_copyable.h"
-#include "queue/itask.h"
+#include "itask.h"
 
 namespace ffrt {
 class SerialQueue : public NonCopyable {

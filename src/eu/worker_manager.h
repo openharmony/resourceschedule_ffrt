@@ -28,7 +28,6 @@
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
-
 struct WorkerGroupCtl {
     std::unique_ptr<ThreadGroup> tg;
     uint64_t tgRefCount = 0;
@@ -50,7 +49,6 @@ public:
     virtual bool DecWorker() = 0;
     virtual void NotifyTaskAdded(enum qos qos) = 0;
     virtual std::mutex* GetSleepCtl(int qos) = 0;
-    virtual void SetTidToCGroup(const std::string &path, const std::string &name, int32_t pid) = 0;
 
     WorkerGroupCtl* GetGroupCtl()
     {
@@ -60,6 +58,5 @@ protected:
     ThreadGroup tg;
     WorkerGroupCtl groupCtl[QoS::Max()];
 };
-
 } // namespace ffrt
 #endif

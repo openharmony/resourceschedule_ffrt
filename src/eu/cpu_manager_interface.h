@@ -16,14 +16,11 @@
 #ifndef FFRT_CPU_MANAGER_INTERFACE_HPP
 #define FFRT_CPU_MANAGER_INTERFACE_HPP
 
-
 #include "core/task_ctx.h"
 #include "eu/worker_thread.h"
 #include "sched/qos.h"
 
-
 namespace ffrt {
-
 enum class WorkerAction {
     RETRY = 0,
     RETIRE,
@@ -47,6 +44,5 @@ struct CpuMonitorOps {
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
 };
-
 }
 #endif

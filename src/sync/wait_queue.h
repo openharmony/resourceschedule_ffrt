@@ -60,20 +60,20 @@ struct TaskWithNode : public TaskListNode {
 class WaitQueue {
 public:
     spin_mutex wqlock;
-    WaitUntilEntry whead;
+    WaitUntilEntry* whead;
     using TimePoint = std::chrono::steady_clock::time_point;
-    bool WeTimeoutProc(WaitUntilEntry* wue);
     void SuspendAndWait(mutexPrivate* lk);
-
     bool SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept;
+    bool WeNotifyProc(WaitUntilEntry* we);
     void NotifyAll() noexcept;
     void NotifyOne() noexcept;
     void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk);
     bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp);
     WaitQueue()
     {
-        whead.next = &whead;
-        whead.prev = &whead;
+        whead = new WaitUntilEntry();
+        whead->next = whead;
+        whead->prev = whead;
     }
     WaitQueue(WaitQueue const&) = delete;
     void operator=(WaitQueue const&) = delete;
@@ -82,38 +82,35 @@ public:
     {
         wqlock.lock();
         while (!empty()) {
-            (void)pop_front();
+            WaitUntilEntry *wue = pop_front();
+            (void)WeNotifyProc(wue);
         }
         wqlock.unlock();
+        delete whead;
     }
 
 private:
-    TaskWithNode* AllocNode();
-    void FreeNode(TaskWithNode* node);
-
-private:
-    mutable mutex m_lock;
     inline bool empty() const
     {
-        return (whead.next == &whead);
+        return (whead->next == whead);
     }
 
     inline void push_back(WaitUntilEntry* we)
     {
-        we->next = &whead;
-        we->prev = whead.prev;
-        whead.prev->next = we;
-        whead.prev = we;
+        we->next = whead;
+        we->prev = whead->prev;
+        whead->prev->next = we;
+        whead->prev = we;
     }
 
     inline WaitUntilEntry* pop_front()
     {
-        WaitEntry *we = whead.next;
+        WaitEntry *we = whead->next;
         if (we->next == nullptr) {
             return nullptr;
         }
-        whead.next = we->next;
-        we->next->prev = &whead;
+        whead->next = we->next;
+        we->next->prev = whead;
         we->next = nullptr;
         we->prev = nullptr;
         return static_cast<WaitUntilEntry*>(we);

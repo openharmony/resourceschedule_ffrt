@@ -38,11 +38,11 @@ namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
 
 constexpr uint64_t handle_bit_mask = 48;
-#define IS_HANDLE(handle) ((reinterpret_cast<uintptr_t>(handle) >> ffrt::handle_bit_mask) & 0x1)
-#define CVT_TASKCTX_TO_HANDLE(task) (reinterpret_cast<void *>(static_cast<uintptr_t>( \
-    reinterpret_cast<uintptr_t>(task) | (static_cast<uintptr_t>(1) << handle_bit_mask))))
-#define CVT_HANDLE_TO_TASKCTX(handle) (reinterpret_cast<ffrt::TaskCtx *>(reinterpret_cast<uintptr_t>(handle) & \
-    (~(static_cast<uintptr_t>(1) << ffrt::handle_bit_mask))))
+#define IS_HANDLE(handle) ((static_cast<uint64_t>(reinterpret_cast<uintptr_t>(handle)) >> ffrt::handle_bit_mask) & 0x1)
+#define CVT_TASK_TO_HANDLE(task) (reinterpret_cast<void *>(static_cast<uintptr_t>( \
+    reinterpret_cast<uintptr_t>(task) | (static_cast<uint64_t>(1) << handle_bit_mask))))
+#define CVT_HANDLE_TO_TASK(handle) (reinterpret_cast<ffrt::TaskDeleter *>(reinterpret_cast<uintptr_t>(handle) & \
+    (~(static_cast<uint64_t>(1) << ffrt::handle_bit_mask))))
 
 using TaskCtxAllocator = SimpleAllocator<TaskCtx>;
 
@@ -66,7 +66,7 @@ inline void insDeDup(std::vector<const void *> &insNoDup, std::vector<const void
     for (uint32_t i = 0; i < ins->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), ins->items[i]) == outsNoDup.end()) {
             if (IS_HANDLE(ins->items[i]) > 0) {
-                CVT_HANDLE_TO_TASKCTX(ins->items[i])->IncDeleteRef();
+                CVT_HANDLE_TO_TASK(ins->items[i])->IncDeleteRef();
             }
             insNoDup.push_back(ins->items[i]);
         }
@@ -141,10 +141,9 @@ public:
 #ifdef FFRT_BBOX_ENABLE
         TaskSubmitCounterInc();
 #endif
-        task->IncDeleteRef();
         if (WITH_HANDLE != 0) {
             task->IncDeleteRef();
-            handle = CVT_TASKCTX_TO_HANDLE(task);
+            handle = CVT_TASK_TO_HANDLE(task);
             outsNoDup.push_back(handle); // handle作为任务的输出signature
         }
         QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
@@ -183,6 +182,7 @@ public:
             }
 
             if (task->depRefCnt != 0) {
+                FFRT_BLOCK_TRACER(task->gid, dep);
                 return;
             }
         }
@@ -218,6 +218,7 @@ public:
             inTask->UpdateState(ffrt::TaskState::BLOCKED);
             return true;
         };
+        FFRT_BLOCK_TRACER(task->gid, chd);
         CoWait(childDepFun);
 #endif
     }
@@ -283,7 +284,7 @@ public:
             inTask->UpdateState(ffrt::TaskState::BLOCKED);
             return true;
         };
-
+        FFRT_BLOCK_TRACER(task->gid, dat);
         CoWait(pendDataDepFun);
 #endif
     }
@@ -308,7 +309,7 @@ public:
             for (auto in : std::as_const(task->ins)) {
                 auto s = in->signature; // 需要在version真正被删除之前执行
                 if (IS_HANDLE(s) > 0) { // 删除vaMap之后，释放对handle的引用
-                    CVT_HANDLE_TO_TASKCTX(s)->DecDeleteRef();
+                    CVT_HANDLE_TO_TASK(s)->DecDeleteRef();
                 }
                 in->onConsumed(task);
             }

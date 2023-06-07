@@ -67,7 +67,6 @@ private:
 
     int fd = -1;
 };
-
 }; // namespace ffrt
 
 #endif

@@ -16,12 +16,10 @@
 #ifndef FFRT_LOAD_PREDICTOR_H
 #define FFRT_LOAD_PREDICTOR_H
 
-#include <cstdint>
 #include <array>
 #include <algorithm>
 
 namespace ffrt {
-
 template <typename T>
 class LoadPredictor {
 public:
@@ -69,7 +67,7 @@ private:
         }
         *end = load;
 
-        maxLoad = std::max({sum / HIST_SIZE, loadHist[0], loadHist[1]});
+        maxLoad = std::max({ sum / HIST_SIZE, loadHist[0], loadHist[1] });
     }
 
     void ClearImpl()
@@ -83,7 +81,6 @@ private:
 
     uint64_t maxLoad = 0;
 };
-
 }; // namespace ffrt
 
 #endif

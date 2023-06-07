@@ -42,16 +42,15 @@ public:
 private:
     std::unique_ptr<Interval> it;
 };
-
 }; // namespace ffrt
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 API_ATTRIBUTE((visibility("default")))
-ffrt_qos_interval_t ffrt_qos_interval_create(uint64_t deadline_us, ffrt_qos_t qos)
+ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos)
 {
-    if (qos < ffrt_qos_user_interactive) {
+    if (qos < ffrt_qos_deadline_request || qos > ffrt_qos_user_interactive) {
         FFRT_LOGE("Invalid QoS Interval!");
         return nullptr;
     }
@@ -60,24 +59,25 @@ ffrt_qos_interval_t ffrt_qos_interval_create(uint64_t deadline_us, ffrt_qos_t qo
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_qos_interval_update(ffrt_qos_interval_t it, uint64_t new_deadline_us)
+int ffrt_interval_update(ffrt_interval_t it, uint64_t new_deadline_us)
 {
     if (!it) {
         FFRT_LOGE("QoS Interval Not Created Or Has Been Canceled!");
-        return;
+        return ffrt_error;
     }
 
     auto _it = static_cast<ffrt::qos_interval_private_t *>(it);
 
     (*_it)->Update(new_deadline_us);
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_qos_interval_begin(ffrt_qos_interval_t it)
+int ffrt_interval_begin(ffrt_interval_t it)
 {
     if (!it) {
         FFRT_LOGE("QoS Interval Not Created Or Has Been Canceled!");
-        return -1;
+        return ffrt_error;
     }
 
     auto _it = static_cast<ffrt::qos_interval_private_t *>(it);
@@ -86,20 +86,21 @@ int ffrt_qos_interval_begin(ffrt_qos_interval_t it)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_qos_interval_end(ffrt_qos_interval_t it)
+int ffrt_interval_end(ffrt_interval_t it)
 {
     if (!it) {
         FFRT_LOGE("QoS Interval Not Created Or Has Been Canceled!");
-        return;
+        return ffrt_error;
     }
 
     auto _it = static_cast<ffrt::qos_interval_private_t *>(it);
 
     (*_it)->End();
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_qos_interval_destroy(ffrt_qos_interval_t it)
+void ffrt_interval_destroy(ffrt_interval_t it)
 {
     if (!it) {
         FFRT_LOGE("QoS Interval Not Created Or Has Been Canceled!");
@@ -110,30 +111,32 @@ void ffrt_qos_interval_destroy(ffrt_qos_interval_t it)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_qos_interval_join(ffrt_qos_interval_t it)
+int ffrt_interval_join(ffrt_interval_t it)
 {
     if (!it) {
         FFRT_LOGE("QoS Interval Not Created Or Has Been Canceled!");
-        return;
+        return ffrt_error;
     }
 
     auto _it = static_cast<ffrt::qos_interval_private_t *>(it);
 
     (*_it)->Join();
+    return ffrt_success;
 }
 
-void ffrt_qos_interval_leave(ffrt_qos_interval_t it)
+API_ATTRIBUTE((visibility("default")))
+int ffrt_interval_leave(ffrt_interval_t it)
 {
     if (!it) {
         FFRT_LOGE("QoS Interval Not Created Or Has Been Canceled!");
-        return;
+        return ffrt_error;
     }
 
     auto _it = static_cast<ffrt::qos_interval_private_t *>(it);
 
     (*_it)->Leave();
+    return ffrt_success;
 }
-
 #ifdef __cplusplus
 }
 #endif

@@ -15,18 +15,37 @@
 
 #include "worker_thread.h"
 
-#include <cstring>
 #include <algorithm>
-
-#include <sched.h>
 #include <unistd.h>
-#include <sys/syscall.h>
-#include <sys/resource.h>
 
+#include <sys/syscall.h>
+#include "dfx/log/ffrt_log_api.h"
+#include "eu/osattr_manager.h"
+#include "eu/qos_config.h"
+#include "internal_inc/config.h"
 namespace ffrt {
 void WorkerThread::NativeConfig()
 {
     pid_t pid = syscall(SYS_gettid);
     this->tid = pid;
+}
+
+void WorkerThread::WorkerSetup(WorkerThread* wthread, const QoS& qos)
+{
+    pthread_setname_np(wthread->GetThread().native_handle(), ("ffrtwk/CPU-" + (std::to_string(qos()))+ "-" +
+        std::to_string(GlobalConfig::Instance().getQosWorkers()[static_cast<int>(qos())].size())).c_str());
+    GlobalConfig::Instance().setQosWorkers(qos, wthread->Id());
+    if (qos() != qos_defined_ive) {
+        QosApplyForOther(qos(), wthread->Id());
+        FFRT_LOGD("qos apply tid[%d] level[%d]\n", wthread->Id(), qos());
+        if (getFuncAffinity() != nullptr) {
+            getFuncAffinity()(QosConfig::Instance().getPolicySystem().policys[qos()].affinity, wthread->Id());
+        }
+        if (getFuncPriority() != nullptr) {
+            getFuncPriority()(QosConfig::Instance().getPolicySystem().policys[qos()].priority, wthread);
+        }
+    } else {
+        OSAttrManager::Instance()->SetTidToCGroup(wthread->Id());
+    }
 }
 }; // namespace ffrt

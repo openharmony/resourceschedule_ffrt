@@ -102,7 +102,7 @@ static void perf_open(struct perf_stat_t* pf, int event)
     pf->n_counters++;
 }
 
-static void perf_init()
+static void perf_init(void)
 {
     std::fstream file(config_file, std::ios::in);
     if (!file) {
@@ -137,7 +137,7 @@ static void perf_init()
     file.close();
 }
 
-static void perf_thread_env_init()
+static void perf_thread_env_init(void)
 {
     pthread_mutex_lock(&__pw_mutex);
     if (__perf_init == 0) {
@@ -166,7 +166,7 @@ static void perf_thread_env_init()
     ioctl(t_perfStat->perf_fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
 }
 
-void perf_counter_clear()
+void perf_counter_clear(void)
 {
     pthread_mutex_lock(&__g_stat_mutex);
     for (unsigned int j = 0; j < __g_perfstat.size(); j++) {
@@ -318,12 +318,12 @@ static void perf_counter_output(struct perf_stat_t* stat)
     m_counters.clear();
 }
 
-void perf_counter_output_single()
+void perf_counter_output_single(void)
 {
     perf_counter_output(t_perfStat);
 }
 
-void perf_counter_output_all()
+void perf_counter_output_all(void)
 {
     pthread_mutex_lock(&__g_stat_mutex);
     for (unsigned int j = 0; j < __g_perfstat.size(); j++) {
@@ -347,8 +347,8 @@ void perf_end(int id, unsigned long rd)
     (void)rd;
 };
 
-void perf_counter_output_all() {};
-void perf_counter_output_single() {};
-void perf_counter_clear() {};
+void perf_counter_output_all(void) {};
+void perf_counter_output_single(void) {};
+void perf_counter_clear(void) {};
 
 #endif

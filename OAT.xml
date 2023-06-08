@@ -22,9 +22,9 @@
         <licensefile></licensefile>
         <filefilterlist>
             <filefilter name="defaultFilter" desc="Files not to check">
-                <filteritem type="filename" name="benchmarks/base.csv" desc="benchmarks result xml file"/>
-                <filteritem type="filename" name="benchmarks/speedup/base.csv" desc="benchmarks speedup result xml file"/>
-                <filteritem type="filename" name="benchmarks/serial_sched_time/base.csv" desc="benchmarks serial_sched_time result xml file"/>
+                <filteritem type="filepath" name="benchmarks/base.csv" desc="benchmarks result xml file"/>
+                <filteritem type="filepath" name="benchmarks/speedup/base.csv" desc="benchmarks speedup result xml file"/>
+                <filteritem type="filepath" name="benchmarks/serial_sched_time/base.csv" desc="benchmarks serial_sched_time result xml file"/>
             </filefilter>
         </filefilterlist>
     </oatconfig>

@@ -30,7 +30,9 @@
             "sub_component": [
                 "//foundation/resourceschedule/ffrt:libffrt"
             ],
-            "test": []
+            "test": [
+                "//foundation/resourceschedule/ffrt/test/ut:ffrt_unittest_ffrt"
+            ]
         }
     }
 }

@@ -21,10 +21,15 @@
         "ram": "",
         "deps": {
             "components": [
-                "hiviewdfx_hilog_native:libhilog",
-                "ipc_core"
+                "hiviewdfx_hilog_native",
+                "ipc",
+                "hisysevent_native",
+                "frame_aware_sched"
             ],
-            "third_party": []
+            "third_party": [
+                "bounds_checking_function",
+                "libunwind"
+            ]
         },
         "build": {
             "sub_component": [

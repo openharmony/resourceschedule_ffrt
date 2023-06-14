@@ -1,0 +1,135 @@
+# Copyright (c) 2023 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import("//build/ohos.gni")
+
+defines = []
+
+config("ffrt_config") {
+  include_dirs = [
+    "src",
+    "interfaces/kits",
+    "interfaces/inner_api",
+    "src/dfx/log",
+    "//third_party/jsoncpp/include",
+    "//foundation/resourceschedule/frame_aware_sched/common/include/",
+    "//third_party/libunwind/include",
+  ]
+
+  ffrt_defaults_cflags = [
+    "-g",
+    "-D_FORTIFY_SOURCE=2",
+    "-O2",
+    "-fPIC",
+    "-Wno-unused-variable",
+    "-Wno-unused-function",
+    "-Wno-unused-value",
+    "-Wno-unused-private-field",
+    "-Wno-shadow",
+    "-Wno-shift-count-overflow",
+    "-Wno-float-equal",
+    "-Wno-unused-parameter",
+    "-DOHOS_STANDARD_SYSTEM",
+    "-DTASKSTAT_LOG_ENABLE=0",
+    "-DIDLE_WORKER_DESTRUCT",
+  ]
+
+  cflags = ffrt_defaults_cflags
+  cflags_cc = ffrt_defaults_cflags
+  cflags_cc += ["-std=c++17"]
+
+  ffrt_debug_defines = [
+    "FFRT_LOG_LEVEL=3",
+    "FFRT_BBOX_ENABLE",
+    "FFRT_MUTEX_DEADLOCK_CHECK",
+    "FFRT_OH_EVENT_RECORD",
+    "FFRT_CO_BACKTRACE_OH_ENABLE",
+  ]
+
+  #ffrt_release_defines = [
+  #  "FFRT_LOG_LEVEL=0",
+  #  "FFRT_RELEASE",
+  #]
+
+  defines += ffrt_debug_defines
+  #defines += ffrt_release_defines
+
+}
+
+ohos_shared_library("libffrt") {
+  public_configs = [ ":ffrt_config" ]
+
+  sources = [
+    "src/core/task.cpp",
+    "src/core/task_ctx.cpp",
+    "src/core/version_ctx.cpp",
+    "src/core/entity.cpp",
+    "src/dfx/bbox/bbox.cpp",
+    "src/dfx/log/ffrt_log.cpp",
+    "src/dfx/log/hmos/log_base.cpp",
+    "src/eu/co2_context.c",
+    "src/eu/co_routine.cpp",
+    "src/eu/cpu_monitor.cpp",
+    "src/eu/cpuworker_manager.cpp",
+    "src/eu/cpu_worker.cpp",
+    "src/eu/execute_unit.cpp",
+    "src/eu/rtg_ioctl.cpp",
+    "src/eu/rtg_perf_ctrl.c",
+    "src/eu/worker_manager.cpp",
+    "src/eu/worker_thread.cpp",
+    "src/eu/qos_config.cpp",
+    "src/eu/qos_interface.cpp",
+    "src/eu/osattr_manager.cpp",
+    "src/queue/serial_queue_api.cpp",
+    "src/queue/serial_handler.cpp",
+    "src/queue/serial_task.cpp",
+    "src/queue/serial_looper.cpp",
+    "src/queue/serial_queue.cpp",
+    "src/sched/deadline.cpp",
+    "src/sched/execute_ctx.cpp",
+    "src/sched/interval.cpp",
+    "src/sched/frame_interval.cpp",
+    "src/sched/multi_workgroup.cpp",
+    "src/sched/load_tracking.cpp",
+    "src/sched/sched_deadline.cpp",
+    "src/sched/task_manager.cpp",
+    "src/sched/task_state.cpp",
+    "src/sync/condition_variable.cpp",
+    "src/sync/delayed_worker.cpp",
+    "src/sync/io_poller.cpp",
+    "src/sync/mutex.cpp",
+    "src/sync/mutex_perf.cpp",
+    "src/sync/perf_counter.cpp",
+    "src/sync/sleep.cpp",
+    "src/sync/sync.cpp",
+    "src/sync/wait_queue.cpp",
+    "src/sync/thread.cpp",
+    "src/util/graph_check.cpp",
+  ]
+
+  external_deps = [
+    "hiviewdfx_hilog_native:libhilog",
+    "ipc:ipc_core",
+    "hisysevent_native:libhisysevent",
+  ]
+
+  deps = [
+    "//foundation/resourceschedule/frame_aware_sched/interfaces/innerkits/frameintf:rtg_interface",
+    "//third_party/bounds_checking_function:libsec_shared",
+    "//third_party/libunwind:libunwind",
+  ]
+
+  output_extension = "so"
+  part_name = "ffrt"
+  install_images = [ "system" ]
+  relative_install_dir = "chipset-sdk"
+}

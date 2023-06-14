@@ -1,0 +1,38 @@
+{
+    "name": "@ohos/ffrt",
+    "description": "Concurrent Programming Framework",
+    "optional": "false",
+    "version": "4.0",
+    "license": "Apache License 2.0",
+    "publishAs": "code-segment",
+    "segment": {
+        "destPath": "//foundation/resourceschedule/ffrt"
+    },
+    "dirs": {},
+    "scripts": {},
+    "component": {
+        "name": "ffrt",
+        "subsystem": "resourceschedule",
+        "syscap": [],
+        "adapted_system_type": [
+            "standard"
+        ],
+        "rom": "",
+        "ram": "",
+        "deps": {
+            "components": [
+                "hiviewdfx_hilog_native:libhilog",
+                "ipc_core"
+            ],
+            "third_party": []
+        },
+        "build": {
+            "sub_component": [
+                "//foundation/resourceschedule/ffrt:libffrt"
+            ],
+            "test": [
+                "//foundation/resourceschedule/ffrt/test/ut:ffrt_unittest_ffrt"
+            ]
+        }
+    }
+}

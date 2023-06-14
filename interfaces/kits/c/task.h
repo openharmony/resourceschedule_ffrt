@@ -30,8 +30,8 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
 FFRT_C_API uint64_t ffrt_this_task_get_id();
 
 // deps
-#define ffrt_deps_define(name, dep1, ...) const ffrt_dependence_t __v_##name[] = {dep1, ##__VA_ARGS__}; \
-    ffrt_deps_t name = {sizeof(__v_##name) / sizeof(ffrt_dependence_t), __v_##name}
+#define ffrt_deps_define(name, dep1, ...) const void* __v_##name[] = {dep1, ##__VA_ARGS__}; \
+    ffrt_deps_t name = {sizeof(__v_##name) / sizeof(void*), __v_##name}
 
 // submit
 FFRT_C_API void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind);

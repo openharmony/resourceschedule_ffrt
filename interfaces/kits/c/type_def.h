@@ -60,19 +60,9 @@ typedef enum {
     ffrt_function_kind_queue
 } ffrt_function_kind_t;
 
-typedef enum {
-    ffrt_dependence_data,
-    ffrt_dependence_task,
-} ffrt_dependence_type_t;
-
-typedef struct {
-    ffrt_dependence_type_t type;
-    const void* ptr;
-} ffrt_dependence_t;
-
 typedef struct {
     uint32_t len;
-    const ffrt_dependence_t * items;
+    const void* const * items;
 } ffrt_deps_t;
 
 typedef struct {

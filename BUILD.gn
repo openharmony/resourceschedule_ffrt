@@ -15,6 +15,7 @@ import("//build/ohos.gni")
 defines = []
 
 config("ffrt_config") {
+  visibility = [":*"]
   include_dirs = [
     "src",
     "interfaces/kits",

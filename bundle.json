@@ -35,6 +35,17 @@
             "sub_component": [
                 "//foundation/resourceschedule/ffrt:libffrt"
             ],
+            "inner_kits": [
+                {
+                    "header": {
+                        "header_base": "//foundation/resourceschedule/ffrt/interfaces/kits/",
+                        "header_files": [
+                            "ffrt.h"
+                        ]
+                    },
+                    "name": "//foundation/resourceschedule/ffrt:libffrt"
+                }
+            ],
             "test": [
                 "//foundation/resourceschedule/ffrt/test/ut:ffrt_unittest_ffrt"
             ]

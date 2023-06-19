@@ -34,7 +34,6 @@ run_all() {
         {
             echo "export FIB_NUM=$FIB_NUM; export COMPUTE_TIME_US=$COMPUTE_TIME_US; REPEAT=$REPEAT"
             ./benchmarks/fork_join
-            ./benchmarks/airaw
             ./benchmarks/fib
             ./benchmarks/face_story
             ./benchmarks/base

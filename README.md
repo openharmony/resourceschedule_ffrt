@@ -56,9 +56,8 @@ FFRT: Function Flow Runtime， 一种并发编程框架，提供以数据依赖�
 ## Benchmarks
 ### 测试场景
 1. fork_join：通过构造fork/join执行时间，模拟线程创建和堵塞场景；
-2. airaw：通过构造gpu和npu任务，模拟拍照airaw场景；
-3. fib：通过构造斐波那契序列，模拟嵌套调用场景；
-4. face_story：通过构造人脸数据，模拟人脸检测场景；
+2. fib：通过构造斐波那契序列，模拟嵌套调用场景；
+3. face_story：通过构造人脸数据，模拟人脸检测场景；
 ### 测试方法
 ```c
     cd benchmarks

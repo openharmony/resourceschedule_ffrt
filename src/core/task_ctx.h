@@ -53,6 +53,7 @@ struct TaskCtx : public TaskDeleter {
     const uint64_t rank = 0x0;
     std::unordered_set<VersionCtx*> ins;
     std::unordered_set<VersionCtx*> outs;
+    std::vector<TaskCtx*> in_handles;
     CoRoutine* coRoutine = nullptr;
     std::vector<std::string> traceTag;
 

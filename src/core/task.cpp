@@ -202,7 +202,7 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     // task after delay
     ffrt_task_handle_t delay_handle;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
-    std::vector<const void *> deps = {delay_handle};
+    std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps{static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl<0>(handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
@@ -226,7 +226,7 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
     // task after delay
     ffrt_task_handle_t delay_handle;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
-    std::vector<const void *> deps = {delay_handle};
+    std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps{static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl<1>(handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
@@ -236,11 +236,11 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
 {
-    if (!IS_HANDLE(handle)) {
+    if (!handle) {
         FFRT_LOGE("input task handle is invalid");
         return;
     }
-    CVT_HANDLE_TO_TASK(handle)->DecDeleteRef();
+    static_cast<ffrt::TaskCtx*>(handle)->DecDeleteRef();
 }
 
 // wait
@@ -251,7 +251,7 @@ void ffrt_wait_deps(const ffrt_deps_t *deps)
         FFRT_LOGE("deps should not be empty");
         return;
     }
-    std::vector<const void *> v(deps->len);
+    std::vector<ffrt_dependence_t> v(deps->len);
     for (uint64_t i = 0; i < deps->len; ++i) {
         v[i] = deps->items[i];
     }
@@ -316,11 +316,11 @@ uint64_t ffrt_this_task_get_id()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_skip(ffrt_task_handle_t handle)
 {
-    if (IS_HANDLE(handle) == 0) {
+    if (!handle) {
         FFRT_LOGE("input ffrt task handle is invalid.");
         return -1;
     }
-    ffrt::TaskCtx *task = static_cast<ffrt::TaskCtx*>(CVT_HANDLE_TO_TASK(handle));
+    ffrt::TaskCtx *task = static_cast<ffrt::TaskCtx*>(handle);
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
         __ATOMIC_RELAXED)) {

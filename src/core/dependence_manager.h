@@ -37,38 +37,32 @@
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
 
-constexpr uint64_t handle_bit_mask = 48;
-#define IS_HANDLE(handle) ((static_cast<uint64_t>(reinterpret_cast<uintptr_t>(handle)) >> ffrt::handle_bit_mask) & 0x1)
-#define CVT_TASK_TO_HANDLE(task) (reinterpret_cast<void *>(static_cast<uintptr_t>( \
-    reinterpret_cast<uintptr_t>(task) | (static_cast<uint64_t>(1) << handle_bit_mask))))
-#define CVT_HANDLE_TO_TASK(handle) (reinterpret_cast<ffrt::TaskDeleter *>(reinterpret_cast<uintptr_t>(handle) & \
-    (~(static_cast<uint64_t>(1) << ffrt::handle_bit_mask))))
-
 using TaskCtxAllocator = SimpleAllocator<TaskCtx>;
 
 inline bool outsDeDup(std::vector<const void *> &outsNoDup, const ffrt_deps_t *outs)
 {
     for (uint32_t i = 0; i < outs->len; i++) {
-        if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i]) == outsNoDup.end()) {
-            if (IS_HANDLE(outs->items[i]) > 0) {
+        if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
+            if ((outs->items[i].type) == ffrt_dependence_task) {
                 FFRT_LOGE("handle can't be used as out dependence");
                 return false;
             }
-            outsNoDup.push_back(outs->items[i]);
+            outsNoDup.push_back(outs->items[i].ptr);
         }
     }
     return true;
 }
 
-inline void insDeDup(std::vector<const void *> &insNoDup, std::vector<const void *> &outsNoDup,
-    const ffrt_deps_t *ins)
+inline void insDeDup(std::vector<TaskCtx*> &in_handles, std::vector<const void *> &insNoDup,
+    std::vector<const void *> &outsNoDup, const ffrt_deps_t *ins)
 {
     for (uint32_t i = 0; i < ins->len; i++) {
-        if (std::find(outsNoDup.begin(), outsNoDup.end(), ins->items[i]) == outsNoDup.end()) {
-            if (IS_HANDLE(ins->items[i]) > 0) {
-                CVT_HANDLE_TO_TASK(ins->items[i])->IncDeleteRef();
+        if (std::find(outsNoDup.begin(), outsNoDup.end(), ins->items[i].ptr) == outsNoDup.end()) {
+            if ((ins->items[i].type) == ffrt_dependence_task) {
+                ((ffrt::TaskCtx*)(ins->items[i].ptr))->IncDeleteRef();
+                in_handles.emplace_back((ffrt::TaskCtx*)(ins->items[i].ptr));
             }
-            insNoDup.push_back(ins->items[i]);
+            insNoDup.push_back(ins->items[i].ptr);
         }
     }
 }
@@ -116,6 +110,7 @@ public:
 
         std::vector<const void*> insNoDup;
         std::vector<const void*> outsNoDup;
+        std::vector<TaskCtx*> in_handles;
         // signature去重：1）outs去重
         if (outs) {
             if (!outsDeDup(outsNoDup, outs)) {
@@ -126,7 +121,7 @@ public:
 
         // signature去重：2）ins去重（不影响功能，skip）；3）ins不和outs重复（当前不支持weak signature）
         if (ins) {
-            insDeDup(insNoDup, outsNoDup, ins);
+            insDeDup(in_handles, insNoDup, outsNoDup, ins);
         }
 
         // 2.1 Create task ctx
@@ -143,7 +138,7 @@ public:
 #endif
         if (WITH_HANDLE != 0) {
             task->IncDeleteRef();
-            handle = CVT_TASK_TO_HANDLE(task);
+            handle = static_cast<ffrt_task_handle_t>(task);
             outsNoDup.push_back(handle); // handle作为任务的输出signature
         }
         QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
@@ -180,7 +175,7 @@ public:
                     o.first->AddProducer(task);
                 }
             }
-
+            task->in_handles.swap(in_handles);
             if (task->depRefCnt != 0) {
                 FFRT_BLOCK_TRACER(task->gid, dep);
                 return;
@@ -238,7 +233,7 @@ public:
             std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
 
             for (uint32_t i = 0; i < deps->len; ++i) {
-                auto d = deps->items[i];
+                auto d = deps->items[i].ptr;
                 auto it = std::as_const(Entity::Instance()->vaMap).find(d);
                 if (it != Entity::Instance()->vaMap.end()) {
                     auto waitData = it->second;
@@ -307,11 +302,10 @@ public:
             }
             // Consumption data
             for (auto in : std::as_const(task->ins)) {
-                auto s = in->signature; // 需要在version真正被删除之前执行
-                if (IS_HANDLE(s) > 0) { // 删除vaMap之后，释放对handle的引用
-                    CVT_HANDLE_TO_TASK(s)->DecDeleteRef();
-                }
                 in->onConsumed(task);
+            }
+            for (auto in : std::as_const(task->in_handles)) {
+                in->DecDeleteRef();
             }
 
             // VersionCtx recycling

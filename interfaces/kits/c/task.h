@@ -27,7 +27,7 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
 FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 
 FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
-FFRT_C_API uint64_t ffrt_this_task_get_id();
+FFRT_C_API uint64_t ffrt_this_task_get_id(void);
 
 // deps
 #define ffrt_deps_define(name, dep1, ...) const ffrt_dependence_t __v_##name[] = {dep1, ##__VA_ARGS__}; \

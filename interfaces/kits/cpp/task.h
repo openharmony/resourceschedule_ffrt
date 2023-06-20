@@ -131,6 +131,19 @@ private:
     ffrt_task_handle_t p = nullptr;
 };
 
+struct dependence : ffrt_dependence_t {
+    dependence(const void* d)
+    {
+        type = ffrt_dependence_data;
+        ptr = d;
+    }
+    dependence(const task_handle& h)
+    {
+        type = ffrt_dependence_task;
+        ptr = h;
+    }
+};
+
 template<class T>
 struct function {
     template<class CT>
@@ -175,44 +188,44 @@ static inline void submit(std::function<void()>&& func)
     return ffrt_submit_base(create_function_wrapper(std::move(func)), nullptr, nullptr, nullptr);
 }
 
-static inline void submit(std::function<void()>&& func, std::initializer_list<const void*> in_deps)
+static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
 }
 
-static inline void submit(std::function<void()>&& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps)
+static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
 }
 
-static inline void submit(std::function<void()>&& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps, const task_attr& attr)
+static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps, const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, &out, &attr);
 }
 
-static inline void submit(std::function<void()>&& func, const std::vector<const void*>& in_deps)
+static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
 }
 
-static inline void submit(std::function<void()>&& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps)
+static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
     return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
 }
 
-static inline void submit(std::function<void()>&& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps, const task_attr& attr)
+static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps, const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
@@ -224,44 +237,44 @@ static inline void submit(const std::function<void()>& func)
     return ffrt_submit_base(create_function_wrapper(func), nullptr, nullptr, nullptr);
 }
 
-static inline void submit(const std::function<void()>& func, std::initializer_list<const void*> in_deps)
+static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     return ffrt_submit_base(create_function_wrapper(func), &in, nullptr, nullptr);
 }
 
-static inline void submit(const std::function<void()>& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps)
+static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_base(create_function_wrapper(func), &in, &out, nullptr);
 }
 
-static inline void submit(const std::function<void()>& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps, const task_attr& attr)
+static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps, const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_base(create_function_wrapper(func), &in, &out, &attr);
 }
 
-static inline void submit(const std::function<void()>& func, const std::vector<const void*>& in_deps)
+static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     return ffrt_submit_base(create_function_wrapper(func), &in, nullptr, nullptr);
 }
 
-static inline void submit(const std::function<void()>& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps)
+static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
     return ffrt_submit_base(create_function_wrapper(func), &in, &out, nullptr);
 }
 
-static inline void submit(const std::function<void()>& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps, const task_attr& attr)
+static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps, const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
@@ -276,44 +289,44 @@ static inline task_handle submit_h(std::function<void()>&& func)
     return ffrt_submit_h_base(create_function_wrapper(std::move(func)), nullptr, nullptr, nullptr);
 }
 
-static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<const void*> in_deps)
+static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
 }
 
-static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps)
+static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
 }
 
-static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps, const task_attr& attr)
+static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps, const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, &out, &attr);
 }
 
-static inline task_handle submit_h(std::function<void()>&& func, const std::vector<const void*>& in_deps)
+static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
 }
 
-static inline task_handle submit_h(std::function<void()>&& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps)
+static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
     return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
 }
 
-static inline task_handle submit_h(std::function<void()>&& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps, const task_attr& attr)
+static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps, const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
@@ -325,44 +338,44 @@ static inline task_handle submit_h(const std::function<void()>& func)
     return ffrt_submit_h_base(create_function_wrapper(func), nullptr, nullptr, nullptr);
 }
 
-static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<const void*> in_deps)
+static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     return ffrt_submit_h_base(create_function_wrapper(func), &in, nullptr, nullptr);
 }
 
-static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps)
+static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_h_base(create_function_wrapper(func), &in, &out, nullptr);
 }
 
-static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<const void*> in_deps,
-    std::initializer_list<const void*> out_deps,  const task_attr& attr)
+static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
+    std::initializer_list<dependence> out_deps,  const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
     return ffrt_submit_h_base(create_function_wrapper(func), &in, &out, &attr);
 }
 
-static inline task_handle submit_h(const std::function<void()>& func, const std::vector<const void*>& in_deps)
+static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     return ffrt_submit_h_base(create_function_wrapper(func), &in, nullptr, nullptr);
 }
 
-static inline task_handle submit_h(const std::function<void()>& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps)
+static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
     return ffrt_submit_h_base(create_function_wrapper(func), &in, &out, nullptr);
 }
 
-static inline task_handle submit_h(const std::function<void()>& func, const std::vector<const void*>& in_deps,
-    const std::vector<const void*>& out_deps, const task_attr& attr)
+static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
+    const std::vector<dependence>& out_deps, const task_attr& attr)
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
@@ -385,13 +398,13 @@ static inline void wait()
 /**
 @brief wait until specified data be produced
 */
-static inline void wait(std::initializer_list<const void*> deps)
+static inline void wait(std::initializer_list<dependence> deps)
 {
     ffrt_deps_t d{static_cast<uint32_t>(deps.size()), deps.begin()};
     ffrt_wait_deps(&d);
 }
 
-static inline void wait(const std::vector<const void*>& deps)
+static inline void wait(const std::vector<dependence>& deps)
 {
     ffrt_deps_t d{static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt_wait_deps(&d);

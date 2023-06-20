@@ -159,14 +159,14 @@ ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_
     uint64_t delayUs = (attr == nullptr) ? 0 : ffrt_task_attr_get_delay(attr);
     SerialTask* task = ffrt_queue_submit_base(queue, f, true, delayUs);
     FFRT_COND_DO_ERR((task == nullptr), return nullptr, "failed to submit serial task");
-    return CVT_TASK_TO_HANDLE(task);
+    return static_cast<ffrt_task_handle_t>(task);
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_wait(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return, "input invalid, task_handle is nullptr");
-    SerialTask* task = static_cast<SerialTask*>(CVT_HANDLE_TO_TASK(handle));
+    SerialTask* task = static_cast<SerialTask*>(handle);
     task->Wait();
 }
 
@@ -174,7 +174,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_cancel(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return -1, "input invalid, queue is nullptr");
-    SerialTask* task = static_cast<SerialTask*>(CVT_HANDLE_TO_TASK(handle));
+    SerialTask* task = static_cast<SerialTask*>(handle);
     FFRT_COND_DO_ERR((task->handler_ == nullptr), return -1, "input invalid, queue is nullptr");
     return task->handler_->Cancel(task);
 }

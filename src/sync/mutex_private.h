@@ -98,7 +98,7 @@ public:
 class mutexPrivate {
     std::atomic<int> l;
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    std::atomic<uint64_t> owner;
+    std::atomic<uintptr_t> owner;
 #endif
     fast_mutex wlock;
     LinkedList list;

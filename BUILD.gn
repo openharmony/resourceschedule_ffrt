@@ -84,6 +84,7 @@ ohos_shared_library("libffrt") {
     "src/eu/execute_unit.cpp",
     "src/eu/osattr_manager.cpp",
     "src/eu/qos_config.cpp",
+    "src/eu/qos_convert.cpp",
     "src/eu/qos_interface.cpp",
     "src/eu/rtg_ioctl.cpp",
     "src/eu/rtg_perf_ctrl.c",

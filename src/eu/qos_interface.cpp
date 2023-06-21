@@ -309,6 +309,34 @@ int QosPolicy(struct QosPolicyDatas *policyDatas)
     return ret;
 }
 
+int QosGet(struct QosCtrlData &data)
+{
+    int tid = GET_TID();
+    return QosGetForOther(tid, data);
+}
+
+int QosGetForOther(int tid, struct QosCtrlData &data)
+{
+    int fd = TrivalOpenQosCtrlNode();
+    if (fd < 0) {
+        return fd;
+    }
+
+    data.type = QOS_GET;
+    data.pid = tid;
+    data.qos = -1;
+    data.static_qos = -1;
+    data.dynamic_qos = -1;
+
+    int ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
+    if (ret < 0) {
+        FFRT_LOGE("qos get failed for thread %{public}d, return %{public}d", tid, ret);
+    }
+    close(fd);
+
+    return ret;
+}
+
 Func_affinity funcAffinity = nullptr;
 void setFuncAffinity(Func_affinity func)
 {

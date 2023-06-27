@@ -114,7 +114,7 @@ typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
 
-constexpr unsigned int MAX_CPUMAP_LENGTH = 100; // this is in c and code style
+#define MAX_CPUMAP_LENGTH 100 // this is in c and code style
 typedef struct {
     int shares;
     int latency_nice;

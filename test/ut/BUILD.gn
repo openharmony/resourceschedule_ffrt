@@ -36,14 +36,14 @@ config("ffrt_test_config") {
     "QOS_CHECKPOINT",
     "QOS_SUBMIT",
     "QOS_DEMO",
-    "ATRACE_MODE=0", # 0 is off, 5 is bytrace, 6 is pmu
+    "ATRACE_MODE=0",  # 0 is off, 5 is bytrace, 6 is pmu
     "ATRACE_LEVEL=0",
     "ATRACE_LOGI_ENABLE=0",
     "ATRACE_LOGD_ENABLE=0",
     "ATRACE_SCOPE_LOG_ENABLE=0",
     "ATRACE_DURATION_LOG_ENABLE=0",
     "FFRT_RELEASE",
-    "DISABLE_MONITOR"
+    "DISABLE_MONITOR",
   ]
   if (use_musl) {
     defines += [ "TDD_MUSL" ]
@@ -51,9 +51,9 @@ config("ffrt_test_config") {
 }
 
 ohos_unittest("frame_interval_test") {
-    module_out_path = module_output_path
+  module_out_path = module_output_path
 
-    cflags_cc = [
+  cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
@@ -61,38 +61,34 @@ ohos_unittest("frame_interval_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-    sources = [
-        "frame_interval_test.cpp",
-    ]
-    deps = [
-        "//third_party/googletest:gtest",
-        "//third_party/jsoncpp:jsoncpp",
-        "//foundation/resourceschedule/ffrt:libffrt",
-    ]
-    external_deps = [
-        "c_utils:utils",
-        "eventhandler:libeventhandler",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
+  sources = [ "frame_interval_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    if (is_standard_system) {
-      public_deps = gtest_public_deps
-    }
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
 
   install_enable = true
   part_name = "ffrt"
 }
 
 ohos_unittest("deadline_test") {
-    module_out_path = module_output_path
+  module_out_path = module_output_path
 
-    configs = [
-        ":ffrt_test_config",
-    ]
+  configs = [ ":ffrt_test_config" ]
 
-    cflags_cc = [
+  cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
@@ -100,38 +96,34 @@ ohos_unittest("deadline_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-    sources = [
-        "deadline_test.cpp",
-    ]
-    deps = [
-        "//third_party/googletest:gtest",
-        "//third_party/jsoncpp:jsoncpp",
-        "//foundation/resourceschedule/ffrt:libffrt",
-    ]
-    external_deps = [
-        "c_utils:utils",
-        "eventhandler:libeventhandler",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
+  sources = [ "deadline_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    if (is_standard_system) {
-      public_deps = gtest_public_deps
-    }
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
 
   install_enable = true
   part_name = "ffrt"
 }
 
 ohos_unittest("task_ctx_test") {
-    module_out_path = module_output_path
+  module_out_path = module_output_path
 
-    configs = [
-        ":ffrt_test_config",
-    ]
+  configs = [ ":ffrt_test_config" ]
 
-    cflags_cc = [
+  cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
@@ -139,38 +131,34 @@ ohos_unittest("task_ctx_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-    sources = [
-        "task_ctx_test.cpp",
-    ]
-    deps = [
-        "//third_party/googletest:gtest",
-        "//third_party/jsoncpp:jsoncpp",
-        "//foundation/resourceschedule/ffrt:libffrt",
-    ]
-    external_deps = [
-        "c_utils:utils",
-        "eventhandler:libeventhandler",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
+  sources = [ "task_ctx_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    if (is_standard_system) {
-      public_deps = gtest_public_deps
-    }
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
 
   install_enable = true
   part_name = "ffrt"
 }
 
 ohos_unittest("cpu_monitor_test") {
-    module_out_path = module_output_path
+  module_out_path = module_output_path
 
-    configs = [
-        ":ffrt_test_config",
-    ]
+  configs = [ ":ffrt_test_config" ]
 
-    cflags_cc = [
+  cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
@@ -178,38 +166,34 @@ ohos_unittest("cpu_monitor_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-    sources = [
-        "cpu_monitor_test.cpp",
-    ]
-    deps = [
-        "//third_party/googletest:gtest",
-        "//third_party/jsoncpp:jsoncpp",
-        "//foundation/resourceschedule/ffrt:libffrt" ,
-    ]
-    external_deps = [
-        "c_utils:utils",
-        "eventhandler:libeventhandler",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
+  sources = [ "cpu_monitor_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    if (is_standard_system) {
-      public_deps = gtest_public_deps
-    }
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
 
   install_enable = true
   part_name = "ffrt"
 }
 
 ohos_unittest("cpuworker_manager_test") {
-    module_out_path = module_output_path
+  module_out_path = module_output_path
 
-    configs = [
-        ":ffrt_test_config",
-    ]
+  configs = [ ":ffrt_test_config" ]
 
-    cflags_cc = [
+  cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
@@ -217,38 +201,34 @@ ohos_unittest("cpuworker_manager_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-    sources = [
-        "cpuworker_manager_test.cpp",
-    ]
-    deps = [
-        "//third_party/googletest:gtest",
-        "//third_party/jsoncpp:jsoncpp",
-        "//foundation/resourceschedule/ffrt:libffrt",
-    ]
-    external_deps = [
-        "c_utils:utils",
-        "eventhandler:libeventhandler",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
+  sources = [ "cpuworker_manager_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    if (is_standard_system) {
-      public_deps = gtest_public_deps
-    }
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
 
   install_enable = true
   part_name = "ffrt"
 }
 
 ohos_unittest("execute_unit_test") {
-    module_out_path = module_output_path
+  module_out_path = module_output_path
 
-    configs = [
-        ":ffrt_test_config",
-    ]
+  configs = [ ":ffrt_test_config" ]
 
-    cflags_cc = [
+  cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
@@ -256,38 +236,34 @@ ohos_unittest("execute_unit_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-    sources = [
-        "execute_unit_test.cpp",
-    ]
-    deps = [
-        "//third_party/googletest:gtest",
-        "//third_party/jsoncpp:jsoncpp",
-        "//foundation/resourceschedule/ffrt:libffrt",
-    ]
-    external_deps = [
-        "c_utils:utils",
-        "eventhandler:libeventhandler",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
+  sources = [ "execute_unit_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    if (is_standard_system) {
-      public_deps = gtest_public_deps
-    }
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
 
   install_enable = true
   part_name = "ffrt"
 }
 
 ohos_unittest("worker_thread_test") {
-    module_out_path = module_output_path
+  module_out_path = module_output_path
 
-    configs = [
-        ":ffrt_test_config",
-    ]
+  configs = [ ":ffrt_test_config" ]
 
-    cflags_cc = [
+  cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
@@ -295,25 +271,57 @@ ohos_unittest("worker_thread_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-    sources = [
-        "worker_thread_test.cpp",
-    ]
-    deps = [
-        "//third_party/googletest:gtest",
-        "//third_party/jsoncpp:jsoncpp",
-        "//foundation/resourceschedule/ffrt:libffrt" ,
-    ]
-    external_deps = [
-        "c_utils:utils",
-        "eventhandler:libeventhandler",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
+  sources = [ "worker_thread_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    if (is_standard_system) {
-      public_deps = gtest_public_deps
-    }
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
+ohos_unittest("qos_convert_test") {
+  module_out_path = module_output_path
+
+  configs = [ ":ffrt_test_config" ]
+
+  cflags_cc = [
+    "-frtti",
+    "-Xclang",
+    "-fcxx-exceptions",
+    "-std=c++11",
+    "-DFFRT_PERF_EVENT_ENABLE",
+  ]
+
+  sources = [ "qos_convert_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
 
   install_enable = true
   part_name = "ffrt"
@@ -325,11 +333,12 @@ group("ffrt_unittest_ffrt") {
   deps = []
   if (!is_asan) {
     deps += [
-      ":frame_interval_test",
-      ":deadline_test",
       ":cpu_monitor_test",
       ":cpuworker_manager_test",
+      ":deadline_test",
       ":execute_unit_test",
+      ":frame_interval_test",
+      ":qos_convert_test",
       ":task_ctx_test",
       ":worker_thread_test",
     ]

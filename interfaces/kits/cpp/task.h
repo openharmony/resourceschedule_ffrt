@@ -86,6 +86,23 @@ public:
     {
         return ffrt_task_attr_get_delay(this);
     }
+
+    /**
+    @brief set task coroutine type
+    */
+    inline task_attr& coroutine_type(ffrt_coroutine_t coroutine_type)
+    {
+        ffrt_task_attr_set_coroutine_type(this,coroutine_type);
+        return *this;
+    }
+
+    /**
+    @brief get task coroutine type
+    */
+    inline ffrt_coroutine_t coroutine_type() const
+    {
+        return ffrt_task_attr_get_coroutine_type(this);
+    }
 };
 
 class task_handle {

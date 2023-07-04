@@ -100,4 +100,5 @@ void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::TaskCtx*)>& pred);
 void CoWake(ffrt::TaskCtx* task, bool timeOut);
+void StacklessCouroutineStart(ffrt::TaskCtx* task);
 #endif

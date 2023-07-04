@@ -21,6 +21,7 @@
 #include <atomic>
 
 #include "util/linked_list.h"
+#include "internel_inc/oscl.h"
 
 namespace ffrt {
 using time_point_t = std::chrono::steady_clock::time_point;

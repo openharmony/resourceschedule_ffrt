@@ -29,7 +29,8 @@ public:
     explicit task_attr_private(const task_attr attr)
         : qos_(attr.qos()),
           name_(attr.name()),
-          delay_(attr.delay())
+          delay_(attr.delay()),
+          coroutine_type(attr.coroutine_type())
     {
     }
 
@@ -38,6 +39,7 @@ public:
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    ffrt_coroutine_t coroutine_type_=ffrt_coroutine_stackfull;
 };
 }
 #endif

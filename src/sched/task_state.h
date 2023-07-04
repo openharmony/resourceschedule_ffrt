@@ -30,6 +30,16 @@ class TaskState {
 public:
     enum State { PENDING, READY, RUNNING, BLOCKED, EXITED, MAX };
 
+    #if (ffrt_ready!=READY)
+    #error "ffrt_ready!=ffrt::TaskState::State::READY"
+    #endif
+    #if (ffrt_blocked!=BLOCKED)
+    #error "ffrt_blocked!=ffrt::TaskState::State::BLOCKED"
+    #endif
+    #if (ffrt_exited!=EXCITED)
+    #error "ffrt_exited!=ffrt::TaskState::State::EXCITED"
+    #endif
+
     using Op = typename std::function<bool(TaskCtx*)>;
 
     TaskState() = default;
@@ -58,6 +68,11 @@ public:
     State CurState() const
     {
         return curState;
+    }
+
+    void SetCurState(State state)
+    {
+        curState=state;
     }
 
     State PreState() const

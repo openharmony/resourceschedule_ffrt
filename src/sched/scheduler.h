@@ -67,10 +67,9 @@ public:
         return fifoQue[static_cast<size_t>(qos)];
     }
 
-private:
-    FFRTScheduler()
+    void PushTask(TaskCtx* task)
     {
-        TaskState::RegisterOps(TaskState::READY, std::bind(&FFRTScheduler::WakeupTask, this, std::placeholders::_1));
+        fifoQue[static_cast<size_t>(task->qos())].WakeupTask(task);
     }
 
     bool WakeupTask(TaskCtx* task)
@@ -89,6 +88,11 @@ private:
         FFRT_LOGI("qos[%d] task[%lu] entered q", level, task->gid);
         ExecuteUnit::Instance().NotifyTaskAdded(level);
         return true;
+    }
+private:
+    FFRTScheduler()
+    {
+        TaskState::RegisterOps(TaskState::READY, std::bind(&FFRTScheduler::WakeupTask, this, std::placeholders::_1));
     }
 
     std::array<FIFOScheduler, QoS::Max()> fifoQue;

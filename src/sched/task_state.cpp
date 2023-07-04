@@ -18,6 +18,7 @@
 #include "sched/task_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
+#include "core/dependence_manager.h"
 
 namespace ffrt {
 std::array<TaskState::Op, static_cast<size_t>(TaskState::MAX)> TaskState::ops;

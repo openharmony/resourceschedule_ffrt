@@ -23,6 +23,22 @@
 #define FFRT_C_API
 #endif
 
+typedef enum{
+    ffrt_coroutine_stackless,
+    ffrt_coroutine_stackfull,
+}ffrt_coroutine_t;
+
+typedef enum{
+    ffrt_ready=1,
+    ffrt_blocked=3,
+    ffrt_exited=4,
+}ffrt_task_status_t;
+
+typedef enum{
+    ffrt_coroutine_pending=0,
+    ffrt_coroutine_ready=1,
+}ffrt_coroutine_ret_t;
+
 typedef enum {
     ffrt_qos_inherit = -1,
     ffrt_qos_background,
@@ -40,6 +56,8 @@ typedef enum {
 } ffrt_stack_protect_t;
 
 typedef void(*ffrt_function_t)(void*);
+typedef void(*ffrt_function_ptr_t)(void*);
+typedef ffrt_coroutine_ret_t(*ffrt_function_t)(void*);
 typedef struct {
     ffrt_function_t exec;
     ffrt_function_t destroy;

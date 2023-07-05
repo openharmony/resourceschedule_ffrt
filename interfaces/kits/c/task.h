@@ -28,7 +28,7 @@ FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t task_qos);
 FFRT_C_API uint64_t ffrt_this_task_get_id();
 FFRT_C_API void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr,ffrt_coroutine_t coroutine_type);
-
+FFRT_API_C ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr);
 
 // deps
 #define ffrt_deps_define(name, dep1, ...) const ffrt_dependence_t __v_##name[] = {dep1, ##__VA_ARGS__}; \

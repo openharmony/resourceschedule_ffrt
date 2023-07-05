@@ -39,6 +39,16 @@ void CPUWorker::Run(TaskCtx* task)
 #endif
 }
 
+void CPUWorker::Run(ffrt_executor_task_t* data)
+{
+    ffrt_executor_task_func func = FuncManager::Instance()->getFunc("uv");
+    if (func == nullptr) {
+        FFRT_LOGE("func is nullptr");
+        return;
+    }
+    func(data);
+}
+
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
@@ -68,12 +78,17 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         FFRT_LOGD("EU pick task[%lu]", task->gid);
 
-        task->UpdateState(TaskState::RUNNING);
+        if (task->type != 0) {
+            ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
+            Run(work);
+        } else {
+            task->UpdateState(TaskState::RUNNING);
 
-        lastTask = task;
-        ctx->task = task;
-        worker->curTask = task;
-        Run(task);
+            lastTask = task;
+            ctx->task = task;
+            worker->curTask = task;
+            Run(task);
+        }
         BboxCheckAndFreeze();
         worker->curTask = nullptr;
         ctx->task = nullptr;

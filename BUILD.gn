@@ -119,8 +119,8 @@ ohos_shared_library("libffrt") {
 
   external_deps = [
     "frame_aware_sched:rtg_interface",
-    "hisysevent_native:libhisysevent",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
     "ipc:ipc_core",
   ]
 

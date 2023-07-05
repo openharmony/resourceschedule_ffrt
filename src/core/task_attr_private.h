@@ -30,7 +30,7 @@ public:
         : qos_(attr.qos()),
           name_(attr.name()),
           delay_(attr.delay()),
-          coroutine_type(attr.coroutine_type())
+          coroutine_type_(attr.coroutine_type())
     {
     }
 

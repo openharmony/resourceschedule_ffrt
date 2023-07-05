@@ -403,20 +403,20 @@ int ffrt_skip(ffrt_task_handle_t handle)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_by_handle(void* callable,ffrt_function_ptr_t exec,ffrt_function_ptr_t destroy,ffrt_task_handle_t handle)
 {
-    FFRT_COND_DO_ERR((co==nullptr),return nullptr,"input valid,co==nullptr");
-    FFRT_COND_DO_ERR((exec==nullptr),return nullptr,"input valid,exec==nullptr");
-    FFRT_COND_DO_ERR((destroy==nullptr),return nullptr,"input valid,destroy==nullptr");  
-    FFRT_COND_DO_ERR((handle==nullptr),return nullptr,"input valid,handle==nullptr");  
+    FFRT_COND_DO_ERR((callable==nullptr),return,"input valid,co==nullptr");
+    FFRT_COND_DO_ERR((exec==nullptr),return,"input valid,exec==nullptr");
+    FFRT_COND_DO_ERR((destroy==nullptr),return,"input valid,destroy==nullptr");  
+    FFRT_COND_DO_ERR((handle==nullptr),return,"input valid,handle==nullptr");  
     ffrt::TaskCtx * task=static_cast<ffrt::TaskCtx*>(CVT_HANDLE_TO_TASK(handle));
 
     task->lock.lock();
-    FFRT_LOGW("tid:%ld ffrt_wake_by_handle and CurState=%d",syscall(SYS_gettid),task->State.CurState());
+    FFRT_LOGW("tid:%ld ffrt_wake_by_handle and CurState=%d",syscall(SYS_gettid),task->state.CurState());
     if(task->state.CurState()!=ffrt::TaskState::State::EXITED){
         task->wake_callable_on_finish.callable=callable;
         task->wake_callable_on_finish.exec=exec;
         task->wake_callable_on_finish.destroy=destroy;
     }
-    task.lock.unlock();
+    task->lock.unlock();
 }
 
 API_ATTRIBUTE((visibility("default")))

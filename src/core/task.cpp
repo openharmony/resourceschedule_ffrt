@@ -187,8 +187,8 @@ API_ATTRIBUTE((visibility("default")))
 ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
 {
     if(!attr){
-    FFRT_LOGE("attr should be a valid address");
-    return ffrt_coroutine_stackfull;
+        FFRT_LOGE("attr should be a valid address");
+        return ffrt_coroutine_stackfull;
     }
     return ((ffrt::task_attr_private*)attr)->coroutine_type_;
 }

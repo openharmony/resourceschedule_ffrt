@@ -296,13 +296,13 @@ void CoWake(ffrt::TaskCtx* task, bool timeOut)
     task->UpdateState(ffrt::TaskState::READY);
 }
 
-staic inline void ffrt_exec_callable_wrapper(void* t)
+static inline void ffrt_exec_callable_wrapper(void* t)
 {
     ffrt::ffrt_callable_t* f=(ffrt::ffrt_callable_t*)t;
     f->exec(f->callable);
 }
 
-staic inline void ffrt_destroy_callable_wrapper(void* t)
+static inline void ffrt_destroy_callable_wrapper(void* t)
 {
     ffrt::ffrt_callable_t* f=(ffrt::ffrt_callable_t*)t;
     f->destroy(f->callable);
@@ -319,13 +319,13 @@ static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
     if(task->wakeFlag&&task->wake_callable_on_finish.exec){
         ffrt_exec_callable_wrapper((void*)&(task->wake_callable_on_finish));
     }
-    if(task->wakeFlag&&task->wake_callable_on_finish.destroyc){
+    if(task->wakeFlag&&task->wake_callable_on_finish.destroy){
         ffrt_destroy_callable_wrapper((void*)&(task->wake_callable_on_finish));
     }
     auto f=(ffrt_function_header_t*)task->func_storage;
     f->destroy(f);
 
-    ffrt::DependenceManager::Instance()->OnTaskDone(task);
+    ffrt::DependenceManager::Instance()->onTaskDone(task);
 }
 
 void StacklessCouroutineStart(ffrt::TaskCtx* task)
@@ -359,7 +359,7 @@ void ffrt_wake_coroutine(void *taskin)
 {
     ffrt::TaskCtx *task=(ffrt::TaskCtx *)taskin;
     std::unique_lock<decltype(task->lock)>lck(task->lock);
-    if(task->state.CurState()>=ffrt::TaskState::State:EXCITED){
+    if(task->state.CurState()>=ffrt::TaskState::State::EXITED){
         return;
     }
     task->stackless_coroutine_wake_count+=1;

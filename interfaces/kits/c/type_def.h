@@ -57,7 +57,7 @@ typedef enum {
 
 typedef void(*ffrt_function_t)(void*);
 typedef void(*ffrt_function_ptr_t)(void*);
-typedef ffrt_coroutine_ret_t(*ffrt_function_t)(void*);
+typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
 typedef struct {
     ffrt_function_t exec;
     ffrt_function_t destroy;

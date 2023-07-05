@@ -21,9 +21,9 @@
         "ram": "",
         "deps": {
             "components": [
-                "hiviewdfx_hilog_native",
+                "hilog",
+                "hisysevent",
                 "ipc",
-                "hisysevent_native",
                 "frame_aware_sched"
             ],
             "third_party": [

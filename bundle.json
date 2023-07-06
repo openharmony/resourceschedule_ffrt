@@ -6,7 +6,7 @@
     "license": "Apache License 2.0",
     "publishAs": "code-segment",
     "segment": {
-        "destPath": "//foundation/resourceschedule/ffrt"
+        "destPath": "foundation/resourceschedule/ffrt"
     },
     "dirs": {},
     "scripts": {},
@@ -16,6 +16,9 @@
         "syscap": [],
         "adapted_system_type": [
             "standard"
+        ],
+        "hisysevent_config": [
+            "//foundation/resourceschedule/ffrt/hisysevent.yaml"
         ],
         "rom": "",
         "ram": "",

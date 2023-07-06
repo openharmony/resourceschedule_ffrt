@@ -29,6 +29,7 @@
 #include "eu/osattr_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
+#include "eu/func_manager.h"
 
 namespace ffrt {
 template <int WITH_HANDLE>
@@ -328,6 +329,39 @@ int ffrt_skip(ffrt_task_handle_t handle)
     }
     FFRT_LOGE("skip task [%lu] faild", task->gid);
     return 1;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr)
+{
+    if (!task) {
+        FFRT_LOGE("function handler should not be empty");
+        return;
+    }
+    ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
+    if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
+        ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
+        return;
+    }
+    FFRT_LOGE("uv function not supports delay");
+    return;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name)
+{
+    ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
+    func_mg->insert(std::string(name), func);
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
+{
+    ffrt::QoS _qos = ffrt::QoS(qos);
+
+    ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
+    ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
+    return (int)(sch->RemoveNode(node, _qos));
 }
 #ifdef __cplusplus
 }

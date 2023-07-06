@@ -19,6 +19,7 @@
 #include "sched/scheduler.h"
 #include "eu/cpu_manager_interface.h"
 #include "dfx/bbox/bbox.h"
+#include "eu/func_manager.h"
 
 namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)

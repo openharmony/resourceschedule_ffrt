@@ -44,37 +44,5 @@ struct CpuMonitorOps {
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
 };
-
-class FuncManager {
-public:
-    FuncManager(const FuncManager&) = delete;
-    FuncManager& operator=(const FuncManager&) = delete;
-    ~FuncManager()
-    {
-    }
-
-    // 获取FuncManager的单例
-    static inline FuncManager* Instance()
-    {
-        static FuncManager func_mg;
-        return &func_mg;
-    }
-
-    void insert(std::string name, ffrt_executor_task_func func)
-    {
-        func_map[name] = func;
-    }
-
-    ffrt_executor_task_func getFunc(std::string name)
-    {
-        return func_map[name];
-    }
-
-private:
-    FuncManager()
-    {
-    }
-    std::map<std::string, ffrt_executor_task_func> func_map;
-};
 }
 #endif

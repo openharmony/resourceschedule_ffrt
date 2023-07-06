@@ -148,7 +148,7 @@ typedef struct ffrt_executor_task {
     void* wq[2];
 } ffrt_executor_task_t;
 
-typedef void (*ffrt_executor_task_func)(void* data);
+typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data);
 
 #ifdef __cplusplus
 namespace ffrt {

@@ -29,7 +29,7 @@
 #include "eu/osattr_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/func_manager.h"
 
 namespace ffrt {
 template <int WITH_HANDLE>

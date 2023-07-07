@@ -41,10 +41,6 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, cons
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_handle_destroy(ffrt_task_handle_t handle);
 
-FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name);
-FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
-FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos);
-
 // skip task
 FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 

@@ -49,26 +49,6 @@ public:
         return ret;
     }
 
-    bool WakeupNode(LinkedList* node)
-    {
-        bool ret = false;
-        {
-            std::unique_lock lock(mutex);
-            ret = static_cast<Sched*>(this)->WakeupNodeImpl(node);
-        }
-        return ret;
-    }
-
-    bool RemoveNode(LinkedList* node)
-    {
-        bool ret = false;
-        {
-            std::unique_lock lock(mutex);
-            ret = static_cast<Sched*>(this)->RemoveNodeImpl(node);
-        }
-        return ret;
-    }
-
     bool RQEmpty()
     {
         return static_cast<Sched*>(this)->RQEmptyImpl();
@@ -92,18 +72,6 @@ private:
     {
         TaskCtx* task = que.DeQueue();
         return task;
-    }
-
-    bool WakeupNodeImpl(LinkedList* node)
-    {
-        que.EnQueueNode(node);
-        return true;
-    }
-
-    bool RemoveNodeImpl(LinkedList* node)
-    {
-        que.RmQueueNode(node);
-        return true;
     }
 
     bool WakeupTaskImpl(TaskCtx* task)

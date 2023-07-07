@@ -189,25 +189,6 @@ public:
 #endif
     }
 
-    void onSubmitUV(ffrt_executor_task_t* task, const task_attr_private* attr)
-    {
-        FFRT_TRACE_SCOPE(1, onSubmitUV);
-#ifdef FFRT_BBOX_ENABLE
-        TaskSubmitCounterInc();
-#endif
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
-
-        LinkedList* node = (LinkedList *)(&task->wq);
-        FFRTScheduler* sch = FFRTScheduler::Instance();
-        if (!sch->InsertNode(node, qos)) {
-            FFRT_LOGE("Submit UV task failed!");
-            return;
-        }
-#ifdef FFRT_BBOX_ENABLE
-        TaskEnQueuCounterInc();
-#endif
-    }
-
     void onWait()
     {
         auto ctx = ExecuteCtx::Cur();

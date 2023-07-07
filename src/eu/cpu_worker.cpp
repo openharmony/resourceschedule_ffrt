@@ -19,7 +19,6 @@
 #include "sched/scheduler.h"
 #include "eu/cpu_manager_interface.h"
 #include "dfx/bbox/bbox.h"
-#include "eu/func_manager.h"
 
 namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)
@@ -38,16 +37,6 @@ void CPUWorker::Run(TaskCtx* task)
 
     task->UpdateState(ffrt::TaskState::EXITED);
 #endif
-}
-
-void CPUWorker::Run(ffrt_executor_task_t* data)
-{
-    ffrt_executor_task_func func = FuncManager::Instance()->getFunc("uv");
-    if (func == nullptr) {
-        FFRT_LOGE("func is nullptr");
-        return;
-    }
-    func(data);
 }
 
 void CPUWorker::Dispatch(CPUWorker* worker)
@@ -79,17 +68,12 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         FFRT_LOGD("EU pick task[%lu]", task->gid);
 
-        if (task->type != 0) {
-            ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
-            Run(work);
-        } else {
-            task->UpdateState(TaskState::RUNNING);
+        task->UpdateState(TaskState::RUNNING);
 
-            lastTask = task;
-            ctx->task = task;
-            worker->curTask = task;
-            Run(task);
-        }
+        lastTask = task;
+        ctx->task = task;
+        worker->curTask = task;
+        Run(task);
         BboxCheckAndFreeze();
         worker->curTask = nullptr;
         ctx->task = nullptr;

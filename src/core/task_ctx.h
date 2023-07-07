@@ -39,16 +39,9 @@ namespace ffrt {
 struct TaskCtx;
 struct VersionCtx;
 
-
-/*
-TaskCtx 必须是数据结构ffrt_executor_task_t的子类
-*/
 struct TaskCtx : public TaskDeleter {
     TaskCtx(const task_attr_private* attr,
         TaskCtx* parent, const uint64_t& id, const char *identity = nullptr, const QoS& qos = QoS());
-    uintptr_t type = 0;
-    TaskCtx* parent = nullptr;
-    CoRoutine* coRoutine = nullptr;
     WaitEntry fq_we; // used on fifo fast que
     WaitUntilEntry* wue;
     bool wakeupTimeOut = false;
@@ -56,10 +49,12 @@ struct TaskCtx : public TaskDeleter {
     SkipStatus skipped = SkipStatus::SUBMITTED;
 
     uint8_t func_storage[ffrt_auto_managed_function_storage_size]; // 函数闭包、指针或函数对象
+    TaskCtx* parent = nullptr;
     const uint64_t rank = 0x0;
     std::unordered_set<VersionCtx*> ins;
     std::unordered_set<VersionCtx*> outs;
     std::vector<TaskCtx*> in_handles;
+    CoRoutine* coRoutine = nullptr;
     std::vector<std::string> traceTag;
 
 #ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic

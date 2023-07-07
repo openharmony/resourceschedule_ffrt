@@ -30,6 +30,16 @@ public:
         static_cast<Derived*>(this)->EnQueueImpl(task);
     }
 
+    void EnQueueNode(LinkedList* node)
+    {
+        static_cast<Derived*>(this)->EnQueueNodeImpl(node);
+    }
+
+    void RmQueueNode(LinkedList* node)
+    {
+        static_cast<Derived*>(this)->RmQueueNodeImpl(node);
+    }
+
     TaskCtx* DeQueue()
     {
         return static_cast<Derived*>(this)->DeQueueImpl();
@@ -62,12 +72,32 @@ private:
         if (list.Empty()) {
             return nullptr;
         }
+        auto node = list.PopFront();
+        ffrt_executor_task_t* w = (ffrt_executor_task_t *) ((char *)(node) - offsetof(ffrt_executor_task_t, wq));
+        if (w->type != 0) {
+            w->wq[0] = &w->wq;
+            w->wq[1] = &w->wq;
+            size--;
+            return (TaskCtx *)w;
+        }
 
-        auto entry = list.PopFront()->ContainerOf(&WaitEntry::node);
+        auto entry = node->ContainerOf(&WaitEntry::node);
         TaskCtx* tsk = entry->task;
 
         size--;
         return tsk;
+    }
+
+    void EnQueueNodeImpl(LinkedList* node)
+    {
+        list.PushBack(*node);
+        size++;
+    }
+
+    void RmQueueNodeImpl(LinkedList* node)
+    {
+        list.Delete(*node);
+        size--;
     }
 
     bool EmptyImpl()

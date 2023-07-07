@@ -67,6 +67,43 @@ public:
         return fifoQue[static_cast<size_t>(qos)];
     }
 
+    bool InsertNode(LinkedList* node, const QoS qos)
+    {
+        auto level = qos_default;
+        if (node != nullptr) {
+            level = qos();
+            if (level == qos_inherit) {
+                return false;
+            }
+        }
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        fifoQue[static_cast<size_t>(level)].WakeupNode(node);
+        lock->unlock();
+        ExecuteUnit::Instance().NotifyTaskAdded(level);
+        return true;
+    }
+
+    bool RemoveNode(LinkedList* node, const QoS qos)
+    {
+        auto level = qos_default;
+        if (node != nullptr) {
+            level = qos();
+            if (level == qos_inherit) {
+                return false;
+            }
+        }
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        if (node->Empty()) {
+            lock->unlock();
+            return false;
+        }
+        fifoQue[static_cast<size_t>(level)].RemoveNode(node);
+        lock->unlock();
+        return true;
+    }
+
 private:
     FFRTScheduler()
     {

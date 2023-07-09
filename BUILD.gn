@@ -118,13 +118,11 @@ ohos_shared_library("libffrt") {
   ]
 
   if (is_linux == "linux") {
-    sources += ["src/dfx/log/linux/log_base.cpp"]
     external_deps = [
       "hisysevent:libhisysevent",
       "ipc:ipc_core",
     ]
   } else {
-    sources += ["src/dfx/log/hmos/log_base.cpp"]
     external_deps = [
       "frame_aware_sched:rtg_interface",
       "hilog:libhilog",

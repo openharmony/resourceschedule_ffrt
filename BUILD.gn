@@ -117,9 +117,8 @@ ohos_shared_library("libffrt") {
     "src/util/graph_check.cpp",
   ]
 
-  if (platform == "linux") {
+  if (target_os == "linux") {
     external_deps = [
-      "frame_aware_sched:rtg_interface",
       "hisysevent:libhisysevent",
       "ipc:ipc_core",
     ]

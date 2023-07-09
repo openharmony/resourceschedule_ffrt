@@ -131,6 +131,9 @@ ohos_shared_library("libffrt") {
 
   output_extension = "so"
   part_name = "ffrt"
-  install_images = [ "system" ]
+  install_images = [
+    "system",
+    "updater",
+  ]
   relative_install_dir = "chipset-sdk"
 }

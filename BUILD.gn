@@ -117,12 +117,20 @@ ohos_shared_library("libffrt") {
     "src/util/graph_check.cpp",
   ]
 
-  external_deps = [
-    "frame_aware_sched:rtg_interface",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "ipc:ipc_core",
-  ]
+  if (platform == "linux") {
+    external_deps = [
+      "frame_aware_sched:rtg_interface",
+      "hisysevent:libhisysevent",
+      "ipc:ipc_core",
+    ]
+  } else {
+    external_deps = [
+      "frame_aware_sched:rtg_interface",
+      "hilog:libhilog",
+      "hisysevent:libhisysevent",
+      "ipc:ipc_core",
+    ]
+  }
 
   deps = [
     "//third_party/bounds_checking_function:libsec_shared",

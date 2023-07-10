@@ -143,8 +143,8 @@ typedef void* ffrt_config_t;
 
 // 该任务仅在libuv中提交
 typedef struct ffrt_executor_task {
-    uintptr_t type; // 0: TaskCtx, 1: rust task, User Space Address: libuv work
     uintptr_t reserved[2];
+    uintptr_t type; // 0: TaskCtx, 1: rust task, User Space Address: libuv work
     void* wq[2];
 } ffrt_executor_task_t;
 

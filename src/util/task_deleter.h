@@ -20,6 +20,7 @@
 
 #include <atomic>
 #include "internal_inc/non_copyable.h"
+#include "sched/execute_ctx.h"
 
 namespace ffrt {
 class TaskDeleter : private NonCopyable {
@@ -39,7 +40,9 @@ public:
             freeMem();
         }
     }
-
+    uintptr_t reserved;
+    uintptr_t type = 0;
+    WaitEntry fq_we; // used on fifo fast que
     std::atomic_uint32_t rc = 1;
 };
 } // namespace ffrt

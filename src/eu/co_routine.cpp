@@ -14,6 +14,7 @@
  */
 
 #include "co_routine.h"
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -34,7 +35,7 @@
 #include "sync/perf_counter.h"
 #include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
-#include <cassert>
+
 
 static thread_local CoRoutineEnv* g_CoThreadEnv = nullptr;
 
@@ -317,10 +318,10 @@ static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
     }
     task->lock.unlock();
     if(task->wakeFlag&&task->wake_callable_on_finish.exec){
-        ffrt_exec_callable_wrapper((void*)&(task->wake_callable_on_finish));
+        ffrt_exec_callable_wrapper(static_cast<void*>(&(task->wake_callable_on_finish)));
     }
     if(task->wakeFlag&&task->wake_callable_on_finish.destroy){
-        ffrt_destroy_callable_wrapper((void*)&(task->wake_callable_on_finish));
+        ffrt_destroy_callable_wrapper(static_cast<void*>(&(task->wake_callable_on_finish)));
     }
     auto f=(ffrt_function_header_t*)task->func_storage;
     f->destroy(f);

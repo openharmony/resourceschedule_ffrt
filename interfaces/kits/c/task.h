@@ -40,23 +40,30 @@ FFRT_C_API void ffrt_submit_base(ffrt_function_header_t* f, const ffrt_deps_t* i
     const ffrt_task_attr_t* attr);
 FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, const ffrt_deps_t* in_deps,
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-FFRT_C_API void ffrt_submit_coroutine(void* co,ffrt_coroutine_ptr_t exec,ffrt_function_ptr_t destroy,const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr);
-FFRT_C_API ffrt_task_handle_t ffrt_submit_h_coroutine(void* co,ffrt_coroutine_ptr_t exec,ffrt_function_ptr_t destroy,const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr);
+FFRT_C_API void ffrt_submit_coroutine(void* co,ffrt_coroutine_ptr_t exec,\
+    ffrt_function_ptr_t destroy,const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr);
+FFRT_C_API ffrt_task_handle_t ffrt_submit_h_coroutine(void* co,ffrt_coroutine_ptr_t exec,\
+    ffrt_function_ptr_t destroy,const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr);
 
 FFRT_C_API void ffrt_task_handle_destroy(ffrt_task_handle_t handle);
+
+FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name);
+FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
+FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos);
 
 // skip task
 FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 
 //get
-FFRT_C_API void * ffrt_task_get();
+FFRT_C_API void *ffrt_task_get();
 
 // wait
 FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
 FFRT_C_API void ffrt_wait(void);
 
 //waker
-FFRT_C_API void ffrt_wake_by_handle(void* waker,ffrt_function_ptr_t exec,ffrt_function_ptr_t destroy,ffrt_task_handle_t handle);
+FFRT_C_API void ffrt_wake_by_handle(void* waker,ffrt_function_ptr_t exec,\
+    ffrt_function_ptr_t destroy,ffrt_task_handle_t handle);
 FFRT_C_API void ffrt_set_wake_flag(bool flag);
 FFRT_C_API void ffrt_wake_coroutine(void *task);
 // config

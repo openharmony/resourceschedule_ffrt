@@ -26,18 +26,18 @@
 typedef enum{
     ffrt_coroutine_stackless,
     ffrt_coroutine_stackfull,
-}ffrt_coroutine_t;
+} ffrt_coroutine_t;
 
 typedef enum{
-    ffrt_ready=1,
-    ffrt_blocked=3,
-    ffrt_exited=4,
-}ffrt_task_status_t;
+    ffrt_ready = 1,
+    ffrt_blocked = 3,
+    ffrt_exited = 4,
+} ffrt_task_status_t;
 
 typedef enum{
-    ffrt_coroutine_pending=0,
-    ffrt_coroutine_ready=1,
-}ffrt_coroutine_ret_t;
+    ffrt_coroutine_pending = 0,
+    ffrt_coroutine_ready = 1,
+} ffrt_coroutine_ret_t;
 
 typedef enum {
     ffrt_qos_inherit = -1,
@@ -132,7 +132,7 @@ typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
 
-constexpr unsigned int MAX_CPUMAP_LENGTH = 100; // this is in c and code style
+#define MAX_CPUMAP_LENGTH 100 // this is in c and code style
 typedef struct {
     int shares;
     int latency_nice;
@@ -158,6 +158,15 @@ typedef enum {
 typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
+
+// 该任务仅在libuv中提交
+typedef struct ffrt_executor_task {
+    uintptr_t reserved[2];
+    uintptr_t type; // 0: TaskCtx, 1: rust task, User Space Address: libuv work
+    void* wq[2];
+} ffrt_executor_task_t;
+
+typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data);
 
 #ifdef __cplusplus
 namespace ffrt {

@@ -19,6 +19,7 @@
 #include "sched/scheduler.h"
 #include "eu/cpu_manager_interface.h"
 #include "dfx/bbox/bbox.h"
+#include "eu/func_manager.h"
 
 namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)
@@ -44,6 +45,22 @@ void CPUWorker::Run(TaskCtx* task)
 #endif
 }
 
+void CPUWorker::Run(ffrt_executor_task_t* data)
+{
+#ifdef FFRT_BBOX_ENABLE
+    TaskRunCounterInc();
+#endif
+    ffrt_executor_task_func func = FuncManager::Instance()->getFunc("uv");
+    if (func == nullptr) {
+        FFRT_LOGE("func is nullptr");
+        return;
+    }
+    func(data);
+#ifdef FFRT_BBOX_ENABLE
+    TaskFinishCounterInc();
+#endif
+}
+
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
@@ -54,9 +71,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         FFRT_LOGI("task picking");
         TaskCtx* task = worker->ops.PickUpTask(worker);
         if (task) {
-            FFRT_LOGI("task[%lu] picked", task->gid);
             worker->ops.NotifyTaskPicked(worker);
-            FFRT_LOGI("task[%lu] notified", task->gid);
         } else {
             FFRT_WORKER_IDLE_BEGIN_MARKER();
             auto action = worker->ops.WaitForNewAction(worker);
@@ -69,16 +84,21 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         }
 
         BboxCheckAndFreeze();
-        UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
 
         FFRT_LOGD("EU pick task[%lu]", task->gid);
 
-        task->UpdateState(TaskState::RUNNING);
+        if (task->type != 0) {
+            ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
+            Run(work);
+        } else {
+            UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
+            task->UpdateState(TaskState::RUNNING);
 
-        lastTask = task;
-        ctx->task = task;
-        worker->curTask = task;
-        Run(task);
+            lastTask = task;
+            ctx->task = task;
+            worker->curTask = task;
+            Run(task);
+        }
         BboxCheckAndFreeze();
         worker->curTask = nullptr;
         ctx->task = nullptr;

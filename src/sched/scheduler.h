@@ -68,6 +68,48 @@ public:
     }
 
     void PushTask(TaskCtx* task)
+    bool InsertNode(LinkedList* node, const QoS qos)
+    {
+        auto level = qos_default;
+        if (node != nullptr) {
+            level = qos();
+            if (level == qos_inherit) {
+                return false;
+            }
+        }
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        fifoQue[static_cast<size_t>(level)].WakeupNode(node);
+        lock->unlock();
+        ExecuteUnit::Instance().NotifyTaskAdded(level);
+        return true;
+    }
+
+    bool RemoveNode(LinkedList* node, const QoS qos)
+    {
+        auto level = qos_default;
+        if (node != nullptr) {
+            level = qos();
+            if (level == qos_inherit) {
+                return false;
+            }
+        }
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        if (!node->InList()) {
+            lock->unlock();
+            return false;
+        }
+        fifoQue[static_cast<size_t>(level)].RemoveNode(node);
+        lock->unlock();
+#ifdef FFRT_BBOX_ENABLE
+        TaskFinishCounterInc();
+#endif
+        return true;
+    }
+
+private:
+    FFRTScheduler()
     {
         fifoQue[static_cast<size_t>(task->qos())].WakeupTask(task);
     }

@@ -29,6 +29,7 @@
 #include "eu/osattr_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
+#include "eu/func_manager.h"
 
 namespace ffrt {
 template <int WITH_HANDLE>
@@ -288,16 +289,20 @@ static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(voi
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_submit_coroutine(void* co,ffrt_coroutine_ptr_t exec,ffrt_function_ptr_t destroy,const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr)
+void ffrt_submit_coroutine(void* co,ffrt_coroutine_ptr_t exec,ffrt_function_ptr_t destroy,\
+    const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr)
 {
-    FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_!=ffrt_coroutine_stackless),return,"input invalid,coroutine_type!=coroutine_stackless");
+    FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_!=ffrt_coroutine_stackless),\
+        return,"input invalid,coroutine_type!=coroutine_stackless");
     ffrt_submit_base(ffrt_create_function_coroutine_wrapper(co,exec,destroy),in_deps,out_deps,attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_task_handle_t ffrt_submit_h_coroutine(void* co,ffrt_coroutine_ptr_t exec,ffrt_function_ptr_t destroy,const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr)
+ffrt_task_handle_t ffrt_submit_h_coroutine(void* co,ffrt_coroutine_ptr_t exec,\
+    ffrt_function_ptr_t destroy,const ffrt_deps_t* in_deps,const ffrt_deps_t* out_deps,const ffrt_task_attr_t* attr)
 {
-    FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_!=ffrt_coroutine_stackless),return nullptr,"input invalid,coroutine_type!=coroutine_stackless");
+    FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_!=ffrt_coroutine_stackless),\
+        return nullptr,"input invalid,coroutine_type!=coroutine_stackless");
     return ffrt_submit_h_base(ffrt_create_function_coroutine_wrapper(co,exec,destroy),in_deps,out_deps,attr);
 }
 
@@ -401,7 +406,8 @@ int ffrt_skip(ffrt_task_handle_t handle)
 
 //waker
 API_ATTRIBUTE((visibility("default")))
-void ffrt_wake_by_handle(void* callable,ffrt_function_ptr_t exec,ffrt_function_ptr_t destroy,ffrt_task_handle_t handle)
+void ffrt_wake_by_handle(void* callable,ffrt_function_ptr_t exec,ffrt_function_ptr_t destroy,\
+    ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((callable==nullptr),return,"input valid,co==nullptr");
     FFRT_COND_DO_ERR((exec==nullptr),return,"input valid,exec==nullptr");
@@ -432,6 +438,38 @@ void * ffrt_task_get()
     return (void*)ffrt::ExecuteCtx::Cur()->task;
 }
 
+API_ATTRIBUTE((visibility("default")))
+void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr)
+{
+    if (!task) {
+        FFRT_LOGE("function handler should not be empty");
+        return;
+    }
+    ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
+    if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
+        ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
+        return;
+    }
+    FFRT_LOGE("uv function not supports delay");
+    return;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name)
+{
+    ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
+    func_mg->insert(std::string(name), func);
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
+{
+    ffrt::QoS _qos = ffrt::QoS(qos);
+
+    ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
+    ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
+    return (int)(sch->RemoveNode(node, _qos));
+}
 #ifdef __cplusplus
 }
 #endif

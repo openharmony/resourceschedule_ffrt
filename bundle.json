@@ -6,7 +6,7 @@
     "license": "Apache License 2.0",
     "publishAs": "code-segment",
     "segment": {
-        "destPath": "//foundation/resourceschedule/ffrt"
+        "destPath": "foundation/resourceschedule/ffrt"
     },
     "dirs": {},
     "scripts": {},
@@ -17,13 +17,16 @@
         "adapted_system_type": [
             "standard"
         ],
+        "hisysevent_config": [
+            "//foundation/resourceschedule/ffrt/hisysevent.yaml"
+        ],
         "rom": "",
         "ram": "",
         "deps": {
             "components": [
-                "hiviewdfx_hilog_native",
+                "hilog",
+                "hisysevent",
                 "ipc",
-                "hisysevent_native",
                 "frame_aware_sched"
             ],
             "third_party": [

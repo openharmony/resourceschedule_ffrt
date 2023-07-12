@@ -12,28 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef FFRT_CPU_WORKER_HPP
-#define FFRT_CPU_WORKER_HPP
-
-#include "eu/worker_thread.h"
-#include "eu/cpu_manager_interface.h"
-
+#ifndef FFRT_API_CPP_QOS_CONVERT_H
+#define FFRT_API_CPP_QOS_CONVERT_H
+#include "c/type_def.h"
 
 namespace ffrt {
-class CPUWorker : public WorkerThread {
-public:
-    CPUWorker(const QoS& qos, CpuWorkerOps&& ops) : WorkerThread(qos), ops(ops)
-    {
-        Start(CPUWorker::Dispatch, this);
-    }
+constexpr int ERROR_NUM = -1;
+/**
+    @brief get current thread static qos level
+*/
+int GetStaticQos(qos &static_qos);
 
-    CpuWorkerOps ops;
+/**
+    @brief get current thread dynamic qos level
+*/
+int GetDynamicQos(qos &dynamic_qos);
+}; // namespace ffrt
 
-private:
-    static void Dispatch(CPUWorker* worker);
-    static void Run(TaskCtx* task);
-    static void Run(ffrt_executor_task_t* data);
-};
-} // namespace ffrt
-#endif
+#endif // FFRT_API_CPP_QOS_CONVERT_H

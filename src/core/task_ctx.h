@@ -45,10 +45,13 @@ typedef struct{
     void* callable;
 }ffrt_callable_t;
 
+
+/*
+TaskCtx 必须是数据结构ffrt_executor_task_t的子类
+*/
 struct TaskCtx : public TaskDeleter {
     TaskCtx(const task_attr_private* attr,
         TaskCtx* parent, const uint64_t& id, const char *identity = nullptr, const QoS& qos = QoS());
-    WaitEntry fq_we; // used on fifo fast que
     WaitUntilEntry* wue;
     bool wakeupTimeOut = false;
     bool is_native_func = false;

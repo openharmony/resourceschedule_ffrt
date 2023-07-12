@@ -22,8 +22,7 @@ using namespace std;
 using namespace ffrt;
 using namespace testing;
 
-class CoroutineTest : public testing::Test
-{
+class CoroutineTest : public testing::Test{
 protected:
     static void SetUpTestCase()
     {        
@@ -42,7 +41,7 @@ protected:
     }
 };
 
-#define BLOCKED_COUNT 3
+const int BLOCKED_COUNT = 3;
 
 typedef struct {
     int count;

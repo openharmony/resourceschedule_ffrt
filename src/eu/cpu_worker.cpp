@@ -26,9 +26,9 @@ void CPUWorker::Run(TaskCtx* task)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
 #ifdef EU_COROUTINE
-    if(task->coroutine_type==ffrt_coroutine_stackfull){
+    if (task->coroutine_type == ffrt_coroutine_stackfull) {
         CoStart(task);
-    }else{
+    }else {
         StacklessCouroutineStart(task);
     }
 

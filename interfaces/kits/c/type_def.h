@@ -24,18 +24,18 @@
 #endif
 
 #ifdef USE_STACKLESS_COROUTINE
-typedef enum{
+typedef enum {
     ffrt_coroutine_stackless,
     ffrt_coroutine_stackfull,
 } ffrt_coroutine_t;
 
-typedef enum{
+typedef enum {
     ffrt_ready = 1,
     ffrt_blocked = 3,
     ffrt_exited = 4,
 } ffrt_task_status_t;
 
-typedef enum{
+typedef enum {
     ffrt_coroutine_pending = 0,
     ffrt_coroutine_ready = 1,
 } ffrt_coroutine_ret_t;

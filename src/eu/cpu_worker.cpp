@@ -66,9 +66,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         FFRT_LOGI("task picking");
         TaskCtx* task = worker->ops.PickUpTask(worker);
         if (task) {
-            FFRT_LOGI("task[%lu] picked", task->gid);
             worker->ops.NotifyTaskPicked(worker);
-            FFRT_LOGI("task[%lu] notified", task->gid);
         } else {
             FFRT_WORKER_IDLE_BEGIN_MARKER();
             auto action = worker->ops.WaitForNewAction(worker);

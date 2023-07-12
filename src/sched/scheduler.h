@@ -95,14 +95,14 @@ public:
         }
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
-        if (node->Empty()) {
+        if (!node->InList()) {
             lock->unlock();
             return false;
         }
         fifoQue[static_cast<size_t>(level)].RemoveNode(node);
         lock->unlock();
 #ifdef FFRT_BBOX_ENABLE
-    TaskFinishCounterInc();
+        TaskFinishCounterInc();
 #endif
         return true;
     }

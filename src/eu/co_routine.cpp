@@ -314,7 +314,7 @@ static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
 {
     task->lock.lock();
     task->state.SetCurState(ffrt::TaskState::State::EXITED);
-    if(task->stackless_coroutine_wake_count > 0){
+    if (task->stackless_coroutine_wake_count > 0) {
         //log
     }
     task->lock.unlock();

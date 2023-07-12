@@ -237,7 +237,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_pt
 {
     FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_ != ffrt_coroutine_stackless),\
         return, "input invalid,coroutine_type!=coroutine_stackless");
-    ffrt_submit_base(ffrt_create_function_coroutine_wrapper(co, exec, destroy), in_deps,out_deps, attr);
+    ffrt_submit_base(ffrt_create_function_coroutine_wrapper(co, exec, destroy), in_deps, out_deps, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -254,10 +254,10 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function_ptr_t destroy,\
     ffrt_task_handle_t handle)
 {
-    FFRT_COND_DO_ERR((callable == nullptr), return, "input valid,co==nullptr");
-    FFRT_COND_DO_ERR((exec == nullptr), return, "input valid,exec==nullptr");
-    FFRT_COND_DO_ERR((destroy == nullptr), return, "input valid,destroy==nullptr");  
-    FFRT_COND_DO_ERR((handle == nullptr), return, "input valid,handle==nullptr");  
+    FFRT_COND_DO_ERR((callable == nullptr), return, "input valid,co == nullptr");
+    FFRT_COND_DO_ERR((exec == nullptr), return, "input valid,exec == nullptr");
+    FFRT_COND_DO_ERR((destroy == nullptr), return, "input valid,destroy == nullptr");  
+    FFRT_COND_DO_ERR((handle == nullptr), return, "input valid,handle == nullptr");  
     ffrt::TaskCtx * task=static_cast<ffrt::TaskCtx*>(CVT_HANDLE_TO_TASK(handle));
 
     task->lock.lock();
@@ -314,7 +314,7 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     ffrt_task_handle_t delay_handle;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
-    ffrt_deps_t delay_deps{static_cast<uint32_t>(deps.size()), deps.data()};
+    ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl<0>(handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
 }
@@ -338,7 +338,7 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
     ffrt_task_handle_t delay_handle;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
-    ffrt_deps_t delay_deps{static_cast<uint32_t>(deps.size()), deps.data()};
+    ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl<1>(handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
     return handle;

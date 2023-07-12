@@ -25,7 +25,7 @@ using namespace testing;
 class CoroutineTest : public testing::Test {
 protected:
     static void SetUpTestCase()
-    {        
+    {
     }
 
     static void TearDownTestCase()
@@ -75,8 +75,8 @@ void destroy_stackless_coroutine(void *co)
 
 TEST_F(CoroutineTest, coroutine_submit_succ)
 {
-    StacklessCoroutine1 co1={0};
-    StacklessCoroutine1 co2={0};
+    StacklessCoroutine1 co1 = {0};
+    StacklessCoroutine1 co2 = {0};
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
     ffrt_task_attr_set_name(&attr, "stackless_coroutine");
@@ -156,7 +156,7 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine(void *co)
             ffrt_task_attr_set_name(&attr, "stackless_coroutine");
             ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
             ffrt_set_wake_flag(true);
-            ffrt_task_handle_t h=ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, \
+            ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, \
                 destroy_stackless_coroutine, NULL, NULL, &attr);
             waker.phandle=ffrt_task_get();
             waker.handle=h;

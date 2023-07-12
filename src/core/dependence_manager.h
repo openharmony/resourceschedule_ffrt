@@ -392,7 +392,7 @@ public:
             // scene 8
             version = en->VA2Ctx(signature, task);
         add_outversion:
-            outVersions.push_back({version, type});
+            outVersions.push_back({ version, type });
         }
     }
 

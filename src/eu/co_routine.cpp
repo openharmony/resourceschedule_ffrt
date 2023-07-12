@@ -315,7 +315,7 @@ static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
     task->lock.lock();
     task->state.SetCurState(ffrt::TaskState::State::EXITED);
     if (task->stackless_coroutine_wake_count > 0) {
-        //log
+        // log
     }
     task->lock.unlock();
     if (task->wakeFlag&&task->wake_callable_on_finish.exec) {
@@ -336,16 +336,18 @@ void StacklessCouroutineStart(ffrt::TaskCtx* task)
     auto f = (ffrt_function_header_t*)task->func_storage;
     ffrt_coroutine_ptr_t coroutine = (ffrt_coroutine_ptr_t)f->exec;
     ffrt_coroutine_ret_t ret = coroutine(f);
-    if(ret == ffrt_coroutine_ready){
+    if (ret == ffrt_coroutine_ready) {
         OnStacklessCoroutineReady(task);
-    }else{
+    }
+    else {
         task->lock.lock();
         task->stackless_coroutine_wake_count-=1;
         if (task->stackless_coroutine_wake_count > 0) {
             task->state.SetCurState(ffrt::TaskState::State::READY);
             task->lock.unlock();
             ffrt::FFRTScheduler::Instance()->PushTask(task);
-        }else {
+        }
+        else {
             task->state.SetCurState(ffrt::TaskState::State::BLOCKED);
             task->lock.unlock();
         }
@@ -353,7 +355,7 @@ void StacklessCouroutineStart(ffrt::TaskCtx* task)
 }
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 API_ATTRIBUTE((visibility("default")))

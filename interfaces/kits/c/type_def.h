@@ -40,8 +40,9 @@ typedef enum {
     ffrt_coroutine_ready = 1,
 } ffrt_coroutine_ret_t;
 
-typedef void(*ffrt_function_t)(void*);
+
 typedef void(*ffrt_function_ptr_t)(void*);
+typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
 #endif
 
 typedef enum {
@@ -60,7 +61,8 @@ typedef enum {
     ffrt_stack_protect_strong
 } ffrt_stack_protect_t;
 
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
+typedef void(*ffrt_function_t)(void*);
+
 typedef struct {
     ffrt_function_t exec;
     ffrt_function_t destroy;

@@ -28,7 +28,8 @@ void CPUWorker::Run(TaskCtx* task)
 #ifdef EU_COROUTINE
     if (task->coroutine_type == ffrt_coroutine_stackfull) {
         CoStart(task);
-    }else {
+    }
+    else {
         StacklessCouroutineStart(task);
     }
 

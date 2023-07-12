@@ -39,7 +39,7 @@ public:
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
     ffrt_function_header_t* timeoutCb_ = nullptr;
-    ffrt_coroutine_t coroutine_type_=ffrt_coroutine_stackfull;
+    ffrt_coroutine_t coroutine_type_ = ffrt_coroutine_stackfull;
 };
 }
 #endif

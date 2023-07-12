@@ -228,7 +228,7 @@ static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(voi
     f->func = exec;
     f->destroy = destroy;
     f->arg = co;
-    return (ffrt_function_header_t*)f;
+    return (ffrt_function_header_t*) f;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -249,7 +249,7 @@ ffrt_task_handle_t ffrt_submit_h_coroutine(void* co,ffrt_coroutine_ptr_t exec,\
     return ffrt_submit_h_base(ffrt_create_function_coroutine_wrapper(co, exec, destroy), in_deps, out_deps, attr);
 }
 
-//waker
+// waker
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function_ptr_t destroy,\
     ffrt_task_handle_t handle)

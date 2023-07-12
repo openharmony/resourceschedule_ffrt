@@ -42,12 +42,18 @@ void CPUWorker::Run(TaskCtx* task)
 
 void CPUWorker::Run(ffrt_executor_task_t* data)
 {
+#ifdef FFRT_BBOX_ENABLE
+    TaskRunCounterInc();
+#endif
     ffrt_executor_task_func func = FuncManager::Instance()->getFunc("uv");
     if (func == nullptr) {
         FFRT_LOGE("func is nullptr");
         return;
     }
     func(data);
+#ifdef FFRT_BBOX_ENABLE
+    TaskFinishCounterInc();
+#endif
 }
 
 void CPUWorker::Dispatch(CPUWorker* worker)
@@ -75,7 +81,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         }
 
         BboxCheckAndFreeze();
-        UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
 
         FFRT_LOGD("EU pick task[%lu]", task->gid);
 
@@ -83,6 +88,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
             Run(work);
         } else {
+            UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
             task->UpdateState(TaskState::RUNNING);
 
             lastTask = task;

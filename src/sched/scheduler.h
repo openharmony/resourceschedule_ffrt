@@ -101,6 +101,9 @@ public:
         }
         fifoQue[static_cast<size_t>(level)].RemoveNode(node);
         lock->unlock();
+#ifdef FFRT_BBOX_ENABLE
+    TaskFinishCounterInc();
+#endif
         return true;
     }
 

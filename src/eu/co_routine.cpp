@@ -51,7 +51,7 @@ static inline void CoStartEntry(void* arg)
 {
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
     {
-        FFRT_LOGI("Execute func() task[%lu], name[%s]", co->task->gid, co->task->label.c_str());
+        FFRT_LOGD("Execute func() task[%lu], name[%s]", co->task->gid, co->task->label.c_str());
         auto f = reinterpret_cast<ffrt_function_header_t*>(co->task->func_storage);
         auto exp = ffrt::SkipStatus::SUBMITTED;
         if (likely(__atomic_compare_exchange_n(&co->task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
@@ -225,7 +225,7 @@ void CoStart(ffrt::TaskCtx* task)
 #endif
 
     for (;;) {
-        FFRT_LOGI("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
+        FFRT_LOGD("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
         FFRT_TASK_BEGIN(task->label, task->gid);
         CoSwitchInTrace(task);
@@ -244,7 +244,7 @@ void CoStart(ffrt::TaskCtx* task)
         g_CoThreadEnv->pending = nullptr;
         // Fast path: skip state transition
         if ((*pending)(task)) {
-            FFRT_LOGI("Cowait task[%lu], name[%s]", task->gid, task->label.c_str());
+            FFRT_LOGD("Cowait task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();
 #endif
@@ -289,7 +289,7 @@ void CoWake(ffrt::TaskCtx* task, bool timeOut)
         return;
     }
     // Fast path: state transition without lock
-    FFRT_LOGI("Cowake task[%lu], name[%s], timeOut[%d]", task->gid, task->label.c_str(), timeOut);
+    FFRT_LOGD("Cowake task[%lu], name[%s], timeOut[%d]", task->gid, task->label.c_str(), timeOut);
     task->wakeupTimeOut = timeOut;
     FFRT_WAKE_TRACER(task->gid);
     task->UpdateState(ffrt::TaskState::READY);

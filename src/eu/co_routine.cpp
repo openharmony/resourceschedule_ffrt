@@ -297,6 +297,7 @@ void CoWake(ffrt::TaskCtx* task, bool timeOut)
     task->UpdateState(ffrt::TaskState::READY);
 }
 
+#ifdef USE_STACKLESS_COROUTINE
 static inline void ffrt_exec_callable_wrapper(void* t)
 {
     ffrt::ffrt_callable_t* f=(ffrt::ffrt_callable_t*)t;
@@ -370,4 +371,7 @@ void ffrt_wake_coroutine(void *taskin)
         ffrt::FFRTScheduler::Instance()->WakeupTask(task);
     }
 }
+#ifdef __cplusplus
 }
+#endif
+#endif

@@ -11,8 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
+import("//foundation//resourceschedule//ffrt//ffrt_stackless_coroutine.gni")
 
 defines = []
+
+if(use_stackless_coroutine){
+  define+=["USE_STACKLESS_COROUTINE"]
+}
 
 config("ffrt_config") {
   visibility = [ ":*" ]

@@ -133,7 +133,7 @@ struct Waker
 {
     void *phandle;
     void *handle;
-}waker;
+} waker;
 
 void wake_stackless_coroutine(void *arg)
 {
@@ -156,8 +156,8 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine(void *co)
             ffrt_task_attr_set_name(&attr, "stackless_coroutine");
             ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
             ffrt_set_wake_flag(true);
-            ffrt_task_handle_t h=ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, destroy_stackless_coroutine, 
-                NULL, NULL, &attr);
+            ffrt_task_handle_t h=ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, \
+                destroy_stackless_coroutine, NULL, NULL, &attr);
             waker.phandle=ffrt_task_get();
             waker.handle=h;
             ffrt_wake_by_handle(&waker, wake_stackless_coroutine, destroy_wake_of_stackless_coroutine, h);
@@ -209,8 +209,8 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine_fail(void *co)
                 ffrt_task_attr_init(&attr);
                 ffrt_task_attr_set_name(&attr, "stackless_coroutine");
                 ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
-                ffrt_task_handle_t h=ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, \
-                    destroy_stackless_coroutine,NULL,NULL,&attr);
+                ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, \
+                    destroy_stackless_coroutine, NULL, NULL, &attr);
                 waker.phandle=ffrt_task_get();
                 waker.handle=h;
 

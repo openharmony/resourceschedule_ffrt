@@ -36,7 +36,7 @@
 
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
-constexpr uint64_t handle_bit_mask=48;
+constexpr uint64_t handle_bit_mask = 48;
 #define IS_HANDLE(handle)((static_cast<uint64_t>(reinterpret_cast<uintptr_t>(handle))>>ffrt::handle_bit_mask)&0x1)
 #define CVT_TASK_TO_HANDLE(task)(reinterpret_cast<void *>(static_cast<uintptr_t>( \
     reinterpret_cast<uintptr_t>(task)|(static_cast<uint64_t>(1)<<handle_bit_mask))))

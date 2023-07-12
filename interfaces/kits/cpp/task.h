@@ -93,7 +93,7 @@ public:
     */
     inline task_attr& coroutine_type(ffrt_coroutine_t coroutine_type)
     {
-        ffrt_task_attr_set_coroutine_type(this,coroutine_type);
+        ffrt_task_attr_set_coroutine_type(this, coroutine_type);
         return *this;
     }
 

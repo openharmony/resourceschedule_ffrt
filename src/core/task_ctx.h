@@ -66,7 +66,7 @@ struct TaskCtx : public TaskDeleter {
     CoRoutine* coRoutine = nullptr;
     std::vector<std::string> traceTag;
     bool wakeFlag = true;
-    ffrt_callable_t wake_callable_on_finish{nullptr, nullptr, nullptr};
+    ffrt_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};
 
 #ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
     xx::mutex lock {"TaskCtx::lock"};

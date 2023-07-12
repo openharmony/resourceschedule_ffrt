@@ -54,12 +54,10 @@ ffrt_coroutine_ret_t stackless_coroutine(void *co)
     if (((StacklessCoroutine1*)(co))->count < BLOCKED_COUNT) {
         ffrt_wake_coroutine(ffrt_task_get());
         return ffrt_coroutine_pending;
-    }
-    else if (((StacklessCoroutine1*)(co))->count == BLOCKED_COUNT) {
+    } else if (((StacklessCoroutine1*)(co))->count == BLOCKED_COUNT) {
         ffrt_wake_coroutine(ffrt_task_get());
         return ffrt_coroutine_pending;
-    }
-    else {
+    } else {
         ffrt_wake_coroutine(ffrt_task_get());
         return ffrt_coroutine_ready;
     }
@@ -169,12 +167,10 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine(void *co)
         }
         ffrt_wake_coroutine(ffrt_task_get());
         return ffrt_coroutine_pending;
-    }
-    else if (((StacklessCoroutine1*)(co))->count == BLOCKED_COUNT) {
+    } else if (((StacklessCoroutine1*)(co))->count == BLOCKED_COUNT) {
         ffrt_wake_coroutine(ffrt_task_get());
         return ffrt_coroutine_pending;
-    }
-    else {
+    } else {
         ffrt_wake_coroutine(ffrt_task_get());
         return ffrt_coroutine_ready;
     }
@@ -209,7 +205,7 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine_fail(void *co)
     ((StacklessCoroutine1*)(co))->count++;
 
     if (((StacklessCoroutine1*)(co))->count < BLOCKED_COUNT) {
-            if (((StacklessCoroutine1*)(co))->count == 1) {  
+            if (((StacklessCoroutine1*)(co))->count == 1) {
                 ffrt_task_attr_t attr;
                 ffrt_task_attr_init(&attr);
                 ffrt_task_attr_set_name(&attr, "stackless_coroutine");
@@ -230,12 +226,10 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine_fail(void *co)
             }
             ffrt_wake_coroutine(ffrt_task_get());
             return ffrt_coroutine_pending;
-        }
-        else if (((StacklessCoroutine1*)(co))->count == BLOCKED_COUNT) {
+        } else if (((StacklessCoroutine1*)(co))->count == BLOCKED_COUNT) {
             ffrt_wake_coroutine(ffrt_task_get());
             return ffrt_coroutine_pending;
-        }
-        else {
+        } else {
             ffrt_wake_coroutine(ffrt_task_get());
             return ffrt_coroutine_ready;
         }

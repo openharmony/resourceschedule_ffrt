@@ -256,8 +256,8 @@ void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function
 {
     FFRT_COND_DO_ERR((callable == nullptr), return, "input valid,co == nullptr");
     FFRT_COND_DO_ERR((exec == nullptr), return, "input valid,exec == nullptr");
-    FFRT_COND_DO_ERR((destroy == nullptr), return, "input valid,destroy == nullptr");  
-    FFRT_COND_DO_ERR((handle == nullptr), return, "input valid,handle == nullptr");  
+    FFRT_COND_DO_ERR((destroy == nullptr), return, "input valid,destroy == nullptr");
+    FFRT_COND_DO_ERR((handle == nullptr), return, "input valid,handle == nullptr");
     ffrt::TaskCtx * task=static_cast<ffrt::TaskCtx*>(CVT_HANDLE_TO_TASK(handle));
 
     task->lock.lock();

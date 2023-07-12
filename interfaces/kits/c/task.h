@@ -26,7 +26,7 @@ FFRT_C_API ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_us);
 FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t task_qos);
-FFRT_C_API uint64_t ffrt_this_task_get_id();
+FFRT_C_API uint64_t ffrt_this_task_get_id(void);
 
 #ifdef USE_STACKLESS_COROUTINE
 FFRT_C_API void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_coroutine_t coroutine_type);

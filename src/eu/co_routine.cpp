@@ -338,8 +338,7 @@ void StacklessCouroutineStart(ffrt::TaskCtx* task)
     ffrt_coroutine_ret_t ret = coroutine(f);
     if (ret == ffrt_coroutine_ready) {
         OnStacklessCoroutineReady(task);
-    }
-    else {
+    } else {
         task->lock.lock();
         task->stackless_coroutine_wake_count-=1;
         if (task->stackless_coroutine_wake_count > 0) {

@@ -51,7 +51,7 @@ public:
         std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) +
                               "\n" + msg + "\n";
 
-        HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::OTHERS, eventName,
+        HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
                         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
                         "PID", pid,
                         "TGID", gid,
@@ -80,7 +80,7 @@ public:
 #endif
                     } else {
                         FFRT_LOGE("linux thread id = %ld\n", taskId);
-                        SendEvent("mutex deadlock detected!", "SERVICE_BLOCK");
+                        SendEvent("mutex deadlock detected!", "TASK_DEADLOCK");
                     }
                 }
             }

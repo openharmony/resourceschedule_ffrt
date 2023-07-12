@@ -77,6 +77,7 @@ constexpr unsigned char AF_QOS_DELEGATED = 0x0001;
 enum QosManipulateType {
     QOS_APPLY = 1,
     QOS_LEAVE,
+    QOS_GET,
     QOS_MAX_NR,
 };
 
@@ -84,6 +85,9 @@ struct QosCtrlData {
     int pid;
     unsigned int type;
     unsigned int level;
+    int qos;
+    int static_qos;
+    int dynamic_qos;
 };
 
 struct QosPolicyData {
@@ -180,6 +184,8 @@ int QosApply(unsigned int level);
 int QosApplyForOther(unsigned int level, int tid);
 int QosLeave(void);
 int QosLeaveForOther(int tid);
+int QosGet(struct QosCtrlData &data);
+int QosGetForOther(int tid, struct QosCtrlData &data);
 int QosPolicy(struct QosPolicyDatas *policyDatas);
 typedef int (*Func_affinity)(unsigned long affinity, int tid);
 void setFuncAffinity(Func_affinity func);

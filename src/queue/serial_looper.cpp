@@ -133,8 +133,7 @@ void SerialLooper::RunTimeOutCallback(ITask* task)
 #ifdef FFRT_SEND_EVENT
     time_t cur_time = time(nullptr);
     std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
-
-    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::OTHERS, eventName,
+    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "PID", getpid(), "TGID", getgid(), "UID", getuid(),
         "MODULE_NAME", "ffrt", "PROCESS_NAME", "ffrt", "MSG", sendMsg);
 #endif

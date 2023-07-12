@@ -84,6 +84,7 @@ ohos_shared_library("libffrt") {
     "src/eu/execute_unit.cpp",
     "src/eu/osattr_manager.cpp",
     "src/eu/qos_config.cpp",
+    "src/eu/qos_convert.cpp",
     "src/eu/qos_interface.cpp",
     "src/eu/rtg_ioctl.cpp",
     "src/eu/rtg_perf_ctrl.c",
@@ -118,8 +119,8 @@ ohos_shared_library("libffrt") {
 
   external_deps = [
     "frame_aware_sched:rtg_interface",
-    "hisysevent_native:libhisysevent",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
     "ipc:ipc_core",
   ]
 
@@ -130,6 +131,9 @@ ohos_shared_library("libffrt") {
 
   output_extension = "so"
   part_name = "ffrt"
-  install_images = [ "system" ]
+  install_images = [
+    "system",
+    "updater",
+  ]
   relative_install_dir = "chipset-sdk"
 }

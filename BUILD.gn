@@ -16,7 +16,7 @@ import("//foundation//resourceschedule//ffrt//ffrt_stackless_coroutine.gni")
 defines = []
 
 if(use_stackless_coroutine){
-  define+=[ "USE_STACKLESS_COROUTINE" ]
+  defines += USE_STACKLESS_COROUTINE
 }
 
 config("ffrt_config") {

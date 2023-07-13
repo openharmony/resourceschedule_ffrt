@@ -93,7 +93,7 @@ public:
     }
 };
 
-void CoWorkerExit();
+void CoWorkerExit(void);
 
 void CoStart(ffrt::TaskCtx* task);
 void CoYield(void);

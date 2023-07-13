@@ -174,7 +174,6 @@ uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t *attr)
     return (reinterpret_cast<ffrt::task_attr_private *>(p))->delay_;
 }
 
-#ifdef USE_STACKLESS_COROUTINE
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_coroutine_t coroutine_type)
 {
@@ -194,6 +193,8 @@ ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
     }
     return ((ffrt::task_attr_private*)attr)->coroutine_type_;
 }
+
+#ifdef USE_STACKLESS_COROUTINE
 typedef struct {
     ffrt_function_header_t header;
     ffrt_coroutine_ptr_t func;

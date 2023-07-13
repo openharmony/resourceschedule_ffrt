@@ -25,6 +25,7 @@ config("ffrt_config") {
     "//foundation/resourceschedule/frame_aware_sched/common/include/",
     "//third_party/libunwind/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter/",
+    "//base/hiviewdfx/faultloggerd/interfaces/innerkits/backtrace/include",
   ]
 
   ffrt_defaults_cflags = [
@@ -123,6 +124,7 @@ ohos_shared_library("libffrt") {
   ]
 
   external_deps = [
+    "faultloggerd:libbacktrace_local",
     "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",

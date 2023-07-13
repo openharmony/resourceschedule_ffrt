@@ -23,7 +23,6 @@
 #define FFRT_C_API
 #endif
 
-#ifdef USE_STACKLESS_COROUTINE
 typedef enum {
     ffrt_coroutine_stackless,
     ffrt_coroutine_stackfull,
@@ -43,7 +42,6 @@ typedef enum {
 
 typedef void(*ffrt_function_ptr_t)(void*);
 typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
-#endif
 
 typedef enum {
     ffrt_qos_inherit = -1,

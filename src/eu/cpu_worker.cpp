@@ -66,9 +66,9 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     auto ctx = ExecuteCtx::Cur();
     TaskCtx* lastTask = nullptr;
 
-    FFRT_LOGI("qos[%d] thread start succ", (int)worker->GetQos());
+    FFRT_LOGD("qos[%d] thread start succ", (int)worker->GetQos());
     for (;;) {
-        FFRT_LOGI("task picking");
+        FFRT_LOGD("task picking");
         TaskCtx* task = worker->ops.PickUpTask(worker);
         if (task) {
             worker->ops.NotifyTaskPicked(worker);

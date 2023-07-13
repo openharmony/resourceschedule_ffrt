@@ -135,7 +135,6 @@ private:
     {
         TaskState::RegisterOps(TaskState::READY, std::bind(&FFRTScheduler::WakeupTask, this, std::placeholders::_1));
     }
-
     std::array<FIFOScheduler, QoS::Max()> fifoQue;
 
 #ifdef QOS_DEPENDENCY

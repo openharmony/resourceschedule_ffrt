@@ -132,7 +132,7 @@ public:
                 static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(TaskCtx, func_storage)));
             new (task)TaskCtx(attr, parent, ++parent->childNum, nullptr);
         }
-        FFRT_LOGW("submit task[%lu], name[%s]", task->gid, task->label.c_str());
+        FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
         TaskSubmitCounterInc();
 #endif
@@ -182,7 +182,7 @@ public:
             }
         }
 
-        FFRT_LOGI("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
+        FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
         task->UpdateState(TaskState::READY);
 #ifdef FFRT_BBOX_ENABLE
         TaskEnQueuCounterInc();
@@ -218,7 +218,7 @@ public:
         {
             std::unique_lock<std::mutex> lck(task->lock);
             task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
-            FFRT_LOGI("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+            FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
             task->childWaitCond_.wait(lck, [task] { return task->childWaitRefCnt == 0; });
             return;
         }
@@ -282,14 +282,14 @@ public:
             dataDepFun();
             std::unique_lock<std::mutex> lck(task->lock);
             task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
-            FFRT_LOGI("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+            FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
             task->dataWaitCond_.wait(lck, [task] { return task->dataWaitRefCnt == 0; });
             return;
         }
 #ifdef EU_COROUTINE
         auto pendDataDepFun = [&](ffrt::TaskCtx* inTask) -> bool {
             dataDepFun();
-            FFRT_LOGI("onWait name:%s gid=%lu", inTask->label.c_str(), inTask->gid);
+            FFRT_LOGD("onWait name:%s gid=%lu", inTask->label.c_str(), inTask->gid);
             std::unique_lock<std::mutex> lck(inTask->lock);
             if (inTask->dataWaitRefCnt == 0) {
                 return false;
@@ -305,7 +305,7 @@ public:
 
     void onTaskDone(TaskCtx* task)
     {
-        FFRT_LOGW("Task completed, task[%lu], name[%s]", task->gid, task->label.c_str());
+        FFRT_LOGD("Task completed, task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
         TaskDoneCounterInc();
 #endif

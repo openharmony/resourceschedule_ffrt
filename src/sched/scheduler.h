@@ -126,7 +126,7 @@ private:
         lock->lock();
         fifoQue[static_cast<size_t>(level)].WakeupTask(task);
         lock->unlock();
-        FFRT_LOGI("qos[%d] task[%lu] entered q", level, task->gid);
+        FFRT_LOGD("qos[%d] task[%lu] entered q", level, task->gid);
         ExecuteUnit::Instance().NotifyTaskAdded(level);
         return true;
     }

@@ -109,22 +109,22 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     auto& ctl = sleepCtl[thread->GetQos()];
     std::unique_lock lk(ctl.mutex);
     monitor.IntoSleep(thread->GetQos());
-    FFRT_LOGI("worker sleep");
+    FFRT_LOGD("worker sleep");
 #if defined(IDLE_WORKER_DESTRUCT)
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5),
         [this, thread] {return tearDown || GetTaskCount(thread->GetQos());})) {
         monitor.WakeupCount(thread->GetQos());
-        FFRT_LOGI("worker awake");
+        FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
         monitor.TimeoutCount(thread->GetQos());
-        FFRT_LOGI("worker exit");
+        FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
     }
 #else /* !IDLE_WORKER_DESTRUCT */
     ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
     monitor.WakeupCount(thread->GetQos());
-    FFRT_LOGI("worker awake");
+    FFRT_LOGD("worker awake");
     return WorkerAction::RETRY;
 #endif /* IDLE_WORKER_DESTRUCT */
 }

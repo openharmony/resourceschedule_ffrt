@@ -52,7 +52,7 @@ TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t 
     if (!IsRoot()) {
         FFRT_SUBMIT_MARKER(label, gid);
     }
-    FFRT_LOGI("create task name:%s gid=%lu", label.c_str(), gid);
+    FFRT_LOGD("create task name:%s gid=%lu", label.c_str(), gid);
 }
 
 void TaskCtx::ChargeQoSSubmit(const QoS& qos)

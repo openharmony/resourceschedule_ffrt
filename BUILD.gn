@@ -24,6 +24,7 @@ config("ffrt_config") {
     "//third_party/jsoncpp/include",
     "//foundation/resourceschedule/frame_aware_sched/common/include/",
     "//third_party/libunwind/include",
+    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter/",
   ]
 
   ffrt_defaults_cflags = [
@@ -53,6 +54,9 @@ config("ffrt_config") {
     "FFRT_MUTEX_DEADLOCK_CHECK",
     "FFRT_OH_EVENT_RECORD",
     "FFRT_CO_BACKTRACE_OH_ENABLE",
+    "FFRT_OH_TRACE_ENABLE",
+    "FFRT_OH_TASK_STAT_ENABLE",
+    "FFRT_TRACE_LEVEL=1",
   ]
 
   #ffrt_release_defines = [
@@ -76,6 +80,7 @@ ohos_shared_library("libffrt") {
     "src/dfx/bbox/bbox.cpp",
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/log/hmos/log_base.cpp",
+    "src/dfx/trace/ffrt_trace.cpp",
     "src/eu/co2_context.c",
     "src/eu/co_routine.cpp",
     "src/eu/cpu_monitor.cpp",
@@ -121,6 +126,7 @@ ohos_shared_library("libffrt") {
     "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
   ]
 

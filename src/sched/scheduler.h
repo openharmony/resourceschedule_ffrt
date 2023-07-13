@@ -67,7 +67,7 @@ public:
         return fifoQue[static_cast<size_t>(qos)];
     }
 
-    void PushTask(TaskCtx* task)
+    void PushTask(TaskCtx* task);
     bool InsertNode(LinkedList* node, const QoS qos)
     {
         auto level = qos_default;

@@ -67,7 +67,29 @@ public:
         return fifoQue[static_cast<size_t>(qos)];
     }
 
-    void PushTask(TaskCtx* task);
+    void PushTask(TaskCtx* task)
+    {
+        fifoQue[static_cast<size_t>(task->qos())].WakeupTask(task);
+    }
+
+    bool WakeupTask(TaskCtx* task)
+    {
+        auto level = qos_default;
+        if (task != nullptr) {
+            level = task->qos();
+            if (level == qos_inherit) {
+                return false;
+            }
+        }
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        fifoQue[static_cast<size_t>(level)].WakeupTask(task);
+        lock->unlock();
+        FFRT_LOGI("qos[%d] task[%lu] entered q", level, task->gid);
+        ExecuteUnit::Instance().NotifyTaskAdded(level);
+        return true;
+    }
+
     bool InsertNode(LinkedList* node, const QoS qos)
     {
         auto level = qos_default;
@@ -108,29 +130,6 @@ public:
         return true;
     }
 
-private:
-    FFRTScheduler()
-    {
-        fifoQue[static_cast<size_t>(task->qos())].WakeupTask(task);
-    }
-
-    bool WakeupTask(TaskCtx* task)
-    {
-        auto level = qos_default;
-        if (task != nullptr) {
-            level = task->qos();
-            if (level == qos_inherit) {
-                return false;
-            }
-        }
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
-        lock->lock();
-        fifoQue[static_cast<size_t>(level)].WakeupTask(task);
-        lock->unlock();
-        FFRT_LOGI("qos[%d] task[%lu] entered q", level, task->gid);
-        ExecuteUnit::Instance().NotifyTaskAdded(level);
-        return true;
-    }
 private:
     FFRTScheduler()
     {

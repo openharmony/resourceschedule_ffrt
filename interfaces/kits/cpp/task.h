@@ -87,7 +87,6 @@ public:
         return ffrt_task_attr_get_delay(this);
     }
 
-#ifdef USE_STACKLESS_COROUTINE
     /**
     @brief set task coroutine type
     */
@@ -104,7 +103,6 @@ public:
     {
         return ffrt_task_attr_get_coroutine_type(this);
     }
-#endif
 };
 
 

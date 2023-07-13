@@ -21,7 +21,7 @@
 #include "internal_inc/osal.h"
 
 #ifdef FFRT_OH_TRACE_ENABLE
-#include "hirace_meter.h"
+#include "hitrace_meter.h"
 #endif
 
 namespace ffrt {
@@ -84,7 +84,7 @@ private:
         FFRT_TRACE_BEGIN(("P[" + (tag) + "]|" + std::to_string(gid)).c_str()); \
         FFRT_TRACE_END(); \
     }
-#define FFRT_REDAY_MARKER(gid) \
+#define FFRT_READY_MARKER(gid) \
     { \
         FFRT_TRACE_ASYNC_END("R", gid); \
     }
@@ -110,7 +110,7 @@ private:
     }
 #define FFRT_BLOCK_TRACER(gid, tag) \
     { \
-        FFRT_TRACE_BEGIN(("FFBK[" + (tag) + "]|" + std::to_string(gid)).c_str()); \
+        FFRT_TRACE_BEGIN(("FFBK[" #tag "]|" + std::to_string(gid)).c_str()); \
         FFRT_TRACE_END(); \
     }
 #define FFRT_WAKE_TRACER(gid) \

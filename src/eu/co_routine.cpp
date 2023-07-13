@@ -345,8 +345,7 @@ void StacklessCouroutineStart(ffrt::TaskCtx* task)
             task->state.SetCurState(ffrt::TaskState::State::READY);
             task->lock.unlock();
             ffrt::FFRTScheduler::Instance()->PushTask(task);
-        }
-        else {
+        } else {
             task->state.SetCurState(ffrt::TaskState::State::BLOCKED);
             task->lock.unlock();
         }

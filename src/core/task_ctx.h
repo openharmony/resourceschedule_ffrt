@@ -177,7 +177,7 @@ struct TaskCtx : public TaskDeleter {
 
     void SetWakeFlag(bool wakeFlagIn)
     {
-        wakeFlag=wakeFlagIn;
+        wakeFlag = wakeFlagIn;
     }
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE

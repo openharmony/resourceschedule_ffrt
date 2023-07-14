@@ -111,7 +111,7 @@ ITask* SerialQueue::Next()
             (void)whenMap_.erase(it);
         }
 	FFRT_LOGD("get next serial task [%p], %s contains [%u] other timestamps", nextTask, name_.c_str(), 
-			whenMap_size());
+		whenMap_size());
         return nextTask;
     } else {
         uint64_t diff = it->first - now;

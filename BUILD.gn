@@ -123,6 +123,7 @@ ohos_shared_library("libffrt") {
   ]
 
   external_deps = [
+    "faultloggerd:libbacktrace_local",
     "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",

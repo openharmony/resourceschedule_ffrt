@@ -28,7 +28,8 @@
                 "hisysevent",
                 "hitrace",
                 "ipc",
-                "frame_aware_sched"
+                "frame_aware_sched",
+                "faultloggerd"
             ],
             "third_party": [
                 "bounds_checking_function",

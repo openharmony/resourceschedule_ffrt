@@ -21,8 +21,10 @@ int SerialHandler::Cancel(ITask* task)
     FFRT_COND_DO_ERR((task == nullptr), return -1, "submit task is nullptr");
     FFRT_COND_DO_ERR((looper_ == nullptr || looper_->queue_ == nullptr), return -1, "queue is nullptr");
     int ret = looper_->queue_->RemoveTask(task);
-    FFRT_LOGD("cancel serial task [0x%x] return [%d]", task, ret);
+    FFRT_LOGD("cancel serial task [%p] return [%d]", task, ret);
     if (ret == 0) {
+	auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
+	f->destroy(f);
         DestroyTask(task);
     }
     return ret;
@@ -35,14 +37,14 @@ void SerialHandler::DispatchTask(ITask* task)
     f->exec(f);
     f->destroy(f);
     DestroyTask(task);
-    FFRT_LOGD("dispatch serial task [0x%x] succ", task);
+    FFRT_LOGD("dispatch serial task [%p] succ", task);
 }
 
 int SerialHandler::SubmitDelayed(ITask* task, uint64_t delayUs)
 {
     FFRT_COND_DO_ERR((task == nullptr), return -1, "submit task is nullptr");
     FFRT_COND_DO_ERR((looper_ == nullptr || looper_->queue_ == nullptr), return -1, "queue is nullptr");
-    FFRT_LOGD("submit serial task [0x%x] with delay [%llu us]", task, delayUs);
+    FFRT_LOGD("submit serial task [%p] with delay [%llu us]", task, delayUs);
     auto nowUs = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     uint64_t upTime = static_cast<uint64_t>(nowUs.time_since_epoch().count());
     if (delayUs > 0) {

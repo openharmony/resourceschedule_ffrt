@@ -79,7 +79,6 @@ void SerialLooper::Run()
     while (!isExit_.load()) {
         ITask* task = queue_->Next();
         if (task) {
-            FFRT_LOGD("get next serial task [0x%x]", task);
             SetTimeoutMonitor(task);
             FFRT_COND_DO_ERR((task->handler_ == nullptr), break, "failed to run task, handler is nullptr");
             task->handler_->DispatchTask(task);
@@ -114,12 +113,12 @@ void SerialLooper::SetTimeoutMonitor(ITask* task)
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::freeMem(we);
-        FFRT_LOGW("timeout [%llu us] is too short to set watchdog of task [0x%x]", task);
+        FFRT_LOGW("timeout [%llu us] is too short to set watchdog of task [%p] in %s", task, name_.c_str());
         return;
     }
 
     delayedCbCnt_.fetch_add(1);
-    FFRT_LOGD("set watchdog of task [0x%x] succ", task);
+    FFRT_LOGD("set watchdog of task [%p] of %s succ", task, name_.c_str());
 }
 
 void SerialLooper::RunTimeOutCallback(ITask* task)

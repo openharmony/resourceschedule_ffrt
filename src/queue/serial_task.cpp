@@ -19,12 +19,12 @@
 namespace ffrt {
 SerialTask::SerialTask()
 {
-    FFRT_LOGD("ctor serial task [0x%x]", this);
+    FFRT_LOGD("ctor serial task [%p]", this);
 }
 
 SerialTask::~SerialTask()
 {
-    FFRT_LOGD("dtor serial task [0x%x]", this);
+    FFRT_LOGD("dtor serial task [%p]", this);
 }
 
 ITask* SerialTask::SetQueHandler(IHandler* handler)

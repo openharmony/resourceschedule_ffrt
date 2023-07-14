@@ -110,7 +110,7 @@ ITask* SerialQueue::Next()
         if (it->second.empty()) {
             (void)whenMap_.erase(it);
         }
-        FFRT_LOGD("get next serial task [%p], %s contains [%u] other timestamps", nextTask, name_.c_str(), 
+        FFRT_LOGD("get next serial task [%p], %s contains [%u] other timestamps", nextTask, name_.c_str(),
             whenMap_size());
         return nextTask;
     } else {

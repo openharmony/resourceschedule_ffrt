@@ -23,8 +23,8 @@ int SerialHandler::Cancel(ITask* task)
     int ret = looper_->queue_->RemoveTask(task);
     FFRT_LOGD("cancel serial task [%p] return [%d]", task, ret);
     if (ret == 0) {
-	auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-	f->destroy(f);
+        auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
+        f->destroy(f);
         DestroyTask(task);
     }
     return ret;

@@ -89,7 +89,7 @@ ITask* SerialQueue::Next()
     while (whenMap_.empty() && !isExit_) {
         FFRT_LOGD("[%s] is empty, begin to wait", name_.c_str());
         cond_.wait(lock);
-	FFRT_LOGD("[%s] is notified, end to wait", name_.c_str());
+        FFRT_LOGD("[%s] is notified, end to wait", name_.c_str());
     }
 
     if (isExit_) {
@@ -110,14 +110,14 @@ ITask* SerialQueue::Next()
         if (it->second.empty()) {
             (void)whenMap_.erase(it);
         }
-	FFRT_LOGD("get next serial task [%p], %s contains [%u] other timestamps", nextTask, name_.c_str(), 
-		whenMap_size());
+        FFRT_LOGD("get next serial task [%p], %s contains [%u] other timestamps", nextTask, name_.c_str(), 
+             whenMap_size());
         return nextTask;
     } else {
         uint64_t diff = it->first - now;
-	FFRT_LOGD("[%s] begin to wait for [%llu us] to get next task", name_.c_str(), diff);
+        FFRT_LOGD("[%s] begin to wait for [%llu us] to get next task", name_.c_str(), diff);
         (void)cond_.wait_for(lock, std::chrono::microseconds(diff));
-	FFRT_LOGD("[%s] end to wait for [%llu us]", name_.c_str(), diff);
+        FFRT_LOGD("[%s] end to wait for [%llu us]", name_.c_str(), diff);
     }
 
     return nullptr;

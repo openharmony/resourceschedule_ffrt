@@ -215,10 +215,10 @@ void TaskCtx::DumpTask(TaskCtx* task)
         ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.regs[6];
         ctx.uc_mcontext.gregs[REG_RIP] = *(reinterpret_cast<greg_t *>(ctx.uc_mcontext.gregs[REG_RSP] - 8));
 #elif defined(__arm__)
-        ctx.uc_mcontext.regs[13] = task->coRoutine->ctx.regs[0]; /* sp */
-        ctx.uc_mcontext.regs[15] = task->coRoutine->ctx.regs[1]; /* pc */
-        ctx.uc_mcontext.regs[14] = task->coRoutine->ctx.regs[1]; /* lr */
-        ctx.uc_mcontext.regs[11] = task->coRoutine->ctx.regs[10]; /* fp */
+        ctx.regs[13] = task->coRoutine->ctx.regs[0]; /* sp */
+        ctx.regs[15] = task->coRoutine->ctx.regs[1]; /* pc */
+        ctx.regs[14] = task->coRoutine->ctx.regs[1]; /* lr */
+        ctx.regs[11] = task->coRoutine->ctx.regs[10]; /* fp */
 #endif
     }
 

@@ -28,7 +28,7 @@
 #include "sync/sync.h"
 
 namespace ffrt {
-const std::size_t BatchAllocSize = 0.5 * 1024 * 1024;
+const std::size_t BatchAllocSize = 128 * 1024;
 
 template <typename T, size_t MmapSz = BatchAllocSize>
 class SimpleAllocator {

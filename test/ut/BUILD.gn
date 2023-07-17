@@ -344,11 +344,7 @@ group("ffrt_unittest_ffrt") {
       ":worker_thread_test",
     ]
     if (use_stackless_coroutine) {
-<<<<<<< HEAD
       deps += [ ":ut_coroutine_test",]
-=======
-      deps += [ ":ut_coroutine_test" ],
->>>>>>> dd34335368591cfe3e4d4c18972bc7d55b8e0b90
     }
   }
 }

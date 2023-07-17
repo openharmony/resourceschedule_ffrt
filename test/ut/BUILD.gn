@@ -15,6 +15,7 @@ import("//build/ohos.gni")
 
 import("//build/ohos_var.gni")
 import("//build/test.gni")
+import("//foundation/resourceschedule/ffrt/ffrt_stackless_coroutine.gni")
 
 module_output_path = "ffrttest/"
 
@@ -343,7 +344,7 @@ group("ffrt_unittest_ffrt") {
       ":worker_thread_test",
     ]
     if (use_stackless_coroutine) {
-      deps += [ ":ut_coroutine_test" ]
+      deps += [ ":ut_coroutine_test",]
     }
   }
 }

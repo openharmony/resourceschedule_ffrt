@@ -51,7 +51,6 @@ config("ffrt_config") {
   ffrt_debug_defines = [
     "FFRT_LOG_LEVEL=3",
     "FFRT_BBOX_ENABLE",
-    "FFRT_MUTEX_DEADLOCK_CHECK",
     "FFRT_OH_EVENT_RECORD",
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",

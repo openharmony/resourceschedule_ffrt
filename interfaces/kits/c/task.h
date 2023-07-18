@@ -32,7 +32,7 @@ FFRT_C_API void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_c
 FFRT_C_API ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr);
 
 // deps
-#define ffrt_deps_define(name, dep1, ...) const ffrt_dependence_t __v_##name[] = {dep1, ##__VA_ARGS__};
+#define ffrt_deps_define(name, dep1, ...) const ffrt_dependence_t __v_##name[] = {dep1, ##__VA_ARGS__}; \
     ffrt_deps_t name = {sizeof(__v_##name) / sizeof(ffrt_dependence_t), __v_##name}
 
 // submit

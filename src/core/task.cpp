@@ -242,7 +242,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_pt
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_task_handle_t ffrt_submit_h_coroutine(void* co,ffrt_coroutine_ptr_t exec,
+ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_ != ffrt_coroutine_stackless),

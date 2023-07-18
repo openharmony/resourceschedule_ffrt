@@ -83,7 +83,7 @@ TEST_F(CoroutineTest, coroutine_submit_succ)
     ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
     int coroutine_type_ = ffrt_task_attr_get_coroutine_type(&attr);
     ffrt_submit_coroutine((void *)co1, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
-    ffrt_task_handle_t task1 = ffrt_submit_h_coroutine((void *)co2, exec_stackless_coroutine, \
+    ffrt_task_handle_t task1 = ffrt_submit_h_coroutine((void *)co2, exec_stackless_coroutine,
         destroy_stackless_coroutine, NULL, NULL, &attr);
     ffrt_wait();
     ffrt_task_handle_destroy(task1);
@@ -116,7 +116,7 @@ TEST_F(CoroutineTest, coroutine_submit_fail)
     ffrt_task_handle_destroy(task2);
 
     ffrt_submit_coroutine((void *)&co3, exec_stackless_coroutine, nullptr, NULL, NULL, &attr);
-    ffrt_task_handle_t task3 = ffrt_submit_h_coroutine((void *)&co4, exec_stackless_coroutine, \
+    ffrt_task_handle_t task3 = ffrt_submit_h_coroutine((void *)&co4, exec_stackless_coroutine,
         nullptr, NULL, NULL, &attr);
     ffrt_task_handle_destroy(task3);
 
@@ -125,7 +125,7 @@ TEST_F(CoroutineTest, coroutine_submit_fail)
     ffrt_task_attr_set_name(&attr_stackfull, "stackfull_coroutine");
     ffrt_task_attr_set_coroutine_type(&attr_stackfull, ffrt_coroutine_stackfull);
     ffrt_submit_coroutine((void *)&co5, nullptr, nullptr, NULL, NULL, &attr_stackfull);
-    ffrt_task_handle_t task_stackfull = ffrt_submit_h_coroutine((void *)&co6, nullptr, nullptr, \
+    ffrt_task_handle_t task_stackfull = ffrt_submit_h_coroutine((void *)&co6, nullptr, nullptr,
         NULL, NULL, &attr_stackfull);
     ffrt_task_attr_destroy(task_stackfull);
 }
@@ -157,7 +157,7 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine(void *co)
             ffrt_task_attr_set_name(&attr, "stackless_coroutine");
             ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
             ffrt_set_wake_flag(true);
-            ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, \
+            ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine,
                 destroy_stackless_coroutine, NULL, NULL, &attr);
             waker.phandle = ffrt_task_get();
             waker.handle = h;
@@ -193,7 +193,7 @@ TEST_F(CoroutineTest, coroutine_wake_by_handle_succ)
     ffrt_task_attr_init(&maintask_attrr);
     ffrt_task_attr_set_name(&maintask_attr, "stackless_coroutine_maintask");
     ffrt_task_attr_set_coroutine_type(&maintask_attr, ffrt_coroutine_stackless);
-    ffrt_task_handle_t maintask = ffrt_submit_h_coroutine((void *)&co1, maintask_exec_stackless_coroutine, \
+    ffrt_task_handle_t maintask = ffrt_submit_h_coroutine((void *)&co1, maintask_exec_stackless_coroutine,
         maintask_destroy_stackless_coroutine, NULL, NULL, &maintask_attr);
     ffrt_wait();
     ffrt_task_handle_destroy(maintask);
@@ -210,7 +210,7 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine_fail(void *co)
                 ffrt_task_attr_init(&attr);
                 ffrt_task_attr_set_name(&attr, "stackless_coroutine");
                 ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
-                ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine, \
+                ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine,
                     destroy_stackless_coroutine, NULL, NULL, &attr);
                 waker.phandle = ffrt_task_get();
                 waker.handle = h;
@@ -252,7 +252,7 @@ TEST_F(CoroutineTest, coroutine_wake_by_handle_fail)
     ffrt_task_attr_init(&maintask_attrr);
     ffrt_task_attr_set_name(&maintask_attr, "stackless_coroutine_maintask");
     ffrt_task_attr_set_coroutine_type(&maintask_attr, ffrt_coroutine_stackless);
-    ffrt_task_handle_t maintask = ffrt_submit_h_coroutine((void *)&co1, maintask_exec_stackless_coroutine_fail, \
+    ffrt_task_handle_t maintask = ffrt_submit_h_coroutine((void *)&co1, maintask_exec_stackless_coroutine_fail,
         maintask_destroy_stackless_coroutine_fail, NULL, NULL, &maintask_attr);
     ffrt_wait();
     ffrt_task_handle_destroy(maintask);

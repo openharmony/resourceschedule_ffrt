@@ -32,7 +32,7 @@ FFRT_C_API void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_c
 FFRT_C_API ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr);
 
 // deps
-#define ffrt_deps_define(name, dep1, ...) const ffrt_dependence_t __v_##name[] = {dep1, ##__VA_ARGS__}; \
+#define ffrt_deps_define(name, dep1, ...) const ffrt_dependence_t __v_##name[] = {dep1, ##__VA_ARGS__};
     ffrt_deps_t name = {sizeof(__v_##name) / sizeof(ffrt_dependence_t), __v_##name}
 
 // submit
@@ -43,16 +43,16 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, cons
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 #ifdef USE_STACKLESS_COROUTINE
-FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,\
+FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,
     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-FFRT_C_API ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,\
+FFRT_C_API ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 // get
 FFRT_C_API void *ffrt_task_get();
 
 // waker
-FFRT_C_API void ffrt_wake_by_handle(void* waker, ffrt_function_ptr_t exec,\
+FFRT_C_API void ffrt_wake_by_handle(void* waker, ffrt_function_ptr_t exec,
     ffrt_function_ptr_t destroy, ffrt_task_handle_t handle);
 FFRT_C_API void ffrt_set_wake_flag(bool flag);
 FFRT_C_API void ffrt_wake_coroutine(void *task);

@@ -65,7 +65,7 @@ void TaskCtx::SetQos(QoS& target_qos)
         if (!this->IsRoot()) {
             this->qos = parent->qos;
         }
-        FFRT_LOGD("Change task %s QoS %d", label.c_str(), static_cast<int>(this->qos));
+        FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos());
     } else {
         this->qos = target_qos;
     }

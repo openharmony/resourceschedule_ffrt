@@ -384,7 +384,7 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
         FFRT_LOGE("attr should not be empty");
         return -1;
     }
-	ffrt::QoS _qos = ffrt::QoS(qos);
+    ffrt::QoS _qos = ffrt::QoS(qos);
     return ffrt::OSAttrManager::Instance()->UpdateSchedAttr(_qos, attr);
 }
 

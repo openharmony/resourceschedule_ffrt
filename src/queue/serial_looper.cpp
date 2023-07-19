@@ -25,7 +25,7 @@ constexpr uint32_t STRING_SIZE_MAX = 128;
 }
 
 namespace ffrt {
-SerialLooper::SerialLooper(const char* name, enum qos qos, uint64_t timeout, ffrt_function_header_t* timeoutCb)
+SerialLooper::SerialLooper(const char* name, int qos, uint64_t timeout, ffrt_function_header_t* timeoutCb)
     : timeout_(timeout), timeoutCb_(timeoutCb)
 {
     if (name != nullptr && (std::string(name).size() <= STRING_SIZE_MAX)) {

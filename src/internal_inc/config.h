@@ -38,28 +38,22 @@ public:
         return cfg;
     }
 
-    void setCpuWorkerNum(enum qos qos, int num)
+    void setCpuWorkerNum(const QoS& qos, int num)
     {
-        if (qos <= qos_inherit) {
-            qos = qos_default;
-        } else if (qos > qos_user_interactive) {
-            qos = qos_user_interactive;
-        }
-
         if ((num <= 0) || (num > DEFAULT_MAXCONCURRENCY)) {
             num = DEFAULT_MAXCONCURRENCY;
         }
-        this->cpu_worker_num[static_cast<int>(qos)] = static_cast<size_t>(num);
+        this->cpu_worker_num[qos()] = static_cast<size_t>(num);
     }
 
-    size_t getCpuWorkerNum(enum qos qos)
+    size_t getCpuWorkerNum(const QoS& qos)
     {
-        return this->cpu_worker_num[static_cast<int>(qos)];
+        return this->cpu_worker_num[qos()];
     }
 
     void setQosWorkers(const QoS &qos, int tid)
     {
-        this->qos_workers[static_cast<int>(qos())].push_back(tid);
+        this->qos_workers[qos()].push_back(tid);
     }
 
     std::vector<std::vector<int>> getQosWorkers()
@@ -71,7 +65,7 @@ private:
     GlobalConfig()
     {
         for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
-            if (qos == qos_user_interactive) {
+            if (qos == static_cast<int>(qos_user_interactive)) {
                 this->cpu_worker_num[qos] = INTERACTIVE_MAXCONCURRENCY;
             } else {
                 this->cpu_worker_num[qos] = DEFAULT_MAXCONCURRENCY;

@@ -32,7 +32,7 @@ inline SerialTask* GetSerialTaskByFuncStorageOffset(ffrt_function_header_t* f)
 
 class SerialLooper : public NonCopyable {
 public:
-    SerialLooper(const char* name, enum qos qos, uint64_t timeout = 0, ffrt_function_header_t* timeoutCb = nullptr);
+    SerialLooper(const char* name, int qos, uint64_t timeout = 0, ffrt_function_header_t* timeoutCb = nullptr);
     ~SerialLooper();
     void Quit();
     std::shared_ptr<SerialQueue> queue_;

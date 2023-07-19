@@ -35,16 +35,16 @@ public:
     queue_attr& operator=(const queue_attr&) = delete;
 
     // set qos
-    inline queue_attr& qos(enum qos qos)
+    inline queue_attr& qos(qos qos_)
     {
-        ffrt_queue_attr_set_qos(this, static_cast<ffrt_qos_t>(qos));
+        ffrt_queue_attr_set_qos(this, qos_);
         return *this;
     }
 
     // get qos
-    inline enum qos qos() const
+    inline int qos() const
     {
-        return static_cast<enum qos>(ffrt_queue_attr_get_qos(this));
+        return ffrt_queue_attr_get_qos(this);
     }
 
     // set timeout

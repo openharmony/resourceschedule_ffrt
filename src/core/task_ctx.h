@@ -108,7 +108,7 @@ struct TaskCtx : public TaskDeleter {
     const uint64_t gid; // global unique id in this process
 
     QoS qos;
-    void ChargeQoSSubmit(const QoS& qos);
+    void SetQos(QoS& qos);
 
     ffrt_coroutine_t coroutine_type = ffrt_coroutine_stackfull;
     uint32_t stackless_coroutine_wake_count = 1;

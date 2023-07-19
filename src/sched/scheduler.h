@@ -74,13 +74,15 @@ public:
 
     bool WakeupTask(TaskCtx* task)
     {
-        auto level = qos_default;
+        int qos_level = static_cast<int>(qos_default);
         if (task != nullptr) {
-            level = task->qos();
-            if (level == qos_inherit) {
+            qos_level = task->qos();
+            if (qos_level == qos_inherit) {
                 return false;
             }
         }
+        QoS _qos = QoS(qos_level);
+        int level = _qos();
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
         fifoQue[static_cast<size_t>(level)].WakeupTask(task);

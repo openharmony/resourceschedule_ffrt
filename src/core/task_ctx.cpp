@@ -59,15 +59,15 @@ TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t 
     FFRT_LOGD("create task name:%s gid=%lu", label.c_str(), gid);
 }
 
-void TaskCtx::ChargeQoSSubmit(const QoS& qos)
+void TaskCtx::SetQos(QoS& target_qos)
 {
-    if (qos == qos_inherit) {
+    if (target_qos == qos_inherit) {
         if (!this->IsRoot()) {
             this->qos = parent->qos;
         }
         FFRT_LOGD("Change task %s QoS %d", label.c_str(), static_cast<int>(this->qos));
     } else {
-        this->qos = qos;
+        this->qos = target_qos;
     }
 }
 

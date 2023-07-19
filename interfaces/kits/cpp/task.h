@@ -56,18 +56,18 @@ public:
     /**
     @brief set qos
     */
-    inline task_attr& qos(enum qos qos)
+    inline task_attr& qos(qos qos_)
     {
-        ffrt_task_attr_set_qos(this, static_cast<ffrt_qos_t>(qos));
+        ffrt_task_attr_set_qos(this, qos_);
         return *this;
     }
 
     /**
     @brief get qos
     */
-    inline enum qos qos() const
+    inline int qos() const
     {
-        return static_cast<enum qos>(ffrt_task_attr_get_qos(this));
+        return ffrt_task_attr_get_qos(this);
     }
 
     /**
@@ -431,9 +431,9 @@ static inline void wait(const std::vector<dependence>& deps)
 /**
 @brief config
 */
-static inline int set_cgroup_attr(enum qos qos, ffrt_os_sched_attr *attr)
+static inline int set_cgroup_attr(qos qos_, ffrt_os_sched_attr *attr)
 {
-    return ffrt_set_cgroup_attr(static_cast<ffrt_qos_t>(qos), attr);
+    return ffrt_set_cgroup_attr(qos_, attr);
 }
 
 void sync_io(int fd);
@@ -443,9 +443,9 @@ void set_trace_tag(const std::string& name);
 void clear_trace_tag();
 
 namespace this_task {
-static inline int update_qos(enum qos qos)
+static inline int update_qos(qos qos_)
 {
-    return ffrt_this_task_update_qos(static_cast<ffrt_qos_t>(qos));
+    return ffrt_this_task_update_qos(qos_);
 }
 
 static inline uint64_t get_id()

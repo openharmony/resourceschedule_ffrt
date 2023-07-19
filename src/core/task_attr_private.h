@@ -34,7 +34,7 @@ public:
     {
     }
 
-    enum qos qos_;
+    enum qos_default qos_;
     std::string name_;
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;

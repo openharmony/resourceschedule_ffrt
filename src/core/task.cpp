@@ -139,7 +139,7 @@ void ffrt_task_attr_set_qos(ffrt_task_attr_t *attr, ffrt_qos_t qos)
         return;
     }
     ffrt::QoS _qos = ffrt::QoS(qos);
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_ = static_cast<ffrt::qos>(_qos());
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_ = static_cast<ffrt::qos_default>(_qos());
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -147,7 +147,7 @@ ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t *attr)
 {
     if (!attr) {
         FFRT_LOGE("attr should be a valid address");
-        return ffrt_qos_default;
+        return static_cast<int>(ffrt_qos_default);
     }
     ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
     return static_cast<ffrt_qos_t>((reinterpret_cast<ffrt::task_attr_private *>(p))->qos_);

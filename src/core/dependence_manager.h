@@ -141,8 +141,8 @@ public:
             handle = static_cast<ffrt_task_handle_t>(task);
             outsNoDup.push_back(handle); // handle作为任务的输出signature
         }
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
-        task->ChargeQoSSubmit(qos);
+        QoS qos = (attr == nullptr ? QoS() : QoS(static_cast<int>(attr->qos_)));
+        task->SetQos(qos);
         task->InitRelatedIntervals(parent);
         /* The parent's number of subtasks to be completed increases by one,
          * and decreases by one after the subtask is completed

@@ -54,22 +54,22 @@ HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level1)
 {
     auto func = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     TaskCtx *task = new TaskCtx(nullptr, nullptr, 0, nullptr, QoS());
-    task->ChargeQoSSubmit(qos_inherit);
+    task->SetQos(qos_inherit);
     EXPECT_EQ(task->qos, qos_default);
     delete task;
 
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
-    TaskCtx *task1 = new TaskCtx(nullptr, nullptr, 0, nullptr, QoS(qos_user_interactive));
+    TaskCtx *task1 = new TaskCtx(nullptr, nullptr, 0, nullptr, QoS(static_cast<int>(qos_user_interactive)));
     auto func2 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     TaskCtx *task2 = new TaskCtx(nullptr, task1, 0, nullptr, QoS());
-    task2->ChargeQoSSubmit(qos_inherit);
-    EXPECT_EQ(task2->qos, qos_user_interactive);
+    task2->SetQos(qos_inherit);
+    EXPECT_EQ(task2->qos, static_cast<int>(qos_user_interactive));
     delete task1;
     delete task2;
 
     auto func3 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     TaskCtx *task3 = new TaskCtx(nullptr, nullptr, 0, nullptr, QoS());
-    task3->ChargeQoSSubmit(qos_user_interactive);
-    EXPECT_EQ(task3->qos, qos_user_interactive);
+    task3->SetQos(static_cast<int>(qos_user_interactive));
+    EXPECT_EQ(task3->qos, static_cast<int>(qos_user_interactive));
     delete task3;
 }

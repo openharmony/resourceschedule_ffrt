@@ -57,12 +57,12 @@ public:
 
     bool operator==(int qos) const
     {
-        return qos_ = qos;
+        return qos_ == qos;
     }
 
     bool operator==(const QoS& qos) const
     {
-        return qos_ = qos();
+        return qos_ == qos();
     }
 
     bool operator!=(int qos) const

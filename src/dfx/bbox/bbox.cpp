@@ -96,7 +96,7 @@ static inline void SaveWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_custom_max));
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
         std::unique_lock lock(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
@@ -114,7 +114,7 @@ static inline void SaveWorkerStatus()
 static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_custom_max));
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
         int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {

@@ -378,37 +378,32 @@ void ffrt_wait()
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_set_cpuworker_num(ffrt_qos_t qos, int num)
-{
-    ffrt::GlobalConfig::Instance().setCpuWorkerNum(static_cast<ffrt::qos>(qos), num);
-}
-
-API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
 {
     if (!attr) {
         FFRT_LOGE("attr should not be empty");
         return -1;
     }
-    return ffrt::OSAttrManager::Instance()->UpdateSchedAttr(static_cast<ffrt::qos>(qos), attr);
+	ffrt::QoS _qos = ffrt::QoS(qos);
+    return ffrt::OSAttrManager::Instance()->UpdateSchedAttr(_qos, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_this_task_update_qos(ffrt_qos_t qos_)
+int ffrt_this_task_update_qos(int qos_)
 {
-    auto qos = static_cast<ffrt::qos>(qos_);
+    ffrt::QoS _qos = ffrt::QoS(qos_);
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
         FFRT_LOGW("task is nullptr");
         return 1;
     }
 
-    if (qos == curTask->qos) {
+    if (_qos() == curTask->qos) {
         FFRT_LOGW("the target qos is euqal to current qos, no need update");
         return 0;
     }
 
-    curTask->ChargeQoSSubmit(qos);
+    curTask->SetQos(_qos);
     ffrt_yield();
 
     return 0;

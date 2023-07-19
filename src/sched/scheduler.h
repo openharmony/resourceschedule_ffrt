@@ -67,6 +67,29 @@ public:
         return fifoQue[static_cast<size_t>(qos)];
     }
 
+    void PushTask(TaskCtx* task)
+    {
+        fifoQue[static_cast<size_t>(task->qos())].WakeupTask(task);
+    }
+
+    bool WakeupTask(TaskCtx* task)
+    {
+        auto level = qos_default;
+        if (task != nullptr) {
+            level = task->qos();
+            if (level == qos_inherit) {
+                return false;
+            }
+        }
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        fifoQue[static_cast<size_t>(level)].WakeupTask(task);
+        lock->unlock();
+        FFRT_LOGI("qos[%d] task[%lu] entered q", level, task->gid);
+        ExecuteUnit::Instance().NotifyTaskAdded(level);
+        return true;
+    }
+
     bool InsertNode(LinkedList* node, const QoS qos)
     {
         auto level = qos_default;
@@ -112,25 +135,6 @@ private:
     {
         TaskState::RegisterOps(TaskState::READY, std::bind(&FFRTScheduler::WakeupTask, this, std::placeholders::_1));
     }
-
-    bool WakeupTask(TaskCtx* task)
-    {
-        auto level = qos_default;
-        if (task != nullptr) {
-            level = task->qos();
-            if (level == qos_inherit) {
-                return false;
-            }
-        }
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
-        lock->lock();
-        fifoQue[static_cast<size_t>(level)].WakeupTask(task);
-        lock->unlock();
-        FFRT_LOGD("qos[%d] task[%lu] entered q", level, task->gid);
-        ExecuteUnit::Instance().NotifyTaskAdded(level);
-        return true;
-    }
-
     std::array<FIFOScheduler, QoS::Max()> fifoQue;
 
 #ifdef QOS_DEPENDENCY

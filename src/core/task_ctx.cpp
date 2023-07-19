@@ -50,6 +50,9 @@ TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t 
     } else {
         label = parent->label + "." + std::to_string(rank);
     }
+    if (attr) {
+        coroutine_type = attr->coroutine_type_;
+    }
     if (!IsRoot()) {
         FFRT_SUBMIT_MARKER(label, gid);
     }

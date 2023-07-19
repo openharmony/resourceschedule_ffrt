@@ -29,7 +29,6 @@ struct TaskCtx;
 class TaskState {
 public:
     enum State { PENDING, READY, RUNNING, BLOCKED, EXITED, MAX };
-
     using Op = typename std::function<bool(TaskCtx*)>;
 
     TaskState() = default;
@@ -58,6 +57,11 @@ public:
     State CurState() const
     {
         return curState;
+    }
+
+    void SetCurState(State state)
+    {
+        curState = state;
     }
 
     State PreState() const

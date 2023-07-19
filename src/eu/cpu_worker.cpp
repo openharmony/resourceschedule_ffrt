@@ -27,6 +27,13 @@ void CPUWorker::Run(TaskCtx* task)
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
 #ifdef EU_COROUTINE
     CoStart(task);
+#ifdef USE_STACKLESS_COROUTINE
+    if (task->coroutine_type == ffrt_coroutine_stackfull) {
+        CoStart(task);
+    } else {
+        StacklessCouroutineStart(task);
+    }
+#endif
 #else
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;

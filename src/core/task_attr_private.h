@@ -22,7 +22,7 @@ namespace ffrt {
 class task_attr_private {
 public:
     task_attr_private()
-        : qos_(qos_default)
+        : qos_(static_cast<int>(qos_default))
     {
     }
 
@@ -34,7 +34,7 @@ public:
     {
     }
 
-    enum qos_default qos_;
+    int qos_;
     std::string name_;
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;

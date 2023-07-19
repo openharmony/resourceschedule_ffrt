@@ -53,7 +53,7 @@ void QosConfig::setPolicySystem()
             {0, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_NORMAL_FOREGROUND, 0, 0},
             {-10, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_RT_HIGHEST, 1, 1},
             {-20, 0, 1024, THREAD_AFFINITY_MID_BIG, THREAD_PRIO_RT_HIGHEST, 1, 1},
-            /* inner qos*/
+            /* inner qos */
             {0, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_NORMAL_BACKGROUND, 0, 0},
             {0, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_NORMAL_UNFAVORABLE, 0, 0},
             {0, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_NORMAL_DEFAULT, 0, 0},
@@ -65,9 +65,8 @@ void QosConfig::setPolicySystem()
             {-10, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_VIP_MAX, 1, 1},
             {-10, 0, 1024, THREAD_AFFINITY_MID_BIG, THREAD_PRIO_VIP_MAX, 1, 1},
             {-10, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_RT_HIGHEST, 1, 1},
-            /* custom qos*/
+            /* custom qos */
             {0, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_NORMAL_DEFAULT, 0, 0},
-
         }
     };
 }

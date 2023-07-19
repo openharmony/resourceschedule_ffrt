@@ -139,7 +139,7 @@ void ffrt_task_attr_set_qos(ffrt_task_attr_t *attr, ffrt_qos_t qos)
         return;
     }
     ffrt::QoS _qos = ffrt::QoS(qos);
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_ = static_cast<ffrt::qos_default>(_qos());
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_ = _qos();
 }
 
 API_ATTRIBUTE((visibility("default")))

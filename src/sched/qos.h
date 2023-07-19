@@ -32,7 +32,6 @@ public:
         qos_ = qos;
     }
 
-
     QoS(const QoS& qos) : qos_(qos())
     {
     }

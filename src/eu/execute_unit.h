@@ -35,7 +35,7 @@ public:
     void UnbindTG(const DevType dev, QoS& qos);
     void BindWG(const DevType dev, QoS& qos);
 
-    void NotifyTaskAdded(enum qos qos)
+    void NotifyTaskAdded(const QoS& qos)
     {
         {
             wManager[static_cast<size_t>(DevType::CPU)]->NotifyTaskAdded(qos);

@@ -95,7 +95,7 @@ public:
     bool InsertNode(LinkedList* node, const QoS qos)
     {
         int qos_level = static_cast<int>(qos_default);
-        if (task != nullptr) {
+        if (node != nullptr) {
             qos_level = qos();
             if (qos_level == qos_inherit) {
                 return false;
@@ -114,7 +114,7 @@ public:
     bool RemoveNode(LinkedList* node, const QoS qos)
     {
         int qos_level = static_cast<int>(qos_default);
-        if (task != nullptr) {
+        if (node != nullptr) {
             qos_level = qos();
             if (qos_level == qos_inherit) {
                 return false;

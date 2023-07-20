@@ -16,11 +16,6 @@
 #define FFRT_API_C_DEADLINE_H
 #include "type_def.h"
 
-FFRT_C_API ffrt_interval_t ffrt_frame_interval_create();
-FFRT_C_API int ffrt_frame_interval_update(ffrt_interval_t it, uint64_t deadline_us);
-FFRT_C_API int ffrt_frame_interval_begin(ffrt_interval_t it);
-FFRT_C_API int ffrt_frame_interval_end(ffrt_interval_t it);
-
 FFRT_C_API ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos);
 FFRT_C_API int ffrt_interval_update(ffrt_interval_t it, uint64_t deadline_us);
 FFRT_C_API int ffrt_interval_begin(ffrt_interval_t it);

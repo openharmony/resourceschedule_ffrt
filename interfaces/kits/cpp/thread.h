@@ -27,7 +27,7 @@ public:
 
     template <typename Fn, typename... Args,
         class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, thread>>>
-    explicit thread(const char* name, enum qos qos, Fn&& fn, Args&&... args)
+    explicit thread(const char* name, qos qos_, Fn&& fn, Args&&... args)
     {
         is_joinable = std::make_unique<bool>(true);
         using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
@@ -35,12 +35,12 @@ public:
         ffrt::submit([tup]() {
             execute(*tup, std::make_index_sequence<std::tuple_size_v<Target>>());
             delete tup;
-            }, {}, {is_joinable.get()}, ffrt::task_attr().name(name).qos(qos));
+            }, {}, {is_joinable.get()}, ffrt::task_attr().name(name).qos(qos_));
     }
 
     template <typename Fn, typename... Args,
         class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, thread>>>
-    explicit thread(enum qos qos, Fn&& fn, Args&&... args)
+    explicit thread(qos qos_, Fn&& fn, Args&&... args)
     {
         is_joinable = std::make_unique<bool>(true);
         using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
@@ -48,7 +48,7 @@ public:
         ffrt::submit([tup]() {
             execute(*tup, std::make_index_sequence<std::tuple_size_v<Target>>());
             delete tup;
-            }, {}, {is_joinable.get()}, ffrt::task_attr().qos(qos));
+            }, {}, {is_joinable.get()}, ffrt::task_attr().qos(qos_));
     }
 
     template <class Fn, class... Args,

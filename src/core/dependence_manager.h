@@ -142,7 +142,7 @@ public:
             outsNoDup.push_back(handle); // handle作为任务的输出signature
         }
         QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
-        task->ChargeQoSSubmit(qos);
+        task->SetQos(qos);
         task->InitRelatedIntervals(parent);
         /* The parent's number of subtasks to be completed increases by one,
          * and decreases by one after the subtask is completed

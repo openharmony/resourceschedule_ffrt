@@ -30,27 +30,6 @@ public:
         return instance;
     }
 
-    void setPolicyDefault();
-
-    struct QosPolicyDatas& getPolicyDefault()
-    {
-        return g_defaultQosPolicy;
-    }
-
-    void setPolicyForeground();
-
-    struct QosPolicyDatas& getPolicyForeground()
-    {
-        return g_foregroundQosPolicy;
-    }
-
-    void setPolicyBackground();
-
-    struct QosPolicyDatas& getPolicyBackground()
-    {
-        return g_backgroundQosPolicy;
-    }
-
     void setPolicySystem();
 
     struct QosPolicyDatas& getPolicySystem()
@@ -58,9 +37,6 @@ public:
         return g_systemServerQosPolicy;
     }
 private:
-    struct QosPolicyDatas g_defaultQosPolicy;
-    struct QosPolicyDatas g_foregroundQosPolicy;
-    struct QosPolicyDatas g_backgroundQosPolicy;
     struct QosPolicyDatas g_systemServerQosPolicy;
 };
 }

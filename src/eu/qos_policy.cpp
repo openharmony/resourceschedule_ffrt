@@ -16,8 +16,9 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/resource.h>
-#include "qos_interface.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "eu/osattr_manager.h"
+#include "qos_interface.h"
 #include "qos_config.h"
 #include "qos_policy.h"
 
@@ -30,21 +31,6 @@ int SetQosPolicy(struct QosPolicyDatas *policyDatas)
 static __attribute__((constructor)) void QosPolicyInit()
 {
     int ret;
-
-    ret = SetQosPolicy(&QosConfig::Instance().getPolicyDefault());
-    if (ret) {
-        FFRT_LOGE("uid %d set g_defaultQosPolicy failed", getuid());
-    }
-
-    ret = SetQosPolicy(&QosConfig::Instance().getPolicyForeground());
-    if (ret) {
-        FFRT_LOGE("uid %d set g_foregroundQosPolicy failed", getuid());
-    }
-
-    ret = SetQosPolicy(&QosConfig::Instance().getPolicyBackground());
-    if (ret) {
-        FFRT_LOGE("uid %d set g_backgroundQosPolicy failed", getuid());
-    }
 
     ret = SetQosPolicy(&QosConfig::Instance().getPolicySystem());
     if (ret) {
@@ -72,22 +58,32 @@ int SetAffinity(unsigned long affinity, int tid)
     return ret;
 }
 
-int SetPriority(unsigned char priority, WorkerThread* thread)
+void SetPriority(unsigned char priority, WorkerThread* thread)
 {
     int ret;
-    if (priority < MAX_USER_RT_PRIO) {
+    if (priority < MAX_RT_PRIO) {
         struct sched_param param;
-        param.sched_priority = MAX_USER_RT_PRIO - priority;
+        param.sched_priority = MAX_RT_PRIO - priority;
         ret = pthread_setschedparam(thread->GetThread().native_handle(), SCHED_RR, &param);
         if (ret != 0) {
-            FFRT_LOGE("[%d] set priority failed errno[%d]\n", thread->Id(), errno);
+            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", thread->Id(), ret, errno);
         }
+    } else if (priority < MAX_VIP_PRIO) {
+        pid_t pid = getpid();
+        const std::string path = "/proc/" + std::to_string(pid) + "/task/" + std::to_string(thread->Id()) + "/vip_prio";
+        int vip_prio = MAX_VIP_PRIO - priority;
+        OSAttrManager::Instance()->SetCGroupPara(path, vip_prio);
     } else {
+        struct sched_param param;
+        param.sched_priority = 0;
+        ret = pthread_setschedparam(thread->GetThread().native_handle(), SCHED_NORMAL, &param);
+        if (ret != 0) {
+            FFRT_LOGE("[%d] set priority sched_normal failed ret[%d] errno[%d]\n", thread->Id(), ret, errno);
+        }
         ret = setpriority(PRIO_PROCESS, thread->Id(), priority - DEFAULT_PRIO);
         if (ret != 0) {
-            FFRT_LOGE("[%d] set priority failed errno[%d]\n", thread->Id(), errno);
+            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", thread->Id(), ret, errno);
         }
     }
-    return ret;
 }
 }

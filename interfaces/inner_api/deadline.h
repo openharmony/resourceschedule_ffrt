@@ -22,9 +22,9 @@ using interval = ffrt_interval_t;
 /**
     @brief app create an anonymous interval, the number is limited. should specify the deadline
 */
-static inline interval qos_interval_create(uint64_t deadline_us, enum qos qos = qos_deadline_request)
+static inline interval qos_interval_create(uint64_t deadline_us, qos qos_ = static_cast<int>(qos_deadline_request))
 {
-    return ffrt_interval_create(deadline_us, static_cast<ffrt_qos_t>(qos));
+    return ffrt_interval_create(deadline_us, qos_);
 }
 
 /**

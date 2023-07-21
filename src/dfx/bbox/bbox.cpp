@@ -96,7 +96,7 @@ static inline void SaveWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    for (int i = 0; i < qos_user_interactive + 1; i++) {
+    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
         std::unique_lock lock(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             TaskCtx* t = thread.first->curTask;
@@ -113,14 +113,14 @@ static inline void SaveWorkerStatus()
 static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    for (int i = 0; i < qos_user_interactive + 1; i++) {
-        int nt = FFRTScheduler::Instance()->GetScheduler(QoS(static_cast<enum qos>(i))).RQSize();
+    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+        int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;
         }
 
         for (int j = 0; j < nt; j++) {
-            TaskCtx* t = FFRTScheduler::Instance()->GetScheduler(QoS(static_cast<enum qos>(i))).PickNextTask();
+            TaskCtx* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i + 1, j, nt);
                 continue;

@@ -18,9 +18,10 @@
 #include "qos_interface.h"
 
 namespace ffrt {
-constexpr int MAX_USER_RT_PRIO = 100;
+constexpr int MAX_RT_PRIO = 89;
+constexpr int MAX_VIP_PRIO = 99;
 constexpr int DEFAULT_PRIO = 120;
 int SetAffinity(unsigned long affinity, int tid);
-int SetPriority(unsigned char priority, WorkerThread* thread);
+void SetPriority(unsigned char priority, WorkerThread* thread);
 }
 #endif /* QOS_POLICY_H */

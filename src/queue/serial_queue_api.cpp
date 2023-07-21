@@ -75,7 +75,7 @@ void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
     ffrt::QoS _qos = ffrt::QoS(qos);
-    (reinterpret_cast<ffrt::task_attr_private*>(attr))->qos_ = static_cast<ffrt::qos>(_qos());
+    (reinterpret_cast<ffrt::task_attr_private*>(attr))->qos_ = _qos();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -127,7 +127,7 @@ ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const f
     FFRT_COND_DO_ERR((type != ffrt_queue_serial), return nullptr, "input invalid, type unsupport");
     FFRT_COND_DO_ERR((attr == nullptr), return nullptr, "input invalid, attr == nullptr");
 
-    ffrt::qos qos = static_cast<ffrt::qos>(ffrt_queue_attr_get_qos(attr));
+    int qos = ffrt_queue_attr_get_qos(attr);
     shared_ptr<SerialLooper> looper =
         make_shared<SerialLooper>(name, qos, ffrt_queue_attr_get_timeout(attr), ffrt_queue_attr_get_timeoutCb(attr));
     FFRT_COND_DO_ERR((looper == nullptr), return nullptr, "failed to construct SerialLooper");

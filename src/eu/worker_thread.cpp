@@ -35,7 +35,7 @@ void WorkerThread::WorkerSetup(WorkerThread* wthread, const QoS& qos)
     pthread_setname_np(wthread->GetThread().native_handle(), ("ffrtwk/CPU-" + (std::to_string(qos()))+ "-" +
         std::to_string(GlobalConfig::Instance().getQosWorkers()[static_cast<int>(qos())].size())).c_str());
     GlobalConfig::Instance().setQosWorkers(qos, wthread->Id());
-    if (qos() != qos_defined_ive) {
+    if (qos() <= qos_max) {
         QosApplyForOther(qos(), wthread->Id());
         FFRT_LOGD("qos apply tid[%d] level[%d]\n", wthread->Id(), qos());
         if (getFuncAffinity() != nullptr) {

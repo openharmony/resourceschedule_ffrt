@@ -49,7 +49,7 @@ public:
     }
 
     bool CheckSchedAttrPara(const std::string &name, int min, int max, int paraValue);
-    int UpdateSchedAttr(enum qos qos, ffrt_os_sched_attr *attr);
+    int UpdateSchedAttr(const QoS& qos, ffrt_os_sched_attr *attr);
     void SetCGroupCtlPara(const std::string &name, int32_t value);
     void SetCGroupSetPara(const std::string &name, const std::string &value);
     void SetTidToCGroup(int32_t pid);

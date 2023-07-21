@@ -87,7 +87,7 @@ public:
 
     static constexpr int Max()
     {
-        return qos_max;
+        return qos_max + 1;
     }
 
 private:

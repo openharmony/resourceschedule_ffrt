@@ -82,6 +82,7 @@ ohos_shared_library("libffrt") {
     "src/core/task_ctx.cpp",
     "src/core/version_ctx.cpp",
     "src/dfx/bbox/bbox.cpp",
+    "src/dfx/watchdog/watchdog.cpp",
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",

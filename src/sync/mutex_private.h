@@ -70,19 +70,24 @@ public:
         if (edge) {
             graph.AddEdgeByLabel(ownerTask, task);
             if (graph.IsCyclic()) {
-                FFRT_LOGE("mutex deadlock detected!\n");
+                std::string dlockInfo = "A possible mutex deadlock detected!\n";
                 for (uint64_t taskId : {ownerTask, task}) {
                     TaskCtx* taskCtx = nullptr;
                     if (taskId >= TID_MAX) {
                         taskCtx = reinterpret_cast<TaskCtx*>(taskId);
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-                        TaskCtx::DumpTask(taskCtx);
+                        std::string dumpInfo;
+                        TaskCtx::DumpTask(taskCtx, dumpInfo, 1);
+                        dlockInfo += dumpInfo;
 #endif
                     } else {
-                        FFRT_LOGE("linux thread id = %ld\n", taskId);
-                        SendEvent("mutex deadlock detected!", "TASK_DEADLOCK");
+                        std::string threadInfo = "The linux thread id is ";
+                        threadInfo += std::to_string(taskId);
+                        threadInfo.append("\n");
+                        dlockInfo += threadInfo;
                     }
                 }
+                SendEvent(dlockInfo, "TASK_DEADLOCK");
             }
         }
     }

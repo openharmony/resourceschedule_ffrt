@@ -15,6 +15,7 @@
 #include "core/task_ctx.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
+#include <sstream>
 #include "libunwind.h"
 #include "backtrace_local.h"
 #endif
@@ -197,14 +198,18 @@ void TaskCtx::MultiDepenceAdd(Denpence depType)
     denpenceStatus = depType;
 }
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-void TaskCtx::DumpTask(TaskCtx* task)
+void TaskCtx::DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag)
 {
     unw_context_t ctx;
     unw_cursor_t unw_cur;
     unw_proc_info_t unw_proc;
 
     if (ExecuteCtx::Cur()->task == task || task == nullptr) {
-        OHOS::HiviewDFX::PrintTrace(-1);
+        if (flag == 0) {
+            OHOS::HiviewDFX::PrintTrace(-1);
+        } else {
+            OHOS::HiviewDFX::GetBacktrace(stackInfo, false);
+        }
         return;
     } else {
         memset(&ctx, 0, sizeof(ctx));
@@ -236,6 +241,7 @@ void TaskCtx::DumpTask(TaskCtx* task)
     unw_word_t prevPc = 0;
     unw_word_t offset;
     char symbol[512];
+    std::ostringstream ss;
     do {
         ret = unw_get_proc_info(&unw_cur, &unw_proc);
         if (ret) {
@@ -255,14 +261,31 @@ void TaskCtx::DumpTask(TaskCtx* task)
 
         memset(symbol, 0, sizeof(symbol));
         if (unw_get_proc_name(&unw_cur, symbol, sizeof(symbol), &offset) == 0) {
-            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p) %s", frame_id, unw_proc.start_ip, info.dli_fname,
-                      (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)), symbol);
+            if (flag == 0) {
+                FFRT_LOGE("FFRT | #%d pc: %lx %s(%p) %s", frame_id, unw_proc.start_ip, info.dli_fname,
+                          (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)), symbol);
+            } else {
+                ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
+                ss << std::string(symbol, strlen(symbol)) <<std::endl;
+            }
         } else {
-            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
-                      (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+            if (flag == 0) {
+                FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
+                          (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+            } else {
+                ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
+                ss << std::endl;
+            }
         }
         ++frame_id;
     } while (unw_step(&unw_cur) > 0);
+
+    if (flag != 0) {
+        stackInfo = ss.str();
+    }
+    return;
 }
 #endif
 } /* namespace ffrt */

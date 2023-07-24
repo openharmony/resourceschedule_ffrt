@@ -181,7 +181,7 @@ struct TaskCtx : public TaskDeleter {
     }
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-    static void DumpTask(TaskCtx* task);
+    static void DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag = 0); /* 0:hilog others:hiview */
 #endif
 };
 } /* namespace ffrt */

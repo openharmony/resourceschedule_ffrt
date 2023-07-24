@@ -78,9 +78,10 @@ lock_out:
 void mutexPrivate::unlock()
 {
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    uint64_t ownerTask;
+    ownerTask = owner.load(std::memory_order_relaxed);
     owner.store(0, std::memory_order_relaxed);
-    uint64_t task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
-    MutexGraph::Instance().RemoveNode(task);
+    MutexGraph::Instance().RemoveNode(ownerTask);
 #endif
     if (l.exchange(sync_detail::UNLOCK, std::memory_order_release) == sync_detail::WAIT) {
         wake();

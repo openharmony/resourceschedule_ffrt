@@ -15,7 +15,7 @@
 #ifndef __FFRT_BBOX_H__
 #define __FFRT_BBOX_H__
 #ifdef FFRT_BBOX_ENABLE
-
+#include <string>
 extern void TaskSubmitCounterInc(void);
 extern void TaskDoneCounterInc(void);
 extern void TaskEnQueuCounterInc(void);
@@ -34,6 +34,15 @@ static inline void BboxCheckAndFreeze(void)
         BboxFreeze();
     }
 }
+
+bool FFRTIsWork(void);
+
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+std::string SaveTaskCounterInfo(void);
+std::string SaveWorkerStatusInfo(void);
+std::string SaveReadyQueueStatusInfo();
+std::string SaveTaskStatusInfo(void);
+#endif
 #else
 static inline void BboxCheckAndFreeze(void)
 {}

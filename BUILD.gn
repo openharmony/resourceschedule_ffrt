@@ -85,6 +85,7 @@ ohos_shared_library("libffrt") {
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
+    "src/dfx/watchdog/watchdog.cpp",
     "src/eu/co2_context.c",
     "src/eu/co_routine.cpp",
     "src/eu/cpu_monitor.cpp",

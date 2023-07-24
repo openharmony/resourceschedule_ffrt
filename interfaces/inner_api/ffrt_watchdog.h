@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include "c/type_def.h"
 
-typedef void(*ffrt_watchdog_cb)(uint64_t, char *, uint32_t);
+typedef void(*ffrt_watchdog_cb)(uint64_t, const char *, uint32_t);
 FFRT_C_API void ffrt_watchdog_dumpinfo(char *buf, uint32_t len);
 FFRT_C_API void ffrt_watchdog_register(ffrt_watchdog_cb *cb, uint32_t timeout_ms, uint32_t interval_ms);
 FFRT_C_API ffrt_watchdog_cb *ffrt_watchdog_get_cb(void);

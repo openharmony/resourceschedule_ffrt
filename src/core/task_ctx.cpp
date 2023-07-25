@@ -24,7 +24,6 @@
 #include "internal_inc/osal.h"
 
 namespace ffrt {
-static std::atomic<uint64_t> s_gid(0);
 static inline const char* DenpenceStr(Denpence d)
 {
     static const char* m[] = {
@@ -38,7 +37,7 @@ static inline const char* DenpenceStr(Denpence d)
 
 TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t &id, const char *identity,
     const QoS &qos)
-    : parent(parent), rank(id), identity(identity), gid(++s_gid), qos(qos)
+    : parent(parent), rank(id), identity(identity), qos(qos)
 {
     wue = nullptr;
     fq_we.task = this;

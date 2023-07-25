@@ -46,6 +46,7 @@ private:
     std::atomic_bool isExit_ = {false};
     task_handle handle;
     // for timeout watchdog
+    const uint32_t qid_;
     const uint64_t timeout_;
     ffrt_function_header_t* timeoutCb_;
     std::atomic_int delayedCbCnt_ = 0;

@@ -12,5 +12,5 @@
 # limitations under the License.
 
 declare_args() {
-  use_stackless_coroutine = false
+  use_stackless_coroutine = true
 }

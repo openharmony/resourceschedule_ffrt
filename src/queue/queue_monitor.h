@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifnedf FFRT_QUEUE_MONITOR_H
+#ifndef FFRT_QUEUE_MONITOR_H
 #define FFRT_QUEUE_MONITOR_H
 
 #include <mutex>

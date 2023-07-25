@@ -95,25 +95,35 @@ void QueueMonitor::CheckQueuesStatus()
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 	time_point_t oldestStartedTime = std::chrono::steady_clock::now();
 	time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
+	
+	uint64_t taskId = 0;
+	time_point_t taskTimestamp = oldestStartedTime;
 	for (uint32_t = 0; i < QueuesRunningInfo.size(); ++i) {
-		if (QueuesRunningInfo[i].first == INVAILD_TASK_ID) {
+		{
+			std::shared_lock lock(mutex_);
+			taskId = QueuesRunningInfo[i].first;
+			time_point_t taskTimestamp = QueuesRunningInfo[i].second;
+
+		}
+		
+		if (taskId == INVAILD_TASK_ID) {
 			continue;
 		}
 		
-		if (QueuesRunningInfo[i].second < startThreshold) {
+		if (taskTimestamp < startThreshold) {
 			std::stringstream ss;
-			ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i << ", serial task gid=" << QueuesRunningInfo[i].first << " execution " << timeoutUs_ << "us.";
+			ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i << ", serial task gid=" << taskId << " execution " << timeoutUs_ << "us.";
 			FFRT_LOGE("%s", ss.str().c_str());
 
 			auto func = *ffrt_watchdog_get_cb();
-			func(QueuesRunningInfo[i].first, ss.str().c_str(), ss.str().size());
+			func(taskId, ss.str().c_str(), ss.str().size());
 			//reset timeout task timestampe for next warning
-			QueuesRunningInfo[i].second += std::chrono::microseconds(timeoutUs_)
+			taskTimestamp += std::chrono::microseconds(timeoutUs_)
 			continue;
 		}
 		
-		if (QueuesRunningInfo[i].second < oldestStartedTime) {
-			oldestStartedTime = QueuesRunningInfo[i].second;
+		if (taskTimestamp < oldestStartedTime) {
+			oldestStartedTime = taskTimestamp;
 		}
 	}
 	

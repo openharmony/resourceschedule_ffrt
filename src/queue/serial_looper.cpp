@@ -131,7 +131,7 @@ void SerialLooper::SetTimeoutMonitor(ITask* task)
 void SerialLooper::RunTimeOutCallback(ITask* task)
 {
     std::stringstream ss;
-    ss << "serial queue [" << name_ << "] qid=" << qid << 
+    ss << "serial queue [" << name_ << "] qid=" << qid_ << 
     ", serial task gid=" << task->gid << " execution time exceeds "
         << timeout_ << " us";
     std::string msg = ss.str();

@@ -98,7 +98,7 @@ void QueueMonitor::SendDelayedWorker(time_point_t delay)
         we.tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
         result = DelayedWakeup(we.tp, &we, we.cb);
     }
-#endi // FFRT_CO_BACKTRACE_OH_ENABLE
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
 void QueueMonitor::CheckQueuesStatus()

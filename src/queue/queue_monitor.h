@@ -25,9 +25,9 @@ namespace ffrt {
 class QueueMonitor {
 public:
     static QueueMonitor &GetInstance();
-    void RegisterQueueId(const uint32_t &queueId);
-    void ResetQueueInfo(const uint32_t &queueId);
-    void UpdateQueueInfo(const uint32_t &queueId, const uint64_t &taskId);
+    void RegisterQueueId(uint32_t queueId);
+    void ResetQueueInfo(uint32_t queueId);
+    void UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId);
 
 private:
     QueueMonitor();
@@ -39,6 +39,7 @@ private:
 
     void SendDelayedWorker(time_point_t delay);
     void CheckQueuesStatus();
+    void ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64_t &taskId);
 
     uint64_t timeoutUs_ = 0;
     std::shared_mutex mutex_;

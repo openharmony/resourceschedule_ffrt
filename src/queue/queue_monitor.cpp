@@ -56,7 +56,7 @@ QueueMonitor& QueueMonitor::GetInstance()
     return instance;
 }
 
-void QueueMonitor::RegisterQueueId(const uint32_t &queueId)
+void QueueMonitor::RegisterQueueId(uint32_t queueId)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 	std::unique_lock lock(mutex_);
@@ -69,7 +69,7 @@ void QueueMonitor::RegisterQueueId(const uint32_t &queueId)
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
-void QueueMonitor::ResetQueueInfo(const uint32_t &queueId)
+void QueueMonitor::ResetQueueInfo(uint32_t queueId)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::shared_lock lock(mutex_);
@@ -77,7 +77,7 @@ void QueueMonitor::ResetQueueInfo(const uint32_t &queueId)
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
-void QueueMonitor::UpdateQueueInfo(const uint32_t &queueId, const uint64_t &taskId)
+void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
 {
 #ifdef FRRT_CO_BACKTRACE_OH_ENABLE
     std::shared_lock lock(mutex_);
@@ -87,6 +87,7 @@ void QueueMonitor::UpdateQueueInfo(const uint32_t &queueId, const uint64_t &task
 
 void QueueMonitor::SendDelayedWorker(time_point_t delay)
 {
+#ifdef FRRT_CO_BACKTRACE_OH_ENABLE
     static WaitUntilEntry we;
     we.tp = delay;
     we.cb = ([this](WaitEntry* we) { CheckQueuesStatus(); });
@@ -97,6 +98,16 @@ void QueueMonitor::SendDelayedWorker(time_point_t delay)
         FFRT_LOGW("failed to set delayedworker because the given timestamp has passed");
         we.tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
         result = DelayedWakeup(we.tp, &we, we.cb);
+    }
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
+}
+
+void QueueMonitor::ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64_t &taskId)
+{
+#ifdef FRRT_CO_BACKTRACE_OH_ENABLE
+    std::unique_lock lock(mutex_);
+    if (QueuesRunningInfo[i].first == taskId) {
+        QueuesRunningInfo[i].second += std::chrono::microseconds(timeoutUs_);
     }
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
@@ -129,7 +140,7 @@ void QueueMonitor::CheckQueuesStatus()
             auto func = *ffrt_watchdog_get_cb();
             func(taskId, ss.str().c_str(), ss.str().size());
             // reset timeout task timestampe for next warning
-            taskTimestamp += std::chrono::microseconds(timeoutUs_);
+            ResetTaskTimestampAfterWarning(i, taskId);
             continue;
         }
         

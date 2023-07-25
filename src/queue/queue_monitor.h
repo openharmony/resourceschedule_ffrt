@@ -49,7 +49,7 @@ private:
     ~QueueMonitor() = default;
     QueueMonitor(const QueueMonitor &) = delete;
     QueueMonitor(QueueMonitor &&) = delete;
-    QueueMonitor &operator=(const QueueMonitor & ) = delete;
+    QueueMonitor &operator=(const QueueMonitor &) = delete;
     QueueMonitor &operator=(QueueMonitor &&) = delete;
 
     void SendDelayedWorker(time_point_t delay);

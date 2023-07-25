@@ -119,7 +119,8 @@ void SerialLooper::SetTimeoutMonitor(ITask* task)
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::freeMem(we);
-        FFRT_LOGW("timeout [%llu us] is too short to set watchdog of task gid=%llu in %s", task->gid, name_.c_str(), qid_);
+        FFRT_LOGW("timeout [%llu us] is too short to set watchdog of task gid=%llu in %s", 
+        task->gid, name_.c_str(), qid_);
         return;
     }
 
@@ -130,7 +131,8 @@ void SerialLooper::SetTimeoutMonitor(ITask* task)
 void SerialLooper::RunTimeOutCallback(ITask* task)
 {
     std::stringstream ss;
-    ss << "serial queue [" << name_ << "] qid=" << qid << ", serial task gid=" << task->gid << " execution time exceeds "
+    ss << "serial queue [" << name_ << "] qid=" << qid << 
+    ", serial task gid=" << task->gid << " execution time exceeds "
         << timeout_ << " us";
     std::string msg = ss.str();
     std::string eventName = "SERIAL_TASK_TIMEOUT";

@@ -14,8 +14,7 @@
  */
 #include <util/task_deleter.h>
 
-namespace ffrt
-{
+namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
 
 TaskDeleter::TaskDeleter() : gid(++s_gid) {}

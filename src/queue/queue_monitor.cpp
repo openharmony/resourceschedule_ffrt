@@ -38,97 +38,91 @@ QueueMonitor::QueueMonitor()
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     QueuesRunningInfo.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     uint64_t timeout = ffrt_watchdog_get_timeout() * TIME_CONVERT_UNIT;
-	if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
+    if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
         timeoutUs_ = 0;
-		FFRT_LOGE("failed to setup watchdog because [%llu] us less than precision threshold", timeout);
-		return;
-	}
-	timeoutUs_ = timeout;
-	SendDelayedWorker(GetDelayedTimeStamp(timeoutUs_));
+        FFRT_LOGE("failed to setup watchdog because [%llu] us less than precision threshold", timeout);
+        return;
+    }
+    timeoutUs_ = timeout;
+    SendDelayedWorker(GetDelayedTimeStamp(timeoutUs_));
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
 QueueMonitor& QueueMonitor::GetInstance()
 {
-	static QueueMonitor instance;
-	return instance;
+    static QueueMonitor instance;
+    return instance;
 }
 
 void QueueMonitor::RegisterQueueId(const uint32_t &queueId)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-	if (queueId != QueuesRunningInfo.size()) {
-		FFRT_LOGE("error may cause incorrect watchdog information, QueuesRunningInfo.size() != queu
-eId, %llu vs %u",
-			QueuesRunningInfo.size(), queueId);
-	}
-	
-	if (likely(queueId < QueuesRunningInfo.capacity())) {
-		QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
-		return;
-	}
-	
-	//lock to expand vector
 	std::unique_lock lock(mutex_);
-	QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
+    if (queueId != QueuesRunningInfo.size()) {
+        FFRT_LOGE("error may cause incorrect watchdog information, QueuesRunningInfo.size() != queu
+eId, %llu vs %u",
+            QueuesRunningInfo.size(), queueId);
+    }
+    
+    QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
 void QueueMonitor::SendDelayedWorker(time_point_t delay)
 {
-	static WaitUntilEntry we;
-	we.tp = delay;
-	we.cb = ([this](WaitEntry* we) { CheckQueuesStatus(); });
-	
-	bool result = DelayedWakeup(we.tp, &we, we.cb);
-	// insurance mechanism, generally does not fail
-	while (!result) {
-		FFRT_LOGW("failed to set delayedworker because the given timestamp has passed");
-		we.tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
-		result = DelayedWakeup(we.tp, &we, we.cb);
-	}
+    static WaitUntilEntry we;
+    we.tp = delay;
+    we.cb = ([this](WaitEntry* we) { CheckQueuesStatus(); });
+    
+    bool result = DelayedWakeup(we.tp, &we, we.cb);
+    // insurance mechanism, generally does not fail
+    while (!result) {
+        FFRT_LOGW("failed to set delayedworker because the given timestamp has passed");
+        we.tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
+        result = DelayedWakeup(we.tp, &we, we.cb);
+    }
 #endi // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
 void QueueMonitor::CheckQueuesStatus()
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-	time_point_t oldestStartedTime = std::chrono::steady_clock::now();
-	time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
-	
-	uint64_t taskId = 0;
-	time_point_t taskTimestamp = oldestStartedTime;
-	for (uint32_t = 0; i < QueuesRunningInfo.size(); ++i) {
-		{
-			std::shared_lock lock(mutex_);
-			taskId = QueuesRunningInfo[i].first;
-			time_point_t taskTimestamp = QueuesRunningInfo[i].second;
+    time_point_t oldestStartedTime = std::chrono::steady_clock::now();
+    time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
+    
+    uint64_t taskId = 0;
+    time_point_t taskTimestamp = oldestStartedTime;
+    for (uint32_t = 0; i < QueuesRunningInfo.size(); ++i) {
+        {
+            std::unique_lock lock(mutex_);
+            taskId = QueuesRunningInfo[i].first;
+            time_point_t taskTimestamp = QueuesRunningInfo[i].second;
+        }
+        
+        if (taskId == INVAILD_TASK_ID) {
+            continue;
+        }
+        
+        if (taskTimestamp < startThreshold) {
+            std::stringstream ss;
+            ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i <<
+             ", serial task gid=" << taskId << " execution " << timeoutUs_ << "us.";
+            FFRT_LOGE("%s", ss.str().c_str());
 
-		}
-		
-		if (taskId == INVAILD_TASK_ID) {
-			continue;
-		}
-		
-		if (taskTimestamp < startThreshold) {
-			std::stringstream ss;
-			ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i << ", serial task gid=" << taskId << " execution " << timeoutUs_ << "us.";
-			FFRT_LOGE("%s", ss.str().c_str());
-
-			auto func = *ffrt_watchdog_get_cb();
-			func(taskId, ss.str().c_str(), ss.str().size());
-			//reset timeout task timestampe for next warning
-			taskTimestamp += std::chrono::microseconds(timeoutUs_)
-			continue;
-		}
-		
-		if (taskTimestamp < oldestStartedTime) {
-			oldestStartedTime = taskTimestamp;
-		}
-	}
-	
-	time_point_t nextCheckTime = oldestStartedTime + std::chrono::microseconds(timeoutUs_);
-	SendDelayedWorker(nextCheckTime);
+            auto func = *ffrt_watchdog_get_cb();
+            func(taskId, ss.str().c_str(), ss.str().size());
+            // reset timeout task timestampe for next warning
+            taskTimestamp += std::chrono::microseconds(timeoutUs_)
+            continue;
+        }
+        
+        if (taskTimestamp < oldestStartedTime) {
+            oldestStartedTime = taskTimestamp;
+        }
+    }
+    
+    time_point_t nextCheckTime = oldestStartedTime + std::chrono::microseconds(timeoutUs_);
+    SendDelayedWorker(nextCheckTime);
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 } // namespace ffrt

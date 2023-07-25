@@ -15,7 +15,7 @@
 #include "queue_monitor.h"
 #include <cstdint>
 #include <iomanip>
-#include "dfs/log/ffrt_log_api.h"
+#include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
 #include "sync/sync.h"
 #include "ffrt_watchdog.h"

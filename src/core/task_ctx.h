@@ -105,8 +105,6 @@ struct TaskCtx : public TaskDeleter {
     uint64_t load = 0;
     int64_t ddl = INT64_MAX;
 
-    const uint64_t gid; // global unique id in this process
-
     QoS qos;
     void SetQos(QoS& qos);
 

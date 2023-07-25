@@ -25,7 +25,8 @@
 namespace ffrt {
 class TaskDeleter : private NonCopyable {
 public:
-    virtual ~TaskDeleter() {};
+    TaskDeleter();
+    virtual ~TaskDeleter() {}
     virtual void freeMem() = 0;
 
     inline void IncDeleteRef()

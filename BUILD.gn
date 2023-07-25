@@ -105,6 +105,7 @@ ohos_shared_library("libffrt") {
     "src/queue/serial_queue.cpp",
     "src/queue/serial_queue_api.cpp",
     "src/queue/serial_task.cpp",
+    "src/queue/queue_monitor.cpp",
     "src/sched/deadline.cpp",
     "src/sched/execute_ctx.cpp",
     "src/sched/frame_interval.cpp",
@@ -125,6 +126,7 @@ ohos_shared_library("libffrt") {
     "src/sync/thread.cpp",
     "src/sync/wait_queue.cpp",
     "src/util/graph_check.cpp",
+    "src/util/task_deleter.cpp",
   ]
 
   external_deps = [

@@ -22,27 +22,12 @@
 #include "sched/execute_ctx.h"
 
 namespace ffrt {
-constexpr uint32_t INVAILD_TASK_ID = 0;
 class QueueMonitor {
 public:
     static QueueMonitor &GetInstance();
     void RegisterQueueId(const uint32_t &queueId);
-
-    inline void ResetQueueInfo(const uint32_t &queueId)
-    {
-#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-        std::shared_lock lock(mutex_);
-        QueuesRunningInfo[queueId].first = INVAILD_TASK_ID;
-#endif // FFRT_CO_BACKTRACE_OH_ENABLE
-    }
-
-    inline void UpdateQueueInfo(const uint32_t &queueId, const uint64_t &taskId)
-    {
-#ifdef FRRT_CO_BACKTRACE_OH_ENABLE
-        std::shared_lock lock(mutex_);
-        QueuesRunningInfo[queueId] = {taskId, std::chrono::steady_clock::now()};
-#endif // FFRT_CO_BACKTRACE_OH_ENABLE
-    }
+    void ResetQueueInfo(const uint32_t &queueId);
+    void UpdateQueueInfo(const uint32_t &queueId, const uint64_t &taskId);
 
 private:
     QueueMonitor();

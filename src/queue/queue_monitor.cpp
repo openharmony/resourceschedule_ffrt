@@ -14,6 +14,7 @@
  */
 #include "queue_monitor.h"
 #include <cstdint>
+#include <sstream>
 #include <iomanip>
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
@@ -21,12 +22,13 @@
 #include "ffrt_watchdog.h"
 
 namespace {
+constexpr uint32_t INVAILD_TASK_ID = 0;
+constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 constexpr uint64_t QUEUE_INFO_INITIAL_CAPACITY = 64;
 constexpr uint64_t ALLOW_TIME_ACC_ERROR_US = 500;
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000;
-constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 
-inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t, delayUs)
+inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayUs)
 {
     return std::chrono::steady_clock::now() + std::chrono::microseconds(delayUs);
 }
@@ -59,12 +61,27 @@ void QueueMonitor::RegisterQueueId(const uint32_t &queueId)
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 	std::unique_lock lock(mutex_);
     if (queueId != QueuesRunningInfo.size()) {
-        FFRT_LOGE("error may cause incorrect watchdog information, QueuesRunningInfo.size() != queu
-eId, %llu vs %u",
+        FFRT_LOGE("error may cause incorrect watchdog information, QueuesRunningInfo.size() != queueId, %llu vs %u",
             QueuesRunningInfo.size(), queueId);
     }
     
     QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
+}
+
+void QueueMonitor::ResetQueueInfo(const uint32_t &queueId)
+{
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    std::shared_lock lock(mutex_);
+    QueuesRunningInfo[queueId].first = INVAILD_TASK_ID;
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
+}
+
+void QueueMonitor::UpdateQueueInfo(const uint32_t &queueId, const uint64_t &taskId)
+{
+#ifdef FRRT_CO_BACKTRACE_OH_ENABLE
+    std::shared_lock lock(mutex_);
+    QueuesRunningInfo[queueId] = {taskId, std::chrono::steady_clock::now()};
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
@@ -92,7 +109,7 @@ void QueueMonitor::CheckQueuesStatus()
     
     uint64_t taskId = 0;
     time_point_t taskTimestamp = oldestStartedTime;
-    for (uint32_t = 0; i < QueuesRunningInfo.size(); ++i) {
+    for (uint32_t i = 0; i < QueuesRunningInfo.size(); ++i) {
         {
             std::unique_lock lock(mutex_);
             taskId = QueuesRunningInfo[i].first;
@@ -112,7 +129,7 @@ void QueueMonitor::CheckQueuesStatus()
             auto func = *ffrt_watchdog_get_cb();
             func(taskId, ss.str().c_str(), ss.str().size());
             // reset timeout task timestampe for next warning
-            taskTimestamp += std::chrono::microseconds(timeoutUs_)
+            taskTimestamp += std::chrono::microseconds(timeoutUs_);
             continue;
         }
         

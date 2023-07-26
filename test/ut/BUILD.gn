@@ -328,6 +328,41 @@ ohos_unittest("qos_convert_test") {
   part_name = "ffrt"
 }
 
+ohos_unittest("ut_coroutine_test") {
+  module_out_path = module_output_path
+
+  configs = [ ":ffrt_test_config" ]
+
+  cflags_cc = [
+    "-frtti",
+    "-Xclang",
+    "-fcxx-exceptions",
+    "-std=c++11",
+    "-DFFRT_PERF_EVENT_ENABLE",
+  ]
+
+  sources = [ "ut_coroutine_test.cpp" ]
+  deps = [
+    "../..:libffrt",
+    "//third_party/googletest:gtest",
+    "//third_party/jsoncpp:jsoncpp",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  if (is_standard_system) {
+    public_deps = gtest_public_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
 group("ffrt_unittest_ffrt") {
   testonly = true
 
@@ -344,7 +379,7 @@ group("ffrt_unittest_ffrt") {
       ":worker_thread_test",
     ]
     if (use_stackless_coroutine) {
-      deps += [ ":ut_coroutine_test" ]
+      deps += [ ":ut_coroutine_test", ]
     }
   }
 }

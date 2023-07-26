@@ -379,7 +379,7 @@ group("ffrt_unittest_ffrt") {
       ":worker_thread_test",
     ]
     if (use_stackless_coroutine) {
-      deps += [ ":ut_coroutine_test", ]
+      deps += [ ":ut_coroutine_test" ]
     }
   }
 }

@@ -47,17 +47,22 @@ void CPUWorker::Run(TaskCtx* task)
 #endif
 }
 
-void CPUWorker::Run(ffrt_executor_task_t* data)
+void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 {
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
 #endif
-    ffrt_executor_task_func func = FuncManager::Instance()->getFunc("uv");
+    ffrt_executor_task_func func = nullptr;
+    if (task->type == ffrt_rust_task) {
+        func = FuncManager::Instance()->getFunc(ffrt_rust_task);
+    } else {
+        func = FuncManager::Instance()->getFunc(ffrt_uv_task);
+    }
     if (func == nullptr) {
         FFRT_LOGE("func is nullptr");
         return;
     }
-    func(data);
+    func(task, qos);
 #ifdef FFRT_BBOX_ENABLE
     TaskFinishCounterInc();
 #endif
@@ -91,7 +96,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         if (task->type != 0) {
             ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
-            Run(work);
+            Run(work, (int)worker->GetQos());
         } else {
             UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
             task->UpdateState(TaskState::RUNNING);

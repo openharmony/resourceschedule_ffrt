@@ -34,21 +34,24 @@ public:
         return &func_mg;
     }
 
-    void insert(std::string name, ffrt_executor_task_func func)
+    void insert(ffrt_executor_task_type_t type, ffrt_executor_task_func func)
     {
-        func_map[name] = func;
+        func_map[type] = func;
     }
 
-    ffrt_executor_task_func getFunc(std::string name)
+    ffrt_executor_task_func getFunc(ffrt_executor_task_type_t type)
     {
-        return func_map[name];
+        if (func_map.find(type) == func_map.end()) {
+            return nullptr;
+        }
+        return func_map[type];
     }
 
 private:
     FuncManager()
     {
     }
-    std::map<std::string, ffrt_executor_task_func> func_map;
+    std::map<ffrt_executor_task_type_t, ffrt_executor_task_func> func_map;
 };
 }
 #endif /* FFRT_FUNC_MANAGER_HPP */

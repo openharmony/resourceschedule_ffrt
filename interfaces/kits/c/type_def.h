@@ -56,10 +56,10 @@ typedef enum {
 typedef int ffrt_qos_t;
 
 typedef enum {
-    ffrt_normal_task = 0;
-    ffrt_rust_task = 1;
+    ffrt_normal_task = 0,
+    ffrt_rust_task = 1,
     ffrt_uv_task // only used to register func for libuv
-} ffrt_executor_task_type_t
+} ffrt_executor_task_type_t;
 
 typedef enum {
     ffrt_stack_protect_weak,

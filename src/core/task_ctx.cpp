@@ -120,16 +120,12 @@ void TaskCtx::DecChildRef()
     }
     parent->denpenceStatus = Denpence::DEPENCE_INIT;
 
-#ifdef EU_COROUTINE
-    if (parent->parent == nullptr) {
+    if (!USE_COROUTINE || parent->parent == nullptr) {
         parent->childWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(parent->gid);
         parent->UpdateState(TaskState::READY);
     }
-#else
-    parent->childWaitCond_.notify_all();
-#endif
 }
 
 void TaskCtx::DecWaitDataRef()
@@ -147,8 +143,7 @@ void TaskCtx::DecWaitDataRef()
         denpenceStatus = Denpence::DEPENCE_INIT;
     }
 
-#ifdef EU_COROUTINE
-    if (parent == nullptr) {
+    if (!USE_COROUTINE || parent == nullptr) {
         dataWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);
@@ -157,9 +152,6 @@ void TaskCtx::DecWaitDataRef()
         TaskEnQueuCounterInc();
 #endif
     }
-#else
-    dataWaitCond_.notify_all();
-#endif
 }
 
 bool TaskCtx::IsPrevTask(const TaskCtx* task) const

@@ -25,6 +25,7 @@
 #include "core/task_ctx.h"
 #include "eu/co_routine.h"
 #include "internal_inc/osal.h"
+#include "internal_inc/types.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace/ffrt_trace.h"
 #include "cpp/sleep.h"
@@ -41,7 +42,7 @@ TaskCtx* ExecuteCtxTask()
 
 void sleep_until_impl(const time_point_t& to)
 {
-    if (ExecuteCtxTask() == nullptr) {
+    if (!USE_COROUTINE || ExecuteCtxTask() == nullptr) {
         std::this_thread::sleep_until(to);
         return;
     }
@@ -66,7 +67,7 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 void ffrt_yield()
 {
-    if (ffrt::this_task::ExecuteCtxTask() == nullptr) {
+    if (!ffrt::USE_COROUTINE || ffrt::this_task::ExecuteCtxTask() == nullptr) {
         std::this_thread::yield();
         return;
     }

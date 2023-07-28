@@ -92,7 +92,7 @@ void mutexPrivate::wait()
 {
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
-    if (task == nullptr) {
+    if (!USE_COROUTINE || task == nullptr) {
         wlock.lock();
         if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {
             wlock.unlock();
@@ -131,7 +131,7 @@ void mutexPrivate::wake()
         return;
     }
     TaskCtx* task = we->task;
-    if (we->weType == 2) {
+    if (!USE_COROUTINE || we->weType == 2) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         std::unique_lock lk(wue->wl);
         wlock.unlock();

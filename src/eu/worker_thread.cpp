@@ -32,9 +32,9 @@ void WorkerThread::NativeConfig()
 
 void WorkerThread::WorkerSetup(WorkerThread* wthread, const QoS& qos)
 {
-    pthread_setname_np(wthread->GetThread().native_handle(), ("ffrtwk/CPU-" + (std::to_string(qos()))+ "-" +
-        std::to_string(GlobalConfig::Instance().getQosWorkers()[static_cast<int>(qos())].size())).c_str());
-    GlobalConfig::Instance().setQosWorkers(qos, wthread->Id());
+    static int threadIndex[QoS::Max()] = {0};
+    std::string threadName = "ffrtwk/CPU-" + (std::to_string(qos()))+ "-" + std::to_string(threadIndex[qos()]++);
+    pthread_setname_np(wthread->GetThread().native_handle(), threadName.c_str());
     if (qos() <= qos_max) {
         QosApplyForOther(qos(), wthread->Id());
         FFRT_LOGD("qos apply tid[%d] level[%d]\n", wthread->Id(), qos());

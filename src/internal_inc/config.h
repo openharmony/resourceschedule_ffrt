@@ -52,16 +52,6 @@ public:
         return this->cpu_worker_num[qos()];
     }
 
-    void setQosWorkers(const QoS &qos, int tid)
-    {
-        this->qos_workers[qos()].push_back(tid);
-    }
-
-    std::vector<std::vector<int>> getQosWorkers()
-    {
-        return qos_workers;
-    }
-
 private:
     GlobalConfig()
     {
@@ -71,13 +61,10 @@ private:
             } else {
                 this->cpu_worker_num[qos] = DEFAULT_MAXCONCURRENCY;
             }
-            std::vector<int> worker;
-            this->qos_workers.push_back(worker);
         }
     }
 
     size_t cpu_worker_num[QoS::Max()];
-    std::vector<std::vector<int>> qos_workers;
 };
 }
 

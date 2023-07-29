@@ -201,7 +201,7 @@ public:
     RootTaskCtxWrapper()
     {
         task_attr_private task_attr;
-        root = new RootTaskCtx{&task_attr, nullptr, 0, nullptr};
+        root = new RootTaskCtx {&task_attr, nullptr, 0, nullptr};
     }
     ~RootTaskCtxWrapper()
     {

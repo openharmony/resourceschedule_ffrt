@@ -190,11 +190,11 @@ enum class stack_protect {
 };
 
 #indef _MSC_VER
-#define FFRT_LIKELY(x) (__builtin_expect(!!(x),1));
-#define FFRT_UNLIKELY(x) (__builtin_expect(!!(x),0));
+#define FFRT_LIKELY(x) (__builtin_expect(!!(x), 1))
+#define FFRT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
 #else
-#define FFRT_LIKELY(x) (x);
-#define FFRT_UNLIKELY(x) (x);
+#define FFRT_LIKELY(x) (x)
+#define FFRT_UNLIKELY(x) (x)
 #endif
 
 }

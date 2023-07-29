@@ -25,26 +25,25 @@ namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
-#ifdef EU_COROUTINE
-    CoStart(task);
+    if constexpr(USE_COROUTINE) {
+        CoStart(task);
 #ifdef USE_STACKLESS_COROUTINE
     if (task->coroutine_type == ffrt_coroutine_stackfull) {
         CoStart(task);
     } else {
-        StacklessCouroutineStart(task);
+        StacklessCoroutineStart(task);
     }
 #endif
-#else
-    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-    auto exp = ffrt::SkipStatus::SUBMITTED;
-    if (likely(__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0, __ATOMIC_ACQUIRE,
-        __ATOMIC_RELAXED))) {
-        f->exec(f);
+    } else {
+        auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
+        auto exp = ffrt::SkipStatus::SUBMITTED;
+        if (likely(__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0, __ATOMIC_ACQUIRE,
+            __ATOMIC_RELAXED))) {
+            f->exec(f);
+        }
+        f->destroy(f);
+        task->UpdateState(ffrt::TaskState::EXITED);
     }
-    f->destroy(f);
-
-    task->UpdateState(ffrt::TaskState::EXITED);
-#endif
 }
 
 void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)

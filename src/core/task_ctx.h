@@ -184,5 +184,39 @@ struct TaskCtx : public TaskDeleter {
     static void DumpTask(TaskCtx* task);
 #endif
 };
+
+class RootTaskCtx : public TaskCtx {
+public:
+    RootTaskCtx(const task_attr_private* attr, TaskCtx* parent, const uint64_t& id,
+        const char *identity = nullptr, const QoS& qos = QoS()) : TaskCtx(attr, parent, id, identity, qos)
+    {
+
+    }
+public:
+    bool thread_exit = false;
+};
+
+class RootTaskCtxWrapper {
+public:
+    RootTaskCtxWrapper()
+    {
+        task_attr_private task_attr;
+        root = new RootTaskCtx{&task_attr, nullptr, 0, nullptr};
+    }
+    ~RootTaskCtxWrapper()
+    {
+        std::unique_lock<decltype(root->lock) > lck(root->lock);
+        if (root->childWaitRefCnt == 0) {
+            delete root;
+        } else {
+            root->thread_exit = true ;
+        }
+    }
+    TaskCtx* Root() {
+        return root;
+    }
+private:
+    RootTaskCtx *root = nullptr;
+}
 } /* namespace ffrt */
 #endif

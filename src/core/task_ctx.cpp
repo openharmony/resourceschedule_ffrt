@@ -108,6 +108,14 @@ void TaskCtx::DecChildRef()
     if (parent->childWaitRefCnt != 0) {
         return;
     }
+    if (FFRT_UNLIKELY(parent->IsRoot())) {
+        RootTaskCtx *root = static_cast<RootTaskCtx *>(parent);
+        if (true == root->thread_exit) {
+            delete root;
+            return;
+        }
+    }
+    
     if (!parent->IsRoot() && parent->status == TaskStatus::RELEASED && parent->childWaitRefCnt == 0) {
         FFRT_LOGD("free TaskCtx:%s gid=%lu", parent->label.c_str(), parent->gid);
         lck.unlock();

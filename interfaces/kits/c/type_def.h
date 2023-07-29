@@ -196,7 +196,6 @@ enum class stack_protect {
 #define FFRT_LIKELY(x) (x)
 #define FFRT_UNLIKELY(x) (x)
 #endif
-
 }
 #endif
 #endif

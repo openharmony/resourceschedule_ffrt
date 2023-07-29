@@ -190,7 +190,6 @@ public:
     RootTaskCtx(const task_attr_private* attr, TaskCtx* parent, const uint64_t& id,
         const char *identity = nullptr, const QoS& qos = QoS()) : TaskCtx(attr, parent, id, identity, qos)
     {
-
     }
 public:
     bool thread_exit = false;

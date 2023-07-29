@@ -189,7 +189,7 @@ enum class stack_protect {
     strong = ffrt_stack_protect_strong,
 };
 
-#indef _MSC_VER
+#ifdef _MSC_VER
 #define FFRT_LIKELY(x) (__builtin_expect(!!(x), 1))
 #define FFRT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
 #else

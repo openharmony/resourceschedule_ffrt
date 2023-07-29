@@ -218,6 +218,6 @@ public:
     }
 private:
     RootTaskCtx *root = nullptr;
-}
+};
 } /* namespace ffrt */
 #endif

@@ -212,7 +212,8 @@ public:
             root->thread_exit = true ;
         }
     }
-    TaskCtx* Root() {
+    TaskCtx* Root()
+    {
         return root;
     }
 private:

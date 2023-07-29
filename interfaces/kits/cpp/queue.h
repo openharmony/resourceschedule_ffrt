@@ -60,17 +60,17 @@ public:
         return ffrt_queue_attr_get_timeout(this);
     }
 
-    // set timeoutCb
-    inline queue_attr& timeoutCb(std::function<void()>& func)
+    // set timeout callback
+    inline queue_attr& callback(std::function<void()>& func)
     {
-        ffrt_queue_attr_set_timeoutCb(this, create_function_wrapper(func, ffrt_function_kind_queue));
+        ffrt_queue_attr_set_callback(this, create_function_wrapper(func, ffrt_function_kind_queue));
         return *this;
     }
 
-    // get timeoutCb
-    inline ffrt_function_header_t* timeoutCb() const
+    // get timeout callback
+    inline ffrt_function_header_t* callback() const
     {
-        return ffrt_queue_attr_get_timeoutCb(this);
+        return ffrt_queue_attr_get_callback(this);
     }
 };
 

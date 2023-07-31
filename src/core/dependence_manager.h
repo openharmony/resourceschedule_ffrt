@@ -91,9 +91,8 @@ public:
     static inline TaskCtx* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval
-        task_attr_private task_attr;
-        thread_local static TaskCtx root {&task_attr, nullptr, 0, nullptr};
-        return &root;
+        thread_local static RootTaskCtxWrapper root_wrapper;
+        return root_wrapper.Root();
     }
 
     template <int WITH_HANDLE>

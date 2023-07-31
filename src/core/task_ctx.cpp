@@ -20,6 +20,7 @@
 #include "core/dependence_manager.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
+#include "internal_inc/types.h"
 
 namespace ffrt {
 static std::atomic<uint64_t> s_gid(0);

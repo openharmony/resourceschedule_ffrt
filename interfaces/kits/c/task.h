@@ -41,8 +41,6 @@ FFRT_C_API void ffrt_submit_base(ffrt_function_header_t* f, const ffrt_deps_t* i
     const ffrt_task_attr_t* attr);
 FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, const ffrt_deps_t* in_deps,
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-
-#ifdef USE_STACKLESS_COROUTINE
 FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,
     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 FFRT_C_API ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
@@ -56,7 +54,6 @@ FFRT_C_API void ffrt_wake_by_handle(void* waker, ffrt_function_ptr_t exec,
     ffrt_function_ptr_t destroy, ffrt_task_handle_t handle);
 FFRT_C_API void ffrt_set_wake_flag(bool flag);
 FFRT_C_API void ffrt_wake_coroutine(void *task);
-#endif
 
 FFRT_C_API void ffrt_task_handle_destroy(ffrt_task_handle_t handle);
 
@@ -73,4 +70,14 @@ FFRT_C_API void ffrt_wait(void);
 
 // config
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
+
+// poller
+FFRT_C_API int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t));
+FFRT_C_API int ffrt_poller_deregister(int fd);
+
+// ffrt_executor_task
+FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type, type);
+FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
+FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt_qos_t qos);
+FFRT_C_API void set_cpu_worker_num(const ffrt_qos_t qos, int num);
 #endif

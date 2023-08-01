@@ -30,6 +30,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
+#include "core/task_tust.h"
 
 namespace ffrt {
 template <int WITH_HANDLE>
@@ -194,96 +195,96 @@ ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
     return ((ffrt::task_attr_private*)attr)->coroutine_type_;
 }
 
-#ifdef USE_STACKLESS_COROUTINE
-typedef struct {
-    ffrt_function_header_t header;
-    ffrt_coroutine_ptr_t func;
-    ffrt_function_ptr_t destroy;
-    void* arg;
-} ffrt_function_coroutine_t;
+// #ifdef RUST_OLD
+// typedef struct {
+//     ffrt_function_header_t header;
+//     ffrt_coroutine_ptr_t func;
+//     ffrt_function_ptr_t destroy;
+//     void* arg;
+// } ffrt_function_coroutine_t;
 
-static ffrt_coroutine_ret_t ffrt_exec_function_coroutine_wrapper(void* t)
-{
-    ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)t;
-    return f->func(f->arg);
-}
+// static ffrt_coroutine_ret_t ffrt_exec_function_coroutine_wrapper(void* t)
+// {
+//     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)t;
+//     return f->func(f->arg);
+// }
 
-static void ffrt_destory_function_coroutine_wrapper(void* t)
-{
-    ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)t;
-    f->destroy(f->arg);  
-}
+// static void ffrt_destory_function_coroutine_wrapper(void* t)
+// {
+//     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)t;
+//     f->destroy(f->arg);  
+// }
 
-static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(void* co,
-    ffrt_coroutine_ptr_t exec, ffrt_function_ptr_t destroy)
-{
-    static_assert(sizeof(ffrt_function_coroutine_t) <= ffrt_auto_managed_function_storage_size,
-        "size_of_ffrt_function_coroutine_t_must_be_less_than_ffrt_auto_managed_function_storage_size");
-    FFRT_COND_DO_ERR((co == nullptr), return nullptr, "input valid,co == nullptr");
-    FFRT_COND_DO_ERR((exec == nullptr), return nullptr, "input valid,exec == nullptr");
-    FFRT_COND_DO_ERR((destroy == nullptr), return nullptr, "input valid,destroy == nullptr");
-    ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)ffrt_alloc_auto_managed_function_storage_base(
-        ffrt_function_kind_general);
-    f->header.exec = (ffrt_function_ptr_t)ffrt_exec_function_coroutine_wrapper;
-    f->header.destroy = ffrt_destory_function_coroutine_wrapper;
-    f->func = exec;
-    f->destroy = destroy;
-    f->arg = co;
-    return (ffrt_function_header_t*) f;
-}
+// static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(void* co,
+//     ffrt_coroutine_ptr_t exec, ffrt_function_ptr_t destroy)
+// {
+//     static_assert(sizeof(ffrt_function_coroutine_t) <= ffrt_auto_managed_function_storage_size,
+//         "size_of_ffrt_function_coroutine_t_must_be_less_than_ffrt_auto_managed_function_storage_size");
+//     FFRT_COND_DO_ERR((co == nullptr), return nullptr, "input valid,co == nullptr");
+//     FFRT_COND_DO_ERR((exec == nullptr), return nullptr, "input valid,exec == nullptr");
+//     FFRT_COND_DO_ERR((destroy == nullptr), return nullptr, "input valid,destroy == nullptr");
+//     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)ffrt_alloc_auto_managed_function_storage_base(
+//         ffrt_function_kind_general);
+//     f->header.exec = (ffrt_function_ptr_t)ffrt_exec_function_coroutine_wrapper;
+//     f->header.destroy = ffrt_destory_function_coroutine_wrapper;
+//     f->func = exec;
+//     f->destroy = destroy;
+//     f->arg = co;
+//     return (ffrt_function_header_t*) f;
+// }
 
-API_ATTRIBUTE((visibility("default")))
-void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_ptr_t destroy,
-    const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
-{
-    FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_ != ffrt_coroutine_stackless),
-        return, "input invalid,coroutine_type != coroutine_stackless");
-    ffrt_submit_base(ffrt_create_function_coroutine_wrapper(co, exec, destroy), in_deps, out_deps, attr);
-}
+// API_ATTRIBUTE((visibility("default")))
+// void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_ptr_t destroy,
+//     const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+// {
+//     FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_ != ffrt_coroutine_stackless),
+//         return, "input invalid,coroutine_type != coroutine_stackless");
+//     ffrt_submit_base(ffrt_create_function_coroutine_wrapper(co, exec, destroy), in_deps, out_deps, attr);
+// }
 
-API_ATTRIBUTE((visibility("default")))
-ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
-    ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
-{
-    FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_ != ffrt_coroutine_stackless),
-        return nullptr, "input invalid,coroutine_type != coroutine_stackless");
-    return ffrt_submit_h_base(ffrt_create_function_coroutine_wrapper(co, exec, destroy), in_deps, out_deps, attr);
-}
+// API_ATTRIBUTE((visibility("default")))
+// ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
+//     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+// {
+//     FFRT_COND_DO_ERR((((ffrt::task_attr_private*)attr)->coroutine_type_ != ffrt_coroutine_stackless),
+//         return nullptr, "input invalid,coroutine_type != coroutine_stackless");
+//     return ffrt_submit_h_base(ffrt_create_function_coroutine_wrapper(co, exec, destroy), in_deps, out_deps, attr);
+// }
 
-// waker
-API_ATTRIBUTE((visibility("default")))
-void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function_ptr_t destroy,
-    ffrt_task_handle_t handle)
-{
-    FFRT_COND_DO_ERR((callable == nullptr), return, "input valid,co == nullptr");
-    FFRT_COND_DO_ERR((exec == nullptr), return, "input valid,exec == nullptr");
-    FFRT_COND_DO_ERR((destroy == nullptr), return, "input valid,destroy == nullptr");
-    FFRT_COND_DO_ERR((handle == nullptr), return, "input valid,handle == nullptr");
-    ffrt::TaskCtx *task = static_cast<ffrt::TaskCtx*>(handle);
+// // waker
+// API_ATTRIBUTE((visibility("default")))
+// void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function_ptr_t destroy,
+//     ffrt_task_handle_t handle)
+// {
+//     FFRT_COND_DO_ERR((callable == nullptr), return, "input valid,co == nullptr");
+//     FFRT_COND_DO_ERR((exec == nullptr), return, "input valid,exec == nullptr");
+//     FFRT_COND_DO_ERR((destroy == nullptr), return, "input valid,destroy == nullptr");
+//     FFRT_COND_DO_ERR((handle == nullptr), return, "input valid,handle == nullptr");
+//     ffrt::TaskCtx *task = static_cast<ffrt::TaskCtx*>(handle);
 
-    task->lock.lock();
-    FFRT_LOGW("tid:%ld ffrt_wake_by_handle and CurState = %d", syscall(SYS_gettid), task->state.CurState());
-    if (task->state.CurState() != ffrt::TaskState::State::EXITED) {
-        task->wake_callable_on_finish.callable = callable;
-        task->wake_callable_on_finish.exec = exec;
-        task->wake_callable_on_finish.destroy = destroy;
-    }
-    task->lock.unlock();
-}
+//     task->lock.lock();
+//     FFRT_LOGW("tid:%ld ffrt_wake_by_handle and CurState = %d", syscall(SYS_gettid), task->state.CurState());
+//     if (task->state.CurState() != ffrt::TaskState::State::EXITED) {
+//         task->wake_callable_on_finish.callable = callable;
+//         task->wake_callable_on_finish.exec = exec;
+//         task->wake_callable_on_finish.destroy = destroy;
+//     }
+//     task->lock.unlock();
+// }
 
-API_ATTRIBUTE((visibility("default")))
-void ffrt_set_wake_flag(bool flag)
-{
-    ffrt::TaskCtx * task = (ffrt::TaskCtx *)ffrt_task_get();
-    task->SetWakeFlag(flag);
-}
+// API_ATTRIBUTE((visibility("default")))
+// void ffrt_set_wake_flag(bool flag)
+// {
+//     ffrt::TaskCtx * task = (ffrt::TaskCtx *)ffrt_task_get();
+//     task->SetWakeFlag(flag);
+// }
 
-API_ATTRIBUTE((visibility("default")))
-void * ffrt_task_get()
-{
-    return (void*)ffrt::ExecuteCtx::Cur()->task;
-}
-#endif
+// API_ATTRIBUTE((visibility("default")))
+// void * ffrt_task_get()
+// {
+//     return (void*)ffrt::ExecuteCtx::Cur()->task;
+// }
+// #endif
 
 // submit
 API_ATTRIBUTE((visibility("default")))
@@ -291,6 +292,10 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
 {
     if (kind == ffrt_function_kind_general) {
         return ffrt::SimpleAllocator<ffrt::TaskCtx>::allocMem()->func_storage;
+    }
+
+    if (kind == ffrt_function_kind_rust) {
+        return ffrt::SimpleAllocator<ffrt::ffrt_executor_rust_task>::allocMem()->func_storage;
     }
 
     return ffrt::SimpleAllocator<ffrt::SerialTask>::allocMem()->func_storage;
@@ -443,6 +448,26 @@ int ffrt_skip(ffrt_task_handle_t handle)
 }
 
 API_ATTRIBUTE((visibility("default")))
+int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t))
+{
+    ffrt_qos_t qos = ffrt_qps_default;
+    if (ffrt::ExecuteCtx::Cur()->task) {
+        qos = ffrt::ExecuteCtx::Cur()->task->qos;
+    }
+    return ffrt::PollerProxy::Instance()->GetPoller(qos).AddFdEvent(events, fd, data, cb);
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_poller_deregister(int fd)
+{
+    ffrt_qos_t qos = ffrt_qps_default;
+    if (ffrt::ExecuteCtx::Cur()->task) {
+        qos = ffrt::ExecuteCtx::Cur()->task->qos;
+    }
+    return ffrt::PollerProxy::Instance()->GetPoller(qos).DelFdEvent(fd);
+}
+
+API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr)
 {
     if (!task) {
@@ -459,10 +484,10 @@ void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name)
+void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t task_type)
 {
     ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
-    func_mg->insert(std::string(name), func);
+    func_mg->insert(task_type, func);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -473,6 +498,12 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
     ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
     ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
     return (int)(sch->RemoveNode(node, _qos));
+}
+
+API_ATTRIBUTE((visibility("default")))
+void set_cpu_worker_num(const ffrt_qos_t qos, int num)
+{
+    ffrrt::GlobalConfig::Instance().setCpuWorkerNum(ffrt::QoS(qos), num);
 }
 #ifdef __cplusplus
 }

@@ -60,7 +60,7 @@ typedef enum {
 } ffrt_stack_protect_t;
 
 typedef void(*ffrt_function_t)(void*);
-
+typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
 typedef struct {
     ffrt_function_t exec;
     ffrt_function_t destroy;
@@ -78,7 +78,8 @@ typedef enum {
 
 typedef enum {
     ffrt_function_kind_general,
-    ffrt_function_kind_queue
+    ffrt_function_kind_queue,
+    ffrt_function_kind_rust
 } ffrt_function_kind_t;
 
 typedef enum {
@@ -161,6 +162,18 @@ typedef enum {
 typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
+
+typedef struct {
+    int fd;
+    void* data;
+    void(*cb)(void*, uint32_t);
+} ffrt_poller_t;
+
+typedef enum {
+    ffrt_normal_task = 0,
+    ffrt_rust_task = 1,
+    ffrt_uv_task
+} ffrt_executor_task_type_t;
 
 // 该任务仅在libuv中提交
 typedef struct ffrt_executor_task {

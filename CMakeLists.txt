@@ -53,7 +53,11 @@ elseif(FFRT_SANITIZE STREQUAL thread)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+if(CMAKE_BUILD_TYPE STREQUAL Release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O2 -fPIC")
+else()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O0 -fPIC")
+endif()
 
 # add the binary tree to the search path for include files
 include_directories(${FFRT_API_PATH})

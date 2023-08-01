@@ -16,7 +16,7 @@ import("//foundation/resourceschedule/ffrt/ffrt_stackless_coroutine.gni")
 defines = []
 
 if (use_stackless_coroutine) {
-  defines += [ "USE_STACKLESS_COROUTINE" ]
+  defines += [ "RUST_OLD" ]
 }
 
 config("ffrt_config") {
@@ -81,6 +81,7 @@ ohos_shared_library("libffrt") {
     "src/core/entity.cpp",
     "src/core/task.cpp",
     "src/core/task_ctx.cpp",
+    "src/core/task_rust.cpp",
     "src/core/version_ctx.cpp",
     "src/dfx/bbox/bbox.cpp",
     "src/dfx/log/ffrt_log.cpp",
@@ -100,6 +101,7 @@ ohos_shared_library("libffrt") {
     "src/eu/rtg_perf_ctrl.c",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
+    "src/queue/queue.cpp",
     "src/queue/serial_handler.cpp",
     "src/queue/serial_looper.cpp",
     "src/queue/serial_queue.cpp",
@@ -120,6 +122,7 @@ ohos_shared_library("libffrt") {
     "src/sync/mutex.cpp",
     "src/sync/mutex_perf.cpp",
     "src/sync/perf_counter.cpp",
+    "src/sync/poller.cpp",
     "src/sync/sleep.cpp",
     "src/sync/sync.cpp",
     "src/sync/thread.cpp",

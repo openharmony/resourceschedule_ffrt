@@ -33,6 +33,7 @@
 #include "eu/execute_unit.h"
 #include "entity.h"
 #include "dfx/bbox/bbox.h"
+#include "sync/poller.h"
 
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
@@ -74,6 +75,7 @@ public:
         // control construct sequences of singletons
         SimpleAllocator<TaskCtx>::instance();
         SimpleAllocator<VersionCtx>::instance();
+        PollerProxy::Instance();
         FFRTScheduler::Instance();
         ExecuteUnit::Instance();
 

@@ -14,7 +14,7 @@
  */
 #ifndef FFRT_API_CPP_DEADLINE_H
 #define FFRT_API_CPP_DEADLINE_H
-#include "c/deadline.h"
+#include "../c/deadline.h"
 
 namespace ffrt {
 using interval = ffrt_interval_t;
@@ -74,7 +74,6 @@ static inline int qos_interval_leave(interval it)
 {
     return ffrt_interval_leave(it);
 }
-
 }; // namespace ffrt
 
 #endif

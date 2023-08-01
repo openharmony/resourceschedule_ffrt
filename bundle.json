@@ -38,7 +38,8 @@
         },
         "build": {
             "sub_component": [
-                "//foundation/resourceschedule/ffrt:libffrt"
+                "//foundation/resourceschedule/ffrt:libffrt",
+                "//foundation/resourceschedule/ffrt:ffrt_ndk"
             ],
             "inner_kits": [
                 {
@@ -46,7 +47,6 @@
                         "header_base": "//foundation/resourceschedule/ffrt/interfaces/",
                         "header_files": [
                             "kits/ffrt.h",
-                            "inner_api/deadline.h",
                             "inner_api/ffrt_inner.h"
                         ]
                     },

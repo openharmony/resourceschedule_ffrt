@@ -16,7 +16,7 @@
 #ifndef FFRT_QOS_H
 #define FFRT_QOS_H
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 
 namespace ffrt {
 class QoS {

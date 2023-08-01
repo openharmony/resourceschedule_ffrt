@@ -12,6 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * @file condition_variable.h
+ *
+ * @brief Declares the condition variable interfaces in C++.
+ *
+ * @since 10
+ * @version 1.0
+ */
 #ifndef FFRT_API_CPP_CONDITION_VARIABLE_H
 #define FFRT_API_CPP_CONDITION_VARIABLE_H
 #include <chrono>

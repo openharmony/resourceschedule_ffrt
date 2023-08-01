@@ -15,7 +15,7 @@
 
 #include <gtest/gtest.h>
 #include <thread>
-#include "deadline.h"
+#include "cpp/deadline.h"
 #include "internal_inc/osal.h"
 #include "sched/interval.h"
 #include "core/dependence_manager.h"

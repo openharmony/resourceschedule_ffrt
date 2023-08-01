@@ -18,8 +18,8 @@
 #include <optional>
 #include <chrono>
 #include <cassert>
-#include "condition_variable.h"
-#include "thread.h"
+#include "cpp/condition_variable.h"
+#include "cpp/thread.h"
 
 namespace ffrt {
 struct non_copyable {

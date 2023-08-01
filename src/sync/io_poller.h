@@ -23,7 +23,7 @@
 #include <vector>
 #include <map>
 #include <atomic>
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "internal_inc/non_copyable.h"
 
 namespace ffrt {

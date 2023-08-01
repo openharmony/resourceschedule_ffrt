@@ -12,6 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ 
+ /**
+ * @file type_def.h
+ *
+ * @brief Declares common types.
+ *
+ * @since 10
+ * @version 1.0
+ */
 #ifndef FFRT_API_C_TYPE_DEF_H
 #define FFRT_API_C_TYPE_DEF_H
 #include <stdint.h>
@@ -23,62 +32,62 @@
 #define FFRT_C_API
 #endif
 
-typedef enum {
-    ffrt_coroutine_stackless,
-    ffrt_coroutine_stackfull,
-} ffrt_coroutine_t;
-
-typedef enum {
-    ffrt_ready = 1,
-    ffrt_blocked = 3,
-    ffrt_exited = 4,
-} ffrt_task_status_t;
-
-typedef enum {
-    ffrt_coroutine_pending = 0,
-    ffrt_coroutine_ready = 1,
-} ffrt_coroutine_ret_t;
-
-
-typedef void(*ffrt_function_ptr_t)(void*);
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
-
+/**
+ * @brief Enumerates the task QoS types.
+ *
+ */
 typedef enum {
     ffrt_qos_inherit = -1,
+    /** Background task. */
     ffrt_qos_background,
+    /** Real-time tool. */
     ffrt_qos_utility,
+    /** Default type. */
     ffrt_qos_default,
+    /** User initiated. */
     ffrt_qos_user_initiated,
-    ffrt_qos_deadline_request,
-    ffrt_qos_user_interactive,
-    ffrt_qos_max = ffrt_qos_user_interactive,
 } ffrt_qos_default_t;
 typedef int ffrt_qos_t;
 
-typedef enum {
-    ffrt_stack_protect_weak,
-    ffrt_stack_protect_strong
-} ffrt_stack_protect_t;
-
 typedef void(*ffrt_function_t)(void*);
 
+/**
+ * @brief Defines a task executor.
+ *
+ */
 typedef struct {
+    /** Function used to execute a task. */
     ffrt_function_t exec;
+    /** Function used to destroy a task. */
     ffrt_function_t destroy;
     uint64_t reserve[2];
 } ffrt_function_header_t;
 
+/**
+ * @brief Defines the storage size of multiple types of structs.
+ *
+ */
 typedef enum {
+    /** Task attribute storage size. */
     ffrt_task_attr_storage_size = 128,
+    /** Task executor storage size. */
     ffrt_auto_managed_function_storage_size = 64 + sizeof(ffrt_function_header_t),
+    /* Mutex storage size. */
     ffrt_mutex_storage_size = 64,
+    /** Condition variable storage size. */
     ffrt_cond_storage_size = 64,
-    ffrt_thread_attr_storage_size = 64,
+    /** Queue storage size. */
     ffrt_queue_attr_storage_size = 128,
 } ffrt_storage_size_t;
 
+/**
+ * @brief Enumerates the task types.
+ *
+ */
 typedef enum {
+    /** General task. */
     ffrt_function_kind_general,
+    /** Queue task. */
     ffrt_function_kind_queue
 } ffrt_function_kind_t;
 
@@ -92,8 +101,14 @@ typedef struct {
     const void* ptr;
 } ffrt_dependence_t;
 
+/**
+ * @brief Defines the dependency struct.
+ *
+ */
 typedef struct {
+    /** Number of dependencies. */
     uint32_t len;
+    /** Dependent data. */
     const ffrt_dependence_t* items;
 } ffrt_deps_t;
 
@@ -125,52 +140,12 @@ typedef struct {
 } ffrt_mutexattr_t;
 
 typedef struct {
-    uint32_t storage[(ffrt_thread_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
-} ffrt_thread_attr_t;
-
-typedef struct {
     uint32_t storage[(ffrt_mutex_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_mutex_t;
 
 typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
-
-#define MAX_CPUMAP_LENGTH 100 // this is in c and code style
-typedef struct {
-    int shares;
-    int latency_nice;
-    int uclamp_min;
-    int uclamp_max;
-    int vip_prio;
-    char cpumap[MAX_CPUMAP_LENGTH];
-} ffrt_os_sched_attr;
-
-typedef void* ffrt_thread_t;
-
-typedef void* ffrt_interval_t;
-
-typedef enum {
-    ffrt_sys_event_type_read,
-} ffrt_sys_event_type_t;
-
-typedef enum {
-    ffrt_sys_event_status_no_timeout,
-    ffrt_sys_event_status_timeout
-} ffrt_sys_event_status_t;
-
-typedef void* ffrt_sys_event_handle_t;
-
-typedef void* ffrt_config_t;
-
-// 该任务仅在libuv中提交
-typedef struct ffrt_executor_task {
-    uintptr_t reserved[2];
-    uintptr_t type; // 0: TaskCtx, 1: rust task, User Space Address: libuv work
-    void* wq[2];
-} ffrt_executor_task_t;
-
-typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data);
 
 #ifdef __cplusplus
 namespace ffrt {
@@ -180,16 +155,8 @@ enum qos_default {
     qos_utility = ffrt_qos_utility,
     qos_default = ffrt_qos_default,
     qos_user_initiated = ffrt_qos_user_initiated,
-    qos_deadline_request = ffrt_qos_deadline_request,
-    qos_user_interactive = ffrt_qos_user_interactive,
-    qos_max = ffrt_qos_max,
 };
 using qos = int;
-
-enum class stack_protect {
-    weak = ffrt_stack_protect_weak,
-    strong = ffrt_stack_protect_strong,
-};
 }
 #endif
 #endif

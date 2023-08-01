@@ -56,7 +56,7 @@ public:
         }
     }
 
-    void NotifyTaskAdded(enum qos qos) override;
+    void NotifyTaskAdded(const QoS& qos) override;
 
     std::mutex* GetSleepCtl(int qos) override
     {

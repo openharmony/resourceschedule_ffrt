@@ -19,14 +19,16 @@
 #include "ihandler.h"
 #include "sync/sync.h"
 #include "util/slab.h"
+#include "queue_monitor.h"
 
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
 }
 
 namespace ffrt {
-SerialLooper::SerialLooper(const char* name, enum qos qos, uint64_t timeout, ffrt_function_header_t* timeoutCb)
-    : timeout_(timeout), timeoutCb_(timeoutCb)
+static std::atomic_uint32_t q_gid(0);
+SerialLooper::SerialLooper(const char* name, int qos, uint64_t timeout, ffrt_function_header_t* timeoutCb)
+    : qid_(q_gid++), timeout_(timeout), timeoutCb_(timeoutCb)
 {
     if (name != nullptr && (std::string(name).size() <= STRING_SIZE_MAX)) {
         name_ += name;
@@ -37,14 +39,15 @@ SerialLooper::SerialLooper(const char* name, enum qos qos, uint64_t timeout, ffr
     }
 
     queue_ = std::make_shared<SerialQueue>(name_);
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "failed to construct serial queue");
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "failed to construct serial queue, qid=%u", qid_);
     // using nested submission is to submit looper task on worker.
     // when ffrt::wait() is used in the current thread, the looper task is not in the waiting list.
     submit([this, qos] { handle = submit_h([this] { Run(); }, {}, {}, task_attr().name(name_.c_str()).qos(qos)); },
         {}, { &handle });
+    QueueMonitor::GetInstance().RegisterQueueId(qid_);
     ffrt::wait({&handle});
-    FFRT_COND_DO_ERR((handle == nullptr), return, "failed to construct serial looper");
-    FFRT_LOGI("create serial looper [%s] succ", name_.c_str());
+    FFRT_COND_DO_ERR((handle == nullptr), return, "failed to construct serial looper, qid=%u", qid_);
+    FFRT_LOGI("create serial looper [%s] succ, qid=%u", name_.c_str(), qid_);
 }
 
 SerialLooper::~SerialLooper()
@@ -57,6 +60,7 @@ void SerialLooper::Quit()
     FFRT_LOGI("quit serial looper [%s] enter", name_.c_str());
     isExit_.store(true);
     queue_->Quit();
+    QueueMonitor::GetInstance().ResetQueueInfo(qid_);
     // wait for the task being executed to complete.
     wait({handle});
 
@@ -70,22 +74,23 @@ void SerialLooper::Quit()
             GetSerialTaskByFuncStorageOffset(timeoutCb_)->DecDeleteRef();
         }
     }
-    FFRT_LOGI("quit serial looper [%s] leave", name_.c_str());
+    FFRT_LOGI("quit serial looper [%s] leave, qid=%u", name_.c_str(), qid_);
 }
 
 void SerialLooper::Run()
 {
-    FFRT_LOGI("run serial looper [%s] enter", name_.c_str());
+    FFRT_LOGI("run serial looper [%s] enter, qid=%u", name_.c_str(), qid_);
     while (!isExit_.load()) {
         ITask* task = queue_->Next();
         if (task) {
-            FFRT_LOGD("get next serial task [0x%x]", task);
             SetTimeoutMonitor(task);
             FFRT_COND_DO_ERR((task->handler_ == nullptr), break, "failed to run task, handler is nullptr");
+            QueueMonitor::GetInstance().UpdateQueueInfo(qid_, task->gid);
             task->handler_->DispatchTask(task);
+            QueueMonitor::GetInstance().ResetQueueInfo(qid_);
         }
     }
-    FFRT_LOGI("run serial looper [%s] leave", name_.c_str());
+    FFRT_LOGI("run serial looper [%s] enter, qid=%u", name_.c_str(), qid_);
 }
 
 void SerialLooper::SetTimeoutMonitor(ITask* task)
@@ -114,19 +119,21 @@ void SerialLooper::SetTimeoutMonitor(ITask* task)
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::freeMem(we);
-        FFRT_LOGW("timeout [%llu us] is too short to set watchdog of task [0x%x]", task);
+        FFRT_LOGW("timeout [%llu us] is too short to set watchdog of task gid=%llu in %s",
+            task->gid, name_.c_str(), qid_);
         return;
     }
 
     delayedCbCnt_.fetch_add(1);
-    FFRT_LOGD("set watchdog of task [0x%x] succ", task);
+    FFRT_LOGD("set watchdog of task [%p] of %s succ", task, name_.c_str());
 }
 
 void SerialLooper::RunTimeOutCallback(ITask* task)
 {
     std::stringstream ss;
-    ss << "serial queue [" << name_ << "], serial task [" << std::hex << task << "], execution time exceeds "
-       << std::dec << timeout_ << " us";
+    ss << "serial queue [" << name_ << "] qid=" << qid_ <<
+    ", serial task gid=" << task->gid << " execution time exceeds "
+        << timeout_ << " us";
     std::string msg = ss.str();
     std::string eventName = "SERIAL_TASK_TIMEOUT";
 

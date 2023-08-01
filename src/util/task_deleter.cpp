@@ -12,15 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_C_DEADLINE_H
-#define FFRT_API_C_DEADLINE_H
-#include "type_def.h"
+#include <util/task_deleter.h>
 
-FFRT_C_API ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos);
-FFRT_C_API int ffrt_interval_update(ffrt_interval_t it, uint64_t deadline_us);
-FFRT_C_API int ffrt_interval_begin(ffrt_interval_t it);
-FFRT_C_API int ffrt_interval_end(ffrt_interval_t it);
-FFRT_C_API void ffrt_interval_destroy(ffrt_interval_t it);
-FFRT_C_API int ffrt_interval_join(ffrt_interval_t it);
-FFRT_C_API int ffrt_interval_leave(ffrt_interval_t it);
-#endif
+namespace ffrt {
+static std::atomic_uint64_t s_gid(0);
+
+TaskDeleter::TaskDeleter() : gid(++s_gid) {}
+} // namespace ffrt

@@ -105,10 +105,8 @@ struct TaskCtx : public TaskDeleter {
     uint64_t load = 0;
     int64_t ddl = INT64_MAX;
 
-    const uint64_t gid; // global unique id in this process
-
     QoS qos;
-    void ChargeQoSSubmit(const QoS& qos);
+    void SetQos(QoS& qos);
 
     ffrt_coroutine_t coroutine_type = ffrt_coroutine_stackfull;
     uint32_t stackless_coroutine_wake_count = 1;
@@ -181,7 +179,7 @@ struct TaskCtx : public TaskDeleter {
     }
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-    static void DumpTask(TaskCtx* task);
+    static void DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag = 0); /* 0:hilog others:hiview */
 #endif
 };
 

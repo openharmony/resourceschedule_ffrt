@@ -29,6 +29,11 @@
 #endif
 
 namespace ffrt {
+#ifdef ASAN_MODE
+constexpr bool USE_COROUTINE = false;
+#else
+constexpr bool USE_COROUTINE = true;
+#endif
 enum DT {
     U8,
     U16,

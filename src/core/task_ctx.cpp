@@ -15,7 +15,9 @@
 #include "core/task_ctx.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
+#include <sstream>
 #include "libunwind.h"
+#include "backtrace_local.h"
 #endif
 #include "core/dependence_manager.h"
 #include "util/slab.h"
@@ -23,7 +25,6 @@
 #include "internal_inc/types.h"
 
 namespace ffrt {
-static std::atomic<uint64_t> s_gid(0);
 static inline const char* DenpenceStr(Denpence d)
 {
     static const char* m[] = {
@@ -37,7 +38,7 @@ static inline const char* DenpenceStr(Denpence d)
 
 TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t &id, const char *identity,
     const QoS &qos)
-    : parent(parent), rank(id), identity(identity), gid(++s_gid), qos(qos)
+    : parent(parent), rank(id), identity(identity), qos(qos)
 {
     wue = nullptr;
     fq_we.task = this;
@@ -59,15 +60,15 @@ TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t 
     FFRT_LOGD("create task name:%s gid=%lu", label.c_str(), gid);
 }
 
-void TaskCtx::ChargeQoSSubmit(const QoS& qos)
+void TaskCtx::SetQos(QoS& target_qos)
 {
-    if (qos == qos_inherit) {
+    if (target_qos == qos_inherit) {
         if (!this->IsRoot()) {
             this->qos = parent->qos;
         }
-        FFRT_LOGD("Change task %s QoS %d", label.c_str(), static_cast<int>(this->qos));
+        FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos());
     } else {
-        this->qos = qos;
+        this->qos = target_qos;
     }
 }
 
@@ -128,16 +129,12 @@ void TaskCtx::DecChildRef()
     }
     parent->denpenceStatus = Denpence::DEPENCE_INIT;
 
-#ifdef EU_COROUTINE
-    if (parent->parent == nullptr) {
+    if (!USE_COROUTINE || parent->parent == nullptr) {
         parent->childWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(parent->gid);
         parent->UpdateState(TaskState::READY);
     }
-#else
-    parent->childWaitCond_.notify_all();
-#endif
 }
 
 void TaskCtx::DecWaitDataRef()
@@ -155,8 +152,7 @@ void TaskCtx::DecWaitDataRef()
         denpenceStatus = Denpence::DEPENCE_INIT;
     }
 
-#ifdef EU_COROUTINE
-    if (parent == nullptr) {
+    if (!USE_COROUTINE || parent == nullptr) {
         dataWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);
@@ -165,9 +161,6 @@ void TaskCtx::DecWaitDataRef()
         TaskEnQueuCounterInc();
 #endif
     }
-#else
-    dataWaitCond_.notify_all();
-#endif
 }
 
 bool TaskCtx::IsPrevTask(const TaskCtx* task) const
@@ -205,14 +198,21 @@ void TaskCtx::MultiDepenceAdd(Denpence depType)
     denpenceStatus = depType;
 }
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-void TaskCtx::DumpTask(TaskCtx* task)
+void TaskCtx::DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag)
 {
     unw_context_t ctx;
     unw_cursor_t unw_cur;
     unw_proc_info_t unw_proc;
+
     if (ExecuteCtx::Cur()->task == task || task == nullptr) {
-        unw_getcontext(&ctx);
+        if (flag == 0) {
+            OHOS::HiviewDFX::PrintTrace(-1);
+        } else {
+            OHOS::HiviewDFX::GetBacktrace(stackInfo, false);
+        }
+        return;
     } else {
+        memset(&ctx, 0, sizeof(ctx));
 #if defined(__aarch64__)
         ctx.uc_mcontext.regs[UNW_AARCH64_X29] = task->coRoutine->ctx.regs[10];
         ctx.uc_mcontext.sp = task->coRoutine->ctx.regs[13];
@@ -222,6 +222,11 @@ void TaskCtx::DumpTask(TaskCtx* task)
         ctx.uc_mcontext.gregs[REG_RBP] = task->coRoutine->ctx.regs[1];
         ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.regs[6];
         ctx.uc_mcontext.gregs[REG_RIP] = *(reinterpret_cast<greg_t *>(ctx.uc_mcontext.gregs[REG_RSP] - 8));
+#elif defined(__arm__)
+        ctx.regs[13] = task->coRoutine->ctx.regs[0]; /* sp */
+        ctx.regs[15] = task->coRoutine->ctx.regs[1]; /* pc */
+        ctx.regs[14] = task->coRoutine->ctx.regs[1]; /* lr */
+        ctx.regs[11] = task->coRoutine->ctx.regs[10]; /* fp */
 #endif
     }
 
@@ -236,6 +241,7 @@ void TaskCtx::DumpTask(TaskCtx* task)
     unw_word_t prevPc = 0;
     unw_word_t offset;
     char symbol[512];
+    std::ostringstream ss;
     do {
         ret = unw_get_proc_info(&unw_cur, &unw_proc);
         if (ret) {
@@ -255,14 +261,31 @@ void TaskCtx::DumpTask(TaskCtx* task)
 
         memset(symbol, 0, sizeof(symbol));
         if (unw_get_proc_name(&unw_cur, symbol, sizeof(symbol), &offset) == 0) {
-            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p) %s", frame_id, unw_proc.start_ip, info.dli_fname,
-                      (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)), symbol);
+            if (flag == 0) {
+                FFRT_LOGE("FFRT | #%d pc: %lx %s(%p) %s", frame_id, unw_proc.start_ip, info.dli_fname,
+                          (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)), symbol);
+            } else {
+                ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
+                ss << std::string(symbol, strlen(symbol)) <<std::endl;
+            }
         } else {
-            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
-                      (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+            if (flag == 0) {
+                FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
+                          (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+            } else {
+                ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
+                ss << std::endl;
+            }
         }
         ++frame_id;
     } while (unw_step(&unw_cur) > 0);
+
+    if (flag != 0) {
+        stackInfo = ss.str();
+    }
+    return;
 }
 #endif
 } /* namespace ffrt */

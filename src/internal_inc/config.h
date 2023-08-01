@@ -17,11 +17,12 @@
 #define GLOBAL_CONFIG_H
 
 #include "sched/qos.h"
+#include "types.h"
 
 namespace ffrt {
 constexpr int DEFAULT_MINCONCURRENCY = 4;
-constexpr int INTERACTIVE_MAXCONCURRENCY = 4;
-constexpr int DEFAULT_MAXCONCURRENCY = 8;
+constexpr int INTERACTIVE_MAXCONCURRENCY = USE_COROUTINE ? 4 : 40000;
+constexpr int DEFAULT_MAXCONCURRENCY = USE_COROUTINE ? 8 : 80000;
 constexpr int DEFAULT_HARDLIMIT = 16;
 
 class GlobalConfig {
@@ -38,51 +39,32 @@ public:
         return cfg;
     }
 
-    void setCpuWorkerNum(enum qos qos, int num)
+    void setCpuWorkerNum(const QoS& qos, int num)
     {
-        if (qos <= qos_inherit) {
-            qos = qos_default;
-        } else if (qos > qos_user_interactive) {
-            qos = qos_user_interactive;
-        }
-
         if ((num <= 0) || (num > DEFAULT_MAXCONCURRENCY)) {
             num = DEFAULT_MAXCONCURRENCY;
         }
-        this->cpu_worker_num[static_cast<int>(qos)] = static_cast<size_t>(num);
+        this->cpu_worker_num[qos()] = static_cast<size_t>(num);
     }
 
-    size_t getCpuWorkerNum(enum qos qos)
+    size_t getCpuWorkerNum(const QoS& qos)
     {
-        return this->cpu_worker_num[static_cast<int>(qos)];
-    }
-
-    void setQosWorkers(const QoS &qos, int tid)
-    {
-        this->qos_workers[static_cast<int>(qos())].push_back(tid);
-    }
-
-    std::vector<std::vector<int>> getQosWorkers()
-    {
-        return qos_workers;
+        return this->cpu_worker_num[qos()];
     }
 
 private:
     GlobalConfig()
     {
         for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
-            if (qos == qos_user_interactive) {
+            if (qos == static_cast<int>(qos_user_interactive)) {
                 this->cpu_worker_num[qos] = INTERACTIVE_MAXCONCURRENCY;
             } else {
                 this->cpu_worker_num[qos] = DEFAULT_MAXCONCURRENCY;
             }
-            std::vector<int> worker;
-            this->qos_workers.push_back(worker);
         }
     }
 
     size_t cpu_worker_num[QoS::Max()];
-    std::vector<std::vector<int>> qos_workers;
 };
 }
 

@@ -67,7 +67,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 {
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     TaskCtx* task = ctx->task;
-    if (ctx->task == nullptr) {
+    if (!USE_COROUTINE || ctx->task == nullptr) {
         ThreadWait(&ctx->wn, lk);
         return;
     }
@@ -103,7 +103,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     bool ret = false;
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     TaskCtx* task = ctx->task;
-    if (task == nullptr) {
+    if (!USE_COROUTINE || task == nullptr) {
         return ThreadWaitUntil(&ctx->wn, lk, tp);
     }
 
@@ -169,7 +169,7 @@ void WaitQueue::NotifyOne() noexcept
     }
     WaitUntilEntry* we = pop_front();
     TaskCtx* task = we->task;
-    if (we->weType == 2) {
+    if (!USE_COROUTINE || we->weType == 2) {
         std::unique_lock<std::mutex> lk(we->wl);
         wqlock.unlock();
         we->cv.notify_one();
@@ -187,7 +187,7 @@ void WaitQueue::NotifyAll() noexcept
     while (!empty()) {
         WaitUntilEntry* we = pop_front();
         TaskCtx* task = we->task;
-        if (we->weType == 2) {
+        if (!USE_COROUTINE || we->weType == 2) {
             std::unique_lock<std::mutex> lk(we->wl);
             wqlock.unlock();
             we->cv.notify_one();

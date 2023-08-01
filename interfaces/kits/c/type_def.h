@@ -51,8 +51,15 @@ typedef enum {
     ffrt_qos_user_initiated,
     ffrt_qos_deadline_request,
     ffrt_qos_user_interactive,
-    ffrt_qos_defined_ive,
-} ffrt_qos_t;
+    ffrt_qos_max = ffrt_qos_user_interactive,
+} ffrt_qos_default_t;
+typedef int ffrt_qos_t;
+
+typedef enum {
+    ffrt_normal_task = 0,
+    ffrt_rust_task = 1,
+    ffrt_uv_task // only used to register func for libuv
+} ffrt_executor_task_type_t;
 
 typedef enum {
     ffrt_stack_protect_weak,
@@ -182,11 +189,11 @@ typedef struct ffrt_executor_task {
     void* wq[2];
 } ffrt_executor_task_t;
 
-typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data);
+typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t qos);
 
 #ifdef __cplusplus
 namespace ffrt {
-enum qos {
+enum qos_default {
     qos_inherit = ffrt_qos_inherit,
     qos_background = ffrt_qos_background,
     qos_utility = ffrt_qos_utility,
@@ -194,8 +201,9 @@ enum qos {
     qos_user_initiated = ffrt_qos_user_initiated,
     qos_deadline_request = ffrt_qos_deadline_request,
     qos_user_interactive = ffrt_qos_user_interactive,
-    qos_defined_ive = ffrt_qos_defined_ive,
+    qos_max = ffrt_qos_max,
 };
+using qos = int;
 
 enum class stack_protect {
     weak = ffrt_stack_protect_weak,

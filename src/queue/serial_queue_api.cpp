@@ -75,7 +75,7 @@ void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
     ffrt::QoS _qos = ffrt::QoS(qos);
-    (reinterpret_cast<ffrt::task_attr_private*>(attr))->qos_ = static_cast<ffrt::qos>(_qos());
+    (reinterpret_cast<ffrt::task_attr_private*>(attr))->qos_ = _qos();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -102,7 +102,7 @@ uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_queue_attr_set_timeoutCb(ffrt_queue_attr_t* attr, ffrt_function_header_t* f)
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
     ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private*>(attr);
@@ -114,7 +114,7 @@ void ffrt_queue_attr_set_timeoutCb(ffrt_queue_attr_t* attr, ffrt_function_header
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_function_header_t* ffrt_queue_attr_get_timeoutCb(const ffrt_queue_attr_t* attr)
+ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return nullptr, "input invalid, attr == nullptr");
     ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);
@@ -127,9 +127,9 @@ ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const f
     FFRT_COND_DO_ERR((type != ffrt_queue_serial), return nullptr, "input invalid, type unsupport");
     FFRT_COND_DO_ERR((attr == nullptr), return nullptr, "input invalid, attr == nullptr");
 
-    ffrt::qos qos = static_cast<ffrt::qos>(ffrt_queue_attr_get_qos(attr));
+    int qos = ffrt_queue_attr_get_qos(attr);
     shared_ptr<SerialLooper> looper =
-        make_shared<SerialLooper>(name, qos, ffrt_queue_attr_get_timeout(attr), ffrt_queue_attr_get_timeoutCb(attr));
+        make_shared<SerialLooper>(name, qos, ffrt_queue_attr_get_timeout(attr), ffrt_queue_attr_get_callback(attr));
     FFRT_COND_DO_ERR((looper == nullptr), return nullptr, "failed to construct SerialLooper");
 
     SerialHandler* handler = new (std::nothrow) SerialHandler(looper);

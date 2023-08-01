@@ -25,39 +25,43 @@ namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
-#ifdef EU_COROUTINE
-    CoStart(task);
+    if constexpr(USE_COROUTINE) {
+        CoStart(task);
 #ifdef USE_STACKLESS_COROUTINE
     if (task->coroutine_type == ffrt_coroutine_stackfull) {
         CoStart(task);
     } else {
-        StacklessCouroutineStart(task);
+        StacklessCoroutineStart(task);
     }
 #endif
-#else
-    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-    auto exp = ffrt::SkipStatus::SUBMITTED;
-    if (likely(__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0, __ATOMIC_ACQUIRE,
-        __ATOMIC_RELAXED))) {
-        f->exec(f);
+    } else {
+        auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
+        auto exp = ffrt::SkipStatus::SUBMITTED;
+        if (likely(__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0, __ATOMIC_ACQUIRE,
+            __ATOMIC_RELAXED))) {
+            f->exec(f);
+        }
+        f->destroy(f);
+        task->UpdateState(ffrt::TaskState::EXITED);
     }
-    f->destroy(f);
-
-    task->UpdateState(ffrt::TaskState::EXITED);
-#endif
 }
 
-void CPUWorker::Run(ffrt_executor_task_t* data)
+void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 {
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
 #endif
-    ffrt_executor_task_func func = FuncManager::Instance()->getFunc("uv");
+    ffrt_executor_task_func func = nullptr;
+    if (task->type == ffrt_rust_task) {
+        func = FuncManager::Instance()->getFunc(ffrt_rust_task);
+    } else {
+        func = FuncManager::Instance()->getFunc(ffrt_uv_task);
+    }
     if (func == nullptr) {
         FFRT_LOGE("func is nullptr");
         return;
     }
-    func(data);
+    func(task, qos);
 #ifdef FFRT_BBOX_ENABLE
     TaskFinishCounterInc();
 #endif
@@ -91,7 +95,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         if (task->type != 0) {
             ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
-            Run(work);
+            Run(work, (int)worker->GetQos());
         } else {
             UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
             task->UpdateState(TaskState::RUNNING);

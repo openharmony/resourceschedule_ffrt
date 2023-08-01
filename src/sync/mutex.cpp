@@ -78,9 +78,10 @@ lock_out:
 void mutexPrivate::unlock()
 {
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    uint64_t ownerTask;
+    ownerTask = owner.load(std::memory_order_relaxed);
     owner.store(0, std::memory_order_relaxed);
-    uint64_t task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
-    MutexGraph::Instance().RemoveNode(task);
+    MutexGraph::Instance().RemoveNode(ownerTask);
 #endif
     if (l.exchange(sync_detail::UNLOCK, std::memory_order_release) == sync_detail::WAIT) {
         wake();
@@ -91,7 +92,7 @@ void mutexPrivate::wait()
 {
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
-    if (task == nullptr) {
+    if (!USE_COROUTINE || task == nullptr) {
         wlock.lock();
         if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {
             wlock.unlock();
@@ -130,7 +131,7 @@ void mutexPrivate::wake()
         return;
     }
     TaskCtx* task = we->task;
-    if (we->weType == 2) {
+    if (!USE_COROUTINE || we->weType == 2) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         std::unique_lock lk(wue->wl);
         wlock.unlock();

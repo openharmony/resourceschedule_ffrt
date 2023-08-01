@@ -95,7 +95,7 @@ void CPUMonitor::SetupMonitor()
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT;
         ctrlQueue[qos].workerManagerID = static_cast<uint32_t>(qos);
-        ctrlQueue[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(static_cast<enum qos>(qos));
+        ctrlQueue[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(qos);
     }
 }
 

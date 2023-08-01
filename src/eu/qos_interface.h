@@ -190,7 +190,7 @@ int QosPolicy(struct QosPolicyDatas *policyDatas);
 typedef int (*Func_affinity)(unsigned long affinity, int tid);
 void setFuncAffinity(Func_affinity func);
 Func_affinity getFuncAffinity();
-typedef int (*Func_priority)(unsigned char priority, ffrt::WorkerThread* thread);
+typedef void (*Func_priority)(unsigned char priority, ffrt::WorkerThread* thread);
 void setFuncPriority(Func_priority func);
 Func_priority getFuncPriority();
 

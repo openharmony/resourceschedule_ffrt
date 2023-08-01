@@ -21,55 +21,51 @@
 namespace ffrt {
 class QoS {
 public:
-    QoS(enum qos qos = qos_default)
+    QoS(int qos = qos_default)
     {
         if (qos < qos_inherit) {
             qos = qos_inherit;
-        } else if (qos > qos_defined_ive) {
-            qos = qos_defined_ive;
+        } else if (qos > qos_max) {
+            qos = qos_max;
         }
 
-        this->qos = qos;
+        qos_ = qos;
     }
 
-    QoS(const QoS& qos) : qos(qos.qos)
+    QoS(const QoS& qos) : qos_(qos())
     {
     }
 
-    QoS(int qos) : QoS(static_cast<enum qos>(qos))
+    int operator()() const
     {
+        return qos_;
     }
 
-    enum qos operator()() const
+    QoS& operator=(int qos)
     {
-        return qos;
-    }
-
-    QoS& operator=(enum qos qos)
-    {
-        this->qos = qos;
+        qos_ = qos;
         return *this;
     }
 
     QoS& operator=(const QoS& qos)
     {
         if (this != &qos) {
-            this->qos = qos.qos;
+            qos_ = qos();
         }
         return *this;
     }
 
-    bool operator==(enum qos qos) const
+    bool operator==(int qos) const
     {
-        return this->qos == qos;
+        return qos_ == qos;
     }
 
     bool operator==(const QoS& qos) const
     {
-        return this->qos == qos.qos;
+        return qos_ == qos();
     }
 
-    bool operator!=(enum qos qos) const
+    bool operator!=(int qos) const
     {
         return !(*this == qos);
     }
@@ -81,7 +77,7 @@ public:
 
     operator int() const
     {
-        return static_cast<int>(qos);
+        return qos_;
     }
 
     static constexpr int Min()
@@ -91,11 +87,11 @@ public:
 
     static constexpr int Max()
     {
-        return qos_defined_ive + 1;
+        return qos_max + 1;
     }
 
 private:
-    enum qos qos;
+    int qos_;
 };
 }; // namespace ffrt
 #endif

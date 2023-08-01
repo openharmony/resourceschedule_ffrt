@@ -74,13 +74,15 @@ public:
 
     bool WakeupTask(TaskCtx* task)
     {
-        auto level = qos_default;
+        int qos_level = static_cast<int>(qos_default);
         if (task != nullptr) {
-            level = task->qos();
-            if (level == qos_inherit) {
+            qos_level = task->qos();
+            if (qos_level == qos_inherit) {
                 return false;
             }
         }
+        QoS _qos = QoS(qos_level);
+        int level = _qos();
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
         fifoQue[static_cast<size_t>(level)].WakeupTask(task);
@@ -92,13 +94,15 @@ public:
 
     bool InsertNode(LinkedList* node, const QoS qos)
     {
-        auto level = qos_default;
+        int qos_level = static_cast<int>(qos_default);
         if (node != nullptr) {
-            level = qos();
-            if (level == qos_inherit) {
+            qos_level = qos();
+            if (qos_level == qos_inherit) {
                 return false;
             }
         }
+        QoS _qos = QoS(qos_level);
+        int level = _qos();
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
         fifoQue[static_cast<size_t>(level)].WakeupNode(node);
@@ -109,13 +113,15 @@ public:
 
     bool RemoveNode(LinkedList* node, const QoS qos)
     {
-        auto level = qos_default;
+        int qos_level = static_cast<int>(qos_default);
         if (node != nullptr) {
-            level = qos();
-            if (level == qos_inherit) {
+            qos_level = qos();
+            if (qos_level == qos_inherit) {
                 return false;
             }
         }
+        QoS _qos = QoS(qos_level);
+        int level = _qos();
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
         if (!node->InList()) {

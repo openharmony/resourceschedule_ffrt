@@ -47,7 +47,7 @@ public:
 
     virtual bool IncWorker(const QoS& qos) = 0;
     virtual bool DecWorker() = 0;
-    virtual void NotifyTaskAdded(enum qos qos) = 0;
+    virtual void NotifyTaskAdded(const QoS& qos) = 0;
     virtual std::mutex* GetSleepCtl(int qos) = 0;
 
     WorkerGroupCtl* GetGroupCtl()

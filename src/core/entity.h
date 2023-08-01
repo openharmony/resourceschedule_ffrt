@@ -21,10 +21,6 @@
 
 #include "sync/sync.h"
 
-#if (!defined _MSC_VER) // In windows forced to use thread
-#define EU_COROUTINE
-#endif
-
 namespace ffrt {
 struct VersionCtx;
 

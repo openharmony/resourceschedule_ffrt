@@ -104,14 +104,22 @@ void IOPoller::WakeUp() noexcept
 void IOPoller::WaitFdEvent(int fd) noexcept
 {
     auto ctx = ExecuteCtx::Cur();
-    if (!ctx->task) {
-        FFRT_LOGI("nonworker shall not call this fun.");
-        return;
-    }
     struct WakeData data = {.fd = fd, .data = static_cast<void *>(ctx->task)};
 
     epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&data)} };
     FFRT_BLOCK_TRACER(ctx->task->gid, fd);
+    if (!USE_COROUTINE) {
+        std::unique_lock<std::mutex> lck(ctx->task->lock);
+        if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
+            ctx->task->childWaitCond_.wait(lck);
+        }
+        return;
+    }
+
+    if (!ctx->task) {
+        FFRT_LOGI("nonworker shall not call this fun.");
+    }
+
     CoWait([&](TaskCtx *task)->bool {
         (void)task;
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
@@ -137,13 +145,21 @@ void IOPoller::PollOnce(int timeout) noexcept
             uint64_t one = 1;
             ssize_t n = ::read(m_wakeData.fd, &one, sizeof one);
             assert(n == sizeof one);
-        } else {
-            if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) == 0) {
-                CoWake(reinterpret_cast<TaskCtx *>(data->data), false);
-            } else {
-                FFRT_LOGI("epoll_ctl fd = %d errorno = %d", data->fd, errno);
-            }
+            continue;
         }
+
+        if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) == 0) {
+            auto task = reinterpret_cast<TaskCtx *>(data->data);
+            if (!USE_COROUTINE) {
+                std::unique_lock<std::mutex> lck(task->lock);
+                task->childWaitCond_.notify_one();
+            } else {
+                CoWake(task, false);
+            }
+            continue;
+        }
+        
+        FFRT_LOGI("epoll_ctl fd = %d errorno = %d", data->fd, errno);
     }
 }
 }

@@ -50,7 +50,7 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos)
 {
-    if (qos < ffrt_qos_deadline_request || qos > ffrt_qos_user_interactive) {
+    if (qos < static_cast<int>(ffrt_qos_deadline_request) || qos > static_cast<int>(ffrt_qos_user_interactive)) {
         FFRT_LOGE("Invalid QoS Interval!");
         return nullptr;
     }

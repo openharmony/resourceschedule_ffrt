@@ -129,10 +129,9 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #endif /* IDLE_WORKER_DESTRUCT */
 }
 
-void CPUWorkerManager::NotifyTaskAdded(enum qos qos)
+void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
 {
-    QoS taskQos(qos);
-    monitor.Notify(taskQos, TaskNotifyType::TASK_ADDED);
+    monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
 }
 
 CPUWorkerManager::CPUWorkerManager() : monitor({

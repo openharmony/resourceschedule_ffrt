@@ -41,6 +41,9 @@ public:
 
     ffrt_executor_task_func getFunc(std::string name)
     {
+        if (func_map.find(name) == func_map.end()) {
+            return nullptr;
+        }
         return func_map[name];
     }
 

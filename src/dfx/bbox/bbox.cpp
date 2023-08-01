@@ -19,8 +19,11 @@
 #include <unistd.h>
 #include <csignal>
 #include <cstdlib>
+#include <string>
+#include <sstream>
 #ifdef FFRT_CO_BACKTRACE_ENABLE
 #include <utils/CallStack.h>
+#include "core/task_ctx.h"
 #endif
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
@@ -92,11 +95,12 @@ static inline void SaveTaskCounter()
         FFRT_BBOX_LOG("TaskRunCounter is not equal to TaskSwitchCounter + TaskFinishCounter");
     }
 }
+
 static inline void SaveWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    for (int i = 0; i < qos_user_interactive + 1; i++) {
+    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
         std::unique_lock lock(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             TaskCtx* t = thread.first->curTask;
@@ -113,14 +117,14 @@ static inline void SaveWorkerStatus()
 static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    for (int i = 0; i < qos_user_interactive + 1; i++) {
-        int nt = FFRTScheduler::Instance()->GetScheduler(QoS(static_cast<enum qos>(i))).RQSize();
+    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+        int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;
         }
 
         for (int j = 0; j < nt; j++) {
-            TaskCtx* t = FFRTScheduler::Instance()->GetScheduler(QoS(static_cast<enum qos>(i))).PickNextTask();
+            TaskCtx* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i + 1, j, nt);
                 continue;
@@ -183,7 +187,8 @@ void backtrace(int ignoreDepth)
     FFRT_BBOX_LOG("backtrace");
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-    TaskCtx::DumpTask(nullptr);
+    std::string dumpInfo;
+    TaskCtx::DumpTask(nullptr, dumpInfo);
 #endif
 }
 
@@ -296,4 +301,112 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGKILL);
 }
 
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+std::string SaveTaskCounterInfo(void)
+{
+    std::ostringstream ss;
+    ss << "<<<=== task counter ===>>>" << std::endl;
+    ss << "FFRT BBOX TaskSubmitCounter:" << g_taskSubmitCounter.load() << " TaskEnQueueCounter:"
+       << g_taskEnQueueCounter.load() << " TaskDoneCounter:" << g_taskDoneCounter.load() << std::endl;
+    ss << "FFRT BBOX TaskRunCounter:" << g_taskRunCounter.load() << " TaskSwitchCounter:"
+       << g_taskSwitchCounter.load() << " TaskFinishCounter:" << g_taskFinishCounter.load() << std::endl;
+
+    if (g_taskSwitchCounter.load() + g_taskFinishCounter.load() == g_taskRunCounter.load()) {
+        ss << "TaskRunCounter equals TaskSwitchCounter + TaskFinishCounter" << std::endl;
+    } else {
+        ss << "TaskRunCounter is not equal to TaskSwitchCounter + TaskFinishCounter" << std::endl;
+    }
+    return ss.str();
+}
+
+std::string SaveWorkerStatusInfo(void)
+{
+    std::ostringstream ss;
+    WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+    ss << "<<<=== worker status ===>>>" << std::endl;
+    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+        std::unique_lock lock(workerGroup[i].tgMutex);
+        for (auto& thread : workerGroup[i].threads) {
+            TaskCtx* t = thread.first->curTask;
+            if (t == nullptr) {
+                ss << "qos " << i << ": worker tid " << thread.first->Id()
+                   << " is running nothing" << std::endl;
+                continue;
+            }
+            ss << "qos " << i << ": worker tid " << thread.first->Id()
+               << " is running task id " << t->gid << " name " << t->label.c_str() << std::endl;
+        }
+    }
+    return ss.str();
+}
+
+std::string SaveReadyQueueStatusInfo()
+{
+    std::ostringstream ss;
+    ss << "<<<=== ready queue status ===>>>" << std::endl;
+    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+        int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
+        if (!nt) {
+            continue;
+        }
+
+        for (int j = 0; j < nt; j++) {
+            TaskCtx* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
+            if (t == nullptr) {
+                ss << "qos " << (i + 1) << ": ready queue task <" << j << "/" << nt << ">"
+                   << " null" << std::endl;
+                continue;
+            }
+            ss << "qos " << (i + 1) << ": ready queue task <" << j << "/" << nt << "> id "
+               << t->gid << " name " << t->label.c_str() << std::endl;
+        }
+    }
+    return ss.str();
+}
+
+std::string SaveTaskStatusInfo(void)
+{
+    std::string ffrtStackInfo;
+    std::ostringstream ss;
+    auto unfree = SimpleAllocator<TaskCtx>::getUnfreedMem();
+    auto apply = [&](const char* tag, const std::function<bool(TaskCtx*)>& filter) {
+        decltype(unfree) tmp;
+        for (auto t : unfree) {
+            if (filter(t)) {
+                tmp.emplace_back(t);
+            }
+        }
+
+        if (tmp.size() > 0) {
+            ss << "<<<=== " << tag << "===>>>" << std::endl;
+            ffrtStackInfo += ss.str();
+        }
+        size_t idx = 1;
+        for (auto t : tmp) {
+            ss.str("");
+            ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
+               << t->qos() << "name" << t->label.c_str() << std::endl;
+            ffrtStackInfo += ss.str();
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+                std::string dumpInfo;
+                TaskCtx::DumpTask(t, dumpInfo, 1);
+                ffrtStackInfo += dumpInfo;
+            }
+        }
+    };
+
+    apply("blocked by synchronization primitive(mutex etc)", [](TaskCtx* t) {
+        return (t->state == TaskState::RUNNING) && t->coRoutine &&
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
+    });
+    apply("blocked by task dependence", [](TaskCtx* t) {
+        return t->state == TaskState::BLOCKED;
+    });
+    apply("pending task", [](TaskCtx* t) {
+        return t->state == TaskState::PENDING;
+    });
+
+    return ffrtStackInfo;
+}
+#endif
 #endif /* FFRT_BBOX_ENABLE */

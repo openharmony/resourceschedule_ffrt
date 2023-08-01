@@ -35,12 +35,12 @@ bool OSAttrManager::CheckSchedAttrPara(const std::string &name, int min, int max
     return true;
 }
 
-int OSAttrManager::UpdateSchedAttr(enum qos qos, ffrt_os_sched_attr *attr)
+int OSAttrManager::UpdateSchedAttr(const QoS& qos, ffrt_os_sched_attr *attr)
 {
     FFRT_LOGI("OSAttrManager::UpdateSchedAttr start qos[%d] attr.lat_nice[%d] attr.cpumap[0x%s] attr.u_min[%d]\
-        attr.shares[%d]", qos, attr->latency_nice, attr->cpumap, attr->uclamp_min, attr->shares);
-    if (qos != qos_defined_ive) {
-        FFRT_LOGE("qos[%d] attr update is not supported.\n", static_cast<int>(qos));
+        attr.shares[%d]", qos(), attr->latency_nice, attr->cpumap, attr->uclamp_min, attr->shares);
+    if (qos() <= qos_max) {
+        FFRT_LOGE("qos[%d] attr update is not supported.\n", qos());
         return -1;
     }
 

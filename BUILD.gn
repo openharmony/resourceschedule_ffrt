@@ -56,7 +56,6 @@ config("ffrt_config") {
   ffrt_debug_defines = [
     "FFRT_LOG_LEVEL=3",
     "FFRT_BBOX_ENABLE",
-    "FFRT_MUTEX_DEADLOCK_CHECK",
     "FFRT_OH_EVENT_RECORD",
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
@@ -70,6 +69,10 @@ config("ffrt_config") {
   #]
 
   defines += ffrt_debug_defines
+
+  if (is_asan) {
+    defines += [ "ASAN_MODE" ]
+  }
 
   #defines += ffrt_release_defines
 }
@@ -87,6 +90,7 @@ ohos_shared_library("libffrt") {
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
+    "src/dfx/watchdog/watchdog.cpp",
     "src/eu/co2_context.c",
     "src/eu/co_routine.cpp",
     "src/eu/cpu_monitor.cpp",
@@ -102,6 +106,7 @@ ohos_shared_library("libffrt") {
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
     "src/queue/queue.cpp",
+    "src/queue/queue_monitor.cpp",
     "src/queue/serial_handler.cpp",
     "src/queue/serial_looper.cpp",
     "src/queue/serial_queue.cpp",
@@ -128,9 +133,11 @@ ohos_shared_library("libffrt") {
     "src/sync/thread.cpp",
     "src/sync/wait_queue.cpp",
     "src/util/graph_check.cpp",
+    "src/util/task_deleter.cpp",
   ]
 
   external_deps = [
+    "faultloggerd:libbacktrace_local",
     "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",

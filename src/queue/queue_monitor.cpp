@@ -138,7 +138,9 @@ void QueueMonitor::CheckQueuesStatus()
             FFRT_LOGE("%s", ss.str().c_str());
 
             auto func = *ffrt_watchdog_get_cb();
-            func(taskId, ss.str().c_str(), ss.str().size());
+            if (func != nullptr) {
+                func(taskId, ss.str().c_str(), ss.str().size());
+            }
             // reset timeout task timestampe for next warning
             ResetTaskTimestampAfterWarning(i, taskId);
             continue;

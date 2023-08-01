@@ -183,22 +183,23 @@ size_t CPUMonitor::CountBlockedNum(const QoS& qos)
 
 void CPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
-    int taskCount = ops.GetTaskCount(qos);
-    FFRT_LOGD("qos[%d] task notify op[%d] cnt[%ld]", (int)qos, (int)notifyType, taskCount);
-    switch (notifyType) {
-        case TaskNotifyType::TASK_ADDED:
-            if (taskCount > 0) {
-                Poke(qos);
-            }
-            break;
-        case TaskNotifyType::TASK_PICKED:
-            if (taskCount > 0) {
-                Poke(qos);
-            }
-            break;
-        default:
-            break;
-    }
+    // int taskCount = ops.GetTaskCount(qos);
+    FFRT_LOGD("qos[%d] task notify op[%d] cnt[%ld]", (int)qos, (int)notifyType, ops.GetTaskCount(qos));
+    Poke(qos);
+    // switch (notifyType) {
+    //     case TaskNotifyType::TASK_ADDED:
+    //         if (taskCount > 0) {
+    //             Poke(qos);
+    //         }
+    //         break;
+    //     case TaskNotifyType::TASK_PICKED:
+    //         if (taskCount > 0) {
+    //             Poke(qos);
+    //         }
+    //         break;
+    //     default:
+    //         break;
+    // }
 }
 
 void CPUMonitor::TimeoutCount(const QoS& qos)
@@ -218,6 +219,12 @@ void CPUMonitor::WakeupCount(const QoS& qos)
     workerCtrl.lock.unlock();
 }
 
+int CPUMonitor::WakedWorkerNum(const QoS& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>qos];
+    return workerCtrl.executionNum;
+}
+
 void CPUMonitor::IntoSleep(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -230,7 +237,12 @@ void CPUMonitor::IntoSleep(const QoS& qos)
 void CPUMonitor::Poke(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    int taskCount = ops.GetTaskCount(qos);
     workerCtrl.lock.lock();
+    if (taskCount < workerCtrl.executionNum) {
+        workerCtrl.lock.unlock();
+        return;
+    }
     FFRT_LOGD("qos[%d] exe num[%d] slp num[%d]", (int)qos, workerCtrl.executionNum, workerCtrl.sleepingWorkerNum);
     if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.maxConcurrency) {
         if (workerCtrl.sleepingWorkerNum == 0) {

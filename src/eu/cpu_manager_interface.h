@@ -20,6 +20,9 @@
 #include "eu/worker_thread.h"
 #include "sched/qos.h"
 
+#define LOCAL_QUEUE_SIZE 128
+#define STEAL_BUFFER_SIZE (LOCAL_QUEUE_SIZE - LOCAL_QUEUE_SIZE /2)
+
 namespace ffrt {
 enum class WorkerAction {
     RETRY = 0,
@@ -30,6 +33,7 @@ enum class WorkerAction {
 enum class TaskNotifyType {
     TASK_PICKED = 0,
     TASK_ADDED,
+    TASK_LOCAL,
 };
 
 struct CpuWorkerOps {
@@ -37,6 +41,11 @@ struct CpuWorkerOps {
     std::function<void (const WorkerThread*)> NotifyTaskPicked;
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;
     std::function<void (WorkerThread*)> WorkerRetired;
+    std::function<bool (const WorkerThread*, int timeout)> TryPoll;
+    std::function<void* (WorkerThread*)> StealTask;
+    std::function<unsigned int (WorkerThread*)> StealTaskBatch;
+    std::function<TaskCtx* (WorkerThread*)> PickUpTaskBatch;
+    std::function<void (WorkerThread*)> TryMoveLocal2Global;
 };
 
 struct CpuMonitorOps {

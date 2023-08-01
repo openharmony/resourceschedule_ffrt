@@ -31,7 +31,8 @@ struct WorkerCtrl {
     size_t workerManagerID = 0;
     int executionNum = 0;
     int sleepingWorkerNum = 0;
-    std::mutex lock;
+    // std::mutex lock;
+    fast_mutex lock;
 };
 
 class CPUMonitor {
@@ -51,6 +52,7 @@ public:
     void RegWorker(const QoS& qos);
     void UnRegWorker();
     void Notify(const QoS& qos, TaskNotifyType notifyType);
+    int WakedWorkerNum(const QoS& qos);
 
     uint32_t monitorTid = 0;
 

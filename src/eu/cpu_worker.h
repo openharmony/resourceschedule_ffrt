@@ -18,6 +18,7 @@
 
 #include "eu/worker_thread.h"
 #include "eu/cpu_manager_interface.h"
+#include "queue/queue.h"
 
 
 namespace ffrt {
@@ -25,15 +26,26 @@ class CPUWorker : public WorkerThread {
 public:
     CPUWorker(const QoS& qos, CpuWorkerOps&& ops) : WorkerThread(qos), ops(ops)
     {
+        queue_init(&local_fifo, LOCAL_QUEUE_SIZE);
+        steal_buffer = (void**)malloc(sizeof(void *) * STEAL_BUFFER_SIZE);
         Start(CPUWorker::Dispatch, this);
     }
 
     CpuWorkerOps ops;
+    void* priority_task = nullptr;
+    unsigned int tick = 0;
+    struct queue_s local_fifo;
+    unsigned int global_interval = 60;
+    unsigned int budget = 10;
+    void** steal_buffer;
 
 private:
     static void Dispatch(CPUWorker* worker);
     static void Run(TaskCtx* task);
-    static void Run(ffrt_executor_task_t* data);
+    static void Run(ffrt_executor_task_t* task);
+    static void RunTask(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
+    static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
+    static void* GetTask(CPUWorker* worker);
 };
 } // namespace ffrt
 #endif

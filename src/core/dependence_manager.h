@@ -91,9 +91,8 @@ public:
     static inline TaskCtx* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval
-        task_attr_private task_attr;
-        thread_local static TaskCtx root {&task_attr, nullptr, 0, nullptr};
-        return &root;
+        thread_local static RootTaskCtxWrapper root_wrapper;
+        return root_wrapper.Root();
     }
 
     template <int WITH_HANDLE>
@@ -212,17 +211,14 @@ public:
     {
         auto ctx = ExecuteCtx::Cur();
         auto task = ctx->task ? ctx->task : DependenceManager::Root();
-#ifdef EU_COROUTINE
-        if (task->parent == nullptr)
-#endif
-        {
+        if (!USE_COROUTINE || task->parent == nullptr) {
             std::unique_lock<std::mutex> lck(task->lock);
             task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
             FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
             task->childWaitCond_.wait(lck, [task] { return task->childWaitRefCnt == 0; });
             return;
         }
-#ifdef EU_COROUTINE
+
         auto childDepFun = [&](ffrt::TaskCtx* inTask) -> bool {
             std::unique_lock<std::mutex> lck(inTask->lock);
             if (inTask->childWaitRefCnt == 0) {
@@ -234,7 +230,6 @@ public:
         };
         FFRT_BLOCK_TRACER(task->gid, chd);
         CoWait(childDepFun);
-#endif
     }
 
 #ifdef QOS_DEPENDENCY
@@ -275,10 +270,8 @@ public:
                 data->AddDataWaitTaskByThis(task);
             }
         };
-#ifdef EU_COROUTINE
-        if (task->parent == nullptr)
-#endif
-        {
+
+        if (!USE_COROUTINE || task->parent == nullptr) {
             dataDepFun();
             std::unique_lock<std::mutex> lck(task->lock);
             task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
@@ -286,7 +279,7 @@ public:
             task->dataWaitCond_.wait(lck, [task] { return task->dataWaitRefCnt == 0; });
             return;
         }
-#ifdef EU_COROUTINE
+
         auto pendDataDepFun = [&](ffrt::TaskCtx* inTask) -> bool {
             dataDepFun();
             FFRT_LOGD("onWait name:%s gid=%lu", inTask->label.c_str(), inTask->gid);
@@ -300,7 +293,6 @@ public:
         };
         FFRT_BLOCK_TRACER(task->gid, dat);
         CoWait(pendDataDepFun);
-#endif
     }
 
     void onTaskDone(TaskCtx* task)

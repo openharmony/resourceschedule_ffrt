@@ -22,6 +22,7 @@
 #include "core/dependence_manager.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
+#include "internal_inc/types.h"
 
 namespace ffrt {
 static inline const char* DenpenceStr(Denpence d)
@@ -109,6 +110,14 @@ void TaskCtx::DecChildRef()
     if (parent->childWaitRefCnt != 0) {
         return;
     }
+    if (FFRT_UNLIKELY(parent->IsRoot())) {
+        RootTaskCtx *root = static_cast<RootTaskCtx *>(parent);
+        if (root->thread_exit == true) {
+            delete root;
+            return;
+        }
+    }
+
     if (!parent->IsRoot() && parent->status == TaskStatus::RELEASED && parent->childWaitRefCnt == 0) {
         FFRT_LOGD("free TaskCtx:%s gid=%lu", parent->label.c_str(), parent->gid);
         lck.unlock();
@@ -120,16 +129,12 @@ void TaskCtx::DecChildRef()
     }
     parent->denpenceStatus = Denpence::DEPENCE_INIT;
 
-#ifdef EU_COROUTINE
-    if (parent->parent == nullptr) {
+    if (!USE_COROUTINE || parent->parent == nullptr) {
         parent->childWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(parent->gid);
         parent->UpdateState(TaskState::READY);
     }
-#else
-    parent->childWaitCond_.notify_all();
-#endif
 }
 
 void TaskCtx::DecWaitDataRef()
@@ -147,8 +152,7 @@ void TaskCtx::DecWaitDataRef()
         denpenceStatus = Denpence::DEPENCE_INIT;
     }
 
-#ifdef EU_COROUTINE
-    if (parent == nullptr) {
+    if (!USE_COROUTINE || parent == nullptr) {
         dataWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);
@@ -157,9 +161,6 @@ void TaskCtx::DecWaitDataRef()
         TaskEnQueuCounterInc();
 #endif
     }
-#else
-    dataWaitCond_.notify_all();
-#endif
 }
 
 bool TaskCtx::IsPrevTask(const TaskCtx* task) const

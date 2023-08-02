@@ -17,6 +17,11 @@
 #define FFRT_TYPES_HPP
 #ifdef _MSC_VER
 #define __attribute__(...)
+#define FFRT_LIKELY(x) (__builtin_expect(!!(x), 1))
+#define FFRT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
+#else
+#define FFRT_LIKELY(x) (x)
+#define FFRT_UNLIKELY(x) (x)
 #endif
 
 #ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
@@ -24,6 +29,11 @@
 #endif
 
 namespace ffrt {
+#ifdef ASAN_MODE
+constexpr bool USE_COROUTINE = false;
+#else
+constexpr bool USE_COROUTINE = true;
+#endif
 enum DT {
     U8,
     U16,

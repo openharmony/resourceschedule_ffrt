@@ -70,6 +70,10 @@ config("ffrt_config") {
 
   defines += ffrt_debug_defines
 
+  if (is_asan) {
+    defines += [ "ASAN_MODE" ]
+  }
+
   #defines += ffrt_release_defines
 }
 

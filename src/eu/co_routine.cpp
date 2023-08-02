@@ -318,3 +318,23 @@ void StacklessCouroutineStart(ffrt::TaskCtx* task)
         }
     }
 }
+
+static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
+{
+    task->lock.lock();
+    task->state.SetCurState(ffrt::TaskState::State::EXITED);
+    if (task->stackless_coroutine_wake_count > 0) {
+        // log
+    }
+    task->lock.unlock();
+    if (task->wakeFlag&&task->wake_callable_on_finish.exec) {
+        ffrt_exec_callable_wrapper(static_cast<void*>(&(task->wake_callable_on_finish)));
+    }
+    if (task->wakeFlag&&task->wake_callable_on_finish.destroy) {
+        ffrt_destroy_callable_wrapper(static_cast<void*>(&(task->wake_callable_on_finish)));
+    }
+    auto f = (ffrt_function_header_t*)task->func_storage;
+    f->destroy(f);
+
+    ffrt::DependenceManager::Instance()->onTaskDone(task);
+}

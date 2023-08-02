@@ -78,7 +78,7 @@ public:
     }
 
 private:
-    std::array<Poller, Qos::Max()> qosPollers;
+    std::array<Poller, QoS::Max()> qosPollers;
 };
 }
 #endif

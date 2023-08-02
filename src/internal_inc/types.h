@@ -83,6 +83,14 @@ enum class TaskStatus {
     RELEASED, // 预留，暂不使用
 };
 
+typedef enum {
+    ET_PENDING,
+    ET_EXECUTING,
+    ET_TOREADY,
+    ET_READY,
+    ET_FINISH,
+} ExecTaskStatus;
+
 enum class Denpence {
     DEPENCE_INIT,
     DATA_DEPENCE,

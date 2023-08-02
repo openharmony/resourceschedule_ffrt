@@ -221,7 +221,7 @@ void CPUMonitor::WakeupCount(const QoS& qos)
 
 int CPUMonitor::WakedWorkerNum(const QoS& qos)
 {
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>qos];
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     return workerCtrl.executionNum;
 }
 

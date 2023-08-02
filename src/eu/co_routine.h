@@ -103,6 +103,7 @@ void CoWake(ffrt::TaskCtx* task, bool timeOut);
 
 #ifdef USE_STACKLESS_COROUTINE
 void StacklessCouroutineStart(ffrt::TaskCtx* task);
+static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
 #endif
 
 #endif

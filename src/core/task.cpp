@@ -30,7 +30,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
-#include "core/task_tust.h"
+#include "core/task_rust.h"
 
 namespace ffrt {
 template <int WITH_HANDLE>

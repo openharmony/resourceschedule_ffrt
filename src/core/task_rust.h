@@ -49,7 +49,7 @@ struct ffrt_executor_rust_task: public ffrt_executor_task {
     QoS qos;
     ExecTaskStatus status = ExecTaskStatus::ET_PENDING;
     fast_mutex lock;
-    inline void freeMem();
+    inline void freeMem()
     {
         SimpleAllocator<ffrt_executor_rust_task>::freeMem(this);
     }

@@ -35,6 +35,16 @@ public:
         Join();
     }
 
+    void EnablePoll()
+    {
+        this->poll = true;
+    }
+
+    bool PollEnable() const
+    {
+        return poll;
+    }
+
     bool Idle() const
     {
         return idle;
@@ -62,7 +72,7 @@ public:
         return tid;
     }
 
-    const QoS& GetQos() const
+    inline QoS& GetQos() const
     {
         return qos;
     }
@@ -109,6 +119,7 @@ private:
 
     QoS qos;
     std::thread thread;
+    std::atomic_bool poll {false};
 };
 } // namespace ffrt
 #endif

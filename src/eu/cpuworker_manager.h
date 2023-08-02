@@ -20,6 +20,7 @@
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
+#include "sync/poller.h"
 
 
 namespace ffrt {
@@ -40,6 +41,10 @@ public:
         for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
             int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
             while (try_cnt--) {
+                pollerExitFlag[qos].store(true, std::memory_order_relaxed);
+                std::atomic_thread_fence(std::memory_order_acq_rel);
+                pollersMtx[qos].unlock();
+                PollerProxy::Instance()->GetPoller(qos).WakeUp();
                 sleepCtl[qos].cv.notify_all();
                 {
                     usleep(1);
@@ -57,12 +62,33 @@ public:
     }
 
     void NotifyTaskAdded(const QoS& qos) override;
+    void NotifyLocalTaskAdded(const QoS& qos) override;
 
     std::mutex* GetSleepCtl(int qos) override
     {
         return &sleepCtl[qos].mutex;
     }
 
+    void AddStealingWorker(const QoS& qos)
+    {
+        stealWorkers[qos].fetch_add(1);
+    }
+
+    void SubStealingWorker(consg QoS& qos)
+    {
+        while (1) {
+            uint64_t stealWorkersNum = stealWorkers[qos].load();
+            if (stealWorkersNum = 0) {
+                return;
+            }
+            if (atomic_compare_exchange_weak(&stealWorkers[qos], &stealWorkersNum, stealWorkersNum - )) return;
+        }
+    }
+
+    uint64_t GetStealingWorkers(const QoS& qos)
+    {
+        return stealWorkers[qos].load(std::memory_order_relaxed);
+    }
 private:
     bool WorkerTearDown();
     bool IncWorker(const QoS& qos) override;
@@ -77,10 +103,18 @@ private:
     void WorkerJoinTg(const QoS& qos, pid_t pid);
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
     void WorkerSetup(WorkerThread* thread, const QoS& qos);
+    bool TryPoll(const WorkerThread* thread, int timeout = -1);
+    void* StealTask(WorkerThread* thread);
+    unsigned int StealTaskBatch(WorkerThread* thread);
+    TaskCtx* PickUpTaskBatch(WorkerThread* thread);
+    void TryMoveLocal2Global(WorkerThread* thread);
 
     CPUMonitor monitor;
     WorkerSleepCtl sleepCtl[QoS::Max()];
+    fast_mutex pollersMtx[QoS::Max()];
+    std::array<std::atomic<bool>, QoS::Max()> pollersExitFlag {false};
     bool tearDown = false;
+    std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
 };
 } // namespace ffrt
 #endif

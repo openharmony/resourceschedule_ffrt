@@ -296,3 +296,25 @@ void CoWake(ffrt::TaskCtx* task, bool timeOut)
     FFRT_WAKE_TRACER(task->gid);
     task->UpdateState(ffrt::TaskState::READY);
 }
+
+void StacklessCouroutineStart(ffrt::TaskCtx* task)
+{
+    assert(task->coroutine_type == ffrt_coroutine_stackless);
+    auto f = (ffrt_function_header_t*)task->func_storage;
+    ffrt_coroutine_ptr_t coroutine = (ffrt_coroutine_ptr_t)f->exec;
+    ffrt_coroutine_ret_t ret = coroutine(f);
+    if (ret == ffrt_coroutine_ready) {
+        OnStacklessCoroutineReady(task);
+    } else {
+        task->lock.lock();
+        task->stackless_coroutine_wake_count-=1;
+        if (task->stackless_coroutine_wake_count > 0) {
+            task->state.SetCurState(ffrt::TaskState::State::READY);
+            task->lock.unlock();
+            ffrt::FFRTScheduler::Instance()->PushTask(task);
+        } else {
+            task->state.SetCurState(ffrt::TaskState::State::BLOCKED);
+            task->lock.unlock();
+        }
+    }
+}

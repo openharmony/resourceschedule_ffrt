@@ -42,7 +42,7 @@ public:
 private:
     static void Dispatch(CPUWorker* worker);
     static void Run(TaskCtx* task);
-    static void Run(ffrt_executor_task_t* task);
+    static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
     static void RunTask(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
     static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
     static void* GetTask(CPUWorker* worker);

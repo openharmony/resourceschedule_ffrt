@@ -37,7 +37,7 @@ static int TrivalOpenRtgNode(void)
     char fileName[] = "/proc/self/sched_rtg_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGE("task %d belong to user %d open rtg node failed\n", getpid(), getuid());
+        FFRT_LOGD("task %d belong to user %d open rtg node failed\n", getpid(), getuid());
     }
 
     return fd;

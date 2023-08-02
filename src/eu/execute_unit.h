@@ -42,6 +42,13 @@ public:
         }
     }
 
+    void NotifyLocalTaskAdded(const QoS& qos)
+    {
+        {
+            wManager[static_cast<size_t>(DevType::CPU)]->NotifyLocalTaskAdded(qos);
+        }
+    }
+
     std::mutex* GetSleepCtl(int qos)
     {
         return wManager[static_cast<size_t>(DevType::CPU)]->GetSleepCtl(qos);

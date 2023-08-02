@@ -46,7 +46,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
     {
         func = FuncManager::Instance()->getFunc(ffrt_rust_task);
     } else {
-        func = FuncManager::Instance()->getFunc(ffrt_uv_task;
+        func = FuncManager::Instance()->getFunc(ffrt_uv_task);
     }
 
     if (func == nullptr) {

@@ -16,7 +16,7 @@
 #include <random>
 #include <ffrt.h>
 #include "cpp/task.h"
-#include "core/task_rush.h"
+#include "core/task_rust.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
 #include "libunwind.h"

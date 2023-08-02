@@ -77,7 +77,7 @@ public:
         ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
     }
 
-    void InsertNodeNoMutex(ffrt_executor_task* task, const QoS qos)
+    bool InsertNodeNoMutex(ffrt_executor_task* task, const QoS qos)
     {
         if (task == nullptr) return false;
         int qos_level = qos;
@@ -113,7 +113,7 @@ public:
         if (qos_level == qos_inherit) {
             return false;
         }
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(qoe_level);
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
         lock->lock();
         fifoQue[static_cast<size_t>(qos_level)].WakeupNode(node);
         lock->unlock();

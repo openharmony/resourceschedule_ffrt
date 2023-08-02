@@ -72,7 +72,7 @@ public:
         return tid;
     }
 
-    inline QoS& GetQos() const
+    inline const QoS& GetQos() const
     {
         return qos;
     }

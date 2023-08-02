@@ -22,11 +22,16 @@
 
 #include "util/linked_list.h"
 #include "internal_inc/osal.h"
+<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "queue/queue.h"
 #include "c/type_def.h"
 #include "c/executor_task.h"
 #endif
+=======
+#include "queue/queue.h"
+#include "c/type_def.h"
+>>>>>>> 67365a4 (rust)
 
 namespace ffrt {
 using time_point_t = std::chrono::steady_clock::time_point;

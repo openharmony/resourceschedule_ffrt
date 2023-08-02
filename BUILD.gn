@@ -23,7 +23,7 @@ if (use_stackless_coroutine) {
 
 if (use_rust_old) {
   defines += [
-    "RUST_OLD
+    "RUST_OLD",
   ]
 }
 

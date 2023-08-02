@@ -34,7 +34,7 @@ public:
 
     TaskCtx* PickNextTask()
     {
-        std::unique_lock lock(mutex);
+        // std::unique_lock lock(mutex);
         return static_cast<Sched*>(this)->PickNextTaskImpl();
     }
 
@@ -42,8 +42,8 @@ public:
     {
         bool ret = false;
         {
-            FFRT_READY_MARKER(task->gid);
-            std::unique_lock lock(mutex);
+            // FFRT_READY_MARKER(task->gid);
+            // std::unique_lock lock(mutex);
             ret = static_cast<Sched*>(this)->WakeupTaskImpl(task);
         }
         return ret;
@@ -53,7 +53,7 @@ public:
     {
         bool ret = false;
         {
-            std::unique_lock lock(mutex);
+            // std::unique_lock lock(mutex);
             ret = static_cast<Sched*>(this)->WakeupNodeImpl(node);
         }
         return ret;
@@ -63,7 +63,7 @@ public:
     {
         bool ret = false;
         {
-            std::unique_lock lock(mutex);
+            // std::unique_lock lock(mutex);
             ret = static_cast<Sched*>(this)->RemoveNodeImpl(node);
         }
         return ret;

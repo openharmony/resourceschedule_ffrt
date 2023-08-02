@@ -83,6 +83,13 @@ public:
         lock_contended();
     }
 
+    bool try_lock()
+    {
+        int v = sync_detail::UNLOCK;
+        return __atomic_compare_exchange_n(&l, &v, sync_detail::LOCK, 0, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
+            
+    }
+
     void unlock()
     {
         if (__atomic_exchange_n(&l, sync_detail::UNLOCK, __ATOMIC_RELEASE) == sync_detail::WAIT) {

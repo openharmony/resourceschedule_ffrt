@@ -69,7 +69,22 @@ public:
 
     void PushTask(TaskCtx* task)
     {
-        fifoQue[static_cast<size_t>(task->qos())].WakeupTask(task);
+        int qos_level = task->qos();
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
+        lock->lock();
+        fifoQue[static_cast<size_t>(qos_level)].WakeupTask(task);
+        lock->unlock();
+        ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
+    }
+
+    void InsertNodeNoMutex(ffrt_executor_task* task, const QoS qos)
+    {
+        if (task == nullptr) return false;
+        int qos_level = qos;
+        ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
+        fifoQue[static_cast<size_t>(qos_level)].WakeupNode(node);
+        ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
+        return true;
     }
 
     bool WakeupTask(TaskCtx* task)
@@ -94,41 +109,31 @@ public:
 
     bool InsertNode(LinkedList* node, const QoS qos)
     {
-        int qos_level = static_cast<int>(qos_default);
-        if (node != nullptr) {
-            qos_level = qos();
-            if (qos_level == qos_inherit) {
-                return false;
-            }
+        int qos_level = qos();
+        if (qos_level == qos_inherit) {
+            return false;
         }
-        QoS _qos = QoS(qos_level);
-        int level = _qos();
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(qoe_level);
         lock->lock();
-        fifoQue[static_cast<size_t>(level)].WakeupNode(node);
+        fifoQue[static_cast<size_t>(qos_level)].WakeupNode(node);
         lock->unlock();
-        ExecuteUnit::Instance().NotifyTaskAdded(level);
+        ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
         return true;
     }
 
     bool RemoveNode(LinkedList* node, const QoS qos)
     {
-        int qos_level = static_cast<int>(qos_default);
-        if (node != nullptr) {
-            qos_level = qos();
-            if (qos_level == qos_inherit) {
-                return false;
-            }
+        int qos_level = qos();
+        if (qos_level == qos_inherit) {
+            return false;
         }
-        QoS _qos = QoS(qos_level);
-        int level = _qos();
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
         lock->lock();
         if (!node->InList()) {
             lock->unlock();
             return false;
         }
-        fifoQue[static_cast<size_t>(level)].RemoveNode(node);
+        fifoQue[static_cast<size_t>(qos_level)].RemoveNode(node);
         lock->unlock();
 #ifdef FFRT_BBOX_ENABLE
         TaskFinishCounterInc();

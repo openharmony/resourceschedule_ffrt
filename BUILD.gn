@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/resourceschedule/ffrt/ffrt_stackless_coroutine.gni")
+import("//foundation/resourceschedule/ffrt/use_rust_old.gni")
 
 defines = []
 

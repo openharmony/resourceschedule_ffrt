@@ -30,11 +30,15 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
+<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "core/task_io.h"
 #include "sync/poller.h"
 #include "queue/queue.h"
 #endif
+=======
+#include "core/task_io.h"
+>>>>>>> 5bf56b6 (rust)
 
 namespace ffrt {
 template <int WITH_HANDLE>
@@ -186,7 +190,11 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
     if (kind == ffrt_function_kind_general) {
         return ffrt::SimpleAllocator<ffrt::TaskCtx>::allocMem()->func_storage;
     }
+<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
+=======
+
+>>>>>>> 5bf56b6 (rust)
     if (kind == ffrt_function_kind_io) {
         return ffrt::SimpleAllocator<ffrt::ffrt_executor_io_task>::allocMem()->func_storage;
     }

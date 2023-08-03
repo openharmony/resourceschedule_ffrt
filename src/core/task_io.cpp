@@ -240,7 +240,7 @@ void * ffrt_task_get()
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_coroutine(void *taskin)
-{s
+{
     ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(taskin);
     ffrt::ExecTaskStatus executing_status = ffrt::ExecTaskStatus::ET_EXECUTING;
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;

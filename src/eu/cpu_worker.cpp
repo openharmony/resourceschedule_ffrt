@@ -44,14 +44,20 @@ void CPUWorker::Run(TaskCtx* task)
     }
 }
 
-void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
+void CPUWorker::Run(ffrt_executor_task_t* task)
 {
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
 #endif
     ffrt_executor_task_func func = nullptr;
+<<<<<<< HEAD
     if (task->type == ffrt_rust_task) {
         func = FuncManager::Instance()->getFunc(ffrt_rust_task);
+=======
+    if (task->type ==ffrt_io_task)
+    {
+        func = FuncManager::Instance()->getFunc(ffrt_io_task);
+>>>>>>> 5bf56b6 (rust)
     } else {
         func = FuncManager::Instance()->getFunc(ffrt_uv_task);
     }
@@ -59,6 +65,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
         FFRT_LOGE("func is nullptr");
         return;
     }
+<<<<<<< HEAD
     func(task, qos);
 #ifdef FFRT_BBOX_ENABLE
     TaskFinishCounterInc();
@@ -128,6 +135,12 @@ bool CPUWorker::LocalEmpty(CPUWorker* worker)
     return false;
 }
 
+=======
+    func(task);
+}
+
+#ifdef IO_TASK_SCHEDULER
+>>>>>>> 5bf56b6 (rust)
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();

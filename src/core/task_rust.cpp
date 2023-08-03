@@ -17,6 +17,7 @@
 #include <ffrt.h>
 #include "cpp/task.h"
 #include "core/task_rust.h"
+#include "c/task.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
 #include "libunwind.h"
@@ -187,7 +188,7 @@ ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
 
     ffrt::ffrt_executor_rust_task* task = nullptr;
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
-    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_map));
+    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
     {
         task = reinterpret_cast<ffrt::ffrt_executor_rust_task*>(static_cast<uintptr_t>(
             static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::ffrt_executor_rust_task, func_storage)));

@@ -20,7 +20,6 @@
 #include "eu/cpu_manager_interface.h"
 #include "queue/queue.h"
 
-
 namespace ffrt {
 class CPUWorker : public WorkerThread {
 public:

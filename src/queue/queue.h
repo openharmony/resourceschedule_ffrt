@@ -17,7 +17,7 @@
 #define YLONG_QUEUE_H
 
 #ifdef __cplusplus
-#if _cplusplus
+#if __cplusplus
 extern "C" {
 #endif
 #endif

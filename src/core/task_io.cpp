@@ -216,7 +216,7 @@ void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_set_wake_flag(bool flag)
+void ffrt_set_wake_flag(int flag)
 {
     ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(ffrt_task_get());
     task->SetWakeFlag(flag);

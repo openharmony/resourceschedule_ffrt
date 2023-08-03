@@ -27,7 +27,11 @@ Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
         m_wakeData.cb = nullptr;
         m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         assert(m_wakeData.fd >= 0);
+<<<<<<< HEAD
         epoll_event ev{ .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData)}};
+=======
+        epoll_event ev{.events = EPOLLIN, .data = {.ptr = static_cast<void*>(&m_wakeData)}};
+>>>>>>> 35af6cf (rust)
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
             std::terminate();
         }

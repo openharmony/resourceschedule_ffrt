@@ -363,7 +363,14 @@ int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, u
 API_ATTRIBUTE((visibility("default")))
 int ffrt_poller_deregister(int fd)
 {
+<<<<<<< HEAD
     ffrt_qos_t qos = ffrt_get_cur_qos();
+=======
+    ffrt_qos_t qos = ffrt_qos_default;
+    if (ffrt::ExecuteCtx::Cur()->task) {
+        qos = ffrt::ExecuteCtx::Cur()->task->qos;
+    }
+>>>>>>> c7bfc19 (rust)
     return ffrt::PollerProxy::Instance()->GetPoller(qos).DelFdEvent(fd);
 }
 

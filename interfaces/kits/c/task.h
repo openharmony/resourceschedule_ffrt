@@ -52,7 +52,7 @@ FFRT_C_API void *ffrt_task_get(void);
 // waker
 FFRT_C_API void ffrt_wake_by_handle(void* waker, ffrt_function_ptr_t exec,
     ffrt_function_ptr_t destroy, ffrt_task_handle_t handle);
-FFRT_C_API void ffrt_set_wake_flag(bool flag);
+FFRT_C_API void ffrt_set_wake_flag(int flag);
 FFRT_C_API void ffrt_wake_coroutine(void *task);
 
 FFRT_C_API void ffrt_task_handle_destroy(ffrt_task_handle_t handle);

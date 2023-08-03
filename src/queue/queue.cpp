@@ -41,7 +41,7 @@ void *queue_pophead(struct queue_s *queue)
         if (tail ==head) {
             return nullptr;
         }
-        res = queue->buf[head % queue->capactiy];
+        res = queue->buf[head % queue->capacity];
         if (atomic_compare_exchange_weak(&queue->head, &head, head + 1)) {
             return res;
         }
@@ -56,7 +56,7 @@ int queue_pushtail(struct queue_s *queue, void *object)
     head = atomic_load(&queue->head);
     tail = atomic_load(&queue->tail);
     if ((tail - head) < queue->capacity) {
-        queue->buf[tail % queue->capactiy] = object;
+        queue->buf[tail % queue->capacity] = object;
         atomic_store(&queue->tail, tail+1);
         return 0;
     }
@@ -160,6 +160,6 @@ unsigned int queue_prob(struct queue_s *queue)
     return queue_length(queue);
 }
 
-#indef __cplusplus
+#ifdef __cplusplus
 }
 #endif

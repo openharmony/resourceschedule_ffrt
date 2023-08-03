@@ -137,9 +137,9 @@ void QueueMonitor::CheckQueuesStatus()
              ", serial task gid=" << taskId << " execution " << timeoutUs_ << "us.";
             FFRT_LOGE("%s", ss.str().c_str());
 
-            ffrt_watchdog_cb* func = ffrt_watchdog_get_cb();
+            ffrt_watchdog_cb func = ffrt_watchdog_get_cb();
             if (func) {
-                (*func)(taskId, ss.str().c_str(), ss.str().size());
+                func(taskId, ss.str().c_str(), ss.str().size());
             }
             // reset timeout task timestampe for next warning
             ResetTaskTimestampAfterWarning(i, taskId);

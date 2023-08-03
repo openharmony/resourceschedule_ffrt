@@ -50,7 +50,7 @@ public:
 private:
     FuncManager()
     {
-        func_map[ffrt_rust_task] = nullptr;
+        func_map[ffrt_io_task] = nullptr;
         func_map[ffrt_uv_task] = nullptr;
     }
     std::unordered_map<ffrt_executor_task_type_t, ffrt_executor_task_func> func_map;

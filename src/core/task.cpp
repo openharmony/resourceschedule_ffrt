@@ -30,7 +30,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
-#include "core/task_rust.h"
+#include "core/task_io.h"
 
 namespace ffrt {
 template <int WITH_HANDLE>
@@ -203,8 +203,8 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
         return ffrt::SimpleAllocator<ffrt::TaskCtx>::allocMem()->func_storage;
     }
 
-    if (kind == ffrt_function_kind_rust) {
-        return ffrt::SimpleAllocator<ffrt::ffrt_executor_rust_task>::allocMem()->func_storage;
+    if (kind == ffrt_function_kind_io) {
+        return ffrt::SimpleAllocator<ffrt::ffrt_executor_io_task>::allocMem()->func_storage;
     }
 
     return ffrt::SimpleAllocator<ffrt::SerialTask>::allocMem()->func_storage;
@@ -411,11 +411,6 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
     return (int)(sch->RemoveNode(node, _qos));
 }
 
-API_ATTRIBUTE((visibility("default")))
-void set_cpu_worker_num(const ffrt_qos_t qos, int num)
-{
-    ffrt::GlobalConfig::Instance().setCpuWorkerNum(ffrt::QoS(qos), num);
-}
 #ifdef __cplusplus
 }
 #endif

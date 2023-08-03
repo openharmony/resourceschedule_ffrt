@@ -16,7 +16,7 @@
 #include <random>
 #include <ffrt.h>
 #include "cpp/task.h"
-#include "core/task_rust.h"
+#include "core/task_io.h"
 #include "c/task.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
@@ -32,17 +32,17 @@
 namespace ffrt {
 static inline void ffrt_exec_callable_wrapper(void* t)
 {
-    ffrt::ffrt_rust_callable_t* f = (ffrt::ffrt_rust_callable_t*)t;
+    ffrt::ffrt_io_callable_t* f = (ffrt::ffrt_io_callable_t*)t;
     f->exec(f->callable);
 }
 
 static inline void ffrt_destroy_callable_wrapper(void* t)
 {
-    ffrt::ffrt_rust_callable_t* f = (ffrt::ffrt_rust_callable_t*)t;
+    ffrt::ffrt_io_callable_t* f = (ffrt::ffrt_io_callable_t*)t;
     f->destroy(f->callable);
 }
 
-static void exec_wake_callable(ffrt_executor_rust_task* task)
+static void exec_wake_callable(ffrt_executor_io_task* task)
 {
     task->lock.lock();
     task->status = ExecTaskStatus::ET_FINISH;
@@ -58,9 +58,9 @@ static void exec_wake_callable(ffrt_executor_rust_task* task)
     task->freeMem();
 }
 
-static void rust_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qos)
+static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qos)
 {
-    ffrt_executor_rust_task* task = static_cast<ffrt_executor_rust_task*>(data);
+    ffrt_executor_io_task* task = static_cast<ffrt_executor_io_task*>(data);
     __atomic_store_n(&task->status, ExecTaskStatus::ET_EXECUTING, __ATOMIC_SEQ_CST);
     auto f = (ffrt_function_header_t*)task->func_storage;
     ffrt_coroutine_ptr_t coroutine = (ffrt_coroutine_ptr_t)f->exec;
@@ -83,7 +83,7 @@ static void rust_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t 
             queue_pushtail(ffrt::ExecuteCtx::Cur()->local_fifo, task) == ERROR_QUEUE_FULL) {
             LinkedList* node = (LinkedList *)(&task->wq);
             if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
-                FFRT_LOGE("Submit RUST task failed");
+                FFRT_LOGE("Submit IO task failed");
             }
             return;
         }
@@ -91,7 +91,7 @@ static void rust_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t 
 #else
         LinkedList* node = (LinkedList *)(&task->wq);
         if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
-            FFRT_LOGE("Submit RUST task failed");
+            FFRT_LOGE("Submit IO task failed");
         }
 #endif
     }
@@ -99,9 +99,9 @@ static void rust_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t 
 
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 
-static void ffrt_executor_rust_task_init()
+static void ffrt_executor_io_task_init()
 {
-    ffrt_executor_task_register_func_(rust_ffrt_executor_task_func, ffrt_rust_task);
+    ffrt_executor_task_register_func_(io_ffrt_executor_task_func, ffrt_io_task);
 }
 
 bool randomBool()
@@ -140,7 +140,7 @@ static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(voi
     static_assert(sizeof(ffrt_function_coroutine_t) <= ffrt_auto_managed_function_storage_size,
         "size_of_ffrt_function_coroutine_t_must_be_less_than_ffrt_auto_managed_function_storage_size");
     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)ffrt_alloc_auto_managed_function_storage_base(
-        ffrt_function_kind_rust);
+        ffrt_function_kind_io);
     f->header.exec = (ffrt_function_ptr_t)ffrt_exec_function_coroutine_wrapper;
     f->header.destroy = ffrt_destory_function_coroutine_wrapper;
     f->func = exec;
@@ -153,20 +153,20 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_ptr_t destroy,
     const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
-    pthread_once(&ffrt::once, ffrt::ffrt_executor_rust_task_init);
+    pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
     ffrt_function_header_t* f = ffrt_create_function_coroutine_wrapper(co, exec, destroy);
     if (unlikely(!f)) {
         FFRT_LOGE("function handler should not be empty");
         return;
     }
 
-    ffrt::ffrt_executor_rust_task* task = nullptr;
+    ffrt::ffrt_executor_io_task* task = nullptr;
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
     {
-        task = reinterpret_cast<ffrt::ffrt_executor_rust_task*>(static_cast<uintptr_t>(
-            static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::ffrt_executor_rust_task, func_storage)));
-        new (task)ffrt::ffrt_executor_rust_task(qos);
+        task = reinterpret_cast<ffrt::ffrt_executor_io_task*>(static_cast<uintptr_t>(
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::ffrt_executor_io_task, func_storage)));
+        new (task)ffrt::ffrt_executor_io_task(qos);
     }
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;
     if (likely(__atomic_compare_exchange_n(&task->status, &pending_status, ffrt::ExecTaskStatus::ET_READY, 0,
@@ -179,20 +179,20 @@ API_ATTRIBUTE((visibility("default")))
 ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
-    pthread_once(&ffrt::once, ffrt::ffrt_executor_rust_task_init);
+    pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
     ffrt_function_header_t* f = ffrt_create_function_coroutine_wrapper(co, exec, destroy);
     if (unlikely(!f)) {
         FFRT_LOGE("function handler should not be empty");
         return nullptr;
     }
 
-    ffrt::ffrt_executor_rust_task* task = nullptr;
+    ffrt::ffrt_executor_io_task* task = nullptr;
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
     {
-        task = reinterpret_cast<ffrt::ffrt_executor_rust_task*>(static_cast<uintptr_t>(
-            static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::ffrt_executor_rust_task, func_storage)));
-        new (task)ffrt::ffrt_executor_rust_task(qos);
+        task = reinterpret_cast<ffrt::ffrt_executor_io_task*>(static_cast<uintptr_t>(
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::ffrt_executor_io_task, func_storage)));
+        new (task)ffrt::ffrt_executor_io_task(qos);
     }
     task->status = ffrt::ExecTaskStatus::ET_READY;
     ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
@@ -204,7 +204,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function_ptr_t destroy,
     ffrt_task_handle_t handle)
 {
-    ffrt::ffrt_executor_rust_task* task = static_cast<ffrt::ffrt_executor_rust_task*>(handle);
+    ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(handle);
     task->lock.lock();
     FFRT_LOGD("tid:%ld ffrt_wake_by_handle and CurState = %d", syscall(SYS_gettid), task->status);
     if (task->status != ffrt::ExecTaskStatus::ET_FINISH) {
@@ -218,7 +218,7 @@ void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function
 API_ATTRIBUTE((visibility("default")))
 void ffrt_set_wake_flag(bool flag)
 {
-    ffrt::ffrt_executor_rust_task* task = static_cast<ffrt::ffrt_executor_rust_task*>(ffrt_task_get());
+    ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(ffrt_task_get());
     task->SetWakeFlag(flag);
 }
 
@@ -231,7 +231,7 @@ void * ffrt_task_get()
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_coroutine(void *taskin)
 {
-    ffrt::ffrt_executor_rust_task* task = static_cast<ffrt::ffrt_executor_rust_task*>(taskin);
+    ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(taskin);
     ffrt::ExecTaskStatus executing_status = ffrt::ExecTaskStatus::ET_EXECUTING;
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;
     FFRT_LOGD("ffrt wake loop %d", task->status);
@@ -252,12 +252,12 @@ void ffrt_wake_coroutine(void *taskin)
         }
         ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
         if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
-            FFRT_LOGE("Submit RUST task failed");
+            FFRT_LOGE("Submit IO task failed");
         }
 #else
         ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
         if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
-            FFRT_LOGE("Submit RUST task failed");
+            FFRT_LOGE("Submit IO task failed");
         }
 #endif
     }

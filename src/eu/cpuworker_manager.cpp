@@ -126,7 +126,7 @@ void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
         for (int i = buf_len - 1; i >=0; --i) {
             ffrt_executor_task* task = (ffrt_executor_task*)(((CPUWorker *)thread)->steal_buffer[i]);
             if (!FFRTScheduler::Instance()->InsertNode((ffrt::LinkedList *)(&task->wq), thread->GetQos())) {
-                FFRT_LOGE("Submit RUST task failed!");
+                FFRT_LOGE("Submit IO task failed!");
             }
         }
     }

@@ -12,7 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/resourceschedule/ffrt/ffrt_stackless_coroutine.gni")
-import("//foundation/resourceschedule/ffrt/use_rust_old.gni")
+import("//foundation/resourceschedule/ffrt/use_io_old.gni")
 
 defines = []
 
@@ -20,8 +20,8 @@ if (use_stackless_coroutine) {
   defines += [ "USE_STACKLESS_COROUTINE" ]
 }
 
-if (use_rust_old) {
-  defines += [ "RUST_OLD" ]
+if (use_io_old) {
+  defines += [ "IO_TASK_SCHEDULER" ]
 }
 
 config("ffrt_config") {
@@ -89,7 +89,7 @@ ohos_shared_library("libffrt") {
     "src/core/entity.cpp",
     "src/core/task.cpp",
     "src/core/task_ctx.cpp",
-    "src/core/task_rust.cpp",
+    "src/core/task_io.cpp",
     "src/core/version_ctx.cpp",
     "src/dfx/bbox/bbox.cpp",
     "src/dfx/log/ffrt_log.cpp",

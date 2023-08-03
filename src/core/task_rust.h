@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_TASK_RUST_H
-#define FFRT_TASK_RUST_H
+#ifndef FFRT_TASK_IO_H
+#define FFRT_TASK_IO_H
 
 #include <string>
 #include <functional>
@@ -39,19 +39,19 @@ typedef struct {
     ffrt_function_ptr_t exec;
     ffrt_function_ptr_t destroy;
     void* callable;
-} ffrt_rust_callable_t;
+} ffrt_io_callable_t;
 
-struct ffrt_executor_rust_task: public ffrt_executor_task {
-    ffrt_executor_rust_task(const QoS &qos) : qos(qos) { type = ffrt_rust_task; }
+struct ffrt_executor_io_task: public ffrt_executor_task {
+    ffrt_executor_io_task(const QoS &qos) : qos(qos) { type = ffrt_io_task; }
     bool wakeFlag = true;
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
-    ffrt_rust_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};
+    ffrt_io_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};
     QoS qos;
     ExecTaskStatus status = ExecTaskStatus::ET_PENDING;
     fast_mutex lock;
     inline void freeMem()
     {
-        SimpleAllocator<ffrt_executor_rust_task>::freeMem(this);
+        SimpleAllocator<ffrt_executor_io_task>::freeMem(this);
     }
     void SetWakeFlag(bool wakeFlagIn)
     {

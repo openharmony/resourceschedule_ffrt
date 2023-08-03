@@ -12,5 +12,5 @@
 # limitations under the License.
 
 declare_args() {
-  use_rust_old = true
+  use_io_old = true
 }

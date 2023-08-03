@@ -80,7 +80,7 @@ typedef enum {
 typedef enum {
     ffrt_function_kind_general,
     ffrt_function_kind_queue,
-    ffrt_function_kind_rust
+    ffrt_function_kind_io
 } ffrt_function_kind_t;
 
 typedef enum {
@@ -172,18 +172,18 @@ typedef struct {
 
 typedef enum {
     ffrt_normal_task = 0,
-    ffrt_rust_task = 1,
+    ffrt_io_task = 1,
     ffrt_uv_task
 } ffrt_executor_task_type_t;
 
 // 该任务仅在libuv中提交
 typedef struct ffrt_executor_task {
     uintptr_t reserved[2];
-    uintptr_t type; // 0: TaskCtx, 1: rust task, User Space Address: libuv work
+    uintptr_t type; // 0: TaskCtx, 1: io task, User Space Address: libuv work
     void* wq[2];
 } ffrt_executor_task_t;
 
-typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t qos);
+typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data);
 
 #ifdef __cplusplus
 namespace ffrt {

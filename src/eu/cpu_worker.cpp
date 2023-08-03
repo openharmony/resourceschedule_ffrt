@@ -39,12 +39,12 @@ void CPUWorker::Run(TaskCtx* task)
     }
 }
 
-void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
+void CPUWorker::Run(ffrt_executor_task_t* task)
 {
     ffrt_executor_task_func func = nullptr;
-    if (task->type ==ffrt_rust_task)
+    if (task->type ==ffrt_io_task)
     {
-        func = FuncManager::Instance()->getFunc(ffrt_rust_task);
+        func = FuncManager::Instance()->getFunc(ffrt_io_task);
     } else {
         func = FuncManager::Instance()->getFunc(ffrt_uv_task);
     }
@@ -53,10 +53,10 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
         FFRT_LOGE("func is nullptr");
         return;
     }
-    func(task, qos);
+    func(task);
 }
 
-#ifdef RUST_OLD
+#ifdef IO_TASK_SCHEDULER
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
@@ -170,7 +170,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCt
     auto ctx = ExecuteCtx::Cur();
     if (curtask->type != 0) {
         ctx->exec_task = curtask;
-        Run(curtask, (int)worker->GetQos());
+        Run(curtask);
         ctx->exec_task = nullptr;
     } else {
         TaskCtx* task = reinterpret_cast<TaskCtx*>(curtask);

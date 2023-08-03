@@ -194,4 +194,19 @@ FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
  */
 FFRT_C_API void ffrt_wait(void);
 
+<<<<<<< HEAD
+=======
+// config
+FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
+
+// poller
+FFRT_C_API int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t));
+FFRT_C_API int ffrt_poller_deregister(int fd);
+
+// ffrt_executor_task
+FFRT_C_API void ffrt_executor_task_register_func_(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
+FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
+FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt_qos_t qos);
+FFRT_C_API void set_cpu_worker_num(const ffrt_qos_t qos, int num);
+>>>>>>> 9d449a1 (rust)
 #endif

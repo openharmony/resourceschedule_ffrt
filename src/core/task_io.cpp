@@ -106,7 +106,7 @@ static void ffrt_executor_io_task_init()
 
 bool randomBool()
 {
-    static auto gen = std::bind(std::uniform_int_distribution<>(0,1), std::default_random_engine());
+    static auto gen = std::bind(std::uniform_int_distribution<>(0, 1), std::default_random_engine());
     return gen();
 }
 }
@@ -131,7 +131,7 @@ static ffrt_coroutine_ret_t ffrt_exec_function_coroutine_wrapper(void* t)
 static void ffrt_destory_function_coroutine_wrapper(void* t)
 {
     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)t;
-    f->destroy(f->arg);  
+    f->destroy(f->arg);
 }
 
 static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(void* co,

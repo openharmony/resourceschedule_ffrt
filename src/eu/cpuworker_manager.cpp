@@ -16,11 +16,11 @@
 #include <climits>
 #include <cstring>
 #include <sys/stat.h>
+#include "queue/queue.h"
 #include "eu/cpuworker_manager.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/cpu_monitor.h"
 #include "eu/qos_interface.h"
-#include "queue/queue.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 
@@ -164,7 +164,8 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     while (iter != groupCtl[thread->GetQos()].threads.end()) {
         struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
         if (iter->first != thread && queue_length(queue) > 1) {
-            unsigned int buf_len = queue_pophead_batch(queue, (((CPUWorker *)thread)->steal_buffer), queue_length(queue) / 2);
+            unsigned int buf_len = queue_pophead_batch(queue, (((CPUWorker *)thread)->steal_buffer),
+                queue_length(queue) / 2);
             queue_pushtail_batch(&(((CPUWorker *)thread)->local_fifo), ((CPUWorker *)thread)->steal_buffer, buf_len);
             return buf_len;
         }
@@ -219,9 +220,9 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     monitor.IntoSleep(thread->GetQos());
     FFRT_LOGD("worker sleep");
 #if defined(IDLE_WORKER_DESTRUCT)
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(5),
-        [this, thread] {return tearDown || GetTaskCount(thread->GetQos())
-            || ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
+    if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {return tearDown
+        || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task
+            || queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -231,8 +232,8 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         return WorkerAction::RETIRE;
     }
 #else /* !IDLE_WORKER_DESTRUCT */
-    ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos())
-        || ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
+    ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos()) ||
+        ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
     monitor.WakeupCount(thread->GetQos());
     FFRT_LOGD("worker awake");
     return WorkerAction::RETRY;
@@ -246,7 +247,7 @@ void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
 
 void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
 {
-    if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0){
+    if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0) {
         monitor.Notify(qos, TaskNotifyType::TASK_LOCAL);
     }
 }

@@ -17,7 +17,6 @@
 #include <errno.h>
 #include <dfx/log/ffrt_log_api.h>
 #include "queue.h"
-using namespace std;
 
 #ifdef __cplusplus
 #include <atomic>
@@ -28,7 +27,7 @@ using namespace std;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+using namespace std;
 void *queue_pophead(struct queue_s *queue)
 {
     unsigned int head;
@@ -65,7 +64,7 @@ int queue_pushtail(struct queue_s *queue, void *object)
 
 int queue_init(struct queue_s *queue, unsigned int capacity)
 {
-    if (capacity == 0){
+    if (capacity == 0) {
         return ERROR_QUEUE_AVG_INVALID;
     }
     queue->buf = (void **)malloc(sizeof(void *) * (capacity));
@@ -136,7 +135,7 @@ unsigned int queue_pophead_batch(struct queue_s *queue, void *buf[], unsigned in
 
     while (1) {
         head = atomic_load(&queue->head);
-        tail = atomic_load(&queue->tail); 
+        tail = atomic_load(&queue->tail);
         if (head == tail) {
             return 0;
         }
@@ -146,7 +145,7 @@ unsigned int queue_pophead_batch(struct queue_s *queue, void *buf[], unsigned in
         }
         if (atomic_compare_exchange_weak(&queue->head, &head, head + pop_len)) {
             return pop_len;
-        }        
+        }
     }
 }
 

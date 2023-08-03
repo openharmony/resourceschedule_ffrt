@@ -390,8 +390,8 @@ void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_
 API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name)
 {
-        ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
-        func_mg->insert(std::string(name), func);
+    ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
+    func_mg->insert(ffrt_uv_task, func);
 }
 
 API_ATTRIBUTE((visibility("default")))

@@ -22,6 +22,7 @@
 #include "libunwind.h"
 #endif
 #include "core/dependence_manager.h"
+#include "core/task_io.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
 #ifdef FFRT_IO_TASK_SCHEDULER

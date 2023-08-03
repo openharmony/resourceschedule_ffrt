@@ -16,13 +16,20 @@
 #include <climits>
 #include <cstring>
 #include <sys/stat.h>
+<<<<<<< HEAD
 #ifdef FFER_IO_TASK_SCHEDULER
 #include "queue/queue.h"
 #endif
+=======
+>>>>>>> 01d62af (rust)
 #include "eu/cpuworker_manager.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/cpu_monitor.h"
 #include "eu/qos_interface.h"
+<<<<<<< HEAD
+=======
+#include "queue/queue.h"
+>>>>>>> 01d62af (rust)
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 

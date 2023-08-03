@@ -58,7 +58,7 @@ static void exec_wake_callable(ffrt_executor_io_task* task)
     task->freeMem();
 }
 
-static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qos)
+static void io_ffrt_executor_task_func(ffrt_executor_task_t* data)
 {
     ffrt_executor_io_task* task = static_cast<ffrt_executor_io_task*>(data);
     __atomic_store_n(&task->status, ExecTaskStatus::ET_EXECUTING, __ATOMIC_SEQ_CST);

@@ -24,7 +24,6 @@
 #include "sync/poller.h"
 #endif
 
-
 namespace ffrt {
 class CPUWorker : public WorkerThread {
 public:

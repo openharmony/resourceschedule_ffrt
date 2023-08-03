@@ -16,13 +16,13 @@
 #include <random>
 #include <ffrt.h>
 #include "cpp/task.h"
-#include "core/task_io.h"
 #include "c/task.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
 #include "libunwind.h"
 #endif
 #include "core/dependence_manager.h"
+#include "core/task_io.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
 #include "queue/queue.h"

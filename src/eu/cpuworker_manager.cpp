@@ -16,13 +16,13 @@
 #include <climits>
 #include <cstring>
 #include <sys/stat.h>
-#include "eu/cpu_monitor.h"
+#include "eu/cpuworker_manager.h"
 #include "eu/cpu_manager_interface.h"
+#include "eu/cpu_monitor.h"
+#include "eu/qos_interface.h"
+#include "queue/queue.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
-#include "eu/qos_interface.h"
-#include "eu/cpuworker_manager.h"
-#include "queue/queue.h"
 
 namespace ffrt {
 

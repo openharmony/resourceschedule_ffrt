@@ -34,7 +34,6 @@
 #include "dfx/bbox/bbox.h"
 
 namespace ffrt {
-
 typedef struct {
     ffrt_function_ptr_t exec;
     ffrt_function_ptr_t destroy;
@@ -42,7 +41,9 @@ typedef struct {
 } ffrt_io_callable_t;
 
 struct ffrt_executor_io_task: public ffrt_executor_task {
-    ffrt_executor_io_task(const QoS &qos) : qos(qos) { type = ffrt_io_task; }
+    ffrt_executor_io_task(const QoS &qos) : qos(qos) {
+        type = ffrt_io_task;
+    }
     bool wakeFlag = true;
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
     ffrt_io_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};

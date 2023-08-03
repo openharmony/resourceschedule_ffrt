@@ -42,8 +42,7 @@ void CPUWorker::Run(TaskCtx* task)
 void CPUWorker::Run(ffrt_executor_task_t* task)
 {
     ffrt_executor_task_func func = nullptr;
-    if (task->type ==ffrt_io_task)
-    {
+    if (task->type ==ffrt_io_task) {
         func = FuncManager::Instance()->getFunc(ffrt_io_task);
     } else {
         func = FuncManager::Instance()->getFunc(ffrt_uv_task);
@@ -66,7 +65,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     unsigned int buf_len = 0;
 
     FFRT_LOGD("qos[%d] thread start succ", (int)worker->GetQos());
-    for(;;) {
+    for (;;) {
         FFRT_LOGD("task picking");
         void* local_task = GetTask(worker);
         worker->tick++;
@@ -196,7 +195,9 @@ void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task,  CPUWorker* worker, Task
         ffrt_executor_task_t* task = (ffrt_executor_task_t*)(worker->priority_task);
         worker->priority_task = nullptr;
         RunTask(task, worker, lastTask);
-        if (lifo_count > worker->budget) break;
+        if (lifo_count > worker->budget) {
+            break;
+        }
     }
 }
 

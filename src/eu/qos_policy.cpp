@@ -74,12 +74,6 @@ void SetPriority(unsigned char priority, WorkerThread* thread)
         int vip_prio = MAX_VIP_PRIO - priority;
         OSAttrManager::Instance()->SetCGroupPara(path, vip_prio);
     } else {
-        // struct sched_param param;
-        // param.sched_priority = 0;
-        // ret = pthread_setschedparam(thread->GetThread().native_handle(), SCHED_NORMAL, &param);
-        // if (ret != 0) {
-        //     FFRT_LOGE("[%d] set priority sched_normal failed ret[%d] errno[%d]\n", thread->Id(), ret, errno);
-        // }
         ret = setpriority(PRIO_PROCESS, thread->Id(), priority - DEFAULT_PRIO);
         if (ret != 0) {
             FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", thread->Id(), ret, errno);

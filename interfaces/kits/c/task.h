@@ -47,7 +47,7 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_p
     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 // get
-FFRT_C_API void *ffrt_task_get();
+FFRT_C_API void *ffrt_task_get(void);
 
 // waker
 FFRT_C_API void ffrt_wake_by_handle(void* waker, ffrt_function_ptr_t exec,

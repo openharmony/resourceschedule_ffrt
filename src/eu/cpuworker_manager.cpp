@@ -117,11 +117,11 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
 {
     if (tearDown) {
-        return nullptr;
+        return;
     }
     struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
     if (queue_length(queue) == queue_capacity(queue)) {
-        unsigned int buf_len == queue_pophead_batch(queue,
+        unsigned int buf_len = queue_pophead_batch(queue,
             (((CPUWorker *)thread)->steal_buffer), queue_length(queue) / 2);
         for (int i = buf_len - 1; i >=0; --i) {
             ffrt_executor_task* task = (ffrt_executor_task*)(((CPUWorker *)thread)->steal_buffer[i]);
@@ -163,7 +163,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         groupCtl[thread->GetQos()].threads.begin();
     while (iter != groupCtl[thread->GetQos()].threads.end()) {
         struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
-        if (iter.first != thread && queue_length(queue) > 1) {
+        if (iter->first != thread && queue_length(queue) > 1) {
             unsigned int buf_len = queue_pophead_batch(queue, (((CPUWorker *)thread)->steal_buffer), queue_length(queue) / 2);
             queue_pushtail_batch(&(((CPUWorker *)thread)->local_fifo), ((CPUWorker *)thread)->steal_buffer, buf_len);
             return buf_len;

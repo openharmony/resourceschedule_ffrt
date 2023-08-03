@@ -46,7 +46,7 @@ public:
     ~Poller() noexcept;
 
     int AddFdEvent(uint32_t events, int fd, void* data, void(*cb)(void*, uint32_t)) noexcept;
-    int DelFdEvnet(int fd) noexcept;
+    int DelFdEvent(int fd) noexcept;
 
     bool PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;

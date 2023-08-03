@@ -41,7 +41,7 @@ public:
         for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
             int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
             while (try_cnt--) {
-                pollerExitFlag[qos].store(true, std::memory_order_relaxed);
+                pollersExitFlag[qos].store(true, std::memory_order_relaxed);
                 std::atomic_thread_fence(std::memory_order_acq_rel);
                 pollersMtx[qos].unlock();
                 PollerProxy::Instance()->GetPoller(qos).WakeUp();
@@ -74,14 +74,14 @@ public:
         stealWorkers[qos].fetch_add(1);
     }
 
-    void SubStealingWorker(consg QoS& qos)
+    void SubStealingWorker(const QoS& qos)
     {
         while (1) {
             uint64_t stealWorkersNum = stealWorkers[qos].load();
-            if (stealWorkersNum = 0) {
+            if (stealWorkersNum == 0) {
                 return;
             }
-            if (atomic_compare_exchange_weak(&stealWorkers[qos], &stealWorkersNum, stealWorkersNum - )) return;
+            if (atomic_compare_exchange_weak(&stealWorkers[qos], &stealWorkersNum, stealWorkersNum - 1)) return;
         }
     }
 

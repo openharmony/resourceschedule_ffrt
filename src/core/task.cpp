@@ -354,7 +354,7 @@ int ffrt_skip(ffrt_task_handle_t handle)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t))
 {
-    ffrt_qos_t qos = ffrt_qps_default;
+    ffrt_qos_t qos = ffrt_qos_default;
     if (ffrt::ExecuteCtx::Cur()->task) {
         qos = ffrt::ExecuteCtx::Cur()->task->qos;
     }
@@ -364,7 +364,7 @@ int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, u
 API_ATTRIBUTE((visibility("default")))
 int ffrt_poller_deregister(int fd)
 {
-    ffrt_qos_t qos = ffrt_qps_default;
+    ffrt_qos_t qos = ffrt_qos_default;
     if (ffrt::ExecuteCtx::Cur()->task) {
         qos = ffrt::ExecuteCtx::Cur()->task->qos;
     }
@@ -407,7 +407,7 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
 API_ATTRIBUTE((visibility("default")))
 void set_cpu_worker_num(const ffrt_qos_t qos, int num)
 {
-    ffrrt::GlobalConfig::Instance().setCpuWorkerNum(ffrt::QoS(qos), num);
+    ffrt::GlobalConfig::Instance().setCpuWorkerNum(ffrt::QoS(qos), num);
 }
 #ifdef __cplusplus
 }

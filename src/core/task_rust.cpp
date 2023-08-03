@@ -86,7 +86,7 @@ static void rust_ffrt_executor_task_func(ffrt_executor_task_t* data)
             }
             return;
         }
-        FFRT::ExecuteUnit::Instance().NotifyLocalTaskAdd(task->qos);
+        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdd(task->qos);
 #else
         LinkedList* node = (LinkedList *)(&task->wq);
         if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
@@ -110,7 +110,7 @@ bool randomBool()
 }
 }
 
-#indef __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -156,7 +156,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_pt
     ffrt_function_header_t* f = ffrt_create_function_coroutine_wrapper(co, exec, destroy);
     if (unlikely(!f)) {
         FFRT_LOGE("function handler should not be empty");
-        return nullptr;
+        return;
     }
 
     ffrt::ffrt_executor_rust_task* task = nullptr;
@@ -245,23 +245,23 @@ void ffrt_wake_coroutine(void *taskin)
         if (rand()%5) {
             if (ffrt::ExecuteCtx::Cur()->local_fifo != nullptr &&
                 queue_pushtail(ffrt::ExecuteCtx::Cur()->local_fifo, task) != ERROR_QUEUE_FULL) {
-                ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdd(task->qos);
+                ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(task->qos);
                 return;
             }
         }
-        LinkedList* node = (LinkedList *)(&task->wq);
-        if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
+        ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
+        if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
             FFRT_LOGE("Submit RUST task failed");
         }
 #else
-        LinkedList* node = (LinkedList *)(&task->wq);
-        if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
+        ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
+        if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
             FFRT_LOGE("Submit RUST task failed");
         }
 #endif
     }
 }
 
-#indef __cplusplus
+#ifdef __cplusplus
 }
 #endif

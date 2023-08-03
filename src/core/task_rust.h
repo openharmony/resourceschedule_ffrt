@@ -58,5 +58,5 @@ struct ffrt_executor_rust_task: public ffrt_executor_task {
         wakeFlag = wakeFlagIn;
     }
 };
-
 }
+#endif

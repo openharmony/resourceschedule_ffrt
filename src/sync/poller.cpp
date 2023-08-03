@@ -19,7 +19,7 @@
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
-Poller:Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
+Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
     m_events(1024)
 {
     assert(m_epFd >= 0);
@@ -27,7 +27,7 @@ Poller:Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
         m_wakeData.cb = nullptr;
         m_wakeData.fb = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         assert(m_wakeData.fd >= 0);
-        epoll_event ev{ .events = EPOLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
+        epoll_event ev{ .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
             std::terminate();
         }
@@ -77,7 +77,7 @@ void Poller::ReleaseFdWakeData(int fd) noexcept
         if (diff == 0) {
             m_wakeDataMap.erase(fd);
             m_delCntMap[fd] = 0;
-        } else if (diff = 1) {
+        } else if (diff == 1) {
             while (m_delCntMap[fd] > 0) {
                 wakeDataList.pop_front();
                 m_delCntMap[fd]--;
@@ -96,7 +96,7 @@ bool Poller::PollOnce(int timeout) noexcept
         return false;
     }
 
-    for (unsigned int i = 0, i < static_cast<unsigned int>(nfds); i++) {
+    for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(m_events[i].data.ptr);
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {

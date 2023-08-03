@@ -297,6 +297,7 @@ void CoWake(ffrt::TaskCtx* task, bool timeOut)
     task->UpdateState(ffrt::TaskState::READY);
 }
 
+#ifdef USE_STACKLESS_COROUTINE
 void StacklessCouroutineStart(ffrt::TaskCtx* task)
 {
     assert(task->coroutine_type == ffrt_coroutine_stackless);
@@ -338,3 +339,4 @@ static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
 
     ffrt::DependenceManager::Instance()->onTaskDone(task);
 }
+#endif

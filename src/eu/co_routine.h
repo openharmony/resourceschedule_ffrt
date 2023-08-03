@@ -18,6 +18,7 @@
 #include <functional>
 #include <atomic>
 #include "co2_context.h"
+#include "core/task_rust.h"
 #if defined(__aarch64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #elif defined(__arm__)

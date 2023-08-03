@@ -84,7 +84,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         if (task->type != 0) {
             ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
-            Run(work);
+            Run(work, (int)worker->GetQos());
         } else {
             UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
             task->UpdateState(TaskState::RUNNING);
@@ -109,7 +109,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCt
     auto ctx = ExecuteCtx::Cur();
     if (curtask->type != 0) {
         ctx->exec_task = curtask;
-        Run(curtask);
+        Run(curtask, (int)worker->GetQos());
         ctx->exec_task = nullptr;
     } else {
         TaskCtx* task = reinterpret_cast<TaskCtx*>(curtask);
@@ -126,7 +126,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCt
     }
 }
 
-void CPUworker::RunTaskLifo(ffrt_executor_task_t* task,  CPUWorker* worker, TaskCtx* &lastTask)
+void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task,  CPUWorker* worker, TaskCtx* &lastTask)
 {
     RunTask(task, worker, lastTask);
     int lifo_count = 0;

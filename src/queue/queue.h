@@ -22,7 +22,7 @@ extern "C" {
 #endif
 #endif
 
-#define MID_MAKE(x) ((0x1000) + (x) <<16)
+#define MID_MAKE(x) ((0x1000 + (x)) <<16)
 
 #define MID_QUEUE               MID_MAKE(2)
 

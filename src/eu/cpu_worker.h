@@ -34,7 +34,7 @@ public:
     CpuWorkerOps ops;
     void* priority_task = nullptr;
     unsigned int tick = 0;
-    struct queue_s *local_fifo;
+    struct queue_s local_fifo;
     unsigned int global_interval = 60;
     unsigned int budget = 10;
     void** steal_buffer;

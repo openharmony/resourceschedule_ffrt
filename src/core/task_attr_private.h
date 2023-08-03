@@ -33,7 +33,7 @@ public:
           coroutine_type_(attr.coroutine_type())
     {
     }
-
+    
     int qos_;
     std::string name_;
     uint64_t delay_ = 0;

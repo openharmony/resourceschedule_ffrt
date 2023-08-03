@@ -86,7 +86,7 @@ static void rust_ffrt_executor_task_func(ffrt_executor_task_t* data)
             }
             return;
         }
-        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdd(task->qos);
+        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(task->qos);
 #else
         LinkedList* node = (LinkedList *)(&task->wq);
         if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
@@ -100,7 +100,7 @@ static pthread_once_t once = PTHREAD_ONCE_INIT;
 
 static void ffrt_executor_rust_task_init()
 {
-    ffrt_executor_task_register_func(rust_ffrt_executor_task_func, ffrt_rust_task);
+    ffrt_executor_task_register_func_(rust_ffrt_executor_task_func, ffrt_rust_task);
 }
 
 bool randomBool()
@@ -161,7 +161,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_pt
 
     ffrt::ffrt_executor_rust_task* task = nullptr;
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
-    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_map));
+    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
     {
         task = reinterpret_cast<ffrt::ffrt_executor_rust_task*>(static_cast<uintptr_t>(
             static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::ffrt_executor_rust_task, func_storage)));

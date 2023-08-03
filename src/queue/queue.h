@@ -36,7 +36,7 @@ extern "C" {
 
 #define ERROR_QUEUE_BUF_UNINITIALIZED ((MID_QUEUE) | 0X05)
 
-struct queuue_s
+struct queue_s
 {
     std::atomic<unsigned int> head;
     std::atomic<unsigned int> tail;

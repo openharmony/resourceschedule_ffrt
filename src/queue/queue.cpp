@@ -17,10 +17,10 @@
 #include <errno.h>
 #include <dfx/log/ffrt_log_api.h>
 #include "queue.h"
+using namespace std;
 
 #ifdef __cplusplus
 #include <atomic>
-using namespace std;
 #else
 #include <stdatomic.h>
 #endif

@@ -183,23 +183,8 @@ size_t CPUMonitor::CountBlockedNum(const QoS& qos)
 
 void CPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
-    // int taskCount = ops.GetTaskCount(qos);
     FFRT_LOGD("qos[%d] task notify op[%d] cnt[%ld]", (int)qos, (int)notifyType, ops.GetTaskCount(qos));
     Poke(qos);
-    // switch (notifyType) {
-    //     case TaskNotifyType::TASK_ADDED:
-    //         if (taskCount > 0) {
-    //             Poke(qos);
-    //         }
-    //         break;
-    //     case TaskNotifyType::TASK_PICKED:
-    //         if (taskCount > 0) {
-    //             Poke(qos);
-    //         }
-    //         break;
-    //     default:
-    //         break;
-    // }
 }
 
 void CPUMonitor::TimeoutCount(const QoS& qos)

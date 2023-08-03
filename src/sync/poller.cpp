@@ -27,7 +27,7 @@ Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
         m_wakeData.cb = nullptr;
         m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         assert(m_wakeData.fd >= 0);
-        epoll_event ev{ .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
+        epoll_event ev{.events = EPOLLIN, .data = {.ptr = static_cast<void*>(&m_wakeData)}};
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
             std::terminate();
         }
@@ -83,9 +83,10 @@ void Poller::ReleaseFdWakeData(int fd) noexcept
                 m_delCntMap[fd]--;
             }
         } else {
-            FFRT_LOGE("fd = %d count unexpected, added num = %d, del num = %d", fd, wakeDataList.size(), m_delCntMap[fd]);
+            FFRT_LOGE("fd = %d count unexpected, added num = %d, del num = %d",
+                fd, wakeDataList.size(), m_delCntMap[fd]);
         }
-    } 
+    }
 }
 
 bool Poller::PollOnce(int timeout) noexcept
@@ -106,7 +107,7 @@ bool Poller::PollOnce(int timeout) noexcept
             continue;
         }
 
-        if(data->cb == nullptr) {
+        if (data->cb == nullptr) {
             continue;
         }
         data->cb(data->data, m_events[i].events);

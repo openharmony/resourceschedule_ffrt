@@ -143,7 +143,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         if (task->type != 0) {
             ffrt_executor_task_t* work = (ffrt_executor_task_t*)task;
-            Run(work, (int)worker->GetQos());
+            Run(work);
         } else {
             UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
             task->UpdateState(TaskState::RUNNING);

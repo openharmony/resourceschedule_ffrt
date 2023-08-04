@@ -165,7 +165,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
         if (iter->first != thread && queue_length(queue) > 1) {
             unsigned int buf_len = queue_pophead_batch(queue, (((CPUWorker *)thread)->steal_buffer),
-                queue_length(queue) / 2);
+            queue_length(queue) / 2);
             queue_pushtail_batch(&(((CPUWorker *)thread)->local_fifo), ((CPUWorker *)thread)->steal_buffer, buf_len);
             return buf_len;
         }
@@ -220,9 +220,9 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     monitor.IntoSleep(thread->GetQos());
     FFRT_LOGD("worker sleep");
 #if defined(IDLE_WORKER_DESTRUCT)
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {return tearDown
-        || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task
-            || queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
+    if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
+        return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
+        queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -232,7 +232,8 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         return WorkerAction::RETIRE;
     }
 #else /* !IDLE_WORKER_DESTRUCT */
-    ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos()) ||
+    ctl.cv.wait(lk, [this, thread] {
+        return tearDown || GetTaskCount(thread->GetQos()) ||
         ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
     monitor.WakeupCount(thread->GetQos());
     FFRT_LOGD("worker awake");

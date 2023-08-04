@@ -40,7 +40,7 @@
 typedef enum {
     ffrt_qos_deadline_request = 4,
     ffrt_qos_user_interactive,
-    ffrt_inner_qos_max = ffrt_qos_user_interactive,
+    ffrt_qos_max = ffrt_qos_user_interactive,
 } ffrt_inner_qos_default_t;
 
 typedef enum {
@@ -88,7 +88,7 @@ namespace ffrt {
 enum qos_inner_default {
     qos_deadline_request = ffrt_qos_deadline_request,
     qos_user_interactive = ffrt_qos_user_interactive,
-    qos_max = ffrt_inner_qos_max,
+    qos_max = ffrt_qos_max,
 };
 
 enum class stack_protect {

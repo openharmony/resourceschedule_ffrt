@@ -38,8 +38,7 @@
         },
         "build": {
             "sub_component": [
-                "//foundation/resourceschedule/ffrt:libffrt",
-                "//foundation/resourceschedule/ffrt:ffrt_ndk"
+                "//foundation/resourceschedule/ffrt:libffrt"
             ],
             "inner_kits": [
                 {

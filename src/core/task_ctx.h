@@ -39,13 +39,6 @@ namespace ffrt {
 struct TaskCtx;
 struct VersionCtx;
 
-typedef struct {
-    ffrt_function_ptr_t exec;
-    ffrt_function_ptr_t destroy;
-    void* callable;
-} ffrt_callable_t;
-
-
 /*
 TaskCtx 必须是数据结构ffrt_executor_task_t的子类
 */
@@ -65,8 +58,6 @@ struct TaskCtx : public TaskDeleter {
     std::vector<TaskCtx*> in_handles;
     CoRoutine* coRoutine = nullptr;
     std::vector<std::string> traceTag;
-    bool wakeFlag = true;
-    ffrt_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};
 
 #ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
     xx::mutex lock {"TaskCtx::lock"};
@@ -107,9 +98,6 @@ struct TaskCtx : public TaskDeleter {
 
     QoS qos;
     void SetQos(QoS& qos);
-
-    ffrt_coroutine_t coroutine_type = ffrt_coroutine_stackfull;
-    uint32_t stackless_coroutine_wake_count = 1;
 
     inline void freeMem() override
     {
@@ -171,11 +159,6 @@ struct TaskCtx : public TaskDeleter {
         if (!traceTag.empty()) {
             traceTag.pop_back();
         }
-    }
-
-    void SetWakeFlag(bool wakeFlagIn)
-    {
-        wakeFlag = wakeFlagIn;
     }
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE

@@ -46,7 +46,6 @@
                         "header_base": "//foundation/resourceschedule/ffrt/interfaces/",
                         "header_files": [
                             "kits/ffrt.h",
-                            "inner_api/deadline.h",
                             "inner_api/ffrt_inner.h"
                         ]
                     },

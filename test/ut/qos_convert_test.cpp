@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #include <gtest/gtest.h>
 #include <unistd.h>
-#include "qos_convert.h"
+#include "cpp/qos_convert.h"
 #include "eu/qos_interface.h"
 
 using namespace testing;

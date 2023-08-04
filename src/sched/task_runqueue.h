@@ -18,6 +18,7 @@
 
 
 #include "core/task_ctx.h"
+#include "c/executor_task.h"
 
 namespace ffrt {
 template <typename Derived>

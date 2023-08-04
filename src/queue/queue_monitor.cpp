@@ -19,7 +19,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
 #include "sync/sync.h"
-#include "ffrt_watchdog.h"
+#include "c/ffrt_watchdog.h"
 
 namespace {
 constexpr uint32_t INVAILD_TASK_ID = 0;

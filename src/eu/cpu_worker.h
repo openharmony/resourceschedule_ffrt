@@ -18,6 +18,7 @@
 
 #include "eu/worker_thread.h"
 #include "eu/cpu_manager_interface.h"
+#include "c/executor_task.h"
 
 
 namespace ffrt {

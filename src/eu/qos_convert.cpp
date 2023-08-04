@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "qos_convert.h"
+#include "cpp/qos_convert.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "eu/qos_interface.h"
 

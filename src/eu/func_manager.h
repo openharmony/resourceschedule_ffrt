@@ -16,7 +16,7 @@
 #ifndef FFRT_FUNC_MANAGER_HPP
 #define FFRT_FUNC_MANAGER_HPP
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 
 namespace ffrt {
 class FuncManager {

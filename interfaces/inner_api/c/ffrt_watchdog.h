@@ -12,21 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_CPP_QOS_CONVERT_H
-#define FFRT_API_CPP_QOS_CONVERT_H
-#include "c/type_def.h"
+#ifndef FFRT_WATCHDOG_H
+#define FFRT_WATCHDOG_H
+#include <stdint.h>
+#include "type_def.h"
 
-namespace ffrt {
-constexpr int ERROR_NUM = -1;
-/**
-    @brief get current thread static qos level
-*/
-int GetStaticQos(qos &static_qos);
-
-/**
-    @brief get current thread dynamic qos level
-*/
-int GetDynamicQos(qos &dynamic_qos);
-}; // namespace ffrt
-
-#endif // FFRT_API_CPP_QOS_CONVERT_H
+typedef void(*ffrt_watchdog_cb)(uint64_t, const char *, uint32_t);
+FFRT_C_API void ffrt_watchdog_dumpinfo(char *buf, uint32_t len);
+FFRT_C_API void ffrt_watchdog_register(ffrt_watchdog_cb cb, uint32_t timeout_ms, uint32_t interval_ms);
+FFRT_C_API ffrt_watchdog_cb ffrt_watchdog_get_cb(void);
+FFRT_C_API uint32_t ffrt_watchdog_get_timeout(void);
+FFRT_C_API uint32_t ffrt_watchdog_get_interval(void);
+#endif /* FFRT_WATCHDOG_H */

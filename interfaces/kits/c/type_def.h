@@ -41,8 +41,8 @@ typedef enum {
 #endif
 =======
 typedef enum {
-    ffrt_coroutine_stackless;
-    ffrt_coroutine_stackfull;
+    ffrt_coroutine_stackless,
+    ffrt_coroutine_stackfull,
 } ffrt_coroutine_t;
 
 typedef enum {
@@ -76,11 +76,6 @@ typedef enum {
 typedef int ffrt_qos_t;
 <<<<<<< HEAD
 =======
-
-typedef enum {
-    ffrt_stack_protect_weak,
-    ffrt_stack_protect_strong,
-} ffrt_stack_protect_t;
 
 typedef void(*ffrt_function_t)(void*);
 typedef void(*ffrt_function_ptr_t)(void*);

@@ -31,9 +31,11 @@ typedef struct ffrt_executor_task {
 
 typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data);
 
+// ffrt_executor_task
 FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name);
+FFRT_C_API void ffrt_executor_task_register_func_(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
 FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
-FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos);
+FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt_qos_t qos);
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 // poller

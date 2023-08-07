@@ -65,11 +65,6 @@ typedef enum {
 } ffrt_qos_default_t;
 
 typedef int ffrt_qos_t;
-
-typedef void(*ffrt_function_t)(void*);
-typedef void(*ffrt_function_ptr_t)(void*);
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
-
 /**
  * @brief Defines a task executor.
  *
@@ -166,11 +161,22 @@ typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
 
-#define MAX_CPUMAP_LENGTH 100 // this is in c and code style
 typedef void* ffrt_thread_t;
 
 typedef void* ffrt_interval_t;
 
+typedef enum {
+    ffrt_sys_event_type_read,
+} ffrt_sys_event_type_t;
+
+typedef enum {
+    ffrt_sys_event_status_no_timeout,
+    ffrt_sys_event_status_timeout
+} ffrt_sys_event_status_t;
+
+typedef void* ffrt_sys_event_handle_t;
+
+typedef void* ffrt_config_t;
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 typedef struct {

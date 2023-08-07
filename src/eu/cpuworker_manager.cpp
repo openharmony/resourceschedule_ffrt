@@ -91,6 +91,7 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     if (tearDown) {
         return nullptr;
     }
+    SubStealingWorker(thread->GetQos());
     auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
@@ -213,17 +214,6 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
     }
 }
 
-bool CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
-{
-    auto& pollerMtx = pollersMtx[thread->GetQos()];
-    if (!pollersExitFlag[thread->GetQos()].load(std::memory_order_relaxed) && pollerMtx.try_lock()) {
-        bool ret = PollerProxy::Instance()->GetPoller(thread->GetQos()).PollOnce(timeout);
-        pollerMtx.unlock();
-        return ret;
-    }
-    return false;
-}
-
 WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 {
     if (tearDown) {
@@ -248,7 +238,7 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
-        monitor.TimeoutCount(thread->GetQos());
+        monitor.IntoPollWait(thread->GetQos());
         FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
     }

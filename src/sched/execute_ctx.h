@@ -22,8 +22,10 @@
 
 #include "util/linked_list.h"
 #include "internal_inc/osal.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "queue/queue.h"
 #include "c/type_def.h"
+#endif
 
 namespace ffrt {
 using time_point_t = std::chrono::steady_clock::time_point;
@@ -73,18 +75,23 @@ struct ExecuteCtx {
     ExecuteCtx()
     {
         task = nullptr;
+#ifdef FFRT_IO_TASK_SCHEDULER
         exec_task = nullptr;
         local_fifo = nullptr;
         priority_task_ptr = nullptr;
+#endif
         wn.weType = 2;
     }
+#ifdef FFRT_IO_TASK_SCHEDULER
     ffrt_executor_task_t* exec_task;
     void** priority_task_ptr;
     struct queue_s* local_fifo;
+#endif
     
     TaskCtx* task; // 当前正在执行的Task
     WaitUntilEntry wn;
 
+#ifdef FFRT_IO_TASK_SCHEDULER
     inline bool PushTaskToPriorityStack(ffrt_executor_task_t* task)
     {
         if (priority_task_ptr ==nullptr) {
@@ -96,7 +103,8 @@ struct ExecuteCtx {
         }
         return false;
     }
-    
+#endif
+
     static inline ExecuteCtx* Cur()
     {
         thread_local static ExecuteCtx ctx;

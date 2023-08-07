@@ -14,7 +14,7 @@
  */
 #include <pthread.h>
 #include <random>
-#include <ffrt.h>
+#include "ffrt_inner.h"
 #include "cpp/task.h"
 #include "c/task.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
@@ -27,6 +27,7 @@
 #include "internal_inc/osal.h"
 #include "queue/queue.h"
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 #define ENABLE_LOCAL_QUEUE
 
 namespace ffrt {
@@ -55,13 +56,14 @@ static void exec_wake_callable(ffrt_executor_io_task* task)
     }
     auto f = (ffrt_function_header_t*)task->func_storage;
     f->destroy(f);
-    task->freeMem();
 }
 
 static void io_ffrt_executor_task_func(ffrt_executor_task_t* data)
 {
     ffrt_executor_io_task* task = static_cast<ffrt_executor_io_task*>(data);
+    task->lock.lock();
     __atomic_store_n(&task->status, ExecTaskStatus::ET_EXECUTING, __ATOMIC_SEQ_CST);
+    task->lock.unlock();
     auto f = (ffrt_function_header_t*)task->func_storage;
     ffrt_coroutine_ptr_t coroutine = (ffrt_coroutine_ptr_t)f->exec;
     ffrt_coroutine_ret_t ret = coroutine(f);
@@ -71,6 +73,7 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data)
     }
     ExecTaskStatus executing_status = ExecTaskStatus::ET_EXECUTING;
     ExecTaskStatus toready_status = ExecTaskStatus::ET_TOREADY;
+    std::lock_guard lg(task->lock);
     if (__atomic_compare_exchange_n(&task->status, &executing_status, ExecTaskStatus::ET_PENDING, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
         return;
@@ -128,7 +131,7 @@ static ffrt_coroutine_ret_t ffrt_exec_function_coroutine_wrapper(void* t)
     return f->func(f->arg);
 }
 
-static void ffrt_destory_function_coroutine_wrapper(void* t)
+static void ffrt_destroy_function_coroutine_wrapper(void* t)
 {
     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)t;
     f->destroy(f->arg);
@@ -142,7 +145,7 @@ static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(voi
     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)ffrt_alloc_auto_managed_function_storage_base(
         ffrt_function_kind_io);
     f->header.exec = (ffrt_function_ptr_t)ffrt_exec_function_coroutine_wrapper;
-    f->header.destroy = ffrt_destory_function_coroutine_wrapper;
+    f->header.destroy = ffrt_destroy_function_coroutine_wrapper;
     f->func = exec;
     f->destroy = destroy;
     f->arg = co;
@@ -225,7 +228,7 @@ void ffrt_set_wake_flag(int flag)
 API_ATTRIBUTE((visibility("default")))
 void * ffrt_task_get()
 {
-    return (void*)ffrt::ExecuteCtx::Cur()->task;
+    return (void*)ffrt::ExecuteCtx::Cur()->exec_task;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -235,6 +238,7 @@ void ffrt_wake_coroutine(void *taskin)
     ffrt::ExecTaskStatus executing_status = ffrt::ExecTaskStatus::ET_EXECUTING;
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;
     FFRT_LOGD("ffrt wake loop %d", task->status);
+    std::lock_guadr lg(task->lock);
     if (__atomic_compare_exchange_n(&task->status, &executing_status, ffrt::ExecTaskStatus::ET_TOREADY, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
         return;
@@ -263,6 +267,27 @@ void ffrt_wake_coroutine(void *taskin)
     }
 }
 
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_coroutine_t coroutine_type)
+{
+    if (!attr) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    ((ffrt::task_attr_private*)attr)->coroutine_type_ = coroutine_type;
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
+{
+    if (!attr) {
+        FFRT_LOGE("attr should be a valid address");
+        return ffrt_coroutine_stackfull;
+    }
+    return ((ffrt::task_attr_private*)attr)->coroutine_type_;
+}
 #ifdef __cplusplus
 }
+#endif
+
 #endif

@@ -89,12 +89,26 @@ void Poller::ReleaseFdWakeData(int fd) noexcept
     }
 }
 
-bool Poller::PollOnce(int timeout) noexcept
+PollerRet Poller::PollOnce(int timeout) noexcept
 {
-    int nfds = epoll_wait(m_epFd, m_events.data(), m_events.size(), timeout);
+    int realTimeout = timeout;
+    PollerRet ret = PollerRet::RET_NULL;
+    if (m_timerFunc ! = nullptr) {
+        int nextTimeout = m_timerFunc();
+        if (nextTimeout == 0) {
+            return PollerRet::RET_TIMER;
+        }
+        if (timeout == -1 && nextTimeout > 0) {
+            realTimeout = nextTimeout;
+            ret = PollerRet::RET_TIMER;
+        }
+    }
+    int nfds = epoll_wait(m_epFd, m_events.data(), m_events.size(), realTimeout);
     if (nfds <= 0) {
-        assert(timeout != -1);
-        return false;
+        if (realTimeout > 0) {
+            int nextTimeout = m_timerFunc();
+        }
+        return ret;
     }
 
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
@@ -113,7 +127,7 @@ bool Poller::PollOnce(int timeout) noexcept
         data->cb(data->data, m_events[i].events);
         ReleaseFdWakeData(currFd);
     }
-    return true;
+    return PollerRet::RET_EPOLL;
 }
 
 void Poller::WakeUp() noexcept
@@ -121,5 +135,14 @@ void Poller::WakeUp() noexcept
     uint64_t one = 1;
     ssize_t n = ::write(m_wakeData.fd, &one, sizeof one);
     assert(n == sizeof one);
+}
+
+bool Poller::RegisterTimerFunc(int(*timerFunc)()) noexcept
+{
+    if (m_timerFunc == nullptr) {
+        m_timerFunc == timerFunc;
+        return true;
+    }
+    return false;
 }
 }

@@ -12,5 +12,5 @@
 # limitations under the License.
 
 declare_args() {
-  use_io_old = false
+  ffrt_io_task_scheuduler = false
 }

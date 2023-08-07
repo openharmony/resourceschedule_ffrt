@@ -20,6 +20,8 @@
 #include "eu/cpu_manager_interface.h"
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
+#include "core/dependence_manager.h"
+#include "sync/poller.h"
 
 namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)
@@ -55,7 +57,67 @@ void CPUWorker::Run(ffrt_executor_task_t* task)
     func(task);
 }
 
-#ifdef IO_TASK_SCHEDULER
+#ifdef FFRT_IO_TASK_SCHEDULER
+void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCtx* &lastTask)
+{
+    auto ctx = ExecuteCtx::Cur();
+    if (curtask->type != 0) {
+        ctx->exec_task = curtask;
+        Run(curtask);
+        ctx->exec_task = nullptr;
+    } else {
+        TaskCtx* task = reinterpret_cast<TaskCtx*>(curtask);
+        UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
+        FFRT_LOGD("EU pick task[%lu]", task->gid);
+        task->UpdateState(TaskState::RUNNING);
+
+        lastTask = task;
+        ctx->task = task;
+        worker->curTask = task;
+        Run(task);
+        worker->curTask = nullptr;
+        ctx->task = nullptr;
+    }
+}
+
+void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task,  CPUWorker* worker, TaskCtx* &lastTask)
+{
+    RunTask(task, worker, lastTask);
+    int lifo_count = 0;
+    while (worker->priority_task) {
+        lifo_count++;
+        ffrt_executor_task_t* task = (ffrt_executor_task_t*)(worker->priority_task);
+        worker->priority_task = nullptr;
+        RunTask(task, worker, lastTask);
+        if (lifo_count > worker->budget) {
+            break;
+        }
+    }
+}
+
+void* CPUWorker::GetTask(CPUWorker* worker)
+{
+    if (worker->tick % worker->global_interval == 0) {
+        worker->tick = 0;
+        void* task = worker->ops.PickUpTaskBatch(worker);
+        worker->ops.NotifyTaskPicked(worker);
+        return task ? task : queue_pophead(&(worker->local_fifo));
+    } else {
+        if (worker->priority_task) {
+            void* task = worker->priority_task;
+            worker->priority_task = nullptr;
+            return task;
+        }
+        return queue_pophead(&(worker->local_fifo));
+    }
+}
+
+bool CPUWorker::LocalEmpty(CPUWorker* worker)
+{
+    if (worker->priority_task == nullptr && queue_length(&(worker->local_fifo)) == 0) return true;
+    return false;
+}
+
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
@@ -70,13 +132,19 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         void* local_task = GetTask(worker);
         worker->tick++;
         if (local_task) {
-            if (worker->tick % 2 ==0) worker->ops.TryPoll(worker, 0);
+            if (worker->tick % 51 ==0) worker->ops.TryPoll(worker, 0);
             ffrt_executor_task_t* work = (ffrt_executor_task_t*)local_task;
             RunTaskLifo(work, worker, lastTask);
             continue;
         }
 
-        if (worker->ops.TryPoll(worker, 0)) continue;
+        PollerRet ret = worker->ops.TryPoll(worker, 0);
+        if (ret == PollerRet::RET_EPOLL) {
+            continue;
+        } else if (ret == PollerRet::RET_TIMER) {
+            worker->tick = 0;
+            continue;
+        }
 
         TaskCtx* task = worker->ops.PickUpTaskBatch(worker);
         if (task) {
@@ -86,18 +154,30 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             continue;
         }
 
-        if (worker->ops.TryPoll(worker, 0)) continue;
+        ret = worker->ops.TryPoll(worker, 0);
+        if (ret == PollerRet::RET_EPOLL) {
+            continue;
+        } else if (ret == PollerRet::RET_TIMER) {
+            worker->tick = 0;
+            continue;
+        }
 
         if (queue_length(&(worker->local_fifo)) == 0) {
             buf_len = worker->ops.StealTaskBatch(worker);
         }
-        if (queue_length(&(worker->local_fifo)) != 0) {
+        if (!LocalEmpty(worker)) {
             worker->tick = 1;
             continue;
         }
 
-        if (worker->ops.TryPoll(worker, -1)) continue;
-
+        ret = worker->ops.TryPoll(worker, -1);
+        if (ret == PollerRet::RET_EPOLL) {
+            continue;
+        } else if (ret == PollerRet::RET_TIMER) {
+            worker->tick = 0;
+            continue;
+        }
+        
         FFRT_WORKER_IDLE_BEGIN_MARKER();
         auto action = worker->ops.WaitForNewAction(worker);
         FFRT_WORKER_IDLE_END_MARKER();
@@ -163,58 +243,4 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     worker->ops.WorkerRetired(worker);
 }
 #endif
-
-void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCtx* &lastTask)
-{
-    auto ctx = ExecuteCtx::Cur();
-    if (curtask->type != 0) {
-        ctx->exec_task = curtask;
-        Run(curtask);
-        ctx->exec_task = nullptr;
-    } else {
-        TaskCtx* task = reinterpret_cast<TaskCtx*>(curtask);
-        UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
-        FFRT_LOGD("EU pick task[%lu]", task->gid);
-        task->UpdateState(TaskState::RUNNING);
-
-        lastTask = task;
-        ctx->task = task;
-        worker->curTask = task;
-        Run(task);
-        worker->curTask = nullptr;
-        ctx->task = nullptr;
-    }
-}
-
-void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task,  CPUWorker* worker, TaskCtx* &lastTask)
-{
-    RunTask(task, worker, lastTask);
-    int lifo_count = 0;
-    while (worker->priority_task) {
-        lifo_count++;
-        ffrt_executor_task_t* task = (ffrt_executor_task_t*)(worker->priority_task);
-        worker->priority_task = nullptr;
-        RunTask(task, worker, lastTask);
-        if (lifo_count > worker->budget) {
-            break;
-        }
-    }
-}
-
-void* CPUWorker::GetTask(CPUWorker* worker)
-{
-    if (worker->tick % worker->global_interval == 0) {
-        worker->tick = 0;
-        void* task = worker->ops.PickUpTaskBatch(worker);
-        worker->ops.NotifyTaskPicked(worker);
-        return task ? task : queue_pophead(&(worker->local_fifo));
-    } else {
-        if (worker->priority_task) {
-            void* task = worker->priority_task;
-            worker->priority_task = nullptr;
-            return task;
-        }
-        return queue_pophead(&(worker->local_fifo));
-    }
-}
 } // namespace ffrt

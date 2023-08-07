@@ -39,6 +39,12 @@ struct WakeDataWithCb {
     std::function<void(void *, uint32_t)> cb;
 };
 
+enum class PollerRet {
+    RET_NULL,
+    RET_EPOLL,
+    RET_TIMER,
+};
+
 class Poller : private NonCopyable {
     using WakeDataList = typename std::list<std::unique_ptr<struct WakeDataWithCb>>;
 public:
@@ -48,8 +54,10 @@ public:
     int AddFdEvent(uint32_t events, int fd, void* data, void(*cb)(void*, uint32_t)) noexcept;
     int DelFdEvent(int fd) noexcept;
 
-    bool PollOnce(int timeout = -1) noexcept;
+    PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
+
+    bool RegisterTimerFunc(int(*timerFunc)()) noexcept;
 
 private:
     void ReleaseFdWakeData(int fd) noexcept;
@@ -59,6 +67,7 @@ private:
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
     mutable spin_mutex m_mapMutex;
+    std::function<int()> m_timerFunc();
 #ifndef _MSC_VER
     std::vector<epoll_event> m_events;
 #endif
@@ -80,5 +89,5 @@ public:
 private:
     std::array<Poller, QoS::Max()> qosPollers;
 };
-}
+} // namespace ffrt
 #endif

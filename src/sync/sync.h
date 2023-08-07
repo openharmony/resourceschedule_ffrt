@@ -22,11 +22,9 @@
 #include <mutex>
 #include <condition_variable>
 #include "delayed_worker.h"
-#ifndef _MSC_VER
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
-#endif
 
 namespace ffrt {
 namespace sync_detail {
@@ -60,9 +58,6 @@ public:
     }
 };
 
-#ifdef _MSC_VER
-using fast_mutex = spin_mutex;
-#else
 class fast_mutex {
     int l;
     void lock_contended();
@@ -96,7 +91,6 @@ public:
         }
     }
 };
-#endif
 
 bool DelayedWakeup(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
 } // namespace ffrt

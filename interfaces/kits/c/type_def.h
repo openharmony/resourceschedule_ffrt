@@ -32,6 +32,22 @@
 #define FFRT_C_API
 #endif
 
+typedef enum {
+    ffrt_coroutine_stackless;
+    ffrt_coroutine_stackfull;
+} ffrt_coroutine_t;
+
+typedef enum {
+    ffrt_ready = 1,
+    ffrt_blocked = 3,
+    ffrt_exitedd =4,
+} ffrt_task_status_t;
+
+typedef enum {
+    ffrt_coroutine_pending = 0,
+    ffrt_coroutine_ready = 1,
+} ffrt_coroutine_ret_t;
+
 /**
  * @brief Enumerates the task QoS types.
  *
@@ -47,9 +63,16 @@ typedef enum {
     /** User initiated. */
     ffrt_qos_user_initiated,
 } ffrt_qos_default_t;
+
 typedef int ffrt_qos_t;
 
+typedef enum {
+    ffrt_stack_protect_weak,
+    ffrt_stack_protect_strong,
+} ffrt_stack_protect_t;
+
 typedef void(*ffrt_function_t)(void*);
+typedef void(*ffrt_function_ptr_t)(void*);
 typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
 
 /**
@@ -175,11 +198,13 @@ typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 typedef struct {
     int fd;
     void* data;
     void(*cb)(void*, uint32_t);
 } ffrt_poller_t;
+#endif
 
 typedef enum {
     ffrt_normal_task = 0,

@@ -19,7 +19,7 @@
 #include "core/task_ctx.h"
 #include "eu/worker_thread.h"
 #include "sched/qos.h"
-
+#include "sync/poller.h"
 #define LOCAL_QUEUE_SIZE 128
 #define STEAL_BUFFER_SIZE (LOCAL_QUEUE_SIZE - LOCAL_QUEUE_SIZE /2)
 
@@ -41,7 +41,7 @@ struct CpuWorkerOps {
     std::function<void (const WorkerThread*)> NotifyTaskPicked;
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;
     std::function<void (WorkerThread*)> WorkerRetired;
-    std::function<bool (const WorkerThread*, int timeout)> TryPoll;
+    std::function<PollerRet (const WorkerThread*, int timeout)> TryPoll;
     std::function<void* (WorkerThread*)> StealTask;
     std::function<unsigned int (WorkerThread*)> StealTaskBatch;
     std::function<TaskCtx* (WorkerThread*)> PickUpTaskBatch;

@@ -32,6 +32,7 @@
 #include "task_attr_private.h"
 #include "util/slab.h"
 #include "dfx/bbox/bbox.h"
+#include "executor_task.h"
 
 namespace ffrt {
 typedef struct {

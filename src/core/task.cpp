@@ -30,7 +30,9 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "core/task_io.h"
+#endif
 
 namespace ffrt {
 template <int WITH_HANDLE>
@@ -175,26 +177,6 @@ uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t *attr)
     return (reinterpret_cast<ffrt::task_attr_private *>(p))->delay_;
 }
 
-API_ATTRIBUTE((visibility("default")))
-void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_coroutine_t coroutine_type)
-{
-    if (!attr) {
-        FFRT_LOGE("attr should be a valid address");
-        return;
-    }
-    ((ffrt::task_attr_private*)attr)->coroutine_type_ = coroutine_type;
-}
-
-API_ATTRIBUTE((visibility("default")))
-ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
-{
-    if (!attr) {
-        FFRT_LOGE("attr should be a valid address");
-        return ffrt_coroutine_stackfull;
-    }
-    return ((ffrt::task_attr_private*)attr)->coroutine_type_;
-}
-
 // submit
 API_ATTRIBUTE((visibility("default")))
 void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
@@ -266,6 +248,14 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
         FFRT_LOGE("input task handle is invalid");
         return;
     }
+#ifdef FFRT_IO_TASK_SCHEDULER
+    ffrt_executor_task_t* task = (ffrt_executor_task_t*)handle;
+    if (task->type == ffrt_io_task) {
+        ffrt::ffrt_executor_io_task* io_task = (ffrt::ffrt_exxcutor_io_task);
+        io_task->freeMem();
+        return;
+    }
+#endif
     static_cast<ffrt::TaskCtx*>(handle)->DecDeleteRef();
 }
 
@@ -404,6 +394,10 @@ void ffrt_executor_task_register_func_(ffrt_executor_task_func func, ffrt_execut
 API_ATTRIBUTE((visibility("default")))
 int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
 {
+    if (task == nullptr) {
+        FFRT_LOGE("function handler should not be empty");
+        return 0;
+    }
     ffrt::QoS _qos = ffrt::QoS(qos);
 
     ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);

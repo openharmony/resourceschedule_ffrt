@@ -17,6 +17,7 @@
 #define FFRT_FUNC_MANAGER_HPP
 
 #include "ffrt_inner.h"
+#include "c/executor_task.h"
 
 namespace ffrt {
 class FuncManager {

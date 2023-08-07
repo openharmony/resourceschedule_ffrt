@@ -162,19 +162,6 @@ FFRT_C_API void ffrt_submit_base(ffrt_function_header_t* f, const ffrt_deps_t* i
  */
 FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, const ffrt_deps_t* in_deps,
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,
-    ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-FFRT_C_API ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
-    ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-
-// get
-FFRT_C_API void *ffrt_task_get(void);
-
-// waker
-FFRT_C_API void ffrt_wake_by_handle(void* waker, ffrt_function_ptr_t exec,
-    ffrt_function_ptr_t destroy, ffrt_task_handle_t handle);
-FFRT_C_API void ffrt_set_wake_flag(int flag);
-FFRT_C_API void ffrt_wake_coroutine(void *task);
 
 // skip task
 FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
@@ -199,19 +186,6 @@ FFRT_C_API void ffrt_task_handle_destroy(ffrt_task_handle_t handle);
  */
 FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
 
-// config
-FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
-
-// poller
-FFRT_C_API int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t));
-FFRT_C_API int ffrt_poller_deregister(int fd);
-
-// ffrt_executor_task
-FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name);
-FFRT_C_API void ffrt_executor_task_register_func_(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
-FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
-FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt_qos_t qos);
-
 /**
  * @brief Waits until all submitted tasks are complete.
  *
@@ -219,4 +193,15 @@ FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt
  * @version 1.0
  */
 FFRT_C_API void ffrt_wait(void);
+
+// config
+FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
+#endif
+
+// ffrt_executor_task
+FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name);
+FFRT_C_API void ffrt_executor_task_register_func_(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
+FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
+FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt_qos_t qos);
+
 #endif

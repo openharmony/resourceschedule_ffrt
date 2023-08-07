@@ -69,6 +69,7 @@ typedef int ffrt_qos_t;
  * @brief Defines a task executor.
  *
  */
+typedef void(*ffrt_function_t)(void*);
 typedef struct {
     /** Function used to execute a task. */
     ffrt_function_t exec;
@@ -161,23 +162,6 @@ typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
 
-typedef void* ffrt_thread_t;
-
-typedef void* ffrt_interval_t;
-
-typedef enum {
-    ffrt_sys_event_type_read,
-} ffrt_sys_event_type_t;
-
-typedef enum {
-    ffrt_sys_event_status_no_timeout,
-    ffrt_sys_event_status_timeout
-} ffrt_sys_event_status_t;
-
-typedef void* ffrt_sys_event_handle_t;
-
-typedef void* ffrt_config_t;
-
 #ifdef FFRT_IO_TASK_SCHEDULER
 typedef struct {
     int fd;
@@ -185,21 +169,6 @@ typedef struct {
     void(*cb)(void*, uint32_t);
 } ffrt_poller_t;
 #endif
-
-typedef enum {
-    ffrt_normal_task = 0,
-    ffrt_io_task = 1,
-    ffrt_uv_task
-} ffrt_executor_task_type_t;
-
-// 该任务仅在libuv中提交
-typedef struct ffrt_executor_task {
-    uintptr_t reserved[2];
-    uintptr_t type; // 0: TaskCtx, 1: io task, User Space Address: libuv work
-    void* wq[2];
-} ffrt_executor_task_t;
-
-typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data);
 
 #ifdef __cplusplus
 namespace ffrt {

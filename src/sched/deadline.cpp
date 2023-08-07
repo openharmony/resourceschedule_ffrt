@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "deadline.h"
+#include "cpp/deadline.h"
 #include "c/deadline.h"
 #include "internal_inc/osal.h"
 #include "sched/interval.h"

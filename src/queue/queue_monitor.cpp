@@ -19,7 +19,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
 #include "sync/sync.h"
-#include "ffrt_watchdog.h"
+#include "c/ffrt_watchdog.h"
 
 namespace {
 constexpr uint32_t INVAILD_TASK_ID = 0;
@@ -137,8 +137,8 @@ void QueueMonitor::CheckQueuesStatus()
              ", serial task gid=" << taskId << " execution " << timeoutUs_ << "us.";
             FFRT_LOGE("%s", ss.str().c_str());
 
-            auto func = *ffrt_watchdog_get_cb();
-            if (func != nullptr) {
+            ffrt_watchdog_cb func = ffrt_watchdog_get_cb();
+            if (func) {
                 func(taskId, ss.str().c_str(), ss.str().size());
             }
             // reset timeout task timestampe for next warning

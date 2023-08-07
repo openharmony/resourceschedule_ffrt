@@ -15,7 +15,7 @@
 
 #ifndef OS_ATTR_MANAGER_H
 #define OS_ATTR_MANAGER_H
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "sched/qos.h"
 
 namespace ffrt {

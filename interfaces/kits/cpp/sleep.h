@@ -12,6 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * @file sleep.h
+ *
+ * @brief Declares the sleep and yield interfaces in C++.
+ *
+ * @since 10
+ * @version 1.0
+ */
 #ifndef FFRT_API_CPP_SLEEP_H
 #define FFRT_API_CPP_SLEEP_H
 #include <ctime>

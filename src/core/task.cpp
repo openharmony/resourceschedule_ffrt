@@ -17,7 +17,7 @@
 #include <vector>
 #include <cstdarg>
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "cpp/task.h"
 
 #include "internal_inc/osal.h"

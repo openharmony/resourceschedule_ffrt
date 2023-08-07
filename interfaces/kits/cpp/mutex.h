@@ -12,6 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+ /**
+ * @file mutex.h
+ *
+ * @brief Declares the mutex interfaces in C++.
+ *
+ * @since 10
+ * @version 1.0
+ */
 #ifndef FFRT_API_CPP_MUTEX_H
 #define FFRT_API_CPP_MUTEX_H
 #include "c/mutex.h"

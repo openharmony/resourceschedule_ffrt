@@ -12,19 +12,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_FFRT_INNER_H
-#define FFRT_API_FFRT_INNER_H
-#include "../kits/ffrt.h"
-#ifdef __cplusplus
-#include "cpp/thread.h"
-#include "cpp/future.h"
-#include "cpp/task.h"
-#include "cpp/deadline.h"
-#include "cpp/qos_convert.h"
-#else
-#include "c/task.h"
-#include "c/thread.h"
-#include "c/ffrt_watchdog.h"
-#include "c/executor_task.h"
-#endif
+
+ /**
+ * @file task.h
+ *
+ * @brief Declares the task inner interfaces in C++.
+ *
+ * @since 10
+ * @version 1.0
+ */
+#ifndef FFRT_INNER_API_CPP_TASK_H
+#define FFRT_INNER_API_CPP_TASK_H
+#include <vector>
+#include <string>
+#include <functional>
+#include <memory>
+#include "../c/task.h"
+
+namespace ffrt {
+/**
+ * @brief Skips a task.
+ *
+ * @param handle Indicates a task handle.
+ * @return Returns <b>0</b> if the task is skipped;
+           returns <b>-1</b> otherwise.
+ * @since 10
+ * @version 1.0
+ */
+static inline int skip(task_handle &handle)
+{
+    return ffrt_skip(handle);
+}
+} // namespace ffrt
 #endif

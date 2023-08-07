@@ -12,19 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_FFRT_INNER_H
-#define FFRT_API_FFRT_INNER_H
-#include "../kits/ffrt.h"
-#ifdef __cplusplus
-#include "cpp/thread.h"
-#include "cpp/future.h"
-#include "cpp/task.h"
-#include "cpp/deadline.h"
-#include "cpp/qos_convert.h"
-#else
-#include "c/task.h"
-#include "c/thread.h"
-#include "c/ffrt_watchdog.h"
-#include "c/executor_task.h"
-#endif
-#endif
+#ifndef FFRT_API_CPP_QOS_CONVERT_H
+#define FFRT_API_CPP_QOS_CONVERT_H
+#include "../c/type_def.h"
+
+namespace ffrt {
+constexpr int ERROR_NUM = -1;
+/**
+    @brief get current thread static qos level
+*/
+int GetStaticQos(qos &static_qos);
+
+/**
+    @brief get current thread dynamic qos level
+*/
+int GetDynamicQos(qos &dynamic_qos);
+}; // namespace ffrt
+
+#endif // FFRT_API_CPP_QOS_CONVERT_H

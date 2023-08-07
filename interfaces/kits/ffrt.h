@@ -19,15 +19,12 @@
 #include "cpp/mutex.h"
 #include "cpp/condition_variable.h"
 #include "cpp/sleep.h"
-#include "cpp/thread.h"
-#include "cpp/future.h"
 #include "cpp/queue.h"
 #else
 #include "c/task.h"
 #include "c/mutex.h"
 #include "c/condition_variable.h"
 #include "c/sleep.h"
-#include "c/thread.h"
 #include "c/queue.h"
 #endif
 #endif

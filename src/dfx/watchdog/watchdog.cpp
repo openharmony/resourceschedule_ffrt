@@ -12,32 +12,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "ffrt_watchdog.h"
+#include "c/ffrt_watchdog.h"
 #include "internal_inc/osal.h"
 #include "dfx/bbox/bbox.h"
 
 namespace ffrt {
+constexpr uint32_t DEFAULT_TIMEOUT_MS = 30000;
 struct WatchdogCfg {
-public:
-    explicit WatchdogCfg(ffrt_watchdog_cb* cb, uint32_t timeout_ms = 30000,
-                         uint32_t interval_ms = 30000)
+    static inline WatchdogCfg* Instance()
     {
-        callback = cb;
-        timeout = timeout_ms;
-        interval = interval_ms;
-    }
-    ~WatchdogCfg() {}
-
-    uint32_t timeout;
-    uint32_t interval;
-    ffrt_watchdog_cb *callback;
-
-    static inline WatchdogCfg* Instance(ffrt_watchdog_cb* cb = nullptr, uint32_t timeout_ms = 30000,
-                                        uint32_t interval_ms = 30000)
-    {
-        static WatchdogCfg inst(cb, timeout_ms, interval_ms);
+        static WatchdogCfg inst;
         return &inst;
     }
+
+    uint32_t timeout = DEFAULT_TIMEOUT_MS;
+    uint32_t interval = DEFAULT_TIMEOUT_MS;
+    ffrt_watchdog_cb callback = nullptr;
 };
 }
 
@@ -60,13 +50,15 @@ void ffrt_watchdog_dumpinfo(char *buf, uint32_t len)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_watchdog_register(ffrt_watchdog_cb *cb, uint32_t timeout_ms, uint32_t interval_ms)
+void ffrt_watchdog_register(ffrt_watchdog_cb cb, uint32_t timeout_ms, uint32_t interval_ms)
 {
-    ffrt::WatchdogCfg::Instance(cb, timeout_ms, interval_ms);
+    ffrt::WatchdogCfg::Instance()->callback = cb;
+    ffrt::WatchdogCfg::Instance()->timeout = timeout_ms;
+    ffrt::WatchdogCfg::Instance()->interval = interval_ms;
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_watchdog_cb *ffrt_watchdog_get_cb(void)
+ffrt_watchdog_cb ffrt_watchdog_get_cb(void)
 {
     return ffrt::WatchdogCfg::Instance()->callback;
 }

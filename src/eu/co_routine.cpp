@@ -14,7 +14,6 @@
  */
 
 #include "co_routine.h"
-#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

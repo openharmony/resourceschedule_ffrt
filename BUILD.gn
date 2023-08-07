@@ -20,7 +20,7 @@ if (use_stackless_coroutine) {
   defines += [ "USE_STACKLESS_COROUTINE" ]
 }
 
-if (use_io_old) {
+if (ffrt_io_task_scheuduler) {
   defines += [ "FFRT_IO_TASK_SCHEDULER" ]
 }
 

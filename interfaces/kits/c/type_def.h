@@ -33,8 +33,8 @@
 #endif
 
 typedef enum {
-    ffrt_coroutine_stackless;
-    ffrt_coroutine_stackfull;
+    ffrt_coroutine_stackless,
+    ffrt_coroutine_stackfull,
 } ffrt_coroutine_t;
 
 typedef enum {
@@ -65,11 +65,6 @@ typedef enum {
 } ffrt_qos_default_t;
 
 typedef int ffrt_qos_t;
-
-typedef enum {
-    ffrt_stack_protect_weak,
-    ffrt_stack_protect_strong,
-} ffrt_stack_protect_t;
 
 typedef void(*ffrt_function_t)(void*);
 typedef void(*ffrt_function_ptr_t)(void*);
@@ -172,31 +167,10 @@ typedef struct {
 } ffrt_cond_t;
 
 #define MAX_CPUMAP_LENGTH 100 // this is in c and code style
-typedef struct {
-    int shares;
-    int latency_nice;
-    int uclamp_min;
-    int uclamp_max;
-    int vip_prio;
-    char cpumap[MAX_CPUMAP_LENGTH];
-} ffrt_os_sched_attr;
-
 typedef void* ffrt_thread_t;
 
 typedef void* ffrt_interval_t;
 
-typedef enum {
-    ffrt_sys_event_type_read,
-} ffrt_sys_event_type_t;
-
-typedef enum {
-    ffrt_sys_event_status_no_timeout,
-    ffrt_sys_event_status_timeout
-} ffrt_sys_event_status_t;
-
-typedef void* ffrt_sys_event_handle_t;
-
-typedef void* ffrt_config_t;
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 typedef struct {

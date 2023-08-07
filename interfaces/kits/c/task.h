@@ -196,7 +196,6 @@ FFRT_C_API void ffrt_wait(void);
 
 // config
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
-#endif
 
 // ffrt_executor_task
 FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, const char* name);

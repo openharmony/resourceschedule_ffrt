@@ -243,16 +243,15 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     std::unique_lock lk(ctl.mutex);
     monitor.IntoSleep(thread->GetQos());
     FFRT_LOGD("worker sleep");
-#if !defined(IDLE_WORKER_DESTRUCT)
+#if defined(IDLE_WORKER_DESTRUCT)
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
-        queue_length(&(((CPUWorker *)thread)->local_fifo));}))
+        queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
 #else
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos());}))
+        return tearDown || GetTaskCount(thread->GetQos());})) {
 #endif
-    {
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -260,19 +259,20 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         monitor.TimeoutCount(thread->GetQos());
         FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
-#ifdef FFRT_IO_TASK_SCHEDULER
-        ctl.cv.wait(lk, [this, thread] {
-            return tearDown || GetTaskCount(thread->GetQos()) ||
-            ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
+    }   
 #else
-        ctl.cv.wait(lk, [this, thread] {
-            return tearDown || GetTaskCount(thread->GetQos());});
+#ifdef FFRT_IO_TASK_SCHEDULER
+    ctl.cv.wait(lk, [this, thread] {
+        return tearDown || GetTaskCount(thread->GetQos()) ||
+        ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
+#else
+    ctl.cv.wait(lk, [this, thread] {
+        return tearDown || GetTaskCount(thread->GetQos());});
 #endif
-        monitor.WakeupCount(thread->GetQos());
-        FFRT_LOGD("worker awake");
-        return WorkerAction::RETRY;
+    monitor.WakeupCount(thread->GetQos());
+    FFRT_LOGD("worker awake");
+    return WorkerAction::RETRY;
 #endif /* IDLE_WORKER_DESTRUCT */
-    }
 }
 
 void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)

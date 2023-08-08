@@ -27,7 +27,6 @@
 #include "sched/workgroup_internal.h"
 
 namespace ffrt {
-
 bool CPUWorkerManager::IncWorker(const QoS& qos)
 {
     std::unique_lock lock(groupCtl[qos()].tgMutex);
@@ -209,12 +208,6 @@ void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
         monitor.Notify(qos, TaskNotifyType::TASK_LOCAL);
     }
 }
-
-void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
-{
-    monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
-}
-
 #endif
 
 void CPUWorkerManager::NotifyTaskPicked(const WorkerThread* thread)
@@ -255,11 +248,12 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
-        queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
+        queue_length(&(((CPUWorker *)thread)->local_fifo));}))
 #else
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos());})) {
+        return tearDown || GetTaskCount(thread->GetQos());}))
 #endif
+    {
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -280,6 +274,11 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         return WorkerAction::RETRY;
 #endif /* IDLE_WORKER_DESTRUCT */
     }
+}
+
+void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
+{
+    monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
 }
 
 CPUWorkerManager::CPUWorkerManager() : monitor({

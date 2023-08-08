@@ -19,13 +19,13 @@
 
 typedef enum {
     ffrt_normal_task = 0,
-    ffrt_rust_task = 1,
+    ffrt_io_task = 1,
     ffrt_uv_task // only used to register func for libuv
 } ffrt_executor_task_type_t;
 
 typedef struct ffrt_executor_task {
     uintptr_t reserved[2];
-    uintptr_t type; // 0: TaskCtx, 1: rust task, User Space Address: libuv work
+    uintptr_t type; // 0: TaskCtx, 1: io task, User Space Address: libuv work
     void* wq[2];
 } ffrt_executor_task_t;
 
@@ -58,4 +58,5 @@ FFRT_C_API void ffrt_wake_coroutine(void *task);
 // get
 FFRT_C_API void *ffrt_task_get(void);
 
+#endif
 #endif

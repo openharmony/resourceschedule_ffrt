@@ -70,6 +70,7 @@ typedef int ffrt_qos_t;
  *
  */
 typedef void(*ffrt_function_t)(void*);
+typedef void(*ffrt_function_ptr_t)(void*);
 typedef struct {
     /** Function used to execute a task. */
     ffrt_function_t exec;

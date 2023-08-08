@@ -186,17 +186,17 @@ void CPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
     int taskCount = ops.GetTaskCount(qos);
     FFRT_LOGD("qos[%d] task notify op[%d] cnt[%ld]", (int)qos, (int)notifyType, ops.GetTaskCount(qos));
     switch (notifyType) {
-        case notifyType::TASK_ADDED:
+        case TaskNotifyType::TASK_ADDED:
             if (taskCount > 0) {
                 Poke(qos);
             }
             break;
-        case notifyType::TASK_PICKED:
+        case TaskNotifyType::TASK_PICKED:
             if (taskCount > 0) {
                 Poke(qos);
             }
             break;
-        case notifyType::TASK_LOCAL:
+        case TaskNotifyType::TASK_LOCAL:
             if (taskCount < WakedWorkerNum(qos)) {
                 break;
             }

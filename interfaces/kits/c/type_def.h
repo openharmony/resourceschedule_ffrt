@@ -37,7 +37,16 @@ typedef enum {
     ffrt_coroutine_stackless,
     ffrt_coroutine_with_stack,
 } ffrt_coroutine_t;
+<<<<<<< HEAD
 #endif
+=======
+
+typedef enum {
+    ffrt_ready = 1,
+    ffrt_blocked = 3,
+    ffrt_exitedd = 4,
+} ffrt_task_status_t;
+>>>>>>> 26cbcd1 (rust)
 
 typedef enum {
     ffrt_coroutine_pending = 0,

@@ -231,9 +231,8 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         })) {
 #else
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos());}))
+        return tearDown || GetTaskCount(thread->GetQos());})) {
 #endif
-    {
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;

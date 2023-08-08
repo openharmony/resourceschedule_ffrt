@@ -75,11 +75,11 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data)
     ExecTaskStatus toready_status = ExecTaskStatus::ET_TOREADY;
     std::lock_guard lg(task->lock);
     if (__atomic_compare_exchange_n(&task->status, &executing_status, ExecTaskStatus::ET_PENDING, 0,
-        __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
+            __ATOMIC_SEQ_CST, __ATOMIC_RELAXED)) {
         return;
     }
     if (likely(__atomic_compare_exchange_n(&task->status, &toready_status, ExecTaskStatus::ET_READY, 0,
-        __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
+            __ATOMIC_SEQ_CST, __ATOMIC_RELAXED))) {
 #ifdef ENABLE_LOCAL_QUEUE
         if (ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(task)) return;
         if (ffrt::ExecuteCtx::Cur()->local_fifo == nullptr ||
@@ -240,11 +240,11 @@ void ffrt_wake_coroutine(void *taskin)
     FFRT_LOGD("ffrt wake loop %d", task->status);
     std::lock_guard lg(task->lock);
     if (__atomic_compare_exchange_n(&task->status, &executing_status, ffrt::ExecTaskStatus::ET_TOREADY, 0,
-        __ATOMIC_SET_CST, __ATOMIC_RELAXED)) {
+            __ATOMIC_SEQ_CST, __ATOMIC_RELAXED)) {
         return;
     }
     if (__atomic_compare_exchange_n(&task->status, &pending_status, ffrt::ExecTaskStatus::ET_READY, 0,
-        __ATOMIC_SET_CST, __ATOMIC_RELAXED)) {
+            __ATOMIC_SEQ_CST, __ATOMIC_RELAXED)) {
 #ifdef ENABLE_LOCAL_QUEUE
         if (ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(task)) return;
         if (rand()%5) {

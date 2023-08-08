@@ -64,7 +64,9 @@ public:
     }
 
     void NotifyTaskAdded(const QoS& qos) override;
+#ifdef FFRT_IO_TASK_SCHEDULER
     void NotifyLocalTaskAdded(const QoS& qos) override;
+#endif  
 
     std::mutex* GetSleepCtl(int qos) override
     {
@@ -110,7 +112,7 @@ private:
     CPUMonitor monitor;
     WorkerSleepCtl sleepCtl[QoS::Max()];
     bool tearDown = false;
-    
+
 #ifdef FFRT_IO_TASK_SCHEDULER
     void WorkerSetup(WorkerThread* thread, const QoS& qos);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);

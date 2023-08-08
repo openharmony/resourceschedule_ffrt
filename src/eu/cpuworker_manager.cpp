@@ -107,11 +107,11 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         if (queue_pushtail(&(((CPUWorker *)thread)->local_fifo), task2local) == ERROR_QUEUE_FULL) {
             if (((CPUWorker *)thread)->priority_task == nullptr) {
                 ((CPUWorker *)thread)->priority_task = task2local;
+            } else {
+                FFRTScheduler::Instance()->InsertNodeNoMutex((ffrt_executor_task *)(task2local), thread->GetQos());
             }
-        } else {
-            FFRTScheduler::Instance()->InsertNodeNoMutex((ffrt_executor_task *)(task2local), thread->GetQos());
+            return task;
         }
-        return task;
     }
     return task;
 }
@@ -168,7 +168,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
         groupCtl[thread->GetQos()].threads.begin();
     while (iter != groupCtl[thread->GetQos()].threads.end()) {
-        struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
+        struct queue_s *queue = &(((CPUWorker *)(iter->first))->local_fifo);
         if (iter->first != thread && queue_length(queue) > 1) {
             unsigned int buf_len = queue_pophead_batch(queue, (((CPUWorker *)thread)->steal_buffer),
             queue_length(queue) / 2);

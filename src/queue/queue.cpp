@@ -65,7 +65,7 @@ int queue_pushtail(struct queue_s *queue, void *object)
 int queue_init(struct queue_s *queue, unsigned int capacity)
 {
     if (capacity == 0) {
-        return ERROR_QUEUE_AVG_INVALID;
+        return ERROR_QUEUE_ARG_INVALID;
     }
     queue->buf = (void **)malloc(sizeof(void *) * (capacity));
     if (queue->buf == nullptr) {

@@ -194,7 +194,4 @@ FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
  */
 FFRT_C_API void ffrt_wait(void);
 
-// config
-FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
-
 #endif

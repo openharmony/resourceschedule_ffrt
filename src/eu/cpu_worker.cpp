@@ -101,15 +101,14 @@ void* CPUWorker::GetTask(CPUWorker* worker)
         worker->tick = 0;
         void* task = worker->ops.PickUpTaskBatch(worker);
         worker->ops.NotifyTaskPicked(worker);
-        return task ? task : queue_pophead(&(worker->local_fifo));
-    } else {
-        if (worker->priority_task) {
-            void* task = worker->priority_task;
-            worker->priority_task = nullptr;
-            return task;
-        }
-        return queue_pophead(&(worker->local_fifo));
+        if (task) return task;
     }
+    if (worker->priority_task) {
+        void* task = worker->priority_task;
+        worker->priority_task = nullptr;
+        return task;
+    }
+    return queue_pophead(&(worker->local_fifo));
 }
 
 bool CPUWorker::LocalEmpty(CPUWorker* worker)
@@ -177,7 +176,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             worker->tick = 0;
             continue;
         }
-        
+
         FFRT_WORKER_IDLE_BEGIN_MARKER();
         auto action = worker->ops.WaitForNewAction(worker);
         FFRT_WORKER_IDLE_END_MARKER();

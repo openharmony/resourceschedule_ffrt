@@ -35,16 +35,6 @@ public:
         Join();
     }
 
-    void EnablePoll()
-    {
-        this->poll = true;
-    }
-
-    bool PollEnable() const
-    {
-        return poll;
-    }
-
     bool Idle() const
     {
         return idle;
@@ -119,7 +109,6 @@ private:
 
     QoS qos;
     std::thread thread;
-    std::atomic_bool poll {false};
 };
 } // namespace ffrt
 #endif

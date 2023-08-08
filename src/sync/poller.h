@@ -67,7 +67,7 @@ private:
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
     mutable spin_mutex m_mapMutex;
-    std::function<int()> m_timerFunc();
+    std::function<int()> m_timerFunc;
 #ifndef _MSC_VER
     std::vector<epoll_event> m_events;
 #endif

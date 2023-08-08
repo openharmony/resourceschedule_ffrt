@@ -30,6 +30,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
+#include "sync/poller.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "core/task_io.h"
 #endif
@@ -359,6 +360,26 @@ int ffrt_poller_deregister(int fd)
         qos = ffrt::ExecuteCtx::Cur()->task->qos;
     }
     return ffrt::PollerProxy::Instance()->GetPoller(qos).DelFdEvent(fd);
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_poller_wakeup()
+{
+    ffrt_qos_t qos = ffrt_qos_default;
+    if (ffrt::ExecuteCtx::Cur()->task) {
+        qos = ffrt::ExecuteCtx::Cur()->task->qos;
+    }
+    ffrt::PollerProxy::Instance()->GetPoller(qos).WakeUp();
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_poller_register_timerfunc(int(*timerFunc)())
+{
+    ffrt_qos_t qos = ffrt_qos_default;
+    if (ffrt::ExecuteCtx::Cur()->task) {
+        qos = ffrt::ExecuteCtx::Cur()->task->qos;
+    }
+    ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimerFunc(timerFunc);
 }
 
 API_ATTRIBUTE((visibility("default")))

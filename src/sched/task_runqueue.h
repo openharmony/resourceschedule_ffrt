@@ -74,12 +74,17 @@ private:
             return nullptr;
         }
         auto node = list.PopFront();
-        ffrt_executor_task_t* w = (ffrt_executor_task_t *) ((char *)(node) - offsetof(ffrt_executor_task_t, wq));
+        if (node == nullptr) {
+            return nullptr;
+        }
+
+        ffrt_executor_task_t* w = reinterpret_cast<ffrt_executor_task_t *>(reinterpret_cast<char *>(node) -
+            offsetof(ffrt_executor_task_t, wq));
         if (w->type != 0) {
             w->wq[0] = &w->wq;
             w->wq[1] = &w->wq;
             size--;
-            return (TaskCtx *)w;
+            return reinterpret_cast<TaskCtx *>(w);
         }
 
         auto entry = node->ContainerOf(&WaitEntry::node);

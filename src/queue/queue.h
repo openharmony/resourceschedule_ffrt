@@ -26,15 +26,15 @@ extern "C" {
 
 #define MID_QUEUE               MID_MAKE(2)
 
-#define ERROR_QUEUE_FULL ((MID_QUEUE) | 0X01)
+#define ERROR_QUEUE_FULL ((MID_QUEUE) | 0x01)
 
-#define ERROR_QUEUE_EMPTY ((MID_QUEUE) | 0X02)
+#define ERROR_QUEUE_EMPTY ((MID_QUEUE) | 0x02)
 
-#define ERROR_QUEUE_BUF_ALLOC_FAILED ((MID_QUEUE) | 0X03)
+#define ERROR_QUEUE_BUF_ALLOC_FAILED ((MID_QUEUE) | 0x03)
 
-#define ERROR_QUEUE_AVG_INVALID ((MID_QUEUE) | 0X04)
+#define ERROR_QUEUE_ARG_INVALID ((MID_QUEUE) | 0x04)
 
-#define ERROR_QUEUE_BUF_UNINITIALIZED ((MID_QUEUE) | 0X05)
+#define ERROR_QUEUE_BUF_UNINITIALIZED ((MID_QUEUE) | 0x05)
 
 struct queue_s {
     std::atomic<unsigned int> head;

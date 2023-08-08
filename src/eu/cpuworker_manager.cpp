@@ -39,7 +39,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::NotifyTaskPicked, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerIdleAction, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerRetired, this, std::placeholders::_1),
-#ifdef FFER_IO_TASK_SCHEDULER
+#ifdef FFRT_IO_TASK_SCHEDULER
         std::bind(&CPUWorkerManager::TryPoll, this, std::placeholders::_1, std::placeholders::_2),
         std::bind(&CPUWorkerManager::StealTask, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::StealTaskBatch, this, std::placeholders::_1),
@@ -82,11 +82,10 @@ TaskCtx* CPUWorkerManager::PickUpTask(WorkerThread* thread)
     auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
-    TaskCtx* task = sched.PickNextTask();
-    return task;
+    return sched.PickNextTask();
 }
 
-#ifdef FFER_IO_TASK_SCHEDULER
+#ifdef FFRT_IO_TASK_SCHEDULER
 TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
@@ -107,7 +106,7 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         }
         if (queue_pushtail(&(((CPUWorker *)thread)->local_fifo), task2local) == ERROR_QUEUE_FULL) {
             if (((CPUWorker *)thread)->priority_task == nullptr) {
-                ((CPUWorker *)thread)->priority_task == task2local;
+                ((CPUWorker *)thread)->priority_task = task2local;
             }
         } else {
             FFRTScheduler::Instance()->InsertNodeNoMutex((ffrt_executor_task *)(task2local), thread->GetQos());
@@ -142,7 +141,7 @@ void* CPUWorkerManager::StealTask(WorkerThread* thread)
         return nullptr;
     }
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2
-        || (!StealEnable[thread->GetQos()].load(std::memory_order_acquire))) {
+        || (!stealEnable[thread->GetQos()].load(std::memory_order_acquire))) {
             return 0;
         }
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =

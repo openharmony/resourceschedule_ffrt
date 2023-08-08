@@ -261,7 +261,7 @@ void CPUMonitor::Poke(const QoS& qos)
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
 #ifdef FFRT_IO_TASK_SCHEDULER
-    if (taskCount < workerCtrl.executionNum) {
+    if (workerCtrl.executionNum > 4 && ops.GetTaskCount(qos) < workerCtrl.executionNum) {
         workerCtrl.lock.unlock();
         return;
     }

@@ -238,13 +238,13 @@ void ffrt_wake_coroutine(void *taskin)
     ffrt::ExecTaskStatus executing_status = ffrt::ExecTaskStatus::ET_EXECUTING;
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;
     FFRT_LOGD("ffrt wake loop %d", task->status);
-    std::lock_guadr lg(task->lock);
+    std::lock_guard lg(task->lock);
     if (__atomic_compare_exchange_n(&task->status, &executing_status, ffrt::ExecTaskStatus::ET_TOREADY, 0,
-        __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
+        __ATOMIC_SET_CST, __ATOMIC_RELAXED)) {
         return;
     }
     if (__atomic_compare_exchange_n(&task->status, &pending_status, ffrt::ExecTaskStatus::ET_READY, 0,
-        __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
+        __ATOMIC_SET_CST, __ATOMIC_RELAXED)) {
 #ifdef ENABLE_LOCAL_QUEUE
         if (ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(task)) return;
         if (rand()%5) {
@@ -274,7 +274,7 @@ void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_coroutine_t 
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    ((ffrt::task_attr_private*)attr)->coroutine_type_ = coroutine_type;
+    return;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -284,7 +284,7 @@ ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
         FFRT_LOGE("attr should be a valid address");
         return ffrt_coroutine_stackfull;
     }
-    return ((ffrt::task_attr_private*)attr)->coroutine_type_;
+    return ffrt_coroutine_stackless;
 }
 #ifdef __cplusplus
 }

@@ -140,7 +140,7 @@ void Poller::WakeUp() noexcept
 bool Poller::RegisterTimerFunc(int(*timerFunc)()) noexcept
 {
     if (m_timerFunc == nullptr) {
-        m_timerFunc == timerFunc;
+        m_timerFunc = timerFunc;
         return true;
     }
     return false;

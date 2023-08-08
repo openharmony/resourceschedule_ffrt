@@ -238,7 +238,7 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
-        monitor.IntoPollWait(thread->GetQos());
+        monitor.TimeoutCount(thread->GetQos());
         FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
     }

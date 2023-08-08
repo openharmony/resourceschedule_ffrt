@@ -232,8 +232,9 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         })) {
 #else
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos());})) {
+        return tearDown || GetTaskCount(thread->GetQos());}))
 #endif
+    {
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -268,6 +269,11 @@ void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
     if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0){
         monitor.Notify(qos, TaskNotifyType::TASK_LOCAL);
     }
+}
+
+void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
+{
+    monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
 }
 
 CPUWorkerManager::CPUWorkerManager() : monitor({

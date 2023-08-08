@@ -122,7 +122,7 @@ private:
     void TryMoveLocal2Global(WorkerThread* thread);
     fast_mutex pollersMtx[QoS::Max()];
     std::array<std::atomic<bool>, QoS::Max()> pollersExitFlag {false};
-    std::array<std::atomic<bool>, QoS::Max()> StealEnable {true};
+    std::array<std::atomic<bool>, QoS::Max()> stealEnable {true};
     std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
 #endif
 };

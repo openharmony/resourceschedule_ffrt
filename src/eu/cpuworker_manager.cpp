@@ -81,8 +81,7 @@ TaskCtx* CPUWorkerManager::PickUpTask(WorkerThread* thread)
     auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
-    TaskCtx* task = sched.PickNextTask();
-    return task;
+    return sched.PickNextTask();
 }
 
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -106,8 +105,16 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         TaskCtx* task2local = sched.PickNextTask();
         if (task2local == nullptr) {
             return task;
+<<<<<<< HEAD
         if (((CPUWorker *)thread)->priority_task == nullptr) {
             ((CPUWorker *)thread)->priority_task = task2local;
+=======
+        }
+        if (queue_pushtail(&(((CPUWorker *)thread)->local_fifo), task2local) == ERROR_QUEUE_FULL) {
+            if (((CPUWorker *)thread)->priority_task == nullptr) {
+                ((CPUWorker *)thread)->priority_task = task2local;
+            }
+>>>>>>> f73bd24 (rust)
         } else {
             int ret = queue_pushtail(queue, task2local);
         }
@@ -134,6 +141,29 @@ void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
     
 }
 
+<<<<<<< HEAD
+=======
+void* CPUWorkerManager::StealTask(WorkerThread* thread)
+{
+    if (tearDown) {
+        return nullptr;
+    }
+    if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2
+        || (!stealEnable[thread->GetQos()].load(std::memory_order_acquire))) {
+            return 0;
+        }
+    std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
+        groupCtl[thread->GetQos()].threads.begin();
+    while (iter != groupCtl[thread->GetQos()].threads.end()) {
+        if (iter->first != thread && queue_prob(&((CPUWorker *)(iter->first))->local_fifo) > 0) {
+            return queue_pophead(&((CPUWorker *)(iter->first))->local_fifo);
+        }
+        iter++;
+    }
+    return nullptr;
+}
+
+>>>>>>> f73bd24 (rust)
 unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {

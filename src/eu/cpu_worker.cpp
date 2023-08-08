@@ -21,14 +21,10 @@
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
 #include "core/dependence_manager.h"
-<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "queue/queue.h"
 #endif
-=======
-#include "sync/poller.h"
->>>>>>> 24d1535 (rust)
 
 namespace ffrt {
 void CPUWorker::Run(TaskCtx* task)
@@ -132,70 +128,6 @@ bool CPUWorker::LocalEmpty(CPUWorker* worker)
     return false;
 }
 
-<<<<<<< HEAD
-=======
-#ifdef FFRT_IO_TASK_SCHEDULER
-void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCtx* &lastTask)
-{
-    auto ctx = ExecuteCtx::Cur();
-    if (curtask->type != 0) {
-        ctx->exec_task = curtask;
-        Run(curtask);
-        ctx->exec_task = nullptr;
-    } else {
-        TaskCtx* task = reinterpret_cast<TaskCtx*>(curtask);
-        UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
-        FFRT_LOGD("EU pick task[%lu]", task->gid);
-        task->UpdateState(TaskState::RUNNING);
-
-        lastTask = task;
-        ctx->task = task;
-        worker->curTask = task;
-        Run(task);
-        worker->curTask = nullptr;
-        ctx->task = nullptr;
-    }
-}
-
-void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task,  CPUWorker* worker, TaskCtx* &lastTask)
-{
-    RunTask(task, worker, lastTask);
-    int lifo_count = 0;
-    while (worker->priority_task) {
-        lifo_count++;
-        ffrt_executor_task_t* task = (ffrt_executor_task_t*)(worker->priority_task);
-        worker->priority_task = nullptr;
-        RunTask(task, worker, lastTask);
-        if (lifo_count > worker->budget) {
-            break;
-        }
-    }
-}
-
-void* CPUWorker::GetTask(CPUWorker* worker)
-{
-    if (worker->tick % worker->global_interval == 0) {
-        worker->tick = 0;
-        void* task = worker->ops.PickUpTaskBatch(worker);
-        worker->ops.NotifyTaskPicked(worker);
-        return task ? task : queue_pophead(&(worker->local_fifo));
-    } else {
-        if (worker->priority_task) {
-            void* task = worker->priority_task;
-            worker->priority_task = nullptr;
-            return task;
-        }
-        return queue_pophead(&(worker->local_fifo));
-    }
-}
-
-bool CPUWorker::LocalEmpty(CPUWorker* worker)
-{
-    if (worker->priority_task == nullptr && queue_length(&(worker->local_fifo)) == 0) return true;
-    return false;
-}
-
->>>>>>> 24d1535 (rust)
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
@@ -255,11 +187,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             worker->tick = 0;
             continue;
         }
-<<<<<<< HEAD
-
-=======
-        
->>>>>>> 24d1535 (rust)
         FFRT_WORKER_IDLE_BEGIN_MARKER();
         auto action = worker->ops.WaitForNewAction(worker);
         FFRT_WORKER_IDLE_END_MARKER();

@@ -40,7 +40,7 @@ typedef enum {
 typedef enum {
     ffrt_ready = 1,
     ffrt_blocked = 3,
-    ffrt_exitedd =4,
+    ffrt_exitedd = 4,
 } ffrt_task_status_t;
 
 typedef enum {

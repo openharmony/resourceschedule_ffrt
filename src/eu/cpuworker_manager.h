@@ -66,7 +66,7 @@ public:
     void NotifyTaskAdded(const QoS& qos) override;
 #ifdef FFRT_IO_TASK_SCHEDULER
     void NotifyLocalTaskAdded(const QoS& qos) override;
-#endif  
+#endif
 
     std::mutex* GetSleepCtl(int qos) override
     {

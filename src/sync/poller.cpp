@@ -46,7 +46,7 @@ int Poller::AddFdEvent(uint32_t events, int fd, void* data, void(*cb)(void*, uin
 {
     auto wakeData = std::unique_ptr<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb));
     epoll_event ev = {.events = events, .data = {.ptr = static_cast<void*>(wakeData.get())}};
-
+    
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
         FFRT_LOGE("epoll_ctl add fd error: efd = %d, fd = %d, errorno = %d", m_epFd, fd, errno);
         return -1;

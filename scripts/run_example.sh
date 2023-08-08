@@ -20,6 +20,7 @@ mkdir build && cd build
 
 cmake .. \
     -DFFRT_EXAMPLE=ON \
+    -DFFRT_IO_TASK_SCHEDULER=ON \
 
 make -j ffrt
 make -j

@@ -259,7 +259,7 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         monitor.TimeoutCount(thread->GetQos());
         FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
-    }   
+    }
 #else
 #ifdef FFRT_IO_TASK_SCHEDULER
     ctl.cv.wait(lk, [this, thread] {

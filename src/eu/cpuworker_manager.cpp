@@ -257,7 +257,7 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
-        monitor.IntoPollWait(thread->GetQos());
+        monitor.TimeoutCount(thread->GetQos());
         FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -268,7 +268,7 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         ctl.cv.wait(lk, [this, thread] {
             return tearDown || GetTaskCount(thread->GetQos());});
 #endif
-        monitor.OutOfPollWait(thread->GetQos());
+        monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
 #endif /* IDLE_WORKER_DESTRUCT */

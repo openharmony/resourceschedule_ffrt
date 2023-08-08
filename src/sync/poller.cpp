@@ -93,7 +93,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;
     PollerRet ret = PollerRet::RET_NULL;
-    if (m_timerFunc ! = nullptr) {
+    if (m_timerFunc != nullptr) {
         int nextTimeout = m_timerFunc();
         if (nextTimeout == 0) {
             return PollerRet::RET_TIMER;

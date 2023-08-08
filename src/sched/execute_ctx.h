@@ -25,6 +25,7 @@
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "queue/queue.h"
 #include "c/type_def.h"
+#include "c/executor_task.h"
 #endif
 
 namespace ffrt {

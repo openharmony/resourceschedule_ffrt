@@ -42,7 +42,7 @@ FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt
 FFRT_C_API int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t));
 FFRT_C_API int ffrt_poller_deregister(int fd);
 FFRT_C_API int ffrt_poller_resgister_timerfunc(int(*timerFunc)());
-FFRT_C_API int ffrt_poller_wakeup();
+FFRT_C_API void ffrt_poller_wakeup();
 
 FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,
     ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);

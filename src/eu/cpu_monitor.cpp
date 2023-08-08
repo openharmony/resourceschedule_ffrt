@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
+#include "sync/poller.h"
 #include "sched/scheduler.h"
 #include "eu/wgcm.h"
 #include "eu/execute_unit.h"
@@ -280,7 +281,7 @@ void CPUMonitor::Poke(const QoS& qos)
     } else {
 #ifdef FFRT_IO_TASK_SCHEDULER
         if (workerCtrl.pollWaitFlag) {
-            PollerProxy::Instance()->GetPoller(qos).Wakeup();
+            PollerProxy::Instance()->GetPoller(qos).WakeUp();
         }
 #endif
         workerCtrl.lock.unlock();

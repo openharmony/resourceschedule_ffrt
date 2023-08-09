@@ -99,7 +99,7 @@ struct ExecuteCtx {
             return false;
         }
         if (*priority_task_ptr == nullptr) {
-            *priority_task_ptr == task;
+            *priority_task_ptr = task;
             return true;
         }
         return false;

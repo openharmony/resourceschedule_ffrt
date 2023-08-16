@@ -14,10 +14,23 @@
  */
 
 /**
+ * @addtogroup Ffrt
+ * @{
+ *
+ * @brief ffrt provides APIs.
+ *
+ *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ *
+ * @since 10
+ */
+ 
+/**
  * @file queue.h
  *
  * @brief Declares the queue interfaces in C.
  *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */

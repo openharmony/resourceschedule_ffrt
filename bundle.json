@@ -28,6 +28,7 @@
                 "hisysevent",
                 "hitrace",
                 "ipc",
+                "napi",
                 "frame_aware_sched",
                 "faultloggerd"
             ],
@@ -38,7 +39,8 @@
         },
         "build": {
             "sub_component": [
-                "//foundation/resourceschedule/ffrt:libffrt"
+                "//foundation/resourceschedule/ffrt:libffrt",
+                "//foundation/resourceschedule/ffrt:ffrt_ndk"
             ],
             "inner_kits": [
                 {

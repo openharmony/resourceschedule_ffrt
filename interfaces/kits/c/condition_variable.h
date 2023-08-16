@@ -13,11 +13,24 @@
  * limitations under the License.
  */
 
+/**
+ * @addtogroup Ffrt
+ * @{
+ *
+ * @brief ffrt provides APIs.
+ *
+ *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ *
+ * @since 10
+ */
+
  /**
  * @file condition_variable.h
  *
  * @brief Declares the condition variable interfaces in C.
  *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
@@ -33,6 +46,7 @@
  * @param attr Indicates a pointer to the condition variable attribute.
  * @return Returns <b>ffrt_thrd_success</b> if the condition variable is initialized;
            returns <b>ffrt_thrd_error</b> otherwise.
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
@@ -44,6 +58,7 @@ FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
  * @param cond Indicates a pointer to the condition variable.
  * @return Returns <b>ffrt_thrd_success</b> if the thread is unblocked;
            returns <b>ffrt_thrd_error</b> otherwise.
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
@@ -55,6 +70,7 @@ FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
  * @param cond Indicates a pointer to the condition variable.
  * @return Returns <b>ffrt_thrd_success</b> if the threads are unblocked;
            returns <b>ffrt_thrd_error</b> otherwise.
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
@@ -67,6 +83,7 @@ FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
  * @param mutex Indicates a pointer to the mutex.
  * @return Returns <b>ffrt_thrd_success</b> if the thread is unblocked after being blocked;
            returns <b>ffrt_thrd_error</b> otherwise.
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */

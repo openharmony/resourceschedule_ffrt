@@ -71,7 +71,7 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId)
             QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
         }
     }
-    FFRT_LOGD("queue registration in monitor gid=%u by skip succ", queueId)
+    FFRT_LOGD("queue registration in monitor gid=%u by skip succ", queueId);
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 

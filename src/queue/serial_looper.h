@@ -34,8 +34,16 @@ class SerialLooper : public NonCopyable {
 public:
     SerialLooper(const char* name, int qos, uint64_t timeout = 0, ffrt_function_header_t* timeoutCb = nullptr);
     ~SerialLooper();
+    
     void Quit();
-    std::shared_ptr<SerialQueue> queue_;
+    inline uint32_t GetQueueId() const
+    {
+        return qid_;
+    }
+    inline std::shared_ptr<SerialQueue> GetQueueIns() const
+    {
+        return queue_;
+    }
 
 private:
     void Run();
@@ -45,6 +53,7 @@ private:
     std::string name_ = "serial_queue_";
     std::atomic_bool isExit_ = {false};
     task_handle handle;
+    std::shared_ptr<SerialQueue> queue_;
     // for timeout watchdog
     const uint32_t qid_;
     const uint64_t timeout_;

@@ -173,8 +173,8 @@ void ffrt_queue_wait(ffrt_task_handle_t handle)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_cancel(ffrt_task_handle_t handle)
 {
-    FFRT_COND_DO_ERR((handle == nullptr), return -1, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR((handle == nullptr), return -1, "input invalid, handle is nullptr");
     SerialTask* task = static_cast<SerialTask*>(handle);
-    FFRT_COND_DO_ERR((task->handler_ == nullptr), return -1, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR((task->handler_ == nullptr), return -1, "input invalid, task->handler_ is nullptr");
     return task->handler_->Cancel(task);
 }

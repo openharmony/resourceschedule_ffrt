@@ -59,14 +59,6 @@ QueueMonitor& QueueMonitor::GetInstance()
 void QueueMonitor::RegisterQueueId(uint32_t queueId)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-	// std::unique_lock lock(mutex_);
-    // if (queueId != QueuesRunningInfo.size()) {
-    //     FFRT_LOGE("error may cause incorrect watchdog information, QueuesRunningInfo.size() != queueId, %llu vs %u",
-    //         QueuesRunningInfo.size(), queueId);
-    // }
-    
-    // QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
-
     if (queueId == QueuesRunningInfo.size()) {
         QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
         FFRT_LOGD("queue registration in monitor gid=%u in turn succ", queueId);

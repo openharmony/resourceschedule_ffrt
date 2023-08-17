@@ -66,7 +66,6 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId)
     }
 
     // only need to ensure that the corresponding info index has been initialized after constructed.
-
     if (queueId > QueuesRunningInfo.size()) {
         for (uint32_t i = QueuesRunningInfo.size(); i <= queueId; ++i) {
             QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));

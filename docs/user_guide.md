@@ -416,8 +416,6 @@ enum qos {
     qos_utility,
     qos_default,
     qos_user_initiated,
-    qos_deadline_request,
-    qos_user_interactive,
 };
 
 class task_attr {
@@ -557,7 +555,7 @@ handle wait
 x = 3
 ```
 
-### get_id [稳定] [计划开源]
+### get_id
 
 <hr/>
 
@@ -800,7 +798,7 @@ public:
 * mutex互斥量
 `tp`
 * 等待时间
-`sleep_ime`
+`sleep_time`
 * 等待时间
 `pred`
 * 检查是否等待函数
@@ -854,143 +852,6 @@ a=1
 ```
 
 * 该例子为功能示例，实际中并不鼓励这样使用
-
-
-
-## 区间截止时间调度
-
-用户在使用FFRT时，可以指明对于程序片段的预期执行时间上限，即截止时间(deadline)。截止时间会被系统用于任务调度、资源供给调节，以确保在满足性能要求的同时最小化能量消耗
-
-当前的API中，截止时间是区间(interval)的属性。下列API的价值在于创建或销毁区间，开启或终止区间。区间开启和终止之间的程序片段将被自动识别为区间的一部分
-
-根据interval触发的条件不同，分为两种通用的interval和frame_interval，前者可以指定任意的调度间隔，后者的调度间隔为绘帧间隔
-
-### interval
-
-<hr/>
-
-#### 声明
-
-```{.cpp}
-namespace ffrt {
-using interval = void*;
-
-interval interval_create(uint64_t deadline_us, enum qos = qos_deadline_request);
-void interval_destroy(interval it);
-int interval_update(interval it, uint64_t deadline_us);
-int interval_begin(interval it);
-int interval_end(interval it);
-int interval_join(interval it);
-int interval_leave(interval it);
-}
-```
-
-#### 参数
-
-`deadline_us`
-
-* 该参数描述期望interval对应在deadline_us微秒内运行结束
-
-`qos`
-
-* 该参数描述interval对应的qos等级，该参数为可选参数，默认值为qos_deadline_request
-
-`it`
-
-* 该参数描述操作的interval对象
-
-#### 返回值
-
-* 新创建的interval对象或操作状态
-
-#### 描述
-
-`interval_create`
-
-* 创建一个interval对象，表述指定deadline时间约束
-* 限制
-  * 调度资源创建达到上限，则创建interval失败，返回空指针
-  * 由于资源限制，部分平台创建interval指定的qos等级必须为qos_deadline_request，否则创建失败返回空指针
-
-`interval_destroy`
-
-* 销毁一个interval对象，释放相关资源
-* 限制
-  * it为空，操作无效
-
-`interval_update`
-
-* 更新一个interval对象的deadline性能hint，下一周期生效
-* 限制
-  * it为空，操作无效，返回ffrt_error
-  * 非qos_deadline_request 级别的interval调用该接口，在某些平台上可能会返回ffrt_error
-
-`interval_begin`
-
-* 标识当前区间的开始。其底层实现因平台、操作系统等而异，可能的行为包括开始负载追踪等
-* 限制
-  * 不允许重复begin，begin后会set flag，end后reset flag，在flag为true时begin会返回ffrt_error
-  * it为空，操作无效，返回ffrt_error
-  * 非qos_deadline_request 级别的interval调用该接口，在某些平台上可能会返回ffrt_error
-
-`interval_end`
-
-* 标识当前区间的结束。其底层实现因平台、操作系统等而异，可能的行为包括停止负载追踪等
-* 区间对应于程序片段，因此对于通过submit()接口异步提交的任务，如果需要确保其属于当前的区间，那么需要在区间结束前主动调用wait()类型的接口，确保程序片段的执行回到同步状态，否则相应的异步任务可能会被当前区间漏过
-* 限制
-  * it为空，操作无效，返回ffrt_error
-  * 非qos_deadline_request 级别的interval调用该接口，在某些平台上可能会返回ffrt_error
-
-`interval_join`
-* 用于将当前线程主动加入到interval对应的调度组
-* 限制
-  * 在UI/Render等non-worker线程调用有效，在worker上调用无效，返回ffrt_error
-
-`interval_leave`
-* 用于将当前线程主动移出interval对应的调度组
-* 限制
-  * 在UI/Render等non-worker线程调用有效，在worker上调用无效，返回ffrt_error
-
-#### 样例
-
-
-```{.cpp}
-#include <iostream>
-#include "ffrt.h"
-#include "deadline.h"
-
-int main(int narg, char** argv)
-{
-    constexpr uint32_t SLICE_NUM = 24;
-    constexpr uint32_t BUFFER_NUM = 2;
-    int input[SLICE_NUM]; // input is split into SLICE_NUM slices
-    int pre_outbuf[BUFFER_NUM]; // gpu pre task output buffers
-    int npu_outbuf[BUFFER_NUM]; // npu output buffers
-    int output[SLICE_NUM]; // output is split into SLICE_NUM slices
-
-    auto gpuPreTask = [] {}; // stub code
-    auto npuTask = [] {}; // stub code
-    auto gpuPostTask = [] {}; // stub code
-
-    uint64_t deadline_us = 16600; // 16.6ms
-    auto it = ffrt::interval_create(deadline_us, ffrt::qos_deadline_request);
-    for (uint32_t f = 0; f < 1000; f++) { // 1000 frames
-        ffrt::interval_begin(it);  
-        for (uint32_t i = 0; i < SLICE_NUM; i++) {
-            uint32_t buf_id = i % BUFFER_NUM;
-            ffrt::submit(gpuPreTask, {input + i}, {pre_outbuf + buf_id}, ffrt::task_attr().qos(ffrt::qos_deadline_request));
-            ffrt::submit(npuTask, {pre_outbuf + buf_id}, {npu_outbuf + buf_id}, ffrt::task_attr().qos(ffrt::qos_deadline_request));
-            ffrt::submit(gpuPostTask, {npu_outbuf + buf_id}, {output + i}, ffrt::task_attr().qos(ffrt::qos_deadline_request));
-        }
-
-        // wait for all tasks
-        ffrt::wait();
-        ffrt::interval_end(it);
-    }
-    ffrt::interval_destroy(it);
-    return 0;
-}
-```
 
 ## 杂项
 
@@ -1119,7 +980,7 @@ int main(int narg, char** argv)
 
 # C API
 
-> C API采用接近C11/pthread（https://zh.cppreference.com/w/c）的命名风格，并冠以`ffrt_`前缀 ，以`_base`为后缀的API是内部API，通常不被用户直接调用
+> C API采用接近C11/pthread (https://zh.cppreference.com/w/c) 的命名风格，并冠以`ffrt_`前缀，以`_base`为后缀的API是内部API，通常不被用户直接调用
 >
 > **出于易用性方面的考虑，除非必要，强烈建议你使用C++ API(亦满足二进制兼容要求)，调用C API将会使你的代码非常臃肿** 
 
@@ -1259,7 +1120,7 @@ void ffrt_wait();
 
 #### 描述
 * ffrt_wait_deps(deps) 用于等待deps指代的数据被生产完成才能执行后面的代码
-* ffrt_wait() 用于等待当前上下文提交的所有子任务（`注意：不包括孙子任务`）都完成才能执行后面的代码
+* ffrt_wait() 用于等待当前上下文提交的所有子任务（`注意：不包括孙任务和下级子任务`）都完成才能执行后面的代码
 * 该接口支持在FFRT task 内部调用，也支持在FFRT task 外部调用
 * 在FFRT task 外部调用的wait 是OS 能够感知的等待，相对于FFRT task 内部调用的wait 是更加昂贵的，因此我们希望尽可能让更多的wait 发生在FFRT task 内部 ，而不是FFRT task 外部
 
@@ -1404,8 +1265,8 @@ int main(int narg, char** argv)
 
 ```{.cpp}
 typedef struct {
-    int len;
-    const void** items;
+    uint32_t len;
+    const void* const * items;
 } ffrt_deps_t;
 ```
 
@@ -1439,8 +1300,8 @@ int main(int narg, char** argv)
     int x1 = 1;
     int x2 = 2;
     
-    void* t[] = {&x1, &x2};
-    ffrt_deps_t deps = {2, &t}; // or ffrt_deps_t deps = {sizeof(t)/sizeof(void*), &t};
+    void *t[] = {&x1, &x2};
+    ffrt_deps_t deps = {2, (const void* const *)&t}; 
     // some code use deps
     return 0;
 }
@@ -1478,12 +1339,10 @@ int main(int narg, char** argv)
 ```{.c}
 typedef enum {
     ffrt_qos_inherent = -1,
-    ffrt_qos_unspecified,
     ffrt_qos_background,
     ffrt_qos_utility,
     ffrt_qos_default,
     ffrt_qos_user_initiated,
-    ffrt_qos_user_interactive,
 } ffrt_qos_t;
 
 typedef struct {
@@ -1593,7 +1452,7 @@ int main(int narg, char** argv)
 
 
 
-### ffrt_submit_h [稳定] [计划开源]
+### ffrt_submit_h
 
 <hr/>
 
@@ -1748,7 +1607,7 @@ x = 3
 
 
 
-### ffrt_this_task_get_id [稳定] [计划开源]
+### ffrt_this_task_get_id
 
 <hr/>
 
@@ -1780,7 +1639,7 @@ uint64_t ffrt_this_task_get_id();
 
 
 
-### ffrt_this_task_update_qos [不稳定] [暂不开源]
+### ffrt_this_task_update_qos
 
 <hr/>
 
@@ -1815,7 +1674,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos);
 
 ## 同步原语
 
-### ffrt_mutex_t [稳定] [计划开源]
+### ffrt_mutex_t
 <hr/>
 * FFRT提供的类似pthread mutex 的性能实现
 
@@ -2160,77 +2019,6 @@ a=1
 
 * 该例子为功能示例，实际中并不鼓励这样使用
 
-
-
-## 区间截止时间调度
-
-用户在使用FFRT时，可以指明对于程序片段的预期执行时间上限，即截止时间(deadline)。截止时间会被系统用于任务调度、资源供给调节，以确保在满足性能要求的同时最小化能量消耗。
-
-当前的API中，截止时间是区间(interval)的属性。下列API的价值在于创建或销毁区间，开启或终止区间。区间开启其和终止之间的程序片段将被自动识别为区间的一部分。
-
-### ffrt_interval_t [不稳定] [暂不开源]
-
-<hr/>
-
-#### 声明
-
-```{.cpp}
-typedef void* ffrt_interval_t;
-
-ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos);
-int ffrt_interval_update(ffrt_interval_t it, uint64_t deadline_us);
-int ffrt_interval_begin(ffrt_interval_t it);
-int ffrt_interval_end(ffrt_interval_t it);
-void ffrt_interval_destroy(ffrt_interval_t it);
-int ffrt_interval_join(ffrt_interval_t it);
-int ffrt_interval_leave(ffrt_interval_t it);
-```
-
-#### 参数
-
-* 详见C++ API对应的描述
-
-#### 返回值
-
-* 详见C++ API对应的描述
-
-#### 描述
-
-* 详见C++ API对应的描述
-
-#### 样例
-
-* 见C++ API中的样例
-
-### ffrt_frame_interval [不稳定] [暂不开源]
-
-<hr/>
-
-#### 声明
-
-```{.cpp}
-ffrt_interval_t ffrt_frame_interval_create();
-int ffrt_frame_interval_update(ffrt_interval_t it, uint64_t deadline_us);
-int ffrt_frame_interval_begin(ffrt_interval_t it);
-int ffrt_frame_interval_end(ffrt_interval_t it);
-```
-
-#### 参数
-
-* 详见C++ API对应的描述
-
-#### 返回值
-
-* 详见C++ API对应的描述
-
-#### 描述
-
-* 详见C++ API对应的描述
-
-#### 样例
-
-* 见C++ API中的样例
-
 ## 杂项
 
 ### ffrt_usleep
@@ -2324,7 +2112,7 @@ int main(int narg, char** argv)
 }
 ```
 
-### ffrt_yield [稳定] [计划开源]
+### ffrt_yield
 <hr/>
 * 当前task 主动让出CPU 执行资源，让其他可以被执行的task 先执行，如果没有其他可被执行的task，yield 无效
 

@@ -24,7 +24,7 @@
  *
  * @since 10
  */
- 
+
 /**
  * @file sleep.h
  *

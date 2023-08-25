@@ -121,7 +121,6 @@ public:
     }
 };
 
-
 class task_handle {
 public:
     task_handle() : p(nullptr)
@@ -718,12 +717,6 @@ static inline void wait(const std::vector<dependence>& deps)
     ffrt_deps_t d {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt_wait_deps(&d);
 }
-
-void sync_io(int fd);
-
-void set_trace_tag(const std::string& name);
-
-void clear_trace_tag();
 
 namespace this_task {
 static inline int update_qos(qos qos_)

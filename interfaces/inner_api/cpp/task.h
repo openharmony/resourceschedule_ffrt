@@ -43,5 +43,11 @@ static inline int skip(task_handle &handle)
 {
     return ffrt_skip(handle);
 }
+
+void sync_io(int fd);
+
+void set_trace_tag(const std::string& name);
+
+void clear_trace_tag();
 } // namespace ffrt
 #endif

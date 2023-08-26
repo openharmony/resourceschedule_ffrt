@@ -88,15 +88,21 @@ def extract_trace_marker_task(log):
     """
     extract ffrt task marker from trace line
     """
-    m = None
     m = re.search(r" [FB]\|(\d+)\|(.+)\|(\d+)", log)
 
-    if m is None:
-        return ()
+    if m is not None:
+        match = m.group()
 
-    match = m.group()
+        return (match.split('|')[-2], int(match.split('|')[-1]))
 
-    return (match.split('|')[-2], int(match.split('|')[-1]))
+    m = re.search(r" F\|(\d+)\|(\S+)\s(\d+)", log)
+
+    if m is not None:
+        match = m.group()
+
+        return (match.split('|')[-1].split(' ')[0], int(match.split(' ')[-1]))
+
+    return (False, False)
 
 
 def extract_switch_info(log):
@@ -276,11 +282,13 @@ def parse_and_convert_task_trace(logs, pid):
             continue
 
         task_marker = extract_trace_marker_task(log)
-        if len(task_marker) == 0:
+        if len(task_marker) == 0 or task_marker[0] is False:
             logs_supplement.append(log)
             continue
 
         state = task_marker[0]
+        if "H:" in state:
+            state = state[2:]
         gid = task_marker[1]
         suffix = log[:log.find("tracing_mark_write: ") + len("tracing_mark_write: ")]
 

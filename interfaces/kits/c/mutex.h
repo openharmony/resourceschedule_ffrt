@@ -25,7 +25,7 @@
  * @since 10
  */
  
- /**
+/**
  * @file mutex.h
  *
  * @brief Declares the mutex interfaces in C.

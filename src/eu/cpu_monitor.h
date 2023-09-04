@@ -31,9 +31,10 @@ struct WorkerCtrl {
     size_t workerManagerID = 0;
     int executionNum = 0;
     int sleepingWorkerNum = 0;
-    bool pollWaitFlag = 0;
-    // std::mutex lock;
-    fast_mutex lock;
+#ifdef FFRT_IO_TASK_SCHEDULER
+    bool pollWaitFlag = false;
+#endif
+    std::mutex lock;
 };
 
 class CPUMonitor {
@@ -49,13 +50,19 @@ public:
     void DecSleepingRef(const QoS& qos);
     void IntoSleep(const QoS& qos);
     void WakeupCount(const QoS& qos);
+#ifdef FFRT_IO_TASK_SCHEDULER
+    void IntoPollWait(const QoS& qos);
+    void OutOfPollWait(const QoS& qos);
+#endif
     void TimeoutCount(const QoS& qos);
     void RegWorker(const QoS& qos);
     void UnRegWorker();
     void Notify(const QoS& qos, TaskNotifyType notifyType);
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
+#ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
+#endif
 
     uint32_t monitorTid = 0;
 

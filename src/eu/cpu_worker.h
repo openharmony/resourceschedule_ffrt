@@ -18,8 +18,11 @@
 
 #include "eu/worker_thread.h"
 #include "eu/cpu_manager_interface.h"
-#include "queue/queue.h"
 #include "c/executor_task.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
+#include "queue/queue.h"
+#include "sync/poller.h"
+#endif
 
 
 namespace ffrt {
@@ -29,7 +32,6 @@ public:
     {
 #ifdef FFRT_IO_TASK_SCHEDULER
         queue_init(&local_fifo, LOCAL_QUEUE_SIZE);
-        steal_buffer = (void**)malloc(sizeof(void *) * STEAL_BUFFER_SIZE);
 #endif
         Start(CPUWorker::Dispatch, this);
     }
@@ -47,7 +49,7 @@ public:
 private:
     static void Dispatch(CPUWorker* worker);
     static void Run(TaskCtx* task);
-    static void Run(ffrt_executor_task_t* task);
+    static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
 #ifdef FFRT_IO_TASK_SCHEDULER
     static void RunTask(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
     static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);

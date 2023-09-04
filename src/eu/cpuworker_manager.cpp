@@ -29,7 +29,7 @@
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
 {
-    std::unique_lock lock(groupCtl[qos()].tgMutex);
+    std::unique_lock<std::shared_mutex> lock(groupCtl[qos()].tgMutex);
     if (tearDown) {
         return false;
     }
@@ -41,7 +41,6 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::WorkerRetired, this, std::placeholders::_1),
 #ifdef FFRT_IO_TASK_SCHEDULER
         std::bind(&CPUWorkerManager::TryPoll, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&CPUWorkerManager::StealTask, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::StealTaskBatch, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::PickUpTaskBatch, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::TryMoveLocal2Global, this, std::placeholders::_1),
@@ -91,29 +90,34 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     if (tearDown) {
         return nullptr;
     }
-    SubStealingWorker(thread->GetQos());
     auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     TaskCtx* task = sched.PickNextTask();
     if (task == nullptr) return nullptr;
-
+    struct queue_s *queue = &(((CPUWorker *)thread)->local_fifo);
     int expected_task = (GetTaskCount(thread->GetQos()) / monitor.WakedWorkerNum(thread->GetQos()));
     for (int i = 0; i <expected_task; i++) {
+        if (queue_length(queue) == queue_capacity(queue)) {
+            return task;
+        }
         TaskCtx* task2local = sched.PickNextTask();
         if (task2local == nullptr) {
             return task;
-        }
-        if (queue_pushtail(&(((CPUWorker *)thread)->local_fifo), task2local) == ERROR_QUEUE_FULL) {
-            if (((CPUWorker *)thread)->priority_task == nullptr) {
-                ((CPUWorker *)thread)->priority_task = task2local;
-            } else {
-                FFRTScheduler::Instance()->InsertNodeNoMutex((ffrt_executor_task *)(task2local), thread->GetQos());
-            }
-            return task;
+        if (((CPUWorker *)thread)->priority_task == nullptr) {
+            ((CPUWorker *)thread)->priority_task = task2local;
+        } else {
+            int ret = queue_pushtail(queue, task2local);
         }
     }
     return task;
+}
+
+void InsertTask(void *task, int qos)
+{
+    ffrt_executor_task_t* task = (ffrt_executor_task_t)task;
+    LinkedList* node = (LinkedList *)(&task->wq);
+    return FFRTScheduler::Instance()->InsertNode(node, ffrt::Qos(qos);)
 }
 
 void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
@@ -123,36 +127,9 @@ void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
     }
     struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
     if (queue_length(queue) == queue_capacity(queue)) {
-        unsigned int buf_len = queue_pophead_batch(queue,
-            (((CPUWorker *)thread)->steal_buffer), queue_length(queue) / 2);
-        for (int i = buf_len - 1; i >=0; --i) {
-            ffrt_executor_task* task = (ffrt_executor_task*)(((CPUWorker *)thread)->steal_buffer[i]);
-            if (!FFRTScheduler::Instance()->InsertNode((ffrt::LinkedList *)(&task->wq), thread->GetQos())) {
-                FFRT_LOGE("Submit IO task failed!");
-            }
-        }
+        queue_pophead_to_gqueue_batch(queue, queue_length(queue) / 2, thread->GetQos(), InsertTask);
     }
     
-}
-
-void* CPUWorkerManager::StealTask(WorkerThread* thread)
-{
-    if (tearDown) {
-        return nullptr;
-    }
-    if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2
-        || (!stealEnable[thread->GetQos()].load(std::memory_order_acquire))) {
-            return 0;
-        }
-    std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
-        groupCtl[thread->GetQos()].threads.begin();
-    while (iter != groupCtl[thread->GetQos()].threads.end()) {
-        if (iter->first != thread && queue_prob(&((CPUWorker *)(iter->first))->local_fifo) > 0) {
-            return queue_pophead(&((CPUWorker *)(iter->first))->local_fifo);
-        }
-        iter++;
-    }
-    return nullptr;
 }
 
 unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
@@ -164,19 +141,22 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
+    std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     AddStealingWorker(thread->GetQos());
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
         groupCtl[thread->GetQos()].threads.begin();
     while (iter != groupCtl[thread->GetQos()].threads.end()) {
         struct queue_s *queue = &(((CPUWorker *)(iter->first))->local_fifo);
-        if (iter->first != thread && queue_length(queue) > 1) {
-            unsigned int buf_len = queue_pophead_batch(queue, (((CPUWorker *)thread)->steal_buffer),
-            queue_length(queue) / 2);
-            queue_pushtail_batch(&(((CPUWorker *)thread)->local_fifo), ((CPUWorker *)thread)->steal_buffer, buf_len);
+        unsigned int queue_len = queue_length(queue);
+        if (iter->first != thread && queue_len > 1) {
+            unsigned int buf_len = queue_pophead_pushtail_batch(queue, &(((CPUWorker *)(thread))->local_fifo),
+                queue_len /2);
+            SubStealingWorker(thread->GetQos());
             return buf_len;
         }
         iter++;
     }
+    SubStealingWorker(thread->GetQos());
     return 0;
 }
 
@@ -187,7 +167,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
     }
 
     auto& pollerMtx = pollersMtx[thread->GetQos()];
-    if (!pollersExitFlag[thread->GetQos()].load(std::memory_order_relaxed) && pollerMtx.try_lock()) {
+    if (pollerMtx.try_lock()) {
         if (timeout == -1) {
             monitor.IntoPollWait(thread->GetQos());
         }
@@ -220,7 +200,7 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
     int qos = static_cast<int>(thread->GetQos());
 
     {
-        std::unique_lock lock(groupCtl[qos].tgMutex);
+        std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
         thread->SetExited(true);
         thread->Detach();
         auto worker = std::move(groupCtl[qos].threads[thread]);
@@ -247,7 +227,8 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
-        queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
+        queue_length(&(((CPUWorker *)thread)->local_fifo));
+        })) {
 #else
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos());})) {
@@ -264,7 +245,8 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #ifdef FFRT_IO_TASK_SCHEDULER
     ctl.cv.wait(lk, [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos()) ||
-        ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
+        ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));
+        });
 #else
     ctl.cv.wait(lk, [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos());});

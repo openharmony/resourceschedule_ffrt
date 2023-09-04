@@ -20,7 +20,9 @@
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
+#ifdef FFER_IO_TASK_SCHEDULER
 #include "sync/poller.h"
+#endif
 
 
 namespace ffrt {
@@ -42,15 +44,13 @@ public:
             int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
             while (try_cnt--) {
 #ifdef FFRT_IO_TASK_SCHEDULER
-                pollersExitFlag[qos].store(true, std::memory_order_relaxed);
-                std::atomic_thread_fence(std::memory_order_acq_rel);
                 pollersMtx[qos].unlock();
                 PollerProxy::Instance()->GetPoller(qos).WakeUp();
 #endif
                 sleepCtl[qos].cv.notify_all();
                 {
                     usleep(1);
-                    std::unique_lock lock(groupCtl[qos].tgMutex);
+                    std::shared_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
                     if (groupCtl[qos].threads.empty()) {
                         break;
                     }
@@ -116,13 +116,10 @@ private:
 #ifdef FFRT_IO_TASK_SCHEDULER
     void WorkerSetup(WorkerThread* thread, const QoS& qos);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);
-    void* StealTask(WorkerThread* thread);
     unsigned int StealTaskBatch(WorkerThread* thread);
     TaskCtx* PickUpTaskBatch(WorkerThread* thread);
     void TryMoveLocal2Global(WorkerThread* thread);
     fast_mutex pollersMtx[QoS::Max()];
-    std::array<std::atomic<bool>, QoS::Max()> pollersExitFlag {false};
-    std::array<std::atomic<bool>, QoS::Max()> stealEnable {true};
     std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
 #endif
 };

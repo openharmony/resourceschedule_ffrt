@@ -12,16 +12,11 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/resourceschedule/ffrt/ffrt_io_task_scheuduler.gni")
-import("//foundation/resourceschedule/ffrt/ffrt_stackless_coroutine.gni")
 
 defines = []
 
 if (use_stackless_coroutine) {
   defines += [ "USE_STACKLESS_COROUTINE" ]
-}
-
-if (ffrt_io_task_scheuduler) {
-  defines += [ "FFRT_IO_TASK_SCHEDULER" ]
 }
 
 config("ffrt_config") {

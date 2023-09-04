@@ -32,16 +32,12 @@
 #define FFRT_C_API
 #endif
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 typedef enum {
     ffrt_coroutine_stackless,
-    ffrt_coroutine_stackfull,
+    ffrt_coroutine_with_stack,
 } ffrt_coroutine_t;
-
-typedef enum {
-    ffrt_ready = 1,
-    ffrt_blocked = 3,
-    ffrt_exitedd = 4,
-} ffrt_task_status_t;
+#endif
 
 typedef enum {
     ffrt_coroutine_pending = 0,
@@ -70,8 +66,9 @@ typedef int ffrt_qos_t;
  *
  */
 typedef void(*ffrt_function_t)(void*);
-typedef void(*ffrt_function_ptr_t)(void*);
+#ifdef FFRT_IO_TASK_SCHEDULER
 typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
+#endif
 typedef struct {
     /** Function used to execute a task. */
     ffrt_function_t exec;
@@ -105,7 +102,9 @@ typedef enum {
     /** General task. */
     ffrt_function_kind_general,
     ffrt_function_kind_queue,
+#ifdef FFRT_IO_TASK_SCHEDULER
     ffrt_function_kind_io
+#endif
 } ffrt_function_kind_t;
 
 typedef enum {

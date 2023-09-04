@@ -18,7 +18,6 @@
 #include <functional>
 #include <atomic>
 #include "co2_context.h"
-#include "core/task_io.h"
 #if defined(__aarch64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #elif defined(__arm__)
@@ -101,10 +100,4 @@ void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::TaskCtx*)>& pred);
 void CoWake(ffrt::TaskCtx* task, bool timeOut);
-
-#ifdef USE_STACKLESS_COROUTINE
-void StacklessCouroutineStart(ffrt::TaskCtx* task);
-static void OnStacklessCoroutineReady(ffrt::TaskCtx* task)
-#endif
-
 #endif

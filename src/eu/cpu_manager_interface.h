@@ -19,10 +19,11 @@
 #include "core/task_ctx.h"
 #include "eu/worker_thread.h"
 #include "sched/qos.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #define LOCAL_QUEUE_SIZE 128
 #define STEAL_BUFFER_SIZE (LOCAL_QUEUE_SIZE - LOCAL_QUEUE_SIZE /2)
-
+#endif
 namespace ffrt {
 enum class WorkerAction {
     RETRY = 0,
@@ -33,7 +34,9 @@ enum class WorkerAction {
 enum class TaskNotifyType {
     TASK_PICKED = 0,
     TASK_ADDED,
+#ifdef FFRT_IO_TASK_SCHEDULER
     TASK_LOCAL,
+#endif
 };
 
 struct CpuWorkerOps {
@@ -41,11 +44,12 @@ struct CpuWorkerOps {
     std::function<void (const WorkerThread*)> NotifyTaskPicked;
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;
     std::function<void (WorkerThread*)> WorkerRetired;
+#ifdef FFRT_IO_TASK_SCHEDULER
     std::function<PollerRet (const WorkerThread*, int timeout)> TryPoll;
-    std::function<void* (WorkerThread*)> StealTask;
     std::function<unsigned int (WorkerThread*)> StealTaskBatch;
     std::function<TaskCtx* (WorkerThread*)> PickUpTaskBatch;
     std::function<void (WorkerThread*)> TryMoveLocal2Global;
+#endif
 };
 
 struct CpuMonitorOps {

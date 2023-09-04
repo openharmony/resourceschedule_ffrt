@@ -12,11 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
 #include <dfx/log/ffrt_log_api.h>
 #include "queue.h"
+#include "sched/qos.h"
 
 #ifdef __cplusplus
 #include <atomic>
@@ -28,16 +29,17 @@
 extern "C" {
 #endif
 using namespace std;
+#ifdef FFRT_IO_TASK_SCHEDULER
 void *queue_pophead(struct queue_s *queue)
 {
     unsigned int head;
     unsigned int tail;
-    void* res;
+    void *res;
 
     while (1) {
         head = atomic_load(&queue->head);
         tail = atomic_load(&queue->tail);
-        if (tail ==head) {
+        if (tail == head) {
             return nullptr;
         }
         res = queue->buf[head % queue->capacity];
@@ -56,7 +58,7 @@ int queue_pushtail(struct queue_s *queue, void *object)
     tail = atomic_load(&queue->tail);
     if ((tail - head) < queue->capacity) {
         queue->buf[tail % queue->capacity] = object;
-        atomic_store(&queue->tail, tail+1);
+        atomic_store(&queue->tail, tail + 1);
         return 0;
     }
     return ERROR_QUEUE_FULL;
@@ -149,6 +151,61 @@ unsigned int queue_pophead_batch(struct queue_s *queue, void *buf[], unsigned in
     }
 }
 
+unsigned int queue_pophead_pushtail_batch(struct queue_s *target_queue, struct queue_s *local_queue,
+    unsigned int pop_len)
+{
+    if (pop_len == 0) {
+        return 0;
+    }
+    unsigned int target_head;
+    unsigned int target_tail;
+    unsigned int local_head;
+    unsigned int local_tail;
+    unsigned int i;
+    target_head = atomic_load(&target_queue->head);
+    target_tail = atomic_load(&target_queue->tail);
+    local_head = atomic_load(&target_queue->head);
+    local_tail = atomic_load(&target_queue->tail);
+    i = 0;
+    while (((local_tail - local_head) < local_queue->capacity) && (target_tail != target_head)) {
+        auto temp = queue_pophead(target_queue);
+        if (temp == nullptr) {
+            break;
+        }
+        local_queue->buf[local_tail % local_queue->capacity] = temp;
+        local_tail++;
+        i++;
+        if (i == pop_len) {
+            break;
+        }
+    }
+    atomic_store(&local_queue->tail, local_tail);
+    return i;
+}
+
+void queue_pophead_to_gqueue_batch(struct queue_s* queue, unsigned int pop_len, int qos, queue_push_task_func_t func)
+{
+    if (pop_len ==0) {
+        return;
+    }
+    unsigned int head;
+    unsigned int tail;
+    unsigned int i;
+
+    head = atomic_load(&target_queue->head);
+    tail = atomic_load(&target_queue->tail);
+    i = 0;
+    while ((tail != head) && i<= pop_len) {
+        auto temp = queue_pophead(queue);
+        if (!func(temp, qos)) {
+            FFRT_LOGE("Submit io task failed");
+            return;
+        }
+        i++;
+    }
+    return;
+}
+
 unsigned int queue_capacity(struct queue_s *queue)
 {
     return queue->capacity;
@@ -158,6 +215,7 @@ unsigned int queue_prob(struct queue_s *queue)
 {
     return queue_length(queue);
 }
+#endif
 
 #ifdef __cplusplus
 }

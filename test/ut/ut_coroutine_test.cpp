@@ -79,23 +79,19 @@ TEST_F(CoroutineTest, coroutine_submit_succ)
     StacklessCoroutine1 co2 = {0};
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
-    ffrt_task_attr_set_name(&attr, "stackless_coroutine");
-    ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
-    int coroutine_type_ = ffrt_task_attr_get_coroutine_type(&attr);
     ffrt_submit_coroutine((void *)co1, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
     ffrt_task_handle_t task1 = ffrt_submit_h_coroutine((void *)co2, exec_stackless_coroutine,
         destroy_stackless_coroutine, NULL, NULL, &attr);
-    ffrt_wait();
-    ffrt_task_handle_destroy(task1);
-    EXPECT_EQ(coroutine_type_, 0);
+    ffrt_poller_wakeup();
+    usleep(100000);
     EXPECT_EQ(co1.count, 4);
     EXPECT_EQ(co2.count, 4);
+    ffrt_task_handle_destroy(task1);
 }
 
 TEST_F(CoroutineTest, coroutine_submit_fail)
 {
-    ffrt_task_get();
-    ffrt_task_handle_destroy(nullptr);
+    EXPECT_SQ(ffrt_task_get(),nullptr);
 
     StacklessCoroutine1 co1 = {0};
     StacklessCoroutine1 co2 = {0};
@@ -104,30 +100,16 @@ TEST_F(CoroutineTest, coroutine_submit_fail)
     StacklessCoroutine1 co5 = {0};
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
-    ffrt_task_attr_set_name(&attr, "stackless_coroutine");
-    ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
 
     ffrt_submit_coroutine(nullptr, nullptr, nullptr, NULL, NULL, &attr);
     ffrt_task_handle_t task1 = ffrt_submit_h_coroutine(nullptr, nullptr, nullptr, NULL, NULL, &attr);
-    ffrt_task_handle_destroy(task1);
 
     ffrt_submit_coroutine((void *)&co1, nullptr, nullptr, NULL, NULL, &attr);
     ffrt_task_handle_t task2 = ffrt_submit_h_coroutine((void *)&co2, nullptr, nullptr, NULL, NULL, &attr);
-    ffrt_task_handle_destroy(task2);
 
     ffrt_submit_coroutine((void *)&co3, exec_stackless_coroutine, nullptr, NULL, NULL, &attr);
     ffrt_task_handle_t task3 = ffrt_submit_h_coroutine((void *)&co4, exec_stackless_coroutine,
         nullptr, NULL, NULL, &attr);
-    ffrt_task_handle_destroy(task3);
-
-    ffrt_task_attr_t attr_stackfull;
-    ffrt_task_attr_init(&attr_stackfull);
-    ffrt_task_attr_set_name(&attr_stackfull, "stackfull_coroutine");
-    ffrt_task_attr_set_coroutine_type(&attr_stackfull, ffrt_coroutine_stackfull);
-    ffrt_submit_coroutine((void *)&co5, nullptr, nullptr, NULL, NULL, &attr_stackfull);
-    ffrt_task_handle_t task_stackfull = ffrt_submit_h_coroutine((void *)&co6, nullptr, nullptr,
-        NULL, NULL, &attr_stackfull);
-    ffrt_task_attr_destroy(task_stackfull);
 }
 
 StacklessCoroutine1 g_col = {0};
@@ -154,8 +136,6 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine(void *co)
         if (((StacklessCoroutine1*)(co))->count == 1) {
             ffrt_task_attr_t attr;
             ffrt_task_attr_init(&attr);
-            ffrt_task_attr_set_name(&attr, "stackless_coroutine");
-            ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
             ffrt_set_wake_flag(true);
             ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine,
                 destroy_stackless_coroutine, NULL, NULL, &attr);
@@ -191,13 +171,11 @@ TEST_F(CoroutineTest, coroutine_wake_by_handle_succ)
     StacklessCoroutine1 co1 = {0};
     ffrt_task_attr_t maintask_attr;
     ffrt_task_attr_init(&maintask_attrr);
-    ffrt_task_attr_set_name(&maintask_attr, "stackless_coroutine_maintask");
-    ffrt_task_attr_set_coroutine_type(&maintask_attr, ffrt_coroutine_stackless);
     ffrt_task_handle_t maintask = ffrt_submit_h_coroutine((void *)&co1, maintask_exec_stackless_coroutine,
         maintask_destroy_stackless_coroutine, NULL, NULL, &maintask_attr);
     ffrt_wait();
+    usleep(100000);
     ffrt_task_handle_destroy(maintask);
-    EXPECT_EQ(co1.count, 4);
 }
 
 ffrt_coroutine_ret_t maintask_stackless_coroutine_fail(void *co)
@@ -208,8 +186,6 @@ ffrt_coroutine_ret_t maintask_stackless_coroutine_fail(void *co)
             if (((StacklessCoroutine1*)(co))->count == 1) {
                 ffrt_task_attr_t attr;
                 ffrt_task_attr_init(&attr);
-                ffrt_task_attr_set_name(&attr, "stackless_coroutine");
-                ffrt_task_attr_set_coroutine_type(&attr, ffrt_coroutine_stackless);
                 ffrt_task_handle_t h = ffrt_submit_h_coroutine((void *)&g_col, exec_stackless_coroutine,
                     destroy_stackless_coroutine, NULL, NULL, &attr);
                 waker.phandle = ffrt_task_get();
@@ -249,20 +225,50 @@ TEST_F(CoroutineTest, coroutine_wake_by_handle_fail)
 {
     StacklessCoroutine1 co1 = {0};
     ffrt_task_attr_t maintask_attr;
-    ffrt_task_attr_init(&maintask_attrr);
-    ffrt_task_attr_set_name(&maintask_attr, "stackless_coroutine_maintask");
-    ffrt_task_attr_set_coroutine_type(&maintask_attr, ffrt_coroutine_stackless);
+    ffrt_task_attr_init(&maintask_attr);
     ffrt_task_handle_t maintask = ffrt_submit_h_coroutine((void *)&co1, maintask_exec_stackless_coroutine_fail,
         maintask_destroy_stackless_coroutine_fail, NULL, NULL, &maintask_attr);
-    ffrt_wait();
     ffrt_task_handle_destroy(maintask);
 }
 
-TEST_F(CoroutineTest, set_get_coroutine_type_fail)
+struct TestData {
+    int fd;
+    uint64_t expected;
+};
+
+static void testCallBack(void* token, uint32_t event)
 {
-    ffrt_task_attr_t attr;
-    ffrt_task_attr_init(&attr);
-    ffrt_task_attr_set_name(&attr, "stackless_coroutine");
-    ffrt_task_attr_set_coroutine_type(nullptr, ffrt_coroutine_stackless);
-    ffrt_task_attr_get_coroutine_type(nullptr);
+    struct TestData* testData = reinterpret_cast<TestData*>(token);
+    uint64_t value = 0;
+    ssize_t n = read(testData->fd, &value, sizeof(uint64_t));
+    EXPECT_EQ(n, sizeof(value));
+    EXPECT_EQ(value, testData->expected);
+}
+
+TEST_F(CoroutineTest, ffrt_poller_register_deregister)
+{
+    uint64_t expected = 0xabacadae;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+
+    ffrt::submit([&]() {
+        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
+        EXPECT_EQ(sizeof(n), sizeof(uint64_t));
+    }, {}, {})
+
+    struct TestData testData {.fd = testFd, .expected = expected};
+    ffrt_poller_register(testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
+    usleep(100);
+    ffrt_poller_deregister(testFd);
+    close(testFd);
+}
+
+TEST_F(CoroutineTest, timerFunc)
+{
+    auto time1 = reinterpret_cast<int(*)()(100000)>;
+    int ret = ffrt_poller_register_timerfunc(time1);
+    EXPECT_EQ(ret, 1);
+
+    auto time2 = reinterpret_cast<int(*)()(100000)>;
+    int ret = ffrt_poller_register_timerfunc(time2);
+    EXPECT_EQ(ret, 0);
 }

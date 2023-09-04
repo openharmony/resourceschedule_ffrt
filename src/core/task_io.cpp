@@ -22,10 +22,12 @@
 #include "libunwind.h"
 #endif
 #include "core/dependence_manager.h"
-#include "core/task_io.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "queue/queue.h"
+#include "core/task_io.h"
+#endif
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 #define ENABLE_LOCAL_QUEUE
@@ -56,9 +58,15 @@ static void exec_wake_callable(ffrt_executor_io_task* task)
     }
     auto f = (ffrt_function_header_t*)task->func_storage;
     f->destroy(f);
+#ifdef FFRT_BBOX_ENABLE
+    TaskRunCounterInc();
+#endif
+    if (task->withHandle == false) {
+        task->freeMem();
+    }
 }
 
-static void io_ffrt_executor_task_func(ffrt_executor_task_t* data)
+static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qos)
 {
     ffrt_executor_io_task* task = static_cast<ffrt_executor_io_task*>(data);
     task->lock.lock();
@@ -121,7 +129,7 @@ extern "C" {
 typedef struct {
     ffrt_function_header_t header;
     ffrt_coroutine_ptr_t func;
-    ffrt_function_ptr_t destroy;
+    ffrt_function_t destroy;
     void* arg;
 } ffrt_function_coroutine_t;
 
@@ -138,13 +146,14 @@ static void ffrt_destroy_function_coroutine_wrapper(void* t)
 }
 
 static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(void* co,
-    ffrt_coroutine_ptr_t exec, ffrt_function_ptr_t destroy)
+    ffrt_coroutine_ptr_t exec, ffrt_function_t destroy)
 {
     static_assert(sizeof(ffrt_function_coroutine_t) <= ffrt_auto_managed_function_storage_size,
         "size_of_ffrt_function_coroutine_t_must_be_less_than_ffrt_auto_managed_function_storage_size");
+    FFRT_COND_DO_ERR((co == nullptr), return nullptr, "input invalid, co == nullptr");
     ffrt_function_coroutine_t* f = (ffrt_function_coroutine_t*)ffrt_alloc_auto_managed_function_storage_base(
         ffrt_function_kind_io);
-    f->header.exec = (ffrt_function_ptr_t)ffrt_exec_function_coroutine_wrapper;
+    f->header.exec = (ffrt_function_t)ffrt_exec_function_coroutine_wrapper;
     f->header.destroy = ffrt_destroy_function_coroutine_wrapper;
     f->func = exec;
     f->destroy = destroy;
@@ -153,7 +162,7 @@ static inline ffrt_function_header_t* ffrt_create_function_coroutine_wrapper(voi
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_ptr_t destroy,
+void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,
     const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
     pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
@@ -172,15 +181,11 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_pt
         new (task)ffrt::ffrt_executor_io_task(qos);
     }
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;
-    if (likely(__atomic_compare_exchange_n(&task->status, &pending_status, ffrt::ExecTaskStatus::ET_READY, 0,
-    __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-        ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
-    }
 }
 
 API_ATTRIBUTE((visibility("default")))
 ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
-    ffrt_function_ptr_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+    ffrt_function_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
     pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
     ffrt_function_header_t* f = ffrt_create_function_coroutine_wrapper(co, exec, destroy);
@@ -204,9 +209,11 @@ ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec,
 
 // waker
 API_ATTRIBUTE((visibility("default")))
-void ffrt_wake_by_handle(void* callable, ffrt_function_ptr_t exec, ffrt_function_ptr_t destroy,
+void ffrt_wake_by_handle(void* callable, ffrt_function_t exec, ffrt_function_t destroy,
     ffrt_task_handle_t handle)
 {
+    FFRT_COND_DO_ERR((callable == nullptr), return nullptr, "input invalid, callable == nullptr");
+    FFRT_COND_DO_ERR((handle == nullptr), return nullptr, "input invalid, handle == nullptr");
     ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(handle);
     task->lock.lock();
     FFRT_LOGD("tid:%ld ffrt_wake_by_handle and CurState = %d", syscall(SYS_gettid), task->status);
@@ -233,7 +240,7 @@ void * ffrt_task_get()
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_coroutine(void *taskin)
-{
+{s
     ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(taskin);
     ffrt::ExecTaskStatus executing_status = ffrt::ExecTaskStatus::ET_EXECUTING;
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;
@@ -282,7 +289,7 @@ ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
 {
     if (!attr) {
         FFRT_LOGE("attr should be a valid address");
-        return ffrt_coroutine_stackfull;
+        return ffrt_coroutine_with_stack;
     }
     return ffrt_coroutine_stackless;
 }

@@ -32,21 +32,22 @@
 #include "task_attr_private.h"
 #include "util/slab.h"
 #include "dfx/bbox/bbox.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "c/executor_task.h"
+#endif
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 namespace ffrt {
 typedef struct {
-    ffrt_function_ptr_t exec;
-    ffrt_function_ptr_t destroy;
+    ffrt_function_t exec;
+    ffrt_function_t destroy;
     void* callable;
 } ffrt_io_callable_t;
 
 struct ffrt_executor_io_task: public ffrt_executor_task {
-    ffrt_executor_io_task(const QoS &qos) : qos(qos)
-    {
-        type = ffrt_io_task;
-    }
+    ffrt_executor_io_task(const QoS &qos) : qos(qos) { type = ffrt_io_task; }
     bool wakeFlag = true;
+    bool withHandle = true;
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
     ffrt_io_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};
     QoS qos;
@@ -62,4 +63,5 @@ struct ffrt_executor_io_task: public ffrt_executor_task {
     }
 };
 }
+#endif
 #endif

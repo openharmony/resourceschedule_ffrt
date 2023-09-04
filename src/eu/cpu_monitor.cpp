@@ -13,18 +13,21 @@
  * limitations under the License.
  */
 
-#include "eu/cpu_monitor.h"
 #include <iostream>
 #include <thread>
 #include <unistd.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
-#include "sync/poller.h"
+#include "eu/cpu_monitor.h"
 #include "sched/scheduler.h"
 #include "eu/wgcm.h"
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
+#include "sync/poller.h"
+#include "queue/queue.h"
+#endif
 namespace ffrt {
 void CPUMonitor::HandleBlocked(const QoS& qos)
 {
@@ -197,12 +200,11 @@ void CPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
                 Poke(qos);
             }
             break;
+#ifdef FFRT_IO_TASK_SCHEDULER
         case TaskNotifyType::TASK_LOCAL:
-            if (taskCount < WakedWorkerNum(qos)) {
-                break;
-            }
             Poke(qos);
             break;
+#endif
         default:
             break;
     }
@@ -225,12 +227,14 @@ void CPUMonitor::WakeupCount(const QoS& qos)
     workerCtrl.lock.unlock();
 }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 int CPUMonitor::WakedWorkerNum(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     std::unique_lock lk(workerCtrl.lock);
     return workerCtrl.executionNum;
 }
+#endif
 
 void CPUMonitor::IntoSleep(const QoS& qos)
 {
@@ -241,6 +245,7 @@ void CPUMonitor::IntoSleep(const QoS& qos)
     workerCtrl.lock.unlock();
 }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 void CPUMonitor::IntoPollWait(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -256,13 +261,17 @@ void CPUMonitor::OutOfPollWait(const QoS& qos)
     workerCtrl.pollWaitFlag = false;
     workerCtrl.lock.unlock();
 }
+#endif
 
 void CPUMonitor::Poke(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+#ifdef FFRT_IO_TASK_SCHEDULER
+    int taskCount = ops.GetTaskCount(qos);
+#endif
     workerCtrl.lock.lock();
 #ifdef FFRT_IO_TASK_SCHEDULER
-    if (workerCtrl.executionNum > 4 && ops.GetTaskCount(qos) < workerCtrl.executionNum) {
+    if (workerCtrl.executionNum > 4 && taskCount < workerCtrl.executionNum) {
         workerCtrl.lock.unlock();
         return;
     }

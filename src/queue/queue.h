@@ -15,13 +15,13 @@
 #include <atomic>
 #ifndef YLONG_QUEUE_H
 #define YLONG_QUEUE_H
-
+#include "c/type_def.h"
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
 #endif
 #endif
-
+#ifdef FFRT_IO_TASK_SCHEDULER
 #define MID_MAKE(x) ((0x1000 + (x)) <<16)
 
 #define MID_QUEUE               MID_MAKE(2)
@@ -55,12 +55,18 @@ int queue_pushtail(struct queue_s *queue, void *object);
 
 unsigned int queue_pushtail_batch(struct queue_s *queue, void *buf[], unsigned int buf_len);
 
+unsigned int queue_pophead_pushtail_batch(struct queue_s *target_queue, struct queue_s *local_queue,
+    unsigned int pop_len);
+
+typedef bool (*queue_push_task_func_t)(void* task, int qos);
+void queue_pophead_to_gqueue_batch(struct queue_s* queue, unsigned int pop_len, int qos, queue_push_task_func_t func);
+
 void queue_destroy(struct queue_s *queue);
 
 int queue_init(struct queue_s *queue, unsigned int capacity);
 
 unsigned int queue_prob(struct queue_s *queue);
-
+#endif
 #ifdef __cplusplus
 #if __cplusplus
 }

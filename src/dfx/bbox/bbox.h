@@ -23,6 +23,9 @@ extern void TaskRunCounterInc(void);
 extern void TaskSwitchCounterInc(void);
 extern void TaskFinishCounterInc(void);
 extern unsigned int GetBboxEnableState(void);
+#ifdef FFRT_IO_TASK_SCHEDULER
+extern void TaskWakeCounterInc(void);
+#endif
 
 // undefine in header for non-inline to explain why stop
 void BboxFreeze(void);

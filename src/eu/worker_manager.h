@@ -19,6 +19,7 @@
 #include <thread>
 #include <list>
 #include <mutex>
+#include <shared_mutex>
 #include <condition_variable>
 #include <unordered_map>
 
@@ -31,7 +32,7 @@ namespace ffrt {
 struct WorkerGroupCtl {
     std::unique_ptr<ThreadGroup> tg;
     uint64_t tgRefCount = 0;
-    mutable fast_mutex tgMutex;
+    mutable std::shared_mutex tgMutex;
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>> threads;
 };
 

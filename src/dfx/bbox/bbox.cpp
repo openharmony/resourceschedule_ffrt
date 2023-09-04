@@ -34,6 +34,9 @@ static std::atomic<unsigned int> g_taskEnQueueCounter(0);
 static std::atomic<unsigned int> g_taskRunCounter(0);
 static std::atomic<unsigned int> g_taskSwitchCounter(0);
 static std::atomic<unsigned int> g_taskFinishCounter(0);
+#ifdef FFRT_IO_TASK_SCHEDULER
+static std::atomic<unsigned int> g_taskWakeCounter(0);
+#endif
 
 static struct sigaction s_oldSa[SIGSYS + 1]; // SIGSYS = 31
 
@@ -69,13 +72,22 @@ void TaskFinishCounterInc(void)
     ++g_taskFinishCounter;
 }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
+void TaskWakeCounterInc(void)
+{
+    ++g_taskWakeCounter;
+}
+#endif
+
 static inline void SaveCurrent()
 {
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
     auto t = ExecuteCtx::Cur()->task;
     if (t) {
-        FFRT_BBOX_LOG("current: thread id %u, task id %lu, qos %d, name %s", gettid(),
-            t->gid, t->qos(), t->label.c_str());
+        if (t->type == 0) {
+            FFRT_BBOX_LOG("current: thread id %u, task id %lu, qos %d, name %s", gettid(),
+                t->gid, t->qos(), t->label.c_str());
+        }
     }
 
     const int IGNORE_DEPTH = 3;
@@ -89,6 +101,9 @@ static inline void SaveTaskCounter()
         g_taskSubmitCounter.load(), g_taskEnQueueCounter.load(), g_taskDoneCounter.load());
     FFRT_BBOX_LOG("FFRT BBOX TaskRunCounter:%u TaskSwitchCounter:%u TaskFinishCounter:%u", g_taskRunCounter.load(),
         g_taskSwitchCounter.load(), g_taskFinishCounter.load());
+#ifdef FFRT_IO_TASK_SCHEDULER
+    FFRT_BBOX_LOG("FFRT BBOX TaskWakeCounterInc:%u", g_taskWakeCounter.load());
+#endif
     if (g_taskSwitchCounter.load() + g_taskFinishCounter.load() == g_taskRunCounter.load()) {
         FFRT_BBOX_LOG("TaskRunCounter equals TaskSwitchCounter + TaskFinishCounter");
     } else {
@@ -108,8 +123,10 @@ static inline void SaveWorkerStatus()
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());
                 continue;
             }
-            FFRT_BBOX_LOG("qos %d: worker tid %d is running task id %lu name %s", i, thread.first->Id(),
-                t->gid, t->label.c_str());
+            if (t->type == 0) {
+                FFRT_BBOX_LOG("qos %d: worker tid %d is running task id %lu name %s", i, thread.first->Id(),
+                    t->gid, t->label.c_str());
+            }
         }
     }
 }
@@ -129,8 +146,10 @@ static inline void SaveReadyQueueStatus()
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i + 1, j, nt);
                 continue;
             }
-            FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> id %lu name %s",
-                i + 1, j, nt, t->gid, t->label.c_str());
+            if (t->type == 0) {
+                FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> id %lu name %s",
+                    i + 1, j, nt, t->gid, t->label.c_str());
+            }
         }
     }
 }
@@ -151,8 +170,10 @@ static inline void SaveTaskStatus()
         }
         size_t idx = 1;
         for (auto t : tmp) {
-            FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx++,
-                tmp.size(), t->gid, t->qos(), t->label.c_str());
+            if (t->type == 0) {
+                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx++,
+                    tmp.size(), t->gid, t->qos(), t->label.c_str());
+            }
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
                 CoStart(t);
             }
@@ -333,8 +354,10 @@ std::string SaveWorkerStatusInfo(void)
                    << " is running nothing" << std::endl;
                 continue;
             }
-            ss << "qos " << i << ": worker tid " << thread.first->Id()
-               << " is running task id " << t->gid << " name " << t->label.c_str() << std::endl;
+            if (t->type == 0) {
+                ss << "qos " << i << ": worker tid " << thread.first->Id()
+                << " is running task id " << t->gid << " name " << t->label.c_str() << std::endl;
+            }
         }
     }
     return ss.str();
@@ -357,8 +380,10 @@ std::string SaveReadyQueueStatusInfo()
                    << " null" << std::endl;
                 continue;
             }
-            ss << "qos " << (i + 1) << ": ready queue task <" << j << "/" << nt << "> id "
-               << t->gid << " name " << t->label.c_str() << std::endl;
+            if (t->type == 0) {
+                ss << "qos " << (i + 1) << ": ready queue task <" << j << "/" << nt << "> id "
+                << t->gid << " name " << t->label.c_str() << std::endl;
+            }
         }
     }
     return ss.str();
@@ -384,8 +409,10 @@ std::string SaveTaskStatusInfo(void)
         size_t idx = 1;
         for (auto t : tmp) {
             ss.str("");
-            ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
-               << t->qos() << "name" << t->label.c_str() << std::endl;
+            if (t->type == 0) {
+                ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
+                << t->qos() << "name" << t->label.c_str() << std::endl;
+            }
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
                 std::string dumpInfo;

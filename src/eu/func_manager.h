@@ -35,24 +35,24 @@ public:
         return &func_mg;
     }
 
-    void insert(ffrt_executor_task_type_t task_type, ffrt_executor_task_func func)
+    void insert(ffrt_executor_task_type_t type, ffrt_executor_task_func func)
     {
-        func_map[task_type] = func;
+        func_map[type] = func;
     }
 
-    ffrt_executor_task_func getFunc(ffrt_executor_task_type_t task_type)
+    ffrt_executor_task_func getFunc(ffrt_executor_task_type_t type)
     {
-        if (func_map.find(task_type) == func_map.end()) {
+        if (func_map.find(type) == func_map.end()) {
             return nullptr;
         }
-        return func_map[task_type];
+        return func_map[type];
     }
 
 private:
     FuncManager()
     {
 #ifdef FFRT_IO_TASK_SCHEDULER
-        func_map[ffrt_io_task] = nullptr;
+        func_map[ffrt_rust_task] = nullptr;
         func_map[ffrt_uv_task] = nullptr;
 #endif
     }

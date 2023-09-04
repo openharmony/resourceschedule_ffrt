@@ -252,7 +252,7 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
     }
 #ifdef FFRT_IO_TASK_SCHEDULER
     ffrt_executor_task_t* task = (ffrt_executor_task_t*)handle;
-    if (task->type == ffrt_io_task) {
+    if (task->type == ffrt_rust_task) {
         ffrt::ffrt_executor_io_task* io_task = (ffrt::ffrt_executor_io_task*)task;
         io_task->freeMem();
         return;
@@ -398,10 +398,10 @@ void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t task_type)
+void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type)
 {
     ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
-    func_mg->insert(task_type, func);
+    func_mg->insert(type, func);
 }
 
 API_ATTRIBUTE((visibility("default")))

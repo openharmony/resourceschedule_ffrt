@@ -112,7 +112,7 @@ static pthread_once_t once = PTHREAD_ONCE_INIT;
 
 static void ffrt_executor_io_task_init()
 {
-    ffrt_executor_task_register_func(io_ffrt_executor_task_func, ffrt_io_task);
+    ffrt_executor_task_register_func(io_ffrt_executor_task_func, ffrt_rust_task);
 }
 
 bool randomBool()

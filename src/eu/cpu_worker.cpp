@@ -50,8 +50,8 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
     TaskRunCounterInc();
 #endif
     ffrt_executor_task_func func = nullptr;
-    if (task->type == ffrt_io_task) {
-        func = FuncManager::Instance()->getFunc(ffrt_io_task);
+    if (task->type == ffrt_rust_task) {
+        func = FuncManager::Instance()->getFunc(ffrt_rust_task);
     } else {
         func = FuncManager::Instance()->getFunc(ffrt_uv_task);
     }

@@ -55,7 +55,6 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
     } else {
         func = FuncManager::Instance()->getFunc(ffrt_uv_task);
     }
-
     if (func == nullptr) {
         FFRT_LOGE("func is nullptr");
         return;

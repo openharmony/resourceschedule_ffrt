@@ -22,7 +22,6 @@
 #include "libunwind.h"
 #endif
 #include "core/dependence_manager.h"
-#include "core/task_io.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -67,7 +66,7 @@ static void exec_wake_callable(ffrt_executor_io_task* task)
     }
 }
 
-static void io_ffrt_executor_task_func(ffrt_executor_task_t* data)
+static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qos)
 {
     ffrt_executor_io_task* task = static_cast<ffrt_executor_io_task*>(data);
     task->lock.lock();
@@ -241,7 +240,7 @@ void * ffrt_task_get()
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_coroutine(void *taskin)
-{
+{s
     ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(taskin);
     ffrt::ExecTaskStatus executing_status = ffrt::ExecTaskStatus::ET_EXECUTING;
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;

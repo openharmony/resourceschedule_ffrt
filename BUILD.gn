@@ -15,10 +15,15 @@ import("//foundation/resourceschedule/ffrt/ffrt_io_task_scheuduler.gni")
 
 defines = []
 
+<<<<<<< HEAD
 if (ffrt_io_task_scheuduler) {
   defines += [
     "FFRT_IO_TASK_SCHEDULER",
   ]
+=======
+if (use_stackless_coroutine) {
+  defines += [ "USE_STACKLESS_COROUTINE" ]
+>>>>>>> a2ebe5c (ffrt rust)
 }
 
 config("ffrt_config") {

@@ -44,7 +44,7 @@ void CPUWorker::Run(TaskCtx* task)
     }
 }
 
-void CPUWorker::Run(ffrt_executor_task_t* task)
+void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 {
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();

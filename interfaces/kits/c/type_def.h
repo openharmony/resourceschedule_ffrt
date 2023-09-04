@@ -38,6 +38,7 @@ typedef enum {
     ffrt_coroutine_with_stack,
 } ffrt_coroutine_t;
 <<<<<<< HEAD
+<<<<<<< HEAD
 #endif
 =======
 
@@ -47,6 +48,9 @@ typedef enum {
     ffrt_exitedd = 4,
 } ffrt_task_status_t;
 >>>>>>> 26cbcd1 (rust)
+=======
+#endif
+>>>>>>> a2ebe5c (ffrt rust)
 
 typedef enum {
     ffrt_coroutine_pending = 0,
@@ -76,6 +80,7 @@ typedef int ffrt_qos_t;
  */
 typedef void(*ffrt_function_t)(void*);
 <<<<<<< HEAD
+<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
 typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
 #endif
@@ -83,6 +88,11 @@ typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
 typedef void(*ffrt_function_ptr_t)(void*);
 typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
 >>>>>>> 757a39b (rust)
+=======
+#ifdef FFRT_IO_TASK_SCHEDULER
+typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
+#endif
+>>>>>>> a2ebe5c (ffrt rust)
 typedef struct {
     /** Function used to execute a task. */
     ffrt_function_t exec;

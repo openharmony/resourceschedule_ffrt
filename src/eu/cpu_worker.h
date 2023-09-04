@@ -31,10 +31,6 @@ public:
     {
 #ifdef FFRT_IO_TASK_SCHEDULER
         queue_init(&local_fifo, LOCAL_QUEUE_SIZE);
-<<<<<<< HEAD
-=======
-        steal_buffer = (void**)malloc(sizeof(void *) * STEAL_BUFFER_SIZE);
->>>>>>> 24d1535 (rust)
 #endif
         Start(CPUWorker::Dispatch, this);
     }
@@ -52,11 +48,7 @@ public:
 private:
     static void Dispatch(CPUWorker* worker);
     static void Run(TaskCtx* task);
-<<<<<<< HEAD
     static void Run(ffrt_executor_task_t* data, ffrt_qos_t qos);
-=======
-    static void Run(ffrt_executor_task_t* task);
->>>>>>> 24d1535 (rust)
 #ifdef FFRT_IO_TASK_SCHEDULER
     static void RunTask(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
     static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);

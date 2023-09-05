@@ -27,7 +27,7 @@
 #include <string>
 #include <functional>
 #include <memory>
-#include "c/task.h"
+#include "../c/task.h"
 
 namespace ffrt {
 class task_attr : public ffrt_task_attr_t {

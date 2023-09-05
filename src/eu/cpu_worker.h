@@ -19,22 +19,42 @@
 #include "eu/worker_thread.h"
 #include "eu/cpu_manager_interface.h"
 #include "c/executor_task.h"
-
+#ifdef FFRT_IO_TASK_SCHEDULER
+#include "queue/queue.h"
+#include "sync/poller.h"
+#endif
 
 namespace ffrt {
 class CPUWorker : public WorkerThread {
 public:
     CPUWorker(const QoS& qos, CpuWorkerOps&& ops) : WorkerThread(qos), ops(ops)
     {
+#ifdef FFRT_IO_TASK_SCHEDULER
+        queue_init(&local_fifo, LOCAL_QUEUE_SIZE);
+#endif
         Start(CPUWorker::Dispatch, this);
     }
 
     CpuWorkerOps ops;
+#ifdef FFRT_IO_TASK_SCHEDULER
+    void* priority_task = nullptr;
+    unsigned int tick = 0;
+    struct queue_s local_fifo;
+    unsigned int global_interval = 60;
+    unsigned int budget = 10;
+    void** steal_buffer;
+#endif
 
 private:
     static void Dispatch(CPUWorker* worker);
     static void Run(TaskCtx* task);
     static void Run(ffrt_executor_task_t* data, ffrt_qos_t qos);
+#ifdef FFRT_IO_TASK_SCHEDULER
+    static void RunTask(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
+    static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
+    static bool LocalEmpty(CPUWorker* worker);
+    static void* GetTask(CPUWorker* worker);
+#endif
 };
 } // namespace ffrt
 #endif

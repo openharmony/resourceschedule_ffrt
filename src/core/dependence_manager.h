@@ -33,6 +33,9 @@
 #include "eu/execute_unit.h"
 #include "entity.h"
 #include "dfx/bbox/bbox.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
+#include "sync/poller.h"
+#endif
 
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
@@ -74,6 +77,9 @@ public:
         // control construct sequences of singletons
         SimpleAllocator<TaskCtx>::instance();
         SimpleAllocator<VersionCtx>::instance();
+#ifdef FFRT_IO_TASK_SCHEDULER
+        PollerProxy::Instance();
+#endif
         FFRTScheduler::Instance();
         ExecuteUnit::Instance();
 
@@ -379,7 +385,7 @@ public:
             // scene 8
             version = en->VA2Ctx(signature, task);
         add_outversion:
-            outVersions.push_back({ version, type });
+            outVersions.push_back({version, type});
         }
     }
 

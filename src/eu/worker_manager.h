@@ -19,6 +19,7 @@
 #include <thread>
 #include <list>
 #include <mutex>
+#include <shared_mutex>
 #include <condition_variable>
 #include <unordered_map>
 
@@ -31,7 +32,7 @@ namespace ffrt {
 struct WorkerGroupCtl {
     std::unique_ptr<ThreadGroup> tg;
     uint64_t tgRefCount = 0;
-    mutable fast_mutex tgMutex;
+    mutable std::shared_mutex tgMutex;
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>> threads;
 };
 
@@ -48,6 +49,9 @@ public:
     virtual bool IncWorker(const QoS& qos) = 0;
     virtual bool DecWorker() = 0;
     virtual void NotifyTaskAdded(const QoS& qos) = 0;
+#ifdef FFRT_IO_TASK_SCHEDULER
+    virtual void NotifyLocalTaskAdded(const QoS& qos) = 0;
+#endif
     virtual std::mutex* GetSleepCtl(int qos) = 0;
 
     WorkerGroupCtl* GetGroupCtl()

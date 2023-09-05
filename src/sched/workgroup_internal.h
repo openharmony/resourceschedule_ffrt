@@ -85,7 +85,8 @@ inline void WorkgroupJoin(struct Workgroup* wg, int tid)
 
 inline int WorkgroupClear(struct Workgroup* wg)
 {
-    (void)wg;
+    delete wg;
+    wg = nullptr;
     return 0;
 }
 

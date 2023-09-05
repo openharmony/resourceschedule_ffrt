@@ -32,7 +32,7 @@ public:
           delay_(attr.delay())
     {
     }
-
+    
     int qos_;
     std::string name_;
     uint64_t delay_ = 0;

@@ -30,6 +30,11 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
+#ifdef FFRT_IO_TASK_SCHEDULER
+#include "core/task_io.h"
+#include "sync/poller.h"
+#include "queue/queue.h"
+#endif
 
 namespace ffrt {
 template <int WITH_HANDLE>
@@ -181,7 +186,11 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
     if (kind == ffrt_function_kind_general) {
         return ffrt::SimpleAllocator<ffrt::TaskCtx>::allocMem()->func_storage;
     }
-
+#ifdef FFRT_IO_TASK_SCHEDULER
+    if (kind == ffrt_function_kind_io) {
+        return ffrt::SimpleAllocator<ffrt::ffrt_executor_io_task>::allocMem()->func_storage;
+    }
+#endif
     return ffrt::SimpleAllocator<ffrt::SerialTask>::allocMem()->func_storage;
 }
 
@@ -241,6 +250,14 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
         FFRT_LOGE("input task handle is invalid");
         return;
     }
+#ifdef FFRT_IO_TASK_SCHEDULER
+    ffrt_executor_task_t* task = (ffrt_executor_task_t*)handle;
+    if (task->type == ffrt_io_task) {
+        ffrt::ffrt_executor_io_task* io_task = (ffrt::ffrt_executor_io_task*)task;
+        io_task->freeMem();
+        return;
+    }
+#endif
     static_cast<ffrt::TaskCtx*>(handle)->DecDeleteRef();
 }
 
@@ -326,6 +343,44 @@ int ffrt_skip(ffrt_task_handle_t handle)
     return 1;
 }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
+API_ATTRIBUTE((visibility("default")))
+ffrt_qos_t ffrt_get_cur_qos()
+{
+    ffrt_qos_t qos = ffrt_qos_default;
+    if (ffrt::ExecuteCtx::Cur()->task) {
+        qos = ffrt::ExecuteCtx::Cur()->task->qos;
+    }
+    return qos;
+}
+API_ATTRIBUTE((visibility("default")))
+int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t))
+{
+    ffrt_qos_t qos = ffrt_get_cur_qos();
+    return ffrt::PollerProxy::Instance()->GetPoller(qos).AddFdEvent(events, fd, data, cb);
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_poller_deregister(int fd)
+{
+    ffrt_qos_t qos = ffrt_get_cur_qos();
+    return ffrt::PollerProxy::Instance()->GetPoller(qos).DelFdEvent(fd);
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_poller_wakeup()
+{
+    ffrt_qos_t qos = ffrt_get_cur_qos();
+    ffrt::PollerProxy::Instance()->GetPoller(qos).WakeUp();
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_poller_register_timerfunc(int(*timerFunc)())
+{
+    ffrt_qos_t qos = ffrt_get_cur_qos();
+    return ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimerFunc(timerFunc);
+}
+#endif
 API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr)
 {
@@ -352,6 +407,10 @@ void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executo
 API_ATTRIBUTE((visibility("default")))
 int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
 {
+    if (task == nullptr) {
+        FFRT_LOGE("function handler should not be empty");
+        return 0;
+    }
     ffrt::QoS _qos = ffrt::QoS(qos);
 
     ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);

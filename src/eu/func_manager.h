@@ -17,6 +17,7 @@
 #define FFRT_FUNC_MANAGER_HPP
 
 #include "ffrt_inner.h"
+#include "c/executor_task.h"
 
 namespace ffrt {
 class FuncManager {
@@ -50,6 +51,10 @@ public:
 private:
     FuncManager()
     {
+#ifdef FFRT_IO_TASK_SCHEDULER
+        func_map[ffrt_io_task] = nullptr;
+        func_map[ffrt_uv_task] = nullptr;
+#endif
     }
     std::unordered_map<ffrt_executor_task_type_t, ffrt_executor_task_func> func_map;
 };

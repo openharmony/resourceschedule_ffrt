@@ -16,8 +16,10 @@
 #define __GRAPH_CHECK_H__
 #include <cstdio>
 #include <cstdlib>
+#include <cstdint>
 #include <map>
 #include <list>
+#include <stdint.h>
 
 namespace ffrt {
 struct VertexStatus {

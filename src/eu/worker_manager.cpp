@@ -20,7 +20,7 @@ namespace ffrt {
 void WorkerManager::JoinRtg(QoS& qos)
 {
     auto& tgwrap = groupCtl[qos];
-    std::unique_lock lock(tgwrap.tgMutex);
+    std::unique_lock<std::shared_mutex> lck(tgwrap.tgMutex);
     for (auto& thread : tgwrap.threads) {
         pid_t tid = thread.first->Id();
         if (!JoinWG(tid)) {
@@ -36,7 +36,7 @@ ThreadGroup* WorkerManager::JoinTG(QoS& qos)
         return nullptr;
     }
 
-    std::unique_lock lock(tgwrap.tgMutex);
+    std::unique_lock<std::shared_mutex> lck(tgwrap.tgMutex);
 
     if (tgwrap.tgRefCount++ > 0) {
         return tgwrap.tg.get();
@@ -63,7 +63,7 @@ void WorkerManager::LeaveTG(QoS& qos)
         return;
     }
 
-    std::unique_lock lock(tgwrap.tgMutex);
+    std::unique_lock<std::shared_mutex> lck(tgwrap.tgMutex);
 
     if (tgwrap.tgRefCount == 0) {
         return;

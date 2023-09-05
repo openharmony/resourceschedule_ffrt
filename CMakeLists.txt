@@ -18,6 +18,7 @@ option(FFRT_BENCHMARKS "Enables ffrt Benchmarks" OFF)
 option(FFRT_TEST_ENABLE "Enables ffrt test" OFF)
 option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" ON)
 option(FFRT_SANITIZE "enable address or thread sanitizer" OFF)
+option(FFRT_IO_TASK_SCHEDULER "enalbe io task scheduler" ON)
 
 # set compiler clang or gcc, must before project(ffrt)
 if(FFRT_CLANG_COMPILE STREQUAL ON)
@@ -53,7 +54,11 @@ elseif(FFRT_SANITIZE STREQUAL thread)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+if(CMAKE_BUILD_TYPE STREQUAL Release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O2 -fPIC")
+else()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O0 -fPIC")
+endif()
 
 # add the binary tree to the search path for include files
 include_directories(${FFRT_API_PATH})
@@ -71,6 +76,11 @@ message(STATUS "FFRT_SANITIZE: " ${FFRT_SANITIZE})
 # ffrt BBOX
 if(FFRT_BBOX_ENABLE STREQUAL ON)
   add_definitions("-DFFRT_BBOX_ENABLE")
+endif()
+
+#ffrt io task scheduler
+if(FFRT_IO_TASK_SCHEDULER STREQUAL ON)
+  add_definitions(-DFFRT_IO_TASK_SCHEDULER)
 endif()
 
 # libffrt.so

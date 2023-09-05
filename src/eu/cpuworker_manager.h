@@ -20,6 +20,9 @@
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
+#ifdef FFER_IO_TASK_SCHEDULER
+#include "sync/poller.h"
+#endif
 
 
 namespace ffrt {
@@ -40,10 +43,14 @@ public:
         for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
             int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
             while (try_cnt--) {
+#ifdef FFRT_IO_TASK_SCHEDULER
+                pollersMtx[qos].unlock();
+                PollerProxy::Instance()->GetPoller(qos).WakeUp();
+#endif
                 sleepCtl[qos].cv.notify_all();
                 {
                     usleep(1);
-                    std::unique_lock lock(groupCtl[qos].tgMutex);
+                    std::shared_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
                     if (groupCtl[qos].threads.empty()) {
                         break;
                     }
@@ -57,12 +64,37 @@ public:
     }
 
     void NotifyTaskAdded(const QoS& qos) override;
+#ifdef FFRT_IO_TASK_SCHEDULER
+    void NotifyLocalTaskAdded(const QoS& qos) override;
+#endif
 
     std::mutex* GetSleepCtl(int qos) override
     {
         return &sleepCtl[qos].mutex;
     }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
+    void AddStealingWorker(const QoS& qos)
+    {
+        stealWorkers[qos].fetch_add(1);
+    }
+
+    void SubStealingWorker(const QoS& qos)
+    {
+        while (1) {
+            uint64_t stealWorkersNum = stealWorkers[qos].load();
+            if (stealWorkersNum == 0) {
+                return;
+            }
+            if (atomic_compare_exchange_weak(&stealWorkers[qos], &stealWorkersNum, stealWorkersNum - 1)) return;
+            }
+    }
+
+    uint64_t GetStealingWorkers(const QoS& qos)
+    {
+        return stealWorkers[qos].load(std::memory_order_relaxed);
+    }
+#endif
 private:
     bool WorkerTearDown();
     bool IncWorker(const QoS& qos) override;
@@ -76,11 +108,20 @@ private:
     WorkerAction WorkerIdleAction(const WorkerThread* thread);
     void WorkerJoinTg(const QoS& qos, pid_t pid);
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
-    void WorkerSetup(WorkerThread* thread, const QoS& qos);
 
     CPUMonitor monitor;
     WorkerSleepCtl sleepCtl[QoS::Max()];
     bool tearDown = false;
+
+#ifdef FFRT_IO_TASK_SCHEDULER
+    void WorkerSetup(WorkerThread* thread, const QoS& qos);
+    PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);
+    unsigned int StealTaskBatch(WorkerThread* thread);
+    TaskCtx* PickUpTaskBatch(WorkerThread* thread);
+    void TryMoveLocal2Global(WorkerThread* thread);
+    fast_mutex pollersMtx[QoS::Max()];
+    std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
+#endif
 };
 } // namespace ffrt
 #endif

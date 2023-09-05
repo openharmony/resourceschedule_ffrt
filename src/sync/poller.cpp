@@ -28,7 +28,7 @@ Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
         m_wakeData.cb = nullptr;
         m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         assert(m_wakeData.fd >= 0);
-        epoll_event ev{.events = EPOLLIN, .data = {.ptr = static_cast<void*>(&m_wakeData)}};
+        epoll_event ev {.events = EPOLLIN, .data = {.ptr = static_cast<void*>(&m_wakeData)}};
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
             std::terminate();
         }
@@ -45,7 +45,7 @@ Poller::~Poller() noexcept
 
 int Poller::AddFdEvent(uint32_t events, int fd, void* data, void(*cb)(void*, uint32_t)) noexcept
 {
-    auto wakeData = std::unique_ptr<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb));
+    auto wakeData = std::make_unique<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb));
     epoll_event ev = {.events = events, .data = {.ptr = static_cast<void*>(wakeData.get())}};
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
         FFRT_LOGE("epoll_ctl add fd error: efd = %d, fd = %d, errorno = %d", m_epFd, fd, errno);

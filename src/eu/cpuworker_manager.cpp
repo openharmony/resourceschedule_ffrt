@@ -25,6 +25,12 @@
 #include "eu/qos_interface.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
+<<<<<<< HEAD
+=======
+#include "eu/qos_interface.h"
+#include "eu/cpuworker_manager.h"
+#include "queue/queue.h"
+>>>>>>> 1de74c0 (rust)
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -81,7 +87,8 @@ TaskCtx* CPUWorkerManager::PickUpTask(WorkerThread* thread)
     auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
-    return sched.PickNextTask();
+    TaskCtx* task = sched.PickNextTask();
+    return task;
 }
 
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -137,7 +144,6 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     if (tearDown) {
         return 0;
     }
-    static_assert(STEAL_BUFFER_SIZE == LOCAL_QUEUE_SIZE / 2);
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
@@ -213,6 +219,17 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
     }
 }
 
+bool CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
+{
+    auto& pollerMtx = pollersMtx[thread->GetQos()];
+    if (!pollersExitFlag[thread->GetQos()].load(std::memory_order_relaxed) && pollerMtx.try_lock()) {
+        bool ret = PollerProxy::Instance()->GetPoller(thread->GetQos()).PollOnce(timeout);
+        pollerMtx.unlock();
+        return ret;
+    }
+    return false;
+}
+
 WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 {
     if (tearDown) {
@@ -224,6 +241,7 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     monitor.IntoSleep(thread->GetQos());
     FFRT_LOGD("worker sleep");
 #if defined(IDLE_WORKER_DESTRUCT)
+<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
@@ -233,6 +251,11 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos());})) {
 #endif
+=======
+    if (ctl.cv.wait_for(lk, std::chrono::seconds(5),
+        [this, thread] {return tearDown || GetTaskCount(thread->GetQos())
+            || ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
+>>>>>>> 1de74c0 (rust)
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -241,6 +264,7 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
     }
+<<<<<<< HEAD
 #else
 #ifdef FFRT_IO_TASK_SCHEDULER
     ctl.cv.wait(lk, [this, thread] {
@@ -251,6 +275,11 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     ctl.cv.wait(lk, [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos());});
 #endif
+=======
+#else /* !IDLE_WORKER_DESTRUCT */
+    ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos())
+        || ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
+>>>>>>> 1de74c0 (rust)
     monitor.WakeupCount(thread->GetQos());
     FFRT_LOGD("worker awake");
     return WorkerAction::RETRY;
@@ -260,6 +289,13 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
 {
     monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
+}
+
+void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
+{
+    if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0){
+        monitor.Notify(qos, TaskNotifyType::TASK_LOCAL);
+    }
 }
 
 CPUWorkerManager::CPUWorkerManager() : monitor({

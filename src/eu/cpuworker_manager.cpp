@@ -262,18 +262,6 @@ void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
     monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
 }
 
-void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
-{
-    if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0) {
-        monitor.Notify(qos, TaskNotifyType::TASK_LOCAL);
-    }
-}
-
-void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
-{
-    monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
-}
-
 CPUWorkerManager::CPUWorkerManager() : monitor({
     std::bind(&CPUWorkerManager::IncWorker, this, std::placeholders::_1),
     std::bind(&CPUWorkerManager::WakeupWorkers, this, std::placeholders::_1),

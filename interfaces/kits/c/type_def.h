@@ -12,12 +12,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
+/**
+ * @addtogroup Ffrt
+ * @{
+ *
+ * @brief ffrt provides APIs.
+ *
+ *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ *
+ * @since 10
+ */
+
  /**
  * @file type_def.h
  *
  * @brief Declares common types.
  *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
@@ -32,36 +45,12 @@
 #define FFRT_C_API
 #endif
 
-#ifdef FFRT_IO_TASK_SCHEDULER
-typedef enum {
-    ffrt_coroutine_stackless,
-    ffrt_coroutine_with_stack,
-} ffrt_coroutine_t;
-<<<<<<< HEAD
-<<<<<<< HEAD
-#endif
-=======
-
-typedef enum {
-    ffrt_ready = 1,
-    ffrt_blocked = 3,
-    ffrt_exitedd = 4,
-} ffrt_task_status_t;
->>>>>>> 26cbcd1 (rust)
-=======
-#endif
->>>>>>> a2ebe5c (ffrt rust)
-
-typedef enum {
-    ffrt_coroutine_pending = 0,
-    ffrt_coroutine_ready = 1,
-} ffrt_coroutine_ret_t;
-
 /**
  * @brief Enumerates the task QoS types.
  *
  */
 typedef enum {
+    /** Inheritance. */
     ffrt_qos_inherit = -1,
     /** Background task. */
     ffrt_qos_background,
@@ -72,32 +61,20 @@ typedef enum {
     /** User initiated. */
     ffrt_qos_user_initiated,
 } ffrt_qos_default_t;
-
 typedef int ffrt_qos_t;
+
+typedef void(*ffrt_function_t)(void*);
+
 /**
  * @brief Defines a task executor.
  *
  */
-typedef void(*ffrt_function_t)(void*);
-<<<<<<< HEAD
-<<<<<<< HEAD
-#ifdef FFRT_IO_TASK_SCHEDULER
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
-#endif
-=======
-typedef void(*ffrt_function_ptr_t)(void*);
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
->>>>>>> 757a39b (rust)
-=======
-#ifdef FFRT_IO_TASK_SCHEDULER
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
-#endif
->>>>>>> a2ebe5c (ffrt rust)
 typedef struct {
     /** Function used to execute a task. */
     ffrt_function_t exec;
     /** Function used to destroy a task. */
     ffrt_function_t destroy;
+    /** Need to be set to 0. */
     uint64_t reserve[2];
 } ffrt_function_header_t;
 
@@ -125,19 +102,29 @@ typedef enum {
 typedef enum {
     /** General task. */
     ffrt_function_kind_general,
-    ffrt_function_kind_queue,
-#ifdef FFRT_IO_TASK_SCHEDULER
-    ffrt_function_kind_io
-#endif
+    /** Queue task. */
+    ffrt_function_kind_queue
 } ffrt_function_kind_t;
 
+/**
+ * @brief dependency type.
+ *
+ */
 typedef enum {
+    /** Data dependency type. */
     ffrt_dependence_data,
+    /** Task dependency type. */
     ffrt_dependence_task,
 } ffrt_dependence_type_t;
 
+/**
+ * @brief dependency data structure.
+ *
+ */
 typedef struct {
+    /** Dependency type. */
     ffrt_dependence_type_t type;
+    /** Dependency pointer. */
     const void* ptr;
 } ffrt_dependence_t;
 
@@ -186,14 +173,6 @@ typedef struct {
 typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
-
-#ifdef FFRT_IO_TASK_SCHEDULER
-typedef struct {
-    int fd;
-    void* data;
-    void(*cb)(void*, uint32_t);
-} ffrt_poller_t;
-#endif
 
 #ifdef __cplusplus
 namespace ffrt {

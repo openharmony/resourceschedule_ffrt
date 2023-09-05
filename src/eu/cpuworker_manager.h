@@ -20,13 +20,9 @@
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
-<<<<<<< HEAD
 #ifdef FFER_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #endif
-=======
-#include "sync/poller.h"
->>>>>>> 1de74c0 (rust)
 
 
 namespace ffrt {
@@ -47,17 +43,10 @@ public:
         for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
             int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
             while (try_cnt--) {
-<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
                 pollersMtx[qos].unlock();
                 PollerProxy::Instance()->GetPoller(qos).WakeUp();
 #endif
-=======
-                pollerExitFlag[qos].store(true, std::memory_order_relaxed);
-                std::atomic_thread_fence(std::memory_order_acq_rel);
-                pollersMtx[qos].unlock();
-                PollerProxy::Instance()->GetPoller(qos).WakeUp();
->>>>>>> 1de74c0 (rust)
                 sleepCtl[qos].cv.notify_all();
                 {
                     usleep(1);
@@ -75,13 +64,9 @@ public:
     }
 
     void NotifyTaskAdded(const QoS& qos) override;
-<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
     void NotifyLocalTaskAdded(const QoS& qos) override;
 #endif
-=======
-    void NotifyLocalTaskAdded(const QoS& qos) override;
->>>>>>> 1de74c0 (rust)
 
     std::mutex* GetSleepCtl(int qos) override
     {

@@ -25,12 +25,6 @@
 #include "eu/qos_interface.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
-<<<<<<< HEAD
-=======
-#include "eu/qos_interface.h"
-#include "eu/cpuworker_manager.h"
-#include "queue/queue.h"
->>>>>>> 1de74c0 (rust)
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -241,7 +235,6 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     monitor.IntoSleep(thread->GetQos());
     FFRT_LOGD("worker sleep");
 #if defined(IDLE_WORKER_DESTRUCT)
-<<<<<<< HEAD
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
@@ -251,11 +244,6 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos());})) {
 #endif
-=======
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(5),
-        [this, thread] {return tearDown || GetTaskCount(thread->GetQos())
-            || ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));})) {
->>>>>>> 1de74c0 (rust)
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -264,7 +252,6 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         FFRT_LOGD("worker exit");
         return WorkerAction::RETIRE;
     }
-<<<<<<< HEAD
 #else
 #ifdef FFRT_IO_TASK_SCHEDULER
     ctl.cv.wait(lk, [this, thread] {
@@ -275,11 +262,6 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     ctl.cv.wait(lk, [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos());});
 #endif
-=======
-#else /* !IDLE_WORKER_DESTRUCT */
-    ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos())
-        || ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));});
->>>>>>> 1de74c0 (rust)
     monitor.WakeupCount(thread->GetQos());
     FFRT_LOGD("worker awake");
     return WorkerAction::RETRY;

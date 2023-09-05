@@ -164,8 +164,8 @@ unsigned int queue_pophead_pushtail_batch(struct queue_s *target_queue, struct q
     unsigned int i;
     target_head = atomic_load(&target_queue->head);
     target_tail = atomic_load(&target_queue->tail);
-    local_head = atomic_load(&target_queue->head);
-    local_tail = atomic_load(&target_queue->tail);
+    local_head = atomic_load(&local_queue->head);
+    local_tail = atomic_load(&local_queue->tail);
     i = 0;
     while (((local_tail - local_head) < local_queue->capacity) && (target_tail != target_head)) {
         auto temp = queue_pophead(target_queue);
@@ -192,10 +192,10 @@ void queue_pophead_to_gqueue_batch(struct queue_s* queue, unsigned int pop_len, 
     unsigned int tail;
     unsigned int i;
 
-    head = atomic_load(&target_queue->head);
-    tail = atomic_load(&target_queue->tail);
+    head = atomic_load(&queue->head);
+    tail = atomic_load(&queue->tail);
     i = 0;
-    while ((tail != head) && i<= pop_len) {
+    while ((tail != head) && i <= pop_len) {
         auto temp = queue_pophead(queue);
         if (!func(temp, qos)) {
             FFRT_LOGE("Submit io task failed");

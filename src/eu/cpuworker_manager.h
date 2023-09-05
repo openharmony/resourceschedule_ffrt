@@ -111,8 +111,6 @@ private:
 
     CPUMonitor monitor;
     WorkerSleepCtl sleepCtl[QoS::Max()];
-    fast_mutex pollersMtx[QoS::Max()];
-    std::array<std::atomic<bool>, QoS::Max()> pollersExitFlag {false};
     bool tearDown = false;
 
 #ifdef FFRT_IO_TASK_SCHEDULER

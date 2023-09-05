@@ -104,6 +104,7 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         TaskCtx* task2local = sched.PickNextTask();
         if (task2local == nullptr) {
             return task;
+        }
         if (((CPUWorker *)thread)->priority_task == nullptr) {
             ((CPUWorker *)thread)->priority_task = task2local;
         } else {
@@ -113,7 +114,7 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     return task;
 }
 
-void InsertTask(void *task, int qos)
+bool InsertTask(void *task, int qos)
 {
     ffrt_executor_task_t* task = (ffrt_executor_task_t)task;
     LinkedList* node = (LinkedList *)(&task->wq);

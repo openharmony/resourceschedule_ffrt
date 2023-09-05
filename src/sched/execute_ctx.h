@@ -95,7 +95,7 @@ struct ExecuteCtx {
 #ifdef FFRT_IO_TASK_SCHEDULER
     inline bool PushTaskToPriorityStack(ffrt_executor_task_t* task)
     {
-        if (priority_task_ptr ==nullptr) {
+        if (priority_task_ptr == nullptr) {
             return false;
         }
         if (*priority_task_ptr == nullptr) {

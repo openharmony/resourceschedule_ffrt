@@ -78,11 +78,13 @@ public:
         lock_contended();
     }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
     bool try_lock()
     {
         int v = sync_detail::UNLOCK;
         return __atomic_compare_exchange_n(&l, &v, sync_detail::LOCK, 0, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
     }
+#endif
 
     void unlock()
     {

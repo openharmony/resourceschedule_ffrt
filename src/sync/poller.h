@@ -26,6 +26,7 @@
 #include "sched/qos.h"
 #include "sync/sync.h"
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 namespace ffrt {
 struct WakeDataWithCb {
     WakeDataWithCb()
@@ -91,3 +92,4 @@ private:
 };
 } // namespace ffrt
 #endif
+#enidf

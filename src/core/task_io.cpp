@@ -114,12 +114,6 @@ static void ffrt_executor_io_task_init()
 {
     ffrt_executor_task_register_func(io_ffrt_executor_task_func, ffrt_io_task);
 }
-
-bool randomBool()
-{
-    static auto gen = std::bind(std::uniform_int_distribution<>(0, 1), std::default_random_engine());
-    return gen();
-}
 }
 
 #ifdef __cplusplus

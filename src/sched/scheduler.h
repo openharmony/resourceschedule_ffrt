@@ -67,25 +67,27 @@ public:
         return fifoQue[static_cast<size_t>(qos)];
     }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
     void PushTask(TaskCtx* task)
     {
-        int qos_level = task->qos();
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
+        int level = task->qos();
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
-        fifoQue[static_cast<size_t>(qos_level)].WakeupTask(task);
+        fifoQue[static_cast<size_t>(level)].WakeupTask(task);
         lock->unlock();
-        ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
+        ExecuteUnit::Instance().NotifyTaskAdded(level);
     }
 
     bool InsertNodeNoMutex(ffrt_executor_task* task, const QoS qos)
     {
         if (task == nullptr) return false;
-        int qos_level = qos;
+        int level = qos;
         ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
         fifoQue[static_cast<size_t>(qos_level)].WakeupNode(node);
-        ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
+        ExecuteUnit::Instance().NotifyTaskAdded(level);
         return true;
     }
+#endif
 
     bool WakeupTask(TaskCtx* task)
     {

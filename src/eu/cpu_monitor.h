@@ -58,8 +58,6 @@ public:
     void RegWorker(const QoS& qos);
     void UnRegWorker();
     void Notify(const QoS& qos, TaskNotifyType notifyType);
-    void IntoPollWait(const QoS& qos);
-    void OutOfPollWait(const QoS& qos);
 #ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
 #endif

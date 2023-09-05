@@ -18,6 +18,7 @@
 #include "sched/execute_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
 
+#ifdef FFRT_IO_TASK_SCHEDULER
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
     m_events(1024)
@@ -138,6 +139,10 @@ void Poller::WakeUp() noexcept
 
 bool Poller::RegisterTimerFunc(int(*timerFunc)()) noexcept
 {
+    if (timerFunc == nullptr) {
+        FFRT_LOGE("timerFunc is invalid");
+        return false;
+    }
     if (m_timerFunc == nullptr) {
         m_timerFunc = timerFunc;
         return true;
@@ -145,3 +150,4 @@ bool Poller::RegisterTimerFunc(int(*timerFunc)()) noexcept
     return false;
 }
 }
+#endif

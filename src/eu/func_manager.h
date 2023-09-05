@@ -52,7 +52,7 @@ private:
     FuncManager()
     {
 #ifdef FFRT_IO_TASK_SCHEDULER
-        func_map[ffrt_rust_task] = nullptr;
+        func_map[ffrt_io_task] = nullptr;
         func_map[ffrt_uv_task] = nullptr;
 #endif
     }

@@ -252,7 +252,7 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
     }
 #ifdef FFRT_IO_TASK_SCHEDULER
     ffrt_executor_task_t* task = (ffrt_executor_task_t*)handle;
-    if (task->type == ffrt_rust_task) {
+    if (task->type == ffrt_io_task) {
         ffrt::ffrt_executor_io_task* io_task = (ffrt::ffrt_executor_io_task*)task;
         io_task->freeMem();
         return;

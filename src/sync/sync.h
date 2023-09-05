@@ -21,10 +21,10 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include "delayed_worker.h"
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
+#include "delayed_worker.h"
 
 namespace ffrt {
 namespace sync_detail {

@@ -19,12 +19,12 @@
 #ifdef FFER_IO_TASK_SCHEDULER
 #include "queue/queue.h"
 #endif
-#include "eu/cpuworker_manager.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/cpu_monitor.h"
 #include "eu/qos_interface.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
+#include "eu/cpuworker_manager.h"
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -263,7 +263,7 @@ void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
 
 void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
 {
-    if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0){
+    if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0) {
         monitor.Notify(qos, TaskNotifyType::TASK_LOCAL);
     }
 }

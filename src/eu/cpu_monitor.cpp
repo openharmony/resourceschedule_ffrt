@@ -18,12 +18,12 @@
 #include <unistd.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
-#include "eu/cpu_monitor.h"
 #include "sched/scheduler.h"
 #include "eu/wgcm.h"
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
+#include "eu/cpu_monitor.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "queue/queue.h"

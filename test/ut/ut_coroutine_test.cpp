@@ -91,7 +91,7 @@ TEST_F(CoroutineTest, coroutine_submit_succ)
 
 TEST_F(CoroutineTest, coroutine_submit_fail)
 {
-    EXPECT_SQ(ffrt_task_get(),nullptr);
+    EXPECT_SQ(ffrt_task_get(), nullptr);
 
     StacklessCoroutine1 co1 = {0};
     StacklessCoroutine1 co2 = {0};

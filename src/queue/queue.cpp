@@ -16,8 +16,8 @@
 #include <cstring>
 #include <cerrno>
 #include <dfx/log/ffrt_log_api.h>
-#include "queue.h"
 #include "sched/qos.h"
+#include "queue.h"
 
 #ifdef __cplusplus
 #include <atomic>

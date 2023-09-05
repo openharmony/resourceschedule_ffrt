@@ -45,7 +45,9 @@ typedef struct {
 } ffrt_io_callable_t;
 
 struct ffrt_executor_io_task: public ffrt_executor_task {
-    ffrt_executor_io_task(const QoS &qos) : qos(qos) { type = ffrt_rust_task; }
+    ffrt_executor_io_task(const QoS &qos) : qos(qos) {
+        type = ffrt_io_task;
+    }
     bool wakeFlag = true;
     bool withHandle = true;
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];

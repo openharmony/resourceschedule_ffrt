@@ -83,11 +83,11 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qo
     ExecTaskStatus toready_status = ExecTaskStatus::ET_TOREADY;
     std::lock_guard lg(task->lock);
     if (__atomic_compare_exchange_n(&task->status, &executing_status, ExecTaskStatus::ET_PENDING, 0,
-            __ATOMIC_SEQ_CST, __ATOMIC_RELAXED)) {
+        __ATOMIC_SEQ_CST, __ATOMIC_RELAXED)) {
         return;
     }
     if (likely(__atomic_compare_exchange_n(&task->status, &toready_status, ExecTaskStatus::ET_READY, 0,
-            __ATOMIC_SEQ_CST, __ATOMIC_RELAXED))) {
+        __ATOMIC_SEQ_CST, __ATOMIC_RELAXED))) {
 #ifdef ENABLE_LOCAL_QUEUE
         if (ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(task)) return;
         if (ffrt::ExecuteCtx::Cur()->local_fifo == nullptr ||
@@ -112,7 +112,7 @@ static pthread_once_t once = PTHREAD_ONCE_INIT;
 
 static void ffrt_executor_io_task_init()
 {
-    ffrt_executor_task_register_func(io_ffrt_executor_task_func, ffrt_rust_task);
+    ffrt_executor_task_register_func(io_ffrt_executor_task_func, ffrt_io_task);
 }
 
 bool randomBool()

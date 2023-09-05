@@ -187,6 +187,7 @@ public:
     {
         std::unique_lock<decltype(root->lock) > lck(root->lock);
         if (root->childWaitRefCnt == 0) {
+            lck.unlock();
             delete root;
         } else {
             root->thread_exit = true ;

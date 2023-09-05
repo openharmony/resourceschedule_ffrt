@@ -110,6 +110,7 @@ void TaskCtx::DecChildRef()
     if (FFRT_UNLIKELY(parent->IsRoot())) {
         RootTaskCtx *root = static_cast<RootTaskCtx *>(parent);
         if (root->thread_exit == true) {
+            lck.unlock();
             delete root;
             return;
         }

@@ -19,9 +19,9 @@ namespace ffrt {
 int SerialHandler::Cancel(ITask* task)
 {
     FFRT_COND_DO_ERR((task == nullptr), return -1, "submit task is nullptr");
-    FFRT_COND_DO_ERR((looper_ == nullptr || looper_->queue_ == nullptr), return -1, "queue is nullptr");
-    int ret = looper_->queue_->RemoveTask(task);
-    FFRT_LOGD("cancel serial task gid=%llu return [%d]", task->gid, ret);
+    FFRT_COND_DO_ERR((looper_ == nullptr || looper_->GetQueueIns() == nullptr), return -1, "queue is nullptr");
+    int ret = looper_->GetQueueIns()->RemoveTask(task);
+    FFRT_LOGD("cancel serial task gid=%llu return [%d], qid=%u", task->gid, ret, looper_->GetQueueId());
     if (ret == 0) {
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         f->destroy(f);
@@ -35,22 +35,22 @@ void SerialHandler::DispatchTask(ITask* task)
     FFRT_COND_DO_ERR((task == nullptr), return, "failed to dispatch, task is nullptr");
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     f->exec(f);
+    FFRT_LOGD("dispatch serial task gid=%llu succ, qid=%u", task->gid, looper_->GetQueueId());
     f->destroy(f);
     DestroyTask(task);
-    FFRT_LOGD("dispatch serial task gid=%llu succ", task->gid);
 }
 
 int SerialHandler::SubmitDelayed(ITask* task, uint64_t delayUs)
 {
     FFRT_COND_DO_ERR((task == nullptr), return -1, "submit task is nullptr");
-    FFRT_COND_DO_ERR((looper_ == nullptr || looper_->queue_ == nullptr), return -1, "queue is nullptr");
-    FFRT_LOGD("submit serial task gid=%llu with delay [%llu us]", task->gid, delayUs);
+    FFRT_COND_DO_ERR((looper_ == nullptr || looper_->GetQueueIns() == nullptr), return -1, "queue is nullptr");
+    FFRT_LOGD("submit serial task gid=%llu with delay [%llu us], qid=%u", task->gid, delayUs, looper_->GetQueueId());
     auto nowUs = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     uint64_t upTime = static_cast<uint64_t>(nowUs.time_since_epoch().count());
     if (delayUs > 0) {
         upTime = upTime + delayUs;
     }
-    return looper_->queue_->PushTask(task, upTime);
+    return looper_->GetQueueIns()->PushTask(task, upTime);
 }
 
 void SerialHandler::DestroyTask(ITask* task)

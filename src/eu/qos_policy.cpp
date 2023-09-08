@@ -76,7 +76,7 @@ void SetPriority(unsigned char priority, WorkerThread* thread)
     } else {
         struct sched_param param;
         param.sched_priority = 0;
-        ret = pthread_setschedparam(thread->GetThread().native_handle(), SCHED_NORMAL, &param);
+        ret = pthread_setschedparam(thread->GetThread().native_handle(), SCHED_OTHER, &param);
         if (ret != 0) {
             FFRT_LOGE("[%d] set priority sched_normal failed ret[%d] errno[%d]\n", thread->Id(), ret, errno);
         }

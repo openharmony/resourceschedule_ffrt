@@ -23,7 +23,6 @@
  */
 #ifndef FFRT_API_CPP_SLEEP_H
 #define FFRT_API_CPP_SLEEP_H
-#include <ctime>
 #include <chrono>
 #include "c/sleep.h"
 

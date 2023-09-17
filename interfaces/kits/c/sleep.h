@@ -14,10 +14,23 @@
  */
 
 /**
+ * @addtogroup Ffrt
+ * @{
+ *
+ * @brief ffrt provides APIs.
+ *
+ *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ *
+ * @since 10
+ */
+
+/**
  * @file sleep.h
  *
  * @brief Declares the sleep and yield interfaces in C.
  *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */

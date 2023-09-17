@@ -119,8 +119,8 @@ void SerialLooper::SetTimeoutMonitor(ITask* task)
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::freeMem(we);
-        FFRT_LOGW("timeout [%llu us] is too short to set watchdog of task gid=%llu in %s",
-            task->gid, name_.c_str(), qid_);
+        FFRT_LOGW("failed to set watchdog for task gid=%llu in %s qid=%u with timeout [%llu us] ",
+            task->gid, name_.c_str(), qid_, timeout_);
         return;
     }
 

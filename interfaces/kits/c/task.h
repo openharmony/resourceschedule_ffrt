@@ -13,11 +13,24 @@
  * limitations under the License.
  */
 
+/**
+ * @addtogroup Ffrt
+ * @{
+ *
+ * @brief ffrt provides APIs.
+ *
+ *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ *
+ * @since 10
+ */
+
  /**
  * @file task.h
  *
  * @brief Declares the task interfaces in C.
  *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
@@ -105,6 +118,7 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
  * @version 1.0
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
+
 /**
  * @brief Updates the QoS of this task.
  *
@@ -114,7 +128,8 @@ FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
  * @since 10
  * @version 1.0
  */
-FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t task_qos);
+FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
+
 /**
  * @brief Obtains the ID of this task.
  *

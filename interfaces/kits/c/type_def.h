@@ -12,12 +12,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
+/**
+ * @addtogroup Ffrt
+ * @{
+ *
+ * @brief ffrt provides APIs.
+ *
+ *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ *
+ * @since 10
+ */
+
  /**
  * @file type_def.h
  *
  * @brief Declares common types.
  *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
@@ -37,6 +50,7 @@
  *
  */
 typedef enum {
+    /** Inheritance. */
     ffrt_qos_inherit = -1,
     /** Background task. */
     ffrt_qos_background,
@@ -60,6 +74,7 @@ typedef struct {
     ffrt_function_t exec;
     /** Function used to destroy a task. */
     ffrt_function_t destroy;
+    /** Need to be set to 0. */
     uint64_t reserve[2];
 } ffrt_function_header_t;
 
@@ -91,13 +106,25 @@ typedef enum {
     ffrt_function_kind_queue
 } ffrt_function_kind_t;
 
+/**
+ * @brief dependency type.
+ *
+ */
 typedef enum {
+    /** Data dependency type. */
     ffrt_dependence_data,
+    /** Task dependency type. */
     ffrt_dependence_task,
 } ffrt_dependence_type_t;
 
+/**
+ * @brief dependency data structure.
+ *
+ */
 typedef struct {
+    /** Dependency type. */
     ffrt_dependence_type_t type;
+    /** Dependency pointer. */
     const void* ptr;
 } ffrt_dependence_t;
 

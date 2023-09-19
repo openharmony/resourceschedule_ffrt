@@ -303,7 +303,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
         FFRT_LOGE("qos[%d] is valid.", qos);
         return -1;
     }
-    ffrt::CPUmonitor *monitor = ffrt::ExecuteUnit::Instance().GetCPUMonitor();
+    ffrt::CPUMonitor *monitor = ffrt::ExecuteUnit::Instance().GetCPUMonitor();
     return monitor->SetWorkerMaxNum(_qos, num);
 }
 

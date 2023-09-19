@@ -95,6 +95,10 @@ public:
         return stealWorkers[qos].load(std::memory_order_relaxed);
     }
 #endif
+    CPUMonitor* GetCPUMonitor() override
+    {
+        return &monitor;
+    }
 private:
     bool WorkerTearDown();
     bool IncWorker(const QoS& qos) override;

@@ -30,4 +30,5 @@ FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 
 // config
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
+FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
 #endif

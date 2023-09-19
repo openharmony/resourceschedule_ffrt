@@ -58,6 +58,7 @@ public:
     void RegWorker(const QoS& qos);
     void UnRegWorker();
     void Notify(const QoS& qos, TaskNotifyType notifyType);
+    int SetWorkerMaxNum(const QoS& qos, int num);
 #ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
 #endif

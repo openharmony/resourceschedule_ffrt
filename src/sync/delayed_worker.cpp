@@ -20,9 +20,16 @@
 #include <sys/prctl.h>
 #include <thread>
 #include <linux/futex.h>
+#include "dfx/log/ffrt_log_api.h"
 namespace ffrt {
 DelayedWorker::DelayedWorker() : futex(0)
 {
+    struct sched_param param;
+    param.sched_priority = 1;
+    int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
+    if (ret != 0) {
+        FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
+    }
     std::thread t([this]() {
         prctl(PR_SET_NAME, "delayed_worker");
         for (;;) {

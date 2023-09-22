@@ -21,16 +21,13 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include "sched/execute_ctx.h"
-#include "delayed_worker.h"
-#ifndef _MSC_VER
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
-#endif
+#include "sched/execute_ctx.h"
+#include "delayed_worker.h"
 
 namespace ffrt {
-#ifndef _MSC_VER
 class semaphore {
     uint64_t data;
 
@@ -81,6 +78,5 @@ public:
         }
     }
 };
-#endif
 } // namespace ffrt
 #endif

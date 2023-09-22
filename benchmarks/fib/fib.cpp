@@ -13,11 +13,10 @@
  * limitations under the License.
  */
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "common.h"
 
 using namespace ffrt;
-
 void Fib(int x, int& y)
 {
     if (x <= 1) {

@@ -20,8 +20,8 @@
 #include "sched/workgroup_internal.h"
 #include "eu/worker_manager.h"
 #include "eu/thread_group.h"
-#include "eu/cpu_monitor.h"
 #include "core/task_ctx.h"
+#include "internal_inc/osal.h"
 
 namespace ffrt {
 class ExecuteUnit {
@@ -38,7 +38,7 @@ public:
 
     void NotifyTaskAdded(const QoS& qos)
     {
-        {
+        if (likely(wManager[static_cast<size_t>(DevType::CPU)])) {
             wManager[static_cast<size_t>(DevType::CPU)]->NotifyTaskAdded(qos);
         }
     }
@@ -60,11 +60,6 @@ public:
     WorkerGroupCtl* GetGroupCtl()
     {
         return wManager[static_cast<size_t>(DevType::CPU)]->GetGroupCtl();
-    }
-
-    CPUMonitor* GetCPUMonitor()
-    {
-        return wManager[static_cast<size_t>(DevType::CPU)]->GetCPUMonitor();
     }
 
 private:

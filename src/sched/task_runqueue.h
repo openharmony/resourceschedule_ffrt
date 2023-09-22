@@ -31,6 +31,11 @@ public:
         static_cast<Derived*>(this)->EnQueueImpl(task);
     }
 
+    TaskCtx* DeQueue()
+    {
+        return static_cast<Derived*>(this)->DeQueueImpl();
+    }
+
     void EnQueueNode(LinkedList* node)
     {
         static_cast<Derived*>(this)->EnQueueNodeImpl(node);
@@ -39,11 +44,6 @@ public:
     void RmQueueNode(LinkedList* node)
     {
         static_cast<Derived*>(this)->RmQueueNodeImpl(node);
-    }
-
-    TaskCtx* DeQueue()
-    {
-        return static_cast<Derived*>(this)->DeQueueImpl();
     }
 
     bool Empty()
@@ -77,7 +77,6 @@ private:
         if (node == nullptr) {
             return nullptr;
         }
-
         ffrt_executor_task_t* w = reinterpret_cast<ffrt_executor_task_t *>(reinterpret_cast<char *>(node) -
             offsetof(ffrt_executor_task_t, wq));
         if (w->type != 0) {

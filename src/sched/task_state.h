@@ -29,6 +29,7 @@ struct TaskCtx;
 class TaskState {
 public:
     enum State { PENDING, READY, RUNNING, BLOCKED, EXITED, MAX };
+
     using Op = typename std::function<bool(TaskCtx*)>;
 
     TaskState() = default;
@@ -59,10 +60,12 @@ public:
         return curState;
     }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
     void SetCurState(State state)
     {
         curState = state;
     }
+#endif
 
     State PreState() const
     {
@@ -116,7 +119,7 @@ private:
 
     private:
         inline void Count(TaskState::State state);
-        inline uint64_t CalcDuration(TaskState::State preState, TaskState::State curState) const;
+        inline uint64_t CalcDuration(TaskState::State pre, TaskState::State cur) const;
 
         std::array<std::chrono::steady_clock::time_point, static_cast<size_t>(TaskState::State::MAX)> timepoint;
     };

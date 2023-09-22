@@ -24,7 +24,6 @@ constexpr int DEFAULT_MINCONCURRENCY = 4;
 constexpr int INTERACTIVE_MAXCONCURRENCY = USE_COROUTINE ? 4 : 40000;
 constexpr int DEFAULT_MAXCONCURRENCY = USE_COROUTINE ? 8 : 80000;
 constexpr int DEFAULT_HARDLIMIT = 16;
-constexpr int QOS_WORKER_MAXNUM = (8 * 16);
 
 class GlobalConfig {
 public:

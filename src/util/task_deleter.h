@@ -41,9 +41,10 @@ public:
             freeMem();
         }
     }
-    uintptr_t reserved;
+    uintptr_t reserved = 0;
     uintptr_t type = 0;
     WaitEntry fq_we; // used on fifo fast que
+
     std::atomic_uint32_t rc = 1;
     const uint64_t gid; // global unique id in this process
 };

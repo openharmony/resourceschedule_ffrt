@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 
 int ffrt_submit_example1()
 {

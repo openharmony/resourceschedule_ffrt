@@ -40,9 +40,9 @@ struct TaskSwitchRecord {
 
 class UserSpaceLoadRecord {
 public:
-    void SetEnable(bool enable)
+    void SetEnable(bool isEnable)
     {
-        this->enable = enable;
+        this->enable = isEnable;
     }
 
     bool Enable() const

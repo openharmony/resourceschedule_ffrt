@@ -416,7 +416,7 @@ def supplement_ffrt_block_and_wake_info(logs):
                 if task_labels[pid][gid]["state"] == "ready":  # abnormal scene: ready -> ready, running & block missed
                     logs[task_labels[pid][gid]["prev_wake_lineno"]] = logs[task_labels[pid][gid]["prev_wake_lineno"]][
                                                                       logs[task_labels[pid][gid][
-                                                                      "prev_wake_lineno"]].index("FFREADY") + 8:]
+                                                                          "prev_wake_lineno"]].index("FFREADY") + 8:]
 
                 task_labels[pid][gid]["state"] = "ready"
                 task_labels[pid][gid]["prev_wake_log"] = copy.copy(log)

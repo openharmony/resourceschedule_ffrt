@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "eu/cpu_monitor.h"
 #include <iostream>
 #include <thread>
 #include <unistd.h>
@@ -23,7 +24,6 @@
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
-#include "eu/cpu_monitor.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "queue/queue.h"
@@ -62,7 +62,7 @@ void MonitorMain(CPUMonitor* monitor)
     }
 
     for (unsigned int i = 0; i < static_cast<unsigned int>(QoS::Max()); i++) {
-        struct wgcm_workergrp_data grp = {0};
+        struct wgcm_workergrp_data grp = {0, 0, 0, 0, 0, 0, 0, 0};
         grp.gid = i;
         grp.min_concur_workers = DEFAULT_MINCONCURRENCY;
         grp.max_workers_sum = DEFAULT_HARDLIMIT;
@@ -73,7 +73,7 @@ void MonitorMain(CPUMonitor* monitor)
     }
 
     while (true) {
-        struct wgcm_workergrp_data data = {0};
+        struct wgcm_workergrp_data data = {0, 0, 0, 0, 0, 0, 0, 0};
         ret = prctl(PR_WGCM_CTL, WGCM_CTL_WAIT, &data, 0, 0);
         if (ret) {
             FFRT_LOGE("[SERVER] wgcm server wait failed ret is %{public}d", ret);
@@ -103,30 +103,9 @@ void CPUMonitor::SetupMonitor()
     }
 }
 
-int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[qos()];
-    workerCtrl.lock.lock();
-    static bool setFlag[QoS::Max()] = {false};
-    if (setFlag[qos()]) {
-        FFRT_LOGE("qos[%d] worker num can only be setup once", qos());
-        workerCtrl.lock.unlock();
-        return -1;
-    }
-    if (num <= 0 || num > QOS_WORKER_MAXNUM) {
-        FFRT_LOGE("qos[%d] worker num[%d] is invalid.", qos(), num);
-        workerCtrl.lock.unlock();
-        return -1;
-    }
-    workerCtrl.maxConcurrency = num;
-    setFlag[qos()] = true;
-    workerCtrl.lock.unlock();
-    return 0;
-}
-
 void CPUMonitor::RegWorker(const QoS& qos)
 {
-    struct wgcm_workergrp_data grp;
+    struct wgcm_workergrp_data grp = {0, 0, 0, 0, 0, 0, 0, 0};
     grp.gid = static_cast<uint32_t>(qos);
     grp.server_tid = monitorTid;
     int ret = prctl(PR_WGCM_CTL, WGCM_CTL_WORKER_REG, &grp, 0, 0);
@@ -194,7 +173,7 @@ void CPUMonitor::DecExeNumRef(const QoS& qos)
 
 size_t CPUMonitor::CountBlockedNum(const QoS& qos)
 {
-    struct wgcm_workergrp_data grp = {0};
+    struct wgcm_workergrp_data grp = {0, 0, 0, 0, 0, 0, 0, 0};
     grp.gid = static_cast<uint32_t>(qos);
     grp.server_tid = monitorTid;
     int ret = prctl(PR_WGCM_CTL, WGCM_CTL_GET, &grp, 0, 0);
@@ -209,7 +188,7 @@ size_t CPUMonitor::CountBlockedNum(const QoS& qos)
 void CPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
     int taskCount = ops.GetTaskCount(qos);
-    FFRT_LOGD("qos[%d] task notify op[%d] cnt[%ld]", (int)qos, (int)notifyType, ops.GetTaskCount(qos));
+    FFRT_LOGD("qos[%d] task notify op[%d] cnt[%ld]", static_cast<int>(qos), static_cast<int>(notifyType), taskCount);
     switch (notifyType) {
         case TaskNotifyType::TASK_ADDED:
             if (taskCount > 0) {
@@ -223,7 +202,7 @@ void CPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
             break;
 #ifdef FFRT_IO_TASK_SCHEDULER
         case TaskNotifyType::TASK_LOCAL:
-            Poke(qos);
+                Poke(qos);
             break;
 #endif
         default:
@@ -266,6 +245,24 @@ void CPUMonitor::IntoSleep(const QoS& qos)
     workerCtrl.lock.unlock();
 }
 
+void CPUMonitor::IntoDeepSleep(const QoS& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+    workerCtrl.deepSleepingWorkerNum++;
+    workerCtrl.lock.unlock();
+}
+
+void CPUMonitor::OutOfDeepSleep(const QoS& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+    workerCtrl.sleepingWorkerNum--;
+    workerCtrl.executionNum++;
+    workerCtrl.deepSleepingWorkerNum--;
+    workerCtrl.lock.unlock();
+}
+
 #ifdef FFRT_IO_TASK_SCHEDULER
 void CPUMonitor::IntoPollWait(const QoS& qos)
 {
@@ -284,6 +281,20 @@ void CPUMonitor::OutOfPollWait(const QoS& qos)
 }
 #endif
 
+bool CPUMonitor::IsExceedDeepSleepThreshold()
+{
+    int totalWorker = 0;
+    int deepSleepingWorkerNum = 0;
+    for (unsigned int i = 0; i < static_cast<unsigned int>(QoS::Max()); i++) {
+        WorkerCtrl& workerCtrl = ctrlQueue[i];
+        workerCtrl.lock.lock();
+        deepSleepingWorkerNum += workerCtrl.deepSleepingWorkerNum;
+        totalWorker += workerCtrl.executionNum + workerCtrl.sleepingWorkerNum;
+        workerCtrl.lock.lock();
+    }
+    return deepSleepingWorkerNum * 2 > totalWorker;
+}
+
 void CPUMonitor::Poke(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -291,6 +302,7 @@ void CPUMonitor::Poke(const QoS& qos)
     int taskCount = ops.GetTaskCount(qos);
 #endif
     workerCtrl.lock.lock();
+    
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (workerCtrl.executionNum > 4 && taskCount < workerCtrl.executionNum) {
         workerCtrl.lock.unlock();

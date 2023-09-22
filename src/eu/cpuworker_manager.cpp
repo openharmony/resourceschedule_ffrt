@@ -16,15 +16,15 @@
 #include <climits>
 #include <cstring>
 #include <sys/stat.h>
+#include "eu/cpu_monitor.h"
+#include "eu/cpu_manager_interface.h"
+#include "sched/scheduler.h"
+#include "sched/workgroup_internal.h"
+#include "eu/qos_interface.h"
+#include "eu/cpuworker_manager.h"
 #ifdef FFER_IO_TASK_SCHEDULER
 #include "queue/queue.h"
 #endif
-#include "eu/cpu_manager_interface.h"
-#include "eu/cpu_monitor.h"
-#include "eu/qos_interface.h"
-#include "sched/scheduler.h"
-#include "sched/workgroup_internal.h"
-#include "eu/cpuworker_manager.h"
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -90,12 +90,13 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     if (tearDown) {
         return nullptr;
     }
+
     auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     TaskCtx* task = sched.PickNextTask();
     if (task == nullptr) return nullptr;
-    struct queue_s *queue = &(((CPUWorker *)thread)->local_fifo);
+    struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
     int expected_task = (GetTaskCount(thread->GetQos()) / monitor.WakedWorkerNum(thread->GetQos()));
     for (int i = 0; i <expected_task; i++) {
         if (queue_length(queue) == queue_capacity(queue)) {
@@ -109,16 +110,19 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
             ((CPUWorker *)thread)->priority_task = task2local;
         } else {
             int ret = queue_pushtail(queue, task2local);
+            if (ret != 0) {
+                return task;
+            }
         }
     }
     return task;
 }
 
-bool InsertTask(void *task, int qos)
+bool InsertTask(void* task, int qos)
 {
-    ffrt_executor_task_t* task = (ffrt_executor_task_t)task;
-    LinkedList* node = (LinkedList *)(&task->wq);
-    return FFRTScheduler::Instance()->InsertNode(node, ffrt::Qos(qos);)
+    ffrt_executor_task_t* task_ = (ffrt_executor_task_t *)task;
+    LinkedList* node = (LinkedList *)(&task_->wq);
+    return FFRTScheduler::Instance()->InsertNode(node, ffrt::QoS(qos));
 }
 
 void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
@@ -130,7 +134,6 @@ void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
     if (queue_length(queue) == queue_capacity(queue)) {
         queue_pophead_to_gqueue_batch(queue, queue_length(queue) / 2, thread->GetQos(), InsertTask);
     }
-    
 }
 
 unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
@@ -138,6 +141,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     if (tearDown) {
         return 0;
     }
+    static_assert(STEAL_BUFFER_SIZE == LOCAL_QUEUE_SIZE / 2);
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
@@ -149,8 +153,8 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         struct queue_s *queue = &(((CPUWorker *)(iter->first))->local_fifo);
         unsigned int queue_len = queue_length(queue);
         if (iter->first != thread && queue_len > 1) {
-            unsigned int buf_len = queue_pophead_pushtail_batch(queue, &(((CPUWorker *)(thread))->local_fifo),
-                queue_len /2);
+            unsigned int buf_len = queue_pophead_pushtail_batch(queue, &(((CPUWorker *)thread)->local_fifo),
+                queue_len / 2);
             SubStealingWorker(thread->GetQos());
             return buf_len;
         }
@@ -222,41 +226,47 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     auto& ctl = sleepCtl[thread->GetQos()];
     std::unique_lock lk(ctl.mutex);
     monitor.IntoSleep(thread->GetQos());
-    FFRT_LOGD("worker sleep");
-#if defined(IDLE_WORKER_DESTRUCT)
+#if !defined(IDLE_WORKER_DESTRUCT)
+    constexpr int waiting_seconds = 10;
+#else
+    constexpr int waiting_seconds = 5;
+#endif
 #ifdef FFRT_IO_TASK_SCHEDULER
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
+    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
         queue_length(&(((CPUWorker *)thread)->local_fifo));
         })) {
 #else
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(5), [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos());
-        })) {
+    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds),
+        [this, thread] {return tearDown || GetTaskCount(thread->GetQos());})) {
 #endif
         monitor.WakeupCount(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
-        monitor.TimeoutCount(thread->GetQos());
-        FFRT_LOGD("worker exit");
-        return WorkerAction::RETIRE;
-    }
-#else
+#if !defined(IDLE_WORKER_DESTRUCT)
+        monitor.IntoDeepSleep(thread->GetQos());
+        CoStackFree();
+        if (monitor.IsExceedDeepSleepThreshold()) {
+            ffrt::QSimpleAllocator<CoRoutine>::releaseMem();
+        }
 #ifdef FFRT_IO_TASK_SCHEDULER
-    ctl.cv.wait(lk, [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos()) ||
-        ((CPUWorker *)thread)->priority_task || queue_length(&(((CPUWorker *)thread)->local_fifo));
-        });
+        ctl.cv.wait(lk, [this, thread] {
+            return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
+            queue_length(&(((CPUWorker *)thread)->local_fifo));
+            });
 #else
-    ctl.cv.wait(lk, [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos());
-        });
+    ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
 #endif
-    monitor.WakeupCount(thread->GetQos());
+    monitor.OutOfDeepSleep(thread->GetQos());
     FFRT_LOGD("worker awake");
     return WorkerAction::RETRY;
-#endif /* IDLE_WORKER_DESTRUCT */
+#else
+    monitor.TimeoutCount(thread->GetQos());
+    FFRT_LOGd("worker exit");
+    return WorkerAction::RETIRE;
+#endif
+    }
 }
 
 void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)

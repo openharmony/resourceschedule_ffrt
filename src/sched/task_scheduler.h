@@ -15,9 +15,6 @@
 
 #ifndef FFRT_TASK_SCHEDULER_HPP
 #define FFRT_TASK_SCHEDULER_HPP
-
-#include <mutex>
-
 #include "core/entity.h"
 #include "sched/task_runqueue.h"
 #include "eu/worker_thread.h"
@@ -26,7 +23,6 @@
 #include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
-
 template <typename Sched>
 class TaskScheduler {
 public:
@@ -41,6 +37,7 @@ public:
     {
         bool ret = false;
         {
+            FFRT_READY_MARKER(task->gid);
             ret = static_cast<Sched*>(this)->WakeupTaskImpl(task);
         }
         return ret;
@@ -119,6 +116,6 @@ private:
 
     FIFOQueue que;
 };
-
 } // namespace ffrt
+
 #endif

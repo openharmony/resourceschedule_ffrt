@@ -19,7 +19,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <inttypes.h>
-#include "ffrt.h"
+#include "ffrt_inner.h"
 
 size_t COMPUTE_TIME_US = 0;
 uint64_t REPEAT = 1;
@@ -77,7 +77,7 @@ static void FibFFRT(int x, int& y)
     simulate_task_compute_time(COMPUTE_TIME_US);
 }
 
-void PreHotFFRT()
+void PreHotFFRT(void)
 {
     if (!PREHOT_FFRT) {
         return;
@@ -87,7 +87,7 @@ void PreHotFFRT()
     ffrt::wait({&output});
 }
 
-void GetEnvs()
+void GetEnvs(void)
 {
     GET_ENV(COMPUTE_TIME_US, COMPUTE_TIME_US, 0);
     GET_ENV(REPEAT, REPEAT, 1);

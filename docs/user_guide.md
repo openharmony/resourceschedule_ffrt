@@ -1301,7 +1301,7 @@ int main(int narg, char** argv)
     int x2 = 2;
     
     void *t[] = {&x1, &x2};
-    ffrt_deps_t deps = {2, (const void* const *)&t}; 
+    ffrt_deps_t deps = {2, (const void* const *)&t};
     // some code use deps
     return 0;
 }

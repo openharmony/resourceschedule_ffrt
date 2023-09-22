@@ -34,7 +34,9 @@ struct WorkerCtrl {
 #ifdef FFRT_IO_TASK_SCHEDULER
     bool pollWaitFlag = false;
 #endif
+    int deepSleepingWorkerNum = 0; // only used for emui
     std::mutex lock;
+    // fast_mutex lock;
 };
 
 class CPUMonitor {
@@ -50,6 +52,8 @@ public:
     void DecSleepingRef(const QoS& qos);
     void IntoSleep(const QoS& qos);
     void WakeupCount(const QoS& qos);
+    void IntoDeepSleep(const QoS& qos);
+    void OutOfDeepSleep(const QoS& qos);
 #ifdef FFRT_IO_TASK_SCHEDULER
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
@@ -58,7 +62,7 @@ public:
     void RegWorker(const QoS& qos);
     void UnRegWorker();
     void Notify(const QoS& qos, TaskNotifyType notifyType);
-    int SetWorkerMaxNum(const QoS& qos, int num);
+    bool IsExceedDeepSleepThreshold();
 #ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
 #endif

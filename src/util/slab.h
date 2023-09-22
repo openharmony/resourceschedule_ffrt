@@ -22,19 +22,23 @@
 #ifdef FFRT_BBOX_ENABLE
 #include <unordered_set>
 #endif
-#ifndef _MSC_VER
 #include <sys/mman.h>
-#endif
 #include "sync/sync.h"
+#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 const std::size_t BatchAllocSize = 128 * 1024;
+#idfef FFRT_BBOX_ENABLE
+constexpr uint32_t ALLOCATOR_DESTRUCT_TIMESOUT = 1000000;
+#endif
 
 template <typename T, size_t MmapSz = BatchAllocSize>
 class SimpleAllocator {
 public:
-    SimpleAllocator(SimpleAllocator const&) = delete;
-    void operator=(SimpleAllocator const&) = delete;
+    SimpleAllocator(const SimpleAllocator&) = delete;
+    SimpleAllocator(SimpleAllocator&&) = delete;
+    SimpleAllocator& operator=(const SimpleAllocator&) = delete;
+    SimpleAllocator& operator=(SimpleAllocator&&) = delete;
 
     static SimpleAllocator<T>* instance()
     {
@@ -52,6 +56,8 @@ public:
     static void freeMem(T* t)
     {
         t->~T();
+        // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
+        // return之前的lck析构不产生UAF问题，因为return之前随着root析构，锁的内存被释放
         instance()->free(t);
     }
 
@@ -61,17 +67,13 @@ public:
         return instance()->getUnfreed();
     }
 private:
-#ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
-    xx::mutex lock {"SimpleAllocator::lock"};
-#else
     fast_mutex lock;
-#endif
     std::vector<T*> primaryCache;
 #ifdef FFRT_BBOX_ENABLE
     std::unordered_set<T*> secondaryCache;
 #endif
     T* basePtr = nullptr;
-    uint32_t count = 0;
+    std::size_t count = 0;
 
     std::vector<T*> getUnfreed()
     {
@@ -148,25 +150,36 @@ private:
     }
     ~SimpleAllocator()
     {
+        std::unique_lock<decltype(lock)> lck(lock);
+        if (basePtr == nullptr) {
+            return;
+        }
 #ifdef FFRT_BBOX_ENABLE
+        uint32_t try_cnt = ALLOCATOR_DESTRUCT_TIMESOUT;
+        std::size_t reserved = MmapSz / sizeof(T);
+        while (try_cnt > 0 ) {
+            if (primaryCache.size() == reserved && secondaryCache.size() == 0) {
+                break;
+            }
+            lck.unlock();
+            usleep(1);
+            try_cnt--;
+            lck.lock();
+        }
+        if (try_cnt == 0) {
+            FFRT_LOGE("clear allocator failed");
+        }
         for (auto ite = secondaryCache.cbegin(); ite != secondaryCache.cend(); ite++) {
             ::operator delete(*ite);
         }
 #endif
-        if (basePtr) {
-            ::operator delete(basePtr);
-        }
+        ::operator delete(basePtr);
     }
 };
 
-#ifndef _MSC_VER
+constexpr unit32_t RESERVED_COROUTINE_COUNT = 0;
 template <typename T, std::size_t MmapSz = 16 * 1024 * 1024>
 class QSimpleAllocator {
-    static QSimpleAllocator<T, MmapSz>* instance(std::size_t size)
-    {
-        static QSimpleAllocator<T, MmapSz> ins(size);
-        return &ins;
-    }
     std::size_t TSize;
     std::mutex lock;
     std::vector<T*> cache;
@@ -175,7 +188,6 @@ class QSimpleAllocator {
     bool expand()
     {
         const int prot = PROT_READ | PROT_WRITE;
-        std::size_t sz = (TSize + 15UL) & -16UL;
         char* p = reinterpret_cast<char*>(mmap(nullptr, MmapSz, prot, flags, -1, 0));
         if (p == (char*)MAP_FAILED) {
             if ((flags & MAP_HUGETLB) != 0) {
@@ -187,7 +199,7 @@ class QSimpleAllocator {
                 return false;
             }
         }
-        for (std::size_t i = 0; i + sz <= MmapSz; i += sz) {
+        for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             cache.push_back(reinterpret_cast<T*>(p + i));
         }
         return true;
@@ -216,6 +228,21 @@ class QSimpleAllocator {
         lock.unlock();
     }
 
+    void release()
+    {
+        T* p = nullptr;
+        lock.lock();
+        while (cache.size() > RESERVED_COROUTINE_COUNT) {
+            p = cache.back();
+            cache.pop_back();
+            int ret = munmap(p, TSize);
+            if (ret != 0) {
+                FFRT_LOGE("munmap failed with errno: %d", errno);
+            }
+        }
+        lock.unlock();
+    }
+
     QSimpleAllocator()
     {
     }
@@ -223,10 +250,21 @@ class QSimpleAllocator {
 public:
     explicit QSimpleAllocator(std::size_t size = sizeof(T))
     {
-        TSize = size;
+        std::size_t p_size = static_cast<std::size_t>(getpagesize());
+        // manually align the size to the page size
+        TSize = (size -1 + p_size) & -p_size;
+        if (MmapSz & TSize != 0) {
+            FFRT_LOGE("MmapSz is not divisible by TSize which may cause memory leak!");
+        }
     }
     QSimpleAllocator(QSimpleAllocator const&) = delete;
     void operator=(QSimpleAllocator const&) = delete;
+
+    static QSimpleAllocator<T, MmapSz>* instance(std::size_t size)
+    {
+        static QSimpleAllocator<T, MmapSz> ins(size);
+        return &ins;
+    }
 
     static T* allocMem(std::size_t size = sizeof(T))
     {
@@ -237,7 +275,11 @@ public:
     {
         instance(size)->free(p);
     }
+
+    static void releaseMem(std::size_t size = sizeof(T))
+    {
+        instance(size)->release();
+    }
 };
-#endif
 } // namespace ffrt
 #endif /* UTIL_SLAB_H */

@@ -265,7 +265,7 @@ void TaskCtx::DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag)
             } else {
                 ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
                 ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
-                ss << std::string(symbol, strlen(symbol)) <<std::endl;
+                ss << std::string(symbol, strlen(symbol)) << std::endl;
             }
         } else {
             if (flag == 0) {
@@ -273,7 +273,7 @@ void TaskCtx::DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag)
                           (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
             } else {
                 ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
-                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ")";
                 ss << std::endl;
             }
         }

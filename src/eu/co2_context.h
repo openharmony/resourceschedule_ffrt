@@ -35,10 +35,6 @@ extern "C" {
 #define REG_NR 8
 #define REG_LR 7
 #define REG_SP 6
-#elif defined(_MSC_VER)
-#define REG_NR 10
-#define REG_LR 7
-#define REG_SP 6
 #else
 #error "Unsupported architecture"
 #endif

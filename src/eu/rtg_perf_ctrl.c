@@ -30,7 +30,7 @@
 static int open_perf_ctrl(void)
 {
     static bool perf_ctrl_available = true;
-    int fd;
+    int fd = -1;
 
     if (!perf_ctrl_available) {
         return -1;

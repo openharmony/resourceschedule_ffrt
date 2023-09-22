@@ -30,7 +30,7 @@ int SetQosPolicy(struct QosPolicyDatas *policyDatas)
 
 static __attribute__((constructor)) void QosPolicyInit()
 {
-    int ret;
+    int ret = 0;
 
     ret = SetQosPolicy(&QosConfig::Instance().getPolicySystem());
     if (ret) {

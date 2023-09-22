@@ -37,7 +37,7 @@ static int TrivalOpenRtgNode(void)
     char fileName[] = "/proc/self/sched_rtg_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGD("task %d belong to user %d open rtg node failed\n", getpid(), getuid());
+        FFRT_LOGE("task %d belong to user %d open rtg node failed\n", getpid(), getuid());
     }
 
     return fd;
@@ -309,6 +309,24 @@ int QosPolicy(struct QosPolicyDatas *policyDatas)
     return ret;
 }
 
+int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas)
+{
+    int fd;
+    int ret;
+    fd = TrivalOpenQosCtrlNode();
+    if (fd < 0) {
+        return fd;
+    }
+    ctrlDatas.tid = tid;
+    ret = ioctl(fd, QOS_THREAD_CTRL_OPERATION, &ctrlDatas);
+    if (ret < 0) {
+        FFRT_LOGE("set thread ctrl data failed for task %d, this func is not enable in OHOS\n", getpid());
+    }
+
+    close(fd);
+    return ret;
+}
+
 int QosGet(struct QosCtrlData &data)
 {
     int tid = GET_TID();
@@ -325,36 +343,36 @@ int QosGetForOther(int tid, struct QosCtrlData &data)
     data.type = QOS_GET;
     data.pid = tid;
     data.qos = -1;
-    data.static_qos = -1;
-    data.dynamic_qos = -1;
+    data.staticQos = -1;
+    data.dynamicQos = -1;
 
     int ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("qos get failed for thread %{public}d, return %{public}d", tid, ret);
+        FFRT_LOGE("%{public}s: qos get failed for thread %{public}d, return %{public}d", __func__, tid, ret);
     }
     close(fd);
 
     return ret;
 }
 
-Func_affinity funcAffinity = nullptr;
+static Func_affinity funcAffinity = nullptr;
 void setFuncAffinity(Func_affinity func)
 {
     funcAffinity = func;
 }
 
-Func_affinity getFuncAffinity()
+Func_affinity getFuncAffinity(void)
 {
     return funcAffinity;
 }
 
-Func_priority funcPriority = nullptr;
+static Func_priority funcPriority = nullptr;
 void setFuncPriority(Func_priority func)
 {
     funcPriority = func;
 }
 
-Func_priority getFuncPriority()
+Func_priority getFuncPriority(void)
 {
     return funcPriority;
 }

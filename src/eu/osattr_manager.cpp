@@ -12,20 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <cerrno>
-#include <cstring>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <array>
 #include "eu/qos_interface.h"
-#include "dfx/log/ffrt_log_api.h"
 #include "eu/osattr_manager.h"
 
 namespace ffrt {
-const int fd_buffer_len = 20;
-
 bool OSAttrManager::CheckSchedAttrPara(const std::string &name, int min, int max, int paraValue)
 {
     if (paraValue < min || paraValue > max) {
@@ -100,55 +93,5 @@ void OSAttrManager::SetTidToCGroupPrivate(const std::string &filename, int32_t p
         return;
     }
     SetCGroupPara(filename, pid);
-}
-
-template <typename T>
-void OSAttrManager::SetCGroupPara(const std::string &filename, T& value)
-{
-    char filePath[PATH_MAX_LENS] = {0};
-    if (filename.empty()) {
-        FFRT_LOGE("[cgroup_ctrl] invalid para, filename is empty");
-        return;
-    }
-
-    if ((strlen(filename.c_str()) > PATH_MAX_LENS) || (realpath(filename.c_str(), filePath) == nullptr)) {
-        FFRT_LOGE("[cgroup_ctrl] invalid file path:%s, error:%s\n", filename.c_str(), strerror(errno));
-        return;
-    }
-
-    int32_t fd = open(filePath, O_RDWR);
-    if (fd < 0) {
-        FFRT_LOGE("[cgroup_ctrl] fail to open filePath:%s", filePath);
-        return;
-    }
-
-    std::string valueStr;
-    if constexpr (std::is_same<T, int32_t>::value) {
-        valueStr = std::to_string(value);
-    } else if constexpr (std::is_same<T, const std::string>::value) {
-        valueStr = value;
-    } else {
-        FFRT_LOGE("[cgroup_ctrl] invalid value type\n");
-        close(fd);
-        return;
-    }
-
-    int32_t ret = write(fd, valueStr.c_str(), valueStr.size());
-    if (ret < 0) {
-        FFRT_LOGE("[cgroup_ctrl] fail to write path:%s valueStr:%s to fd:%d, errno:%d",
-            filePath, valueStr.c_str(), fd, errno);
-        close(fd);
-        return;
-    }
-
-    const uint32_t bufferLen = fd_buffer_len;
-    std::array<char, bufferLen> buffer {};
-    int32_t count = read(fd, buffer.data(), bufferLen);
-    if (count <= 0) {
-        FFRT_LOGE("[cgroup_ctrl] fail to read value:%s to fd:%d, errno:%d", buffer.data(), fd, errno);
-    } else {
-        FFRT_LOGI("[cgroup_ctrl] success to read %s buffer:%s", filePath, buffer.data());
-    }
-    close(fd);
 }
 } // namespace ffrt

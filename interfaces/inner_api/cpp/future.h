@@ -17,8 +17,7 @@
 #include <memory>
 #include <optional>
 #include <chrono>
-#include <cassert>
-#include "cpp/condition_variable.h"
+#include "../kits/cpp/condition_variable.h"
 #include "cpp/thread.h"
 
 namespace ffrt {
@@ -59,7 +58,6 @@ struct shared_state_base : private non_copyable {
 protected:
     void wait_(std::unique_lock<mutex>& lk) const noexcept
     {
-        assert(lk.owns_lock());
         m_cv.wait(lk, [this] { return get_derived().has_value(); });
     }
 
@@ -79,7 +77,6 @@ struct shared_state : shared_state_base<shared_state<R>> {
     {
         {
             std::unique_lock<mutex> lk(this->m_mtx);
-            assert(!m_res.has_value());
             m_res.emplace(value);
         }
         this->m_cv.notify_all();
@@ -89,7 +86,6 @@ struct shared_state : shared_state_base<shared_state<R>> {
     {
         {
             std::unique_lock<mutex> lk(this->m_mtx);
-            assert(!m_res.has_value());
             m_res.emplace(std::move(value));
         }
         this->m_cv.notify_all();
@@ -99,7 +95,6 @@ struct shared_state : shared_state_base<shared_state<R>> {
     {
         std::unique_lock lk(this->m_mtx);
         this->wait_(lk);
-        assert(m_res.has_value());
         return m_res.value();
     }
 
@@ -118,7 +113,6 @@ struct shared_state<void> : shared_state_base<shared_state<void>> {
     {
         {
             std::unique_lock<mutex> lk(this->m_mtx);
-            assert(!m_hasValue);
             m_hasValue = true;
         }
         this->m_cv.notify_all();
@@ -128,7 +122,6 @@ struct shared_state<void> : shared_state_base<shared_state<void>> {
     {
         std::unique_lock lk(this->m_mtx);
         this->wait_(lk);
-        assert(m_hasValue);
     }
 
     bool has_value() const noexcept
@@ -176,7 +169,6 @@ public:
 
     R get() noexcept
     {
-        assert(valid());
         auto tmp = std::move(m_state);
         if constexpr(!std::is_void_v<R>) {
             return std::move(tmp->get());
@@ -188,20 +180,17 @@ public:
     template <typename Rep, typename Period>
     future_status wait_for(const std::chrono::duration<Rep, Period>& waitTime) const noexcept
     {
-        assert(valid());
         return m_state->wait_for(waitTime);
     }
 
     template <typename Clock, typename Duration>
     future_status wait_until(const std::chrono::time_point<Clock, Duration>& tp) const noexcept
     {
-        assert(valid());
         return m_state->wait_until(tp);
     }
 
     void wait() const noexcept
     {
-        assert(valid());
         m_state->wait();
     }
 
@@ -244,7 +233,6 @@ struct promise : private non_copyable {
 
     future<R> get_future() noexcept
     {
-        assert(m_state.use_count() == 1);
         return future<R> {m_state};
     }
 
@@ -282,7 +270,6 @@ struct promise<void> : private non_copyable {
 
     future<void> get_future() noexcept
     {
-        assert(m_state.use_count() == 1);
         return future<void> {m_state};
     }
 
@@ -335,13 +322,11 @@ struct packaged_task<R(Args...)> {
 
     future<R> get_future() noexcept
     {
-        assert(m_state.use_count() == 1);
         return future<R> {m_state};
     }
 
     void operator()(Args... args)
     {
-        assert(valid());
         if constexpr(!std::is_void_v<R>) {
             m_state->set_value(m_fn(std::forward<Args>(args)...));
         } else {

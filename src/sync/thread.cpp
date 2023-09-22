@@ -38,6 +38,10 @@ int ffrt_thread_create(ffrt_thread_t* thr, const ffrt_thread_attr_t* attr, void*
     }
 
     auto p = reinterpret_cast<thread_res*>(malloc(sizeof(thread_res)));
+    if (p == nullptr) {
+        FFRT_LDGE("p is empty");
+        return ffrt_error_nomem;
+    }
     p->is_joinable = true;
     p->result = nullptr;
     ffrt::submit([p, func, arg]() {

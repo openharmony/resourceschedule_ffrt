@@ -36,14 +36,10 @@ struct Entity {
 
     std::list<VersionCtx*> versionTrashcan; // VersionCtx to be deleted
     std::unordered_map<const void*, VersionCtx*> vaMap;
-#ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
-    xx::mutex criticalMutex_ {"DependencyManager::criticalMutex_"};
-#else
     /* It is only used to ensure the consistency between multiple groups of ctx,
      * and to ensure that the status cannot be changed between the query status and the do action
      */
     fast_mutex criticalMutex_;
-#endif
 };
 } // namespace ffrt
 #endif

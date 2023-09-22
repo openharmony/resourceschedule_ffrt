@@ -32,7 +32,7 @@ public:
 
     virtual ~WorkerThread()
     {
-        Join();
+        Detach();
     }
 
     bool Idle() const
@@ -62,7 +62,7 @@ public:
         return tid;
     }
 
-    inline const QoS& GetQos() const
+    const const QoS& GetQos() const
     {
         return qos;
     }
@@ -89,6 +89,8 @@ public:
     {
         if (thread.joinable()) {
             thread.detach();
+        } else {
+            FFRT_LOGE("qos %d thread not joinable\n", qos());
         }
         tid = -1;
     }
@@ -98,7 +100,7 @@ public:
         return this->thread;
     }
 
-    void WorkerSetup(WorkerThread* wthread, const QoS& qos);
+    void WorkerSetup(WorkerThread* wthread, const QoS& workerQos);
 private:
     void NativeConfig();
 
@@ -110,5 +112,6 @@ private:
     QoS qos;
     std::thread thread;
 };
+void SetThreadAttr(WorkerThread* thread, const QoS& qos);
 } // namespace ffrt
 #endif

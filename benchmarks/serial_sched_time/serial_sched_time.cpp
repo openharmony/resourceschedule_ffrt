@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "common.h"
 
 static std::vector<uint32_t> duration_sample = {50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200, 500, 1000};

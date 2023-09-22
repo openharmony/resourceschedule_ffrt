@@ -36,6 +36,7 @@
  */
 #ifndef FFRT_API_C_TASK_H
 #define FFRT_API_C_TASK_H
+#include <stdint.h>
 #include "type_def.h"
 
 /**

@@ -15,18 +15,6 @@
 
 #ifndef FFRT_TYPES_HPP
 #define FFRT_TYPES_HPP
-#ifdef _MSC_VER
-#define __attribute__(...)
-#define FFRT_LIKELY(x) (__builtin_expect(!!(x), 1))
-#define FFRT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
-#else
-#define FFRT_LIKELY(x) (x)
-#define FFRT_UNLIKELY(x) (x)
-#endif
-
-#ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
-#include "sync/mutex_perf.h"
-#endif
 
 namespace ffrt {
 #ifdef ASAN_MODE
@@ -85,11 +73,11 @@ enum class TaskStatus {
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 typedef enum {
-    ET_PENDING,
-    ET_EXECUTING,
-    ET_TOREADY,
-    ET_READY,
-    ET_FINISH,
+    ET_PENDING, // executor_task 非入队状态
+    ET_EXECUTING, // executor_task 执行状态
+    ET_TOREADY, // executor_task 等待wake通知
+    ET_READY, // executor_task 入队状态
+    ET_FINISH, // executor_task 执行完成，准备执行回调+销毁
 } ExecTaskStatus;
 #endif
 
@@ -111,6 +99,13 @@ enum SkipStatus {
     EXECUTED,
     SKIPPED,
 };
+#ifdef _MSC_VER
+#define FFRT_LIKELY(x) (__builtin_expect(!!(x), 1))
+#define FFRT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
+#else
+#define FFRT_LIKELY(x) (x)
+#define FFRT_UNLIKELY(x) (x)
+#endif
 
 #define FORCE_INLINE
 } // namespace ffrt

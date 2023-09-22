@@ -18,6 +18,8 @@
 #include "qos_interface.h"
 
 namespace ffrt {
+constexpr int PRIO_AFFI_SET_DISABLE = 0;
+constexpr int PRIO_AFFI_SET_ENABLE = 3;
 class QosConfig {
 public:
     QosConfig();
@@ -36,8 +38,17 @@ public:
     {
         return g_systemServerQosPolicy;
     }
+    
+    void setThreadCtrls();
+
+    struct ThreadAttrCtrlDatas& getThreadCtrls()
+    {
+        return threadCtrls;
+    }
+
 private:
     struct QosPolicyDatas g_systemServerQosPolicy;
+    struct ThreadAttrCtrlDatas threadCtrls;
 };
 }
 #endif /* QOS_CONFIG_H */

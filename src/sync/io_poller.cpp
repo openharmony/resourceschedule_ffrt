@@ -19,8 +19,7 @@
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace/ffrt_trace.h"
-
-#include <cassert>
+#include "internal_inc/assert.h"
 
 namespace ffrt {
 constexpr unsigned int DEFAULT_CPUINDEX_LIMIT = 7;
@@ -32,13 +31,12 @@ struct IOPollerInstance: public IOPoller {
 
     void RunForever() noexcept
     {
-        pid_t pid = syscall(SYS_gettid);
-        cpu_set_t mask;
-        CPU_ZERO(&mask);
-        for (unsigned int i = 0; i < DEFAULT_CPUINDEX_LIMIT; ++i) {
-            CPU_SET(i, &mask);
+        struct sched_param param;
+        param.sched_priority = 1;
+        int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
+        if (ret != 0) {
+            FFRT_LDGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
         }
-        syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
         while (!m_exitFlag.load(std::memory_order_relaxed)) {
             IOPoller::PollOnce(-1);
         }
@@ -71,11 +69,11 @@ IOPoller& GetIOPoller() noexcept
 IOPoller::IOPoller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
     m_events(32)
 {
-    assert(m_epFd >= 0);
+    FFRT_ASSERT(m_epFd >= 0);
     {
         m_wakeData.data = nullptr;
         m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-        assert(m_wakeData.fd >= 0);
+        FFRT_ASSERT(m_wakeData.fd >= 0);
         epoll_event ev{ .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
             std::terminate();
@@ -98,12 +96,16 @@ void IOPoller::WakeUp() noexcept
 {
     uint64_t one = 1;
     ssize_t n = ::write(m_wakeData.fd, &one, sizeof one);
-    assert(n == sizeof one);
+    FFRT_ASSERT(n == sizeof one);
 }
 
 void IOPoller::WaitFdEvent(int fd) noexcept
 {
     auto ctx = ExecuteCtx::Cur();
+    if (!ctx->task) {
+        FFRT_LDGI("nonworker shall not call this fun.");
+        return;
+    }
     struct WakeData data = {.fd = fd, .data = static_cast<void *>(ctx->task)};
 
     epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&data)} };
@@ -114,10 +116,6 @@ void IOPoller::WaitFdEvent(int fd) noexcept
             ctx->task->childWaitCond_.wait(lck);
         }
         return;
-    }
-
-    if (!ctx->task) {
-        FFRT_LOGI("nonworker shall not call this fun.");
     }
 
     CoWait([&](TaskCtx *task)->bool {
@@ -144,7 +142,7 @@ void IOPoller::PollOnce(int timeout) noexcept
         if (data->fd == m_wakeData.fd) {
             uint64_t one = 1;
             ssize_t n = ::read(m_wakeData.fd, &one, sizeof one);
-            assert(n == sizeof one);
+            FFRT_ASSERT(n == sizeof one);
             continue;
         }
 

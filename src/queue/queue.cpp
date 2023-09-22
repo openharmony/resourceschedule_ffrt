@@ -14,22 +14,15 @@
  */
 #include <cstdlib>
 #include <cstring>
-#include <cerrno>
-#include <dfx/log/ffrt_log_api.h>
+#include "dfx/log/ffrt_log_api.h"
 #include "sched/qos.h"
 #include "queue.h"
 
-#ifdef __cplusplus
-#include <atomic>
-#else
-#include <stdatomic.h>
-#endif
-
-#ifdef __cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
-using namespace std;
 #ifdef FFRT_IO_TASK_SCHEDULER
+/* 从队列的首部取出 */
 void *queue_pophead(struct queue_s *queue)
 {
     unsigned int head;
@@ -49,11 +42,15 @@ void *queue_pophead(struct queue_s *queue)
     }
 }
 
+/*
+ * 加入到队列的尾部
+ * 返回值0表示OK 返回值ERROR_QUEUE_FULL表示队列已满插入失败
+ */
 int queue_pushtail(struct queue_s *queue, void *object)
 {
     unsigned int head;
     unsigned int tail;
-    
+ 
     head = atomic_load(&queue->head);
     tail = atomic_load(&queue->tail);
     if ((tail - head) < queue->capacity) {
@@ -64,6 +61,10 @@ int queue_pushtail(struct queue_s *queue, void *object)
     return ERROR_QUEUE_FULL;
 }
 
+/*
+ * 队列初始化
+ * 头尾指针初始化为0，容量为传入的容量
+ */
 int queue_init(struct queue_s *queue, unsigned int capacity)
 {
     if (capacity == 0) {
@@ -91,6 +92,7 @@ void queue_destroy(struct queue_s *queue)
     atomic_store(&queue->tail, (unsigned int)0);
 }
 
+/* 获取队列的长度 */
 unsigned int queue_length(struct queue_s *queue)
 {
     unsigned int head;
@@ -101,6 +103,7 @@ unsigned int queue_length(struct queue_s *queue)
     return (tail - head);
 }
 
+/* 批量尾部插入 */
 unsigned int queue_pushtail_batch(struct queue_s *queue, void *buf[], unsigned int buf_len)
 {
     unsigned int head;
@@ -110,6 +113,7 @@ unsigned int queue_pushtail_batch(struct queue_s *queue, void *buf[], unsigned i
     if (buf_len == 0) {
         return 0;
     }
+
     head = atomic_load(&queue->head);
     tail = atomic_load(&queue->tail);
     i = 0;
@@ -124,6 +128,8 @@ unsigned int queue_pushtail_batch(struct queue_s *queue, void *buf[], unsigned i
     atomic_store(&queue->tail, tail);
     return i;
 }
+
+/* 从首部批量获取 */
 unsigned int queue_pophead_batch(struct queue_s *queue, void *buf[], unsigned int buf_len)
 {
     unsigned int head;
@@ -151,6 +157,7 @@ unsigned int queue_pophead_batch(struct queue_s *queue, void *buf[], unsigned in
     }
 }
 
+/* 首部批量取出后将批量推入队列 */
 unsigned int queue_pophead_pushtail_batch(struct queue_s *target_queue, struct queue_s *local_queue,
     unsigned int pop_len)
 {
@@ -183,9 +190,10 @@ unsigned int queue_pophead_pushtail_batch(struct queue_s *target_queue, struct q
     return i;
 }
 
+/* 本地队列首部批量取出一半元素后将元素批量推入全局队列尾部 */
 void queue_pophead_to_gqueue_batch(struct queue_s* queue, unsigned int pop_len, int qos, queue_push_task_func_t func)
 {
-    if (pop_len ==0) {
+    if (pop_len == 0) {
         return;
     }
     unsigned int head;
@@ -196,9 +204,9 @@ void queue_pophead_to_gqueue_batch(struct queue_s* queue, unsigned int pop_len, 
     tail = atomic_load(&queue->tail);
     i = 0;
     while ((tail != head) && i <= pop_len) {
-        auto temp = queue_pophead(queue);
-        if (!func(temp, qos)) {
-            FFRT_LOGE("Submit io task failed");
+        auto tmp = queue_pophead(queue);
+        if (!func(tmp, qos)) {
+            FFRT_LOGE("Submit IO task failed!");
             return;
         }
         i++;
@@ -213,10 +221,9 @@ unsigned int queue_capacity(struct queue_s *queue)
 
 unsigned int queue_prob(struct queue_s *queue)
 {
-    return queue_length(queue);
+    return queue_length(queue); // / (queue_capacity(queue) / 100);
 }
 #endif
-
-#ifdef __cplusplus
+#ifdef  __cplusplus
 }
 #endif

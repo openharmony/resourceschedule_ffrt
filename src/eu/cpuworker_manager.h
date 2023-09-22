@@ -20,10 +20,10 @@
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
-#ifdef FFER_IO_TASK_SCHEDULER
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
+#include "queue/queue.h"
 #endif
-
 
 namespace ffrt {
 constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000000;
@@ -87,7 +87,7 @@ public:
                 return;
             }
             if (atomic_compare_exchange_weak(&stealWorkers[qos], &stealWorkersNum, stealWorkersNum - 1)) return;
-            }
+        }
     }
 
     uint64_t GetStealingWorkers(const QoS& qos)
@@ -95,10 +95,6 @@ public:
         return stealWorkers[qos].load(std::memory_order_relaxed);
     }
 #endif
-    CPUMonitor* GetCPUMonitor() override
-    {
-        return &monitor;
-    }
 private:
     bool WorkerTearDown();
     bool IncWorker(const QoS& qos) override;

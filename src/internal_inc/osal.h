@@ -17,20 +17,13 @@
 #define __OSAL_HPP__
 
 #include <string>
+#include <sys/syscall.h>
+#include <unistd.h>
 
-#ifdef _MSC_VER
-#define API_ATTRIBUTE(attr)
-#define unlikely(x) (x)
-#define likely(x)  (x)
-#else
 #define API_ATTRIBUTE(attr) __attribute__(attr)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 #define likely(x)       __builtin_expect(!!(x), 1)
-#endif
 
-#ifdef __linux__
-#include <sys/syscall.h>
-#include <unistd.h>
 static inline unsigned int GetPid(void)
 {
     return getpid();
@@ -47,29 +40,4 @@ static inline std::string GetEnv(const char* name)
     }
     return val;
 }
-
-#elif defined(_MSC_VER)
-#include <windows.h>
-
-static inline unsigned int GetPid(void)
-{
-    return GetCurrentProcessId();
-}
-static inline unsigned int GetTid(void)
-{
-    return GetCurrentThreadId();
-}
-static inline std::string GetEnv(const char* name)
-{
-    char* r = nullptr;
-    size_t len = 0;
-
-    if (_dupenv_s(&r, &len, name) == 0 && r != nullptr) {
-        std::string val(r, len);
-        std::free(r);
-        return val;
-    }
-    return "";
-}
-#endif
 #endif

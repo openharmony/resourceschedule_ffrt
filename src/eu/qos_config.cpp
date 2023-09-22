@@ -39,6 +39,7 @@ constexpr uint8_t THREAD_PRIO_RT_HIGHEST         = 88;
 QosConfig::QosConfig()
 {
     setPolicySystem();
+    setThreadCtrls();
 }
 
 void QosConfig::setPolicySystem()
@@ -53,6 +54,18 @@ void QosConfig::setPolicySystem()
             {0, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_NORMAL_FOREGROUND, 0, 0},
             {-10, 0, 1024, THREAD_AFFINITY_ALL, THREAD_PRIO_RT_HIGHEST, 1, 1},
             {-20, 0, 1024, THREAD_AFFINITY_MID_BIG, THREAD_PRIO_RT_HIGHEST, 1, 1},
+        }
+    };
+}
+
+void QosConfig::setThreadCtrls()
+{
+    threadCtrls = {
+        .ctrls = {
+            {.tid = -1, .prioritySetEnable = false, .affinitySetEnable = false},
+            {.tid = -1, .prioritySetEnable = false, .affinitySetEnable = true},
+            {.tid = -1, .prioritySetEnable = true, .affinitySetEnable = false},
+            {.tid = -1, .prioritySetEnable = true, .affinitySetEnable = true},
         }
     };
 }

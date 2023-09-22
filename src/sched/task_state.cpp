@@ -18,7 +18,6 @@
 #include "sched/task_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
-#include "core/dependence_manager.h"
 
 namespace ffrt {
 std::array<TaskState::Op, static_cast<size_t>(TaskState::MAX)> TaskState::ops;
@@ -94,13 +93,12 @@ void TaskState::TaskStateStat::Count(State state)
     }
 }
 
-uint64_t TaskState::TaskStateStat::CalcDuration(State preState, State curState) const
+uint64_t TaskState::TaskStateStat::CalcDuration(State pre, State cur) const
 {
-    return timepoint[static_cast<size_t>(curState)].time_since_epoch() == std::chrono::steady_clock::duration::zero() ?
+    return timepoint[static_cast<size_t>(cur)].time_since_epoch() == std::chrono::steady_clock::duration::zero() ?
         0 :
         std::chrono::duration_cast<std::chrono::microseconds>(
-            timepoint[static_cast<size_t>(curState)] - timepoint[static_cast<size_t>(preState)])
+            timepoint[static_cast<size_t>(cur)] - timepoint[static_cast<size_t>(pre)])
             .count();
 }
-
 } // namespace ffrt

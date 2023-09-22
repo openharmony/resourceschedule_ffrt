@@ -23,11 +23,8 @@
  */
 #ifndef FFRT_INNER_API_CPP_TASK_H
 #define FFRT_INNER_API_CPP_TASK_H
-#include <vector>
-#include <string>
-#include <functional>
-#include <memory>
 #include "../c/task.h"
+#include "../kits/cpp/task.h"
 
 namespace ffrt {
 /**
@@ -46,13 +43,8 @@ static inline int skip(task_handle &handle)
 
 void sync_io(int fd);
 
-void set_trace_tag(const std::string& name);
+void set_trace_tag(const char* name);
 
 void clear_trace_tag();
-
-static inline int set_cpu_worker_max_num(qos qos_, uint32_t num)
-{
-    return ffrt_set_cpu_worker_max_num(qos_, num);
-}
 } // namespace ffrt
 #endif

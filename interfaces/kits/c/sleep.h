@@ -36,6 +36,7 @@
  */
 #ifndef FFRT_API_C_SLEEP_H
 #define FFRT_API_C_SLEEP_H
+#include <stdint.h>
 #include "type_def.h"
 
 /**

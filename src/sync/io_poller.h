@@ -15,10 +15,9 @@
 
 #ifndef HICORO_IOPOLLER_H
 #define HICORO_IOPOLLER_H
-#ifndef _MSC_VER
+
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
-#endif
 #include <thread>
 #include <vector>
 #include <map>
@@ -45,9 +44,7 @@ struct IOPoller: private NonCopyable {
 private:
     int m_epFd;
     struct WakeData m_wakeData;
-#ifndef _MSC_VER
     std::vector<epoll_event> m_events;
-#endif
 };
 
 IOPoller& GetIOPoller() noexcept;
@@ -55,8 +52,6 @@ IOPoller& GetIOPoller() noexcept;
 
 static inline void ffrt_wait_fd(int fd)
 {
-#ifndef _MSC_VER
     ffrt::GetIOPoller().WaitFdEvent(fd);
-#endif
 }
 #endif

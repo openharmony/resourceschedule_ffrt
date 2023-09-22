@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "common.h"
 
 constexpr uint32_t FORK_JOIN_COUNT = 10000;

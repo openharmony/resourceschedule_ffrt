@@ -15,7 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "dfx/log/ffrt_log_api.h"
-#include "sched/qos.h"
+#include "qos.h"
 #include "queue.h"
 
 #ifdef  __cplusplus
@@ -50,7 +50,7 @@ int queue_pushtail(struct queue_s *queue, void *object)
 {
     unsigned int head;
     unsigned int tail;
- 
+
     head = atomic_load(&queue->head);
     tail = atomic_load(&queue->tail);
     if ((tail - head) < queue->capacity) {

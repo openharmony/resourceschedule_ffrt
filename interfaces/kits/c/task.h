@@ -204,5 +204,4 @@ FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
  * @version 1.0
  */
 FFRT_C_API void ffrt_wait(void);
-
 #endif

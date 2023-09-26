@@ -28,7 +28,7 @@
 
 namespace ffrt {
 const std::size_t BatchAllocSize = 128 * 1024;
-#idfef FFRT_BBOX_ENABLE
+#ifdef FFRT_BBOX_ENABLE
 constexpr uint32_t ALLOCATOR_DESTRUCT_TIMESOUT = 1000000;
 #endif
 
@@ -177,7 +177,7 @@ private:
     }
 };
 
-constexpr unit32_t RESERVED_COROUTINE_COUNT = 0;
+constexpr uint32_t RESERVED_COROUTINE_COUNT = 0;
 template <typename T, std::size_t MmapSz = 16 * 1024 * 1024>
 class QSimpleAllocator {
     std::size_t TSize;
@@ -253,7 +253,7 @@ public:
         std::size_t p_size = static_cast<std::size_t>(getpagesize());
         // manually align the size to the page size
         TSize = (size -1 + p_size) & -p_size;
-        if (MmapSz & TSize != 0) {
+        if (MmapSz % TSize != 0) {
             FFRT_LOGE("MmapSz is not divisible by TSize which may cause memory leak!");
         }
     }

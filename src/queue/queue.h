@@ -11,6 +11,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * 
  */
 
 #ifndef YLONG_QUEUE_H
@@ -33,9 +34,9 @@ extern "C" {
  * @brief 生成模块号
  * @param  x   [IN]  模块号。
  */
-#define MID_MAKE(x) ((0x1000 + (x)) <<16)
+#define MID_MAKE(x) ((0x1000 + (x)) << 16)
 
-#define MID_QUEUE               MID_MAKE(2)
+#define MID_QUEUE                MID_MAKE(2)
 /**
  * @brief 0x10020001
  * 插入时队列已满
@@ -44,7 +45,7 @@ extern "C" {
 
 /**
  * @brief 0x10020001
- * 插入时队列为空
+ * 取出时队列为空
  */
 #define ERROR_QUEUE_EMPTY ((MID_QUEUE) | 0x02)
 
@@ -205,7 +206,7 @@ void queue_pophead_to_gqueue_batch(struct queue_s* queue, unsigned int pop_len, 
  * @retval 无
  * @par 依赖：无。
  * @li queue.h：该接口声明所在的文件。
- * @see queue_pophead_to_gqueue_batch
+ * @see
  */
 /* 销毁队列，销毁后不能再访问 */
 void queue_destroy(struct queue_s *queue);
@@ -214,10 +215,10 @@ void queue_destroy(struct queue_s *queue);
  * @ingroup queue
  * @brief 初始化队列
  * @par 描述：初始化指定队列。
- * @attention 入参queue不得为NULL，否则段错误，capacity非0
- * @param  queue   [IN]  要被初始化的队列
+ * @attention 入参queue不得为NULL，否则段错误， capacity非0
+ * @param  queue   [IN]  将被初始化的队列
  * @param  capacity   [IN]  新建队列的容量。
- * @retval 成功返回0，失败返回错误码
+ * @retval 成功返回0，失败返回错误码。
  * @par 依赖：无。
  * @li queue.h：该接口声明所在的文件。
  * @see

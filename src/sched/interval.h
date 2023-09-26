@@ -18,7 +18,7 @@
 
 #include <deque>
 
-#include "sched/qos.h"
+#include "qos.h"
 #include "sched/load_predictor.h"
 #include "sched/load_tracking.h"
 #include "eu/thread_group.h"

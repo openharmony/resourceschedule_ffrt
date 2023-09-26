@@ -14,17 +14,13 @@
  */
 #ifdef FFRT_BBOX_ENABLE
 
-#include "bbox.h"
+#include "../bbox.h"
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <csignal>
 #include <cstdlib>
 #include <string>
 #include <sstream>
-#ifdef FFRT_CO_BACKTRACE_ENABLE
-#include <utils/CallStack.h>
-#include "core/task_ctx.h"
-#endif
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
 
@@ -53,7 +49,7 @@ void TaskSubmitCounterInc(void)
 #ifdef FFRT_IO_TASK_SCHEDULER
 void TaskWakeCounterInc(void)
 {
-    ++g_taskDoneCounter;
+    ++g_taskWakeCounter;
 }
 #endif
 
@@ -120,7 +116,8 @@ static inline void SaveWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             TaskCtx* t = thread.first->curTask;
@@ -139,7 +136,8 @@ static inline void SaveWorkerStatus()
 static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
         int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;
@@ -211,11 +209,6 @@ void BboxFreeze()
 void backtrace(int ignoreDepth)
 {
     FFRT_BBOX_LOG("backtrace");
-#ifdef FFRT_CO_BACKTRACE_ENABLE
-    android::CallStack stack;
-    stack.update(ignoreDepth);
-    stack.log("fatal", ANDROID_LOG_ERROR, "");
-#endif
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::string dumpInfo;
     TaskCtx::DumpTask(nullptr, dumpInfo);
@@ -241,7 +234,7 @@ bool FFRTIsWork()
 void SaveTheBbox()
 {
     if (g_bbox_called_times.fetch_add(1) == 0) { // only save once
-        std::thread([&](){
+        std::thread([&]() {
             unsigned int expect = 0;
             unsigned int tid = static_cast<unsigned int>(gettid());
             (void)g_bbox_tid_is_dealing.compare_exchange_strong(expect, tid);
@@ -362,7 +355,8 @@ std::string SaveWorkerStatusInfo(void)
     std::ostringstream ss;
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     ss << "<<<=== worker status ===>>>" << std::endl;
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             TaskCtx* t = thread.first->curTask;
@@ -384,7 +378,8 @@ std::string SaveReadyQueueStatusInfo()
 {
     std::ostringstream ss;
     ss << "<<<=== ready queue status ===>>>" << std::endl;
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
         int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;

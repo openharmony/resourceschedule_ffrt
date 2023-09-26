@@ -99,7 +99,7 @@ enum SkipStatus {
     EXECUTED,
     SKIPPED,
 };
-#ifdef _MSC_VER
+#ifndef _MSC_VER
 #define FFRT_LIKELY(x) (__builtin_expect(!!(x), 1))
 #define FFRT_UNLIKELY(x) (__builtin_expect(!!(x), 0))
 #else

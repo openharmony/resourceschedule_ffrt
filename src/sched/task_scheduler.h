@@ -20,7 +20,7 @@
 #include "eu/worker_thread.h"
 #include "sync/sync.h"
 #include "sync/semaphore.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 
 namespace ffrt {
 template <typename Sched>

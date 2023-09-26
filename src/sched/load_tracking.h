@@ -42,7 +42,7 @@ class UserSpaceLoadRecord {
 public:
     void SetEnable(bool isEnable)
     {
-        this->enable = isEnable;
+        enable = isEnable;
     }
 
     bool Enable() const

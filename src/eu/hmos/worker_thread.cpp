@@ -13,15 +13,13 @@
  * limitations under the License.
  */
 
-#include "worker_thread.h"
+#include "eu/worker_thread.h"
 #include <algorithm>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include "dfx/log/ffrt_log_api.h"
-#include "eu/osattr_manager.h"
-#include "eu/qos_config.h"
 #include "eu/qos_interface.h"
-#include "sched/qos.h"
+#include "qos.h"
 namespace ffrt {
 void WorkerThread::NativeConfig()
 {
@@ -42,14 +40,6 @@ void SetThreadAttr(WorkerThread* thread, const QoS& qos)
     if (qos() <= qos_max) {
         QosApplyForOther(qos(), thread->Id());
         FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
-        if (getFuncAffinity() != nullptr) {
-            getFuncAffinity()(QosConfig::Instance().getPolicySystem().policys[qos()].affinity, thread->Id());
-        }
-        if (getFuncPriority() != nullptr) {
-            getFuncPriority()(QosConfig::Instance().getPolicySystem().policys[qos()].priority, thread);
-        }
-    } else {
-        OSAttrManager::Instance()->SetTidToCGroup(thread->Id());
     }
 }
 }; // namespace ffrt

@@ -68,7 +68,6 @@ enum AuthCtrlCmdid {
  * qos ctrl
  */
 
-constexpr unsigned char NR_QOS = 6;
 constexpr unsigned char QOS_NUM_MAX = 10;
 
 constexpr unsigned char AF_QOS_ALL = 0x0003;

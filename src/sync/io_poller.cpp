@@ -18,7 +18,7 @@
 #include "sched/execute_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "internal_inc/assert.h"
 
 namespace ffrt {
@@ -35,7 +35,7 @@ struct IOPollerInstance: public IOPoller {
         param.sched_priority = 1;
         int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
         if (ret != 0) {
-            FFRT_LDGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
+            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
         }
         while (!m_exitFlag.load(std::memory_order_relaxed)) {
             IOPoller::PollOnce(-1);
@@ -103,7 +103,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
 {
     auto ctx = ExecuteCtx::Cur();
     if (!ctx->task) {
-        FFRT_LDGI("nonworker shall not call this fun.");
+        FFRT_LOGI("nonworker shall not call this fun.");
         return;
     }
     struct WakeData data = {.fd = fd, .data = static_cast<void *>(ctx->task)};
@@ -156,7 +156,7 @@ void IOPoller::PollOnce(int timeout) noexcept
             }
             continue;
         }
-        
+
         FFRT_LOGI("epoll_ctl fd = %d errorno = %d", data->fd, errno);
     }
 }

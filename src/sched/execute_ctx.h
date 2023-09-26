@@ -86,7 +86,7 @@ struct ExecuteCtx {
     ffrt_executor_task_t* exec_task;
     void** priority_task_ptr;
     struct queue_s* local_fifo;
-#endif   
+#endif
     TaskCtx* task; // 当前正在执行的Task
     WaitUntilEntry wn;
 

@@ -19,7 +19,7 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #endif
-#include "sched/qos.h"
+#include "qos.h"
 #include "sync/sync.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include <list>

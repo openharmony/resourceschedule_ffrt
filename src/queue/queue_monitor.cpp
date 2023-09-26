@@ -132,15 +132,15 @@ void QueueMonitor::CheckQueuesStatus()
             taskId = QueuesRunningInfo[i].first;
             taskTimestamp = QueuesRunningInfo[i].second;
         }
-        
+
         if (taskId == INVALID_TASK_ID) {
             continue;
         }
-        
+
         if (taskTimestamp < startThreshold) {
             std::stringstream ss;
             ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i << ", serial task gid=" << taskId << " execution " <<
-                timeoutUs_ << "us.";
+                timeoutUs_ << " us.";
             FFRT_LOGE("%s", ss.str().c_str());
 
             ffrt_watchdog_cb func = ffrt_watchdog_get_cb();

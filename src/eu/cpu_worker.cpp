@@ -15,7 +15,7 @@
 
 #include "cpu_worker.h"
 #include "eu/worker_thread.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "sched/scheduler.h"
 #include "eu/cpu_manager_interface.h"
 #include "dfx/bbox/bbox.h"
@@ -241,7 +241,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
                     FFRT_LOGD("submit uv executor work[%p], done[%p], loop[%p], "
                         "saved uv executor work[%p], done[%p], loop[%p]", work->reserved[0], work->reserved[1],
                         work->type, submitTask.reserved[0], submitTask.reserved[1], submitTask.type);
-                    }
+                }
             }
 #endif
             Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));

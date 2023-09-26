@@ -20,7 +20,7 @@
 #include <vector>
 #include <functional>
 #include <mutex>
-#include "sched/qos.h"
+#include "qos.h"
 #include "cpp/mutex.h"
 #include "eu/cpu_manager_interface.h"
 

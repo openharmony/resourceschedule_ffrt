@@ -175,7 +175,7 @@ public:
     {
         // Within an ffrt process, different threads may have different QoS interval
         task_attr_private task_attr;
-        root = new RootTaskCtx {&task_attr, nullptr, 0, nullptr};
+        root = new RootTaskCtx{&task_attr, nullptr, 0, nullptr};
     }
     ~RootTaskCtxWrapper()
     {
@@ -184,7 +184,7 @@ public:
         // else, set the hold thread exit flag, and the task scheduler should free the root task when is son is zero
 
         // because the root task was accessed in works and this thread, so task mutex should be used.
-        std::unique_lock<decltype(root->lock) > lck(root->lock);
+        std::unique_lock<decltype(root->lock)> lck(root->lock);
         if (root->childWaitRefCnt == 0) {
             // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
             // return之前的lck析构不产生UAF问题，因为return之前随着root析构，锁的内存被释放

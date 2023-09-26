@@ -16,7 +16,7 @@
 #include <thread>
 #include "core/task_ctx.h"
 #include "core/dependence_manager.h"
-#include "sched/qos.h"
+#include "qos.h"
 #include "ffrt.h"
 #include "internal_inc/types.h"
 

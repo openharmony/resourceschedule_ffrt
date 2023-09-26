@@ -20,7 +20,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include "ffrt_inner.h"
-#include "sched/qos.h"
+#include "qos.h"
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
@@ -102,7 +102,7 @@ public:
         std::array<char, bufferLen> buffer {};
         int32_t count = read(fd, buffer.data(), bufferLen);
         if (count <= 0) {
-            FFRT_LOGE("[cgroup_ctrl] fail to read value:%s to fd:%d", buffer.data(), fd, errno);
+            FFRT_LOGE("[cgroup_ctrl] fail to read value:%s to fd:%d, errno:%d", buffer.data(), fd, errno);
         } else {
             FFRT_LOGI("[cgroup_ctrl] success to read %s buffer:%s", filePath, buffer.data());
         }

@@ -96,7 +96,7 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qo
             queue_pushtail(ffrt::ExecuteCtx::Cur()->local_fifo, task) == ERROR_QUEUE_FULL) {
             LinkedList* node = (LinkedList *)(&task->wq);
             if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
-                FFRT_LOGE("Submit io task failed");
+                FFRT_LOGE("Submit io task failed!");
             }
             return;
         }
@@ -104,7 +104,7 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qo
 #else
         LinkedList* node = (LinkedList *)(&task->wq);
         if (!FFRTScheduler::Instance()->InsertNode(node, task->qos)) {
-            FFRT_LOGE("Submit io task failed");
+            FFRT_LOGE("Submit io task failed!");
         }
 #endif
     }
@@ -188,7 +188,7 @@ ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec, 
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy, const ffrt_deps_t* in_deps,
+void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy, const ffrt_deps_t* in_deps,
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
     pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
@@ -200,7 +200,7 @@ void ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_map));
-    ffrt::ffrt_executor_io_task* task = prepare_task(f, qos, true);
+    ffrt::ffrt_executor_io_task* task = prepare_task(f, qos, false);
     ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
 }
 
@@ -213,7 +213,7 @@ void ffrt_wake_by_handle(void* callable, ffrt_function_t exec, ffrt_function_t d
     FFRT_COND_DO_ERR((handle == nullptr), return, "input invalid, handle == nullptr");
     ffrt::ffrt_executor_io_task* task = reinterpret_cast<ffrt::ffrt_executor_io_task*>(handle);
     task->lock.lock();
-    FFRT_LOGD("tid:%ld ffrt_wake_by_handle and CurState = %d", syscall(SYS_gettid), task->status);
+    FFRT_LOGD("tid: %ld ffrt_wake_by_handle and CurState = %d", syscall(SYS_gettid), task->status);
     if (task->status != ffrt::ExecTaskStatus::ET_FINISH) {
         task->wake_callable_on_finish.callable = callable;
         task->wake_callable_on_finish.exec = exec;
@@ -235,7 +235,7 @@ void *ffrt_task_get()
     return (void *)ffrt::ExecuteCtx::Cur()->exec_task;
 }
 
-// API used to schedule stackless coroutin task
+// API used to schedule stackless coroutine task
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_coroutine(void *taskin)
 {
@@ -254,7 +254,7 @@ void ffrt_wake_coroutine(void *taskin)
     if (__atomic_compare_exchange_n(&(task->status), &pending_status, ffrt::ExecTaskStatus::ET_READY, 0,
             __ATOMIC_SEQ_CST, __ATOMIC_RELAXED)) {
 #ifdef FFRT_BBOX_ENABLE
-        TaskWakeCounterInc();
+        TaskEnQueuCounterInc();
 #endif
 #ifdef ENABLE_LOCAL_QUEUE
         if (ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(task)) return;

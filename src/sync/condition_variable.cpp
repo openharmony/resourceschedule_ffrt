@@ -48,7 +48,7 @@ int ffrt_cond_signal(ffrt_cond_t* cond)
         FFRT_LOGE("cond should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::condition_variable_private*>(cond);
+    auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);
     p->NotifyOne();
     return ffrt_success;
 }
@@ -60,7 +60,7 @@ int ffrt_cond_broadcast(ffrt_cond_t* cond)
         FFRT_LOGE("cond should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::condition_variable_private*>(cond);
+    auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);
     p->NotifyAll();
     return ffrt_success;
 }
@@ -72,8 +72,8 @@ int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex)
         FFRT_LOGE("cond and mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto pc = reinterpret_cast<ffrt::condition_variable_private*>(cond);
-    auto pm = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
+    auto pc = reinterpret_cast<ffrt::condition_variable_private *>(cond);
+    auto pm = reinterpret_cast<ffrt::mutexPrivate *>(mutex);
     pc->SuspendAndWait(pm);
     return ffrt_success;
 }
@@ -85,8 +85,8 @@ int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct tim
         FFRT_LOGE("cond, mutex and time_point should not be empty");
         return ffrt_error_inval;
     }
-    auto pc = reinterpret_cast<ffrt::condition_variable_private*>(cond);
-    auto pm = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
+    auto pc = reinterpret_cast<ffrt::condition_variable_private *>(cond);
+    auto pm = reinterpret_cast<ffrt::mutexPrivate *>(mutex);
 
     using namespace std::chrono;
     auto duration = seconds{ time_point->tv_sec } + nanoseconds{ time_point->tv_nsec };
@@ -104,7 +104,7 @@ int ffrt_cond_destroy(ffrt_cond_t* cond)
         FFRT_LOGE("cond should not be empty");
         return ffrt_error_inval;
     }
-    auto p = (ffrt::condition_variable_private*)cond;
+    auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);
     p->~WaitQueue();
     return ffrt_success;
 }

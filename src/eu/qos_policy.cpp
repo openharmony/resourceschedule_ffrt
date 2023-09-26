@@ -30,7 +30,7 @@ int SetQosPolicy(struct QosPolicyDatas *policyDatas)
 
 static __attribute__((constructor)) void QosPolicyInit()
 {
-    int ret = 0;
+    int ret;
 
     ret = SetQosPolicy(&QosConfig::Instance().getPolicySystem());
     if (ret) {
@@ -60,7 +60,7 @@ int SetAffinity(unsigned long affinity, int tid)
 
 void SetPriority(unsigned char priority, WorkerThread* thread)
 {
-    int ret;
+    int ret = 0;
     if (priority < MAX_RT_PRIO) {
         struct sched_param param;
         param.sched_priority = MAX_RT_PRIO - priority;

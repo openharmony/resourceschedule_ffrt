@@ -290,7 +290,7 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
         workerCtrl.lock.lock();
         deepSleepingWorkerNum += workerCtrl.deepSleepingWorkerNum;
         totalWorker += workerCtrl.executionNum + workerCtrl.sleepingWorkerNum;
-        workerCtrl.lock.lock();
+        workerCtrl.lock.unlock();
     }
     return deepSleepingWorkerNum * 2 > totalWorker;
 }
@@ -302,7 +302,7 @@ void CPUMonitor::Poke(const QoS& qos)
     int taskCount = ops.GetTaskCount(qos);
 #endif
     workerCtrl.lock.lock();
-    
+
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (workerCtrl.executionNum > 4 && taskCount < workerCtrl.executionNum) {
         workerCtrl.lock.unlock();

@@ -19,7 +19,7 @@
 #include <atomic>
 #include <thread>
 
-#include "sched/qos.h"
+#include "qos.h"
 #include "core/task_ctx.h"
 
 namespace ffrt {
@@ -62,7 +62,7 @@ public:
         return tid;
     }
 
-    const const QoS& GetQos() const
+    const QoS& GetQos() const
     {
         return qos;
     }

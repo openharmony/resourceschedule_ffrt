@@ -27,7 +27,7 @@
 #include "internal_inc/osal.h"
 #include "internal_inc/types.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "cpp/sleep.h"
 
 namespace ffrt {

@@ -27,7 +27,7 @@
 #include "internal_inc/osal.h"
 #include "sync/mutex_private.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 
 namespace ffrt {
 bool mutexPrivate::try_lock()
@@ -170,7 +170,7 @@ int ffrt_mutex_lock(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexPrivate *>(mutex);
     p->lock();
     return ffrt_success;
 }
@@ -182,7 +182,7 @@ int ffrt_mutex_unlock(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexPrivate *>(mutex);
     p->unlock();
     return ffrt_success;
 }
@@ -194,7 +194,7 @@ int ffrt_mutex_trylock(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexPrivate *>(mutex);
     return p->try_lock() ? ffrt_success : ffrt_error_busy;
 }
 
@@ -205,7 +205,7 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexPrivate *>(mutex);
     p->~mutexPrivate();
     return ffrt_success;
 }

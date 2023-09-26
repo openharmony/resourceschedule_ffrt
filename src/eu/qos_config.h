@@ -38,7 +38,7 @@ public:
     {
         return g_systemServerQosPolicy;
     }
-    
+
     void setThreadCtrls();
 
     struct ThreadAttrCtrlDatas& getThreadCtrls()

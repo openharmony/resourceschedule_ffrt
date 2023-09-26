@@ -18,7 +18,7 @@
 #include "core/task_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "sync/mutex_private.h"
 
 namespace ffrt {
@@ -164,7 +164,7 @@ bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
         // The critical point we->status has been written, notify will no longer access we, it can be deleted
         we->status.store(we_status::NOTIFIED, std::memory_order_release);
         wqlock.unlock();
-        while(we->status.load(std::memory_order_acquire) != we_status::HANDOVER) {
+        while (we->status.load(std::memory_order_acquire) != we_status::HANDOVER) {
         }
         delete we;
         wqlock.lock();

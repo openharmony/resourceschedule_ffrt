@@ -22,7 +22,7 @@
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
-#ifdef FFER_IO_TASK_SCHEDULER
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "queue/queue.h"
 #endif
 
@@ -98,7 +98,7 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     if (task == nullptr) return nullptr;
     struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
     int expected_task = (GetTaskCount(thread->GetQos()) / monitor.WakedWorkerNum(thread->GetQos()));
-    for (int i = 0; i <expected_task; i++) {
+    for (int i = 0; i < expected_task; i++) {
         if (queue_length(queue) == queue_capacity(queue)) {
             return task;
         }
@@ -256,15 +256,15 @@ WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
             queue_length(&(((CPUWorker *)thread)->local_fifo));
             });
 #else
-    ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
+        ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
 #endif
-    monitor.OutOfDeepSleep(thread->GetQos());
-    FFRT_LOGD("worker awake");
-    return WorkerAction::RETRY;
+        monitor.OutOfDeepSleep(thread->GetQos());
+        FFRT_LOGD("worker awake");
+        return WorkerAction::RETRY;
 #else
-    monitor.TimeoutCount(thread->GetQos());
-    FFRT_LOGd("worker exit");
-    return WorkerAction::RETIRE;
+        monitor.TimeoutCount(thread->GetQos());
+        FFRT_LOGD("worker exit");
+        return WorkerAction::RETIRE;
 #endif
     }
 }

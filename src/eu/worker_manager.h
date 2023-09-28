@@ -25,6 +25,7 @@
 
 #include "eu/worker_thread.h"
 #include "eu/thread_group.h"
+#include "eu/cpu_monitor.h"
 #include "sync/sync.h"
 #include "dfx/log/ffrt_log_api.h"
 
@@ -53,6 +54,7 @@ public:
     virtual void NotifyLocalTaskAdded(const QoS& qos) = 0;
 #endif
     virtual std::mutex* GetSleepCtl(int qos) = 0;
+    virtual CPUMonitor* GetCPUMonitor() = 0;
 
     WorkerGroupCtl* GetGroupCtl()
     {

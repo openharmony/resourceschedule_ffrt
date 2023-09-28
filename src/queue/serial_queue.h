@@ -25,7 +25,7 @@
 namespace ffrt {
 class SerialQueue : public NonCopyable {
 public:
-    explicit SerialQueue(const std::string& name) : name_(name) {}
+    SerialQueue(const uint32_t qid, const std::string& name) : qid_(qid), name_(name) {}
     ~SerialQueue();
 
     ITask* Next();
@@ -37,6 +37,7 @@ private:
     ffrt::mutex mutex_;
     ffrt::condition_variable cond_;
     bool isExit_ = false;
+    const uint32_t qid_;
     std::string name_;
     std::map<uint64_t, std::list<ITask*>> whenMap_;
 };

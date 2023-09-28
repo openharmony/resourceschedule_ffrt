@@ -19,7 +19,7 @@
 #include <cstring>
 #include <string>
 #include <sys/mman.h>
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "core/dependence_manager.h"
 #include "core/entity.h"
 #include "sched/scheduler.h"

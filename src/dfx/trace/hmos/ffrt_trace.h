@@ -68,7 +68,7 @@ private:
 #define FFRT_TRACE_END() FinishTrace(HITRACE_TAG_FFRT)
 #define FFRT_TRACE_ASYNC_BEGIN(tag, tid) StartAsyncTrace(HITRACE_TAG_FFRT, tag, tid, -1)
 #define FFRT_TRACE_ASYNC_END(tag, tid) FinishAsyncTrace(HITRACE_TAG_FFRT, tag, tid)
-#define FFRT_TRACE_SCOPE(level, tag) ffrt::ScopedTrace __tracer##tag(level, #tag)
+#define FFRT_TRACE_SCOPE(level, tag) ffrt::ScopedTrace ___tracer##tag(level, #tag)
 #else
 #define FFRT_TRACE_BEGIN(tag)
 #define FFRT_TRACE_END()

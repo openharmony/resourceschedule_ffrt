@@ -103,6 +103,27 @@ void CPUMonitor::SetupMonitor()
     }
 }
 
+int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[qos()];
+    workerCtrl.lock.lock();
+    static bool setFlag[QoS::Max()] = {false};
+    if (setFlag[qos()]) {
+        FFRT_LOGE("qos[%d] worker num can only be setup once", qos());
+        workerCtrl.lock.unlock();
+        return -1;
+    }
+    if (num <= 0 || num > QOS_WORKER_MAXNUM) {
+        FFRT_LOGE("qos[%d] worker num[%d] is invalid.", qos(), num);
+        workerCtrl.lock.unlock();
+        return -1;
+    }
+    workerCtrl.maxConcurrency = num;
+    setFlag[qos()] = true;
+    workerCtrl.lock.unlock();
+    return 0;
+}
+
 void CPUMonitor::RegWorker(const QoS& qos)
 {
     struct wgcm_workergrp_data grp = {0, 0, 0, 0, 0, 0, 0, 0};

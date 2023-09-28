@@ -1379,6 +1379,7 @@ const char* ffrt_task_attr_get_name(const ffrt_task_attr_t* attr);
   * 在submit 时，如果不通过task_attr 设定qos，那么默认该提交的task的qos 为`ffrt_qos_default`
   * 在submit 时，如果通过task_attr 设定qos 为`ffrt_qos_inherent`，表示将该提交的task 的qos 与当前task 的qos 相同，在FFRT task 外部提交的属性为`ffrt_qos_inherent` 的task，其qos 为`ffrt_qos_default`
   * 其他情况下，该提交的task 的qos 被设定为指定的值
+* ffrt_task_attr_t对象的置空和销毁由用户完成，对同一个ffrt_task_attr_t仅能调用一次`ffrt_task_attr_destroy`，重复对同一个ffrt_task_attr_t调用`ffrt_task_attr_destroy`，其行为是未定义的
 * 在`ffrt_task_attr_destroy`之后再对task_attr进行访问，其行为是未定义的
 
 #### 样例
@@ -1493,7 +1494,8 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle);
 
 * C API中的ffrt_task_handle_t的使用与C++ API中的ffrt::task_handle相同
 * **差异在于：C API中的ffrt_task_handle_t需要用户调用`ffrt_task_handle_destroy`显式销毁，而C++ API无需该操作**
-
+* C API中的task_handle_t对象的置空和销毁由用户完成，对同一个ffrt_task_handle_t仅能调用一次`ffrt_task_handle_destroy`，重复对同一个ffrt_task_handle_t调用`ffrt_task_handle_destroy`，其行为是未定义的
+* 在`ffrt_task_handle_destroy`之后再对ffrt_task_handle_t进行访问，其行为是未定义的
 
 #### 样例
 
@@ -1670,8 +1672,88 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos);
 
 * 忽略
 
+## 串行队列
+<hr />
+* FFRT提供queue来实现Andorid中类似WorkQueue能力，且在使用得当的情况下将有更好的性能
 
+### ffrt_queue_attr_t [稳定] [计划开源]
 
+#### 声明
+```{.c}
+typedef struct {
+    uint32_t storage[(ffrt_queue_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
+} ffrt_queue_attr_t;
+
+int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
+void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
+```
+
+### 参数
+
+`attr`
+* 该参数是指向未初始化的ffrt_queue_attr_t
+
+### 返回值
+* 若成功返回0，否则返回-1
+
+### 描述
+* ffrt_queue_attr_t用于创建ffrt_queue_t且不单独使用，因此必须在创建队列前先创建好队列属性
+* ffrt_queue_attr_t对象的置空和销毁由用户完成，对同一个ffrt_queue_t仅能调用一次`ffrt_queue_attr_destroy`，重复对同一个ffrt_queue_t调用`ffrt_queue_attr_destroy`，其行为是未定义的
+* 在`ffrt_queue_attr_destroy`之后再对ffrt_queue_t进行访问，其行为是未定义的
+
+### 样例
+将ffrt_queue_t章节的样例
+
+### ffrt_queue_t [稳定] [计划开源]
+
+#### 声明
+```{.c}
+typedef enum { ffrt_queue_serial, ffrt_queue_max } ffrt_queue_type_t;
+typedef void* ffrt_queue_t;
+
+ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr)
+void ffrt_queue_destroy(ffrt_queue_t queue)
+```
+
+### 参数
+
+`type`
+* 该参数用于描述创建的队列类型
+
+`name`
+* 该参数用于描述创建队列的名字
+
+`attr`
+* 该参数用于描述queue的属性，详见ffrt_queue_attr_t章节
+
+### 返回值
+* 若成功则返回新创建的队列，否则返回空指针
+
+### 描述
+* 提交至该队列的任务将按照顺序执行，如果某个提交的任务中发生阻塞，则无法保证该任务的执行顺序
+* ffrt_queue_t对象的置空和销毁由用户完成，对同一个ffrt_queue_t仅能调用一次`ffrt_queue_t`，重复对同一个ffrt_queue_t调用`ffrt_queue_destroy`，其行为是未定义的
+* 在`ffrt_queue_destroy`之后再对ffrt_queue_t进行访问，其行为是未定义的
+
+### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    ffrt_queue_submit(queue_handle, ffrt::create_function_wrapper([]() {printf("Task done.\n");}, ffrt_function_kind_queue), nullptr);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+```
 ## 同步原语
 
 ### ffrt_mutex_t
@@ -1718,6 +1800,8 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 * 该功能能够避免pthread传统的pthread_mutex_t 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
 * **注意：目前暂不支持递归和定时功能**
 * **注意：C API中的ffrt_mutex_t需要用户调用`ffrt_mutex_init`和`ffrt_mutex_destroy`显式创建和销毁，而C++ API无需该操作**
+* **注意：C API中的ffrt_mutex_t对象的置空和销毁由用户完成，对同一个ffrt_mutex_t仅能调用一次`ffrt_mutex_destroy`，重复对同一个ffrt_mutex_t调用`ffrt_mutex_destroy`，其行为是未定义的**
+* **注意：在`ffrt_mutex_destroy`之后再对ffrt_mutex_t进行访问，其行为是未定义的**
 
 #### 样例
 
@@ -1887,6 +1971,8 @@ int ffrt_cond_destroy(ffrt_cond_t* cond);
 * 该接口只能在FFRT task 内部调用，在FFRT task 外部调用存在未定义的行为
 * 该功能能够避免传统的pthread_cond_t在条件不满足时陷入内核的问题，在使用得当的条件下将会有更好的性能
 * **注意：C API中的ffrt_cond_t需要用户调用`ffrt_cond_init`和`ffrt_cond_destroy`显式创建和销毁，而C++ API中依赖构造和析构自动完成**
+* **注意：C API中的ffrt_cond_t对象的置空和销毁由用户完成，对同一个ffrt_cond_t仅能调用一次`ffrt_cond_destroy`，重复对同一个ffrt_cond_t调用`ffrt_cond_destroy`，其行为是未定义的**
+* **注意：在`ffrt_cond_destroy`之后再对ffrt_cond_t进行访问，其行为是未定义的**
 
 #### 样例
 
@@ -2596,3 +2682,43 @@ void fib_ffrt(int x, int* y)
 
 * 只能以动态库方式部署FFRT，静态库部署可能有多实例问题，例如：当多个被同一进程加载的so都以静态库的方式使用FFRT时，FFRT会被实例化成多份，其行为是未知的，这也不是FFRT设计的初衷
 
+## C API中初始化ffrt对象后，对象的置空与销毁由用户负责
+
+* 为保证较高的性能，ffrt的C API中内部不包含对对象的销毁状态的标记，用户需要合理地进行资源的释放，重复调用各个对象的destroy操作，其结果是未定义的
+* 错误示例1，重复调用destroy可能造成不可预知的数据损坏
+
+```{.cpp}
+#include "ffrt.h"
+void abnormal_case_1()
+{
+    ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
+    ...
+    ffrt_task_handle_destroy(h);
+    ffrt_task_handle_destroy(h); // double free
+}
+```
+
+* 错误示例2，未调用destroy会造成内存泄漏
+
+```{.cpp}
+#include "ffrt.h"
+void abnormal_case_2()
+{
+    ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
+    ...
+    // memory leak
+}
+```
+
+* 建议示例，仅调用一次destroy，如有必要可进行置空
+
+```{.cpp}
+#include "ffrt.h"
+void normal_case()
+{
+    ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
+    ...
+    ffrt_task_handle_destroy(h);
+    h = nullptr; // if necessary
+}
+```

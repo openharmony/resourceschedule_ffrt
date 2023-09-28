@@ -85,8 +85,8 @@ struct QosCtrlData {
     unsigned int type;
     unsigned int level;
     int qos;
-    int static_qos;
-    int dynamic_qos;
+    int staticQos;
+    int dynamicQos;
 };
 
 struct QosPolicyData {

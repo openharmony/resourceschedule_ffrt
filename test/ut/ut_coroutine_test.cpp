@@ -16,7 +16,7 @@
 #include<thread>
 #include<chrono>
 #include<gtest/gtest.h>
-#include"ffrt.h"
+#include"ffrt_inner.h"
 
 using namespace std;
 using namespace ffrt;

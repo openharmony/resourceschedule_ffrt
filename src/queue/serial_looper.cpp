@@ -38,7 +38,7 @@ SerialLooper::SerialLooper(const char* name, int qos, uint64_t timeout, ffrt_fun
         GetSerialTaskByFuncStorageOffset(timeoutCb)->IncDeleteRef();
     }
 
-    queue_ = std::make_shared<SerialQueue>(name_);
+    queue_ = std::make_shared<SerialQueue>(qid_, name_);
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "failed to construct serial queue, qid=%u", qid_);
     // using nested submission is to submit looper task on worker.
     // when ffrt::wait() is used in the current thread, the looper task is not in the waiting list.

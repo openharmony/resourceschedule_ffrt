@@ -29,7 +29,7 @@
 namespace ffrt {
 const std::size_t BatchAllocSize = 128 * 1024;
 #ifdef FFRT_BBOX_ENABLE
-constexpr uint32_t ALLOCATOR_DESTRUCT_TIMESOUT = 1000000;
+constexpr uint32_t ALLOCATOR_DESTRUCT_TIMESOUT = 1000;
 #endif
 
 template <typename T, size_t MmapSz = BatchAllocSize>
@@ -157,12 +157,12 @@ private:
 #ifdef FFRT_BBOX_ENABLE
         uint32_t try_cnt = ALLOCATOR_DESTRUCT_TIMESOUT;
         std::size_t reserved = MmapSz / sizeof(T);
-        while (try_cnt > 0 ) {
+        while (try_cnt > 0) {
             if (primaryCache.size() == reserved && secondaryCache.size() == 0) {
                 break;
             }
             lck.unlock();
-            usleep(1);
+            usleep(1000);
             try_cnt--;
             lck.lock();
         }
@@ -252,7 +252,7 @@ public:
     {
         std::size_t p_size = static_cast<std::size_t>(getpagesize());
         // manually align the size to the page size
-        TSize = (size -1 + p_size) & -p_size;
+        TSize = (size - 1 + p_size) & -p_size;
         if (MmapSz % TSize != 0) {
             FFRT_LOGE("MmapSz is not divisible by TSize which may cause memory leak!");
         }

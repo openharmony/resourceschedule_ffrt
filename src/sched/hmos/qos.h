@@ -18,6 +18,8 @@
 
 #include "ffrt_inner.h"
 
+constexpr unsigned char NR_QOS = 6;
+
 namespace ffrt {
 class QoS {
 public:
@@ -28,7 +30,6 @@ public:
         } else if (qos > qos_max) {
             qos = qos_max;
         }
-
         qos_ = qos;
     }
 

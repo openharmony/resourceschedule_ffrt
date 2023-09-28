@@ -46,5 +46,10 @@ void sync_io(int fd);
 void set_trace_tag(const char* name);
 
 void clear_trace_tag();
+
+static inline int set_cpu_worker_max_num(qos qos_, uint32_t num)
+{
+    return ffrt_set_cpu_worker_max_num(qos_, num);
+}
 } // namespace ffrt
 #endif

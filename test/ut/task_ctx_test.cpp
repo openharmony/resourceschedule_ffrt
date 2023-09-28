@@ -17,7 +17,7 @@
 #include "core/task_ctx.h"
 #include "core/dependence_manager.h"
 #include "qos.h"
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "internal_inc/types.h"
 
 using namespace testing;

@@ -309,23 +309,23 @@ int QosPolicy(struct QosPolicyDatas *policyDatas)
     return ret;
 }
 
-int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas)
-{
-    int fd;
-    int ret;
-    fd = TrivalOpenQosCtrlNode();
-    if (fd < 0) {
-        return fd;
-    }
-    ctrlDatas.tid = tid;
-    ret = ioctl(fd, QOS_THREAD_CTRL_OPERATION, &ctrlDatas);
-    if (ret < 0) {
-        FFRT_LOGE("set thread ctrl data failed for task %d, this func is not enable in OHOS\n", getpid());
-    }
+// int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas)
+// {
+//     int fd;
+//     int ret;
+//     fd = TrivalOpenQosCtrlNode();
+//     if (fd < 0) {
+//         return fd;
+//     }
+//     ctrlDatas.tid = tid;
+//     ret = ioctl(fd, QOS_THREAD_CTRL_OPERATION, &ctrlDatas);
+//     if (ret < 0) {
+//         FFRT_LOGE("set thread ctrl data failed for task %d, this func is not enable in OHOS\n", getpid());
+//     }
 
-    close(fd);
-    return ret;
-}
+//     close(fd);
+//     return ret;
+// }
 
 int QosGet(struct QosCtrlData &data)
 {

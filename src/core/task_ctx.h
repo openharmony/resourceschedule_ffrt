@@ -39,9 +39,6 @@ namespace ffrt {
 struct TaskCtx;
 struct VersionCtx;
 
-/*
-TaskCtx 必须是数据结构ffrt_executor_task_t的子类
-*/
 struct TaskCtx : public TaskDeleter {
     TaskCtx(const task_attr_private* attr,
         TaskCtx* parent, const uint64_t& id, const char *identity = nullptr, const QoS& qos = QoS());
@@ -88,7 +85,7 @@ struct TaskCtx : public TaskDeleter {
     int64_t ddl = INT64_MAX;
 
     QoS qos;
-    void SetQos(QoS& qos);
+    void SetQos(QoS& newQos);
 
     inline void freeMem() override
     {

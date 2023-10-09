@@ -1,4 +1,4 @@
-﻿﻿## FFRT 用户编程指南
+﻿## FFRT 用户编程指南
 
 > Function Flow编程模型是一种基于任务和数据驱动的并发编程模型，允许开发者通过任务及其依赖关系描述的方式进行应用开发。FFRT（Function Flow运行时）是支持Function Flow编程模型的软件运行时库，用于调度执行开发者基于Function Flow编程模型开发的应用。通过Function Flow编程模型和FFRT，开发者可专注于应用功能开发，由FFRT在运行时根据任务依赖状态和可用执行资源自动并发调度和执行任务。
 >
@@ -670,6 +670,8 @@ thread id: 2222
 return 1
 ```
 
+
+
 ## 同步原语
 
 ### mutex
@@ -1299,7 +1301,7 @@ int main(int narg, char** argv)
     int x2 = 2;
     
     void *t[] = {&x1, &x2};
-    ffrt_deps_t deps = {2, (const void* const *)&t}; 
+    ffrt_deps_t deps = {2, (const void* const *)&t};
     // some code use deps
     return 0;
 }
@@ -1670,7 +1672,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos);
 
 * 忽略
 
-## 任务队列
+## 串行队列
 <hr />
 * FFRT提供queue来实现Andorid中类似WorkQueue能力，且在使用得当的情况下将有更好的性能
 
@@ -2683,3 +2685,40 @@ void fib_ffrt(int x, int* y)
 ## C API中初始化ffrt对象后，对象的置空与销毁由用户负责
 
 * 为保证较高的性能，ffrt的C API中内部不包含对对象的销毁状态的标记，用户需要合理地进行资源的释放，重复调用各个对象的destroy操作，其结果是未定义的
+* 错误示例1，重复调用destroy可能造成不可预知的数据损坏
+
+```{.cpp}
+#include "ffrt.h"
+void abnormal_case_1()
+{
+    ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
+    ...
+    ffrt_task_handle_destroy(h);
+    ffrt_task_handle_destroy(h); // double free
+}
+```
+
+* 错误示例2，未调用destroy会造成内存泄漏
+
+```{.cpp}
+#include "ffrt.h"
+void abnormal_case_2()
+{
+    ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
+    ...
+    // memory leak
+}
+```
+
+* 建议示例，仅调用一次destroy，如有必要可进行置空
+
+```{.cpp}
+#include "ffrt.h"
+void normal_case()
+{
+    ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
+    ...
+    ffrt_task_handle_destroy(h);
+    h = nullptr; // if necessary
+}
+```

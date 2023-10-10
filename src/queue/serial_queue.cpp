@@ -53,7 +53,7 @@ int SerialQueue::PushTask(ITask* task, uint64_t upTime)
     if (upTime == whenMap_.begin()->first) {
         cond_.notify_all();
     }
-    FFRT_LOGD("push serial task gid=%llu into [%s] succ", task->gid, name_.c_str());
+    FFRT_LOGI("push serial task gid=%llu into qid=%u [%s] succ", task->gid, qid_, name_.c_str());
     return 0;
 }
 
@@ -61,7 +61,7 @@ int SerialQueue::RemoveTask(const ITask* task)
 {
     std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR((task == nullptr), return -1, "failed to remove task, task is nullptr");
-    FFRT_LOGD("remove serial task gid=%llu of [%s] enter", task->gid, name_.c_str());
+    FFRT_LOGI("remove serial task gid=%llu of qid=%u [%s] enter", task->gid, qid_, name_.c_str());
     for (auto it = whenMap_.begin(); it != whenMap_.end();) {
         for (auto itList = it->second.begin(); itList != it->second.end();) {
             if ((*itList) != task) {
@@ -110,8 +110,8 @@ ITask* SerialQueue::Next()
         if (it->second.empty()) {
             (void)whenMap_.erase(it);
         }
-        FFRT_LOGD("get next serial task gid=%llu, %s contains [%u] other timestamps", nextTask->gid, name_.c_str(),
-            whenMap_.size());
+        FFRT_LOGI("get next serial task gid=%llu, qid=%u [%s] contains [%u] other timestamps", nextTask->gid, qid_,
+            name_.c_str(),whenMap_.size());
         return nextTask;
     } else {
         uint64_t diff = it->first - now;

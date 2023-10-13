@@ -30,6 +30,7 @@ config("ffrt_config") {
     "//foundation/resourceschedule/frame_aware_sched/common/include/",
     "//third_party/libunwind/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter/",
+    "//base/hiviewdfx/faultloggerd/interfaces/innerkits/dump_catcher/include",
   ]
 
   ffrt_defaults_cflags = [
@@ -47,6 +48,7 @@ config("ffrt_config") {
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",
+    "-DOHOS_THREAD_STACK_DUMP",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -143,6 +145,7 @@ ohos_shared_library("libffrt") {
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "ipc:ipc_core",
+    "faultloggerd:libdfx_dumpcatcher",
   ]
 
   deps = [
@@ -226,6 +229,7 @@ ohos_shared_library("ffrt_ndk") {
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "ipc:ipc_core",
+    "faultloggerd:libdfx_dumpcatcher",
   ]
 
   deps = [

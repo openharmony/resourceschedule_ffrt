@@ -18,6 +18,10 @@
 
 #include <atomic>
 #include <thread>
+#ifdef OHOS_THREAD_STACK_DUMP
+#include <sstream>
+#include "dfx_dump_catcher.h"
+#endif
 
 #include "sched/qos.h"
 #include "core/task_ctx.h"
@@ -32,7 +36,27 @@ public:
 
     virtual ~WorkerThread()
     {
-        Join();
+        if (!exited) {
+            FFRT_LOGE("tid[%d] exit invalid", tid.load());
+#ifdef OHOS_THREAD_STACK_DUMP
+            OHOS::HiviewDFX::DfxDumpCatcher dumplog;
+            std::string msg = "";
+            bool result = dumplog.DumpCatch(getpid(), gettid(), msg);
+            if (result) {
+                FFRT_LOGE("ffrt callstack len = %{public}u", msg.length());
+                std::vector<std::string> out;
+                std::stringstream ss(msg);
+                std::string s;
+                while (std::getline(ss, s, '\n')) {
+                    out.push_back(s);
+                }
+                for (auto const& line: out) {
+                    FFRT_LOGE("ffrt callstack %{public}s", line.c_str());
+                }
+            }
+#endif
+        }
+        Detach();
     }
 
     bool Idle() const
@@ -98,7 +122,7 @@ public:
         return this->thread;
     }
 
-    void WorkerSetup(WorkerThread* wthread, const QoS& qos);
+    void WorkerSetup(WorkerThread* wthread);
 private:
     void NativeConfig();
 
@@ -110,5 +134,6 @@ private:
     QoS qos;
     std::thread thread;
 };
+void SetThreadAttr(WorkerThread* thread, const QoS& qos);
 } // namespace ffrt
 #endif

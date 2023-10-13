@@ -30,22 +30,30 @@ void WorkerThread::NativeConfig()
     this->tid = pid;
 }
 
-void WorkerThread::WorkerSetup(WorkerThread* wthread, const QoS& qos)
+void WorkerThread::WorkerSetup(WorkerThread* wthread)
 {
     static int threadIndex[QoS::Max()] = {0};
     std::string threadName = "ffrtwk/CPU-" + (std::to_string(qos()))+ "-" + std::to_string(threadIndex[qos()]++);
+    if (std::to_string(qos()) == "") {
+        FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
+    }
     pthread_setname_np(wthread->GetThread().native_handle(), threadName.c_str());
+    SetThreadAttr(wthread, qos);
+}
+
+void SetThreadAttr(WorkerThread* thread, const QoS& qos)
+{
     if (qos() <= qos_max) {
-        QosApplyForOther(qos(), wthread->Id());
-        FFRT_LOGD("qos apply tid[%d] level[%d]\n", wthread->Id(), qos());
+        QosApplyForOther(qos(), thread->Id());
+        FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
         if (getFuncAffinity() != nullptr) {
-            getFuncAffinity()(QosConfig::Instance().getPolicySystem().policys[qos()].affinity, wthread->Id());
+            getFuncAffinity()(QosConfig::Instance().getPolicySystem().policys[qos()].affinity, thread->Id());
         }
         if (getFuncPriority() != nullptr) {
-            getFuncPriority()(QosConfig::Instance().getPolicySystem().policys[qos()].priority, wthread);
+            getFuncPriority()(QosConfig::Instance().getPolicySystem().policys[qos()].priority, thread);
         }
     } else {
-        OSAttrManager::Instance()->SetTidToCGroup(wthread->Id());
+        OSAttrManager::Instance()->SetTidToCGroup(thread->Id());
     }
 }
 }; // namespace ffrt

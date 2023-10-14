@@ -25,6 +25,7 @@
 
 #include "sched/qos.h"
 #include "core/task_ctx.h"
+#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 class WorkerThread {

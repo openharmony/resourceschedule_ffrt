@@ -172,7 +172,7 @@ public:
     {
         // Within an ffrt process, different threads may have different QoS interval
         task_attr_private task_attr;
-        root = new RootTaskCtx{&task_attr, nullptr, 0, nullptr};
+        root = new RootTaskCtx {&task_attr, nullptr, 0, nullptr};
     }
     ~RootTaskCtxWrapper()
     {
@@ -198,6 +198,5 @@ public:
 private:
     RootTaskCtx *root = nullptr;
 };
-
 } /* namespace ffrt */
 #endif

@@ -34,9 +34,8 @@ struct WorkerCtrl {
 #ifdef FFRT_IO_TASK_SCHEDULER
     bool pollWaitFlag = false;
 #endif
-    int deepSleepingWorkerNum = 0; // only used for emui
+    int deepSleepingWorkerNum = 0;
     std::mutex lock;
-    // fast_mutex lock;
 };
 
 class CPUMonitor {

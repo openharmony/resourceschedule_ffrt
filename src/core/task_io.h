@@ -54,7 +54,6 @@ struct ffrt_executor_io_task: public ffrt_executor_task {
         wakeFlag = wakeFlagIn;
     }
 };
-
 } /* namespace ffrt */
 #endif
 #endif

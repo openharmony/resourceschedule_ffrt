@@ -109,7 +109,7 @@ int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
     workerCtrl.lock.lock();
     static bool setFlag[QoS::Max()] = {false};
     if (setFlag[qos()]) {
-        FFRT_LOGE("qos[%d] worker num can only be setup once", qos());
+        FFRT_LOGE("qos[%d] worker num can only been setup once", qos());
         workerCtrl.lock.unlock();
         return -1;
     }

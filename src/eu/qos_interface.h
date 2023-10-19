@@ -87,6 +87,7 @@ struct QosCtrlData {
     int qos;
     int staticQos;
     int dynamicQos;
+    int tagSchedEnable = false;
 };
 
 struct QosPolicyData {
@@ -97,6 +98,18 @@ struct QosPolicyData {
     unsigned char priority;
     unsigned char init_load;
     unsigned char prefer_idle;
+};
+
+constexpr unsigned char THREAD_CTRL_NUM = 4;
+
+struct ThreadAttrCtrl {
+    int tid;
+    bool prioritySetEnable;
+    bool affinitySetEnable;
+};
+
+struct ThreadAttrCtrDatas {
+    struct ThreadAttrCtrl ctrls[THREAD_CTRL_NUM];
 };
 
 enum QosPolicyType {
@@ -126,6 +139,7 @@ struct QosPolicyDatas {
 enum QosCtrlCmdid {
     QOS_CTRL = 1,
     QOS_POLICY,
+    QOS_THREAD_CTRL,
     QOS_CTRL_MAX_NR
 };
 
@@ -135,6 +149,8 @@ enum QosCtrlCmdid {
     _IOWR(QOS_CTRL_IPC_MAGIG, QOS_CTRL, struct QosCtrlData)
 #define QOS_CTRL_POLICY_OPERATION \
     _IOWR(QOS_CTRL_IPC_MAGIG, QOS_POLICY, struct QosPolicyDatas)
+#define QOS_THREAD_CTRL_OPERATION \
+    _IOWR(QOS_CTRL_IPC_MAGIG, QOS_THREAD_CTRL, struct ThreadAttrCtrl)
 
 /*
  * RTG
@@ -186,6 +202,7 @@ int QosLeaveForOther(int tid);
 int QosGet(struct QosCtrlData &data);
 int QosGetForOther(int tid, struct QosCtrlData &data);
 int QosPolicy(struct QosPolicyDatas *policyDatas);
+int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas);
 typedef int (*Func_affinity)(unsigned long affinity, int tid);
 void setFuncAffinity(Func_affinity func);
 Func_affinity getFuncAffinity(void);

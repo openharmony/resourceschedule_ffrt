@@ -128,9 +128,13 @@ static inline void CoMemFree(CoRoutine* co)
     ffrt::QSimpleAllocator<CoRoutine>::freeMem(co);
 }
 
-void CoWorkerExit()
+void CoWorkerExit(void)
 {
     if (g_CoThreadEnv) {
+        if (g_CoThreadEnv->runningCo) {
+            CoMemFree(g_CoThreadEnv->runningCo);
+            g_CoThreadEnv->runningCo = nullptr;
+        }
         ::free(g_CoThreadEnv);
         g_CoThreadEnv = nullptr;
     }

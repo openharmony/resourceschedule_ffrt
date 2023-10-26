@@ -83,7 +83,7 @@ public:
         if (task == nullptr) return false;
         int level = qos;
         ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
-        fifoQue[static_cast<size_t>(qos_level)].WakeupNode(node);
+        fifoQue[static_cast<size_t>(level)].WakeupNode(node);
         ExecuteUnit::Instance().NotifyTaskAdded(level);
         return true;
     }

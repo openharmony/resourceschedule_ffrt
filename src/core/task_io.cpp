@@ -206,8 +206,8 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_by_handle(void* callable, ffrt_function_t exec, ffrt_function_t destroy,
     ffrt_task_handle_t handle)
 {
-    FFRT_COND_DO_ERR((callable == nullptr), return nullptr, "input invalid, callable == nullptr");
-    FFRT_COND_DO_ERR((handle == nullptr), return nullptr, "input invalid, handle == nullptr");
+    FFRT_COND_DO_ERR((callable == nullptr), return, "input invalid, callable == nullptr");
+    FFRT_COND_DO_ERR((handle == nullptr), return, "input invalid, handle == nullptr");
     ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(handle);
     task->lock.lock();
     FFRT_LOGD("tid:%ld ffrt_wake_by_handle and CurState = %d", syscall(SYS_gettid), task->status);
@@ -234,7 +234,7 @@ void * ffrt_task_get()
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_coroutine(void *taskin)
-{s
+{
     ffrt::ffrt_executor_io_task* task = static_cast<ffrt::ffrt_executor_io_task*>(taskin);
     ffrt::ExecTaskStatus executing_status = ffrt::ExecTaskStatus::ET_EXECUTING;
     ffrt::ExecTaskStatus pending_status = ffrt::ExecTaskStatus::ET_PENDING;

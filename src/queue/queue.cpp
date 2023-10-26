@@ -15,7 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cerrno>
-#include <dfx/log/ffrt_log_api.h>
+#include "dfx/log/ffrt_log_api.h"
 #include "sched/qos.h"
 #include "queue.h"
 

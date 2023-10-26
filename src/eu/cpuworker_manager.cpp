@@ -118,7 +118,7 @@ bool InsertTask(void *task, int qos)
 {
     ffrt_executor_task_t* task_ = (ffrt_executor_task_t *)task;
     LinkedList* node = (LinkedList *)(&task_->wq);
-    return FFRTScheduler::Instance()->InsertNode(node, ffrt::QoS(qos);)
+    return FFRTScheduler::Instance()->InsertNode(node, ffrt::QoS(qos));
 }
 
 void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)

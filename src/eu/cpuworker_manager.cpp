@@ -97,7 +97,7 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     if (task == nullptr) return nullptr;
     struct queue_s *queue = &(((CPUWorker *)thread)->local_fifo);
     int expected_task = (GetTaskCount(thread->GetQos()) / monitor.WakedWorkerNum(thread->GetQos()));
-    for (int i = 0; i <expected_task; i++) {
+    for (int i = 0; i < expected_task; i++) {
         if (queue_length(queue) == queue_capacity(queue)) {
             return task;
         }
@@ -116,9 +116,9 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 
 bool InsertTask(void *task, int qos)
 {
-    ffrt_executor_task_t* task = (ffrt_executor_task_t)task;
-    LinkedList* node = (LinkedList *)(&task->wq);
-    return FFRTScheduler::Instance()->InsertNode(node, ffrt::Qos(qos);)
+    ffrt_executor_task_t* task_ = (ffrt_executor_task_t *)task;
+    LinkedList* node = (LinkedList *)(&task_->wq);
+    return FFRTScheduler::Instance()->InsertNode(node, ffrt::QoS(qos);)
 }
 
 void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)

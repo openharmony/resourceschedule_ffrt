@@ -20,7 +20,7 @@
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
-#ifdef FFER_IO_TASK_SCHEDULER
+#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #endif
 
@@ -87,7 +87,7 @@ public:
                 return;
             }
             if (atomic_compare_exchange_weak(&stealWorkers[qos], &stealWorkersNum, stealWorkersNum - 1)) return;
-            }
+        }
     }
 
     uint64_t GetStealingWorkers(const QoS& qos)

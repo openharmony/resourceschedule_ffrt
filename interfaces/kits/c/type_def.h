@@ -103,7 +103,10 @@ typedef enum {
     /** General task. */
     ffrt_function_kind_general,
     /** Queue task. */
-    ffrt_function_kind_queue
+    ffrt_function_kind_queue,
+#ifdef FFRT_IO_TASK_SCHEDULER
+    ffrt_function_kind_io,
+#endif
 } ffrt_function_kind_t;
 
 /**

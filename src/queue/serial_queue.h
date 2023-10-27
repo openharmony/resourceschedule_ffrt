@@ -28,6 +28,11 @@ public:
     SerialQueue(const uint32_t qid, const std::string& name) : qid_(qid), name_(name) {}
     ~SerialQueue();
 
+    inline uint32_t GetMapSize() const
+    {
+        return mapSize_.load();
+    }
+
     ITask* Next();
     int PushTask(ITask* task, uint64_t upTime);
     int RemoveTask(const ITask* task);
@@ -39,6 +44,7 @@ private:
     bool isExit_ = false;
     const uint32_t qid_;
     std::string name_;
+    std::atomic_uint32_t mapSize_ = {0};
     std::map<uint64_t, std::list<ITask*>> whenMap_;
 };
 } // namespace ffrt

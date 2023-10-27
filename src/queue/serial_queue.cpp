@@ -47,36 +47,40 @@ void SerialQueue::Quit()
 
 int SerialQueue::PushTask(ITask* task, uint64_t upTime)
 {
-    std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR((task == nullptr), return -1, "failed to push task, task is nullptr");
-    whenMap_[upTime].emplace_back(task);
-    if (upTime == whenMap_.begin()->first) {
-        cond_.notify_all();
+    {
+        std::unique_lock lock(mutex_);
+        whenMap_[upTime].emplace_back(task);
+        if (upTime == whenMap_.begin()->first) {
+            cond_.notify_all();
+        }
     }
-    FFRT_LOGI("push serial task gid=%llu into qid=%u [%s] succ", task->gid, qid_, name_.c_str());
+    FFRT_LOGI("push task gid=%llu to qid=%u [%s]", task->gid, qid_, name_.c_str());
     return 0;
 }
 
 int SerialQueue::RemoveTask(const ITask* task)
 {
-    std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR((task == nullptr), return -1, "failed to remove task, task is nullptr");
-    FFRT_LOGI("remove serial task gid=%llu of qid=%u [%s] enter", task->gid, qid_, name_.c_str());
-    for (auto it = whenMap_.begin(); it != whenMap_.end();) {
-        for (auto itList = it->second.begin(); itList != it->second.end();) {
-            if ((*itList) != task) {
-                itList++;
-                continue;
+    FFRT_LOGI("cancel task gid=%llu of qid=%u [%s]", task->gid, qid_, name_.c_str());
+    {
+        std::unique_lock lock(mutex_);
+        for (auto it = whenMap_.begin(); it != whenMap_.end();) {
+            for (auto itList = it->second.begin(); itList != it->second.end();) {
+                if ((*itList) != task) {
+                    itList++;
+                    continue;
+                }
+                it->second.erase(itList++);
+                // a task can be submitted only once through the C interface
+                return 0;
             }
-            it->second.erase(itList++);
-            // a task can be submitted only once through the C interface
-            return 0;
-        }
 
-        if (it->second.empty()) {
-            whenMap_.erase(it++);
-        } else {
-            it++;
+            if (it->second.empty()) {
+                whenMap_.erase(it++);
+            } else {
+                it++;
+            }
         }
     }
     FFRT_LOGD("remove serial task gid=%llu of [%s] failed, task not waiting in queue", task->gid, name_.c_str());
@@ -110,8 +114,7 @@ ITask* SerialQueue::Next()
         if (it->second.empty()) {
             (void)whenMap_.erase(it);
         }
-        FFRT_LOGI("get next serial task gid=%llu, qid=%u [%s] contains [%u] other timestamps", nextTask->gid, qid_,
-            name_.c_str(), whenMap_.size());
+        mapSize_.store(whenMap_.size());
         return nextTask;
     } else {
         uint64_t diff = it->first - now;

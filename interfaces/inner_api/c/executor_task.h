@@ -33,13 +33,15 @@ typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t q
 
 FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
 FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
-FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *taask, const ffrt_qos_t qos);
+FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos);
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 // poller
-FFRT_C_API int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t));
+typedef void (*ffrt_poller_cb)(void*, uint32_t);
+typedef int (*ffrt_timer_func)();
+FFRT_C_API int ffrt_poller_register(int fd, uint32_t events, void* data, ffrt_poller_cb cb);
 FFRT_C_API int ffrt_poller_deregister(int fd);
-FFRT_C_API int ffrt_poller_register_timerfunc(int(*timerFunc)());
+FFRT_C_API int ffrt_poller_register_timerfunc(ffrt_timer_func timerFunc);
 FFRT_C_API void ffrt_poller_wakeup();
 
 FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,

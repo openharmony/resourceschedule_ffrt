@@ -19,14 +19,12 @@
 #include <new>
 #include <vector>
 #include <mutex>
-#include <atomic>
 #ifdef FFRT_BBOX_ENABLE
 #include <unordered_set>
 #endif
 #include <sys/mman.h>
 #include "sync/sync.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/bbox/bbox.h"
 
 namespace ffrt {
 const std::size_t BatchAllocSize = 128 * 1024;
@@ -186,13 +184,9 @@ class QSimpleAllocator {
     std::mutex lock;
     std::vector<T*> cache;
     uint32_t flags = MAP_ANONYMOUS | MAP_PRIVATE;
-    uint32_t printCnt = 0;
-    std::vector<void*> mmapedAddrVec;
-    std::atomic<uint64_t> allocatedCnt {0};
 
     bool expand()
     {
-        FFRT_LOGE("DEBUG: QSimpleAllocator::expand");
         const int prot = PROT_READ | PROT_WRITE;
         char* p = reinterpret_cast<char*>(mmap(nullptr, MmapSz, prot, flags, -1, 0));
         if (p == (char*)MAP_FAILED) {
@@ -208,24 +202,11 @@ class QSimpleAllocator {
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             cache.push_back(reinterpret_cast<T*>(p + i));
         }
-        mmapedAddrVec.push_back(reinterpret_cast<void*>(p));
         return true;
     }
 
     T* alloc()
     {
-        FFRT_LOGE("DEBUG: QSimpleAllocator::alloc");
-        ++printCnt;
-        ++allocatedCnt;
-        if (printCnt % 10 == 0) {
-            std::string info = SaveTaskCounterInfo();
-            FFRT_LOGE("DEBUG: %s", info.c_str());
-            for (int i = 0; i < mmapedAddrVec.size(); i++) {
-                FFRT_LOGE("DEBUG: mmaped addr %d, %llu", i,
-                    static_cast<uint64_t>(reinterpret_cast<uintptr_t>(mmapedAddrVec[i])));
-            }
-            FFRT_LOGE("DEBUG: cache size %llu, used size %llu", cache.size(), allocatedCnt.load());
-        }
         T* p = nullptr;
         lock.lock();
         if (cache.empty()) {
@@ -242,8 +223,6 @@ class QSimpleAllocator {
 
     void free(T* p)
     {
-        --allocatedCnt;
-        FFRT_LOGE("DEBUG: QSimpleAllocator::free");
         lock.lock();
         cache.push_back(p);
         lock.unlock();

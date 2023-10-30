@@ -83,6 +83,8 @@ void SerialLooper::Run()
     while (!isExit_.load()) {
         ITask* task = queue_->Next();
         if (task) {
+            FFRT_LOGI("pick task gid=%llu, qid=%u [%s] remains [%u]", task->gid, qid_, name_.c_str(),
+                queue_->GetMapSize());
             SetTimeoutMonitor(task);
             FFRT_COND_DO_ERR((task->handler_ == nullptr), break, "failed to run task, handler is nullptr");
             QueueMonitor::GetInstance().UpdateQueueInfo(qid_, task->gid);

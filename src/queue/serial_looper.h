@@ -50,7 +50,7 @@ private:
     void SetTimeoutMonitor(ITask* task);
     void RunTimeOutCallback(ITask* task);
 
-    std::string name_ = "serial_queue_";
+    std::string name_;
     std::atomic_bool isExit_ = {false};
     task_handle handle;
     std::shared_ptr<SerialQueue> queue_;

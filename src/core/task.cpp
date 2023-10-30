@@ -366,7 +366,7 @@ ffrt_qos_t ffrt_get_cur_qos()
     return qos;
 }
 API_ATTRIBUTE((visibility("default")))
-int ffrt_poller_register(int fd, uint32_t events, void* data, void(*cb)(void*, uint32_t))
+int ffrt_poller_register(int fd, uint32_t events, void* data, ffrt_poller_cb cb)
 {
     ffrt_qos_t qos = ffrt_get_cur_qos();
     return ffrt::PollerProxy::Instance()->GetPoller(qos).AddFdEvent(events, fd, data, cb);
@@ -387,7 +387,7 @@ void ffrt_poller_wakeup()
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_poller_register_timerfunc(int(*timerFunc)())
+int ffrt_poller_register_timerfunc(ffrt_timer_func timerFunc)
 {
     ffrt_qos_t qos = ffrt_get_cur_qos();
     return ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimerFunc(timerFunc);

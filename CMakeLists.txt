@@ -18,7 +18,7 @@ option(FFRT_BENCHMARKS "Enables ffrt Benchmarks" OFF)
 option(FFRT_TEST_ENABLE "Enables ffrt test" OFF)
 option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" ON)
 option(FFRT_SANITIZE "enable address or thread sanitizer" OFF)
-option(FFRT_IO_TASK_SCHEDULER "enalbe io task scheduler" ON)
+option(FFRT_IO_TASK_SCHEDULER "enalbe io task scheduler" OFF)
 
 # set compiler clang or gcc, must before project(ffrt)
 if(FFRT_CLANG_COMPILE STREQUAL ON)

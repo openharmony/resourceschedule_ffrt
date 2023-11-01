@@ -50,7 +50,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         FFRT_LOGE("Inc CPUWorker: create worker\n");
         return false;
     }
-    worker->WorkerSetup(worker.get(), qos);
+    worker->WorkerSetup(worker.get());
     WorkerJoinTg(qos, worker->Id());
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
     return true;

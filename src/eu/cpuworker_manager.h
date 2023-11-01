@@ -118,7 +118,7 @@ private:
     bool tearDown = false;
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-    void WorkerSetup(WorkerThread* thread, const QoS& qos);
+    void WorkerSetup(WorkerThread* thread);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);
     unsigned int StealTaskBatch(WorkerThread* thread);
     TaskCtx* PickUpTaskBatch(WorkerThread* thread);

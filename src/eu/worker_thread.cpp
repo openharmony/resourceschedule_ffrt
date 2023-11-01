@@ -27,12 +27,15 @@ void WorkerThread::NativeConfig()
     this->tid = pid;
 }
 
-void WorkerThread::WorkerSetup(WorkerThread* wthread, const QoS& workerQos)
+void WorkerThread::WorkerSetup(WorkerThread* wthread)
 {
     static int threadIndex[QoS::Max()] = {0};
-    std::string threadName = "ffrtwk/CPU-" + (std::to_string(workerQos()))+ "-" + std::to_string(threadIndex[qos()]++);
+    std::string threadName = "ffrtwk/CPU-" + (std::to_string(qos()))+ "-" + std::to_string(threadIndex[qos()]++);
+    if (std::to_string(qos()) == "") {
+        FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
+    }
     pthread_setname_np(wthread->GetThread().native_handle(), threadName.c_str());
-    SetThreadAttr(wthread, workerQos);
+    SetThreadAttr(wthread, qos);
 }
 
 void SetThreadAttr(WorkerThread* thread, const QoS& qos)

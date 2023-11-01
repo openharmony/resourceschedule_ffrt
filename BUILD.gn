@@ -49,6 +49,7 @@ config("ffrt_config") {
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",
+    "-DOHOS_THREAD_STACK_DUMP",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -139,6 +140,7 @@ ohos_shared_library("libffrt") {
 
   external_deps = [
     "faultloggerd:libbacktrace_local",
+    "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
@@ -219,6 +221,7 @@ ohos_shared_library("ffrt_ndk") {
 
   external_deps = [
     "faultloggerd:libbacktrace_local",
+    "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",

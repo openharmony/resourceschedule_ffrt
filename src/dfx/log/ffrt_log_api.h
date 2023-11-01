@@ -62,7 +62,7 @@
         return; \
     }
 
-// Do not use this Merco directly
+// Do not use this Marco directly
 #define COND_GOTO_WITH_ERRCODE_(COND, LABEL, ERROR, ERRCODE, ...) \
     if ((COND)) { \
         FFRT_LOGE(__VA_ARGS__); \
@@ -77,4 +77,5 @@
     do { \
         (void)(expr); \
     } while (0)
+
 #endif // __FFRT_LOG_API_H__

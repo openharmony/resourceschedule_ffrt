@@ -18,6 +18,10 @@
 
 #include <atomic>
 #include <thread>
+#ifdef OHOS_THREAD_STACK_DUMP
+#include <sstream>
+#include "dfx_dump_catcher.h"
+#endif
 
 #include "qos.h"
 #include "core/task_ctx.h"
@@ -32,6 +36,27 @@ public:
 
     virtual ~WorkerThread()
     {
+        if (!exited) {
+            FFRT_LOGE("tid[%d] exit invalid", tid.load());
+#ifdef OHOS_THREAD_STACK_DUMP
+            OHOS::HiviewDFX::DfxDumpCatcher dumplog;
+            std::string msg = "";
+            bool result = dumplog.DumpCatch(getpid(), gettid(), msg);
+            FFRT_LOGE("ffrt result[%d] pid[%d] tid[%d]", result, getpid(), gettid());
+            if (result) {
+                FFRT_LOGE("ffrt callstack len = %{public}u", msg.length());
+                std::vector<std::string> out;
+                std::stringstream ss(msg);
+                std::string s;
+                while (std::getline(ss, s, '\n')) {
+                    out.push_back(s);
+                }
+                for (auto const& line: out) {
+                    FFRT_LOGE("ffrt callstack %{public}s", line.c_str());
+                }
+            }
+#endif
+        }
         Detach();
     }
 
@@ -100,7 +125,7 @@ public:
         return this->thread;
     }
 
-    void WorkerSetup(WorkerThread* wthread, const QoS& workerQos);
+    void WorkerSetup(WorkerThread* wthread);
 private:
     void NativeConfig();
 

@@ -71,6 +71,7 @@ ohos_unittest("frame_interval_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -106,6 +107,7 @@ ohos_unittest("deadline_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -141,6 +143,7 @@ ohos_unittest("task_ctx_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -176,6 +179,7 @@ ohos_unittest("cpu_monitor_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -211,6 +215,7 @@ ohos_unittest("cpuworker_manager_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -246,6 +251,7 @@ ohos_unittest("execute_unit_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -281,6 +287,7 @@ ohos_unittest("worker_thread_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -315,6 +322,7 @@ ohos_unittest("qos_convert_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -350,6 +358,7 @@ ohos_unittest("ut_coroutine_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libdfx_dumpcatcher",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",

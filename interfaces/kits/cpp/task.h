@@ -208,7 +208,7 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func,
         "size of function must be less than ffrt_auto_managed_function_storage_size");
 
     auto p = ffrt_alloc_auto_managed_function_storage_base(kind);
-    auto f = new (p)function type;
+    auto f = new (p)function_type;
     f->header.exec = exec_function_wrapper<T>;
     f->header.destroy = destroy_function_wrapper<T>;
     f->closure = std::forward<T>(func);

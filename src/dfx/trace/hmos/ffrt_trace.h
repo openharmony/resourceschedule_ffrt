@@ -93,7 +93,7 @@ private:
 #define FFRT_TRACE_SCOPE(level, tag)
 #endif
 
-// DFX Trace for FFRT Task Statistics
+// DFX Trace for FFRT Normal Task
 #define FFRT_WORKER_IDLE_BEGIN_MARKER()
 #define FFRT_WORKER_IDLE_END_MARKER()
 #define FFRT_SUBMIT_MARKER(tag, gid) \
@@ -166,7 +166,7 @@ private:
 // DFX Trace for FFRT Serial Queue Task
 #define FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(qid, gid) \
     do { \
-        FFRT_TRACE_BEGIN(("q[sq_"+ std::to_string(qid) + "]|" + std::to_string(gid)).c_str()); \
+        FFRT_TRACE_BEGIN(("P[sq_" + std::to_string(qid) + "]|" + std::to_string(gid)).c_str()); \
         FFRT_TRACE_END(); \
     } while (false)
 #define FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid) \

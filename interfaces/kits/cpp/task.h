@@ -138,7 +138,7 @@ public:
     }
 
     task_handle(task_handle const&) = delete;
-    void operator=(task_handle const&) = delete;
+    task_handle& operator=(task_handle const&) = delete;
 
     inline task_handle(task_handle&& h)
     {
@@ -147,11 +147,13 @@ public:
 
     inline task_handle& operator=(task_handle&& h)
     {
-        if (p) {
-            ffrt_task_handle_destroy(p);
+        if (this != &h) {
+            if (p) {
+                ffrt_task_handle_destroy(p);
+            }
+            p = h.p;
+            h.p = nullptr;
         }
-        p = h.p;
-        h.p = nullptr;
         return *this;
     }
 
@@ -179,8 +181,6 @@ struct dependence : ffrt_dependence_t {
 
 template<class T>
 struct function {
-    template<class CT>
-    function(ffrt_function_header_t h, CT&& c) : header(h), closure(std::forward<CT>(c)) {}
     ffrt_function_header_t header;
     T closure;
 };
@@ -208,8 +208,10 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func,
         "size of function must be less than ffrt_auto_managed_function_storage_size");
 
     auto p = ffrt_alloc_auto_managed_function_storage_base(kind);
-    auto f =
-        new (p)function_type({ exec_function_wrapper<T>, destroy_function_wrapper<T>, { 0 } }, std::forward<T>(func));
+    auto f = new (p)function type;
+    f->header.exec = exec_function_wrapper<T>;
+    f->header.destroy = destroy_function_wrapper<T>;
+    f->closure = std::forward<T>(func);
     return reinterpret_cast<ffrt_function_header_t*>(f);
 }
 

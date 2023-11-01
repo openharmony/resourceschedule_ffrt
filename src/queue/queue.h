@@ -44,7 +44,7 @@ extern "C" {
 #define ERROR_QUEUE_FULL ((MID_QUEUE) | 0x01)
 
 /**
- * @brief 0x10020001
+ * @brief 0x10020002
  * 取出时队列为空
  */
 #define ERROR_QUEUE_EMPTY ((MID_QUEUE) | 0x02)
@@ -236,3 +236,4 @@ unsigned int queue_prob(struct queue_s *queue);
 #endif
 #endif
 #endif /* _QUEUE_H */
+

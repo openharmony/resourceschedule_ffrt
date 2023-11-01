@@ -72,7 +72,7 @@ private:
 };
 
 template <typename R>
-struct shared_state : shared_state_base<shared_state<R>> {
+struct shared_state : public shared_state_base<shared_state<R>> {
     void set_value(const R& value) noexcept
     {
         {
@@ -108,7 +108,7 @@ private:
 };
 
 template <>
-struct shared_state<void> : shared_state_base<shared_state<void>> {
+struct shared_state<void> : public shared_state_base<shared_state<void>> {
     void set_value() noexcept
     {
         {

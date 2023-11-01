@@ -84,6 +84,11 @@ public:
         ExecuteUnit::Instance();
 
         TaskState::RegisterOps(TaskState::EXITED, [this](TaskCtx* task) { return this->onTaskDone(task), true; });
+
+#ifdef FFRT_OH_TRACE_ENABLE
+        StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
+        FinishTrace(HITRACE_TAG_FFRT);
+#endif
     }
     ~DependenceManager()
     {
@@ -202,7 +207,7 @@ public:
 #endif
         QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
 
-        LinkedList* node = (LinkedList *)(&task->wq);
+        LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
         FFRTScheduler* sch = FFRTScheduler::Instance();
         if (!sch->InsertNode(node, qos)) {
             FFRT_LOGE("Submit UV task failed!");
@@ -388,12 +393,7 @@ public:
             outVersions.push_back({version, type});
         }
     }
-
-#ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
-    xx::mutex& criticalMutex_;
-#else
     fast_mutex& criticalMutex_;
-#endif
 };
 } // namespace ffrt
 #endif

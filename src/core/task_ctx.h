@@ -87,7 +87,7 @@ struct TaskCtx : public TaskDeleter {
     QoS qos;
     void SetQos(QoS& newQos);
 
-    inline void freeMem() override
+    void freeMem() override
     {
         BboxCheckAndFreeze();
         SimpleAllocator<TaskCtx>::freeMem(this);

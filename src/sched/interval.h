@@ -17,8 +17,11 @@
 #define FFRT_INTERVAL_HPP
 
 #include <deque>
-
+#ifdef FFRT_PARSE_XML_USE_STUB
 #include "qos.h"
+#else
+#include "camera_qos/sched/qos.h"
+#endif
 #include "sched/load_predictor.h"
 #include "sched/load_tracking.h"
 #include "eu/thread_group.h"

@@ -299,7 +299,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
     ffrt::QoS _qos = ffrt::QoS(qos);
     if (((qos != ffrt::qos_default) && (_qos() == ffrt::qos_default)) || (qos <= ffrt::qos_inherit))
     {
-        FFRT_LOGE("qos[%d] is valid.", qos);
+        FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
     }
     ffrt::CPUMonitor *monitor = ffrt::ExecuteUnit::Instance().GetCPUMonitor();
@@ -307,9 +307,9 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_this_task_update_qos(int qos_)
+int ffrt_this_task_update_qos(ffrt_qos_t qos)
 {
-    ffrt::QoS _qos = ffrt::QoS(qos_);
+    ffrt::QoS _qos = ffrt::QoS(qos);
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
         FFRT_LOGW("task is nullptr");

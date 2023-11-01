@@ -63,6 +63,7 @@ config("ffrt_config") {
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_OH_TASK_STAT_ENABLE",
     "FFRT_TRACE_LEVEL=1",
+    "FFRT_PARSE_XML_USE_STUB",
   ]
 
   #ffrt_release_defines = [
@@ -138,7 +139,6 @@ ohos_shared_library("libffrt") {
 
   external_deps = [
     "faultloggerd:libbacktrace_local",
-    "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
@@ -219,7 +219,6 @@ ohos_shared_library("ffrt_ndk") {
 
   external_deps = [
     "faultloggerd:libbacktrace_local",
-    "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",

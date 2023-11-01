@@ -29,7 +29,6 @@
                 "hitrace",
                 "ipc",
                 "napi",
-                "frame_aware_sched",
                 "faultloggerd"
             ],
             "third_party": [

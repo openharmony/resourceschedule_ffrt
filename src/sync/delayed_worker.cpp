@@ -20,11 +20,12 @@
 #include <sys/prctl.h>
 #include <thread>
 #include <linux/futex.h>
+#include "util/name_manager.h"
 namespace ffrt {
 DelayedWorker::DelayedWorker() : futex(0)
 {
     std::thread t([this]() {
-        prctl(PR_SET_NAME, "delayed_worker");
+        prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         for (;;) {
             lock.lock();
             if (futex < 0) {

@@ -21,6 +21,7 @@
 #include <thread>
 #include <linux/futex.h>
 #include "dfx/log/ffrt_log_api.h"
+#include "util/name_manager.h"
 namespace ffrt {
 DelayedWorker::DelayedWorker() : futex(0)
 {
@@ -31,7 +32,7 @@ DelayedWorker::DelayedWorker() : futex(0)
         FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
     }
     std::thread t([this]() {
-        prctl(PR_SET_NAME, "delayed_worker");
+        prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         for (;;) {
             lock.lock();
             if (futex < 0) {

@@ -24,6 +24,7 @@
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
+#include "util/name_manager.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "queue/queue.h"
@@ -47,7 +48,7 @@ void CPUMonitor::HandleBlocked(const QoS& qos)
 
 void MonitorMain(CPUMonitor* monitor)
 {
-    (void)pthread_setname_np(pthread_self(), "ffrt_moniotor");
+    (void)pthread_setname_np(pthread_self(), CPU_MONITOR_NAME);
     int ret = prctl(PR_WGCM_CTL, WGCM_CTL_SERVER_REG, 0, 0, 0);
     if (ret) {
         FFRT_LOGE("[SERVER] wgcm register server failed ret is %{public}d", ret);

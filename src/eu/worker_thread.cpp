@@ -20,6 +20,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "eu/qos_interface.h"
 #include "qos.h"
+#include "util/name_manager.h"
 namespace ffrt {
 void WorkerThread::NativeConfig()
 {
@@ -30,8 +31,10 @@ void WorkerThread::NativeConfig()
 void WorkerThread::WorkerSetup(WorkerThread* wthread)
 {
     static int threadIndex[QoS::Max()] = {0};
-    std::string threadName = "ffrtwk/CPU-" + (std::to_string(qos()))+ "-" + std::to_string(threadIndex[qos()]++);
-    if (std::to_string(qos()) == "") {
+    std::string qosStr = std::to_string(qos());
+    std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
+        std::string(WORKER_THREAD_SYMBOL) + std::to_string(threadIndex[qos()]++);
+    if (qosStr == "") {
         FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
     }
     pthread_setname_np(wthread->GetThread().native_handle(), threadName.c_str());

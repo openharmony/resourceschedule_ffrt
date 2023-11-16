@@ -158,7 +158,7 @@ ohos_shared_library("libffrt") {
     "system",
     "updater",
   ]
-  relative_install_dir = "chipset-sdk"
+  innerapi_tags = [ "chipsetsdk" ]
 }
 
 ohos_shared_library("ffrt_ndk") {

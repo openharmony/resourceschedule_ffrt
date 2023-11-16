@@ -14,19 +14,21 @@
  */
 
 #include "io_poller.h"
+#include <cassert>
 #include "core/task_ctx.h"
 #include "sched/execute_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
 #include "internal_inc/assert.h"
+#include "util/name_manager.h"
 
 namespace ffrt {
 constexpr unsigned int DEFAULT_CPUINDEX_LIMIT = 7;
 struct IOPollerInstance: public IOPoller {
     IOPollerInstance() noexcept: m_runner([&] { RunForever(); })
     {
-        pthread_setname_np(m_runner.native_handle(), "ffrt_io");
+        pthread_setname_np(m_runner.native_handle(), IO_POLLER_NAME);
     }
 
     void RunForever() noexcept

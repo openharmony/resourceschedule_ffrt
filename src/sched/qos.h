@@ -21,6 +21,19 @@
 constexpr unsigned char NR_QOS = 6;
 
 namespace ffrt {
+struct QoSMap {
+    QoSMap(int _qos = qos_default)
+    {
+        if (_qos <= qos_inherit) {
+            m_qos = qos_inherit;
+        } else if (_qos >= qos_background && _qos <= qos_max) {
+            m_qos = _qos;
+        } else {
+            m_qos = qos_default;
+        }
+    }
+    int m_qos;
+};
 class QoS {
 public:
     QoS(int qos = qos_default)
@@ -31,6 +44,11 @@ public:
             qos = qos_max;
         }
         qos_ = qos;
+    }
+
+    QoS(const QoSMap& qosattr)
+    {
+        qos_ = qosattr.m_qos;
     }
 
     QoS(const QoS& qos) : qos_(qos())

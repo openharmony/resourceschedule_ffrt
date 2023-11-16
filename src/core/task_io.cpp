@@ -183,7 +183,7 @@ ffrt_task_handle_t ffrt_submit_h_coroutine(void* co, ffrt_coroutine_ptr_t exec, 
     }
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
-    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
+    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_map));
     ffrt::ffrt_executor_io_task* task = prepare_task(f, qos, true);
     ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
     return task;
@@ -201,7 +201,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     }
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
-    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
+    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_map));
     ffrt::ffrt_executor_io_task* task = prepare_task(f, qos, false);
     ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
 }

@@ -151,7 +151,7 @@ public:
             handle = static_cast<ffrt_task_handle_t>(task);
             outsNoDup.push_back(handle); // handle作为任务的输出signature
         }
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_map.m_qos));
         task->SetQos(qos);
         task->InitRelatedIntervals(parent);
         /* The parent's number of subtasks to be completed increases by one,
@@ -205,7 +205,7 @@ public:
 #ifdef FFRT_BBOX_ENABLE
         TaskSubmitCounterInc();
 #endif
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_map.m_qos));
 
         LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
         FFRTScheduler* sch = FFRTScheduler::Instance();

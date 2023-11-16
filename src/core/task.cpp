@@ -142,8 +142,7 @@ void ffrt_task_attr_set_qos(ffrt_task_attr_t *attr, ffrt_qos_t qos)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    ffrt::QoS _qos = ffrt::QoS(qos);
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_ = _qos();
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_map = ffrt::QoSMap(qos);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -154,7 +153,7 @@ ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t *attr)
         return static_cast<int>(ffrt_qos_default);
     }
     ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
-    return static_cast<ffrt_qos_t>((reinterpret_cast<ffrt::task_attr_private *>(p))->qos_);
+    return (reinterpret_cast<ffrt::task_attr_private *>(p))->qos_map.m_qos;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -289,7 +288,7 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
         FFRT_LOGE("attr should not be empty");
         return -1;
     }
-    ffrt::QoS _qos = ffrt::QoS(qos);
+    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
     return ffrt::OSAttrManager::Instance()->UpdateSchedAttr(_qos, attr);
 }
 
@@ -309,7 +308,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_this_task_update_qos(ffrt_qos_t qos)
 {
-    ffrt::QoS _qos = ffrt::QoS(qos);
+    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
         FFRT_LOGW("task is nullptr");

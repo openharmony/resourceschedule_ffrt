@@ -17,23 +17,24 @@
 #include <string>
 #include "c/type_def.h"
 #include "cpp/task.h"
+#include "qos.h"
 
 namespace ffrt {
 class task_attr_private {
 public:
     task_attr_private()
-        : qos_(static_cast<int>(qos_default))
+        : qos_map(static_cast<int>(qos_default))
     {
     }
 
     explicit task_attr_private(const task_attr attr)
-        : qos_(attr.qos()),
+        : qos_map(attr.qos()),
           name_(attr.name()),
           delay_(attr.delay())
     {
     }
 
-    int qos_;
+    QoSMap qos_map;
     std::string name_;
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;

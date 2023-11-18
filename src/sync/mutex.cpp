@@ -75,6 +75,119 @@ lock_out:
     return;
 }
 
+bool RecursiveMutexPrivate::try_lock()
+{
+    auto ctx = ExcuteCtx::Cur();
+    auto task = ctx->task;
+    if ((!USE_COROUTINE) || (task == nullptr)) {
+        fMutex.lock();
+        if (taskLockNums.first == UINT64_MAX) {
+            fMutex.unlock();
+            mt.lock();
+            fMutex.lock();
+            taskLockNums = std::make_pair(GetTid(), 1);
+            fMutex.unlock();
+            return true;
+        }
+        
+        fMutex.unlock();
+        return false;
+    }
+    
+    fMutex.lock();
+    if (taskLockNums.first == UINT64_MAX) {
+        fMutex.unlock();
+        mt.lock();
+        fMutex.lock();
+        taskLockNums = std::make_pair(task->gid | 0x8000000000000000, 1);
+        fMutex.unlock();
+        return true;
+    }
+    
+    if (taskLockNums.first == (task->gid | 0x8000000000000000)) {
+        taskLockNums.second += 1;
+        fMutex.unlock();
+        return true;
+    }
+    
+    fMutex.unlock();
+    return false;
+}
+
+void RecursiveMutexPrivate::lock()
+{
+    auto ctx = ExecuteCtx::Cur();
+    auto task = ctx->task;
+    if ((!USE_COROUTINE) || (task == nullptr)) {
+        fMutex.lock();
+        if (taskLockNums.first != GetTid()) {
+            fMutex.unlock();
+            mt.lock();
+            fMutex.lock();
+            taskLockNums = std::make_pair(GetTid(), 1);
+            fMutex.unlock();
+            return;
+        }
+        
+        taskLockNums.second += 1;
+        fMutex.unlock();
+        return;
+    }
+    
+    fMutex.lock();
+    if (taskLockNums.first != (task->gid | 0x8000000000000000)) {
+        fMutex.unlock();
+        mt.lock();
+        fMutex.lock();
+        taskLockNums = std::make_pair(task->gid | 0x8000000000000000, 1);
+        fMutex.unlock();
+        return;
+    }
+    
+    taskLockNums.second += 1;
+    fMutex.unlock();
+}
+
+void RecursiveMutexPrivate::unlock()
+{
+    auto ctx = ExecuteCtx::Cur();
+    auto task = ctx->task;
+    if ((!USE_COROUTINE) || (task == nullptr)) {
+        fMutex.lock();
+        if (taskLockNums.first != GetTid()) {
+            fMutex.unlock();
+            return;
+        }
+        
+        if (taskLockNums.second == 1) {
+            taskLocknums = std::make_pair(UINT64_MAX, 0);
+            fMutex.unlock();
+            mt.unlock();
+            return;
+        }
+        
+        taskLockNums.secons -= 1;
+        fMutex.unlock();
+        return;
+    }
+    
+    fMutex.lock();
+    if (taskLockNums.first != (task->gid | 0x8000000000000000)) {
+        fMutex.unlock();
+        return;
+    }
+    
+    if (taskLockNums.second == 1) {
+        taskLockNums = std::make_pair(UINT64_MAX, 0);
+        fMutex.unlock();
+        mt.lock();
+        return;
+    }
+    
+    taskLockNums.second -= 1;
+    fMutex.unlock();
+}
+
 void mutexPrivate::unlock()
 {
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
@@ -164,6 +277,25 @@ int ffrt_mutex_init(ffrt_mutex_t *mutex, const ffrt_mutexattr_t* attr)
     return ffrt_success;
 }
 
+API_ATTRIBUTE(visibility("default"))
+int ffrt_recursive_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
+{
+    if (!mutex) {
+        FFRT_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    
+    if (attr != nullptr) {
+        FFRT_LOGE("only support normal mutex");
+        return ffrt_error;
+    }
+    
+    static_assert(sizeof(ffrt::RecursiveMutexPrivate) <= ffrt_mutex_storage_size, "size must be less than ffrt_mutex_storage_size");
+    
+    new (mutex)ffrt::RecursiveMutexPrivate();
+    return ffrt_success;
+}
+
 API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_lock(ffrt_mutex_t* mutex)
 {
@@ -172,6 +304,19 @@ int ffrt_mutex_lock(ffrt_mutex_t* mutex)
         return ffrt_error_inval;
     }
     auto p = (ffrt::mutexPrivate*)mutex;
+    p->lock();
+    return ffrt_success;
+}
+
+API_ATTRIBUTE(visibility(""default))
+int ffrt_recursive_mutex_lock(ffrt_mutex_t* mutex)
+{
+    if (!mutex) {
+        FFRT_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    
+    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
     p->lock();
     return ffrt_success;
 }
@@ -188,6 +333,20 @@ int ffrt_mutex_unlock(ffrt_mutex_t* mutex)
     return ffrt_success;
 }
 
+API_ATTRIBUTE(visibility("default"))
+int ffrt_recursive_mutex_unlock(ffrt_mutex_t* mutex)
+{
+    if (!mutex) {
+        FFRT_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    
+    auto p = reinterpret_cast<ffrt::RecursiveMutexprivate*>(mutex);
+    p->unlock();
+    return ffrt_success;
+}
+}
+
 API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_trylock(ffrt_mutex_t* mutex)
 {
@@ -196,6 +355,18 @@ int ffrt_mutex_trylock(ffrt_mutex_t* mutex)
         return ffrt_error_inval;
     }
     auto p = (ffrt::mutexPrivate*)mutex;
+    return p->try_lock() ? ffrt_success : ffrt_error_busy;
+}
+
+API_ATTRIBUTE(visibility("default"))
+int ffrt_recursive_mutex_trylock(ffrt_mutex_t* mutex)
+{
+    if (!mutex) {
+        FFRT_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    
+    auto p = reinterpret_cast<ffrt::RecursiveMutexprivate*>(mutex);
     return p->try_lock() ? ffrt_success : ffrt_error_busy;
 }
 
@@ -210,6 +381,20 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex)
     p->~mutexPrivate();
     return ffrt_success;
 }
+
+API_ATTRIBUTE(visibility("default"))
+int ffrt_recursive_mutex_destroy(ffrt_mutex_t* mutex)
+{
+    if (!mutex) {
+        FFRT_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    
+    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
+    p->~RecursiveMutexPrivate();
+    return ffrt_success;
+}
+
 #ifdef __cplusplus
 }
 #endif

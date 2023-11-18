@@ -134,9 +134,9 @@ public:
     RecursiveMutexPrivate() = default;
     ~RecursiveMutexPrivate() = default;
     RecursiveMutexPrivate(RecursiveMutexPrivate const&) = delete;
-    void operator = (RecursivemutexPrivate const&) = delete;
+    void operator = (RecursiveMutexPrivate const&) = delete;
     
-privete:
+private:
     std::pair<uint64_t, uint32_t> taskLockNums = std::make_pair(UINT64_MAX, 0);
     fast_mutex fMutex;
     mutexPrivate mt;

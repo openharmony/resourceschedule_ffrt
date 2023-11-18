@@ -125,7 +125,7 @@ public:
     void unlock();
 };
 
-class RecursiveMutexprivate {
+class RecursiveMutexPrivate {
 public:
     void lock();
     void unlock();
@@ -133,7 +133,7 @@ public:
     
     RecursiveMutexPrivate() = default;
     ~RecursiveMutexPrivate() = default;
-    RecursiveMutexPriovate(RecursiveMutexPrivate const&) = delete;
+    RecursiveMutexPrivate(RecursiveMutexPrivate const&) = delete;
     void operator = (RecursivemutexPrivate const&) = delete;
     
 privete:

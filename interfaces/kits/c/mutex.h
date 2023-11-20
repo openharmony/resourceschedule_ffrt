@@ -93,7 +93,6 @@ FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
  * @version 1.0
  */
 FFRT_C_API int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
-#endif
 
 /**
  * @param mutex Indicates a pointer to the mutex
@@ -145,3 +144,4 @@ FFRT_C_API int ffrt_recursive_mutex_trylock(ffrt_mutex_t* mutex);
  * @version 1.0
  */
 FFRT_C_API int ffrt_recursive_mutex_destroy(ffrt_mutex_t* mutex);
+#endif

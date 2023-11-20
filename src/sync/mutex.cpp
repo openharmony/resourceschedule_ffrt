@@ -346,7 +346,6 @@ int ffrt_recursive_mutex_unlock(ffrt_mutex_t* mutex)
     p->unlock();
     return ffrt_success;
 }
-}
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_trylock(ffrt_mutex_t* mutex)

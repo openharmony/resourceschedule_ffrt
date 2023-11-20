@@ -93,4 +93,55 @@ FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
  * @version 1.0
  */
 FFRT_C_API int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
+
+/**
+ * @param mutex Indicates a pointer to the mutex
+ * @param attr Indicates a pointer to the mutex attribute
+ * @return Returns <b>ffrt_thrd_success</b> if the mutex is initialized
+ *  return <b>ffrt_thrd_error</b>otherwise
+ *  @since 10
+ *  @version 1.0
+ */
+FFRT_C_API int ffrt_recursive_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr);
+ 
+/**
+ * @brief Locks a recursive mutex
+ * @param mutex Indicates a pointer to the mutex
+ * @return Returns <b>ffrt_thrd_success</b> if the mutex is locked
+ *         returns <b>ffrt_thrd_error</b> or blocks the calling thread otherwise.
+ * @since 10
+ * @version 1.0
+ */
+
+FFRT_C_API int ffrt_recursive_mutex_lock(ffrt_mutex_t* mutex);
+
+/**
+ * @brief Unlocks a recursive mutex.
+ * @param mutex Indicates a pointer to the mutex.
+ * @return Returns <b>ffrt_thrd_success</b> if the mutex is unlocked.
+ *         returns <b>ffrt_thrd_error</b>otherwise.
+ * @since 10
+ * @version 1.0
+ */
+FFRT_C_API int ffrt_recursive_mutex_unlock(ffrt_mutex_t* mutex);
+
+/**
+ * @brief Attempts to lock a recursive mutex.
+ * @param mutex Indicates a pointer to the mutex.
+ * @return Returns <b>ffrt_thrd_success</b> if the mutex is locked.
+ *         returns <b>ffrt_thrd_error</b> or <b>ffrt_thrd_busy</b> otherwise.
+ * @since 10
+ * @version 1.0
+ */
+FFRT_C_API int ffrt_recursive_mutex_trylock(ffrt_mutex_t* mutex);
+
+/**
+ * @brief Destroy a recursive mutex.
+ * @param mutex Indicates a pointer to the mutex.
+ * @return Returns <b>ffrt_thrd_success</b> if the mutex is destroyed.
+ *         returns <b>ffrt_thrd_error</b>otherwise.
+ * @since 10
+ * @version 1.0
+ */
+FFRT_C_API int ffrt_recursive_mutex_destroy(ffrt_mutex_t* mutex);
 #endif

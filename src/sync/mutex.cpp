@@ -77,7 +77,7 @@ lock_out:
 
 bool RecursiveMutexPrivate::try_lock()
 {
-    auto ctx = ExcuteCtx::Cur();
+    auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
     if ((!USE_COROUTINE) || (task == nullptr)) {
         fMutex.lock();
@@ -160,13 +160,13 @@ void RecursiveMutexPrivate::unlock()
         }
         
         if (taskLockNums.second == 1) {
-            taskLocknums = std::make_pair(UINT64_MAX, 0);
+            taskLockNums = std::make_pair(UINT64_MAX, 0);
             fMutex.unlock();
             mt.unlock();
             return;
         }
         
-        taskLockNums.secons -= 1;
+        taskLockNums.second -= 1;
         fMutex.unlock();
         return;
     }
@@ -277,7 +277,7 @@ int ffrt_mutex_init(ffrt_mutex_t *mutex, const ffrt_mutexattr_t* attr)
     return ffrt_success;
 }
 
-API_ATTRIBUTE(visibility("default"))
+API_ATTRIBUTE((visibility("default")))
 int ffrt_recursive_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
 {
     if (!mutex) {
@@ -290,7 +290,8 @@ int ffrt_recursive_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
         return ffrt_error;
     }
     
-    static_assert(sizeof(ffrt::RecursiveMutexPrivate) <= ffrt_mutex_storage_size, "size must be less than ffrt_mutex_storage_size");
+    static_assert(sizeof(ffrt::RecursiveMutexPrivate) <= ffrt_mutex_storage_size,
+        "size must be less than ffrt_mutex_storage_size");
     
     new (mutex)ffrt::RecursiveMutexPrivate();
     return ffrt_success;
@@ -308,7 +309,7 @@ int ffrt_mutex_lock(ffrt_mutex_t* mutex)
     return ffrt_success;
 }
 
-API_ATTRIBUTE(visibility(""default))
+API_ATTRIBUTE((visibility("default")))
 int ffrt_recursive_mutex_lock(ffrt_mutex_t* mutex)
 {
     if (!mutex) {
@@ -333,7 +334,7 @@ int ffrt_mutex_unlock(ffrt_mutex_t* mutex)
     return ffrt_success;
 }
 
-API_ATTRIBUTE(visibility("default"))
+API_ATTRIBUTE((visibility("default")))
 int ffrt_recursive_mutex_unlock(ffrt_mutex_t* mutex)
 {
     if (!mutex) {
@@ -341,7 +342,7 @@ int ffrt_recursive_mutex_unlock(ffrt_mutex_t* mutex)
         return ffrt_error_inval;
     }
     
-    auto p = reinterpret_cast<ffrt::RecursiveMutexprivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
     p->unlock();
     return ffrt_success;
 }
@@ -358,7 +359,7 @@ int ffrt_mutex_trylock(ffrt_mutex_t* mutex)
     return p->try_lock() ? ffrt_success : ffrt_error_busy;
 }
 
-API_ATTRIBUTE(visibility("default"))
+API_ATTRIBUTE((visibility("default")))
 int ffrt_recursive_mutex_trylock(ffrt_mutex_t* mutex)
 {
     if (!mutex) {
@@ -366,7 +367,7 @@ int ffrt_recursive_mutex_trylock(ffrt_mutex_t* mutex)
         return ffrt_error_inval;
     }
     
-    auto p = reinterpret_cast<ffrt::RecursiveMutexprivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
     return p->try_lock() ? ffrt_success : ffrt_error_busy;
 }
 
@@ -382,7 +383,7 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex)
     return ffrt_success;
 }
 
-API_ATTRIBUTE(visibility("default"))
+API_ATTRIBUTE((visibility("default")))
 int ffrt_recursive_mutex_destroy(ffrt_mutex_t* mutex)
 {
     if (!mutex) {

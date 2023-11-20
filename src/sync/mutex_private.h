@@ -141,7 +141,6 @@ private:
     fast_mutex fMutex;
     mutexPrivate mt;
 };
-
 } // namespace ffrt
 
 #endif

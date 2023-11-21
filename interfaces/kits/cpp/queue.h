@@ -24,8 +24,8 @@
 #ifndef FFRT_API_CPP_QUEUE_H
 #define FFRT_API_CPP_QUEUE_H
 
-#include "c/queue.h"
-#include "cpp/task.h"
+#include "../c/queue.h"
+#include "task.h"
 
 namespace ffrt {
 class queue_attr : public ffrt_queue_attr_t {

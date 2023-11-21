@@ -24,7 +24,7 @@
 #ifndef FFRT_API_CPP_SLEEP_H
 #define FFRT_API_CPP_SLEEP_H
 #include <chrono>
-#include "c/sleep.h"
+#include "../c/sleep.h"
 
 namespace ffrt {
 namespace this_task {

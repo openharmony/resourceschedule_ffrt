@@ -23,7 +23,7 @@
  */
 #ifndef FFRT_API_CPP_MUTEX_H
 #define FFRT_API_CPP_MUTEX_H
-#include "c/mutex.h"
+#include "../c/mutex.h"
 
 namespace ffrt {
 class mutex : public ffrt_mutex_t {

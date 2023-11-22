@@ -22,14 +22,9 @@ if (ffrt_io_task_scheuduler) {
 config("ffrt_config") {
   visibility = [ ":*" ]
   include_dirs = [
-    "src",
+    "interfaces",
     "interfaces/kits",
     "interfaces/inner_api",
-    "src/dfx/log",
-    "//third_party/jsoncpp/include",
-    "//foundation/resourceschedule/frame_aware_sched/common/include/",
-    "//third_party/libunwind/include",
-    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter/",
   ]
 
   ffrt_defaults_cflags = [
@@ -78,8 +73,19 @@ config("ffrt_config") {
   #defines += ffrt_release_defines
 }
 
+config("ffrt_inner_config") {
+  include_dirs = [
+    "src",
+    "src/dfx/log",
+    "//third_party/jsoncpp/include",
+    "//foundation/resourceschedule/frame_aware_sched/common/include/",
+    "//third_party/libunwind/include",
+  ]
+}
+
 ohos_shared_library("libffrt") {
   public_configs = [ ":ffrt_config" ]
+  configs = [ ":ffrt_inner_config" ]
 
   sources = [
     "src/core/entity.cpp",
@@ -166,7 +172,10 @@ ohos_shared_library("libffrt") {
 
 ohos_shared_library("ffrt_ndk") {
   output_name = "ffrt"
-  configs = [ ":ffrt_config" ]
+  configs = [
+    ":ffrt_config",
+    ":ffrt_inner_config",
+  ]
 
   sources = [
     "src/core/entity.cpp",

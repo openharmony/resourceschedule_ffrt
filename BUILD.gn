@@ -78,7 +78,6 @@ config("ffrt_inner_config") {
     "src",
     "src/dfx/log",
     "//third_party/jsoncpp/include",
-    "//foundation/resourceschedule/frame_aware_sched/common/include/",
     "//third_party/libunwind/include",
   ]
 }
@@ -146,7 +145,6 @@ ohos_shared_library("libffrt") {
   external_deps = [
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
-    "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
@@ -236,7 +234,6 @@ ohos_shared_library("ffrt_ndk") {
   external_deps = [
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
-    "frame_aware_sched:rtg_interface",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",

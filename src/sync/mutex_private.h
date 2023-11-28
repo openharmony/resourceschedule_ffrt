@@ -124,6 +124,23 @@ public:
     void lock();
     void unlock();
 };
+
+class RecursiveMutexPrivate {
+public:
+    void lock();
+    void unlock();
+    bool try_lock();
+    
+    RecursiveMutexPrivate() = default;
+    ~RecursiveMutexPrivate() = default;
+    RecursiveMutexPrivate(RecursiveMutexPrivate const&) = delete;
+    void operator = (RecursiveMutexPrivate const&) = delete;
+    
+private:
+    std::pair<uint64_t, uint32_t> taskLockNums = std::make_pair(UINT64_MAX, 0);
+    fast_mutex fMutex;
+    mutexPrivate mt;
+};
 } // namespace ffrt
 
 #endif

@@ -24,7 +24,7 @@
 #ifndef FFRT_INNER_API_CPP_TASK_H
 #define FFRT_INNER_API_CPP_TASK_H
 #include "../c/task.h"
-#include "../kits/cpp/task.h"
+#include "../../kits/cpp/task.h"
 
 namespace ffrt {
 /**

@@ -16,7 +16,7 @@
 #define FFRT_API_CPP_DEADLINE_H
 #include <stdint.h>
 #include "../c/type_def.h"
-#include "../kits/c/type_def.h"
+#include "../../kits/c/type_def.h"
 #include "../c/deadline.h"
 
 namespace ffrt {

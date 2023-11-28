@@ -22,16 +22,9 @@ if (ffrt_io_task_scheuduler) {
 config("ffrt_config") {
   visibility = [ ":*" ]
   include_dirs = [
-    "src",
+    "interfaces",
     "interfaces/kits",
     "interfaces/inner_api",
-    "src/dfx/log",
-    "src/dfx/trace/hmos",
-    "src/sched",
-    "//third_party/jsoncpp/include",
-    "//foundation/resourceschedule/frame_aware_sched/common/include/",
-    "//third_party/libunwind/include",
-    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter/",
   ]
 
   ffrt_defaults_cflags = [
@@ -64,7 +57,6 @@ config("ffrt_config") {
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_OH_TASK_STAT_ENABLE",
     "FFRT_TRACE_LEVEL=1",
-    "FFRT_PARSE_XML_USE_STUB",
   ]
 
   #ffrt_release_defines = [
@@ -81,8 +73,20 @@ config("ffrt_config") {
   #defines += ffrt_release_defines
 }
 
+config("ffrt_inner_config") {
+  include_dirs = [
+    "src",
+    "src/dfx/log",
+    "src/dfx/trace/hmos",
+    "src/sched",
+    "//third_party/jsoncpp/include",
+    "//third_party/libunwind/include",
+  ]
+}
+
 ohos_shared_library("libffrt") {
   public_configs = [ ":ffrt_config" ]
+  configs = [ ":ffrt_inner_config" ]
 
   sources = [
     "src/core/entity.cpp",
@@ -158,12 +162,18 @@ ohos_shared_library("libffrt") {
     "system",
     "updater",
   ]
-  innerapi_tags = [ "chipsetsdk" ]
+  innerapi_tags = [
+    "chipsetsdk",
+    "sasdk",
+  ]
 }
 
 ohos_shared_library("ffrt_ndk") {
   output_name = "ffrt"
-  configs = [ ":ffrt_config" ]
+  configs = [
+    ":ffrt_config",
+    ":ffrt_inner_config",
+  ]
 
   sources = [
     "src/core/entity.cpp",

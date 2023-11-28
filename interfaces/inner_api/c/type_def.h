@@ -24,7 +24,7 @@
 #ifndef FFRT_INNER_API_C_TYPE_DEF_H
 #define FFRT_INNER_API_C_TYPE_DEF_H
 #include <stdint.h>
-#include "../kits/c/type_def.h"
+#include "../../kits/c/type_def.h"
 
 #ifdef __cplusplus
 #define FFRT_C_API  extern "C"

@@ -22,6 +22,13 @@ module_output_path = "ffrttest/"
 gtest_public_deps = [ "//third_party/googletest:gtest_main" ]
 
 config("ffrt_test_config") {
+  include_dirs = [
+    "../../src",
+    "../../src/dfx/log",
+    "../../src/dfx/trace/hmos",
+    "../../src/sched",
+  ]
+
   cflags = [
     "-fno-rtti",
     "-Wno-unused-variable",
@@ -54,6 +61,8 @@ config("ffrt_test_config") {
 ohos_unittest("frame_interval_test") {
   module_out_path = module_output_path
 
+  configs = [ ":ffrt_test_config" ]
+
   cflags_cc = [
     "-frtti",
     "-Xclang",
@@ -71,7 +80,9 @@ ohos_unittest("frame_interval_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -107,7 +118,9 @@ ohos_unittest("deadline_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -143,7 +156,9 @@ ohos_unittest("task_ctx_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -179,7 +194,9 @@ ohos_unittest("cpu_monitor_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -215,7 +232,9 @@ ohos_unittest("cpuworker_manager_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -251,7 +270,9 @@ ohos_unittest("execute_unit_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -287,7 +308,9 @@ ohos_unittest("worker_thread_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -322,7 +345,9 @@ ohos_unittest("qos_convert_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
@@ -358,7 +383,9 @@ ohos_unittest("ut_coroutine_test") {
   external_deps = [
     "c_utils:utils",
     "eventhandler:libeventhandler",
+    "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "hitrace:hitrace_meter",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",

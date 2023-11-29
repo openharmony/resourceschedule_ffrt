@@ -48,7 +48,7 @@ int SerialHandler::SubmitDelayed(ITask* task, uint64_t delayUs)
     FFRT_COND_DO_ERR((looper_ == nullptr || looper_->GetQueueIns() == nullptr), return -1, "queue is nullptr");
     FFRT_LOGD("submit serial task gid=%llu with delay [%llu us], qid=%u", task->gid, delayUs, looper_->GetQueueId());
     auto nowUs = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
-    FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(looper_->GetQueueId,, task->gid);
+    FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(looper_->GetQueueId, task->gid);
     uint64_t upTime = static_cast<uint64_t>(nowUs.time_since_epoch().count());
     if (delayUs > 0) {
         upTime = upTime + delayUs;

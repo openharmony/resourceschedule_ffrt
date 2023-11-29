@@ -37,7 +37,9 @@ void CPUWorker::Run(TaskCtx* task)
         auto exp = ffrt::SkipStatus::SUBMITTED;
         if (likely(__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
             __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
+            FFRT_TASK_BEGIN(task->label, task->gid);
             f->exec(f);
+            FFRT_TASK_END();
         }
         f->destroy(f);
         task->UpdateState(ffrt::TaskState::EXITED);
@@ -50,6 +52,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
     TaskRunCounterInc();
 #endif
     ffrt_executor_task_func func = nullptr;
+    ffrt_executor_task_type_t type = static_cast<ffrt_executor_task_type_t>(task->type);
     if (task->type == ffrt_io_task) {
         func = FuncManager::Instance()->getFunc(ffrt_io_task);
     } else {
@@ -59,7 +62,12 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
         FFRT_LOGE("func is nullptr");
         return;
     }
+    FFRT_EXECUTOR_TASK_BEGIN(task);
     func(task, qos);
+    FFRT_EXECUTOR_TASK_END();
+    if (type != ffrt_io_task) {
+        FFRT_EXECUTOR_TASK_FINISH_MARKER(task); // task finish marker for uv task
+    }
 #ifdef FFRT_BBOX_ENABLE
     TaskFinishCounterInc();
 #endif

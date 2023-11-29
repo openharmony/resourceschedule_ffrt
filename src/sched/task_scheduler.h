@@ -50,6 +50,7 @@ public:
     {
         bool ret = false;
         {
+            FFRT_EXECUTOR_TASK_READY_MARKER(reinterpret_cast<char*>(node) - offsetof(ffrt_executor_task_t, wq));
             ret = static_cast<Sched*>(this)->WakeupNodeImpl(node);
         }
         return ret;

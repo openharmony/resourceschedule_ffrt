@@ -76,9 +76,11 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qo
     ffrt_coroutine_ptr_t coroutine = (ffrt_coroutine_ptr_t)f->exec;
     ffrt_coroutine_ret_t ret = coroutine(f);
     if (ret == ffrt_coroutine_ready) {
+        FFRT_EXECUTOR_TASK_FINISH_MARKER(task);
         exec_wake_callable(task);
         return;
     }
+    FFRT_EXECUTOR_TASK_BLOCK_MARKER(task);
     ExecTaskStatus executing_status = ExecTaskStatus::ET_EXECUTING;
     ExecTaskStatus toready_status = ExecTaskStatus::ET_TOREADY;
     std::lock_guard lg(task->lock);

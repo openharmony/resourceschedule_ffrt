@@ -39,9 +39,6 @@ namespace ffrt {
 struct TaskCtx;
 struct VersionCtx;
 
-/*
-TaskCtx 必须是数据结构ffrt_executor_task_t的子类
-*/
 struct TaskCtx : public TaskDeleter {
     TaskCtx(const task_attr_private* attr,
         TaskCtx* parent, const uint64_t& id, const char *identity = nullptr, const QoS& qos = QoS());
@@ -58,20 +55,11 @@ struct TaskCtx : public TaskDeleter {
     std::vector<TaskCtx*> in_handles;
     CoRoutine* coRoutine = nullptr;
     std::vector<std::string> traceTag;
-
-#ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
-    xx::mutex lock {"TaskCtx::lock"};
-#else
     std::mutex lock; // used in coroute
-#endif
     uint64_t myRefCnt = 0;
 
     TaskState state;
-#ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
-    xx::mutex denpenceStatusLock {"TaskCtx::denpenceStatusLock"};
-#else
     std::mutex denpenceStatusLock;
-#endif
     uint64_t pmuCntBegin = 0;
     uint64_t pmuCnt = 0;
     Denpence denpenceStatus {Denpence::DEPENCE_INIT};
@@ -97,9 +85,9 @@ struct TaskCtx : public TaskDeleter {
     int64_t ddl = INT64_MAX;
 
     QoS qos;
-    void SetQos(QoS& qos);
+    void SetQos(QoS& newQos);
 
-    inline void freeMem() override
+    void freeMem() override
     {
         BboxCheckAndFreeze();
         SimpleAllocator<TaskCtx>::freeMem(this);
@@ -149,9 +137,9 @@ struct TaskCtx : public TaskDeleter {
         return TaskState::OnTransition(taskState, this, std::move(op));
     }
 
-    void SetTraceTag(const std::string& name)
+    void SetTraceTag(const char* name)
     {
-        traceTag.push_back(name);
+        traceTag.emplace_back(name);
     }
 
     void ClearTraceTag()
@@ -166,12 +154,14 @@ struct TaskCtx : public TaskDeleter {
 #endif
 };
 
+// APP线程提交任务没有执行完，但线程已退出，该任务依赖的父任务为根任务已经释放
 class RootTaskCtx : public TaskCtx {
 public:
     RootTaskCtx(const task_attr_private* attr, TaskCtx* parent, const uint64_t& id,
         const char *identity = nullptr, const QoS& qos = QoS()) : TaskCtx(attr, parent, id, identity, qos)
     {
     }
+    // static inline void OnChildRefCntZero(RootTaskCtx root) {    }
 public:
     bool thread_exit = false;
 };
@@ -180,17 +170,25 @@ class RootTaskCtxWrapper {
 public:
     RootTaskCtxWrapper()
     {
+        // Within an ffrt process, different threads may have different QoS interval
         task_attr_private task_attr;
         root = new RootTaskCtx {&task_attr, nullptr, 0, nullptr};
     }
     ~RootTaskCtxWrapper()
     {
-        std::unique_lock<decltype(root->lock) > lck(root->lock);
+        // if the son of root task is empty,
+        // then, only this thread holds the root task, and it is time to free it when this thread exits
+        // else, set the hold thread exit flag, and the task scheduler should free the root task when is son is zero
+
+        // because the root task was accessed in works and this thread, so task mutex should be used.
+        std::unique_lock<decltype(root->lock)> lck(root->lock);
         if (root->childWaitRefCnt == 0) {
+            // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
+            // return之前的lck析构不产生UAF问题，因为return之前随着root析构，锁的内存被释放
             lck.unlock();
             delete root;
         } else {
-            root->thread_exit = true ;
+            root->thread_exit = true;
         }
     }
     TaskCtx* Root()

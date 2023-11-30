@@ -15,7 +15,7 @@
 
 #include <vector>
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "common.h"
 
 void FaceStory()

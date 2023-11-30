@@ -14,6 +14,9 @@
  */
 #ifndef FFRT_API_CPP_DEADLINE_H
 #define FFRT_API_CPP_DEADLINE_H
+#include <stdint.h>
+#include "../c/type_def.h"
+#include "../../kits/c/type_def.h"
 #include "../c/deadline.h"
 
 namespace ffrt {
@@ -46,9 +49,9 @@ static inline int qos_interval_begin(interval it)
 /**
     @brief update interval
 */
-static inline int qos_interval_update(interval it, uint64_t deadline_us)
+static inline int qos_interval_update(interval it, uint64_t new_deadline_us)
 {
-    return ffrt_interval_update(it, deadline_us);
+    return ffrt_interval_update(it, new_deadline_us);
 }
 
 /**

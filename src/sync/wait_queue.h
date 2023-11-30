@@ -127,6 +127,7 @@ private:
         we->prev = nullptr;
         return;
     }
+    friend bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue);
 };
 } // namespace ffrt
 #endif // _WAITQUEUE_H_

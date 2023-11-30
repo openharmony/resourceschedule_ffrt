@@ -28,7 +28,6 @@
 #define MAX_FRAME_BUFFER 6
 #define gettid() syscall(SYS_gettid)
 namespace ffrt {
-
 enum WgType {
     TYPE_DEFAULT = 0,
     TYPE_RS = 1,
@@ -70,7 +69,7 @@ inline void WorkgroupStopInterval(struct Workgroup* wg)
 
 inline struct Workgroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
 {
-    struct Workgroup* wg = static_cast<struct Workgroup*>(malloc(sizeof(*wg)));
+    struct Workgroup* wg = new (std::nothrow) struct Workgroup();
     if (wg == nullptr) {
         return nullptr;
     }

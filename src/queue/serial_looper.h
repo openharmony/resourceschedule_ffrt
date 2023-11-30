@@ -34,7 +34,7 @@ class SerialLooper : public NonCopyable {
 public:
     SerialLooper(const char* name, int qos, uint64_t timeout = 0, ffrt_function_header_t* timeoutCb = nullptr);
     ~SerialLooper();
-    
+
     void Quit();
     inline uint32_t GetQueueId() const
     {

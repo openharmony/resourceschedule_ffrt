@@ -60,22 +60,10 @@ struct perf_stat_t {
 #define STALL_FRONTEND 0x23
 #define STALL_BACKEND 0x24
 
-#ifndef _MSC_VER
 unsigned long perf_begin(const char* name, int id);
 void perf_end(int id, unsigned long rd);
 
 void perf_counter_output_all(void);
 void perf_counter_output_single(void);
 void perf_counter_clear(void);
-#else
-static unsigned long perf_begin(const char* name, int id)
-{
-    return 0;
-};
-static void perf_end(int id, unsigned long rd) {};
-
-static void perf_counter_output_all(void) {};
-static void perf_counter_output_single(void) {};
-static void perf_counter_clear(void) {};
-#endif
 #endif

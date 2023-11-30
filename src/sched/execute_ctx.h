@@ -21,10 +21,8 @@
 #include <atomic>
 
 #include "util/linked_list.h"
-#include "internal_inc/osal.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "queue/queue.h"
-#include "c/type_def.h"
 #include "c/executor_task.h"
 #endif
 
@@ -41,6 +39,7 @@ namespace we_status {
 const int INIT = 0;
 const int NOTIFIED = 1;
 const int TIMEOUT = 2;
+const int HANDOVER = 3;
 } // namespace we_status
 
 struct TaskCtx;
@@ -88,7 +87,6 @@ struct ExecuteCtx {
     void** priority_task_ptr;
     struct queue_s* local_fifo;
 #endif
-    
     TaskCtx* task; // 当前正在执行的Task
     WaitUntilEntry wn;
 

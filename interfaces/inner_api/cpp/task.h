@@ -23,11 +23,8 @@
  */
 #ifndef FFRT_INNER_API_CPP_TASK_H
 #define FFRT_INNER_API_CPP_TASK_H
-#include <vector>
-#include <string>
-#include <functional>
-#include <memory>
 #include "../c/task.h"
+#include "../../kits/cpp/task.h"
 
 namespace ffrt {
 /**
@@ -46,7 +43,7 @@ static inline int skip(task_handle &handle)
 
 void sync_io(int fd);
 
-void set_trace_tag(const std::string& name);
+void set_trace_tag(const char* name);
 
 void clear_trace_tag();
 

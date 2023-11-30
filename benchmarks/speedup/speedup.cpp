@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "common.h"
 
 int main()

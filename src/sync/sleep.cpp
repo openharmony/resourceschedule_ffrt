@@ -27,13 +27,11 @@
 #include "internal_inc/osal.h"
 #include "internal_inc/types.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "cpp/sleep.h"
 
 namespace ffrt {
-
 namespace this_task {
-
 TaskCtx* ExecuteCtxTask()
 {
     auto ctx = ExecuteCtx::Cur();
@@ -46,17 +44,11 @@ void sleep_until_impl(const time_point_t& to)
         std::this_thread::sleep_until(to);
         return;
     }
-#ifdef _MSC_VER
-    std::this_thread::sleep_until(to);
-#else
     // be careful about local-var use-after-free here
     std::function<void(WaitEntry*)> cb([](WaitEntry* we) { CoWake(we->task, false); });
     FFRT_BLOCK_TRACER(ExecuteCtxTask()->gid, slp);
     CoWait([&](TaskCtx* inTask) -> bool { return DelayedWakeup(to, &inTask->fq_we, cb); });
-
-#endif
 }
-
 }
 } // namespace ffrt
 

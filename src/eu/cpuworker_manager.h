@@ -22,8 +22,8 @@
 #include "eu/cpu_manager_interface.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
+#include "queue/queue.h"
 #endif
-
 
 namespace ffrt {
 constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000000;

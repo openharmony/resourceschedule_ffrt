@@ -22,6 +22,7 @@
 #include "eu/thread_group.h"
 #include "eu/cpu_monitor.h"
 #include "core/task_ctx.h"
+#include "internal_inc/osal.h"
 
 namespace ffrt {
 class ExecuteUnit {
@@ -38,7 +39,7 @@ public:
 
     void NotifyTaskAdded(const QoS& qos)
     {
-        {
+        if (likely(wManager[static_cast<size_t>(DevType::CPU)])) {
             wManager[static_cast<size_t>(DevType::CPU)]->NotifyTaskAdded(qos);
         }
     }

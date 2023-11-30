@@ -22,7 +22,7 @@
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/worker_thread.h"
-#include "sched/qos.h"
+#include "qos.h"
 #undef private
 #undef protected
 

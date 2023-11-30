@@ -24,7 +24,7 @@
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
 
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "dfx/log/ffrt_log_api.h"
 
 constexpr int RTG_FRAME_START = 1;

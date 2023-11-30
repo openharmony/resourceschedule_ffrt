@@ -22,7 +22,7 @@
 #include "c/ffrt_watchdog.h"
 
 namespace {
-constexpr uint32_t INVAILD_TASK_ID = 0;
+constexpr uint32_t INVALID_TASK_ID = 0;
 constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 constexpr uint64_t QUEUE_INFO_INITIAL_CAPACITY = 64;
 constexpr uint64_t ALLOW_TIME_ACC_ERROR_US = 500;
@@ -47,6 +47,7 @@ QueueMonitor::QueueMonitor()
     }
     timeoutUs_ = timeout;
     SendDelayedWorker(GetDelayedTimeStamp(timeoutUs_));
+    FFRT_LOGD("send delayedworker with %llu us", timeoutUs_);
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
@@ -59,8 +60,9 @@ QueueMonitor& QueueMonitor::GetInstance()
 void QueueMonitor::RegisterQueueId(uint32_t queueId)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    std::unique_lock lock(mutex_);
     if (queueId == QueuesRunningInfo.size()) {
-        QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
+        QueuesRunningInfo.emplace_back(std::make_pair(INVALID_TASK_ID, std::chrono::steady_clock::now()));
         FFRT_LOGD("queue registration in monitor gid=%u in turn succ", queueId);
         return;
     }
@@ -68,7 +70,7 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId)
     // only need to ensure that the corresponding info index has been initialized after constructed.
     if (queueId > QueuesRunningInfo.size()) {
         for (uint32_t i = QueuesRunningInfo.size(); i <= queueId; ++i) {
-            QueuesRunningInfo.emplace_back(std::make_pair(INVAILD_TASK_ID, std::chrono::steady_clock::now()));
+            QueuesRunningInfo.emplace_back(std::make_pair(INVALID_TASK_ID, std::chrono::steady_clock::now()));
         }
     }
     FFRT_LOGD("queue registration in monitor gid=%u by skip succ", queueId);
@@ -79,13 +81,13 @@ void QueueMonitor::ResetQueueInfo(uint32_t queueId)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::shared_lock lock(mutex_);
-    QueuesRunningInfo[queueId].first = INVAILD_TASK_ID;
+    QueuesRunningInfo[queueId].first = INVALID_TASK_ID;
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
 void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
 {
-#ifdef FRRT_CO_BACKTRACE_OH_ENABLE
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::shared_lock lock(mutex_);
     QueuesRunningInfo[queueId] = {taskId, std::chrono::steady_clock::now()};
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
@@ -93,11 +95,11 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
 
 void QueueMonitor::SendDelayedWorker(time_point_t delay)
 {
-#ifdef FRRT_CO_BACKTRACE_OH_ENABLE
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     static WaitUntilEntry we;
     we.tp = delay;
     we.cb = ([this](WaitEntry* we) { CheckQueuesStatus(); });
-    
+
     bool result = DelayedWakeup(we.tp, &we, we.cb);
     // insurance mechanism, generally does not fail
     while (!result) {
@@ -110,12 +112,10 @@ void QueueMonitor::SendDelayedWorker(time_point_t delay)
 
 void QueueMonitor::ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64_t &taskId)
 {
-#ifdef FRRT_CO_BACKTRACE_OH_ENABLE
     std::unique_lock lock(mutex_);
-    if (QueuesRunningInfo[i].first == taskId) {
-        QueuesRunningInfo[i].second += std::chrono::microseconds(timeoutUs_);
+    if (QueuesRunningInfo[queueId].first == taskId) {
+        QueuesRunningInfo[queueId].second += std::chrono::microseconds(timeoutUs_);
     }
-#endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
 void QueueMonitor::CheckQueuesStatus()
@@ -123,42 +123,43 @@ void QueueMonitor::CheckQueuesStatus()
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     time_point_t oldestStartedTime = std::chrono::steady_clock::now();
     time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
-    
+
     uint64_t taskId = 0;
     time_point_t taskTimestamp = oldestStartedTime;
     for (uint32_t i = 0; i < QueuesRunningInfo.size(); ++i) {
         {
             std::unique_lock lock(mutex_);
             taskId = QueuesRunningInfo[i].first;
-            time_point_t taskTimestamp = QueuesRunningInfo[i].second;
+            taskTimestamp = QueuesRunningInfo[i].second;
         }
-        
-        if (taskId == INVAILD_TASK_ID) {
+
+        if (taskId == INVALID_TASK_ID) {
             continue;
         }
-        
+
         if (taskTimestamp < startThreshold) {
             std::stringstream ss;
-            ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i <<
-             ", serial task gid=" << taskId << " execution " << timeoutUs_ << "us.";
+            ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i << ", serial task gid=" << taskId << " execution " <<
+                timeoutUs_ << " us.";
             FFRT_LOGE("%s", ss.str().c_str());
 
             ffrt_watchdog_cb func = ffrt_watchdog_get_cb();
             if (func) {
                 func(taskId, ss.str().c_str(), ss.str().size());
             }
-            // reset timeout task timestampe for next warning
+            // reset timeout task timestamp for next warning
             ResetTaskTimestampAfterWarning(i, taskId);
             continue;
         }
-        
+
         if (taskTimestamp < oldestStartedTime) {
             oldestStartedTime = taskTimestamp;
         }
     }
-    
+
     time_point_t nextCheckTime = oldestStartedTime + std::chrono::microseconds(timeoutUs_);
     SendDelayedWorker(nextCheckTime);
+    FFRT_LOGD("global watchdog completed queue status check and scheduled the next");
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 } // namespace ffrt

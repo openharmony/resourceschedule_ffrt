@@ -23,9 +23,8 @@
 #include "dfx_dump_catcher.h"
 #endif
 
-#include "sched/qos.h"
+#include "qos.h"
 #include "core/task_ctx.h"
-#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 class WorkerThread {
@@ -43,6 +42,7 @@ public:
             OHOS::HiviewDFX::DfxDumpCatcher dumplog;
             std::string msg = "";
             bool result = dumplog.DumpCatch(getpid(), gettid(), msg);
+            FFRT_LOGE("ffrt result[%d] pid[%d] tid[%d]", result, getpid(), gettid());
             if (result) {
                 FFRT_LOGE("ffrt callstack len = %{public}u", msg.length());
                 std::vector<std::string> out;
@@ -87,7 +87,7 @@ public:
         return tid;
     }
 
-    inline const QoS& GetQos() const
+    const QoS& GetQos() const
     {
         return qos;
     }
@@ -114,6 +114,8 @@ public:
     {
         if (thread.joinable()) {
             thread.detach();
+        } else {
+            FFRT_LOGE("qos %d thread not joinable\n", qos());
         }
         tid = -1;
     }

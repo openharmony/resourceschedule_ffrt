@@ -15,7 +15,7 @@
 
 #include <random>
 
-#include "ffrt.h"
+#include "ffrt_inner.h"
 #include "common.h"
 
 static constexpr uint64_t sz = 30; // 该值越大任务平均可并行度越大（平均并发度=sz/9）

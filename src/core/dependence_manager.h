@@ -25,8 +25,8 @@
 #include "core/task_ctx.h"
 #include "core/version_ctx.h"
 #include "sched/execute_ctx.h"
-#include "sched/qos.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "qos.h"
+#include "ffrt_trace.h"
 #include "util/slab.h"
 #include "sched/task_state.h"
 #include "sched/scheduler.h"
@@ -84,6 +84,11 @@ public:
         ExecuteUnit::Instance();
 
         TaskState::RegisterOps(TaskState::EXITED, [this](TaskCtx* task) { return this->onTaskDone(task), true; });
+
+#ifdef FFRT_OH_TRACE_ENABLE
+        StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
+        FinishTrace(HITRACE_TAG_FFRT);
+#endif
     }
     ~DependenceManager()
     {
@@ -146,7 +151,7 @@ public:
             handle = static_cast<ffrt_task_handle_t>(task);
             outsNoDup.push_back(handle); // handle作为任务的输出signature
         }
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_map.m_qos));
         task->SetQos(qos);
         task->InitRelatedIntervals(parent);
         /* The parent's number of subtasks to be completed increases by one,
@@ -201,9 +206,9 @@ public:
 #ifdef FFRT_BBOX_ENABLE
         TaskSubmitCounterInc();
 #endif
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_map.m_qos));
 
-        LinkedList* node = (LinkedList *)(&task->wq);
+        LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
         FFRTScheduler* sch = FFRTScheduler::Instance();
         if (!sch->InsertNode(node, qos)) {
             FFRT_LOGE("Submit UV task failed!");
@@ -389,12 +394,7 @@ public:
             outVersions.push_back({version, type});
         }
     }
-
-#ifdef MUTEX_PERF // Mutex Lock&Unlock Cycles Statistic
-    xx::mutex& criticalMutex_;
-#else
     fast_mutex& criticalMutex_;
-#endif
 };
 } // namespace ffrt
 #endif

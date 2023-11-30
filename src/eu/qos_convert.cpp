@@ -16,16 +16,18 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "eu/qos_interface.h"
 
+constexpr int ERROR_NUM = -1;
+
 namespace ffrt {
 int GetStaticQos(qos &static_qos)
 {
     struct QosCtrlData data;
     int ret = QosGet(data);
-    if (ret < 0 || data.static_qos < 0) {
+    if (ret < 0 || data.staticQos < 0) {
         FFRT_LOGE("get static qos failed");
         return ERROR_NUM;
     }
-    static_qos = static_cast<qos>(data.static_qos);
+    static_qos = static_cast<qos>(data.staticQos);
     return ret;
 }
 
@@ -33,11 +35,11 @@ int GetDynamicQos(qos &dynamic_qos)
 {
     struct QosCtrlData data;
     int ret = QosGet(data);
-    if (ret < 0 || data.dynamic_qos < 0) {
+    if (ret < 0 || data.dynamicQos < 0) {
         FFRT_LOGE("get dynamic qos failed");
         return ERROR_NUM;
     }
-    dynamic_qos = static_cast<qos>(data.dynamic_qos);
+    dynamic_qos = static_cast<qos>(data.dynamicQos);
     return ret;
 }
 }; // namespace ffrt

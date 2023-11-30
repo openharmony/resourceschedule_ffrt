@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef __FFRT_TRACE_H__
-#define __FFRT_TRACE_H__
+#ifndef __FFRT_HMOS_TRACE_H__
+#define __FFRT_HMOS_TRACE_H__
 
 #include <atomic>
 #include <chrono>
@@ -64,11 +64,27 @@ private:
 } // namespace ffrt
 
 #ifdef FFRT_OH_TRACE_ENABLE
-#define FFRT_TRACE_BEGIN(tag) StartTrace(HITRACE_TAG_FFRT, tag, -1)
-#define FFRT_TRACE_END() FinishTrace(HITRACE_TAG_FFRT)
-#define FFRT_TRACE_ASYNC_BEGIN(tag, tid) StartAsyncTrace(HITRACE_TAG_FFRT, tag, tid, -1)
-#define FFRT_TRACE_ASYNC_END(tag, tid) FinishAsyncTrace(HITRACE_TAG_FFRT, tag, tid)
-#define FFRT_TRACE_SCOPE(level, tag) ffrt::ScopedTrace __tracer##tag(level, #tag)
+#define FFRT_TRACE_BEGIN(tag) \
+    do { \
+        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            StartTrace(HITRACE_TAG_FFRT, tag, -1); \
+    } while (false)
+#define FFRT_TRACE_END() \
+    do { \
+        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            FinishTrace(HITRACE_TAG_FFRT); \
+    } while (false)
+#define FFRT_TRACE_ASYNC_BEGIN(tag, tid) \
+    do { \
+        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            StartAsyncTrace(HITRACE_TAG_FFRT, tag, tid, -1); \
+    } while (false)
+#define FFRT_TRACE_ASYNC_END(tag, tid) \
+    do { \
+        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            FinishAsyncTrace(HITRACE_TAG_FFRT, tag, tid); \
+    } while (false)
+#define FFRT_TRACE_SCOPE(level, tag) ffrt::ScopedTrace ___tracer##tag(level, #tag)
 #else
 #define FFRT_TRACE_BEGIN(tag)
 #define FFRT_TRACE_END()

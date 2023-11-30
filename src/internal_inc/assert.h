@@ -13,26 +13,14 @@
  * limitations under the License.
  */
 
-#include "mutex_perf.h"
+#ifndef FFRT_ASSERT_H
+#define FFRT_ASSERT_H
 
-namespace ffrt {
-MutexStatistic::~MutexStatistic()
-{
-    printf("***Mutex Cycles Statistic***\n");
-    for (auto& it : cycles_) {
-        printf("***%s: %u***\n", it.first.c_str(), it.second);
-    }
-}
+#ifdef FFRT_DEBUG
+#include <cassert>
+#define FFRT_ASSERT(f) assert(f)
+#else
+#define FFRT_ASSERT(f) ((void)0)
+#endif
 
-static MutexStatistic gMutexStatistic;
-
-void AddMutexCycles(std::string key, uint32_t val)
-{
-    std::lock_guard<decltype(gMutexStatistic.mtx_)> lg(gMutexStatistic.mtx_);
-    if (gMutexStatistic.cycles_.find(key) != gMutexStatistic.cycles_.end()) {
-        gMutexStatistic.cycles_[key] += val;
-    } else {
-        gMutexStatistic.cycles_[key] = val;
-    }
-}
-} // namespace ffrt
+#endif

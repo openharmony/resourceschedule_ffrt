@@ -57,7 +57,7 @@ SerialLooper::~SerialLooper()
 
 void SerialLooper::Quit()
 {
-    FFRT_LOGI("quit serial looper [%s] enter", name_.c_str());
+    FFRT_LOGI("quit serial looper [%s] enter, qid=%u", name_.c_str(), qid_);
     isExit_.store(true);
     queue_->Quit();
     QueueMonitor::GetInstance().ResetQueueInfo(qid_);
@@ -92,7 +92,7 @@ void SerialLooper::Run()
             QueueMonitor::GetInstance().ResetQueueInfo(qid_);
         }
     }
-    FFRT_LOGI("run serial looper [%s] enter, qid=%u", name_.c_str(), qid_);
+    FFRT_LOGI("run serial looper [%s] leave, qid=%u", name_.c_str(), qid_);
 }
 
 void SerialLooper::SetTimeoutMonitor(ITask* task)
@@ -121,21 +121,20 @@ void SerialLooper::SetTimeoutMonitor(ITask* task)
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::freeMem(we);
-        FFRT_LOGW("failed to set watchdog for task gid=%llu in %s qid=%u with timeout [%llu us] ",
-            task->gid, name_.c_str(), qid_, timeout_);
+        FFRT_LOGW("failed to set watchdog for task gid=%llu in %s qid=%u with timeout [%llu us] ", task->gid,
+            name_.c_str(), qid_, timeout_);
         return;
     }
 
     delayedCbCnt_.fetch_add(1);
-    FFRT_LOGD("set watchdog of task [%p] of %s succ", task, name_.c_str());
+    FFRT_LOGD("set watchdog of task gid=%llu of %s qid=%u succ", task->gid, name_.c_str(), qid_);
 }
 
 void SerialLooper::RunTimeOutCallback(ITask* task)
 {
     std::stringstream ss;
-    ss << "serial queue [" << name_ << "] qid=" << qid_ <<
-    ", serial task gid=" << task->gid << " execution time exceeds "
-        << timeout_ << " us";
+    ss << "serial queue [" << name_ << "] qid=" << qid_ << ", serial task gid=" << task->gid <<
+        " execution time exceeds " << timeout_ << " us";
     std::string msg = ss.str();
     std::string eventName = "SERIAL_TASK_TIMEOUT";
 

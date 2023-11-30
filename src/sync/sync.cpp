@@ -47,7 +47,6 @@ void spin_mutex::lock_contended()
     } while (!l.compare_exchange_weak(v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed));
 }
 
-#ifndef _MSC_VER
 static void spin()
 {
 #if defined(__x86_64__)
@@ -86,5 +85,4 @@ void fast_mutex::lock_contended()
         syscall(SYS_futex, &l, FUTEX_WAIT_PRIVATE, sync_detail::WAIT, nullptr, nullptr, 0);
     }
 }
-#endif
 } // namespace ffrt

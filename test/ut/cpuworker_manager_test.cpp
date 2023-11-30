@@ -21,7 +21,7 @@
 #include "eu/cpuworker_manager.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/worker_thread.h"
-#include "sched/qos.h"
+#include "qos.h"
 
 using namespace testing;
 using namespace testing::ext;

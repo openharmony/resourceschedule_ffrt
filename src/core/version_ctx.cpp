@@ -16,7 +16,7 @@
 #include "core/version_ctx.h"
 #include "core/entity.h"
 #include "util/slab.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 
 namespace ffrt {
 static inline void BuildConsumeRelationship(VersionCtx* version, TaskCtx* consumer)

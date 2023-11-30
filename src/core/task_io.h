@@ -12,29 +12,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef FFRT_TASK_IO_H
 #define FFRT_TASK_IO_H
 
-#include <string>
-#include <functional>
-#include <unordered_set>
-#include <vector>
-#include <mutex>
-#include <atomic>
-#include <string>
-#include <set>
-#include <list>
-#include <memory>
 #include "internal_inc/types.h"
 #include "sched/task_state.h"
 #include "sched/interval.h"
-#include "eu/co_routine.h"
 #include "task_attr_private.h"
 #include "util/slab.h"
 #include "dfx/bbox/bbox.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "c/executor_task.h"
-#endif
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 namespace ffrt {
@@ -51,11 +39,12 @@ struct ffrt_executor_io_task: public ffrt_executor_task {
     }
     bool wakeFlag = true;
     bool withHandle = true;
-    uint8_t func_storage[ffrt_auto_managed_function_storage_size];
+    uint8_t func_storage[ffrt_auto_managed_function_storage_size]; // 函数闭包、指针或函数对象
     ffrt_io_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};
+    // 本task finished时需要wake的task，用于无栈协程子任务完成时wake父任务
     QoS qos;
     ExecTaskStatus status = ExecTaskStatus::ET_PENDING;
-    fast_mutex lock;
+    fast_mutex lock; // used in coroute
     inline void freeMem()
     {
         SimpleAllocator<ffrt_executor_io_task>::freeMem(this);
@@ -65,6 +54,6 @@ struct ffrt_executor_io_task: public ffrt_executor_task {
         wakeFlag = wakeFlagIn;
     }
 };
-}
+} /* namespace ffrt */
 #endif
 #endif

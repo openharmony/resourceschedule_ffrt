@@ -14,19 +14,17 @@
  */
 #ifdef FFRT_BBOX_ENABLE
 
-#include "bbox.h"
+#include "../bbox.h"
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <csignal>
 #include <cstdlib>
 #include <string>
 #include <sstream>
-#ifdef FFRT_CO_BACKTRACE_ENABLE
-#include <utils/CallStack.h>
-#include "core/task_ctx.h"
-#endif
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
+
+using namespace ffrt;
 
 static std::atomic<unsigned int> g_taskSubmitCounter(0);
 static std::atomic<unsigned int> g_taskDoneCounter(0);
@@ -37,15 +35,23 @@ static std::atomic<unsigned int> g_taskFinishCounter(0);
 #ifdef FFRT_IO_TASK_SCHEDULER
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 #endif
+static TaskCtx* g_cur_task;
+std::mutex bbox_handle_lock;
+std::condition_variable bbox_handle_end;
 
 static struct sigaction s_oldSa[SIGSYS + 1]; // SIGSYS = 31
-
-using namespace ffrt;
 
 void TaskSubmitCounterInc(void)
 {
     ++g_taskSubmitCounter;
 }
+
+#ifdef FFRT_IO_TASK_SCHEDULER
+void TaskWakeCounterInc(void)
+{
+    ++g_taskWakeCounter;
+}
+#endif
 
 void TaskDoneCounterInc(void)
 {
@@ -72,26 +78,21 @@ void TaskFinishCounterInc(void)
     ++g_taskFinishCounter;
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
-void TaskWakeCounterInc(void)
-{
-    ++g_taskWakeCounter;
-}
-#endif
-
 static inline void SaveCurrent()
 {
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
-    auto t = ExecuteCtx::Cur()->task;
+    auto t = g_cur_task;
     if (t) {
         if (t->type == 0) {
             FFRT_BBOX_LOG("current: thread id %u, task id %lu, qos %d, name %s", gettid(),
                 t->gid, t->qos(), t->label.c_str());
         }
+        // change coroutine status to avoid costart again
+        if (t->coRoutine &&
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
+            t->coRoutine->status.store(static_cast<int>(CoStatus::CO_RUNNING));
+        }
     }
-
-    const int IGNORE_DEPTH = 3;
-    backtrace(IGNORE_DEPTH);
 }
 
 static inline void SaveTaskCounter()
@@ -115,8 +116,9 @@ static inline void SaveWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
-        std::unique_lock lock(workerGroup[i].tgMutex);
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
+        std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             TaskCtx* t = thread.first->curTask;
             if (t == nullptr) {
@@ -134,7 +136,8 @@ static inline void SaveWorkerStatus()
 static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
         int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;
@@ -206,7 +209,6 @@ void BboxFreeze()
 void backtrace(int ignoreDepth)
 {
     FFRT_BBOX_LOG("backtrace");
-
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::string dumpInfo;
     TaskCtx::DumpTask(nullptr, dumpInfo);
@@ -223,8 +225,6 @@ bool FFRTIsWork()
     if (g_taskSubmitCounter.load() == 0) {
         return false;
     } else if (g_taskSubmitCounter.load() == g_taskDoneCounter.load()) {
-        FFRT_BBOX_LOG("ffrt already finished, TaskSubmitCounter:%u, TaskDoneCounter:%u",
-            g_taskSubmitCounter.load(), g_taskDoneCounter.load());
         return false;
     }
 
@@ -233,9 +233,34 @@ bool FFRTIsWork()
 
 void SaveTheBbox()
 {
-    unsigned int expect = 0;
-    unsigned int tid = static_cast<unsigned int>(gettid());
-    if (!g_bbox_tid_is_dealing.compare_exchange_strong(expect, tid)) {
+    if (g_bbox_called_times.fetch_add(1) == 0) { // only save once
+        std::thread([&]() {
+            unsigned int expect = 0;
+            unsigned int tid = static_cast<unsigned int>(gettid());
+            (void)g_bbox_tid_is_dealing.compare_exchange_strong(expect, tid);
+
+            FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
+            SaveCurrent();
+            SaveTaskCounter();
+            SaveWorkerStatus();
+            SaveReadyQueueStatus();
+            SaveTaskStatus();
+            FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
+
+            std::unique_lock handle_end_lk(bbox_handle_lock);
+            bbox_handle_end.notify_one();
+
+            std::lock_guard lk(g_bbox_mtx);
+            g_bbox_tid_is_dealing.store(0);
+            g_bbox_cv.notify_all();
+        }).detach();
+
+        {
+            std::unique_lock lk(bbox_handle_lock);
+            (void)bbox_handle_end.wait_for(lk, std::chrono::seconds(5));
+        }
+    } else {
+        unsigned int tid = static_cast<unsigned int>(gettid());
         if (tid == g_bbox_tid_is_dealing.load()) {
             FFRT_BBOX_LOG("thread %u black box save failed", tid);
             g_bbox_tid_is_dealing.store(0);
@@ -245,22 +270,7 @@ void SaveTheBbox()
                 tid, g_bbox_tid_is_dealing.load());
             BboxFreeze(); // hold other thread's signal resend
         }
-        return;
     }
-
-    if (g_bbox_called_times.fetch_add(1) == 0) { // only save once
-        FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
-        SaveCurrent();
-        SaveTaskCounter();
-        SaveWorkerStatus();
-        SaveReadyQueueStatus();
-        SaveTaskStatus();
-        FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
-    }
-
-    std::lock_guard lk(g_bbox_mtx);
-    g_bbox_tid_is_dealing.store(0);
-    g_bbox_cv.notify_all();
 }
 
 static void ResendSignal(siginfo_t* info)
@@ -289,11 +299,10 @@ static const char* GetSigName(const siginfo_t* info)
 
 static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
 {
+    g_cur_task = ExecuteCtx::Cur()->task;
     if (FFRTIsWork()) {
-        FFRT_BBOX_LOG("recv signal %d (%s) code %d", signo, GetSigName(info), info->si_code);
         SaveTheBbox();
     }
-
     // we need to deregister our signal handler for that signal before continuing.
     sigaction(signo, &s_oldSa[signo], nullptr);
     ResendSignal(info);
@@ -329,6 +338,7 @@ std::string SaveTaskCounterInfo(void)
     ss << "<<<=== task counter ===>>>" << std::endl;
     ss << "FFRT BBOX TaskSubmitCounter:" << g_taskSubmitCounter.load() << " TaskEnQueueCounter:"
        << g_taskEnQueueCounter.load() << " TaskDoneCounter:" << g_taskDoneCounter.load() << std::endl;
+
     ss << "FFRT BBOX TaskRunCounter:" << g_taskRunCounter.load() << " TaskSwitchCounter:"
        << g_taskSwitchCounter.load() << " TaskFinishCounter:" << g_taskFinishCounter.load() << std::endl;
 
@@ -345,8 +355,9 @@ std::string SaveWorkerStatusInfo(void)
     std::ostringstream ss;
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     ss << "<<<=== worker status ===>>>" << std::endl;
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
-        std::unique_lock lock(workerGroup[i].tgMutex);
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
+        std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             TaskCtx* t = thread.first->curTask;
             if (t == nullptr) {
@@ -367,7 +378,8 @@ std::string SaveReadyQueueStatusInfo()
 {
     std::ostringstream ss;
     ss << "<<<=== ready queue status ===>>>" << std::endl;
-    for (int i = 0; i < static_cast<int>(qos_max) + 1; i++) {
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
         int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;

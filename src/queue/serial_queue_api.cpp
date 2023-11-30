@@ -74,8 +74,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
-    ffrt::QoS _qos = ffrt::QoS(qos);
-    (reinterpret_cast<ffrt::task_attr_private*>(attr))->qos_ = _qos();
+    (reinterpret_cast<ffrt::task_attr_private*>(attr))->qos_map = qos;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -83,7 +82,7 @@ ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return ffrt_qos_default, "input invalid, attr == nullptr");
     ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);
-    return static_cast<ffrt_qos_t>((reinterpret_cast<ffrt::task_attr_private*>(p))->qos_);
+    return (reinterpret_cast<ffrt::task_attr_private*>(p))->qos_map.m_qos;
 }
 
 API_ATTRIBUTE((visibility("default")))

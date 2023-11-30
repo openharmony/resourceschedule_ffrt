@@ -57,15 +57,15 @@ TaskCtx::TaskCtx(const task_attr_private *attr, TaskCtx *parent, const uint64_t 
     FFRT_LOGD("create task name:%s gid=%lu", label.c_str(), gid);
 }
 
-void TaskCtx::SetQos(QoS& target_qos)
+void TaskCtx::SetQos(QoS& newQos)
 {
-    if (target_qos == qos_inherit) {
+    if (newQos == qos_inherit) {
         if (!this->IsRoot()) {
             this->qos = parent->qos;
         }
         FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos());
     } else {
-        this->qos = target_qos;
+        this->qos = newQos;
     }
 }
 
@@ -107,9 +107,13 @@ void TaskCtx::DecChildRef()
     if (parent->childWaitRefCnt != 0) {
         return;
     }
+    // childWaitRefCnt is 0
+
     if (FFRT_UNLIKELY(parent->IsRoot())) {
         RootTaskCtx *root = static_cast<RootTaskCtx *>(parent);
-        if (root->thread_exit == true) {
+        if (root->thread_exit) {
+            // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
+            // return之前的lck析构不产生UAF问题，因为return之前随着root析构，锁的内存被释放
             lck.unlock();
             delete root;
             return;
@@ -265,7 +269,7 @@ void TaskCtx::DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag)
             } else {
                 ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
                 ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
-                ss << std::string(symbol, strlen(symbol)) <<std::endl;
+                ss << std::string(symbol, strlen(symbol)) << std::endl;
             }
         } else {
             if (flag == 0) {
@@ -273,7 +277,7 @@ void TaskCtx::DumpTask(TaskCtx* task, std::string& stackInfo, uint8_t flag)
                           (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
             } else {
                 ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
-                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ")";
                 ss << std::endl;
             }
         }

@@ -18,7 +18,7 @@
 #include "core/task_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
+#include "ffrt_trace.h"
 #include "sync/mutex_private.h"
 
 namespace ffrt {
@@ -85,7 +85,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
     lk->lock();
 }
 
-bool WeTimeoutProc(WaitUntilEntry* wue)
+bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
 {
     int expected = we_status::INIT;
     if (!atomic_compare_exchange_strong_explicit(
@@ -95,6 +95,15 @@ bool WeTimeoutProc(WaitUntilEntry* wue)
         return false;
     }
 
+    wq->wqlock.lock();
+    if (wue->status.load(std::memory_order_acquire) == we_status::TIMEOUT) {
+        wq->remove(wue);
+        delete wue;
+        wue = nullptr;
+    } else {
+        wue->status.store(we_status::HANDOVER, std::memory_order_release);
+    }
+    wq->wqlock.unlock();
     return true;
 }
 
@@ -110,10 +119,10 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     task->wue = new WaitUntilEntry(task);
     task->wue->hasWaitTime = true;
     task->wue->tp = tp;
-    task->wue->cb = ([](WaitEntry* we) {
+    task->wue->cb = ([&](WaitEntry* we) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         ffrt::TaskCtx* task = wue->task;
-        if (!WeTimeoutProc(wue)) {
+        if (!WeTimeoutProc(this, wue)) {
             return;
         }
         FFRT_LOGD("task(%s) timeout out", task->label.c_str());
@@ -129,7 +138,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         if (DelayedWakeup(we->tp, we, we->cb)) {
             return true;
         } else {
-            if (!WeTimeoutProc(we)) {
+            if (!WeTimeoutProc(this, we)) {
                 return true;
             }
             inTask->wakeupTimeOut = true;
@@ -153,7 +162,12 @@ bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
     if (!atomic_compare_exchange_strong_explicit(
         &we->status, &expected, we_status::NOTIFIED, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
         // The critical point we->status has been written, notify will no longer access we, it can be deleted
+        we->status.store(we_status::NOTIFIED, std::memory_order_release);
+        wqlock.unlock();
+        while (we->status.load(std::memory_order_acquire) != we_status::HANDOVER) {
+        }
         delete we;
+        wqlock.lock();
         return false;
     }
 
@@ -163,24 +177,25 @@ bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
 void WaitQueue::NotifyOne() noexcept
 {
     wqlock.lock();
-    if (empty()) {
-        wqlock.unlock();
+    while (!empty()) {
+        WaitUntilEntry* we = pop_front();
+        TaskCtx* task = we->task;
+        if (!USE_COROUTINE || we->weType == 2) {
+            std::unique_lock<std::mutex> lk(we->wl);
+            wqlock.unlock();
+            we->cv.notify_one();
+        } else {
+            if (!WeNotifyProc(we)) {
+                continue;
+            }
+            wqlock.unlock();
+            CoWake(task, false);
+        }
         return;
     }
-    WaitUntilEntry* we = pop_front();
-    TaskCtx* task = we->task;
-    if (!USE_COROUTINE || we->weType == 2) {
-        std::unique_lock<std::mutex> lk(we->wl);
-        wqlock.unlock();
-        we->cv.notify_one();
-    } else {
-        wqlock.unlock();
-        if (!WeNotifyProc(we)) {
-            return;
-        }
-        CoWake(task, false);
-    }
+    wqlock.unlock();
 }
+
 void WaitQueue::NotifyAll() noexcept
 {
     wqlock.lock();
@@ -192,10 +207,10 @@ void WaitQueue::NotifyAll() noexcept
             wqlock.unlock();
             we->cv.notify_one();
         } else {
-            wqlock.unlock();
             if (!WeNotifyProc(we)) {
                 continue;
             }
+            wqlock.unlock();
             CoWake(task, false);
         }
         wqlock.lock();

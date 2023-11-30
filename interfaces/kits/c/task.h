@@ -36,6 +36,7 @@
  */
 #ifndef FFRT_API_C_TASK_H
 #define FFRT_API_C_TASK_H
+#include <stdint.h>
 #include "type_def.h"
 
 /**
@@ -203,5 +204,4 @@ FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
  * @version 1.0
  */
 FFRT_C_API void ffrt_wait(void);
-
 #endif

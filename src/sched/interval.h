@@ -17,8 +17,11 @@
 #define FFRT_INTERVAL_HPP
 
 #include <deque>
-
-#include "sched/qos.h"
+#ifdef OHOS_STANDARD_SYSTEM
+#include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "sched/load_predictor.h"
 #include "sched/load_tracking.h"
 #include "eu/thread_group.h"

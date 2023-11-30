@@ -46,4 +46,36 @@
         }                                         \
     }
 
+// Do not use this Marco directly
+#define COND_RETURN_(COND, ERRCODE, ...) \
+    if ((COND)) { \
+        FFRT_LOGE(__VA_ARGS__); \
+        return ERRCODE; \
+    }
+
+#define FFRT_COND_RETURN_ERROR(COND, ERRCODE, ...) \
+    COND_RETURN_((COND), ERRCODE, ##__VA_ARGS__)
+
+#define FFRT_COND_RETURN_VOID(COND, ...) \
+    if ((COND)) { \
+        FFRT_LOGE(__VA_ARGS__); \
+        return; \
+    }
+
+// Do not use this Marco directly
+#define COND_GOTO_WITH_ERRCODE_(COND, LABEL, ERROR, ERRCODE, ...) \
+    if ((COND)) { \
+        FFRT_LOGE(__VA_ARGS__); \
+        ERROR = (ERRCODE); \
+        goto LABEL; \
+    }
+
+#define FFRT_COND_GOTO_ERROR(COND, LABEL, ERROR, ERRCODE, ...) \
+    COND_GOTO_WITH_ERRCODE_((COND), LABEL, ERROR, ERRCODE, ##__VA_ARGS__)
+
+#define FFRT_UNUSED(expr) \
+    do { \
+        (void)(expr); \
+    } while (0)
+
 #endif // __FFRT_LOG_API_H__

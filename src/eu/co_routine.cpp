@@ -18,23 +18,17 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include "dfx/trace/ffrt_trace.h"
+#include <sys/mman.h>
+#include "ffrt_trace.h"
 #include "core/dependence_manager.h"
 #include "core/entity.h"
 #include "sched/scheduler.h"
 #include "sync/sync.h"
 #include "util/slab.h"
-#ifndef _MSC_VER
-#include <sys/mman.h>
-#else
-#define PROT_READ 0x1
-#define PROT_WRITE 0x2
-#endif
 #include "sched/sched_deadline.h"
 #include "sync/perf_counter.h"
 #include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
-
 
 static thread_local CoRoutineEnv* g_CoThreadEnv = nullptr;
 
@@ -81,37 +75,31 @@ static void CoSetStackProt(CoRoutine* co, int prot)
     /* set the attribute of the page table closest to the stack top in the user stack to read-only,
      * and 1~2 page table space will be wasted
      */
-#ifndef _MSC_VER
     size_t p_size = getpagesize();
-#else
-    size_t p_size = 4 * 1024;
-#endif
-    if (CoStackAttr::Instance()->size < p_size * 3) {
+    if (co->stkMem.size < p_size * 3) {
         abort();
     }
 
-#ifndef _MSC_VER
     uint64_t mp = reinterpret_cast<uint64_t>(co->stkMem.stk);
     mp = (mp + p_size - 1) / p_size * p_size;
-    int ret = mprotect(reinterpret_cast<void *>(static_cast<uintptr_t>(mp)), p_size, PROT_READ);
+    int ret = mprotect(reinterpret_cast<void *>(static_cast<uintptr_t>(mp)), p_size, prot);
     if (ret < 0) {
         printf("coroutine size:%lu, mp:0x%lx, page_size:%zu,result:%d,prot:%d, err:%d,%s.\n",
             static_cast<unsigned long>(sizeof(struct CoRoutine)), static_cast<unsigned long>(mp),
             p_size, ret, prot, errno, strerror(errno));
         abort();
     }
-#endif
 }
 
 static inline CoRoutine* AllocNewCoRoutine(void)
 {
-    std::size_t stack_size = CoStackAttr::Instance()->size + sizeof(CoRoutine) - 8;
+    std::size_t stack_size = CoStackAttr::Instance()->size;
     CoRoutine* co = ffrt::QSimpleAllocator<CoRoutine>::allocMem(stack_size);
     if (co == nullptr) {
         abort();
     }
 
-    co->stkMem.size = CoStackAttr::Instance()->size;
+    co->stkMem.size = static_cast<uint64_t>(CoStackAttr::Instance()->size - sizeof(CoRoutine) + 8);
     co->stkMem.magic = STACK_MAGIC;
     if (CoStackAttr::Instance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_READ);
@@ -126,6 +114,16 @@ static inline void CoMemFree(CoRoutine* co)
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
     ffrt::QSimpleAllocator<CoRoutine>::freeMem(co);
+}
+
+void CoStackFree(void)
+{
+    if (g_CoThreadEnv) {
+        if (g_CoThreadEnv->runningCo) {
+            CoMemFree(g_CoThreadEnv->runningCo);
+            g_CoThreadEnv->runningCo = nullptr;
+        }
+    }
 }
 
 void CoWorkerExit(void)
@@ -187,7 +185,7 @@ static inline void CoStackCheck(CoRoutine* co)
 {
     if (co->stkMem.magic != STACK_MAGIC) {
         FFRT_LOGE("sp offset:%lu.\n", (uint64_t)co->stkMem.stk +
-            CoStackAttr::Instance()->size - co->ctx.regs[REG_SP]);
+            co->stkMem.size - co->ctx.regs[REG_SP]);
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
         abort();
     }

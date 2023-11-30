@@ -20,7 +20,7 @@
 #include <vector>
 #include <functional>
 #include <mutex>
-#include "sched/qos.h"
+#include "qos.h"
 #include "cpp/mutex.h"
 #include "eu/cpu_manager_interface.h"
 
@@ -34,6 +34,7 @@ struct WorkerCtrl {
 #ifdef FFRT_IO_TASK_SCHEDULER
     bool pollWaitFlag = false;
 #endif
+    int deepSleepingWorkerNum = 0;
     std::mutex lock;
 };
 
@@ -50,6 +51,8 @@ public:
     void DecSleepingRef(const QoS& qos);
     void IntoSleep(const QoS& qos);
     void WakeupCount(const QoS& qos);
+    void IntoDeepSleep(const QoS& qos);
+    void OutOfDeepSleep(const QoS& qos);
 #ifdef FFRT_IO_TASK_SCHEDULER
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
@@ -59,6 +62,7 @@ public:
     void UnRegWorker();
     void Notify(const QoS& qos, TaskNotifyType notifyType);
     int SetWorkerMaxNum(const QoS& qos, int num);
+    bool IsExceedDeepSleepThreshold();
 #ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
 #endif

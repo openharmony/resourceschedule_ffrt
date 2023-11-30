@@ -14,10 +14,9 @@
  */
 #ifndef FFRT_API_CPP_QOS_CONVERT_H
 #define FFRT_API_CPP_QOS_CONVERT_H
-#include "../c/type_def.h"
+#include "../../kits/c/type_def.h"
 
 namespace ffrt {
-constexpr int ERROR_NUM = -1;
 /**
     @brief get current thread static qos level
 */

@@ -21,6 +21,7 @@
 namespace ffrt {
 ExecuteUnit::ExecuteUnit()
 {
+    QSimpleAllocator<CoRoutine>::instance(CoStackAttr::Instance()->size);
     auto create = [&](const DevType dev) {
         std::unique_ptr<WorkerManager> manager;
         switch (dev) {

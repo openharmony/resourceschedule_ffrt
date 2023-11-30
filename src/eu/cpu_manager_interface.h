@@ -18,11 +18,13 @@
 
 #include "core/task_ctx.h"
 #include "eu/worker_thread.h"
-#include "sched/qos.h"
+#include "qos.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #define LOCAL_QUEUE_SIZE 128
+#define STEAL_BUFFER_SIZE (LOCAL_QUEUE_SIZE - LOCAL_QUEUE_SIZE / 2)
 #endif
+
 namespace ffrt {
 enum class WorkerAction {
     RETRY = 0,

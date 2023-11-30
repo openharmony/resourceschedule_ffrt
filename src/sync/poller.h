@@ -15,18 +15,17 @@
 
 #ifndef HICORO_POLLER_H
 #define HICORO_POLLER_H
-#include <list>
-#include <unordered_map>
-#include <array>
 #ifndef _MSC_VER
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #endif
-#include "internal_inc/non_copyable.h"
-#include "sched/qos.h"
+#include "qos.h"
 #include "sync/sync.h"
-
 #ifdef FFRT_IO_TASK_SCHEDULER
+#include <list>
+#include <unordered_map>
+#include <array>
+#include "internal_inc/non_copyable.h"
 namespace ffrt {
 struct WakeDataWithCb {
     WakeDataWithCb()
@@ -35,8 +34,8 @@ struct WakeDataWithCb {
         : fd(fdVal), data(dataVal), cb(cbVal)
     {}
 
-    int fd;
-    void *data;
+    int fd = 0;
+    void *data = nullptr;
     std::function<void(void *, uint32_t)> cb;
 };
 

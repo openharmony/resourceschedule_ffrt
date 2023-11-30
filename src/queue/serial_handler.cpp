@@ -34,6 +34,7 @@ int SerialHandler::Cancel(ITask* task)
 void SerialHandler::DispatchTask(ITask* task)
 {
     FFRT_COND_DO_ERR((task == nullptr), return, "failed to dispatch, task is nullptr");
+    FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(task->gid);
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     f->exec(f);
     FFRT_LOGD("dispatch serial task gid=%llu succ, qid=%u", task->gid, looper_->GetQueueId());

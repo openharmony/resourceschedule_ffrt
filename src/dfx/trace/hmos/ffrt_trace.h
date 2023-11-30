@@ -169,6 +169,10 @@ private:
         FFRT_TRACE_BEGIN(("P[sq_" + std::to_string(qid) + "]|" + std::to_string(gid)).c_str()); \
         FFRT_TRACE_END(); \
     } while (false)
+#define FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(gid) \
+    { \
+        FFRT_TRACE_ASYNC_END("E", gid); \
+    }
 #define FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid) \
     { \
         FFRT_TRACE_ASYNC_END("F", gid); \

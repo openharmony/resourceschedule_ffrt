@@ -45,6 +45,8 @@ set(FFRT_INNER_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/inner_api)
 set(FFRT_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/kits)
 set(FFRT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
 set(ROOT_PATH ${PROJECT_SOURCE_DIR}/../../../../)
+set(TRACE_PATH ${FFRT_CODE_PATH}/dfx/trace)
+set(QOS_PATH ${FFRT_CODE_PATH}/sched/)
 
 #compiler flags
 if(FFRT_SANITIZE STREQUAL address)
@@ -64,6 +66,8 @@ endif()
 include_directories(${FFRT_API_PATH})
 include_directories(${FFRT_INNER_API_PATH})
 include_directories(${FFRT_CODE_PATH})
+include_directories(${TRACE_PATH})
+include_directories(${QOS_PATH})
 
 message(STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 message(STATUS "FFRT_BBOX_ENABLE: " ${FFRT_BBOX_ENABLE})
@@ -72,6 +76,9 @@ message(STATUS "FFRT_BENCHMARKS: " ${FFRT_BENCHMARKS})
 message(STATUS "FFRT_TEST_ENABLE: " ${FFRT_TEST_ENABLE})
 message(STATUS "FFRT_CLANG_COMPILE: " ${FFRT_CLANG_COMPILE})
 message(STATUS "FFRT_SANITIZE: " ${FFRT_SANITIZE})
+
+# ffrt qos
+add_definitions(-DUSE_OHOS_QOS)
 
 # ffrt BBOX
 if(FFRT_BBOX_ENABLE STREQUAL ON)

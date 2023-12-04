@@ -17,7 +17,7 @@
 #define FFRT_INTERVAL_HPP
 
 #include <deque>
-#ifdef OHOS_STANDARD_SYSTEM
+#ifdef USE_OHOS_QOS
 #include "qos.h"
 #else
 #include "staging_qos/sched/qos.h"

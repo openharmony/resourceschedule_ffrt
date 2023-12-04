@@ -25,7 +25,7 @@ config("ffrt_test_config") {
   include_dirs = [
     "../../src",
     "../../src/dfx/log",
-    "../../src/dfx/trace/hmos",
+    "../../src/dfx/trace",
     "../../src/sched",
   ]
 

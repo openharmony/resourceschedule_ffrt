@@ -43,6 +43,7 @@ config("ffrt_config") {
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",
     "-DOHOS_THREAD_STACK_DUMP",
+    "-DUSE_OHOS_QOS",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -76,7 +77,7 @@ config("ffrt_inner_config") {
   include_dirs = [
     "src",
     "src/dfx/log",
-    "src/dfx/trace/hmos",
+    "src/dfx/trace",
     "src/sched",
     "//third_party/jsoncpp/include",
     "//third_party/libunwind/include",
@@ -93,7 +94,7 @@ ohos_shared_library("libffrt") {
     "src/core/task_ctx.cpp",
     "src/core/task_io.cpp",
     "src/core/version_ctx.cpp",
-    "src/dfx/bbox/hmos/bbox.cpp",
+    "src/dfx/bbox/bbox.cpp",
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
@@ -180,7 +181,7 @@ ohos_shared_library("ffrt_ndk") {
     "src/core/task_ctx.cpp",
     "src/core/task_io.cpp",
     "src/core/version_ctx.cpp",
-    "src/dfx/bbox/hmos/bbox.cpp",
+    "src/dfx/bbox/bbox.cpp",
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",

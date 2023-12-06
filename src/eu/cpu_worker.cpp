@@ -20,14 +20,15 @@
 #include "eu/cpu_manager_interface.h"
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
-#include "core/dependence_manager.h"
+#include "dm/dependence_manager.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "queue/queue.h"
 #endif
+#include "tm/cpu_task.h"
 
 namespace ffrt {
-void CPUWorker::Run(TaskCtx* task)
+void CPUWorker::Run(CPUEUTask* task)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
     if constexpr(USE_COROUTINE) {
@@ -74,7 +75,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 }
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCtx* &lastTask)
+void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUTask* &lastTask)
 {
     auto ctx = ExecuteCtx::Cur();
     if (curtask->type != 0) {
@@ -82,8 +83,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCt
         Run(curtask, (int)worker->GetQos());
         ctx->exec_task = nullptr;
     } else {
-        TaskCtx* task = reinterpret_cast<TaskCtx*>(curtask);
-        UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
+        CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
         FFRT_LOGD("EU pick task[%lu]", task->gid);
         task->UpdateState(TaskState::RUNNING);
 
@@ -96,7 +96,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCt
     }
 }
 
-void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask)
+void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEUTask* &lastTask)
 {
     RunTask(task, worker, lastTask);
     int lifo_count = 0;
@@ -140,7 +140,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     auto ctx = ExecuteCtx::Cur();
     ctx->local_fifo = &(worker->local_fifo);
     ctx->priority_task_ptr = &(worker->priority_task);
-    TaskCtx* lastTask = nullptr;
+    CPUEUTask* lastTask = nullptr;
     unsigned int buf_len = 0;
 
     FFRT_LOGD("qos[%d] thread start succ", (int)worker->GetQos());
@@ -163,7 +163,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             continue;
         }
 
-        TaskCtx* task = worker->ops.PickUpTaskBatch(worker);
+        CPUEUTask* task = worker->ops.PickUpTaskBatch(worker);
         if (task) {
             worker->ops.NotifyTaskPicked(worker);
             ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
@@ -215,12 +215,13 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
-    TaskCtx* lastTask = nullptr;
+    CPUEUTask* lastTask = nullptr;
 
+    worker->ops.WorkerPrepare(worker);
     FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
     for (;;) {
         FFRT_LOGD("task picking");
-        TaskCtx* task = worker->ops.PickUpTask(worker);
+        CPUEUTask* task = worker->ops.PickUpTask(worker);
         if (task) {
             worker->ops.NotifyTaskPicked(worker);
         } else {
@@ -238,24 +239,9 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         if (task->type != 0) {
             ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
-#ifdef FFRT_UV_LOG_ENABLE
-            {
-                std::unique_lock lock(DependenceManager::Instance()->taskMapMutex_);
-                ffrt_executor_task_t submitTask =
-                    DependenceManager::Instance()->taskMap_[reinterpret_cast<uintptr_t>(&work->wq)];
-                if (work->reserved[0] == 0 || work->reserved[1] == 0 || work->type == 0 ||
-                    work->reserved[0] != submitTask.reserved[0] || work->reserved[1] != submitTask.reserved[1] ||
-                    work->type != submitTask.type) {
-                    FFRT_LOGD("submit uv executor work[%p], done[%p], loop[%p], "
-                        "saved uv executor work[%p], done[%p], loop[%p]", work->reserved[0], work->reserved[1],
-                        work->type, submitTask.reserved[0], submitTask.reserved[1], submitTask.type);
-                }
-            }
-#endif
             Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
         } else {
             FFRT_LOGD("EU pick task[%lu]", task->gid);
-            UserSpaceLoadRecord::UpdateTaskSwitch(lastTask, task);
             task->UpdateState(TaskState::RUNNING);
 
             lastTask = task;

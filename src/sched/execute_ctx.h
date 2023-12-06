@@ -42,17 +42,17 @@ const int TIMEOUT = 2;
 const int HANDOVER = 3;
 } // namespace we_status
 
-struct TaskCtx;
+class CPUEUTask;
 
 struct WaitEntry {
     WaitEntry() : prev(this), next(this), task(nullptr), weType(0) {
     }
-    WaitEntry(TaskCtx *inTask) : prev(nullptr), next(nullptr), task(inTask), weType(0) {
+    explicit WaitEntry(CPUEUTask *inTask) : prev(nullptr), next(nullptr), task(inTask), weType(0) {
     }
     LinkedList node;
     WaitEntry* prev;
     WaitEntry* next;
-    TaskCtx* task;
+    CPUEUTask* task;
     int weType;
 };
 
@@ -60,7 +60,7 @@ struct WaitUntilEntry : WaitEntry {
     WaitUntilEntry() : WaitEntry(), status(we_status::INIT), hasWaitTime(false)
     {
     }
-    WaitUntilEntry(TaskCtx* inTask) : WaitEntry(inTask), status(we_status::INIT), hasWaitTime(false)
+    explicit WaitUntilEntry(CPUEUTask* inTask) : WaitEntry(inTask), status(we_status::INIT), hasWaitTime(false)
     {
     }
     std::atomic_int32_t status;
@@ -72,22 +72,15 @@ struct WaitUntilEntry : WaitEntry {
 };
 // 当前Worker线程的状态信息
 struct ExecuteCtx {
-    ExecuteCtx()
-    {
-        task = nullptr;
-#ifdef FFRT_IO_TASK_SCHEDULER
-        exec_task = nullptr;
-        local_fifo = nullptr;
-        priority_task_ptr = nullptr;
-#endif
-        wn.weType = 2;
-    }
+    ExecuteCtx();
+    virtual ~ExecuteCtx();
 #ifdef FFRT_IO_TASK_SCHEDULER
     ffrt_executor_task_t* exec_task;
     void** priority_task_ptr;
     struct queue_s* local_fifo;
 #endif
-    TaskCtx* task; // 当前正在执行的Task
+    
+    CPUEUTask* task; // 当前正在执行的Task
     WaitUntilEntry wn;
 
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -104,11 +97,7 @@ struct ExecuteCtx {
     }
 #endif
 
-    static inline ExecuteCtx* Cur()
-    {
-        thread_local static ExecuteCtx ctx;
-        return &ctx;
-    }
+    static ExecuteCtx* Cur();
 };
 } // namespace ffrt
 #endif

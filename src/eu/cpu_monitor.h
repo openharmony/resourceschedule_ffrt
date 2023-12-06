@@ -43,13 +43,13 @@ public:
     CPUMonitor(CpuMonitorOps&& ops);
     CPUMonitor(const CPUMonitor&) = delete;
     CPUMonitor& operator=(const CPUMonitor&) = delete;
-    ~CPUMonitor();
+    virtual ~CPUMonitor();
     uint32_t GetMonitorTid() const;
     void HandleBlocked(const QoS& qos);
     void DecExeNumRef(const QoS& qos);
     void IncSleepingRef(const QoS& qos);
     void DecSleepingRef(const QoS& qos);
-    void IntoSleep(const QoS& qos);
+    virtual SleepType IntoSleep(const QoS& qos) = 0;
     void WakeupCount(const QoS& qos);
     void IntoDeepSleep(const QoS& qos);
     void OutOfDeepSleep(const QoS& qos);
@@ -60,7 +60,7 @@ public:
     void TimeoutCount(const QoS& qos);
     void RegWorker(const QoS& qos);
     void UnRegWorker();
-    void Notify(const QoS& qos, TaskNotifyType notifyType);
+    virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
     int SetWorkerMaxNum(const QoS& qos, int num);
     bool IsExceedDeepSleepThreshold();
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -68,16 +68,20 @@ public:
 #endif
 
     uint32_t monitorTid = 0;
-
+protected:
+    WorkerCtrl ctrlQueue[QoS::Max()];
+    void Poke(const QoS& qos);
+    CpuMonitorOps& GetOps()
+    {
+        return ops;
+    }
 private:
     size_t CountBlockedNum(const QoS& qos);
     void SetupMonitor();
     void StartMonitor();
-    void Poke(const QoS& qos);
 
     std::thread* monitorThread;
     CpuMonitorOps ops;
-    WorkerCtrl ctrlQueue[QoS::Max()];
 };
 }
 #endif /* CPU_MONITOR_H */

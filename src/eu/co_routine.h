@@ -27,7 +27,7 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #endif
 
 namespace ffrt {
-struct TaskCtx;
+class CPUEUTask;
 struct WaitEntry;
 } // namespace ffrt
 struct CoRoutine;
@@ -56,7 +56,7 @@ using CoCtx = struct co2_context;
 struct CoRoutineEnv {
     CoRoutine* runningCo;
     CoCtx schCtx;
-    const std::function<bool(ffrt::TaskCtx*)>* pending;
+    const std::function<bool(ffrt::CPUEUTask*)>* pending;
 };
 
 struct StackMem {
@@ -68,7 +68,7 @@ struct StackMem {
 struct CoRoutine {
     std::atomic_int status;
     CoRoutineEnv* thEnv;
-    ffrt::TaskCtx* task;
+    ffrt::CPUEUTask* task;
     CoCtx ctx;
     StackMem stkMem;
 };
@@ -96,10 +96,9 @@ public:
 void CoStackFree(void);
 void CoWorkerExit(void);
 
-void CoStart(ffrt::TaskCtx* task);
+void CoStart(ffrt::CPUEUTask* task);
 void CoYield(void);
 
-void CoWait(const std::function<bool(ffrt::TaskCtx*)>& pred);
-void CoWake(ffrt::TaskCtx* task, bool timeOut);
-
+void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
+void CoWake(ffrt::CPUEUTask* task, bool timeOut);
 #endif

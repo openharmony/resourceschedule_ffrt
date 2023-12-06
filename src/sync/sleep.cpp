@@ -22,17 +22,19 @@
 #include "sync/sync.h"
 
 #include "sched/execute_ctx.h"
-#include "core/task_ctx.h"
 #include "eu/co_routine.h"
 #include "internal_inc/osal.h"
 #include "internal_inc/types.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
+#include "tm/cpu_task.h"
 #include "cpp/sleep.h"
 
 namespace ffrt {
+
 namespace this_task {
-TaskCtx* ExecuteCtxTask()
+
+CPUEUTask* ExecuteCtxTask()
 {
     auto ctx = ExecuteCtx::Cur();
     return ctx->task;
@@ -47,8 +49,9 @@ void sleep_until_impl(const time_point_t& to)
     // be careful about local-var use-after-free here
     std::function<void(WaitEntry*)> cb([](WaitEntry* we) { CoWake(we->task, false); });
     FFRT_BLOCK_TRACER(ExecuteCtxTask()->gid, slp);
-    CoWait([&](TaskCtx* inTask) -> bool { return DelayedWakeup(to, &inTask->fq_we, cb); });
+    CoWait([&](CPUEUTask* inTask) -> bool { return DelayedWakeup(to, &inTask->fq_we, cb); });
 }
+
 }
 } // namespace ffrt
 
@@ -64,7 +67,7 @@ void ffrt_yield()
         return;
     }
     FFRT_BLOCK_TRACER(ffrt::this_task::ExecuteCtxTask()->gid, yld);
-    CoWait([](ffrt::TaskCtx* inTask) -> bool {
+    CoWait([](ffrt::CPUEUTask* inTask) -> bool {
         CoWake(inTask, false);
         return true;
     });

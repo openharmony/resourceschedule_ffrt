@@ -22,7 +22,7 @@
 #include "sync/mutex_private.h"
 
 namespace ffrt {
-struct TaskCtx;
+class CPUEUTask;
 struct TaskWithNode;
 using TaskListNode = ListNode;
 using TaskList = List<TaskWithNode, TaskListNode>;
@@ -52,7 +52,7 @@ struct TimeoutStatus {
 
 struct TaskWithNode : public TaskListNode {
     TaskWithNode();
-    TaskCtx* task = nullptr;
+    CPUEUTask* task = nullptr;
     std::mutex lk;
     std::condition_variable cv;
 };

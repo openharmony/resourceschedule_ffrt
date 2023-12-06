@@ -23,7 +23,7 @@
 #include <unordered_map>
 
 namespace ffrt {
-struct TaskCtx;
+class CPUEUTask;
 class DefaultInterval;
 
 enum class TaskSwitchState {
@@ -36,24 +36,6 @@ struct TaskSwitchRecord {
     uint64_t load;
     TaskSwitchState state;
     std::chrono::time_point<std::chrono::steady_clock> tp;
-};
-
-class UserSpaceLoadRecord {
-public:
-    void SetEnable(bool isEnable)
-    {
-        enable = isEnable;
-    }
-
-    bool Enable() const
-    {
-        return enable;
-    }
-
-    static void UpdateTaskSwitch(TaskCtx* prev, TaskCtx* next);
-
-private:
-    bool enable = false;
 };
 
 template <typename T>
@@ -105,27 +87,6 @@ private:
         (void)state;
     };
     uint64_t GetLoadImpl();
-};
-
-class UserSpaceLoadTracking : public LoadTracking<UserSpaceLoadTracking> {
-    friend class LoadTracking<UserSpaceLoadTracking>;
-    struct HistPoint;
-    using RecordList = typename std::list<TaskSwitchRecord>;
-
-public:
-    UserSpaceLoadTracking(DefaultInterval& it);
-
-private:
-    void BeginImpl();
-    void EndImpl();
-    void RecordImpl(TaskSwitchState state);
-    uint64_t GetLoadImpl();
-
-    void RecordSwitchPoint(TaskSwitchState state, bool force = false);
-
-    std::vector<HistPoint> CollectHistList();
-
-    std::unordered_map<std::thread::id, RecordList> records;
 };
 }; // namespace ffrt
 

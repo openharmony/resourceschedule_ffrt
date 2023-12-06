@@ -12,3 +12,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "execute_ctx.h"
+
+namespace ffrt {
+
+ExecuteCtx::ExecuteCtx()
+{
+    task = nullptr;
+#ifdef FFRT_IO_TASK_SCHEDULER
+    exec_task = nullptr;
+    local_fifo = nullptr;
+    priority_task_ptr = nullptr;
+#endif
+    wn.weType = 2;
+}
+
+ExecuteCtx::~ExecuteCtx()
+{
+}
+
+ExecuteCtx* ExecuteCtx::Cur()
+{
+    thread_local static ExecuteCtx ctx;
+    return &ctx;
+}
+
+} // namespace ffrt

@@ -19,7 +19,7 @@
 
 using namespace ffrt;
 
-void TaskManager::TaskStateCount(TaskCtx* task)
+void TaskManager::TaskStateCount(CPUEUTask* task)
 {
     if (task->state.PreState() == task->state.CurState()) {
         return;
@@ -31,7 +31,7 @@ void TaskManager::TaskStateCount(TaskCtx* task)
     CalcTaskTime(task);
 }
 
-void TaskManager::CalcTaskTime(TaskCtx* task)
+void TaskManager::CalcTaskTime(CPUEUTask* task)
 {
     auto calc = [](uint64_t time, uint64_t count, std::atomic_uint64_t& maxTime, std::atomic<double>& avgTime) {
         if (time > maxTime) {

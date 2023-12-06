@@ -21,24 +21,25 @@
 #include "sync/sync.h"
 #include "sync/semaphore.h"
 #include "ffrt_trace.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
-template <typename Sched>
+
 class TaskScheduler {
 public:
     virtual ~TaskScheduler() = default;
 
-    TaskCtx* PickNextTask()
+    CPUEUTask* PickNextTask()
     {
-        return static_cast<Sched*>(this)->PickNextTaskImpl();
+        return PickNextTaskImpl();
     }
 
-    bool WakeupTask(TaskCtx* task)
+    bool WakeupTask(CPUEUTask* task)
     {
         bool ret = false;
         {
             FFRT_READY_MARKER(task->gid);
-            ret = static_cast<Sched*>(this)->WakeupTaskImpl(task);
+            ret = WakeupTaskImpl(task);
         }
         return ret;
     }
@@ -48,7 +49,7 @@ public:
         bool ret = false;
         {
             FFRT_EXECUTOR_TASK_READY_MARKER(reinterpret_cast<char*>(node) - offsetof(ffrt_executor_task_t, wq));
-            ret = static_cast<Sched*>(this)->WakeupNodeImpl(node);
+            ret = WakeupNodeImpl(node);
         }
         return ret;
     }
@@ -57,66 +58,102 @@ public:
     {
         bool ret = false;
         {
-            ret = static_cast<Sched*>(this)->RemoveNodeImpl(node);
+            ret = RemoveNodeImpl(node);
         }
         return ret;
     }
 
     bool RQEmpty()
     {
-        return static_cast<Sched*>(this)->RQEmptyImpl();
+        return RQEmptyImpl();
     }
 
     int RQSize()
     {
-        return static_cast<Sched*>(this)->RQSizeImpl();
+        return RQSizeImpl();
     }
 
 private:
+    virtual CPUEUTask* PickNextTaskImpl() = 0;
+    virtual bool WakeupNodeImpl(LinkedList* node) = 0;
+    virtual bool RemoveNodeImpl(LinkedList* node) = 0;
+    virtual bool WakeupTaskImpl(CPUEUTask* task) = 0;
+    virtual bool RQEmptyImpl() = 0;
+    virtual int RQSizeImpl() = 0;
+
     fast_mutex mutex;
     semaphore sem;
 };
 
-class FIFOScheduler : public TaskScheduler<FIFOScheduler> {
-    friend class TaskScheduler<FIFOScheduler>;
-
+class SFIFOScheduler : public TaskScheduler {
 private:
-    TaskCtx* PickNextTaskImpl()
+    CPUEUTask* PickNextTaskImpl() override
     {
-        TaskCtx* task = que.DeQueue();
+        CPUEUTask* task = que.DeQueue();
         return task;
     }
 
-    bool WakeupNodeImpl(LinkedList* node)
+    bool WakeupNodeImpl(LinkedList* node) override
     {
         que.EnQueueNode(node);
         return true;
     }
 
-    bool RemoveNodeImpl(LinkedList* node)
+    bool RemoveNodeImpl(LinkedList* node) override
     {
         que.RmQueueNode(node);
         return true;
     }
 
-    bool WakeupTaskImpl(TaskCtx* task)
+    bool WakeupTaskImpl(CPUEUTask* task) override
     {
         que.EnQueue(task);
         return true;
     }
 
-    bool RQEmptyImpl()
+    bool RQEmptyImpl() override
     {
         return que.Empty();
     }
 
-    int RQSizeImpl()
+    int RQSizeImpl() override
     {
         return que.Size();
     }
 
     FIFOQueue que;
 };
-} // namespace ffrt
 
+class SchedulerFactory {
+public:
+    using AllocCB = std::function<TaskScheduler *()>;
+    using RecycleCB = std::function<void (TaskScheduler *)>;
+
+    static SchedulerFactory &Instance()
+    {
+        static SchedulerFactory fac;
+        return fac;
+    }
+
+    static TaskScheduler *Alloc()
+    {
+        return Instance().alloc_();
+    }
+
+    static void Recycle(TaskScheduler *schd)
+    {
+        Instance().recycle_(schd);
+    }
+
+    static void RegistCb(const AllocCB &alloc, const RecycleCB &recycle)
+    {
+        Instance().alloc_ = alloc;
+        Instance().recycle_ = recycle;
+    }
+
+private:
+    AllocCB alloc_;
+    RecycleCB recycle_;
+};
+} // namespace ffrt
 #endif

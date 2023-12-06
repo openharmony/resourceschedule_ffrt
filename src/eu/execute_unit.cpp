@@ -17,32 +17,21 @@
 
 #include "internal_inc/config.h"
 #include "eu/cpuworker_manager.h"
+#include "util/singleton_register.h"
 
 namespace ffrt {
 ExecuteUnit::ExecuteUnit()
 {
-    QSimpleAllocator<CoRoutine>::instance(CoStackAttr::Instance()->size);
-    auto create = [&](const DevType dev) {
-        std::unique_ptr<WorkerManager> manager;
-        switch (dev) {
-            case DevType::CPU:
-                manager = std::unique_ptr<WorkerManager>(new (std::nothrow) CPUWorkerManager());
-                break;
-            default:
-                break;
-        }
+}
 
-        if (!manager) {
-            FFRT_LOGE("create workerManager fail, devType %d", static_cast<size_t>(dev));
-            return;
-        }
+ExecuteUnit& ExecuteUnit::Instance()
+{
+    return SingletonRegister<ExecuteUnit>::Instance();
+}
 
-        wManager[static_cast<size_t>(dev)] = std::move(manager);
-    };
-
-    for (size_t dev = 0; dev < static_cast<size_t>(DevType::DEVMAX); ++dev) {
-        create(static_cast<DevType>(dev));
-    }
+void ExecuteUnit::RegistInsCb(SingleInsCB<ExecuteUnit>::Instance &&cb)
+{
+    SingletonRegister<ExecuteUnit>::RegistInsCb(std::move(cb));
 }
 
 ThreadGroup* ExecuteUnit::BindTG(const DevType dev, QoS& qos)

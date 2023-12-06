@@ -16,11 +16,12 @@
 #define FFRT_INTERFACE_TASK_H
 
 #include "c/type_def.h"
+#include "tm/cpu_task.h"
 #include "util/task_deleter.h"
 
 namespace ffrt {
 class IHandler;
-class ITask : public TaskDeleter {
+class ITask : public TaskBase, public TaskDeleter {
 public:
     virtual void Wait() = 0;
     virtual void Notify() = 0;

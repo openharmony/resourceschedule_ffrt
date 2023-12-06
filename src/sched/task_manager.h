@@ -19,9 +19,10 @@
 #include <array>
 #include <atomic>
 
-#include "core/task_ctx.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
+
 class TaskManager {
 public:
     static TaskManager& Instance()
@@ -35,7 +36,7 @@ public:
         return taskCount[static_cast<size_t>(state)];
     }
 
-    void TaskStateCount(TaskCtx* task);
+    void TaskStateCount(CPUEUTask* task);
 
 private:
     TaskManager() = default;
@@ -59,7 +60,7 @@ private:
         }
     }
 
-    inline void CalcTaskTime(TaskCtx* task);
+    inline void CalcTaskTime(CPUEUTask* task);
 
     std::array<std::atomic_uint64_t, static_cast<size_t>(TaskState::MAX)> taskCount;
 
@@ -69,6 +70,7 @@ private:
     std::atomic_uint64_t maxRunningTime;
     std::atomic<double> avgRunningTime;
 };
+
 } // namespace ffrt
 
 #endif

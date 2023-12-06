@@ -20,6 +20,7 @@
 #include <list>
 
 #include "sync/sync.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
 struct VersionCtx;
@@ -31,7 +32,7 @@ struct Entity {
         return &ins;
     }
 
-    VersionCtx* VA2Ctx(const void* p, TaskCtx* task);
+    VersionCtx* VA2Ctx(const void* p, SCPUEUTask* task);
     void RecycleVersion();
 
     std::list<VersionCtx*> versionTrashcan; // VersionCtx to be deleted

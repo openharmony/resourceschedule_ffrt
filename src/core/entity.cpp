@@ -14,12 +14,11 @@
  */
 
 #include "entity.h"
-#include "task_ctx.h"
 #include "version_ctx.h"
 #include "util/slab.h"
 
 namespace ffrt {
-VersionCtx* Entity::VA2Ctx(const void* p, TaskCtx* task __attribute__((unused)))
+VersionCtx* Entity::VA2Ctx(const void* p, SCPUEUTask* task __attribute__((unused)))
 {
     auto it = std::as_const(vaMap).find(p);
     if (it != vaMap.end()) {

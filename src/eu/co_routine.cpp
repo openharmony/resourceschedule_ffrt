@@ -20,7 +20,7 @@
 #include <string>
 #include <sys/mman.h>
 #include "ffrt_trace.h"
-#include "core/dependence_manager.h"
+#include "dm/dependence_manager.h"
 #include "core/entity.h"
 #include "sched/scheduler.h"
 #include "sync/sync.h"
@@ -29,6 +29,7 @@
 #include "sync/perf_counter.h"
 #include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
+#include "co_routine_factory.h"
 
 static thread_local CoRoutineEnv* g_CoThreadEnv = nullptr;
 
@@ -94,7 +95,7 @@ static void CoSetStackProt(CoRoutine* co, int prot)
 static inline CoRoutine* AllocNewCoRoutine(void)
 {
     std::size_t stack_size = CoStackAttr::Instance()->size;
-    CoRoutine* co = ffrt::QSimpleAllocator<CoRoutine>::allocMem(stack_size);
+    CoRoutine* co = ffrt::CoRoutineAllocMem(stack_size);
     if (co == nullptr) {
         abort();
     }
@@ -113,7 +114,7 @@ static inline void CoMemFree(CoRoutine* co)
     if (CoStackAttr::Instance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
-    ffrt::QSimpleAllocator<CoRoutine>::freeMem(co);
+    ffrt::CoRoutineFreeMem(co);
 }
 
 void CoStackFree(void)
@@ -138,20 +139,20 @@ void CoWorkerExit(void)
     }
 }
 
-static inline void BindNewCoRoutione(ffrt::TaskCtx* task)
+static inline void BindNewCoRoutione(ffrt::CPUEUTask* task)
 {
     task->coRoutine = g_CoThreadEnv->runningCo;
     task->coRoutine->task = task;
     task->coRoutine->thEnv = g_CoThreadEnv;
 }
 
-static inline void UnbindCoRoutione(ffrt::TaskCtx* task)
+static inline void UnbindCoRoutione(ffrt::CPUEUTask* task)
 {
     task->coRoutine->task = nullptr;
     task->coRoutine = nullptr;
 }
 
-static inline int CoAlloc(ffrt::TaskCtx* task)
+static inline int CoAlloc(ffrt::CPUEUTask* task)
 {
     if (!g_CoThreadEnv) {
         CoInitThreadEnv();
@@ -171,7 +172,7 @@ static inline int CoAlloc(ffrt::TaskCtx* task)
 }
 
 // call CoCreat when task creat
-static inline int CoCreat(ffrt::TaskCtx* task)
+static inline int CoCreat(ffrt::CPUEUTask* task)
 {
     CoAlloc(task);
     auto co = task->coRoutine;
@@ -191,7 +192,7 @@ static inline void CoStackCheck(CoRoutine* co)
     }
 }
 
-static inline void CoSwitchInTrace(ffrt::TaskCtx* task)
+static inline void CoSwitchInTrace(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
         for (auto name : task->traceTag) {
@@ -201,7 +202,7 @@ static inline void CoSwitchInTrace(ffrt::TaskCtx* task)
     FFRT_FAKE_TRACE_MARKER(task->gid);
 }
 
-static inline void CoSwitchOutTrace(ffrt::TaskCtx* task)
+static inline void CoSwitchOutTrace(ffrt::CPUEUTask* task)
 {
     FFRT_FAKE_TRACE_MARKER(task->gid);
     int traceTagNum = static_cast<int>(task->traceTag.size());
@@ -211,7 +212,7 @@ static inline void CoSwitchOutTrace(ffrt::TaskCtx* task)
 }
 
 // called by thread work
-void CoStart(ffrt::TaskCtx* task)
+void CoStart(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
@@ -279,13 +280,13 @@ void CoYield(void)
     }
 }
 
-void CoWait(const std::function<bool(ffrt::TaskCtx*)>& pred)
+void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred)
 {
     g_CoThreadEnv->pending = &pred;
     CoYield();
 }
 
-void CoWake(ffrt::TaskCtx* task, bool timeOut)
+void CoWake(ffrt::CPUEUTask* task, bool timeOut)
 {
     if (task == nullptr) {
         FFRT_LOGE("task is nullptr");

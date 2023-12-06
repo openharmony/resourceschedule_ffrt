@@ -17,58 +17,67 @@
 #define FFRT_TASK_RUNQUEUE_HPP
 
 
-#include "core/task_ctx.h"
 #include "c/executor_task.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
-template <typename Derived>
 class RunQueue {
 public:
     virtual ~RunQueue() = default;
 
-    void EnQueue(TaskCtx* task)
+    void EnQueue(CPUEUTask* task)
     {
-        static_cast<Derived*>(this)->EnQueueImpl(task);
-    }
-
-    TaskCtx* DeQueue()
-    {
-        return static_cast<Derived*>(this)->DeQueueImpl();
+        EnQueueImpl(task);
     }
 
     void EnQueueNode(LinkedList* node)
     {
-        static_cast<Derived*>(this)->EnQueueNodeImpl(node);
+        EnQueueNodeImpl(node);
     }
 
     void RmQueueNode(LinkedList* node)
     {
-        static_cast<Derived*>(this)->RmQueueNodeImpl(node);
+        RmQueueNodeImpl(node);
+    }
+
+    CPUEUTask* DeQueue()
+    {
+        return DeQueueImpl();
     }
 
     bool Empty()
     {
-        return static_cast<Derived*>(this)->EmptyImpl();
+        return EmptyImpl();
     }
 
     int Size()
     {
-        return static_cast<Derived*>(this)->SizeImpl();
+        return SizeImpl();
     }
-};
 
-class FIFOQueue : public RunQueue<FIFOQueue> {
-    friend class RunQueue<FIFOQueue>;
+protected:
+    LinkedList list;
+    int size = 0;
 
 private:
-    void EnQueueImpl(TaskCtx* task)
+    virtual void EnQueueImpl(CPUEUTask* task) = 0;
+    virtual CPUEUTask* DeQueueImpl() = 0;
+    virtual void EnQueueNodeImpl(LinkedList* node) = 0;
+    virtual void RmQueueNodeImpl(LinkedList* node) = 0;
+    virtual bool EmptyImpl() = 0;
+    virtual int SizeImpl() = 0;
+};
+
+class FIFOQueue : public RunQueue {
+private:
+    void EnQueueImpl(CPUEUTask* task) override
     {
         auto entry = &task->fq_we;
         list.PushBack(entry->node);
         size++;
     }
 
-    TaskCtx* DeQueueImpl()
+    CPUEUTask* DeQueueImpl() override
     {
         if (list.Empty()) {
             return nullptr;
@@ -77,46 +86,44 @@ private:
         if (node == nullptr) {
             return nullptr;
         }
+
         ffrt_executor_task_t* w = reinterpret_cast<ffrt_executor_task_t *>(reinterpret_cast<char *>(node) -
             offsetof(ffrt_executor_task_t, wq));
         if (w->type != 0) {
             w->wq[0] = &w->wq;
             w->wq[1] = &w->wq;
             size--;
-            return reinterpret_cast<TaskCtx *>(w);
+            return reinterpret_cast<CPUEUTask *>(w);
         }
 
         auto entry = node->ContainerOf(&WaitEntry::node);
-        TaskCtx* tsk = entry->task;
+        CPUEUTask* tsk = entry->task;
 
         size--;
         return tsk;
     }
 
-    void EnQueueNodeImpl(LinkedList* node)
+    void EnQueueNodeImpl(LinkedList* node) override
     {
         list.PushBack(*node);
         size++;
     }
 
-    void RmQueueNodeImpl(LinkedList* node)
+    void RmQueueNodeImpl(LinkedList* node) override
     {
         list.Delete(*node);
         size--;
     }
 
-    bool EmptyImpl()
+    bool EmptyImpl() override
     {
         return list.Empty();
     }
 
-    int SizeImpl()
+    int SizeImpl() override
     {
         return size;
     }
-
-    LinkedList list;
-    int size = 0;
 };
 } // namespace ffrt
 

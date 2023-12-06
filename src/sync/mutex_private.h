@@ -20,8 +20,8 @@
 
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
 #include "util/graph_check.h"
-#include "core/task_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "tm/cpu_task.h"
 
 #define TID_MAX (0x400000)
 #endif
@@ -72,12 +72,12 @@ public:
             if (graph.IsCyclic()) {
                 std::string dlockInfo = "A possible mutex deadlock detected!\n";
                 for (uint64_t taskId : {ownerTask, task}) {
-                    TaskCtx* taskCtx = nullptr;
+                    CPUEUTask* taskCtx = nullptr;
                     if (taskId >= TID_MAX) {
-                        taskCtx = reinterpret_cast<TaskCtx*>(taskId);
+                        taskCtx = reinterpret_cast<CPUEUTask*>(taskId);
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
                         std::string dumpInfo;
-                        TaskCtx::DumpTask(taskCtx, dumpInfo, 1);
+                        CPUEUTask::DumpTask(taskCtx, dumpInfo, 1);
                         dlockInfo += dumpInfo;
 #endif
                     } else {
@@ -103,7 +103,7 @@ public:
 class mutexPrivate {
     std::atomic<int> l;
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    std::atomic<uintptr_t> owner;
+    std::atomic<uint64_t> owner;
 #endif
     fast_mutex wlock;
     LinkedList list;

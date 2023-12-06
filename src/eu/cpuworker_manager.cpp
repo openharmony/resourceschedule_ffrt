@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include <climits>
 #include <cstring>
 #include <sys/stat.h>
 #include "eu/cpu_monitor.h"
@@ -39,6 +38,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::NotifyTaskPicked, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerIdleAction, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerRetired, this, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WorkerPrepare, this, std::placeholders::_1),
 #ifdef FFRT_IO_TASK_SCHEDULER
         std::bind(&CPUWorkerManager::TryPoll, this, std::placeholders::_1, std::placeholders::_2),
         std::bind(&CPUWorkerManager::StealTaskBatch, this, std::placeholders::_1),
@@ -72,7 +72,7 @@ int CPUWorkerManager::GetTaskCount(const QoS& qos)
     return sched.RQSize();
 }
 
-TaskCtx* CPUWorkerManager::PickUpTask(WorkerThread* thread)
+CPUEUTask* CPUWorkerManager::PickUpTask(WorkerThread* thread)
 {
     if (tearDown) {
         return nullptr;
@@ -85,7 +85,7 @@ TaskCtx* CPUWorkerManager::PickUpTask(WorkerThread* thread)
 }
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
+CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
         return nullptr;
@@ -94,15 +94,15 @@ TaskCtx* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
-    TaskCtx* task = sched.PickNextTask();
+    CPUEUTask* task = sched.PickNextTask();
     if (task == nullptr) return nullptr;
     struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
-    int expected_task = (GetTaskCount(thread->GetQos()) / monitor.WakedWorkerNum(thread->GetQos()));
+    int expected_task = (GetTaskCount(thread->GetQos()) / monitor->WakedWorkerNum(thread->GetQos()));
     for (int i = 0; i < expected_task; i++) {
         if (queue_length(queue) == queue_capacity(queue)) {
             return task;
         }
-        TaskCtx* task2local = sched.PickNextTask();
+        CPUEUTask* task2local = sched.PickNextTask();
         if (task2local == nullptr) {
             return task;
         }
@@ -173,11 +173,11 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
     auto& pollerMtx = pollersMtx[thread->GetQos()];
     if (pollerMtx.try_lock()) {
         if (timeout == -1) {
-            monitor.IntoPollWait(thread->GetQos());
+            monitor->IntoPollWait(thread->GetQos());
         }
         PollerRet ret = PollerProxy::Instance()->GetPoller(thread->GetQos()).PollOnce(timeout);
         if (timeout == -1) {
-            monitor.OutOfPollWait(thread->GetQos());
+            monitor->OutOfPollWait(thread->GetQos());
         }
         pollerMtx.unlock();
         return ret;
@@ -188,14 +188,14 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
 void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
 {
     if (stealWorkers[qos()].load(std::memory_order_relaxed) == 0) {
-        monitor.Notify(qos, TaskNotifyType::TASK_LOCAL);
+        monitor->Notify(qos, TaskNotifyType::TASK_LOCAL);
     }
 }
 #endif
 
 void CPUWorkerManager::NotifyTaskPicked(const WorkerThread* thread)
 {
-    monitor.Notify(thread->GetQos(), TaskNotifyType::TASK_PICKED);
+    monitor->Notify(thread->GetQos(), TaskNotifyType::TASK_PICKED);
 }
 
 void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
@@ -217,67 +217,12 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
     }
 }
 
-WorkerAction CPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
-{
-    if (tearDown) {
-        return WorkerAction::RETIRE;
-    }
-
-    auto& ctl = sleepCtl[thread->GetQos()];
-    std::unique_lock lk(ctl.mutex);
-    monitor.IntoSleep(thread->GetQos());
-#if !defined(IDLE_WORKER_DESTRUCT)
-    constexpr int waiting_seconds = 10;
-#else
-    constexpr int waiting_seconds = 5;
-#endif
-#ifdef FFRT_IO_TASK_SCHEDULER
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
-        queue_length(&(((CPUWorker *)thread)->local_fifo));
-        })) {
-#else
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds),
-        [this, thread] {return tearDown || GetTaskCount(thread->GetQos());})) {
-#endif
-        monitor.WakeupCount(thread->GetQos());
-        FFRT_LOGD("worker awake");
-        return WorkerAction::RETRY;
-    } else {
-#if !defined(IDLE_WORKER_DESTRUCT)
-        monitor.IntoDeepSleep(thread->GetQos());
-        CoStackFree();
-        if (monitor.IsExceedDeepSleepThreshold()) {
-            ffrt::QSimpleAllocator<CoRoutine>::releaseMem();
-        }
-#ifdef FFRT_IO_TASK_SCHEDULER
-        ctl.cv.wait(lk, [this, thread] {
-            return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
-            queue_length(&(((CPUWorker *)thread)->local_fifo));
-            });
-#else
-        ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
-#endif
-        monitor.OutOfDeepSleep(thread->GetQos());
-        FFRT_LOGD("worker awake");
-        return WorkerAction::RETRY;
-#else
-        monitor.TimeoutCount(thread->GetQos());
-        FFRT_LOGD("worker exit");
-        return WorkerAction::RETIRE;
-#endif
-    }
-}
-
 void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
 {
-    monitor.Notify(qos, TaskNotifyType::TASK_ADDED);
+    monitor->Notify(qos, TaskNotifyType::TASK_ADDED);
 }
 
-CPUWorkerManager::CPUWorkerManager() : monitor({
-    std::bind(&CPUWorkerManager::IncWorker, this, std::placeholders::_1),
-    std::bind(&CPUWorkerManager::WakeupWorkers, this, std::placeholders::_1),
-    std::bind(&CPUWorkerManager::GetTaskCount, this, std::placeholders::_1)})
+CPUWorkerManager::CPUWorkerManager()
 {
     groupCtl[qos_deadline_request].tg = std::unique_ptr<ThreadGroup>(new ThreadGroup());
 }

@@ -21,7 +21,6 @@
 #include "sched/interval.h"
 #include "task_attr_private.h"
 #include "util/slab.h"
-#include "dfx/bbox/bbox.h"
 #include "c/executor_task.h"
 
 #ifdef FFRT_IO_TASK_SCHEDULER

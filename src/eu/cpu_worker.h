@@ -23,6 +23,7 @@
 #include "sync/poller.h"
 #include "queue/queue.h"
 #endif
+#include "tm/cpu_task.h"
 
 namespace ffrt {
 class CPUWorker : public WorkerThread {
@@ -48,11 +49,11 @@ public:
 
 private:
     static void Dispatch(CPUWorker* worker);
-    static void Run(TaskCtx* task);
+    static void Run(CPUEUTask* task);
     static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
 #ifdef FFRT_IO_TASK_SCHEDULER
-    static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, TaskCtx* &lastTask);
-    static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, TaskCtx* &lastTask);
+    static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUTask* &lastTask);
+    static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEUTask* &lastTask);
     static void* GetTask(CPUWorker* worker);
     static bool LocalEmpty(CPUWorker* worker);
 #endif

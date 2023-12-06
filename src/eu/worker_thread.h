@@ -24,12 +24,12 @@
 #endif
 
 #include "qos.h"
-#include "core/task_ctx.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
 class WorkerThread {
 public:
-    TaskCtx* curTask = nullptr;
+    CPUEUTask* curTask = nullptr;
     explicit WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
     {
     }

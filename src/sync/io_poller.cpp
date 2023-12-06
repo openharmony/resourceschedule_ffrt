@@ -14,13 +14,13 @@
  */
 
 #include "io_poller.h"
-#include <cassert>
-#include "core/task_ctx.h"
 #include "sched/execute_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
 #include "internal_inc/assert.h"
+#include "internal_inc/types.h"
+#include "tm/scpu_task.h"
 #include "util/name_manager.h"
 
 namespace ffrt {
@@ -115,12 +115,12 @@ void IOPoller::WaitFdEvent(int fd) noexcept
     if (!USE_COROUTINE) {
         std::unique_lock<std::mutex> lck(ctx->task->lock);
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
-            ctx->task->childWaitCond_.wait(lck);
+            reinterpret_cast<SCPUEUTask*>(ctx->task)->childWaitCond_.wait(lck);
         }
         return;
     }
 
-    CoWait([&](TaskCtx *task)->bool {
+    CoWait([&](CPUEUTask *task)->bool {
         (void)task;
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
             return true;
@@ -149,10 +149,10 @@ void IOPoller::PollOnce(int timeout) noexcept
         }
 
         if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) == 0) {
-            auto task = reinterpret_cast<TaskCtx *>(data->data);
+            auto task = reinterpret_cast<CPUEUTask *>(data->data);
             if (!USE_COROUTINE) {
                 std::unique_lock<std::mutex> lck(task->lock);
-                task->childWaitCond_.notify_one();
+                reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
             } else {
                 CoWake(task, false);
             }

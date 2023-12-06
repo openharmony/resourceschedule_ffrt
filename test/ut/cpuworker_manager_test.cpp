@@ -15,10 +15,9 @@
 
 #include <gtest/gtest.h>
 #include <thread>
-#include "core/task_ctx.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_worker.h"
-#include "eu/cpuworker_manager.h"
+#include "eu/scpuworker_manager.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/worker_thread.h"
 #include "qos.h"
@@ -55,6 +54,6 @@ protected:
  */
 HWTEST_F(CpuworkerManagerTest, NotifyTaskAdded, TestSize.Level1)
 {
-    auto *it = new CPUWorkerManager();
+    auto *it = new SCPUWorkerManager();
     it->NotifyTaskAdded(qos(5));
 }

@@ -14,8 +14,23 @@
  */
 
 #include "sdependence_manager.h"
+#ifdef FFRT_IPC_ENABLE
+#include "c/ffrt_ipc.h"
+#endif
 
 namespace ffrt {
+
+#ifdef FFRT_IPC_ENABLE
+void SetCoroutineLegacyModeCb(bool mode)
+{
+    auto task = ExecuteCtx::Cur()->task;
+    if (task && task->coRoutine) {
+        // FFRT_LOGI("=====coroutine[%lx] set mode[%d]", (uint64_t)task->coRoutine, mode); //for test
+        task->coRoutine->legacyMode = mode;
+    }
+}
+#endif
+
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
     // control construct sequences of singletons
@@ -29,7 +44,9 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(reinterpret_cast<SCPUEUTask*>(task)), true; });
-
+#ifdef FFRT_IPC_ENABLE
+    ffrt_register_set_coroutine_legacy_mode_cb(SetCoroutineLegacyModeCb);
+#endif
 #ifdef FFRT_OH_TRACE_ENABLE
         StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
         FinishTrace(HITRACE_TAG_FFRT);
@@ -157,10 +174,14 @@ void SDependenceManager::onWait()
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = ctx->task ? ctx->task : DependenceManager::Root();
     auto task = reinterpret_cast<SCPUEUTask*>(baseTask);
-    if (!USE_COROUTINE || task->parent == nullptr) {
+    bool legacyMode = task->coRoutine ? task->coRoutine->legacyMode : false;
+    if (!USE_COROUTINE || task->parent == nullptr || legacyMode) {
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+        if (legacyMode) {
+            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        }
         task->childWaitCond_.wait(lck, [task] { return task->childWaitRefCnt == 0; });
         return;
     }
@@ -219,11 +240,15 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         }
     };
 
-    if (!USE_COROUTINE || task->parent == nullptr) {
+    bool legacyMode = task->coRoutine ? task->coRoutine->legacyMode : false;
+    if (!USE_COROUTINE || task->parent == nullptr || legacyMode) {
         dataDepFun();
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+        if (legacyMode) {
+            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        }
         task->dataWaitCond_.wait(lck, [task] { return task->dataWaitRefCnt == 0; });
         return;
     }

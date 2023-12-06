@@ -27,7 +27,6 @@
                 "hilog",
                 "hisysevent",
                 "hitrace",
-                "ipc",
                 "napi",
                 "faultloggerd"
             ],
@@ -37,8 +36,9 @@
             ]
         },
         "build": {
-            "sub_component": [
+            "sub_component": [                
                 "//foundation/resourceschedule/ffrt:libffrt",
+                "//foundation/resourceschedule/ffrt:libffrt_ipc",
                 "//foundation/resourceschedule/ffrt:ffrt_ndk"
             ],
             "inner_kits": [
@@ -51,6 +51,15 @@
                         ]
                     },
                     "name": "//foundation/resourceschedule/ffrt:libffrt"
+                },
+                {
+                    "header":{
+                        "header_base":"//foundation/resourceschedule/ffrt/interfaces/",
+                        "header_files":[
+                            "inner_api/c/ffrt_ipc.h"
+                        ]
+                    },
+                    "name":"//foundation/resourceschedule/ffrt:libffrt_ipc"
                 }
             ],
             "test": [

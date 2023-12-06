@@ -112,9 +112,10 @@ void IOPoller::WaitFdEvent(int fd) noexcept
 
     epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&data)} };
     FFRT_BLOCK_TRACER(ctx->task->gid, fd);
-    if (!USE_COROUTINE) {
+    if (!USE_COROUTINE || ctx->task->coRoutine->legacyMode) {
         std::unique_lock<std::mutex> lck(ctx->task->lock);
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
+            ctx->task->coRoutine->blockType = BlockType::BLOCK_THREAD;
             reinterpret_cast<SCPUEUTask*>(ctx->task)->childWaitCond_.wait(lck);
         }
         return;
@@ -150,7 +151,11 @@ void IOPoller::PollOnce(int timeout) noexcept
 
         if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) == 0) {
             auto task = reinterpret_cast<CPUEUTask *>(data->data);
-            if (!USE_COROUTINE) {
+            bool blockThread = task ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
+            if (!USE_COROUTINE || blockThread) {
+                if (blockThread) {
+                    task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+                }
                 std::unique_lock<std::mutex> lck(task->lock);
                 reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
             } else {

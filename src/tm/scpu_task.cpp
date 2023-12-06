@@ -83,7 +83,11 @@ void SCPUEUTask::DecChildRef()
     }
     parent->denpenceStatus = Denpence::DEPENCE_INIT;
 
-    if (!USE_COROUTINE || parent->parent == nullptr) {
+    bool blockThread = parent->coRoutine ? parent->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
+    if (!USE_COROUTINE || parent->parent == nullptr || blockThread) {
+        if (blockThread) {
+            parent->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        }
         parent->childWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(parent->gid);
@@ -106,7 +110,12 @@ void SCPUEUTask::DecWaitDataRef()
         denpenceStatus = Denpence::DEPENCE_INIT;
     }
 
-    if (!USE_COROUTINE || parent == nullptr) {
+    bool blockThread =
+        (parent && parent->coRoutine) ? parent->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
+    if (!USE_COROUTINE || parent == nullptr || blockThread) {
+        if (blockThread) {
+            parent->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        }
         dataWaitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);

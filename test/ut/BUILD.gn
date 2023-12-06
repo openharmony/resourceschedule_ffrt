@@ -83,7 +83,6 @@ ohos_unittest("frame_interval_test") {
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
     "hitrace:hitrace_meter",
-    "ipc:ipc_core",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]

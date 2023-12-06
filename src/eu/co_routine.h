@@ -18,6 +18,7 @@
 #include <functional>
 #include <atomic>
 #include "co2_context.h"
+
 #if defined(__aarch64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #elif defined(__arm__)
@@ -41,6 +42,11 @@ enum class CoStatus {
 enum class CoStackProtectType {
     CO_STACK_WEAK_PROTECT,
     CO_STACK_STRONG_PROTECT
+};
+
+enum class BlockType {
+    BLOCK_COROUTINE,
+    BLOCK_THREAD
 };
 
 #if defined(__aarch64__)
@@ -71,6 +77,8 @@ struct CoRoutine {
     ffrt::CPUEUTask* task;
     CoCtx ctx;
     StackMem stkMem;
+    bool legacyMode = false;
+    BlockType blockType = BlockType::BLOCK_COROUTINE;
 };
 
 struct CoStackAttr {

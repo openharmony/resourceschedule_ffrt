@@ -211,7 +211,8 @@ void mutexPrivate::wait()
 {
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
-    if (!USE_COROUTINE || task == nullptr) {
+    bool legacyMode = task ? task->coRoutine->legacyMode : false;
+    if (!USE_COROUTINE || task == nullptr || legacyMode) {
         wlock.lock();
         if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {
             wlock.unlock();
@@ -219,6 +220,10 @@ void mutexPrivate::wait()
         }
         list.PushBack(ctx->wn.node);
         std::unique_lock<std::mutex> lk(ctx->wn.wl);
+        if (legacyMode) {
+            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+            ctx->wn.task = task;
+        }
         wlock.unlock();
         ctx->wn.cv.wait(lk);
         return;
@@ -250,9 +255,14 @@ void mutexPrivate::wake()
         return;
     }
     CPUEUTask* task = we->task;
-    if (!USE_COROUTINE || we->weType == 2) {
+    bool blockThread = (task && task->coRoutine) ? (task->coRoutine->blockType == BlockType::BLOCK_THREAD) : false;
+    if (!USE_COROUTINE || we->weType == 2 || blockThread) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         std::unique_lock lk(wue->wl);
+        if (blockThread) {
+            task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+            we->task = nullptr;
+        }
         wlock.unlock();
         wue->cv.notify_one();
     } else {

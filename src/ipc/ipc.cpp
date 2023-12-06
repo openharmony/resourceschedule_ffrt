@@ -1,0 +1,35 @@
+/*
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#include "c/ffrt_ipc.h"
+
+#include "internal_inc/osal.h"
+
+static void (*g_this_task_set_legacy_mode_cb)(bool) = nullptr;
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_register_set_coroutine_legacy_mode_cb(void (*cb)(bool))
+{
+    if (g_this_task_set_legacy_mode_cb == nullptr) {
+        g_this_task_set_legacy_mode_cb = cb;
+    }
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_this_task_set_legacy_mode(bool mode)
+{
+    if (g_this_task_set_legacy_mode_cb) {
+        g_this_task_set_legacy_mode_cb(mode);
+    }
+}

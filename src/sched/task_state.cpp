@@ -14,7 +14,6 @@
  */
 
 #include "sched/task_state.h"
-#include "core/task_ctx.h"
 #include "sched/task_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
@@ -22,7 +21,7 @@
 namespace ffrt {
 std::array<TaskState::Op, static_cast<size_t>(TaskState::MAX)> TaskState::ops;
 
-int TaskState::OnTransition(State state, TaskCtx* task, Op&& op)
+int TaskState::OnTransition(State state, CPUEUTask* task, Op&& op)
 {
     if (task == nullptr) {
         FFRT_LOGE("task nullptr");
@@ -70,7 +69,7 @@ uint64_t TaskState::TaskStateStat::RunningTime() const
     return CalcDuration(TaskState::RUNNING, TaskState::EXITED);
 }
 
-void TaskState::TaskStateStat::Count(TaskCtx* task)
+void TaskState::TaskStateStat::Count(CPUEUTask* task)
 {
     Count(task->state.CurState());
     TaskManager::Instance().TaskStateCount(task);

@@ -21,17 +21,15 @@
 #include "eu/worker_manager.h"
 #include "eu/thread_group.h"
 #include "eu/cpu_monitor.h"
-#include "core/task_ctx.h"
 #include "internal_inc/osal.h"
+#include "util/cb_func.h"
 
 namespace ffrt {
 class ExecuteUnit {
 public:
-    static ExecuteUnit& Instance()
-    {
-        static ExecuteUnit eu;
-        return eu;
-    }
+    static ExecuteUnit& Instance();
+
+    static void RegistInsCb(SingleInsCB<ExecuteUnit>::Instance &&cb);
 
     ThreadGroup* BindTG(const DevType dev, QoS& qos);
     void UnbindTG(const DevType dev, QoS& qos);
@@ -68,7 +66,7 @@ public:
         return wManager[static_cast<size_t>(DevType::CPU)]->GetCPUMonitor();
     }
 
-private:
+protected:
     ExecuteUnit();
 
     std::array<std::unique_ptr<WorkerManager>, static_cast<size_t>(DevType::DEVMAX)> wManager;

@@ -16,7 +16,6 @@
 #ifndef FFRT_CPU_MANAGER_INTERFACE_HPP
 #define FFRT_CPU_MANAGER_INTERFACE_HPP
 
-#include "core/task_ctx.h"
 #include "eu/worker_thread.h"
 #include "qos.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -24,6 +23,7 @@
 #define LOCAL_QUEUE_SIZE 128
 #define STEAL_BUFFER_SIZE (LOCAL_QUEUE_SIZE - LOCAL_QUEUE_SIZE / 2)
 #endif
+#include "tm/cpu_task.h"
 
 namespace ffrt {
 enum class WorkerAction {
@@ -40,15 +40,21 @@ enum class TaskNotifyType {
 #endif
 };
 
+enum class SleepType {
+    SLEEP_UNTIL_WAKEUP = 0,
+    SLEEP_UNTIL_INTERRUPT,
+};
+
 struct CpuWorkerOps {
-    std::function<TaskCtx* (WorkerThread*)> PickUpTask;
+    std::function<CPUEUTask* (WorkerThread*)> PickUpTask;
     std::function<void (const WorkerThread*)> NotifyTaskPicked;
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;
     std::function<void (WorkerThread*)> WorkerRetired;
+    std::function<void (WorkerThread*)> WorkerPrepare;
 #ifdef FFRT_IO_TASK_SCHEDULER
     std::function<PollerRet (const WorkerThread*, int timeout)> TryPoll;
     std::function<unsigned int (WorkerThread*)> StealTaskBatch;
-    std::function<TaskCtx* (WorkerThread*)> PickUpTaskBatch;
+    std::function<CPUEUTask* (WorkerThread*)> PickUpTaskBatch;
     std::function<void (WorkerThread*)> TryMoveLocal2Global;
 #endif
 };

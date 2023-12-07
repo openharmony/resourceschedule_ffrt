@@ -19,7 +19,7 @@
 #include "ffrt_trace.h"
 
 namespace ffrt {
-static inline void BuildConsumeRelationship(VersionCtx* version, TaskCtx* consumer)
+static inline void BuildConsumeRelationship(VersionCtx* version, SCPUEUTask* consumer)
 {
     if (version->status == DataStatus::IDLE) {
         consumer->IncDepRef();
@@ -30,7 +30,7 @@ static inline void BuildConsumeRelationship(VersionCtx* version, TaskCtx* consum
     }
 }
 
-static inline void BuildProducerProducerRelationship(VersionCtx* preVersion, TaskCtx* nextProducer)
+static inline void BuildProducerProducerRelationship(VersionCtx* preVersion, SCPUEUTask* nextProducer)
 {
     if (preVersion->status != DataStatus::CONSUMED) {
         preVersion->nextProducer = nextProducer;
@@ -38,7 +38,7 @@ static inline void BuildProducerProducerRelationship(VersionCtx* preVersion, Tas
     }
 }
 
-void VersionCtx::AddConsumer(TaskCtx* consumer, NestType nestType)
+void VersionCtx::AddConsumer(SCPUEUTask* consumer, NestType nestType)
 {
     FFRT_TRACE_SCOPE(2, AddConsumer);
     // Parent's VersionCtx
@@ -54,7 +54,7 @@ void VersionCtx::AddConsumer(TaskCtx* consumer, NestType nestType)
     consumer->ins.insert(beConsumeVersion);
 }
 
-void VersionCtx::AddProducer(TaskCtx* producer)
+void VersionCtx::AddProducer(SCPUEUTask* producer)
 {
     FFRT_TRACE_SCOPE(2, AddAddProducer);
     // Parent's VersionCtx
@@ -89,7 +89,7 @@ void VersionCtx::onProduced()
     }
 }
 
-void VersionCtx::onConsumed(TaskCtx* consumer)
+void VersionCtx::onConsumed(SCPUEUTask* consumer)
 {
     auto it = std::as_const(consumers).find(consumer);
     if (it != consumers.end()) {
@@ -102,7 +102,7 @@ void VersionCtx::onConsumed(TaskCtx* consumer)
     }
 }
 
-void VersionCtx::CreateChildVersion(TaskCtx* task __attribute__((unused)), DataStatus dataStatus)
+void VersionCtx::CreateChildVersion(SCPUEUTask* task __attribute__((unused)), DataStatus dataStatus)
 {
     // Add VersionCtx
     auto prev = last;

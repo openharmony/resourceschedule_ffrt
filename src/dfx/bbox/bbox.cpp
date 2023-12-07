@@ -35,7 +35,7 @@ static std::atomic<unsigned int> g_taskFinishCounter(0);
 #ifdef FFRT_IO_TASK_SCHEDULER
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 #endif
-static TaskCtx* g_cur_task;
+static CPUEUTask* g_cur_task;
 std::mutex bbox_handle_lock;
 std::condition_variable bbox_handle_end;
 
@@ -87,11 +87,6 @@ static inline void SaveCurrent()
             FFRT_BBOX_LOG("current: thread id %u, task id %lu, qos %d, name %s", gettid(),
                 t->gid, t->qos(), t->label.c_str());
         }
-        // change coroutine status to avoid costart again
-        if (t->coRoutine &&
-            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
-            t->coRoutine->status.store(static_cast<int>(CoStatus::CO_RUNNING));
-        }
     }
 }
 
@@ -120,7 +115,7 @@ static inline void SaveWorkerStatus()
     for (int i = 0; i < _qos() + 1; i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
-            TaskCtx* t = thread.first->curTask;
+            CPUEUTask* t = thread.first->curTask;
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());
                 continue;
@@ -144,7 +139,7 @@ static inline void SaveReadyQueueStatus()
         }
 
         for (int j = 0; j < nt; j++) {
-            TaskCtx* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
+            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i + 1, j, nt);
                 continue;
@@ -159,8 +154,8 @@ static inline void SaveReadyQueueStatus()
 
 static inline void SaveTaskStatus()
 {
-    auto unfree = SimpleAllocator<TaskCtx>::getUnfreedMem();
-    auto apply = [&](const char* tag, const std::function<bool(TaskCtx*)>& filter) {
+    auto unfree = SimpleAllocator<CPUEUTask>::getUnfreedMem();
+    auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         decltype(unfree) tmp;
         for (auto t : unfree) {
             if (filter(t)) {
@@ -177,20 +172,21 @@ static inline void SaveTaskStatus()
                 FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx++,
                     tmp.size(), t->gid, t->qos(), t->label.c_str());
             }
-            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))
+                && t != g_cur_task) {
                 CoStart(t);
             }
         }
     };
 
-    apply("blocked by synchronization primitive(mutex etc)", [](TaskCtx* t) {
+    apply("blocked by synchronization primitive(mutex etc)", [](CPUEUTask* t) {
         return (t->state == TaskState::RUNNING) && t->coRoutine &&
-            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH) && t != g_cur_task;
     });
-    apply("blocked by task dependence", [](TaskCtx* t) {
+    apply("blocked by task dependence", [](CPUEUTask* t) {
         return t->state == TaskState::BLOCKED;
     });
-    apply("pending task", [](TaskCtx* t) {
+    apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
     });
 }
@@ -211,7 +207,7 @@ void backtrace(int ignoreDepth)
     FFRT_BBOX_LOG("backtrace");
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::string dumpInfo;
-    TaskCtx::DumpTask(nullptr, dumpInfo);
+    CPUEUTask::DumpTask(nullptr, dumpInfo);
 #endif
 }
 
@@ -359,7 +355,7 @@ std::string SaveWorkerStatusInfo(void)
     for (int i = 0; i < _qos() + 1; i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
-            TaskCtx* t = thread.first->curTask;
+            CPUEUTask* t = thread.first->curTask;
             if (t == nullptr) {
                 ss << "qos " << i << ": worker tid " << thread.first->Id()
                    << " is running nothing" << std::endl;
@@ -386,7 +382,7 @@ std::string SaveReadyQueueStatusInfo()
         }
 
         for (int j = 0; j < nt; j++) {
-            TaskCtx* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
+            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
                 ss << "qos " << (i + 1) << ": ready queue task <" << j << "/" << nt << ">"
                    << " null" << std::endl;
@@ -405,8 +401,8 @@ std::string SaveTaskStatusInfo(void)
 {
     std::string ffrtStackInfo;
     std::ostringstream ss;
-    auto unfree = SimpleAllocator<TaskCtx>::getUnfreedMem();
-    auto apply = [&](const char* tag, const std::function<bool(TaskCtx*)>& filter) {
+    auto unfree = SimpleAllocator<CPUEUTask>::getUnfreedMem();
+    auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         decltype(unfree) tmp;
         for (auto t : unfree) {
             if (filter(t)) {
@@ -428,20 +424,20 @@ std::string SaveTaskStatusInfo(void)
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
                 std::string dumpInfo;
-                TaskCtx::DumpTask(t, dumpInfo, 1);
+                CPUEUTask::DumpTask(t, dumpInfo, 1);
                 ffrtStackInfo += dumpInfo;
             }
         }
     };
 
-    apply("blocked by synchronization primitive(mutex etc)", [](TaskCtx* t) {
+    apply("blocked by synchronization primitive(mutex etc)", [](CPUEUTask* t) {
         return (t->state == TaskState::RUNNING) && t->coRoutine &&
             t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
     });
-    apply("blocked by task dependence", [](TaskCtx* t) {
+    apply("blocked by task dependence", [](CPUEUTask* t) {
         return t->state == TaskState::BLOCKED;
     });
-    apply("pending task", [](TaskCtx* t) {
+    apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
     });
 

@@ -207,31 +207,6 @@ size_t CPUMonitor::CountBlockedNum(const QoS& qos)
     return 0;
 }
 
-void CPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
-{
-    int taskCount = ops.GetTaskCount(qos);
-    FFRT_LOGD("qos[%d] task notify op[%d] cnt[%ld]", static_cast<int>(qos), static_cast<int>(notifyType), taskCount);
-    switch (notifyType) {
-        case TaskNotifyType::TASK_ADDED:
-            if (taskCount > 0) {
-                Poke(qos);
-            }
-            break;
-        case TaskNotifyType::TASK_PICKED:
-            if (taskCount > 0) {
-                Poke(qos);
-            }
-            break;
-#ifdef FFRT_IO_TASK_SCHEDULER
-        case TaskNotifyType::TASK_LOCAL:
-                Poke(qos);
-            break;
-#endif
-        default:
-            break;
-    }
-}
-
 void CPUMonitor::TimeoutCount(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -257,15 +232,6 @@ int CPUMonitor::WakedWorkerNum(const QoS& qos)
     return workerCtrl.executionNum;
 }
 #endif
-
-void CPUMonitor::IntoSleep(const QoS& qos)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    workerCtrl.sleepingWorkerNum++;
-    workerCtrl.executionNum--;
-    workerCtrl.lock.unlock();
-}
 
 void CPUMonitor::IntoDeepSleep(const QoS& qos)
 {

@@ -14,12 +14,12 @@
  */
 
 #include "wait_queue.h"
-#include "sched/execute_ctx.h"
-#include "core/task_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
+#include "internal_inc/types.h"
 #include "sync/mutex_private.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
 TaskWithNode::TaskWithNode()
@@ -66,14 +66,14 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
 void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 {
     ExecuteCtx* ctx = ExecuteCtx::Cur();
-    TaskCtx* task = ctx->task;
+    CPUEUTask* task = ctx->task;
     if (!USE_COROUTINE || ctx->task == nullptr) {
         ThreadWait(&ctx->wn, lk);
         return;
     }
     task->wue = new WaitUntilEntry(task);
     FFRT_BLOCK_TRACER(task->gid, cnd);
-    CoWait([&](TaskCtx* inTask) -> bool {
+    CoWait([&](CPUEUTask* inTask) -> bool {
         wqlock.lock();
         push_back(inTask->wue);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
@@ -111,7 +111,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
 {
     bool ret = false;
     ExecuteCtx* ctx = ExecuteCtx::Cur();
-    TaskCtx* task = ctx->task;
+    CPUEUTask* task = ctx->task;
     if (!USE_COROUTINE || task == nullptr) {
         return ThreadWaitUntil(&ctx->wn, lk, tp);
     }
@@ -121,7 +121,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     task->wue->tp = tp;
     task->wue->cb = ([&](WaitEntry* we) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
-        ffrt::TaskCtx* task = wue->task;
+        ffrt::CPUEUTask* task = wue->task;
         if (!WeTimeoutProc(this, wue)) {
             return;
         }
@@ -129,7 +129,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         CoWake(task, true);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
-    CoWait([&](TaskCtx* inTask) -> bool {
+    CoWait([&](CPUEUTask* inTask) -> bool {
         WaitUntilEntry* we = inTask->wue;
         wqlock.lock();
         push_back(we);
@@ -179,7 +179,7 @@ void WaitQueue::NotifyOne() noexcept
     wqlock.lock();
     while (!empty()) {
         WaitUntilEntry* we = pop_front();
-        TaskCtx* task = we->task;
+        CPUEUTask* task = we->task;
         if (!USE_COROUTINE || we->weType == 2) {
             std::unique_lock<std::mutex> lk(we->wl);
             wqlock.unlock();
@@ -201,7 +201,7 @@ void WaitQueue::NotifyAll() noexcept
     wqlock.lock();
     while (!empty()) {
         WaitUntilEntry* we = pop_front();
-        TaskCtx* task = we->task;
+        CPUEUTask* task = we->task;
         if (!USE_COROUTINE || we->weType == 2) {
             std::unique_lock<std::mutex> lk(we->wl);
             wqlock.unlock();

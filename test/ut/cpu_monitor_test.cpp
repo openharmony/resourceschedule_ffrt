@@ -18,8 +18,8 @@
 #include <gtest/gtest.h>
 #include <thread>
 #include "eu/cpu_worker.h"
-#include "eu/cpuworker_manager.h"
-#include "eu/cpu_monitor.h"
+#include "eu/scpuworker_manager.h"
+#include "eu/scpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/worker_thread.h"
 #include "qos.h"
@@ -60,8 +60,8 @@ protected:
  */
 HWTEST_F(CpuMonitorTest, GetMonitorTid, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -79,8 +79,8 @@ HWTEST_F(CpuMonitorTest, GetMonitorTid, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, HandleBlocked, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -97,8 +97,8 @@ HWTEST_F(CpuMonitorTest, HandleBlocked, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, DecExeNumRef, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -115,8 +115,8 @@ HWTEST_F(CpuMonitorTest, DecExeNumRef, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, IncSleepingRef, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -133,8 +133,8 @@ HWTEST_F(CpuMonitorTest, IncSleepingRef, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, DecSleepingRef, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -151,8 +151,8 @@ HWTEST_F(CpuMonitorTest, DecSleepingRef, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -169,8 +169,8 @@ HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, WakeupCount, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -187,8 +187,8 @@ HWTEST_F(CpuMonitorTest, WakeupCount, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -205,8 +205,8 @@ HWTEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, RegWorker, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -223,8 +223,8 @@ HWTEST_F(CpuMonitorTest, RegWorker, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, UnRegWorker, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
@@ -241,8 +241,8 @@ HWTEST_F(CpuMonitorTest, UnRegWorker, TestSize.Level1)
  */
 HWTEST_F(CpuMonitorTest, Notify, TestSize.Level1)
 {
-    CPUWorkerManager *it = new CPUWorkerManager();
-    CPUMonitor cpu({
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});

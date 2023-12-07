@@ -24,13 +24,12 @@
 #include <chrono>
 
 namespace ffrt {
-struct TaskCtx;
+class CPUEUTask;
 
 class TaskState {
 public:
     enum State { PENDING, READY, RUNNING, BLOCKED, EXITED, MAX };
-
-    using Op = typename std::function<bool(TaskCtx*)>;
+    using Op = typename std::function<bool(CPUEUTask*)>;
 
     TaskState() = default;
 
@@ -100,7 +99,7 @@ public:
         ops[static_cast<size_t>(state)] = op;
     }
 
-    static int OnTransition(State state, TaskCtx* task, Op&& op = Op());
+    static int OnTransition(State state, CPUEUTask* task, Op&& op = Op());
 
     static const char* String(State state)
     {
@@ -115,7 +114,7 @@ private:
         uint64_t WaitingTime() const;
         uint64_t RunningTime() const;
 
-        inline void Count(TaskCtx* task);
+        inline void Count(CPUEUTask* task);
 
     private:
         inline void Count(TaskState::State state);

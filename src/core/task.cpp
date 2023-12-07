@@ -21,7 +21,8 @@
 #include "internal_inc/osal.h"
 #include "sync/io_poller.h"
 #include "qos.h"
-#include "dependence_manager.h"
+#include "sched/task_scheduler.h"
+#include "dm/dependence_manager.h"
 #include "task_attr_private.h"
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
@@ -30,17 +31,19 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
+#include "eu/sexecute_unit.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "core/task_io.h"
 #include "sync/poller.h"
 #include "queue/queue.h"
 #endif
+#include "tm/task_factory.h"
+
 namespace ffrt {
-template <int WITH_HANDLE>
-inline void submit_impl(ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
-    DependenceManager::Instance()->onSubmit<WITH_HANDLE>(handle, f, ins, outs, attr);
+    DependenceManager::Instance().onSubmit(has_handle, handle, f, ins, outs, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -52,7 +55,7 @@ void sync_io(int fd)
 API_ATTRIBUTE((visibility("default")))
 void set_trace_tag(const char* name)
 {
-    TaskCtx* curTask = ffrt::ExecuteCtx::Cur()->task;
+    CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask != nullptr) {
         curTask->SetTraceTag(name);
     }
@@ -61,7 +64,7 @@ void set_trace_tag(const char* name)
 API_ATTRIBUTE((visibility("default")))
 void clear_trace_tag()
 {
-    TaskCtx* curTask = ffrt::ExecuteCtx::Cur()->task;
+    CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask != nullptr) {
         curTask->ClearTraceTag();
     }
@@ -82,7 +85,7 @@ void create_delay_deps(
         FFRT_LOGI("submit task delay time [%d us] has ended.", delayUs);
     };
     ffrt_function_header_t *delay_func = create_function_wrapper(std::move(func));
-    submit_impl<1>(handle, delay_func, nullptr, nullptr, reinterpret_cast<task_attr_private *>(p));
+    submit_impl(true, handle, delay_func, nullptr, nullptr, reinterpret_cast<task_attr_private *>(p));
 }
 } // namespace ffrt
 
@@ -182,7 +185,7 @@ API_ATTRIBUTE((visibility("default")))
 void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
 {
     if (kind == ffrt_function_kind_general) {
-        return ffrt::SimpleAllocator<ffrt::TaskCtx>::allocMem()->func_storage;
+        return ffrt::TaskFactory::Alloc()->func_storage;
     }
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (kind == ffrt_function_kind_io) {
@@ -203,7 +206,7 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     ffrt_task_handle_t handle;
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
-        ffrt::submit_impl<0>(handle, f, in_deps, out_deps, p);
+        ffrt::submit_impl(false, handle, f, in_deps, out_deps, p);
         return;
     }
 
@@ -212,7 +215,7 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
-    ffrt::submit_impl<0>(handle, f, &delay_deps, nullptr, p);
+    ffrt::submit_impl(false, handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
 }
 
@@ -224,19 +227,19 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
         FFRT_LOGE("function handler should not be empty");
         return nullptr;
     }
-    ffrt_task_handle_t handle;
+    ffrt_task_handle_t handle = nullptr;
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
-        ffrt::submit_impl<1>(handle, f, in_deps, out_deps, p);
+        ffrt::submit_impl(true, handle, f, in_deps, out_deps, p);
         return handle;
     }
 
     // task after delay
-    ffrt_task_handle_t delay_handle;
+    ffrt_task_handle_t delay_handle = nullptr;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
-    ffrt::submit_impl<1>(handle, f, &delay_deps, nullptr, p);
+    ffrt::submit_impl(true, handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
     return handle;
 }
@@ -256,7 +259,7 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
         return;
     }
 #endif
-    static_cast<ffrt::TaskCtx*>(handle)->DecDeleteRef();
+    static_cast<ffrt::CPUEUTask*>(handle)->DecDeleteRef();
 }
 
 // wait
@@ -272,13 +275,13 @@ void ffrt_wait_deps(const ffrt_deps_t *deps)
         v[i] = deps->items[i];
     }
     ffrt_deps_t d = { deps->len, v.data() };
-    ffrt::DependenceManager::Instance()->onWait(&d);
+    ffrt::DependenceManager::Instance().onWait(&d);
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wait()
 {
-    ffrt::DependenceManager::Instance()->onWait();
+    ffrt::DependenceManager::Instance().onWait();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -295,9 +298,8 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
-    ffrt::QoS _qos = ffrt::QoS(qos);
-    if (((qos != ffrt::qos_default) && (_qos() == ffrt::qos_default)) || (qos <= ffrt::qos_inherit))
-    {
+    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
+    if (((qos != ffrt::qos_default) && (_qos() == ffrt::qos_default)) || (qos <= ffrt::qos_inherit)) {
         FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
     }
@@ -344,7 +346,7 @@ int ffrt_skip(ffrt_task_handle_t handle)
         FFRT_LOGE("input ffrt task handle is invalid.");
         return -1;
     }
-    ffrt::TaskCtx *task = static_cast<ffrt::TaskCtx*>(handle);
+    ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
         __ATOMIC_RELAXED)) {
@@ -392,17 +394,16 @@ int ffrt_poller_register_timerfunc(ffrt_timer_func timerFunc)
     return ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimerFunc(timerFunc);
 }
 #endif
-
 API_ATTRIBUTE((visibility("default")))
-void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr)
+void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr)
 {
     if (task == nullptr) {
         FFRT_LOGE("function handler should not be empty");
         return;
     }
-    ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
+    ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
-        ffrt::DependenceManager::Instance()->onSubmitUV(task, p);
+        ffrt::DependenceManager::Instance().onSubmitUV(task, p);
         return;
     }
     FFRT_LOGE("uv function not supports delay");
@@ -416,7 +417,7 @@ void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executo
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
+int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
 {
     if (task == nullptr) {
         FFRT_LOGE("function handler should not be empty");
@@ -428,7 +429,6 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
     return static_cast<int>(sch->RemoveNode(node, _qos));
 }
-
 #ifdef __cplusplus
 }
 #endif

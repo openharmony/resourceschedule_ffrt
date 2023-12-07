@@ -22,12 +22,13 @@
 #include <map>
 #include <functional>
 #include "sync/sync.h"
-#include "core/task_ctx.h"
 #include "eu/co_routine.h"
 #include "internal_inc/osal.h"
+#include "internal_inc/types.h"
 #include "sync/mutex_private.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
 bool mutexPrivate::try_lock()
@@ -86,6 +87,12 @@ bool RecursiveMutexPrivate::try_lock()
             mt.lock();
             fMutex.lock();
             taskLockNums = std::make_pair(GetTid(), 1);
+            fMutex.unlock();
+            return true;
+        }
+
+        if (taskLockNums.first == GetTid()) {
+            taskLockNums.second += 1;
             fMutex.unlock();
             return true;
         }
@@ -180,7 +187,7 @@ void RecursiveMutexPrivate::unlock()
     if (taskLockNums.second == 1) {
         taskLockNums = std::make_pair(UINT64_MAX, 0);
         fMutex.unlock();
-        mt.lock();
+        mt.unlock();
         return;
     }
     
@@ -217,7 +224,7 @@ void mutexPrivate::wait()
         return;
     } else {
         FFRT_BLOCK_TRACER(task->gid, mtx);
-        CoWait([this](TaskCtx* inTask) -> bool {
+        CoWait([this](CPUEUTask* inTask) -> bool {
             wlock.lock();
             if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {
                 wlock.unlock();
@@ -242,7 +249,7 @@ void mutexPrivate::wake()
         wlock.unlock();
         return;
     }
-    TaskCtx* task = we->task;
+    CPUEUTask* task = we->task;
     if (!USE_COROUTINE || we->weType == 2) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         std::unique_lock lk(wue->wl);

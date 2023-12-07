@@ -19,8 +19,8 @@
 #include <vector>
 #include <string>
 
-#include "core/task_ctx.h"
 #include "internal_inc/types.h"
+#include "tm/scpu_task.h"
 namespace ffrt {
 /* The relationship of VersionCtx is implemented using a doubly linked list：
  * 0、data represents the root node of this data signature
@@ -40,18 +40,18 @@ struct VersionCtx : private NonCopyable {
     VersionCtx* last {nullptr};
 
     // Current version's consumers, notify all when ready
-    std::unordered_set<TaskCtx*> consumers;
+    std::unordered_set<SCPUEUTask*> consumers;
     // Current version's producer
-    TaskCtx* myProducer {nullptr};
+    SCPUEUTask* myProducer {nullptr};
     // Next version's producer, notify when consumed
-    TaskCtx* nextProducer {nullptr};
+    SCPUEUTask* nextProducer {nullptr};
 
     DataStatus status {DataStatus::IDLE};
-    std::vector<TaskCtx*> dataWaitTaskByThis;
+    std::vector<SCPUEUTask*> dataWaitTaskByThis;
 
-    void AddConsumer(TaskCtx* consumer, NestType nestType);
-    void AddProducer(TaskCtx* producer);
-    inline void AddDataWaitTaskByThis(TaskCtx* dataWaitTask)
+    void AddConsumer(SCPUEUTask* consumer, NestType nestType);
+    void AddProducer(SCPUEUTask* producer);
+    inline void AddDataWaitTaskByThis(SCPUEUTask* dataWaitTask)
     {
         if (last != nullptr && last->status == DataStatus::IDLE) {
             auto waitVersion = last;
@@ -60,9 +60,9 @@ struct VersionCtx : private NonCopyable {
         }
     }
     void onProduced();
-    void onConsumed(TaskCtx* consumer);
+    void onConsumed(SCPUEUTask* consumer);
 protected:
-    void CreateChildVersion(TaskCtx* task, DataStatus dataStatus);
+    void CreateChildVersion(SCPUEUTask* task, DataStatus dataStatus);
     void MergeChildVersion();
     inline void NotifyDataWaitTask()
     {

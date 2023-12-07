@@ -12,10 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <util/task_deleter.h>
+
+#ifndef CO_ROUTINE_FACTORY_HPP
+#define CO_ROUTINE_FACTORY_HPP
+
+#include "eu/co_routine.h"
 
 namespace ffrt {
-static std::atomic_uint64_t s_gid(0);
 
-TaskDeleter::TaskDeleter() : gid(++s_gid) {}
+CoRoutine *CoRoutineAllocMem(std::size_t stack_size);
+void CoRoutineFreeMem(CoRoutine *co);
+void CoRoutineReleaseMem();
+void CoRoutineInstance(std::size_t size);
+
 } // namespace ffrt
+
+#endif

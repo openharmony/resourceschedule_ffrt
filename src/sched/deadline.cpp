@@ -17,7 +17,7 @@
 #include "c/deadline.h"
 #include "internal_inc/osal.h"
 #include "sched/interval.h"
-#include "core/dependence_manager.h"
+#include "dm/dependence_manager.h"
 #include "sched/frame_interval.h"
 #include "dfx/log/ffrt_log_api.h"
 

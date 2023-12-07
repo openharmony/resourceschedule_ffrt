@@ -24,10 +24,9 @@
 #include "sync/poller.h"
 #include "queue/queue.h"
 #endif
+#include "tm/cpu_task.h"
 
 namespace ffrt {
-constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000000;
-
 struct WorkerSleepCtl {
     std::mutex mutex;
     std::condition_variable cv;
@@ -37,30 +36,8 @@ class CPUWorkerManager : public WorkerManager {
 public:
     CPUWorkerManager();
 
-    ~CPUWorkerManager() override
+    virtual ~CPUWorkerManager() override
     {
-        tearDown = true;
-        for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
-            int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
-            while (try_cnt--) {
-#ifdef FFRT_IO_TASK_SCHEDULER
-                pollersMtx[qos].unlock();
-                PollerProxy::Instance()->GetPoller(qos).WakeUp();
-#endif
-                sleepCtl[qos].cv.notify_all();
-                {
-                    usleep(1);
-                    std::shared_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
-                    if (groupCtl[qos].threads.empty()) {
-                        break;
-                    }
-                }
-            }
-
-            if (try_cnt <= 0) {
-                FFRT_LOGE("erase qos[%d] threads failed", qos);
-            }
-        }
     }
 
     void NotifyTaskAdded(const QoS& qos) override;
@@ -97,31 +74,37 @@ public:
 #endif
     CPUMonitor* GetCPUMonitor() override
     {
-        return &monitor;
+        return monitor;
     }
+
+protected:
+    bool IncWorker(const QoS& qos) override;
+    int GetTaskCount(const QoS& qos);
+    void WakeupWorkers(const QoS& qos);
+
+    CPUMonitor* monitor = nullptr;
+    bool tearDown = false;
+    WorkerSleepCtl sleepCtl[QoS::Max()];
+
+protected:
+    virtual void WorkerPrepare(WorkerThread* thread) = 0;
+
 private:
     bool WorkerTearDown();
-    bool IncWorker(const QoS& qos) override;
     bool DecWorker() override
     {return false;}
-    void WakeupWorkers(const QoS& qos);
-    int GetTaskCount(const QoS& qos);
     void WorkerRetired(WorkerThread* thread);
-    TaskCtx* PickUpTask(WorkerThread* thread);
+    CPUEUTask* PickUpTask(WorkerThread* thread);
     void NotifyTaskPicked(const WorkerThread* thread);
-    WorkerAction WorkerIdleAction(const WorkerThread* thread);
+    virtual WorkerAction WorkerIdleAction(const WorkerThread* thread) = 0;
     void WorkerJoinTg(const QoS& qos, pid_t pid);
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
-
-    CPUMonitor monitor;
-    WorkerSleepCtl sleepCtl[QoS::Max()];
-    bool tearDown = false;
 
 #ifdef FFRT_IO_TASK_SCHEDULER
     void WorkerSetup(WorkerThread* thread);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);
     unsigned int StealTaskBatch(WorkerThread* thread);
-    TaskCtx* PickUpTaskBatch(WorkerThread* thread);
+    CPUEUTask* PickUpTaskBatch(WorkerThread* thread);
     void TryMoveLocal2Global(WorkerThread* thread);
     fast_mutex pollersMtx[QoS::Max()];
     std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};

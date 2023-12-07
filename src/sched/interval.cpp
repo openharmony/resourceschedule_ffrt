@@ -15,7 +15,7 @@
 
 #include "sched/interval.h"
 
-#include "core/dependence_manager.h"
+#include "dm/dependence_manager.h"
 #include "eu/execute_unit.h"
 #include "ffrt_trace.h"
 

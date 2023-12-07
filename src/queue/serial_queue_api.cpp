@@ -14,7 +14,7 @@
  */
 
 #include "cpp/queue.h"
-#include "core/dependence_manager.h"
+#include "dm/dependence_manager.h"
 #include "serial_handler.h"
 #include "serial_task.h"
 

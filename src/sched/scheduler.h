@@ -28,6 +28,9 @@
 #include "sync/sync.h"
 #include "sched/task_scheduler.h"
 #include "eu/worker_thread.h"
+#include "tm/cpu_task.h"
+#include "util/cb_func.h"
+#include "dfx/bbox/bbox.h"
 
 namespace ffrt {
 class FFRTScheduler {
@@ -36,14 +39,14 @@ public:
     FFRTScheduler& operator=(const FFRTScheduler&) = delete;
     ~FFRTScheduler()
     {
+        for (int i = 0; i < QoS::Max(); i++) {
+            SchedulerFactory::Recycle(fifoQue[i]);
+        }
     }
 
     // 获取调度器的单例
-    static inline FFRTScheduler* Instance()
-    {
-        static FFRTScheduler sched;
-        return &sched;
-    }
+    static FFRTScheduler* Instance();
+    static void RegistInsCb(SingleInsCB<FFRTScheduler>::Instance &&cb);
 
 #ifdef QOS_DEPENDENCY
     void onWait(const std::vector<VersionCtx*>& waitDatas, int64_t deadline)
@@ -62,18 +65,18 @@ public:
     }
 #endif
 
-    FIFOScheduler& GetScheduler(const QoS& qos)
+    TaskScheduler& GetScheduler(const QoS& qos)
     {
-        return fifoQue[static_cast<size_t>(qos)];
+        return *fifoQue[static_cast<size_t>(qos)];
     }
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-    void PushTask(TaskCtx* task)
+    void PushTask(CPUEUTask* task)
     {
         int level = task->qos();
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
-        fifoQue[static_cast<size_t>(level)].WakeupTask(task);
+        fifoQue[static_cast<size_t>(level)]->WakeupTask(task);
         lock->unlock();
         ExecuteUnit::Instance().NotifyTaskAdded(level);
     }
@@ -83,13 +86,13 @@ public:
         if (task == nullptr) return false;
         int level = qos();
         ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
-        fifoQue[static_cast<size_t>(level)].WakeupNode(node);
+        fifoQue[static_cast<size_t>(level)]->WakeupNode(node);
         ExecuteUnit::Instance().NotifyTaskAdded(level);
         return true;
     }
 #endif
 
-    bool WakeupTask(TaskCtx* task)
+    bool WakeupTask(CPUEUTask* task)
     {
         int qos_level = static_cast<int>(qos_default);
         if (task != nullptr) {
@@ -102,7 +105,7 @@ public:
         int level = _qos();
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
-        fifoQue[static_cast<size_t>(level)].WakeupTask(task);
+        fifoQue[static_cast<size_t>(level)]->WakeupTask(task);
         lock->unlock();
         FFRT_LOGD("qos[%d] task[%lu] entered q", level, task->gid);
         ExecuteUnit::Instance().NotifyTaskAdded(level);
@@ -117,7 +120,7 @@ public:
         }
         auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
         lock->lock();
-        fifoQue[static_cast<size_t>(qos_level)].WakeupNode(node);
+        fifoQue[static_cast<size_t>(qos_level)]->WakeupNode(node);
         lock->unlock();
         ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
         return true;
@@ -135,7 +138,7 @@ public:
             lock->unlock();
             return false;
         }
-        fifoQue[static_cast<size_t>(qos_level)].RemoveNode(node);
+        fifoQue[static_cast<size_t>(qos_level)]->RemoveNode(node);
         lock->unlock();
 #ifdef FFRT_BBOX_ENABLE
         TaskFinishCounterInc();
@@ -143,15 +146,20 @@ public:
         return true;
     }
 
-private:
+protected:
     FFRTScheduler()
     {
         TaskState::RegisterOps(TaskState::READY, std::bind(&FFRTScheduler::WakeupTask, this, std::placeholders::_1));
+        for (int i = 0; i < QoS::Max(); i++) {
+            fifoQue[i] = SchedulerFactory::Alloc();
+        }
     }
-    std::array<FIFOScheduler, QoS::Max()> fifoQue;
+
+private:
+    std::array<TaskScheduler*, QoS::Max()> fifoQue;
 
 #ifdef QOS_DEPENDENCY
-    void resetDeadline(TaskCtx* task, int64_t deadline)
+    void resetDeadline(CPUEUTask* task, int64_t deadline)
     {
         auto it = std::find_if(readyTasks.begin(), readyTasks.end(), [task](auto& p) { return p.second == task; });
         if (it == readyTasks.end()) {
@@ -162,7 +170,7 @@ private:
         task->qos.deadline.absolute = deadline;
         readyTasks.insert(std::move(node));
     }
-    void updateTask(TaskCtx* task, int64_t deadline)
+    void updateTask(CPUEUTask* task, int64_t deadline)
     {
         if (task == nullptr) {
             return;
@@ -174,7 +182,7 @@ private:
         }
         updateChildTask(task, deadline);
     }
-    void updateChildTask(TaskCtx* task, int64_t deadline)
+    void updateChildTask(CPUEUTask* task, int64_t deadline)
     {
         (void)task;
         (void)deadline;
@@ -191,6 +199,19 @@ private:
         updateVersion(data->preVersion, deadline);
     }
 #endif
+};
+
+class SFFRTScheduler : public FFRTScheduler {
+public:
+    static FFRTScheduler& Instance()
+    {
+        static SFFRTScheduler ins;
+        return ins;
+    }
+private:
+    SFFRTScheduler()
+    {
+    }
 };
 } // namespace ffrt
 #endif

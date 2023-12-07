@@ -23,7 +23,6 @@
 #include <map>
 #include <functional>
 #include <linux/futex.h>
-#include "core/task_ctx.h"
 #include "sync.h"
 
 #ifdef NS_PER_SEC

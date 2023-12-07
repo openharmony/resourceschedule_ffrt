@@ -73,6 +73,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
             task->coRoutine->blockType = BlockType::BLOCK_THREAD;
             ctx->wn.task = task;
         }
+        ThreadWait(&ctx->wn, lk);
         return;
     }
     task->wue = new WaitUntilEntry(task);
@@ -220,16 +221,16 @@ void WaitQueue::NotifyAll() noexcept
         if (!USE_COROUTINE || we->weType == 2 || blockThread) {
             std::unique_lock<std::mutex> lk(we->wl);
             wqlock.unlock();
+            if (blockThread) {
+                task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+                we->task = nullptr;
+            }
             we->cv.notify_one();
         } else {
             if (!WeNotifyProc(we)) {
                 continue;
             }
             wqlock.unlock();
-            if (blockThread) {
-                task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
-                we->task = nullptr;
-            }
             CoWake(task, false);
         }
         wqlock.lock();

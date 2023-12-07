@@ -36,7 +36,7 @@
             ]
         },
         "build": {
-            "sub_component": [                
+            "sub_component": [     
                 "//foundation/resourceschedule/ffrt:libffrt",
                 "//foundation/resourceschedule/ffrt:libffrt_ipc",
                 "//foundation/resourceschedule/ffrt:ffrt_ndk"

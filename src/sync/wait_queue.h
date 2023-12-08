@@ -67,8 +67,8 @@ public:
     bool WeNotifyProc(WaitUntilEntry* we);
     void NotifyAll() noexcept;
     void NotifyOne() noexcept;
-    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk);
-    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp);
+    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, CPUEUTask* task);
+    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, bool legacyMode, CPUEUTask* task);
     WaitQueue()
     {
         whead = new WaitUntilEntry();

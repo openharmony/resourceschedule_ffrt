@@ -25,7 +25,7 @@ void SetCoroutineLegacyModeCb(bool mode)
 {
     auto task = ExecuteCtx::Cur()->task;
     if (task && task->coRoutine) {
-        // FFRT_LOGI("=====coroutine[%lx] set mode[%d]", (uint64_t)task->coRoutine, mode); //for test
+        // FFRT_LOGI("=====coroutine[%lx] set mode[%d]", (uint64_t)task->coRoutine, mode); // for test
         task->coRoutine->legacyMode = mode;
     }
 }
@@ -41,12 +41,11 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 #endif
     FFRTScheduler::Instance();
     ExecuteUnit::Instance();
-
-    TaskState::RegisterOps(TaskState::EXITED,
-        [this](CPUEUTask* task) { return this->onTaskDone(reinterpret_cast<SCPUEUTask*>(task)), true; });
 #ifdef FFRT_IPC_ENABLE
     ffrt_register_set_coroutine_legacy_mode_cb(SetCoroutineLegacyModeCb);
 #endif
+    TaskState::RegisterOps(TaskState::EXITED,
+        [this](CPUEUTask* task) { return this->onTaskDone(reinterpret_cast<SCPUEUTask*>(task)), true; });
 #ifdef FFRT_OH_TRACE_ENABLE
         StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
         FinishTrace(HITRACE_TAG_FFRT);
@@ -55,6 +54,9 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 
 SDependenceManager::~SDependenceManager()
 {
+#ifdef FFRT_IPC_ENABLE
+    ffrt_register_set_coroutine_legacy_mode_cb(nullptr);
+#endif
 }
 
 void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,

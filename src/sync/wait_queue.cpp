@@ -28,9 +28,13 @@ TaskWithNode::TaskWithNode()
     task = ctx->task;
 }
 
-void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk)
+void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, CPUEUTask* task)
 {
     wqlock.lock();
+    if (legacyMode) {
+        task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        wn->task = task;
+    }
     push_back(wn);
     wqlock.unlock();
     {
@@ -43,10 +47,15 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk)
     wqlock.unlock();
     lk->lock();
 }
-bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp)
+bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
+    const TimePoint& tp, bool legacyMode, CPUEUTask* task)
 {
     bool ret = false;
     wqlock.lock();
+    if (legacyMode) {
+        task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        wn->task = task;
+    }
     push_back(wn);
     wqlock.unlock();
     {
@@ -69,11 +78,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
     CPUEUTask* task = ctx->task;
     bool legacyMode = task ? task->coRoutine->legacyMode : false;
     if (!USE_COROUTINE || task == nullptr || legacyMode) {
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
-            ctx->wn.task = task;
-        }
-        ThreadWait(&ctx->wn, lk);
+        ThreadWait(&ctx->wn, lk, legacyMode, task);
         return;
     }
     task->wue = new WaitUntilEntry(task);
@@ -119,11 +124,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     CPUEUTask* task = ctx->task;
     bool legacyMode = task ? task->coRoutine->legacyMode : false;
     if (!USE_COROUTINE || task == nullptr || legacyMode) {
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
-            ctx->wn.task = task;
-        }
-        return ThreadWaitUntil(&ctx->wn, lk, tp);
+        return ThreadWaitUntil(&ctx->wn, lk, tp, legacyMode, task);
     }
 
     task->wue = new WaitUntilEntry(task);
@@ -193,11 +194,11 @@ void WaitQueue::NotifyOne() noexcept
         bool blockThread = task ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
         if (!USE_COROUTINE || we->weType == 2 || blockThread) {
             std::unique_lock<std::mutex> lk(we->wl);
-            wqlock.unlock();
             if (blockThread) {
                 task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;
             }
+            wqlock.unlock();
             we->cv.notify_one();
         } else {
             if (!WeNotifyProc(we)) {
@@ -220,11 +221,11 @@ void WaitQueue::NotifyAll() noexcept
         bool blockThread = task ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
         if (!USE_COROUTINE || we->weType == 2 || blockThread) {
             std::unique_lock<std::mutex> lk(we->wl);
-            wqlock.unlock();
             if (blockThread) {
                 task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;
             }
+            wqlock.unlock();
             we->cv.notify_one();
         } else {
             if (!WeNotifyProc(we)) {

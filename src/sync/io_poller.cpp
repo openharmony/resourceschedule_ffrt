@@ -153,10 +153,10 @@ void IOPoller::PollOnce(int timeout) noexcept
             auto task = reinterpret_cast<CPUEUTask *>(data->data);
             bool blockThread = task ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
             if (!USE_COROUTINE || blockThread) {
+                std::unique_lock<std::mutex> lck(task->lock);
                 if (blockThread) {
                     task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
                 }
-                std::unique_lock<std::mutex> lck(task->lock);
                 reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
             } else {
                 CoWake(task, false);

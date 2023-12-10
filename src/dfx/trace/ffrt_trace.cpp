@@ -14,7 +14,6 @@
  */
 
 #include "ffrt_trace.h"
-#include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
 
 namespace ffrt {

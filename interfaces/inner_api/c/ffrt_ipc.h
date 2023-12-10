@@ -14,16 +14,7 @@
  */
 #ifndef FFRT_IPC_H
 #define FFRT_IPC_H
-#include "type_def.h"
-
-/**
- * @brief ffrt register a set_coroutine_legacy_mode callback, which is called in ipc.
- *
- * @param cb Indicates a function pointer to cb.
- * @since 10
- * @version 1.0
- */
-FFRT_C_API void ffrt_register_set_coroutine_legacy_mode_cb(void (*cb)(bool));
+#include "c/type_def.h"
 
 /**
  * @brief ipc set legacy mode to ffrt.

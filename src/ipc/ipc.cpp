@@ -15,21 +15,23 @@
 #include "c/ffrt_ipc.h"
 
 #include "internal_inc/osal.h"
+#include "sched/execute_ctx.h"
+#include "tm/cpu_task.h"
 
-static void (*g_this_task_set_legacy_mode_cb)(bool) = nullptr;
-
-API_ATTRIBUTE((visibility("default")))
-void ffrt_register_set_coroutine_legacy_mode_cb(void (*cb)(bool))
-{
-    if (g_this_task_set_legacy_mode_cb == nullptr) {
-        g_this_task_set_legacy_mode_cb = cb;
-    }
-}
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_this_task_set_legacy_mode(bool mode)
 {
-    if (g_this_task_set_legacy_mode_cb) {
-        g_this_task_set_legacy_mode_cb(mode);
+    auto task = ffrt::ExecuteCtx::Cur()->task;
+    if (task && task->coRoutine) {
+        FFRT_LOGI("=====coroutine[%lx] set mode[%d]", (uint64_t)task->coRoutine, mode); // for test
+        task->coRoutine->legacyMode = mode;
     }
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -57,7 +57,6 @@ config("ffrt_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
-    "FFRT_IPC_ENABLE",
   ]
 
   #ffrt_release_defines = [
@@ -82,21 +81,6 @@ config("ffrt_inner_config") {
     "src/sched",
     "//third_party/jsoncpp/include",
     "//third_party/libunwind/include",
-  ]
-}
-
-ohos_shared_library("libffrt_ipc") {
-  public_configs = [ ":ffrt_config" ]
-  configs = [ ":ffrt_inner_config" ]
-  sources = [ "src/ipc/ipc.cpp" ]
-
-  innerapi_tags = [ "chipsetsdk" ]
-  output_extension = "so"
-  part_name = "ffrt"
-  subsystem_name = "resourceschedule"
-  install_images = [
-    "system",
-    "updater",
   ]
 }
 
@@ -133,6 +117,7 @@ ohos_shared_library("libffrt") {
     "src/eu/sexecute_unit.cpp",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
+    "src/ipc/ipc.cpp",
     "src/queue/queue.cpp",
     "src/queue/queue_monitor.cpp",
     "src/queue/serial_handler.cpp",
@@ -172,11 +157,9 @@ ohos_shared_library("libffrt") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
   ]
 
   deps = [
-    ":libffrt_ipc",
     "//third_party/bounds_checking_function:libsec_shared",
     "//third_party/libunwind:libunwind",
   ]
@@ -272,7 +255,6 @@ ohos_shared_library("ffrt_ndk") {
   ]
 
   deps = [
-    ":libffrt_ipc",
     "//third_party/bounds_checking_function:libsec_shared",
     "//third_party/libunwind:libunwind",
   ]

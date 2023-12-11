@@ -66,7 +66,7 @@ private:
 } // namespace ffrt
 
 #ifdef FFRT_OH_TRACE_ENABLE
-static const std::string TRACE_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitrace_meter.so";
+static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
 class TraceAdapter {
 public:
     TraceAdapter()

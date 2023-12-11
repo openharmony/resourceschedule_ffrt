@@ -16,7 +16,7 @@
 #include "sched/frame_interval.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/workgroup_internal.h"
-#include "eu/execute_unit.h"
+#include "util/ffrt_facade.h"
 
 #define GET_TID() syscall(SYS_gettid)
 
@@ -29,7 +29,7 @@ FrameInterval::FrameInterval(uint64_t deadline, const QoS& qos) : Interval(deadl
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup][Interface] Create WorkGroup Failed");
     } else {
-        ExecuteUnit::Instance().BindWG(DevType::CPU, this->qos);
+        FFRTFacade::GetEUInstance().BindWG(DevType::CPU, this->qos);
     }
 }
 

@@ -22,16 +22,16 @@
 #include "sync/io_poller.h"
 #include "qos.h"
 #include "sched/task_scheduler.h"
-#include "dm/dependence_manager.h"
 #include "task_attr_private.h"
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
-#include "eu/execute_unit.h"
+
 #include "eu/worker_thread.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
 #include "eu/sexecute_unit.h"
+#include "util/ffrt_facade.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "core/task_io.h"
 #include "sync/poller.h"
@@ -43,7 +43,7 @@ namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
-    DependenceManager::Instance().onSubmit(has_handle, handle, f, ins, outs, attr);
+    FFRTFacade::GetDMInstance().onSubmit(has_handle, handle, f, ins, outs, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -275,13 +275,13 @@ void ffrt_wait_deps(const ffrt_deps_t *deps)
         v[i] = deps->items[i];
     }
     ffrt_deps_t d = { deps->len, v.data() };
-    ffrt::DependenceManager::Instance().onWait(&d);
+    ffrt::FFRTFacade::GetDMInstance().onWait(&d);
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wait()
 {
-    ffrt::DependenceManager::Instance().onWait();
+    ffrt::FFRTFacade::GetDMInstance().onWait();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -303,7 +303,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
         FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
     }
-    ffrt::CPUMonitor *monitor = ffrt::ExecuteUnit::Instance().GetCPUMonitor();
+    ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
     return monitor->SetWorkerMaxNum(_qos, num);
 }
 
@@ -403,7 +403,7 @@ void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_
     }
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
-        ffrt::DependenceManager::Instance().onSubmitUV(task, p);
+        ffrt::FFRTFacade::GetDMInstance().onSubmitUV(task, p);
         return;
     }
     FFRT_LOGE("uv function not supports delay");

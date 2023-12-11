@@ -55,6 +55,7 @@ config("ffrt_config") {
     "FFRT_BBOX_ENABLE",
     "FFRT_OH_EVENT_RECORD",
     "FFRT_CO_BACKTRACE_OH_ENABLE",
+    "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
   ]
 
@@ -69,6 +70,10 @@ config("ffrt_config") {
     defines += [ "ASAN_MODE" ]
   }
 
+  if (target_cpu == "arm") {
+    defines += [ "APP_USE_ARM" ]
+  }
+
   #defines += ffrt_release_defines
 }
 
@@ -78,6 +83,7 @@ config("ffrt_inner_config") {
     "src/dfx/log",
     "src/dfx/trace",
     "src/sched",
+    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter/",
     "//third_party/jsoncpp/include",
     "//third_party/libunwind/include",
   ]

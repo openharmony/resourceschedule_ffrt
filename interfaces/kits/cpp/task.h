@@ -720,6 +720,22 @@ static inline void wait(const std::vector<dependence>& deps)
     ffrt_wait_deps(&d);
 }
 
+/**
+ * @brief Sets the thread stack size of a specified QoS level.
+ *
+ * @param qos_ Indicates the QoS.
+ * @param stack_size Indicates the thread stack size.
+ * @return Returns ffrt_success if the stack size set success;
+ *         returns ffrt_error_inval if qos_ or stack_size invalid;
+ *         returns ffrt_error otherwise.
+ * @since 10
+ * @version 1.0
+ */
+static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size)
+{
+    return ffrt_set_worker_stack_size(qos_, stack_size);
+}
+
 namespace this_task {
 static inline int update_qos(qos qos_)
 {

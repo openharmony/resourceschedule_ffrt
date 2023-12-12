@@ -23,15 +23,11 @@ namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
     m_events(1024)
 {
-    assert(m_epFd >= 0);
-    {
-        m_wakeData.cb = nullptr;
-        m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-        assert(m_wakeData.fd >= 0);
-        epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
-        if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
-            std::terminate();
-        }
+    m_wakeData.cb = nullptr;
+    m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
+    if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
+        std::terminate();
     }
 }
 
@@ -39,11 +35,15 @@ Poller::~Poller() noexcept
 {
     ::close(m_wakeData.fd);
     ::close(m_epFd);
+    timerHandle_ = -1;
     m_wakeDataMap.clear();
     m_delCntMap.clear();
+    timerMap_.clear();
+    executedHandle_.clear();
+    flag_ = EpollStatus::TEARDOWN;
 }
 
-int Poller::AddFdEvent(uint32_t events, int fd, void* data, void(*cb)(void*, uint32_t)) noexcept
+int Poller::AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
 {
     auto wakeData = std::unique_ptr<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb));
     epoll_event ev = { .events = events, .data = {.ptr = static_cast<void*>(wakeData.get())} };
@@ -54,6 +54,7 @@ int Poller::AddFdEvent(uint32_t events, int fd, void* data, void(*cb)(void*, uin
 
     std::unique_lock lock(m_mapMutex);
     m_wakeDataMap[fd].emplace_back(std::move(wakeData));
+    fdEmpty_.store(false);
     return 0;
 }
 
@@ -66,49 +67,60 @@ int Poller::DelFdEvent(int fd) noexcept
 
     std::unique_lock lock(m_mapMutex);
     m_delCntMap[fd]++;
+    WakeUp();
     return 0;
 }
 
-void Poller::ReleaseFdWakeData(int fd) noexcept
+void Poller::WakeUp() noexcept
 {
-    std::unique_lock lock(m_mapMutex);
-    if (m_delCntMap[fd] > 0) {
-        auto& wakeDataList = m_wakeDataMap[fd];
-        int diff = wakeDataList.size() - m_delCntMap[fd];
-        if (diff == 0) {
-            m_wakeDataMap.erase(fd);
-            m_delCntMap[fd] = 0;
-        } else if (diff == 1) {
-            while (m_delCntMap[fd] > 0) {
-                wakeDataList.pop_front();
-                m_delCntMap[fd]--;
-            }
-        } else {
-            FFRT_LOGE("fd=%d count unexpected, added num=%d, del num=%d", fd, wakeDataList.size(), m_delCntMap[fd]);
-        }
-    }
+    uint64_t one = 1;
+    ssize_t n = ::write(m_wakeData.fd, &one, sizeof one);
 }
 
 PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;
+    int timerHandle = -1;
     PollerRet ret = PollerRet::RET_NULL;
-    if (m_timerFunc != nullptr) {
-        int nextTimeout = m_timerFunc();
-        if (nextTimeout == 0) {
+    
+    timerMutex_.lock();
+    if (!timerMap_.empty()) {
+        auto cur = timerMap_.begin();
+        timerHandle = cur->second.handle;
+
+        realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+            cur->first - std::chrono::steady_clock::now()).count();
+        if (realTimeout <= 0) {
             return PollerRet::RET_TIMER;
         }
-        if (timeout == -1 && nextTimeout > 0) {
-            realTimeout = nextTimeout;
-            ret = PollerRet::RET_TIMER;
+
+        if (timeout != -1) {
+            timerHandle = -1;
+            realTimeout = timeout;
         }
+
+        ret = PollerRet::RET_TIMER;
+        flag_ = EpollStatus::WAIT;
+    }
+    timerMutex_.unlock();
+
+    pollerCount_++;
+    int nfds = epoll_wait(m_epFd, m_events.data(), m_events.size(), realTimeout);
+    flag_ = EpollStatus::WAKE;
+    if (nfds < 0) {
+        FFRT_LOGE("epoll_wait error.");
+        return PollerRet::RET_NULL;
     }
 
-    int nfds = epoll_wait(m_epFd, m_events.data(), m_events.size(), realTimeout);
-    if (nfds <= 0) {
-        if (realTimeout > 0) {
-            (void)m_timerFunc();
+    if (nfds == 0) {
+        timerMutex_.lock();
+        for (auto it = timerMap_.begin(); it != timerMap_.end(); it++) {
+            if (it->second.handle == timerHandle) {
+                ExcuteTimerCb(it);
+                return ret;
+            }
         }
+        timerMutex_.unlock();
         return ret;
     }
 
@@ -118,37 +130,148 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
             ssize_t n = ::read(m_wakeData.fd, &one, sizeof one);
-            assert(n == sizeof one);
             continue;
         }
 
         if (data->cb == nullptr) {
             continue;
         }
-        data->cb(data->data, m_events[i].events);
-        ReleaseFdWakeData(currFd);
+        data->cb(data->data, m_events[i].events, pollerCount_);
     }
+    ReleaseFdWakeData();
     return PollerRet::RET_EPOLL;
 }
 
-void Poller::WakeUp() noexcept
+void Poller::ReleaseFdWakeData() noexcept
 {
-    uint64_t one = 1;
-    ssize_t n = ::write(m_wakeData.fd, &one, sizeof one);
-    assert(n == sizeof one);
+    std::unique_lock lock(m_mapMutex);
+    for (auto delIter = m_delCntMap.begin(); delIter != m_delCntMap.end();) {
+        int delFd = delIter->first;
+        int delCnt = delIter->second;
+        auto& wakeDataList = m_wakeDataMap[delFd];
+        int diff = wakeDataList.size() - delCnt;
+        if (diff == 0) {
+            m_wakeDataMap.erase(delFd);
+            m_delCntMap.erase(delIter++);
+            continue;
+        } else if (diff == 1) {
+            for (int i = 0; i < delCnt - 1; i++) {
+                wakeDataList.pop_front();
+            }
+            m_delCntMap[delFd] = 1;
+        } else {
+            FFRT_LOGE("fd=%d count unexpected, added num=%d, del num=%d", delFd, wakeDataList.size(), delCnt);
+        }
+        delIter++;
+    }
+
+    fdEmpty_.store(m_wakeDataMap.empty());
+}
+void Poller::ExcuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept
+{
+    std::vector<TimerDataWithCb> timerData;
+    for (auto iter = timerMap_.begin(); iter != timerMap_.end();) {
+        if (iter->first <= timer->first) {
+            timerData.emplace_back(iter->second);
+            executedHandle_[iter->second.handle] = TimerStatus::EXECUTING;
+            iter = timerMap_.erase(iter);
+            continue;
+        }
+        break;
+    }
+    timerEmpty_.store(timerMap_.empty());
+
+    timerMutex_.unlock();
+    for (const auto& data : timerData) {
+        data.cb(data.data);
+        executedHandle_[data.handle] = TimerStatus::EXECUTED;
+    }
 }
 
-bool Poller::RegisterTimerFunc(int(*timerFunc)()) noexcept
+int Poller::RegisterTimer(uint64_t timeout, void* data, void(*cb)(void*)) noexcept
 {
-    if (timerFunc == nullptr) {
-        FFRT_LOGE("timerFunc is invalid");
-        return false;
+    if (cb == nullptr || flag_ == EpollStatus::TEARDOWN) {
+        return -1;
     }
-    if (m_timerFunc == nullptr) {
-        m_timerFunc = timerFunc;
-        return true;
+
+    std::lock_guard lock(timerMutex_);
+    time_point_t absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout);
+    bool wake = timerMap_.empty() || (absoluteTime < timerMap_.begin()->first && flag_ == EpollStatus::WAIT);
+
+    TimerDataWithCb timerMapValue(data, cb);
+    timerHandle_ += 1;
+    timerMapValue.handle = timerHandle_;
+    timerMap_.emplace(absoluteTime, timerMapValue);
+    timerEmpty_.store(false);
+
+    if (wake) {
+        WakeUp();
     }
-    return false;
+
+    return timerHandle_;
+}
+
+void Poller::DeregisterTimer(int handle) noexcept
+{
+    if (flag_ == EpollStatus::TEARDOWN) {
+        return;
+    }
+
+    std::lock_guard lock(timerMutex_);
+    auto it = executedHandle_.find(handle);
+    if (it != executedHandle_.end()) {
+        while (it->second == TimerStatus::EXECUTING) {
+            std::this_thread::yield();
+        }
+        executedHandle_.erase(it);
+        return;
+    }
+
+    bool wake = false;
+    for (auto cur = timerMap_.begin(); cur != timerMap_.end(); cur++) {
+        if (cur->second.handle == handle) {
+            if (cur == timerMap_.begin() && flag_ == EpollStatus::WAIT) {
+                wake = true;
+            }
+            timerMap_.erase(cur);
+            break;
+        }
+    }
+
+    timerEmpty_.store(timerMap_.empty());
+
+    if (wake) {
+        WakeUp();
+    }
+}
+
+bool Poller::DetermineEmptyMap() noexcept
+{
+    return fdEmpty_ && timerEmpty_;
+}
+
+ffrt_timer_query_t Poller::GetTimerStatus(int handle) noexcept
+{
+    if (flag_ == EpollStatus::TEARDOWN) {
+        return ffrt_timer_notfound;
+    }
+
+    std::lock_guard lock(timerMutex_);
+    for (auto cur = timerMap_.begin(); cur != timerMap_.end(); cur++) {
+        if (cur->second.handle == handle) {
+            return ffrt_timer_not_executed;
+        }
+    }
+
+    auto it = executedHandle_.find(handle);
+    if (it != executedHandle_.end()) {
+        while (it->second == TimerStatus::EXECUTING) {
+            std::this_thread::yield();
+        }
+        return ffrt_timer_executed;
+    }
+
+    return ffrt_timer_notfound;
 }
 }
 #endif

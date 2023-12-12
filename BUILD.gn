@@ -44,6 +44,8 @@ config("ffrt_config") {
     "-DIDLE_WORKER_DESTRUCT",
     "-DOHOS_THREAD_STACK_DUMP",
     "-DUSE_OHOS_QOS",
+    "-DFFRT_IO_TASK_SCHEDULER",
+    "-DFFRT_PTHREAD_ENABLE",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -117,7 +119,6 @@ ohos_shared_library("libffrt") {
     "src/eu/sexecute_unit.cpp",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
-    "src/queue/queue.cpp",
     "src/queue/queue_monitor.cpp",
     "src/queue/serial_handler.cpp",
     "src/queue/serial_looper.cpp",
@@ -149,6 +150,7 @@ ohos_shared_library("libffrt") {
     "src/tm/task_factory.cpp",
     "src/util/graph_check.cpp",
     "src/util/init.cpp",
+    "src/util/spmc_queue.cpp",
   ]
 
   external_deps = [
@@ -213,7 +215,6 @@ ohos_shared_library("ffrt_ndk") {
     "src/eu/sexecute_unit.cpp",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
-    "src/queue/queue.cpp",
     "src/queue/queue_monitor.cpp",
     "src/queue/serial_handler.cpp",
     "src/queue/serial_looper.cpp",
@@ -245,6 +246,7 @@ ohos_shared_library("ffrt_ndk") {
     "src/tm/task_factory.cpp",
     "src/util/graph_check.cpp",
     "src/util/init.cpp",
+    "src/util/spmc_queue.cpp",
   ]
 
   external_deps = [

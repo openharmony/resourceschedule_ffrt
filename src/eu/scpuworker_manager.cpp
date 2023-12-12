@@ -31,7 +31,8 @@ SCPUWorkerManager::SCPUWorkerManager()
     monitor = new SCPUMonitor({
         std::bind(&SCPUWorkerManager::IncWorker, this, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::WakeupWorkers, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetTaskCount, this, std::placeholders::_1)});
+        std::bind(&SCPUWorkerManager::GetTaskCount, this, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::GetWorkerCount, this, std::placeholders::_1)});
 }
 
 SCPUWorkerManager::~SCPUWorkerManager()
@@ -77,8 +78,10 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #endif
 #ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
-        return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
-        queue_length(&(((CPUWorker *)thread)->local_fifo));
+        bool taskExistence = GetTaskCount(thread->GetQos()) ||
+            reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
+            reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
+        return tearDown || taskExistence || !PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap();
         })) {
 #else
     if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds),
@@ -96,8 +99,9 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         }
 #ifdef FFRT_IO_TASK_SCHEDULER
         ctl.cv.wait(lk, [this, thread] {
-            return tearDown || GetTaskCount(thread->GetQos()) || ((CPUWorker *)thread)->priority_task ||
-            queue_length(&(((CPUWorker *)thread)->local_fifo));
+            return tearDown || GetTaskCount(thread->GetQos()) ||
+            reinterpret_cast<CPUWorker*>(thread)->priority_task ||
+            reinterpret_cast<CPUWorker*>(thread)->localFifo.GetLength();
             });
 #else
         ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});

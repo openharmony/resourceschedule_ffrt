@@ -26,6 +26,7 @@ extern void TaskSwitchCounterInc(void);
 extern void TaskFinishCounterInc(void);
 #ifdef FFRT_IO_TASK_SCHEDULER
 extern void TaskWakeCounterInc(void);
+extern void TaskPendingCounterInc(void);
 #endif
 extern unsigned int GetBboxEnableState(void);
 

@@ -17,7 +17,9 @@
 #define FFRT_WORKER_THREAD_HPP
 
 #include <atomic>
-#include <thread>
+#ifdef FFRT_PTHREAD_ENABLE
+#include <pthread.h>
+#endif
 #ifdef OHOS_THREAD_STACK_DUMP
 #include <sstream>
 #include "dfx_dump_catcher.h"
@@ -91,7 +93,36 @@ public:
     {
         return qos;
     }
+#ifdef FFRT_PTHREAD_ENABLE
+    void Start(void*(*ThreadFunc)(void*), void* args)
+    {
+        pthread_create(&thread_, &attr_, ThreadFunc, args);
+        pthread_attr_destroy(&attr_);
+    }
 
+    void Join()
+    {
+        if (tid > 0) {
+            pthread_join(thread_, nullptr);
+        }
+        tid = -1;
+    }
+
+    void Detach()
+    {
+        if (tid > 0) {
+            pthread_detach(thread_);
+        } else {
+            FFRT_LOGE("qos %d thread not joinable.", qos());
+        }
+        tid = -1;
+    }
+
+    pthread_t& GetThread()
+    {
+        return this->thread_;
+    }
+#else
     template <typename F, typename... Args>
     void Start(F&& f, Args&&... args)
     {
@@ -120,22 +151,28 @@ public:
         tid = -1;
     }
 
-    std::thread& GetThread()
+    pthread_t GetThread()
     {
-        return this->thread;
+        return this->thread.native_handle();
     }
+#endif
 
     void WorkerSetup(WorkerThread* wthread);
-private:
     void NativeConfig();
 
+private:
     std::atomic_bool exited;
     std::atomic_bool idle;
 
     std::atomic<pid_t> tid;
 
     QoS qos;
+#ifdef FFRT_PTHREAD_ENABLE
+    pthread_t thread_;
+    pthread_attr_t attr_;
+#else
     std::thread thread;
+#endif
 };
 void SetThreadAttr(WorkerThread* thread, const QoS& qos);
 } // namespace ffrt

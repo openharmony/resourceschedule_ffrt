@@ -100,6 +100,12 @@ typedef struct {
     void* data;
     void(*cb)(void*, uint32_t);
 } ffrt_poller_t;
+
+typedef enum {
+    ffrt_timer_notfound = -1,
+    ffrt_timer_not_executed = 0,
+    ffrt_timer_executed = 1,
+} ffrt_timer_query_t;
 #endif
 
 #ifdef __cplusplus

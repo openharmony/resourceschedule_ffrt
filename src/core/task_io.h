@@ -26,9 +26,9 @@
 #ifdef FFRT_IO_TASK_SCHEDULER
 namespace ffrt {
 typedef struct {
-    ffrt_function_t exec;
+    ffrt_coroutine_ptr_t exec;
     ffrt_function_t destroy;
-    void* callable;
+    void* data;
 } ffrt_io_callable_t;
 
 struct ffrt_executor_io_task: public ffrt_executor_task {
@@ -36,22 +36,10 @@ struct ffrt_executor_io_task: public ffrt_executor_task {
     {
         type = ffrt_io_task;
     }
-    bool wakeFlag = true;
-    bool withHandle = true;
-    uint8_t func_storage[ffrt_auto_managed_function_storage_size]; // 函数闭包、指针或函数对象
-    ffrt_io_callable_t wake_callable_on_finish {nullptr, nullptr, nullptr};
-    // 本task finished时需要wake的task，用于无栈协程子任务完成时wake父任务
+
     QoS qos;
+    ffrt_io_callable_t work;
     ExecTaskStatus status = ExecTaskStatus::ET_PENDING;
-    fast_mutex lock; // used in coroute
-    inline void freeMem()
-    {
-        SimpleAllocator<ffrt_executor_io_task>::freeMem(this);
-    }
-    void SetWakeFlag(bool wakeFlagIn)
-    {
-        wakeFlag = wakeFlagIn;
-    }
 };
 } /* namespace ffrt */
 #endif

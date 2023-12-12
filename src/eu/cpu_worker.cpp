@@ -23,9 +23,14 @@
 #include "dm/dependence_manager.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
-#include "queue/queue.h"
+#include "util/spmc_queue.h"
 #endif
 #include "tm/cpu_task.h"
+
+namespace ffrt {
+const int PLACE_HOLDER = 0;
+const unsigned int TRY_POLL_FREQ = 51;
+}
 
 namespace ffrt {
 void CPUWorker::Run(CPUEUTask* task)
@@ -52,6 +57,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
 #endif
+
     ffrt_executor_task_func func = nullptr;
     ffrt_executor_task_type_t type = static_cast<ffrt_executor_task_type_t>(task->type);
     if (task->type == ffrt_io_task) {
@@ -63,6 +69,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
         FFRT_LOGE("Static func is nullptr");
         return;
     }
+
     FFRT_EXECUTOR_TASK_BEGIN(task);
     func(task, qos);
     FFRT_EXECUTOR_TASK_END();
@@ -72,6 +79,13 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #ifdef FFRT_BBOX_ENABLE
     TaskFinishCounterInc();
 #endif
+}
+
+void* CPUWorker::WarpDispatch(void* worker)
+{
+    reinterpret_cast<CPUWorker*>(worker)->NativeConfig();
+    Dispatch(reinterpret_cast<CPUWorker*>(worker));
+    return nullptr;
 }
 
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -99,49 +113,64 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUT
 void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEUTask* &lastTask)
 {
     RunTask(task, worker, lastTask);
+
     int lifo_count = 0;
-    while (worker->priority_task) {
+    while (worker->priority_task != nullptr && worker->priority_task != &PLACE_HOLDER) {
         lifo_count++;
-        ffrt_executor_task_t* task = (ffrt_executor_task_t*)(worker->priority_task);
-        worker->priority_task = nullptr;
-        RunTask(task, worker, lastTask);
-        if (lifo_count > worker->budget) break;
+        ffrt_executor_task_t* priorityTask = reinterpret_cast<ffrt_executor_task_t*>(worker->priority_task);
+        // set a placeholder to prevent the task from being placed in the priority again
+        worker->priority_task = (lifoCount > worker->budget) ? const_cast<int*>(&PLACE_HOLDER) : nullptr;
+
+        RunTask(priorityTask, worker, lastTask);
     }
 }
 
 void* CPUWorker::GetTask(CPUWorker* worker)
 {
+    // periodically pick up tasks from the global queue to prevent global queue starvation
     if (worker->tick % worker->global_interval == 0) {
         worker->tick = 0;
         void* task = worker->ops.PickUpTaskBatch(worker);
-        if (task == nullptr) {
-            return nullptr;
+        if (task != nullptr) {
+            worker->ops.NotifyTaskPicked(worker);
         }
-        worker->ops.NotifyTaskPicked(worker);
-        if (task) return task;
-    }
-    if (worker->priority_task) {
-        void* task = worker->priority_task;
-        worker->priority_task = nullptr;
         return task;
     }
-    // 以后打开worker->ops.TryMoveLocal2Global(worker);
-    return queue_pophead(&(worker->local_fifo));
+
+    // preferentially pick up tasks from the priority unless the priority is empty or occupied
+    if (worker->priority_task != nullptr) {
+        void* task = worker->priority_task;
+        worker->priority_task = nullptr;
+        if (task != &PLACE_HOLDER) {
+            return task;
+        }
+    }
+
+    return worker->localFifo.PopHead();
+}
+
+PollerRet CPUWorker::TryPoll(CPUWorker* worker, int timeout)
+{
+    PollerRet ret = worker->ops.TryPoll(worker, timeout);
+    if (ret == PollerRet::RET_TIMER) {
+        worker->tick = 0;
+    }
+
+    return ret;
 }
 
 bool CPUWorker::LocalEmpty(CPUWorker* worker)
 {
-    if (worker->priority_task == nullptr && queue_length(&(worker->local_fifo)) == 0) return true;
-    return false;
+    return (worker->priority_task == nullptr) && (worker->localFifo.GetLength() == 0);
 }
 
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
-    ctx->local_fifo = &(worker->local_fifo);
+    ctx->localFifo = &(worker->localFifo);
     ctx->priority_task_ptr = &(worker->priority_task);
+    ctx->qos = worker->GetQos();
     CPUEUTask* lastTask = nullptr;
-    unsigned int buf_len = 0;
 
     FFRT_LOGD("qos[%d] thread start succ", (int)worker->GetQos());
     for (;;) {
@@ -149,20 +178,20 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         void* local_task = GetTask(worker);
         worker->tick++;
         if (local_task) {
-            if (worker->tick % 51 == 0) worker->ops.TryPoll(worker, 0);
+            if (worker->tick % TRY_POLL_FREQ == 0) {
+                worker->ops.TryPoll(worker, 0);
+            }
             ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(local_task);
             RunTaskLifo(work, worker, lastTask);
             continue;
         }
 
-        PollerRet ret = worker->ops.TryPoll(worker, 0);
-        if (ret == PollerRet::RET_EPOLL) {
-            continue;
-        } else if (ret == PollerRet::RET_TIMER) {
-            worker->tick = 0;
+        PollerRet ret = TryPoll(worker, 0);
+        if (ret != PollerRet::RET_NULL) {
             continue;
         }
 
+        // pick up tasks from global queue
         CPUEUTask* task = worker->ops.PickUpTaskBatch(worker);
         if (task) {
             worker->ops.NotifyTaskPicked(worker);
@@ -171,27 +200,24 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             continue;
         }
 
-        ret = worker->ops.TryPoll(worker, 0);
-        if (ret == PollerRet::RET_EPOLL) {
-            continue;
-        } else if (ret == PollerRet::RET_TIMER) {
-            worker->tick = 0;
+        // check the epoll status again to prevent fd or timer events from being missed
+        ret = TryPoll(worker, 0);
+        if (ret != PollerRet::RET_NULL) {
             continue;
         }
 
-        if (queue_length(&(worker->local_fifo)) == 0) {
-            buf_len = worker->ops.StealTaskBatch(worker);
+        if (worker->localFifo.GetLength() == 0) {
+            worker->ops.StealTaskBatch(worker);
         }
         if (!LocalEmpty(worker)) {
             worker->tick = 1;
             continue;
         }
 
-        ret = worker->ops.TryPoll(worker, -1);
-        if (ret == PollerRet::RET_EPOLL) {
-            continue;
-        } else if (ret == PollerRet::RET_TIMER) {
-            worker->tick = 0;
+        // enable a worker to enter the epoll wait -1 state and continuously listen to fd or timer events
+        // only one worker enters this state at a QoS level
+        ret = TryPoll(worker, -1);
+        if (ret != PollerRet::RET_NULL) {
             continue;
         }
 
@@ -199,6 +225,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         auto action = worker->ops.WaitForNewAction(worker);
         FFRT_WORKER_IDLE_END_MARKER();
         if (action == WorkerAction::RETRY) {
+            worker->tick = 0;
             continue;
         } else if (action == WorkerAction::RETIRE) {
             break;
@@ -207,7 +234,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
     CoWorkerExit();
     FFRT_LOGD("ExecutionThread exited");
-    queue_destroy(&worker->local_fifo);
     free(worker->steal_buffer);
     worker->ops.WorkerRetired(worker);
 }

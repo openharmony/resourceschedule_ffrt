@@ -21,9 +21,6 @@
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
-#include "queue/queue.h"
-#endif
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -72,6 +69,11 @@ int CPUWorkerManager::GetTaskCount(const QoS& qos)
     return sched.RQSize();
 }
 
+int CPUWorkerManager::GetWorkerCount(const QoS& qos)
+{
+    return groupCtl[qos()].threads.size();
+}
+
 CPUEUTask* CPUWorkerManager::PickUpTask(WorkerThread* thread)
 {
     if (tearDown) {
@@ -95,26 +97,37 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     CPUEUTask* task = sched.PickNextTask();
-    if (task == nullptr) return nullptr;
-    struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
-    int expected_task = (GetTaskCount(thread->GetQos()) / monitor->WakedWorkerNum(thread->GetQos()));
-    for (int i = 0; i < expected_task; i++) {
-        if (queue_length(queue) == queue_capacity(queue)) {
+    if (task == nullptr) {
+        return nullptr;
+    }
+
+    int wakedWorkerNum = monitor->WakedWorkerNum(thread->GetQos());
+    // when there is only one worker, the global queue is equivalent to the local queue
+    // prevents local queue tasks that cannot be executed due to blocking tasks
+    if (wakedWorkerNum <= 1) {
+        return task;
+    }
+
+    SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(thread)->localFifo);
+    int expectedTask = GetTaskCount(thread->GetQos()) / wakedWorkerNum - 1;
+    for (int i = 0; i < expectedTask; i++) {
+        if (queue->GetLength() == queue->GetCapacity()) {
             return task;
         }
-        CPUEUTask* task2local = sched.PickNextTask();
+
+        TaskCtx* task2local = sched.PickNextTask();
         if (task2local == nullptr) {
             return task;
         }
-        if (((CPUWorker *)thread)->priority_task == nullptr) {
-            ((CPUWorker *)thread)->priority_task = task2local;
-        } else {
-            int ret = queue_pushtail(queue, task2local);
-            if (ret != 0) {
-                return task;
-            }
+    
+        CPUEUTask* task2local = sched.PickNextTask();
+        if (task2local = nullptr) {
+            return task;
         }
+
+        queue->PushTail(task2local);
     }
+
     return task;
 }
 
@@ -130,9 +143,9 @@ void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
     if (tearDown) {
         return;
     }
-    struct queue_s *queue = &(((CPUWorker *)(thread))->local_fifo);
-    if (queue_length(queue) == queue_capacity(queue)) {
-        queue_pophead_to_gqueue_batch(queue, queue_length(queue) / 2, thread->GetQos(), InsertTask);
+    SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(thread)->localFifo);
+    if (queue->GetLength() == queue->GetCapacity()) {
+        queue->PopHeadToGlobalQueue(queue->GetLength() / 2, thread->GetQos(), InsertTask);
     }
 }
 
@@ -141,7 +154,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     if (tearDown) {
         return 0;
     }
-    static_assert(STEAL_BUFFER_SIZE == LOCAL_QUEUE_SIZE / 2);
+
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
@@ -150,13 +163,13 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
         groupCtl[thread->GetQos()].threads.begin();
     while (iter != groupCtl[thread->GetQos()].threads.end()) {
-        struct queue_s *queue = &(((CPUWorker *)(iter->first))->local_fifo);
-        unsigned int queue_len = queue_length(queue);
-        if (iter->first != thread && queue_len > 1) {
-            unsigned int buf_len = queue_pophead_pushtail_batch(queue, &(((CPUWorker *)thread)->local_fifo),
-                queue_len / 2);
+        SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(iter->first)->localFifo);
+        uint32_t queueLen = queue->GetLength();
+        if (iter->first != thread && queueLen > 1) {
+            int popLen = queue->PopHeadToAnotherQueue(
+                reinterpret_cast<CPUWorker*>(thread)->localFifo, queueLen /2 + 1);
             SubStealingWorker(thread->GetQos());
-            return buf_len;
+            return popLen;
         }
         iter++;
     }
@@ -166,7 +179,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
 
 PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
 {
-    if (tearDown) {
+    if (tearDown || PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap()) {
         return PollerRet::RET_NULL;
     }
 

@@ -51,7 +51,7 @@ struct WakeDataWithCb {
 
     int fd = 0;
     void *data = nullptr;
-    std::function<void(void *, uint32_t, uint8_t)> cb;
+    std::function<void(void *, uint32_t, uint8_t)> cb = nullptr;
 };
 
 struct TimerDataWithCb {

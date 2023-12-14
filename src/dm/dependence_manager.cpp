@@ -43,7 +43,7 @@ void DependenceManager::RegistInsCb(SingleInsCB<DependenceManager>::Instance &&c
 
 void DependenceManager::SubmitSamplingTask()
 {
-    waitEntry_.tp = std::chrono::steady_clock::now() + std::chorno::microseconds(MONITOR_SAMPLING_CYCLE_US);
+    waitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
     waitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
     if (!DelayedWakeup(waitEntry_.tp, &waitEntry_, waitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
@@ -53,9 +53,9 @@ void DependenceManager::SubmitSamplingTask()
 void DependenceManager::CheckWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
-    QoS = _qos = QoS(static_cast<int>(qos_max));
+    QoS _qos = QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
-        std::shard_lock<std::shard_mutex> lck(workerGroup[i].tgMutex);
+        std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             WorkerThread* worker = thread.first;
             CPUEUTask* workerTask = worker->curTask;
@@ -64,7 +64,7 @@ void DependenceManager::CheckWorkerStatus()
                 continue;
             }
 
-            //only support uv task
+            // only support uv task
             if (!(workerTask->type != ffrt_normal_task && workerTask->type != ffrt_io_task)) {
                 continue;
             }
@@ -107,7 +107,7 @@ void DependenceManager::RecordSymbolAndBacktrace(CPUEUTask* task, int tid)
     Dl_info info;
     if (dladdr(func, &info)) {
         FFRT_LOGW("Function [%s] in [%s] occupies worker for more than 1s.",
-            (info.dli_sname ? info.dli_sname : "unknown"), (info.dli_fname ? info.fli_name : "unknown"));
+            (info.dli_sname ? info.dli_sname : "unknown"), (info.dli_fname ? info.dli_fname : "unknown"));
 
 #ifdef FFRT_OF_TRACE_ENABLE
         std::string dumpInfo;

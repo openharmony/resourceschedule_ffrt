@@ -108,7 +108,7 @@ public:
 
 protected:
     DependenceManager() {}
-    virtual ~DependenceManager() {}
+    ~DependenceManager() {}
 
     void SubmitSamplingTask();
 

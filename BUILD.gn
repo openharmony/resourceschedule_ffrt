@@ -82,6 +82,13 @@ config("ffrt_inner_config") {
     "//third_party/jsoncpp/include",
     "//third_party/libunwind/include",
   ]
+
+  if (is_ohos && is_clang && (target_cpu == "arm" || target_cpu == "arm64")) {
+    cflags = [
+      "-flto=thin",
+      "-fsplit-lto-unit",
+    ]
+  }
 }
 
 ohos_shared_library("libffrt") {

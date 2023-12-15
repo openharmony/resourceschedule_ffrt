@@ -107,18 +107,12 @@ public:
     }
 
 protected:
-    DependenceManager() {}
-    ~DependenceManager() {}
-
-    void SubmitSamplingTask();
-
-    WaitUntilEntry waitEntry_;
-    std::map<void*, std::pair<CPUEUTask*, uint64_t>> workerStatus_;
-
-private:
-    void CheckWorkerStatus();
-    void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask);
-    void RecordSymbolAndBacktrace(CPUEUTask* task, int tid);
+    DependenceManager()
+    {
+    }
+    ~DependenceManager()
+    {
+    }
 };
 } // namespace ffrt
 #endif

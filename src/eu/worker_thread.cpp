@@ -44,7 +44,7 @@ void WorkerThread::WorkerSetup(WorkerThread* wthread)
 void SetThreadAttr(WorkerThread* thread, const QoS& qos)
 {
     if (qos() <= qos_max) {
-        QosApplyForOther(qos(), thread->Id());
+        FFRTQosApplyForOther(qos(), thread->Id());
         FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
     }
 }

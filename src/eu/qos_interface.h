@@ -188,18 +188,18 @@ enum RtgSchedCmdid {
 /*
  * interface
  */
-int EnableRtg(bool flag);
-int AuthEnable(unsigned int uid, unsigned int uaFlag, unsigned int status);
-int AuthPause(unsigned int uid);
-int AuthDelete(unsigned int uid);
-int AuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status);
-int AuthSwitch(unsigned int uid, unsigned int rtgFlag, unsigned int qosFlag, unsigned int status);
-int QosApply(unsigned int level);
-int QosApplyForOther(unsigned int level, int tid);
-int QosLeave(void);
-int QosLeaveForOther(int tid);
-int QosGet(struct QosCtrlData &data);
-int QosGetForOther(int tid, struct QosCtrlData &data);
+int FFRTEnableRtg(bool flag);
+int FFRTAuthEnable(unsigned int uid, unsigned int uaFlag, unsigned int status);
+int FFRTAuthPause(unsigned int uid);
+int FFRTAuthDelete(unsigned int uid);
+int FFRTAuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status);
+int FFRTAuthSwitch(unsigned int uid, unsigned int rtgFlag, unsigned int qosFlag, unsigned int status);
+int FFRTQosApply(unsigned int level);
+int FFRTQosApplyForOther(unsigned int level, int tid);
+int FFRTQosLeave(void);
+int FFRTQosLeaveForOther(int tid);
+int FFRTQosGet(struct QosCtrlData &data);
+int FFRTQosGetForOther(int tid, struct QosCtrlData &data);
 int QosPolicy(struct QosPolicyDatas *policyDatas);
 int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas);
 typedef int (*Func_affinity)(unsigned long affinity, int tid);

@@ -22,7 +22,7 @@ namespace ffrt {
 int GetStaticQos(qos &static_qos)
 {
     struct QosCtrlData data;
-    int ret = QosGet(data);
+    int ret = FFRTQosGet(data);
     if (ret < 0 || data.staticQos < 0) {
         FFRT_LOGE("get static qos failed");
         return ERROR_NUM;
@@ -34,7 +34,7 @@ int GetStaticQos(qos &static_qos)
 int GetDynamicQos(qos &dynamic_qos)
 {
     struct QosCtrlData data;
-    int ret = QosGet(data);
+    int ret = FFRTQosGet(data);
     if (ret < 0 || data.dynamicQos < 0) {
         FFRT_LOGE("get dynamic qos failed");
         return ERROR_NUM;

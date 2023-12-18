@@ -20,8 +20,8 @@
 #include <dlfcn.h>
 #include "libunwind.h"
 #endif
-#include "dm/dependence_manager.h"
 #include "util/slab.h"
+#include "util/ffrt_facade.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "util/spmc_queue.h"
 

@@ -114,14 +114,9 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         if (queue->GetLength() == queue->GetCapacity()) {
             return task;
         }
-
-        TaskCtx* task2local = sched.PickNextTask();
-        if (task2local == nullptr) {
-            return task;
-        }
     
         CPUEUTask* task2local = sched.PickNextTask();
-        if (task2local = nullptr) {
+        if (task2local == nullptr) {
             return task;
         }
 

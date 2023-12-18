@@ -26,6 +26,8 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
+const unsigned int LOCAL_QUEUE_SIZE = 128;
+const unsigned int STEAL_BUFFER_SIZE = LOCAL_QUEUE_SIZE / 2;
 class CPUWorker : public WorkerThread {
 public:
     CPUWorker(const QoS& qos, CpuWorkerOps&& ops) : WorkerThread(qos), ops(ops)

@@ -24,23 +24,23 @@ extern "C" {
 #endif
 
 #if defined(__aarch64__)
-#define REG_NR 22
-#define REG_LR 11
-#define REG_SP 13
+#define FFRT_REG_NR 22
+#define FFRT_REG_LR 11
+#define FFRT_REG_SP 13
 #elif defined(__arm__)
-#define REG_NR 64
-#define REG_LR 1
-#define REG_SP 0
+#define FFRT_REG_NR 64
+#define FFRT_REG_LR 1
+#define FFRT_REG_SP 0
 #elif defined(__x86_64__)
-#define REG_NR 8
-#define REG_LR 7
-#define REG_SP 6
+#define FFRT_REG_NR 8
+#define FFRT_REG_LR 7
+#define FFRT_REG_SP 6
 #else
 #error "Unsupported architecture"
 #endif
 
 struct co2_context {
-    uintptr_t regs[REG_NR];
+    uintptr_t regs[FFRT_REG_NR];
 };
 
 int co2_save_context(struct co2_context* ctx);

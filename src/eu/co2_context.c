@@ -127,8 +127,8 @@ int co2_init_context(struct co2_context* ctx, void (*func)(void*), void* arg, vo
     stack_top -= stack_top % (0x2 * sizeof(uintptr_t));
     uintptr_t* data = (uintptr_t*)stack_top;
 
-    ctx->regs[REG_LR] = (uintptr_t)context_entry;
-    ctx->regs[REG_SP] = stack_top;
+    ctx->regs[FFRT_REG_LR] = (uintptr_t)context_entry;
+    ctx->regs[FFRT_REG_SP] = stack_top;
 
     data[0] = (uintptr_t)arg;
     data[1] = (uintptr_t)func;

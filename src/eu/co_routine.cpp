@@ -186,7 +186,7 @@ static inline void CoStackCheck(CoRoutine* co)
 {
     if (co->stkMem.magic != STACK_MAGIC) {
         FFRT_LOGE("sp offset:%lu.\n", (uint64_t)co->stkMem.stk +
-            co->stkMem.size - co->ctx.regs[REG_SP]);
+            co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
         abort();
     }

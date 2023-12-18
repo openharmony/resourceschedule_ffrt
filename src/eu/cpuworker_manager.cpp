@@ -167,7 +167,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         uint32_t queueLen = queue->GetLength();
         if (iter->first != thread && queueLen > 1) {
             int popLen = queue->PopHeadToAnotherQueue(
-                reinterpret_cast<CPUWorker*>(thread)->localFifo, queueLen /2 + 1);
+                reinterpret_cast<CPUWorker*>(thread)->localFifo, (queueLen + 1) / 2);
             SubStealingWorker(thread->GetQos());
             return popLen;
         }

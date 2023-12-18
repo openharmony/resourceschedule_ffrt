@@ -82,32 +82,6 @@ typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
 
-#ifdef FFRT_IO_TASK_SCHEDULER
-typedef enum {
-    ffrt_coroutine_stackless,
-    ffrt_coroutine_with_stack,
-} ffrt_coroutine_t;
-
-typedef enum {
-    ffrt_coroutine_pending = 0,
-    ffrt_coroutine_ready = 0,
-} ffrt_coroutine_ret_t;
-
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
-
-typedef struct {
-    int fd;
-    void* data;
-    void(*cb)(void*, uint32_t);
-} ffrt_poller_t;
-
-typedef enum {
-    ffrt_timer_notfound = -1,
-    ffrt_timer_not_executed = 0,
-    ffrt_timer_executed = 1,
-} ffrt_timer_query_t;
-#endif
-
 #ifdef __cplusplus
 namespace ffrt {
 enum qos_inner_default {

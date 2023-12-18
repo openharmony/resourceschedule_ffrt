@@ -32,9 +32,7 @@ namespace ffrt {
 class WorkerThread {
 public:
     CPUEUTask* curTask = nullptr;
-    explicit WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
-    {
-    }
+    explicit WorkerThread(const QoS& qos);
 
     virtual ~WorkerThread()
     {

@@ -114,9 +114,9 @@ void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEU
 {
     RunTask(task, worker, lastTask);
 
-    int lifo_count = 0;
+    unsigned int lifoCount = 0;
     while (worker->priority_task != nullptr && worker->priority_task != &PLACE_HOLDER) {
-        lifo_count++;
+        lifoCount++;
         ffrt_executor_task_t* priorityTask = reinterpret_cast<ffrt_executor_task_t*>(worker->priority_task);
         // set a placeholder to prevent the task from being placed in the priority again
         worker->priority_task = (lifoCount > worker->budget) ? const_cast<int*>(&PLACE_HOLDER) : nullptr;

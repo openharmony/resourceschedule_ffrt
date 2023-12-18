@@ -390,13 +390,6 @@ void ffrt_poller_wakeup()
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_poller_register_timerfunc(ffrt_timer_func timerFunc)
-{
-    ffrt_qos_t qos = ffrt_get_cur_qos();
-    return ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimerFunc(timerFunc);
-}
-
-API_ATTRIBUTE((visibility("default")))
 int ffrt_timer_start(uint64_t timeout, void* data, ffrt_timer_cb cb)
 {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;

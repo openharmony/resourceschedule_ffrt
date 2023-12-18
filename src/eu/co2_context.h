@@ -35,6 +35,15 @@ extern "C" {
 #define FFRT_REG_NR 8
 #define FFRT_REG_LR 7
 #define FFRT_REG_SP 6
+#elif defined(__riscv) && __riscv_xlen == 64
+// https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/riscv/bits/setjmp.h;h=5dd7fa0120ab37c9ec5c4a854792c0935b9eddc1;hb=HEAD
+#if defined __riscv_float_abi_double
+#define FFRT_REG_NR 26
+#else
+#define FFRT_REG_NR 14
+#endif
+#define FFRT_REG_LR 0
+#define FFRT_REG_SP 13
 #else
 #error "Unsupported architecture"
 #endif

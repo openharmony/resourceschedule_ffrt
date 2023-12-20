@@ -2677,6 +2677,7 @@ void fib_ffrt(int x, int* y)
 
 * 避免使用这些特性，如必须使用，使用FFRT的task local来替代
 
+## 不支持fork的子进程使用ffrt业务
 
 ## 以动态库方式部署FFRT
 
@@ -2722,3 +2723,8 @@ void normal_case()
     h = nullptr; // if necessary
 }
 ```
+
+## 输入输出依赖数量的限制
+
+* 使用submit接口进行任务提交时，每个任务的输入依赖和输出依赖的数量之和不能超过8个。
+* 使用submit_h接口进行任务提交时，每个任务的输入依赖和输出依赖的数量之和不能超过7个。

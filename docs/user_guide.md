@@ -2677,7 +2677,7 @@ void fib_ffrt(int x, int* y)
 
 * 避免使用这些特性，如必须使用，使用FFRT的task local来替代
 
-## 不支持fork的子进程使用ffrt业务
+## 不支持用户在fork出的子进程内使用ffrt
 
 ## 以动态库方式部署FFRT
 

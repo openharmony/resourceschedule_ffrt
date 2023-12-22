@@ -17,7 +17,7 @@
 #include <cstdlib>
 #include "dfx/log/ffrt_log_api.h"
 
-namespace ffrt{
+namespace ffrt {
 SpmcQueue::~SpmcQueue()
 {
     if (buf_ != nullptr) {

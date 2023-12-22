@@ -81,7 +81,8 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         bool taskExistence = GetTaskCount(thread->GetQos()) ||
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
             reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
-        return tearDown || taskExistence || !PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap();
+        bool needPoll = !PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap() && !polling_;
+        return tearDown || taskExistence || needPoll;
         })) {
 #else
     if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds),

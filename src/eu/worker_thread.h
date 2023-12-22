@@ -111,7 +111,7 @@ public:
         if (tid > 0) {
             pthread_detach(thread_);
         } else {
-            FFRT_LOGE("qos %d thread not joinable.", qos());
+            FFRT_LOGI("qos %d thread not joinable.", qos());
         }
         tid = -1;
     }
@@ -144,7 +144,7 @@ public:
         if (thread.joinable()) {
             thread.detach();
         } else {
-            FFRT_LOGE("qos %d thread not joinable\n", qos());
+            FFRT_LOGI("qos %d thread not joinable\n", qos());
         }
         tid = -1;
     }

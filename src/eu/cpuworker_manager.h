@@ -89,6 +89,7 @@ protected:
     WorkerSleepCtl sleepCtl[QoS::Max()];
 
 #ifdef FFRT_IO_TASK_SCHEDULER
+    bool polling_ = false;
     fast_mutex pollersMtx[QoS::Max()];
 #endif
 

@@ -60,7 +60,7 @@ struct TimerDataWithCb {
 
     void* data = nullptr;
     void(*cb)(void*) = nullptr;
-    int handle = -1; 
+    int handle = -1;
 };
 
 class Poller : private NonCopyable {

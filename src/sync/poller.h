@@ -82,7 +82,7 @@ public:
 
 private:
     void ReleaseFdWakeData() noexcept;
-    void ExcuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept;
+    void ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept;
 
     int m_epFd;
     uint8_t pollerCount_ = 0;

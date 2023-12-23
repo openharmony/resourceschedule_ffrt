@@ -83,7 +83,6 @@ config("ffrt_inner_config") {
     "src/dfx/log",
     "src/dfx/trace",
     "src/sched",
-    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter/",
     "//third_party/jsoncpp/include",
     "//third_party/libunwind/include",
   ]
@@ -256,7 +255,6 @@ ohos_shared_library("ffrt_ndk") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
   ]
 
   deps = [

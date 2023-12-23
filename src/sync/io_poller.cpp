@@ -151,7 +151,8 @@ void IOPoller::PollOnce(int timeout) noexcept
 
         if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) == 0) {
             auto task = reinterpret_cast<CPUEUTask *>(data->data);
-            bool blockThread = task ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
+            bool blockThread = task != nullptr ?
+                (task->coRoutine != nullptr ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false) : false;
             if (!USE_COROUTINE || blockThread) {
                 std::unique_lock<std::mutex> lck(task->lock);
                 if (blockThread) {

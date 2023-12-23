@@ -21,6 +21,18 @@ module_output_path = "ffrttest/"
 
 gtest_public_deps = [ "//third_party/googletest:gtest_main" ]
 
+ffrt_ut_base_deps = [
+  "../..:libffrt",
+  "//third_party/googletest:gtest",
+  "//third_party/jsoncpp:jsoncpp",
+]
+
+ffrt_ut_base_external_deps = [
+  "c_utils:utils",
+  "faultloggerd:libbacktrace_local",
+  "faultloggerd:libdfx_dumpcatcher",
+]
+
 config("ffrt_test_config") {
   include_dirs = [
     "../../src",
@@ -72,20 +84,8 @@ ohos_unittest("frame_interval_test") {
   ]
 
   sources = [ "frame_interval_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -109,21 +109,8 @@ ohos_unittest("deadline_test") {
   ]
 
   sources = [ "deadline_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -147,21 +134,8 @@ ohos_unittest("task_ctx_test") {
   ]
 
   sources = [ "task_ctx_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -185,21 +159,8 @@ ohos_unittest("cpu_monitor_test") {
   ]
 
   sources = [ "cpu_monitor_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -223,21 +184,8 @@ ohos_unittest("cpuworker_manager_test") {
   ]
 
   sources = [ "cpuworker_manager_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -261,21 +209,8 @@ ohos_unittest("execute_unit_test") {
   ]
 
   sources = [ "execute_unit_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -299,21 +234,8 @@ ohos_unittest("worker_thread_test") {
   ]
 
   sources = [ "worker_thread_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -337,20 +259,8 @@ ohos_unittest("qos_convert_test") {
   ]
 
   sources = [ "qos_convert_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps
@@ -374,21 +284,8 @@ ohos_unittest("ut_coroutine_test") {
   ]
 
   sources = [ "ut_coroutine_test.cpp" ]
-  deps = [
-    "../..:libffrt",
-    "//third_party/googletest:gtest",
-    "//third_party/jsoncpp:jsoncpp",
-  ]
-  external_deps = [
-    "c_utils:utils",
-    "eventhandler:libeventhandler",
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
 
   if (is_standard_system) {
     public_deps = gtest_public_deps

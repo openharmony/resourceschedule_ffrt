@@ -211,7 +211,7 @@ void mutexPrivate::wait()
 {
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
-    bool legacyMode = task ? task->coRoutine->legacyMode : false;
+    bool legacyMode = task != nullptr ? (task->coRoutine != nullptr ? task->coRoutine->legacyMode : false) : false;
     if (!USE_COROUTINE || task == nullptr || legacyMode) {
         wlock.lock();
         if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {

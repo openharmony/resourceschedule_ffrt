@@ -76,9 +76,9 @@ struct CoRoutine {
     CoRoutineEnv* thEnv;
     ffrt::CPUEUTask* task;
     CoCtx ctx;
-    StackMem stkMem;
     bool legacyMode = false;
     BlockType blockType = BlockType::BLOCK_COROUTINE;
+    StackMem stkMem;
 };
 
 struct CoStackAttr {

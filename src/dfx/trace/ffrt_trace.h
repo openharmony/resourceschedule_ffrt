@@ -23,7 +23,6 @@
 
 #ifdef FFRT_OH_TRACE_ENABLE
 #include <dlfcn.h>
-#include "hitrace_meter.h"
 #endif
 
 namespace ffrt {
@@ -66,6 +65,12 @@ private:
 } // namespace ffrt
 
 #ifdef FFRT_OH_TRACE_ENABLE
+constexpr uint64_t HITRACE_TAG_FFRT = (1ULL << 13); // ffrt task.
+bool IsTagEnabled(uint64_t tag);
+void StartTrace(uint64_t label, const std::string& value, float limit = -1);
+void FinishTrace(uint64_t label);
+void StartAsyncTrace(uint64_t label, const std::string& value, int32_t taskId, float limit = -1);
+void FinishAsyncTrace(uint64_t label, const std::string& value, int32_t taskId);
 #ifdef APP_USE_ARM
 static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
 #else

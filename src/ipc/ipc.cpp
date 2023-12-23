@@ -25,13 +25,8 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 void ffrt_this_task_set_legacy_mode(bool mode)
 {
-    auto cur = ffrt::ExecuteCtx::Cur();
-    if (cur == nullptr) {
-        return;
-    }
-    auto task = cur->task;
+    auto task = ffrt::ExecuteCtx::Cur()->task;
     if (task && task->coRoutine) {
-        FFRT_LOGI("=====coroutine[%lx] set mode[%d]", (uint64_t)task->coRoutine, mode); // for test
         task->coRoutine->legacyMode = mode;
     }
 }

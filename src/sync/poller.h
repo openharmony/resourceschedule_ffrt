@@ -87,7 +87,7 @@ private:
     int m_epFd;
     uint8_t pollerCount_ = 0;
     int timerHandle_ = -1;
-    EpollStatus flag_;
+    EpollStatus flag_ = EpollStatus::WAKE;
     struct WakeDataWithCb m_wakeData;
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;

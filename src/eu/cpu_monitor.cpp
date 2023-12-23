@@ -291,9 +291,6 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
 void CPUMonitor::Poke(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-#ifdef FFRT_IO_TASK_SCHEDULER
-    int taskCount = ops.GetTaskCount(qos);
-#endif
     workerCtrl.lock.lock();
 
 #ifdef FFRT_IO_TASK_SCHEDULER

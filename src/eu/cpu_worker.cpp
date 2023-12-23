@@ -175,6 +175,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_LOGD("qos[%d] thread start succ", (int)worker->GetQos());
     for (;;) {
         FFRT_LOGD("task picking");
+        // get task in the order of priority -> local queue -> global queue
         void* local_task = GetTask(worker);
         worker->tick++;
         if (local_task) {

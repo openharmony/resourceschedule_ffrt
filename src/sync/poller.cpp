@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include "poller.h"
-#include <cassert>
 
 #include "sched/execute_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -91,6 +90,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
             cur->first - std::chrono::steady_clock::now()).count();
         if (realTimeout <= 0) {
+            ExecuteTimerCb(cur);
             return PollerRet::RET_TIMER;
         }
 
@@ -99,7 +99,6 @@ PollerRet Poller::PollOnce(int timeout) noexcept
             realTimeout = timeout;
         }
 
-        ret = PollerRet::RET_TIMER;
         flag_ = EpollStatus::WAIT;
     }
     timerMutex_.unlock();
@@ -113,15 +112,17 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     }
 
     if (nfds == 0) {
-        timerMutex_.lock();
-        for (auto it = timerMap_.begin(); it != timerMap_.end(); it++) {
-            if (it->second.handle == timerHandle) {
-                ExcuteTimerCb(it);
-                return ret;
+        if (timerHandle != -1) {
+            timerMutex_.lock();
+            for (auto it = timerMap_.begin(); it != timerMap_.end(); it++) {
+                if (it->second.handle == timerHandle) {
+                    ExcuteTimerCb(it);
+                    return PollerRet::RET_TIMER;
+                }
             }
+            timerMutex_.unlock();
         }
-        timerMutex_.unlock();
-        return ret;
+        return PollerRet::RET_NULL;
     }
 
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
@@ -138,6 +139,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         }
         data->cb(data->data, m_events[i].events, pollerCount_);
     }
+
     ReleaseFdWakeData();
     return PollerRet::RET_EPOLL;
 }

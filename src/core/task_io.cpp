@@ -38,7 +38,7 @@ static void work_finish_callable(ffrt_executor_io_task* task)
     task->work.destroy(task->work.data);
 
 #ifdef FFRT_BBOX_ENABLE
-    TaskRunCounterInc();
+    TaskDoneCounterInc();
 #endif
 
     delete task;
@@ -51,10 +51,12 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qo
     ffrt_coroutine_ptr_t coroutine = task->work.exec;
     ffrt_coroutine_ret_t ret = coroutine(task->work.data);
     if (ret == ffrt_coroutine_ready) {
+        FFRT_EXECUTOR_TASK_FINISH_MARKER(task);
         work_finish_callable(task);
         return;
     }
 
+    FFRT_EXECUTOR_TASK_BLOCK_MARKER(task);
     task->status = ffrt::ExecTaskStatus::ET_PENDING;
 #ifdef FFRT_BBOX_ENABLE
     TaskPendingCounterInc();

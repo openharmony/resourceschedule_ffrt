@@ -35,6 +35,7 @@ int SpmcQueue::Init(unsigned int capacity)
     buf_ = reinterpret_cast<void**>(malloc(capacity * sizeof(void*)));
     if (buf_ == nullptr) {
         FFRT_LOGE("Queue malloc failed, size: %u", capacity * sizeof(void*));
+        return -1;
     }
 
     capacity_ = capacity;

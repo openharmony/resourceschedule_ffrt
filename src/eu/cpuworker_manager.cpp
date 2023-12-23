@@ -159,8 +159,8 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         groupCtl[thread->GetQos()].threads.begin();
     while (iter != groupCtl[thread->GetQos()].threads.end()) {
         SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(iter->first)->localFifo);
-        uint32_t queueLen = queue->GetLength();
-        if (iter->first != thread && queueLen > 1) {
+        unsigned int queueLen = queue->GetLength();
+        if (iter->first != thread && queueLen > 0) {
             int popLen = queue->PopHeadToAnotherQueue(
                 reinterpret_cast<CPUWorker*>(thread)->localFifo, (queueLen + 1) / 2);
             SubStealingWorker(thread->GetQos());

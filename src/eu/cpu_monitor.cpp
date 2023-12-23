@@ -27,7 +27,12 @@
 #include "util/name_manager.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
-#include "queue/queue.h"
+#include "util/spmc_queue.h"
+
+namespace {
+const int TRIGGER_SUPPRESS_WORKER_COUNT = 4;
+const int TRIGGER_SUPPRESS_EXECUTION_NUM = 2;
+}
 #endif
 namespace ffrt {
 void CPUMonitor::HandleBlocked(const QoS& qos)
@@ -286,13 +291,12 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
 void CPUMonitor::Poke(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-#ifdef FFRT_IO_TASK_SCHEDULER
-    int taskCount = ops.GetTaskCount(qos);
-#endif
     workerCtrl.lock.lock();
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-    if (workerCtrl.executionNum > 4 && taskCount < workerCtrl.executionNum) {
+    bool triggerSuppression = (ops.GetWorkerCount(qos) > TRIGGER_SUPPRESS_WORKER_COUNT) &&
+        (workerCtrl.executionNum > TRIGGER_SUPPRESS_EXECUTION_NUM) && (ops.GetTaskCount(qos) < workerCtrl.executionNum);
+    if (triggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }

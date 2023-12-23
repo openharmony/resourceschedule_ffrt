@@ -27,22 +27,40 @@
 #include <array>
 #include "internal_inc/non_copyable.h"
 namespace ffrt {
-struct WakeDataWithCb {
-    WakeDataWithCb()
-    {}
-    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal)
-        : fd(fdVal), data(dataVal), cb(cbVal)
-    {}
-
-    int fd = 0;
-    void *data = nullptr;
-    std::function<void(void *, uint32_t)> cb;
-};
-
 enum class PollerRet {
     RET_NULL,
     RET_EPOLL,
     RET_TIMER,
+};
+
+enum class EpollStatus {
+    WAIT,
+    WAKE,
+    TEARDOWN,
+};
+
+enum class TimerStatus {
+    EXECUTING,
+    EXECUTED,
+};
+
+struct WakeDataWithCb {
+    WakeDataWithCb() {}
+    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t, uint8_t)> cbVal)
+        : fd(fdVal), data(dataVal), cb(cbVal) {}
+
+    int fd = 0;
+    void *data = nullptr;
+    std::function<void(void *, uint32_t, uint8_t)> cb = nullptr;
+};
+
+struct TimerDataWithCb {
+    TimerDataWithCb() {}
+    TimerDataWithCb(void* dataVal, void(*cbVal)(void*)) : data(dataVal), cb(cbVal) {}
+
+    void* data = nullptr;
+    void(*cb)(void*) = nullptr;
+    int handle = -1;
 };
 
 class Poller : private NonCopyable {
@@ -51,23 +69,34 @@ public:
     Poller() noexcept;
     ~Poller() noexcept;
 
-    int AddFdEvent(uint32_t events, int fd, void* data, void(*cb)(void*, uint32_t)) noexcept;
+    int AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept;
     int DelFdEvent(int fd) noexcept;
 
     PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
 
-    bool RegisterTimerFunc(int(*timerFunc)()) noexcept;
+    int RegisterTimer(uint64_t timeout, void* data, void(*cb)(void*)) noexcept;
+    void DeregisterTimer(int handle) noexcept;
+    bool DetermineEmptyMap() noexcept;
+    ffrt_timer_query_t GetTimerStatus(int handle) noexcept;
 
 private:
-    void ReleaseFdWakeData(int fd) noexcept;
+    void ReleaseFdWakeData() noexcept;
+    void ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept;
 
     int m_epFd;
+    uint8_t pollerCount_ = 0;
+    int timerHandle_ = -1;
+    EpollStatus flag_ = EpollStatus::WAKE;
     struct WakeDataWithCb m_wakeData;
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
+    std::unordered_map<int, TimerStatus> executedHandle_;
+    std::multimap<time_point_t, TimerDataWithCb> timerMap_;
+    std::atomic_bool fdEmpty_ {true};
+    std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;
-    std::function<int()> m_timerFunc;
+    mutable spin_mutex timerMutex_;
 #ifndef _MSC_VER
     std::vector<epoll_event> m_events;
 #endif

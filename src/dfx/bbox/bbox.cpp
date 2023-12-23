@@ -33,6 +33,7 @@ static std::atomic<unsigned int> g_taskRunCounter(0);
 static std::atomic<unsigned int> g_taskSwitchCounter(0);
 static std::atomic<unsigned int> g_taskFinishCounter(0);
 #ifdef FFRT_IO_TASK_SCHEDULER
+static std::atomic<unsigned int> g_taskPendingCounter(0);
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 #endif
 static CPUEUTask* g_cur_task;
@@ -78,6 +79,13 @@ void TaskFinishCounterInc(void)
     ++g_taskFinishCounter;
 }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
+void TaskPendingCounterInc(void)
+{
+    ++g_taskPendingCounter;
+}
+#endif
+
 static inline void SaveCurrent()
 {
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
@@ -98,7 +106,8 @@ static inline void SaveTaskCounter()
     FFRT_BBOX_LOG("FFRT BBOX TaskRunCounter:%u TaskSwitchCounter:%u TaskFinishCounter:%u", g_taskRunCounter.load(),
         g_taskSwitchCounter.load(), g_taskFinishCounter.load());
 #ifdef FFRT_IO_TASK_SCHEDULER
-    FFRT_BBOX_LOG("FFRT BBOX TaskWakeCounterInc:%u", g_taskWakeCounter.load());
+    FFRT_BBOX_LOG("FFRT BBOX TaskWakeCounterInc:%u, TaskPendingCounter:%u",
+        g_taskWakeCounter.load(), g_taskPendingCounter.load());
 #endif
     if (g_taskSwitchCounter.load() + g_taskFinishCounter.load() == g_taskRunCounter.load()) {
         FFRT_BBOX_LOG("TaskRunCounter equals TaskSwitchCounter + TaskFinishCounter");

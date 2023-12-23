@@ -77,6 +77,9 @@ message(STATUS "FFRT_TEST_ENABLE: " ${FFRT_TEST_ENABLE})
 message(STATUS "FFRT_CLANG_COMPILE: " ${FFRT_CLANG_COMPILE})
 message(STATUS "FFRT_SANITIZE: " ${FFRT_SANITIZE})
 
+add_definitions("-DFFRT_IO_TASK_SCHEDULER")
+add_definitions("-DFFRT_PTHREAD_ENABLE")
+
 # ffrt qos
 add_definitions(-DUSE_OHOS_QOS)
 

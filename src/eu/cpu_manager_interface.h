@@ -20,8 +20,6 @@
 #include "qos.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
-#define LOCAL_QUEUE_SIZE 128
-#define STEAL_BUFFER_SIZE (LOCAL_QUEUE_SIZE - LOCAL_QUEUE_SIZE / 2)
 #endif
 #include "tm/cpu_task.h"
 
@@ -63,6 +61,7 @@ struct CpuMonitorOps {
     std::function<bool (const QoS& qos)> IncWorker;
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
+    std::function<int (const QoS& qos)> GetWorkerCount;
 };
 }
 #endif

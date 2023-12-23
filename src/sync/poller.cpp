@@ -116,7 +116,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
             timerMutex_.lock();
             for (auto it = timerMap_.begin(); it != timerMap_.end(); it++) {
                 if (it->second.handle == timerHandle) {
-                    ExcuteTimerCb(it);
+                    ExecuteTimerCb(it);
                     return PollerRet::RET_TIMER;
                 }
             }
@@ -169,7 +169,7 @@ void Poller::ReleaseFdWakeData() noexcept
 
     fdEmpty_.store(m_wakeDataMap.empty());
 }
-void Poller::ExcuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept
+void Poller::ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept
 {
     std::vector<TimerDataWithCb> timerData;
     for (auto iter = timerMap_.begin(); iter != timerMap_.end();) {

@@ -22,6 +22,7 @@
 #include "eu/qos_interface.h"
 #include "qos.h"
 #include "util/name_manager.h"
+
 namespace ffrt {
 WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
 {

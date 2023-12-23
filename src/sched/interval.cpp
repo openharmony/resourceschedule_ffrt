@@ -14,9 +14,7 @@
  */
 
 #include "sched/interval.h"
-
-#include "dm/dependence_manager.h"
-#include "eu/execute_unit.h"
+#include "util/ffrt_facade.h"
 #include "ffrt_trace.h"
 
 namespace ffrt {
@@ -44,14 +42,14 @@ PerfCtrl::PerfCtrl(const QoS& qos) : qos(qos)
         return;
     }
 
-    tg = ExecuteUnit::Instance().BindTG(DevType::CPU, this->qos);
+    tg = FFRTFacade::GetEUInstance().BindTG(DevType::CPU, this->qos);
 }
 
 PerfCtrl::~PerfCtrl()
 {
     if (tg) {
         tg = nullptr;
-        ExecuteUnit::Instance().UnbindTG(DevType::CPU, qos);
+        FFRTFacade::GetEUInstance().UnbindTG(DevType::CPU, qos);
     }
 }
 

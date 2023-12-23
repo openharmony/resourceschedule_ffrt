@@ -19,11 +19,6 @@ namespace ffrt {
 ExecuteCtx::ExecuteCtx()
 {
     task = nullptr;
-#ifdef FFRT_IO_TASK_SCHEDULER
-    exec_task = nullptr;
-    local_fifo = nullptr;
-    priority_task_ptr = nullptr;
-#endif
     wn.weType = 2;
 }
 

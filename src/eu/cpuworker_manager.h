@@ -22,7 +22,7 @@
 #include "eu/cpu_manager_interface.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
-#include "queue/queue.h"
+#include "util/spmc_queue.h"
 #endif
 #include "tm/cpu_task.h"
 
@@ -78,16 +78,20 @@ public:
     }
 
 protected:
+    virtual void WorkerPrepare(WorkerThread* thread) = 0;
     bool IncWorker(const QoS& qos) override;
     int GetTaskCount(const QoS& qos);
+    int GetWorkerCount(const QoS& qos);
     void WakeupWorkers(const QoS& qos);
 
     CPUMonitor* monitor = nullptr;
     bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::Max()];
 
-protected:
-    virtual void WorkerPrepare(WorkerThread* thread) = 0;
+#ifdef FFRT_IO_TASK_SCHEDULER
+    bool polling_ = false;
+    fast_mutex pollersMtx[QoS::Max()];
+#endif
 
 private:
     bool WorkerTearDown();
@@ -106,7 +110,6 @@ private:
     unsigned int StealTaskBatch(WorkerThread* thread);
     CPUEUTask* PickUpTaskBatch(WorkerThread* thread);
     void TryMoveLocal2Global(WorkerThread* thread);
-    fast_mutex pollersMtx[QoS::Max()];
     std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
 #endif
 };

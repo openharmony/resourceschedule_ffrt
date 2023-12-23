@@ -22,8 +22,9 @@
 
 #include "util/linked_list.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
-#include "queue/queue.h"
 #include "c/executor_task.h"
+#include "util/spmc_queue.h"
+#include "qos.h"
 #endif
 
 namespace ffrt {
@@ -75,11 +76,11 @@ struct ExecuteCtx {
     ExecuteCtx();
     virtual ~ExecuteCtx();
 #ifdef FFRT_IO_TASK_SCHEDULER
-    ffrt_executor_task_t* exec_task;
-    void** priority_task_ptr;
-    struct queue_s* local_fifo;
+    ffrt_executor_task_t* exec_task = nullptr;
+    void** priority_task_ptr = nullptr;
+    SpmcQueue* localFifo = nullptr;
+    QoS qos;
 #endif
-    
     CPUEUTask* task; // 当前正在执行的Task
     WaitUntilEntry wn;
 

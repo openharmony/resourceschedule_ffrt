@@ -18,10 +18,23 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include "dfx/log/ffrt_log_api.h"
+#include "eu/execute_unit.h"
 #include "eu/qos_interface.h"
 #include "qos.h"
 #include "util/name_manager.h"
+
 namespace ffrt {
+WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
+{
+#ifdef FFRT_PTHREAD_ENABLE
+    pthread_attr_init(&attr_);
+    size_t stackSize = ExecuteUnit::Instance().GetGroupCtl()[qos()].workerStackSize;
+    if (stackSize > 0) {
+        pthread_attr_setstacksize(&attr_, stackSize);
+    }
+#endif
+}
+
 void WorkerThread::NativeConfig()
 {
     pid_t pid = syscall(SYS_gettid);
@@ -37,7 +50,7 @@ void WorkerThread::WorkerSetup(WorkerThread* wthread)
     if (qosStr == "") {
         FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
     }
-    pthread_setname_np(wthread->GetThread().native_handle(), threadName.c_str());
+    pthread_setname_np(wthread->GetThread(), threadName.c_str());
     SetThreadAttr(wthread, qos);
 }
 

@@ -204,4 +204,12 @@ FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
  * @version 1.0
  */
 FFRT_C_API void ffrt_wait(void);
+
+/**
+ * @brief Sets the thread stack size of a specified QoS level.
+ *
+ * @since 10
+ * @version 1.0
+ */
+FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
 #endif

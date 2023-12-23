@@ -34,6 +34,7 @@ struct WorkerGroupCtl {
     std::unique_ptr<ThreadGroup> tg;
     uint64_t tgRefCount = 0;
     mutable std::shared_mutex tgMutex;
+    size_t workerStackSize = 0;
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>> threads;
 };
 

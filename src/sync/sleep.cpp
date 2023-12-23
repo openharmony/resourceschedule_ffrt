@@ -42,8 +42,16 @@ CPUEUTask* ExecuteCtxTask()
 
 void sleep_until_impl(const time_point_t& to)
 {
-    if (!USE_COROUTINE || ExecuteCtxTask() == nullptr) {
+    auto task = ExecuteCtxTask();
+    bool legacyMode = task != nullptr ? (task->coRoutine != nullptr ? task->coRoutine->legacyMode : false) : false;
+    if (!USE_COROUTINE || task == nullptr || legacyMode) {
+        if (legacyMode) {
+            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        }
         std::this_thread::sleep_until(to);
+        if (legacyMode) {
+            task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        }
         return;
     }
     // be careful about local-var use-after-free here
@@ -62,11 +70,20 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 void ffrt_yield()
 {
-    if (!ffrt::USE_COROUTINE || ffrt::this_task::ExecuteCtxTask() == nullptr) {
+    auto curTask = ffrt::this_task::ExecuteCtxTask();
+    bool legacyMode = curTask != nullptr ?
+        (curTask->coRoutine != nullptr ? curTask->coRoutine->legacyMode : false) : false;
+    if (!ffrt::USE_COROUTINE || curTask == nullptr || legacyMode) {
+        if (legacyMode) {
+            curTask->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        }
         std::this_thread::yield();
+        if (legacyMode) {
+            curTask->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        }
         return;
     }
-    FFRT_BLOCK_TRACER(ffrt::this_task::ExecuteCtxTask()->gid, yld);
+    FFRT_BLOCK_TRACER(curTask->gid, yld);
     CoWait([](ffrt::CPUEUTask* inTask) -> bool {
         CoWake(inTask, false);
         return true;

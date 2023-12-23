@@ -60,7 +60,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 
     ffrt_executor_task_func func = nullptr;
     ffrt_executor_task_type_t type = static_cast<ffrt_executor_task_type_t>(task->type);
-    if (task->type == ffrt_io_task) {
+    if (type == ffrt_io_task) {
         func = FuncManager::Instance()->getFunc(ffrt_io_task);
     } else {
         func = FuncManager::Instance()->getFunc(ffrt_uv_task);

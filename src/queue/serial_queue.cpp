@@ -48,6 +48,7 @@ void SerialQueue::Quit()
 int SerialQueue::PushTask(ITask* task, uint64_t upTime)
 {
     FFRT_COND_DO_ERR((task == nullptr), return -1, "failed to push task, task is nullptr");
+    FFRT_LOGI("push task gid=%llu to qid=%u [%s]", task->gid, qid_, name_.c_str());
     {
         std::unique_lock lock(mutex_);
         whenMap_[upTime].emplace_back(task);
@@ -55,7 +56,6 @@ int SerialQueue::PushTask(ITask* task, uint64_t upTime)
             cond_.notify_all();
         }
     }
-    FFRT_LOGI("push task gid=%llu to qid=%u [%s]", task->gid, qid_, name_.c_str());
     return 0;
 }
 

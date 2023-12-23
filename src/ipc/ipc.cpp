@@ -12,16 +12,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_C_DEADLINE_H
-#define FFRT_API_C_DEADLINE_H
-#include <stdint.h>
-#include "type_def.h"
+#include "c/ffrt_ipc.h"
 
-FFRT_C_API ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos);
-FFRT_C_API int ffrt_interval_update(ffrt_interval_t it, uint64_t new_deadline_us);
-FFRT_C_API int ffrt_interval_begin(ffrt_interval_t it);
-FFRT_C_API int ffrt_interval_end(ffrt_interval_t it);
-FFRT_C_API void ffrt_interval_destroy(ffrt_interval_t it);
-FFRT_C_API int ffrt_interval_join(ffrt_interval_t it);
-FFRT_C_API int ffrt_interval_leave(ffrt_interval_t it);
+#include "internal_inc/osal.h"
+#include "sched/execute_ctx.h"
+#include "tm/cpu_task.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_this_task_set_legacy_mode(bool mode)
+{
+    auto task = ffrt::ExecuteCtx::Cur()->task;
+    if (task && task->coRoutine) {
+        task->coRoutine->legacyMode = mode;
+    }
+}
+
+#ifdef __cplusplus
+}
 #endif

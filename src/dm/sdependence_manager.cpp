@@ -16,6 +16,7 @@
 #include "sdependence_manager.h"
 
 namespace ffrt {
+
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
     // control construct sequences of singletons
@@ -26,13 +27,11 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 #endif
     FFRTScheduler::Instance();
     ExecuteUnit::Instance();
-
     TaskState::RegisterOps(TaskState::EXITED,
-        [this](CPUEUTask* task) { return this->onTaskDone(reinterpret_cast<SCPUEUTask*>(task)), true; });
-
+        [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 #ifdef FFRT_OH_TRACE_ENABLE
-        StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
-        FinishTrace(HITRACE_TAG_FFRT);
+        _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
+        _FinishTrace(HITRACE_TAG_FFRT);
 #endif
 }
 
@@ -156,17 +155,21 @@ void SDependenceManager::onWait()
 {
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = ctx->task ? ctx->task : DependenceManager::Root();
-    auto task = reinterpret_cast<SCPUEUTask*>(baseTask);
-    if (!USE_COROUTINE || task->parent == nullptr) {
+    auto task = static_cast<SCPUEUTask*>(baseTask);
+    bool legacyMode = task->coRoutine ? task->coRoutine->legacyMode : false;
+    if (!USE_COROUTINE || task->parent == nullptr || legacyMode) {
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+        if (legacyMode) {
+            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        }
         task->childWaitCond_.wait(lck, [task] { return task->childWaitRefCnt == 0; });
         return;
     }
 
     auto childDepFun = [&](ffrt::CPUEUTask* inTask) -> bool {
-        auto sTask = reinterpret_cast<SCPUEUTask*>(inTask);
+        auto sTask = static_cast<SCPUEUTask*>(inTask);
         std::unique_lock<std::mutex> lck(sTask->lock);
         if (sTask->childWaitRefCnt == 0) {
             return false;
@@ -187,7 +190,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
 {
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = ctx->task ? ctx->task : DependenceManager::Root();
-    auto task = reinterpret_cast<SCPUEUTask*>(baseTask);
+    auto task = static_cast<SCPUEUTask*>(baseTask);
 
     auto dataDepFun = [&]() {
         std::vector<VersionCtx*> waitDatas;
@@ -219,17 +222,21 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         }
     };
 
-    if (!USE_COROUTINE || task->parent == nullptr) {
+    bool legacyMode = task->coRoutine ? task->coRoutine->legacyMode : false;
+    if (!USE_COROUTINE || task->parent == nullptr || legacyMode) {
         dataDepFun();
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+        if (legacyMode) {
+            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        }
         task->dataWaitCond_.wait(lck, [task] { return task->dataWaitRefCnt == 0; });
         return;
     }
 
     auto pendDataDepFun = [&](ffrt::CPUEUTask* inTask) -> bool {
-        auto sTask = reinterpret_cast<SCPUEUTask*>(inTask);
+        auto sTask = static_cast<SCPUEUTask*>(inTask);
         dataDepFun();
         FFRT_LOGD("onWait name:%s gid=%lu", sTask->label.c_str(), sTask->gid);
         std::unique_lock<std::mutex> lck(sTask->lock);
@@ -246,7 +253,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
 
 void SDependenceManager::onTaskDone(CPUEUTask* task)
 {
-    auto sTask = reinterpret_cast<SCPUEUTask*>(task);
+    auto sTask = static_cast<SCPUEUTask*>(task);
     FFRT_LOGD("Task completed, task[%lu], name[%s]", sTask->gid, sTask->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
     TaskDoneCounterInc();

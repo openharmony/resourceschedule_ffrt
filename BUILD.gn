@@ -72,6 +72,10 @@ config("ffrt_config") {
     defines += [ "ASAN_MODE" ]
   }
 
+  if (target_cpu == "arm") {
+    defines += [ "APP_USE_ARM" ]
+  }
+
   #defines += ffrt_release_defines
 }
 
@@ -126,6 +130,7 @@ ohos_shared_library("libffrt") {
     "src/eu/sexecute_unit.cpp",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
+    "src/ipc/ipc.cpp",
     "src/queue/queue_monitor.cpp",
     "src/queue/serial_handler.cpp",
     "src/queue/serial_looper.cpp",
@@ -165,8 +170,6 @@ ohos_shared_library("libffrt") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
   ]
 
   deps = [
@@ -261,8 +264,6 @@ ohos_shared_library("ffrt_ndk") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
-    "ipc:ipc_core",
   ]
 
   deps = [

@@ -22,7 +22,8 @@ void Fib(int x, int& y)
     if (x <= 1) {
         y = x;
     } else {
-        int y1, y2;
+        int y1;
+        int y2;
         Fib(x - 1, y1);
         Fib(x - 2, y2);
         y = y1 + y2;
@@ -35,7 +36,8 @@ void FibFFRTChildWait(int x, int& y)
     if (x <= 1) {
         y = x;
     } else {
-        int y1, y2;
+        int y1;
+        int y2;
         ffrt::submit([&]() { FibFFRTChildWait(x - 1, y1); }, {}, {});
         ffrt::submit([&]() { FibFFRTChildWait(x - 2, y2); }, {}, {});
         ffrt::wait();
@@ -49,7 +51,8 @@ void FibFFRTDataWait(int x, int& y)
     if (x <= 1) {
         y = x;
     } else {
-        int y1, y2;
+        int y1;
+        int y2;
         ffrt::submit([&]() { FibFFRTDataWait(x - 1, y1); }, {}, {&y1});
         ffrt::submit([&]() { FibFFRTDataWait(x - 2, y2); }, {}, {&y2});
         ffrt::wait({&y1, &y2});

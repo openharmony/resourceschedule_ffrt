@@ -65,7 +65,7 @@ static int TrivalOpenQosCtrlNode(void)
     return fd;
 }
 
-int EnableRtg(bool flag)
+int FFRTEnableRtg(bool flag)
 {
     struct RtgEnableData enableData;
     char configStr[] = "load_freq_switch:1;sched_cycle:1";
@@ -89,7 +89,7 @@ int EnableRtg(bool flag)
     return 0;
 };
 
-int AuthEnable(unsigned int uid, unsigned int uaFlag, unsigned int status)
+int FFRTAuthEnable(unsigned int uid, unsigned int uaFlag, unsigned int status)
 {
     struct AuthCtrlData data;
     int fd;
@@ -114,7 +114,7 @@ int AuthEnable(unsigned int uid, unsigned int uaFlag, unsigned int status)
     return ret;
 }
 
-int AuthSwitch(unsigned int uid, unsigned int rtgFlag, unsigned int qosFlag, unsigned int status)
+int FFRTAuthSwitch(unsigned int uid, unsigned int rtgFlag, unsigned int qosFlag, unsigned int status)
 {
     struct AuthCtrlData data;
     int fd;
@@ -139,7 +139,7 @@ int AuthSwitch(unsigned int uid, unsigned int rtgFlag, unsigned int qosFlag, uns
     return ret;
 }
 
-int AuthDelete(unsigned int uid)
+int FFRTAuthDelete(unsigned int uid)
 {
     struct AuthCtrlData data;
     int fd;
@@ -161,7 +161,7 @@ int AuthDelete(unsigned int uid)
     return ret;
 }
 
-int AuthPause(unsigned int uid)
+int FFRTAuthPause(unsigned int uid)
 {
     struct AuthCtrlData data;
     int fd;
@@ -186,7 +186,7 @@ int AuthPause(unsigned int uid)
     return ret;
 }
 
-int AuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status)
+int FFRTAuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status)
 {
     struct AuthCtrlData data;
     int fd;
@@ -212,16 +212,16 @@ int AuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status)
     return ret;
 }
 
-int QosApply(unsigned int level)
+int FFRTQosApply(unsigned int level)
 {
     int tid = GET_TID();
     int ret;
 
-    ret = QosApplyForOther(level, tid);
+    ret = FFRTQosApplyForOther(level, tid);
     return ret;
 }
 
-int QosApplyForOther(unsigned int level, int tid)
+int FFRTQosApplyForOther(unsigned int level, int tid)
 {
     struct QosCtrlData data;
     int fd;
@@ -245,7 +245,7 @@ int QosApplyForOther(unsigned int level, int tid)
     return ret;
 }
 
-int QosLeave(void)
+int FFRTQosLeave(void)
 {
     struct QosCtrlData data;
     int fd;
@@ -268,7 +268,7 @@ int QosLeave(void)
     return ret;
 }
 
-int QosLeaveForOther(int tid)
+int FFRTQosLeaveForOther(int tid)
 {
     struct QosCtrlData data;
     int fd;
@@ -327,13 +327,13 @@ int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas)
     return ret;
 }
 
-int QosGet(struct QosCtrlData &data)
+int FFRTQosGet(struct QosCtrlData &data)
 {
     int tid = GET_TID();
-    return QosGetForOther(tid, data);
+    return FFRTQosGetForOther(tid, data);
 }
 
-int QosGetForOther(int tid, struct QosCtrlData &data)
+int FFRTQosGetForOther(int tid, struct QosCtrlData &data)
 {
     int fd = TrivalOpenQosCtrlNode();
     if (fd < 0) {

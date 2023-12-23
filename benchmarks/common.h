@@ -68,7 +68,8 @@ static void FibFFRT(int x, int& y)
     if (x <= 1) {
         y = x;
     } else {
-        int y1, y2;
+        int y1;
+        int y2;
         ffrt::submit([&]() { FibFFRT(x - 1, y1); }, {&x}, {&y1});
         ffrt::submit([&]() { FibFFRT(x - 2, y2); }, {&x}, {&y2});
         ffrt::wait({&y1, &y2});

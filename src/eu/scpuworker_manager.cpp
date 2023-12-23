@@ -101,8 +101,8 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #ifdef FFRT_IO_TASK_SCHEDULER
         ctl.cv.wait(lk, [this, thread] {
             return tearDown || GetTaskCount(thread->GetQos()) ||
-            reinterpret_cast<CPUWorker*>(thread)->priority_task ||
-            reinterpret_cast<CPUWorker*>(thread)->localFifo.GetLength();
+            reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
+            reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
             });
 #else
         ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});

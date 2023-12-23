@@ -19,9 +19,10 @@
 #include <atomic>
 #include <chrono>
 #include "internal_inc/osal.h"
+#include "dfx/log/ffrt_log_api.h"
 
 #ifdef FFRT_OH_TRACE_ENABLE
-#include "hitrace_meter.h"
+#include <dlfcn.h>
 #endif
 
 namespace ffrt {
@@ -64,25 +65,146 @@ private:
 } // namespace ffrt
 
 #ifdef FFRT_OH_TRACE_ENABLE
+constexpr uint64_t HITRACE_TAG_FFRT = (1ULL << 13); // ffrt task.
+bool IsTagEnabled(uint64_t tag);
+void StartTrace(uint64_t label, const std::string& value, float limit = -1);
+void FinishTrace(uint64_t label);
+void StartAsyncTrace(uint64_t label, const std::string& value, int32_t taskId, float limit = -1);
+void FinishAsyncTrace(uint64_t label, const std::string& value, int32_t taskId);
+#ifdef APP_USE_ARM
+static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
+#else
+static const std::string TRACE_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitrace_meter.so";
+#endif
+class TraceAdapter {
+public:
+    TraceAdapter()
+    {
+        Load();
+    }
+
+    ~TraceAdapter()
+    {
+        UnLoad();
+    }
+
+    static TraceAdapter* Instance()
+    {
+        static TraceAdapter instance;
+        return &instance;
+    }
+
+#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func = nullptr
+    REG_FUNC(IsTagEnabled);
+    REG_FUNC(StartTrace);
+    REG_FUNC(FinishTrace);
+    REG_FUNC(StartAsyncTrace);
+    REG_FUNC(FinishAsyncTrace);
+#undef REG_FUNC
+
+private:
+    bool Load()
+    {
+        if (handle != nullptr) {
+            FFRT_LOGD("handle exits");
+            return true;
+        }
+
+        handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
+        if (handle == nullptr) {
+            FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH.c_str());
+            return false;
+        }
+
+#define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));                    \
+        if (x == nullptr)                                                                \
+        {                                                                                \
+            FFRT_LOGE("load func %s from %s failed", #x, TRACE_LIB_PATH.c_str());        \
+            return false;                                                                \
+        }
+            LOAD_FUNC(IsTagEnabled);
+            LOAD_FUNC(StartTrace);
+            LOAD_FUNC(FinishTrace);
+            LOAD_FUNC(StartAsyncTrace);
+            LOAD_FUNC(FinishAsyncTrace);
+#undef LOAD_FUNC
+        return true;
+    }
+
+    bool UnLoad()
+    {
+        if (handle != nullptr) {
+            if (dlclose(handle) != 0) {
+                return false;
+            }
+            handle = nullptr;
+            return true;
+        }
+        return true;
+    }
+
+    void* handle = nullptr;
+};
+
+#define GET_TRACE_FUNC(x) (TraceAdapter::Instance()->x)
+
+static bool _IsTagEnabled(uint64_t label)
+{
+    auto func = GET_TRACE_FUNC(IsTagEnabled);
+    if (func != nullptr) {
+        return func(label);
+    }
+    return false;
+}
+
+#define _StartTrace(label, tag, limit) \
+    do { \
+        auto func = GET_TRACE_FUNC(StartTrace); \
+        if (func != nullptr) { \
+            func(label, tag, limit); \
+        } \
+    } while (0)
+#define _FinishTrace(label) \
+    do { \
+        auto func = GET_TRACE_FUNC(FinishTrace); \
+        if (func != nullptr) { \
+            func(label); \
+        } \
+    } while (0)
+#define _StartAsyncTrace(label, tag, tid, limit) \
+    do { \
+        auto func = GET_TRACE_FUNC(StartAsyncTrace); \
+        if (func != nullptr) { \
+            func(label, tag, tid, limit); \
+        } \
+    } while (0)
+#define _FinishAsyncTrace(label, tag, tid) \
+    do { \
+        auto func = GET_TRACE_FUNC(FinishAsyncTrace); \
+        if (func != nullptr) { \
+            func(label, tag, tid); \
+        } \
+    } while (0)
+
 #define FFRT_TRACE_BEGIN(tag) \
     do { \
-        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
-            StartTrace(HITRACE_TAG_FFRT, tag, -1); \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartTrace(HITRACE_TAG_FFRT, tag, -1); \
     } while (false)
 #define FFRT_TRACE_END() \
     do { \
-        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
-            FinishTrace(HITRACE_TAG_FFRT); \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _FinishTrace(HITRACE_TAG_FFRT); \
     } while (false)
 #define FFRT_TRACE_ASYNC_BEGIN(tag, tid) \
     do { \
-        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
-            StartAsyncTrace(HITRACE_TAG_FFRT, tag, tid, -1); \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartAsyncTrace(HITRACE_TAG_FFRT, tag, tid, -1); \
     } while (false)
 #define FFRT_TRACE_ASYNC_END(tag, tid) \
     do { \
-        if (__builtin_expect(!!(IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
-            FinishAsyncTrace(HITRACE_TAG_FFRT, tag, tid); \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _FinishAsyncTrace(HITRACE_TAG_FFRT, tag, tid); \
     } while (false)
 #define FFRT_TRACE_SCOPE(level, tag) ffrt::ScopedTrace ___tracer##tag(level, #tag)
 #else

@@ -94,7 +94,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUT
     auto ctx = ExecuteCtx::Cur();
     if (curtask->type != 0) {
         ctx->exec_task = curtask;
-        worker->curTask = task;
+        worker->curTask = curtask;
         Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
         worker->curTask = nullptr;
         ctx->exec_task = nullptr;

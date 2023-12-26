@@ -29,6 +29,9 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     ExecuteUnit::Instance();
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
+
+    SubmitSamplingTask();
+
 #ifdef FFRT_OH_TRACE_ENABLE
         _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
         _FinishTrace(HITRACE_TAG_FFRT);
@@ -146,6 +149,7 @@ void SDependenceManager::onSubmitUV(ffrt_executor_task_t* task, const task_attr_
         FFRT_LOGE("Submit UV task failed!");
         return;
     }
+
 #ifdef FFRT_BBOX_ENABLE
     TaskEnQueuCounterInc();
 #endif

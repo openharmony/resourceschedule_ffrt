@@ -24,9 +24,9 @@ namespace ffrt {
 struct QoSMap {
     QoSMap(int _qos = qos_default)
     {
-        if (_qos <= qos_inherit) {
+        if (_qos <= static_cast<int>(qos_inherit)) {
             m_qos = qos_inherit;
-        } else if (_qos >= qos_background && _qos <= qos_max) {
+        } else if (_qos >= static_cast<int>(qos_background) && _qos <= static_cast<int>(qos_max)) {
             m_qos = _qos;
         } else {
             m_qos = qos_default;
@@ -38,9 +38,9 @@ class QoS {
 public:
     QoS(int qos = qos_default)
     {
-        if (qos < qos_inherit) {
+        if (qos < static_cast<int>(qos_inherit)) {
             qos = qos_inherit;
-        } else if (qos > qos_max) {
+        } else if (qos > static_cast<int>(qos_max)) {
             qos = qos_max;
         }
         qos_ = qos;

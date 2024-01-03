@@ -37,14 +37,11 @@ public:
     virtual ~WorkerThread()
     {
         if (!exited) {
-            FFRT_LOGE("tid[%d] exit invalid", tid.load());
 #ifdef OHOS_THREAD_STACK_DUMP
             OHOS::HiviewDFX::DfxDumpCatcher dumplog;
             std::string msg = "";
             bool result = dumplog.DumpCatch(getpid(), gettid(), msg);
-            FFRT_LOGE("ffrt result[%d] pid[%d] tid[%d]", result, getpid(), gettid());
             if (result) {
-                FFRT_LOGE("ffrt callstack len = %{public}u", msg.length());
                 std::vector<std::string> out;
                 std::stringstream ss(msg);
                 std::string s;

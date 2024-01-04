@@ -36,7 +36,7 @@ ThreadGroup* WorkerManager::JoinTG(QoS& qos)
         return nullptr;
     }
 
-    std::shared_lock<std::shared_mutex> lck(tgwrap.tgMutex);
+    std::unique_lock<std::shared_mutex> lck(tgwrap.tgMutex);
 
     if (tgwrap.tgRefCount++ > 0) {
         return tgwrap.tg.get();
@@ -63,7 +63,7 @@ void WorkerManager::LeaveTG(QoS& qos)
         return;
     }
 
-    std::shared_lock<std::shared_mutex> lck(tgwrap.tgMutex);
+    std::unique_lock<std::shared_mutex> lck(tgwrap.tgMutex);
 
     if (tgwrap.tgRefCount == 0) {
         return;

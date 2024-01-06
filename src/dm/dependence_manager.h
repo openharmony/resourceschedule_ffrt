@@ -107,12 +107,8 @@ public:
     }
 
 protected:
-    DependenceManager()
-    {
-    }
-    ~DependenceManager()
-    {
-    }
+    DependenceManager() {}
+    virtual ~DependenceManager() {}
 };
 } // namespace ffrt
 #endif

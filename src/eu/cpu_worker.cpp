@@ -92,12 +92,14 @@ void* CPUWorker::WarpDispatch(void* worker)
 void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUTask* &lastTask)
 {
     auto ctx = ExecuteCtx::Cur();
+    CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
     if (curtask->type != 0) {
         ctx->exec_task = curtask;
-        Run(curtask, (int)worker->GetQos());
+        worker->curTask = task;
+        Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
+        worker->curTask = nullptr;
         ctx->exec_task = nullptr;
     } else {
-        CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
         FFRT_LOGD("EU pick task[%lu]", task->gid);
         task->UpdateState(TaskState::RUNNING);
 
@@ -265,6 +267,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         BboxCheckAndFreeze();
 
         if (task->type != 0) {
+            worker->curTask = task;
             ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
             Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
         } else {

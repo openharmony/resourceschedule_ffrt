@@ -163,6 +163,7 @@ ohos_shared_library("libffrt") {
     "src/util/graph_check.cpp",
     "src/util/init.cpp",
     "src/util/spmc_queue.cpp",
+    "src/util/worker_monitor.cpp",
   ]
 
   external_deps = [
@@ -257,6 +258,7 @@ ohos_shared_library("ffrt_ndk") {
     "src/util/graph_check.cpp",
     "src/util/init.cpp",
     "src/util/spmc_queue.cpp",
+    "src/util/worker_monitor.cpp",
   ]
 
   external_deps = [

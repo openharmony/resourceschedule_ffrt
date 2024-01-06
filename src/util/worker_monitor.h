@@ -34,7 +34,7 @@ private:
 private:
     bool skipSampling_ = true;
     WaitUntilEntry waitEntry_;
-    std::map<void*, std::pair<CPUEUTask*, uint64_t>> workerStatus_;
+    std::map<void*, std::pair<CPUEUTask*, int>> workerStatus_;
 }
 }
 #endif

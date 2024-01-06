@@ -31,6 +31,7 @@ constexpr uint64_t TIMEOUT_RECORD_CYCLE_US = 60 * 1000 * 1000;
 
 using UvFunc = void(*)(void*);
 constexpr unsigned int UV_FUNC_OFFSET = 2 *sizeof(uintptr_t);
+}
 
 namespace ffrt {
 WorkerMonitor::WorkerMonitor()

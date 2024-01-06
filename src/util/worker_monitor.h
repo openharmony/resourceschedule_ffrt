@@ -13,17 +13,28 @@
  * limitations under the License.
  */
 
-#include "dependence_manager.h"
-#include "util/singleton_register.h"
+#ifndef FFRT_WORKER_MONITOR_H
+#define FFRT_WORKER_MONITOR_H
+
+#include "eu/worker_thread.h"
+#include "tm/cpu_task.h"
 
 namespace ffrt {
-DependenceManager& DependenceManager::Instance()
-{
-    return SingletonRegister<DependenceManager>::Instance();
-}
+class WorkerMonitor {
+public:
+    WorkerMonitor();
+    ~WorkerMonitor();
 
-void DependenceManager::RegistInsCb(SingleInsCB<DependenceManager>::Instance &&cb)
-{
-    SingletonRegister<DependenceManager>::RegistInsCb(std::move(cb));
+private:
+    void SubmitSamplingTask();
+    void CheckWorkerStatus();
+    void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask);
+    void RecordSymbolAndBacktrace(CPUEUTask* task, int tid);
+
+private:
+    bool skipSampling_ = true;
+    WaitUntilEntry waitEntry_;
+    std::map<void*, std::pair<CPUEUTask*, uint64_t>> workerStatus_;
 }
 }
+#endif

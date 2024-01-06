@@ -14,6 +14,7 @@
  */
 
 #include "sdependence_manager.h"
+#include "util/worker_monitor.h"
 
 namespace ffrt {
 
@@ -29,10 +30,8 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     ExecuteUnit::Instance();
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
-
-    SubmitSamplingTask();
-
 #ifdef FFRT_OH_TRACE_ENABLE
+        static WorkerMonitor workerMonitor;
         _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
         _FinishTrace(HITRACE_TAG_FFRT);
 #endif

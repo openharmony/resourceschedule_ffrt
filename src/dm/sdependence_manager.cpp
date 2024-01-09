@@ -20,7 +20,7 @@ namespace ffrt {
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
-#ifdef FFRT_IO_TASK_SCHEDULER
+#ifdef FFRT_OH_TRACE_ENABLE
     TraceAdapter::Instance();
 #endif
     // control construct sequences of singletons

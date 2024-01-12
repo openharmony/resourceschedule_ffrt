@@ -672,6 +672,331 @@ return 1
 
 
 
+## 串行队列
+<hr />
+* FFRT提供queue来实现Andorid中类似WorkQueue能力，且在使用得当的情况下将有更好的性能
+
+* 串行队列支持提交延时任务，提交后会等待大于等于设定的延时时间再执行。当系统资源充分时，满足ms级精度要求；当系统资源紧张时，串行任务只保证计算顺序
+
+* 串行队列的watchdog机制，串行任务执行超过30s会上报超时，创建串行任务时注意不要提交会执行超过30s的任务，例如死循环任务
+
+### submit
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+void submit(std::function<void()>& func, const task_attr& attr);
+void submit(std::function<void()>&& func);
+void submit(std::function<void()>&& func, const task_attr& attr);
+}
+```
+
+#### 参数
+`func`
+* 可被std::function接收的一切CPU可执行体，可以为C++定义的Lamda函数闭包，函数指针，甚至是函数对象
+
+`attr`
+* 该参数是可选的
+* 该参数用于描述Task的属性，比如qos等，详见task_attr章节
+
+#### 返回值
+* 不涉及
+
+#### 描述
+* 提交一个任务到队列中调度执行
+
+#### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    queue* testQueue = new queue("test_queue");
+
+    int x = 0;
+    testQueue->submit([&x] { x += 10; });
+    usleep(100);
+
+    delete testQueue;
+}
+```
+
+### submit_h
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+task_handle submit_h(std::function<void()>& func);
+task_handle submit_h(std::function<void()>& func, const task_attr& attr);
+task_handle submit_h(std::function<void()>&& func);
+task_handle submit_h(std::function<void()>&& func, const task_attr& attr);
+}
+```
+
+#### 参数
+`func`
+* 可被std::function接收的一切CPU可执行体，可以为C++定义的Lamda函数闭包，函数指针，甚至是函数对象
+
+`attr`
+* 该参数是可选的
+* 该参数用于描述Task的属性，比如qos等，详见task_attr章节
+
+#### 返回值
+`task_handle`
+* task的句柄，该句柄可以用于建立task之间的依赖
+
+#### 描述
+* 提交一个任务到队列中调度执行，并返回一个句柄
+
+#### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    queue* testQueue = new queue("test_queue");
+
+    int x = 0;
+    testQueue->submit([&x] { x += 10; });
+    task_handle task = testQueue->submit_h([&x] { x += 10; });
+    testQueue->wait(task);
+
+    delete testQueue;
+}
+```
+
+### cancel
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+int cancel(task_handle& handle);
+}
+
+#### 参数
+`handle`
+* 任务的句柄
+
+#### 返回值
+* 若成功返回0，否则返回-1
+
+#### 描述
+* 根据句柄取消对应的任务。该任务若为延时任务且未到期望执行的时间则可以正常被取消；若欲取消无延时任务，则有概率取消失败。
+
+#### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    queue* testQueue = new queue("test_queue");
+
+    int x = 0;
+    task_handle t1 = testQueue->submit_h([&x] { x += 10; });
+    task_handle t2 = testQueue->submit_h([&x] { x += 10; }, task_attr().delay(1000));
+    testQueue->wait(t1);
+    int ret = testQueue->cancel(t2);
+
+    delete testQueue;
+}
+```
+
+### wait
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+void wait(task_handle& handle);
+}
+```
+
+#### 参数
+`handle`
+* 任务的句柄
+
+#### 返回值
+* 不涉及
+
+#### 描述
+* 等待句柄对应的任务执行完成
+
+#### 样例
+* 见[submit_h](#submit_h)章节样例
+
+### qos
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+queue_attr& qos(qos qos_){
+    ffrt_queue_attr_set_qos(this, qos_);
+    return *this;
+}
+}
+```
+
+#### 参数
+`qos_`
+* 见[ffrt_queue_attr_set_qos](#ffrt_queue_attr_set_qos)
+
+#### 返回值
+* 见[ffrt_queue_attr_set_qos](#ffrt_queue_attr_set_qos)
+
+#### 描述
+* 设置串行队列qos属性
+
+#### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节样例
+
+
+### qos
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+int qos() const {
+    return ffrt_queue_attr_get_qos(this);
+}
+}
+```
+
+#### 参数
+* 无
+
+#### 返回值
+* 同ffrt_queue_attr_get_qos，详见[ffrt_queue_attr_get_qos](#ffrt_queue_attr_get_qos)
+
+#### 描述
+* 获取串行队列qos属性，默认为default等级
+
+#### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节样例
+
+
+### timeout
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+queue_attr& timeout(uint64_t timeout_us) {
+    ffrt_queue_attr_set_timeout(this, timeout_us);
+    return *this;
+}
+}
+```
+
+#### 参数
+`timeout_us`
+* 见[ffrt_queue_attr_set_timeout](#ffrt_queue_attr_set_timeout)
+
+#### 返回值
+* 见[ffrt_queue_attr_set_timeout](#ffrt_queue_attr_set_timeout)
+
+#### 描述
+* 设置串行队列任务执行超时时间
+
+#### 样例
+* 见[ffrt_queue_attr_set_timeout](#ffrt_queue_attr_set_timeout)章节样例
+
+
+### timeout
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+uint64_t timeout() const {
+    return ffrt_queue_attr_get_timeout(this);
+}
+}
+```
+
+#### 参数
+* 无
+
+#### 返回值
+* 见[ffrt_queue_attr_get_timeout](#ffrt_queue_attr_get_timeout)
+
+#### 描述
+* 获取串行队列任务执行超时时间
+
+#### 样例
+* 见[ffrt_queue_attr_set_timeout](#ffrt_queue_attr_set_timeout)章节样例
+
+
+### callback
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+queue_attr& callback(std::function<void()>& func) {
+    ffrt_queue_attr_set_callback(this, create_function_wrapper(func, ffrt_function_kind_queue));
+    return *this;
+}
+}
+```
+
+#### 参数
+`func`
+* 见[ffrt_queue_attr_set_callback](#ffrt_queue_attr_set_callback)
+
+#### 返回值
+* 见[ffrt_queue_attr_set_callback](#ffrt_queue_attr_set_callback)
+
+#### 描述
+* 设置串行队列超时回调函数
+
+#### 样例
+* 见[ffrt_queue_attr_set_callback](#ffrt_queue_attr_set_callback)章节样例
+
+
+### callback
+<hr/>
+
+#### 声明
+```{.c}
+namespace ffrt {
+ffrt_function_header_t* callback() const {
+    return ffrt_queue_attr_get_callback(this);
+}
+}
+```
+
+#### 参数
+* 无
+
+#### 返回值
+* 见[ffrt_queue_attr_get_callback](#ffrt_queue_attr_get_callback)
+
+#### 描述
+* 获取串行队列超时回调函数
+
+#### 样例
+* 见[ffrt_queue_attr_set_callback](#ffrt_queue_attr_set_callback)章节样例
+
+
+
+
 ## 同步原语
 
 ### mutex
@@ -1676,7 +2001,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos);
 <hr />
 * FFRT提供queue来实现Andorid中类似WorkQueue能力，且在使用得当的情况下将有更好的性能
 
-### ffrt_queue_attr_t [稳定] [计划开源]
+### ffrt_queue_attr_t 
 
 #### 声明
 ```{.c}
@@ -1702,9 +2027,10 @@ void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
 * 在`ffrt_queue_attr_destroy`之后再对ffrt_queue_t进行访问，其行为是未定义的
 
 ### 样例
-将ffrt_queue_t章节的样例
+见[ffrt_queue_t](#ffrt_queue_t)章节的样例
 
-### ffrt_queue_t [稳定] [计划开源]
+### ffrt_queue_t
+<hr/>
 
 #### 声明
 ```{.c}
@@ -1724,7 +2050,7 @@ void ffrt_queue_destroy(ffrt_queue_t queue)
 * 该参数用于描述创建队列的名字
 
 `attr`
-* 该参数用于描述queue的属性，详见ffrt_queue_attr_t章节
+* 该参数用于描述queue的属性，详见[ffrt_queue_attr_t](#ffrt_queue_attr_t)章节
 
 ### 返回值
 * 若成功则返回新创建的队列，否则返回空指针
@@ -1747,6 +2073,8 @@ int main(int narg, char** argv)
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    ffrt_queue_attr_set_qos(&queue_attr, static_cast<int>(ffrt_qos_default));
+    int ret = ffrt_queue_attr_get_qos(&queue_attr);
 
     ffrt_queue_submit(queue_handle, ffrt::create_function_wrapper([]() {printf("Task done.\n");}, ffrt_function_kind_queue), nullptr);
 
@@ -1754,6 +2082,426 @@ int main(int narg, char** argv)
     ffrt_queue_destroy(queue_handle);
 }
 ```
+
+### ffrt_queue_attr_init
+<hr/>
+
+#### 声明
+```{.c}
+int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
+```
+
+### 参数
+`attr`
+* 该参数为已初始化的queue属性
+
+### 返回值
+* 若成功返回0，否则返回-1
+
+### 描述
+* 初始化串行队列的属性
+
+### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节样例
+
+### ffrt_queue_attr_destroy
+<hr/>
+
+#### 声明
+```{.c}
+void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
+```
+
+### 参数
+`attr`
+* 该参数为所创建的queue属性
+
+### 返回值
+* 无返回值
+
+### 描述
+* 销毁串行队列的属性
+* 见[ffrt_queue_t](#ffrt_queue_t)章节的描述
+
+### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节的样例
+
+
+### ffrt_queue_attr_set_qos
+<hr/>
+
+#### 声明
+```{.c}
+void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
+```
+
+### 参数
+`attr`
+* 该参数为所创建的queue属性
+
+`qos`
+* 该参数指向优先级QoS
+
+### 返回值
+* 无返回值
+
+### 描述
+* 设置串行队列qos属性
+
+### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节的样例
+
+
+### ffrt_queue_attr_get_qos
+<hr/>
+
+#### 声明
+```{.c}
+ffrt_qos_t ffrt_queue_attr_get_qos(ffrt_queue_attr_t* attr);
+```
+
+### 参数
+`attr`
+* 该参数为所创建的queue属性
+
+### 返回值
+* 所设置的串行队列的qos等级，默认为default等级
+
+### 描述
+* 获取串行队列qos属性
+
+### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节的样例
+
+
+### ffrt_queue_attr_set_timeout
+<hr/>
+
+#### 声明
+```{.c}
+void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
+```
+
+### 参数
+`attr`
+* 该参数为所创建的queue属性
+
+`timeout_us`
+* 该参数用于描述串行队列任务执行超时时间，单位为us
+
+### 返回值
+* 无返回值
+
+### 描述
+* 设置串行队列任务执行超时时间
+
+### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_timeout(&queue_attr, 10000);
+    uint64_t time = ffrt_queue_attr_get_timeout(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+```
+
+
+### ffrt_queue_attr_get_timeout
+<hr/>
+
+#### 声明
+```{.c}
+uint64_t ffrt_queue_attr_get_timeout(ffrt_queue_attr_t* attr);
+```
+
+### 参数
+`attr`
+* 该参数为所创建的queue属性
+
+### 返回值
+* 串行队列任务执行超时时间，单位为us
+
+### 描述
+* 获取所设的串行队列任务执行超时时间
+
+### 样例
+* 见[ffrt_queue_attr_set_timeout](#ffrt_queue_attr_set_timeout)章节的样例
+
+
+### ffrt_queue_attr_set_callback
+<hr/>
+
+#### 声明
+```{.c}
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f);
+```
+
+### 参数
+`attr`
+* 该参数为所创建的queue属性
+
+`f`
+* 该参数为串行队列超时回调函数
+
+### 返回值
+* 无返回值
+
+### 描述
+* 设置串行队列超时回调函数
+
+### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_callback(&queue_attr, ffrt::create_function_wrapper(cbOne, ffrt_function_kind_queue));
+    ffrt_function_header_t* func = ffrt_queue_attr_get_callback(nullptr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+```
+
+
+### ffrt_queue_attr_get_callback
+<hr/>
+
+#### 声明
+```{.c}
+ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
+```
+
+### 参数
+`attr`
+* 该参数为所创建的queue属性
+
+### 返回值
+* 串行队列超时回调函数
+
+### 描述
+* 获取串行队列超时回调函数
+
+### 样例
+* 见[ffrt_queue_attr_set_callback](#ffrt_queue_attr_set_callback)章节的样例
+
+
+### ffrt_queue_create
+<hr/>
+
+#### 声明
+```{.c}
+ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr);
+```
+
+### 参数
+`type`
+* 该参数用于描述创建的队列类型，串行队列type须为ffrt_queue_serial
+
+`name`
+* 该参数用于描述创建的队列名称，若未设置则会默认设置为unnamed_...
+
+`attr`
+* 该参数为所创建的queue属性，若未设定则会使用默认值
+
+### 返回值
+* 如果成功创建了队列，则返回一个非空的队列句柄；否则返回空指针。
+
+### 描述
+* 创建串行队列
+
+### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节的样例
+
+
+### ffrt_queue_destroy
+<hr/>
+
+#### 声明
+```{.c}
+void ffrt_queue_destroy(ffrt_queue_t queue);
+```
+
+### 参数
+`queue`
+* 该参数为想要销毁的队列的句柄
+
+### 返回值
+* 无
+
+### 描述
+* 销毁串行队列
+
+### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节的样例
+
+
+### ffrt_queue_submit
+<hr/>
+
+#### 声明
+```{.c}
+void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+```
+
+### 参数
+`queue`
+* 该参数为队列的句柄
+
+`f`
+* 该参数为任务执行器指针
+
+`attr`
+* 该参数为所创建的queue属性
+
+### 返回值
+* 无
+
+### 描述
+* 提交一个任务到队列中调度执行
+
+### 样例
+* 见[ffrt_queue_t](#ffrt_queue_t)章节的样例
+
+
+### ffrt_queue_submit_h
+<hr/>
+
+#### 声明
+```{.c}
+ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+```
+
+### 参数
+`queue`
+* 该参数为队列的句柄
+
+`f`
+* 该参数为任务执行器指针
+
+`attr`
+* 该参数为所创建的queue属性
+
+### 返回值
+* 如果任务被提交，则返回一个非空的任务句柄；否则返回空指针。
+
+### 描述
+* 提交一个任务到队列中调度执行，并返回任务句柄
+
+### 样例
+* 见[ffrt_queue_wait](#ffrt_queue_wait)章节的样例
+
+
+### ffrt_queue_wait
+<hr/>
+
+#### 声明
+```{.c}
+void ffrt_queue_wait(ffrt_task_handle_t handle);
+```
+
+### 参数
+`handle`
+* 该参数为任务的句柄
+
+### 返回值
+* 无返回值
+
+### 描述
+* 等待队列中一个任务执行完成
+
+### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()>&& OnePlusFunc = [&result]() { OnePlusForTest((void *)(&result)); };
+    ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
+        ffrt::create_function_wrapper(OnePlusFunc, ffrt_function_kind_queue), nullptr);
+    ffrt_queue_wait(task);
+
+    ffrt_task_handle_destroy(task);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+```
+
+
+
+### ffrt_queue_cancel
+<hr/>
+
+#### 声明
+```{.c}
+int ffrt_queue_cancel(ffrt_task_handle_t handle);
+```
+
+### 参数
+`handle`
+* 该参数为任务的句柄
+
+### 返回值
+* 若成功返回0，否则返回-1
+
+### 描述
+* 取消队列中一个任务
+* 任务开始执行后则无法取消，仅能成功取消未开始执行的任务，若任务已开始执行会返回-1
+* 不能通过队列名称取消任务，必须使用submit_h后拿到的task_handle，否则会报异常
+
+### 样例
+```
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()>&& OnePlusFunc = [&result]() { OnePlusForTest((void *)(&result)); };
+    ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
+        ffrt::create_function_wrapper(OnePlusFunc, ffrt_function_kind_queue), nullptr);
+    int ret = ffrt_queue_cancel(task);
+
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(task);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+```
+
+
 ## 同步原语
 
 ### ffrt_mutex_t

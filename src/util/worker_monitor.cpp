@@ -14,6 +14,7 @@
  */
 
 #include "worker_monitor.h"
+#include <cstring>
 #include <dlfcn.h>
 #ifdef FFRT_OH_TRACE_ENABLE
 #include "backtrace_local.h"

@@ -694,7 +694,7 @@ void submit(std::function<void()>&& func, const task_attr& attr);
 
 #### 参数
 `func`
-* 可被std::function接收的一切CPU可执行体，可以为C++定义的Lamda函数闭包，函数指针，甚至是函数对象
+* 可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至是函数对象
 
 `attr`
 * 该参数是可选的
@@ -741,7 +741,7 @@ task_handle submit_h(std::function<void()>&& func, const task_attr& attr);
 
 #### 参数
 `func`
-* 可被std::function接收的一切CPU可执行体，可以为C++定义的Lamda函数闭包，函数指针，甚至是函数对象
+* 可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至是函数对象
 
 `attr`
 * 该参数是可选的
@@ -783,6 +783,7 @@ int main(int narg, char** argv)
 namespace ffrt {
 int cancel(task_handle& handle);
 }
+```
 
 #### 参数
 `handle`
@@ -804,7 +805,7 @@ using namespace std;
 
 int main(int narg, char** argv)
 {
-    queue* testQueue = new queue("test_queue");
+    queue* testQueue = new queue("test_queue", queue_attr().qos(qos_utility));
 
     int x = 0;
     task_handle t1 = testQueue->submit_h([&x] { x += 10; });
@@ -937,7 +938,7 @@ uint64_t timeout() const {
 * 见[ffrt_queue_attr_get_timeout](#ffrt_queue_attr_get_timeout)
 
 #### 描述
-* 获取串行队列任务执行超时时间
+* 获取所设的串行队列任务执行超时时间
 
 #### 样例
 * 见[ffrt_queue_attr_set_timeout](#ffrt_queue_attr_set_timeout)章节样例
@@ -964,7 +965,7 @@ queue_attr& callback(std::function<void()>& func) {
 * 见[ffrt_queue_attr_set_callback](#ffrt_queue_attr_set_callback)
 
 #### 描述
-* 设置串行队列超时回调函数
+* 设置所设的串行队列超时回调函数
 
 #### 样例
 * 见[ffrt_queue_attr_set_callback](#ffrt_queue_attr_set_callback)章节样例
@@ -2157,7 +2158,7 @@ void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
 
 #### 声明
 ```{.c}
-ffrt_qos_t ffrt_queue_attr_get_qos(ffrt_queue_attr_t* attr);
+ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
 ```
 
 ### 参数
@@ -2222,7 +2223,7 @@ int main(int narg, char** argv)
 
 #### 声明
 ```{.c}
-uint64_t ffrt_queue_attr_get_timeout(ffrt_queue_attr_t* attr);
+uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
 ```
 
 ### 参数
@@ -2295,7 +2296,7 @@ ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* at
 * 该参数为所创建的queue属性
 
 ### 返回值
-* 串行队列超时回调函数
+* 串行队列任务超时回调函数
 
 ### 描述
 * 获取串行队列超时回调函数

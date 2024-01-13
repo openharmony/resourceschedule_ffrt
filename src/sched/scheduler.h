@@ -80,16 +80,6 @@ public:
         lock->unlock();
         ExecuteUnit::Instance().NotifyTaskAdded(level);
     }
-
-    bool InsertNodeNoMutex(ffrt_executor_task* task, const QoS qos)
-    {
-        if (task == nullptr) return false;
-        int level = qos();
-        ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
-        fifoQue[static_cast<size_t>(level)]->WakeupNode(node);
-        ExecuteUnit::Instance().NotifyTaskAdded(level);
-        return true;
-    }
 #endif
 
     bool WakeupTask(CPUEUTask* task)

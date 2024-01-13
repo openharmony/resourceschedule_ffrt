@@ -181,6 +181,27 @@ uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t *attr)
     return (reinterpret_cast<ffrt::task_attr_private *>(p))->delay_;
 }
 
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_ms)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_ms;
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t *attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return 0;
+    }
+    ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
+    return (reinterpret_cast<ffrt::task_attr_private *>(p))->timeout_;
+}
+
 // submit
 API_ATTRIBUTE((visibility("default")))
 void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
@@ -208,7 +229,18 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
 
     // task after delay
     ffrt_task_handle_t delay_handle;
+#ifdef FFRT_OH_WATCHDOG_ENABLE
+    uint64_t timeout = ffrt_task_attr_get_timeout(attr);
+    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
+        p->timeout_ = 0;
+    }
+#endif
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+#ifdef FFRT_OH_WATCHDOG_ENABLE
+    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
+        p->timeout_ = timeout;
+    }
+#endif
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl(false, handle, f, &delay_deps, nullptr, p);
@@ -232,7 +264,18 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 
     // task after delay
     ffrt_task_handle_t delay_handle = nullptr;
+#ifdef FFRT_OH_WATCHDOG_ENABLE
+    uint64_t timeout = ffrt_task_attr_get_timeout(attr);
+    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
+        p->timeout_ = 0;
+    }
+#endif
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+#ifdef FFRT_OH_WATCHDOG_ENABLE
+    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
+        p->timeout_ = timeout;
+    }
+#endif
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl(true, handle, f, &delay_deps, nullptr, p);

@@ -30,6 +30,7 @@
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"
 #include "core/entity.h"
+#include "dfx/watchdog/watchdog_util.h"
 #include "tm/cpu_task.h"
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"

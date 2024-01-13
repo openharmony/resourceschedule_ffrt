@@ -46,6 +46,7 @@ config("ffrt_config") {
     "-DUSE_OHOS_QOS",
     "-DFFRT_IO_TASK_SCHEDULER",
     "-DFFRT_PTHREAD_ENABLE",
+    "-DFFRT_OH_WATCHDOG_ENABLE",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -111,6 +112,7 @@ ohos_shared_library("libffrt") {
     "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
     "src/dfx/watchdog/watchdog.cpp",
+    "src/dfx/watchdog/watchdog_util.cpp",
     "src/dm/dependence_manager.cpp",
     "src/dm/sdependence_manager.cpp",
     "src/eu/co2_context.c",
@@ -207,6 +209,7 @@ ohos_shared_library("ffrt_ndk") {
     "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
     "src/dfx/watchdog/watchdog.cpp",
+    "src/dfx/watchdog/watchdog_util.cpp",
     "src/dm/dependence_manager.cpp",
     "src/dm/sdependence_manager.cpp",
     "src/eu/co2_context.c",

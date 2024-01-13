@@ -76,6 +76,7 @@ public:
     std::atomic<uint64_t> childNum {0};
 
     std::string label; // used for debug
+    bool isWatchdogEnable = false;
 
     QoS qos;
     void SetQos(QoS& newQos);

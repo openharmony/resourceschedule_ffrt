@@ -70,7 +70,7 @@ public:
     uint32_t monitorTid = 0;
 protected:
     WorkerCtrl ctrlQueue[QoS::Max()];
-    void Poke(const QoS& qos);
+    void Poke(const QoS& qos, TaskNotifyType notifyType);
     CpuMonitorOps& GetOps()
     {
         return ops;

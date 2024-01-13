@@ -34,18 +34,14 @@ void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
         taskCount);
     switch (notifyType) {
         case TaskNotifyType::TASK_ADDED:
-            if (taskCount > 0) {
-                Poke(qos);
-            }
-            break;
         case TaskNotifyType::TASK_PICKED:
             if (taskCount > 0) {
-                Poke(qos);
+                Poke(qos, notifyType);
             }
             break;
 #ifdef FFRT_IO_TASK_SCHEDULER
         case TaskNotifyType::TASK_LOCAL:
-            Poke(qos);
+            Poke(qos, notifyType);
             break;
 #endif
         default:

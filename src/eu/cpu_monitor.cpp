@@ -47,7 +47,7 @@ void CPUMonitor::HandleBlocked(const QoS& qos)
     workerCtrl.lock.unlock();
     size_t blockedNum = CountBlockedNum(qos);
     if (blockedNum > 0 && (exeValue - blockedNum < workerCtrl.maxConcurrency) && exeValue < workerCtrl.hardLimit) {
-        Poke(qos);
+        Poke(qos, TaskNotifyType::TASK_ADDED);
     }
 }
 
@@ -288,7 +288,7 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
     return deepSleepingWorkerNum * 2 > totalWorker;
 }
 
-void CPUMonitor::Poke(const QoS& qos)
+void CPUMonitor::Poke(const QoS& qos, TaskNotifyType notifyType)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
@@ -296,7 +296,7 @@ void CPUMonitor::Poke(const QoS& qos)
 #ifdef FFRT_IO_TASK_SCHEDULER
     bool triggerSuppression = (ops.GetWorkerCount(qos) > TRIGGER_SUPPRESS_WORKER_COUNT) &&
         (workerCtrl.executionNum > TRIGGER_SUPPRESS_EXECUTION_NUM) && (ops.GetTaskCount(qos) < workerCtrl.executionNum);
-    if (triggerSuppression) {
+    if (notifyType != TaskNotifyType::TASK_ADDED && triggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }

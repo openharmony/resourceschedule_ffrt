@@ -80,16 +80,6 @@ public:
         lock->unlock();
         ExecuteUnit::Instance().NotifyTaskAdded(level);
     }
-
-    bool InsertNodeNoMutex(ffrt_executor_task* task, const QoS qos)
-    {
-        if (task == nullptr) return false;
-        int level = qos();
-        ffrt::LinkedList* node = (ffrt::LinkedList *)(&task->wq);
-        fifoQue[static_cast<size_t>(level)]->WakeupNode(node);
-        ExecuteUnit::Instance().NotifyTaskAdded(level);
-        return true;
-    }
 #endif
 
     bool WakeupTask(CPUEUTask* task)
@@ -118,10 +108,21 @@ public:
         if (qos_level == qos_inherit) {
             return false;
         }
+
         auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
         lock->lock();
         fifoQue[static_cast<size_t>(qos_level)]->WakeupNode(node);
         lock->unlock();
+
+#ifdef FFRT_IO_TASK_SCHEDULER
+        ffrt_executor_task_t* task = reinterpret_cast<ffrt_executor_task_t*>(reinterpret_cast<char*>(node) -
+            offsetof(ffrt_executor_task_t, wq));
+        if (task->type == ffrt_io_task) {
+            ExecuteUnit::Instance().NotifyLocalTaskAdded(qos_level);
+            return true;
+        }
+#endif
+
         ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
         return true;
     }

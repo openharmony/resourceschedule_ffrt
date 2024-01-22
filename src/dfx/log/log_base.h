@@ -33,12 +33,13 @@ void LogWarn(const char* format, ...);
 void LogInfo(const char* format, ...);
 void LogDebug(const char* format, ...);
 
-int GetLogLevel(void);
+int GetFFRTLogLevel(void);
+void SetFFRTLogLevel(int level);
 unsigned int GetLogId(void);
 
 #define FFRT_LOG(level, format, ...) \
     do { \
-        if ((level) > GetLogLevel()) \
+        if ((level) > GetFFRTLogLevel()) \
             break; \
         if (level == FFRT_LOG_ERROR) { \
             LogErr("%u:%s:%d " format "\n", GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \

@@ -65,8 +65,12 @@ void LogInfo(const char* format, ...)
 
 void LogDebug(const char* format, ...)
 {
-    va_list args;
-    va_start(args, format);
-    PrintLogString(LOG_DEBUG, format, args);
-    va_end(args);
+    if (HiLogIsLoggable(FFRT_LOG_DOMAIN, "ffrt", LOG_INFO)) {
+        va_list args;
+        va_start(args, format);
+        PrintLogString(LOG_DEBUG, format, args);
+        va_end(args);
+    } else {
+        SetFFRTLogLevel(FFRT_LOG_WARN);
+    }
 }

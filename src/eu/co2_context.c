@@ -115,6 +115,79 @@ asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     "mov %rdx, %rsp\n"
     "jmp *56(%rdi)\n"
     ".size co2_restore_context, . - co2_restore_context\n");
+#elif defined(__riscv) && __riscv_xlen == 64
+asm(".global context_entry; .type context_entry, %function; context_entry:\n"
+    "ld a0, 0(sp)\n"
+    "ld a1, 8(sp)\n"
+    "jalr a1\n"
+    ".size context_entry, . - context_entry\n"
+#ifndef __riscv_float_abi_soft
+    ".attribute arch,\"rv64gc\" // LLVM Bug: https://github.com/llvm/llvm-project/issues/61991\n"
+#endif
+    ".global co2_save_context; .type co2_save_context, %function; co2_save_context:\n"
+    "sd ra,    0(a0)\n"
+    "sd s0,    8(a0)\n"
+    "sd s1,    16(a0)\n"
+    "sd s2,    24(a0)\n"
+    "sd s3,    32(a0)\n"
+    "sd s4,    40(a0)\n"
+    "sd s5,    48(a0)\n"
+    "sd s6,    56(a0)\n"
+    "sd s7,    64(a0)\n"
+    "sd s8,    72(a0)\n"
+    "sd s9,    80(a0)\n"
+    "sd s10,   88(a0)\n"
+    "sd s11,   96(a0)\n"
+    "sd sp,    104(a0)\n"
+#ifndef __riscv_float_abi_soft
+    "fsd fs0,  112(a0)\n"
+    "fsd fs1,  120(a0)\n"
+    "fsd fs2,  128(a0)\n"
+    "fsd fs3,  136(a0)\n"
+    "fsd fs4,  144(a0)\n"
+    "fsd fs5,  152(a0)\n"
+    "fsd fs6,  160(a0)\n"
+    "fsd fs7,  168(a0)\n"
+    "fsd fs8,  176(a0)\n"
+    "fsd fs9,  184(a0)\n"
+    "fsd fs10, 192(a0)\n"
+    "fsd fs11, 200(a0)\n"
+#endif
+    "li a0, 0\n"
+    "ret\n"
+    ".size co2_save_context, . - co2_save_context\n"
+    ".global co2_restore_context; .type co2_restore_context, %function; co2_restore_context:\n"
+    "ld ra,    0(a0)\n"
+    "ld s0,    8(a0)\n"
+    "ld s1,    16(a0)\n"
+    "ld s2,    24(a0)\n"
+    "ld s3,    32(a0)\n"
+    "ld s4,    40(a0)\n"
+    "ld s5,    48(a0)\n"
+    "ld s6,    56(a0)\n"
+    "ld s7,    64(a0)\n"
+    "ld s8,    72(a0)\n"
+    "ld s9,    80(a0)\n"
+    "ld s10,   88(a0)\n"
+    "ld s11,   96(a0)\n"
+    "ld sp,    104(a0)\n"
+#ifndef __riscv_float_abi_soft
+    "fld fs0,  112(a0)\n"
+    "fld fs1,  120(a0)\n"
+    "fld fs2,  128(a0)\n"
+    "fld fs3,  136(a0)\n"
+    "fld fs4,  144(a0)\n"
+    "fld fs5,  152(a0)\n"
+    "fld fs6,  160(a0)\n"
+    "fld fs7,  168(a0)\n"
+    "fld fs8,  176(a0)\n"
+    "fld fs9,  184(a0)\n"
+    "fld fs10, 192(a0)\n"
+    "fld fs11, 200(a0)\n"
+#endif
+    "li a0, 1\n"
+    "ret\n"
+    ".size co2_restore_context, . - co2_restore_context\n");
 #endif
 
 int co2_init_context(struct co2_context* ctx, void (*func)(void*), void* arg, void* stack, size_t stack_size)
@@ -127,8 +200,8 @@ int co2_init_context(struct co2_context* ctx, void (*func)(void*), void* arg, vo
     stack_top -= stack_top % (0x2 * sizeof(uintptr_t));
     uintptr_t* data = (uintptr_t*)stack_top;
 
-    ctx->regs[REG_LR] = (uintptr_t)context_entry;
-    ctx->regs[REG_SP] = stack_top;
+    ctx->regs[FFRT_REG_LR] = (uintptr_t)context_entry;
+    ctx->regs[FFRT_REG_SP] = stack_top;
 
     data[0] = (uintptr_t)arg;
     data[1] = (uintptr_t)func;

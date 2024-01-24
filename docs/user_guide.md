@@ -10,7 +10,9 @@
 | 版本 | 编辑                                                         | 主要变更                                                     | 日期       |
 | ---- | ------------------------------------------------------------ | ------------------------------------------------------------ | ---------- |
 | V0.1 | linjiashu <br />zhangguowei <br />huangyouzhong  | 发布以下API：<br />1. task 管理，包括：submit，wait，task_attr, task_handle/submit_h<br />2. 同步原语，包括：mutex，condition_variable<br />3. Deadline 调度<br />4. 杂项：sleep，yield<br /> | 2022/09/26 |
-
+| V0.1.1 | shengxia  | 部分描述更新 | 2023/08/24 |
+| V0.1.2 | wanghuachen  | 新增串行队列相关接口以及说明，增加规范以避免double free问题 | 2023/10/07 |
+| V0.1.3 | shengxia  | 优化串行队列内容描述 | 2024/01/12 |
 
 <br/>
 

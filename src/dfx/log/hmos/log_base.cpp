@@ -38,22 +38,21 @@ static inline void PrintLogString(LogLevel logLevel, const char* fmt, va_list ar
     std::string format(fmt);
     StringReplace(format, "%{public}", "%");
     if (vsnprintf_s(buf, sizeof(buf), sizeof(buf) - 1, format.c_str(), arg) > 0) {
-        switch (logLevel)
-        {
-        case LOG_DEBUG:
-            HILOG_DEBUG(LOG_CORE, "%{public}s", buf);
-            break;
-        case LOG_INFO:
-            HILOG_INFO(LOG_CORE, "%{public}s", buf);
-            break;
-        case LOG_WARN:
-            HILOG_WARN(LOG_CORE, "%{public}s", buf);
-            break;
-        case LOG_ERROR:
-            HILOG_ERROR(LOG_CORE, "%{public}s", buf);
-            break;
-        default:
-            break;
+        switch (logLevel) {
+            case LOG_DEBUG:
+                HILOG_DEBUG(LOG_CORE, "%{public}s", buf);
+                break;
+            case LOG_INFO:
+                HILOG_INFO(LOG_CORE, "%{public}s", buf);
+                break;
+            case LOG_WARN:
+                HILOG_WARN(LOG_CORE, "%{public}s", buf);
+                break;
+            case LOG_ERROR:
+                HILOG_ERROR(LOG_CORE, "%{public}s", buf);
+                break;
+            default:
+                break;
         }
     }
 }

@@ -18,8 +18,11 @@
 #include <string>
 #include "hilog/log.h"
 
-static constexpr unsigned int FFRT_LOG_DOMAIN = 0xD001719;
-static constexpr char FFRT_LOG_TAG[] = "ffrt";
+#undef LOG_DOMAIN
+#define LOG_DOMAIN 0xD001719
+
+#undef LOG_TAG
+#define LOG_TAG "ffrt"
 
 inline void StringReplace(std::string& str, const std::string& oldStr, const std::string& newStr)
 {
@@ -35,7 +38,22 @@ static inline void PrintLogString(LogLevel logLevel, const char* fmt, va_list ar
     std::string format(fmt);
     StringReplace(format, "%{public}", "%");
     if (vsnprintf_s(buf, sizeof(buf), sizeof(buf) - 1, format.c_str(), arg) > 0) {
-        HiLogPrint(LOG_CORE, logLevel, FFRT_LOG_DOMAIN, FFRT_LOG_TAG, "%{public}s", buf);
+        switch (logLevel) {
+            case LOG_DEBUG:
+                HILOG_DEBUG(LOG_CORE, "%{public}s", buf);
+                break;
+            case LOG_INFO:
+                HILOG_INFO(LOG_CORE, "%{public}s", buf);
+                break;
+            case LOG_WARN:
+                HILOG_WARN(LOG_CORE, "%{public}s", buf);
+                break;
+            case LOG_ERROR:
+                HILOG_ERROR(LOG_CORE, "%{public}s", buf);
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -65,7 +83,7 @@ void LogInfo(const char* format, ...)
 
 void LogDebug(const char* format, ...)
 {
-    if (HiLogIsLoggable(FFRT_LOG_DOMAIN, "ffrt", LOG_INFO)) {
+    if (HiLogIsLoggable(LOG_DOMAIN, "ffrt", LOG_INFO)) {
         va_list args;
         va_start(args, format);
         PrintLogString(LOG_DEBUG, format, args);

@@ -322,6 +322,11 @@ static void SignalReg(int signo)
     sigaction(signo, &newAction, nullptr);
 }
 
+static void SignalUnReg(int signo)
+{
+    sigaction(signo, &s_oldSa[signo], nullptr);
+}
+
 __attribute__((constructor)) static void BBoxInit()
 {
     SignalReg(SIGABRT);
@@ -335,6 +340,21 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGINT);
     SignalReg(SIGKILL);
 }
+
+__attribute__((constructor)) static void BBoxDeInit()
+{
+    SignalUnReg(SIGABRT);
+    SignalUnReg(SIGBUS);
+    SignalUnReg(SIGFPE);
+    SignalUnReg(SIGILL);
+    SignalUnReg(SIGSEGV);
+    SignalUnReg(SIGSTKFLT);
+    SignalUnReg(SIGSYS);
+    SignalUnReg(SIGTRAP);
+    SignalUnReg(SIGINT);
+    SignalUnReg(SIGKILL);
+}
+
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 std::string SaveTaskCounterInfo(void)

@@ -110,7 +110,7 @@ void WorkerMonitor::RecordSymbolAndBacktrace(CPUEUTask* task, int tid)
 {
     FFRT_LOGW("Function occupies worker for more than 1s.");
 
-#ifdef FFRT_OF_TRACE_ENABLE
+#ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;
     if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, tid, 0, false)) {
         FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());

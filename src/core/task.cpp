@@ -303,7 +303,7 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
         return ffrt_error_inval;
     }
 
-    ffrt::WorkerGroupCtl* groupCtl = ffrt::ExecuteUnit::Instance().GetGroupCtl();
+    ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
     if (!groupCtl[qos].threads.empty()) {
         FFRT_LOGE("Stack size can be set only when there is no worker.");
         return ffrt_error;
@@ -370,7 +370,7 @@ int ffrt_poller_register(int fd, uint32_t events, void* data, ffrt_poller_cb cb)
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     int ret = ffrt::PollerProxy::Instance()->GetPoller(qos).AddFdEvent(events, fd, data, cb);
     if (ret == 0) {
-        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
+        ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(qos);
     }
     return ret;
 }
@@ -395,7 +395,7 @@ int ffrt_timer_start(uint64_t timeout, void* data, ffrt_timer_cb cb)
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     int handle = ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimer(timeout, data, cb);
     if (handle >= 0) {
-        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
+        ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(qos);
     }
     return handle;
 }

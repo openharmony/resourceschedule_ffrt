@@ -43,7 +43,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::TryMoveLocal2Global, this, std::placeholders::_1),
 #endif
     }));
-    if (worker == nullptr) {
+    if (worker == nullptr || worker->Exited()) {
         FFRT_LOGE("Inc CPUWorker: create worker\n");
         return false;
     }

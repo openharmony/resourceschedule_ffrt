@@ -13,7 +13,9 @@
     "component": {
         "name": "ffrt",
         "subsystem": "resourceschedule",
-        "syscap": [],
+        "syscap": [
+            "SystemCapability.Resourceschedule.Ffrt.Core"
+        ],
         "adapted_system_type": [
             "standard"
         ],

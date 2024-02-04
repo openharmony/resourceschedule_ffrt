@@ -82,20 +82,6 @@ typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
 
-typedef enum {
-    DEV_CPU,
-    DEV_GPU,
-    DEV_NPU_HWTS,
-    DEV_NPU_TSCPU,
-    DEV_HTS,
-    DEV_ISP,
-    DEV_DSS,
-    DEV_VENC,
-    DEV_AUDIO,
-    DEV_SENSERHUB,
-    DEV_DEVMAX,
-} dev_type;
-
 #ifdef __cplusplus
 namespace ffrt {
 enum qos_inner_default {

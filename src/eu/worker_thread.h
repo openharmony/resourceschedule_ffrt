@@ -32,7 +32,7 @@ public:
 
     virtual ~WorkerThread()
     {
-        Join();
+        Detach();
     }
 
     bool Idle() const

@@ -44,7 +44,7 @@ DelayedWorker::DelayedWorker() : futex(0)
             struct timespec *p = &ts;
             HandleWork(&p);
             lock.unlock();
-            syscall(SYS_futex, &futex, FUTEX_WAIT_BITSET, 0, p, 0, -1);
+            syscall(SYS_futex, &futex, FUTEX_WAIT_BITSET_PRIVATE, 0, p, 0, -1);
         }
     });
     t.detach();
@@ -57,7 +57,7 @@ DelayedWorker::~DelayedWorker()
     lock.unlock();
 
     while (!exited) {
-        syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
+        syscall(SYS_futex, &futex, FUTEX_WAKE_PRIVATE, 1);
     }
 }
 
@@ -110,7 +110,7 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     map.emplace(to, DelayedWork {we, &wakeup});
     if (w) {
         futex = 1;
-        syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
+        syscall(SYS_futex, &futex, FUTEX_WAKE_PRIVATE, 1);
     }
 
     return true;

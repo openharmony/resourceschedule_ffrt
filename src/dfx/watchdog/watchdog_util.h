@@ -12,11 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef WATCHDOG_UTIL_H
 #define WATCHDOG_UTIL_H
 #include "tm/cpu_task.h"
 
 namespace ffrt {
+    bool IsValidTimeout(uint64_t gid, uint64_t timeout_ms);
     void AddTaskToWatchdog(uint64_t gid);
     void RemoveTaskFromWatchdog(uint64_t gid);
     bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout, uint64_t delay);

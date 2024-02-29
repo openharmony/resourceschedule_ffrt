@@ -84,7 +84,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     TaskSubmitCounterInc();
 #endif
 #ifdef FFRT_OH_WATCHDOG_ENABLE
-    if (attr != nullptr && attr->timeout_ >= 10 * 1000 && attr->timeout_ <= 30 * 1000) {
+    if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_)) {
         task->isWatchdogEnable = true;
         AddTaskToWatchdog(task->gid);
         SendTimeoutWatchdog(task->gid, attr->timeout_, attr->delay_);
@@ -292,11 +292,9 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
         // VersionCtx recycling
         Entity::Instance()->RecycleVersion();
     }
-#ifdef FFRT_OH_WATCHDOG_ENABLE
     if (task->isWatchdogEnable) {
         RemoveTaskFromWatchdog(task->gid);
     }
-#endif
     sTask->RecycleTask();
 }
 

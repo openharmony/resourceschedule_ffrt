@@ -29,6 +29,7 @@
 
 #include "eu/worker_thread.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/watchdog/watchdog_util.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
 #include "eu/sexecute_unit.h"
@@ -229,18 +230,10 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
 
     // task after delay
     ffrt_task_handle_t delay_handle;
-#ifdef FFRT_OH_WATCHDOG_ENABLE
-    uint64_t timeout = ffrt_task_attr_get_timeout(attr);
-    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
-        p->timeout_ = 0;
-    }
-#endif
+    uint64_t timeout = p->timeout_;
+    p->timeout_ = 0;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
-#ifdef FFRT_OH_WATCHDOG_ENABLE
-    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
-        p->timeout_ = timeout;
-    }
-#endif
+    p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl(false, handle, f, &delay_deps, nullptr, p);
@@ -264,18 +257,10 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 
     // task after delay
     ffrt_task_handle_t delay_handle = nullptr;
-#ifdef FFRT_OH_WATCHDOG_ENABLE
-    uint64_t timeout = ffrt_task_attr_get_timeout(attr);
-    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
-        p->timeout_ = 0;
-    }
-#endif
+    uint64_t timeout = p->timeout_;
+    p->timeout_ = 0;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
-#ifdef FFRT_OH_WATCHDOG_ENABLE
-    if (timeout >= 10 * 1000 &&  timeout <= 30 * 1000) {
-        p->timeout_ = timeout;
-    }
-#endif
+    p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl(true, handle, f, &delay_deps, nullptr, p);

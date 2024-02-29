@@ -17,22 +17,43 @@
 #include <algorithm>
 #include <map>
 #include "sync/sync.h"
+#ifdef FFRT_OH_WATCHDOG_ENABLE
 #include "c/ffrt_watchdog.h"
+#endif
+namespace {
+    constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
+    constexpr uint64_t VALID_TIMEOUT_MAX = 30000;
+    constexpr uint32_t CONVERT_TIME_UNIT = 1000;
+    constexpr int SEND_COUNT_MIN = 1;
+    constexpr int SEND_COUNT_MAX = 3;
+}
 
 namespace ffrt {
     static std::map<uint64_t, uint64_t> taskStatusMap;
     static std::mutex lock;
 
+    bool IsValidTimeout(uint64_t gid, uint64_t timeout_ms)
+    {
+        // 当前有效的并行任务timeout时间范围是10-30s
+        if (timeout_ms >= VALID_TIMEOUT_MIN && timeout_ms <= VALID_TIMEOUT_MAX) {
+            FFRT_LOGI("task gid=%llu with timeout [%llu ms] is valid", gid, timeout_ms);
+            return true;
+        } else if (timeout_ms > 0) {
+            FFRT_LOGE("task gid=%llu with timeout [%llu ms] is invalid", gid, timeout_ms);
+        }
+        return false;
+    }
+
     void AddTaskToWatchdog(uint64_t gid)
     {
         std::lock_guard<decltype(lock)> l(lock);
-        taskStatusMap.insert(std::make_pair(gid, gid));
+        taskStatusMap.insert(std::make_pair(gid, SEND_COUNT_MIN));
     }
 
     void RemoveTaskFromWatchdog(uint64_t gid)
     {
         std::lock_guard<decltype(lock)> l(lock);
-        taskStatusMap.erase(gid);      
+        taskStatusMap.erase(gid);
     }
 
     bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout, uint64_t delay)
@@ -47,12 +68,12 @@ namespace ffrt {
             if (taskStatusMap.count(gid) > 0) {
                 RunTimeOutCallback(gid, timeout);
             } else {
-                FFRT_LOGI("task gid=%llu has finished", gid);                
+                FFRT_LOGI("task gid=%llu has finished", gid);
             }
             SimpleAllocator<WaitUntilEntry>::freeMem(static_cast<WaitUntilEntry*>(we));
         });
         // set dealyedworker wakeup time
-        std::chrono::microseconds timeoutTime(timeout * 1000);
+        std::chrono::microseconds timeoutTime(timeout * CONVERT_TIME_UNIT);
         std::chrono::microseconds delayTime(delay);
         we->tp = (now + timeoutTime + delayTime);
         if (!DelayedWakeup(we->tp, we, we->cb)) {
@@ -75,9 +96,16 @@ namespace ffrt {
     if (func) {
         func(gid, msg.c_str(), msg.size());
     }
-    if (!SendTimeoutWatchdog(gid, timeout, 0)) {
-        FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);        
+    int sendCount = taskStatusMap[gid];
+    if (sendCount >= SEND_COUNT_MAX) {
+        FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than the max count", gid);
+        return;
     }
+    if (!SendTimeoutWatchdog(gid, timeout, 0)) {
+        FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);
+        return;
+    }
+    taskStatusMap[gid] = (++sendCount);
 #endif
     }
 }

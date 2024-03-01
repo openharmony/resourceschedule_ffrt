@@ -31,4 +31,22 @@ FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 // config
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
 FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
+
+/**
+ * @brief Sets the task execution timeout.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @param timeout_ms task execution timeout.
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t timeout_ms);
+
+/**
+ * @brief Get the task execution timeout.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @return Returns the task execution timeout.
+ * @version 1.0
+ */
+FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
 #endif

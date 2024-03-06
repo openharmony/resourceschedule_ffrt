@@ -84,8 +84,8 @@ void SerialTask::Wait()
     }
 }
 
-void SerialTask::freeMem()
+void SerialTask::FreeMem()
 {
-    SimpleAllocator<SerialTask>::freeMem(this);
+    SimpleAllocator<SerialTask>::FreeMem(this);
 }
 } // namespace ffrt

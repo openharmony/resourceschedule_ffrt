@@ -65,7 +65,7 @@ public:
     void SetQos(QoS& newQos);
     uint64_t reserved[8];
 
-    void freeMem() override;
+    void FreeMem() override;
     void Execute() override;
 
     virtual void RecycleTask() = 0;

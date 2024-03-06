@@ -84,7 +84,7 @@ public:
     uint8_t func_storage[ffrt_auto_managed_function_storage_size]
 
 private:
-    void freeMem() override;
+    void FreeMem() override;
     uint64_t uptime_;
     IHandler* handler_;
     uint64_t delay_ = 0;

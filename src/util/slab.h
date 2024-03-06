@@ -52,8 +52,8 @@ public:
         return instance()->alloc();
     }
 
-    // NOTE: call destructor before freeMem
-    static void freeMem(T* t)
+    // NOTE: call destructor before FreeMem
+    static void FreeMem(T* t)
     {
         t->~T();
         // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
@@ -271,7 +271,7 @@ public:
         return instance(size)->alloc();
     }
 
-    static void freeMem(T* p, std::size_t size = sizeof(T))
+    static void FreeMem(T* p, std::size_t size = sizeof(T))
     {
         instance(size)->free(p);
     }

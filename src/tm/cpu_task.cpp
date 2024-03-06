@@ -38,7 +38,7 @@ void CPUEUTask::SetQos(QoS& new_qos)
     }
 }
 
-void CPUEUTask::freeMem()
+void CPUEUTask::FreeMem()
 {
     BboxCheckAndFreeze();
     ffrt::TaskFactory::Free(this);

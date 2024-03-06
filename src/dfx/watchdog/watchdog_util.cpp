@@ -70,14 +70,14 @@ namespace ffrt {
             } else {
                 FFRT_LOGI("task gid=%llu has finished", gid);
             }
-            SimpleAllocator<WaitUntilEntry>::freeMem(static_cast<WaitUntilEntry*>(we));
+            SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
         });
         // set dealyedworker wakeup time
         std::chrono::microseconds timeoutTime(timeout * CONVERT_TIME_UNIT);
         std::chrono::microseconds delayTime(delay);
         we->tp = (now + timeoutTime + delayTime);
         if (!DelayedWakeup(we->tp, we, we->cb)) {
-            SimpleAllocator<WaitUntilEntry>::freeMem(we);
+            SimpleAllocator<WaitUntilEntry>::FreeMem(we);
             FFRT_LOGE("failed to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout);
             return false;
         }

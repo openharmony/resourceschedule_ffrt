@@ -20,35 +20,68 @@
 #include "ffrt_trace.h"
 
 namespace ffrt {
-SerialTask::SerialTask()
+SerialTask::SerialTask(IHandler* handler, const task_attr_private* attr) : handler_(handler)
 {
-    FFRT_LOGD("ctor serial task gid=%llu", gid);
+    type = ffrt_serial_task;
+    if (handler) {
+        label = handler->GetName() + "_" + std::to_string(gid);
+    }
+
+    fq_we.task = reinterpret_cast<CPUEUTask*>(this);
+    uptime_ = std::chrono::duration_cast<std::chrono::mircroseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+
+    if (attr) {
+        delay_ = attr->delay_;
+        qos_ = attr->qos_map.m_qos;
+        uptime_ += delay_;
+    }
+
+    FFRT_LOGD("ctor task [gid=%llu], delay=%llu us", gid, delay_);
 }
 
 SerialTask::~SerialTask()
 {
-    FFRT_LOGD("dtor serial task gid=%llu", gid);
+    FFRT_LOGD("dtor task [gid=%llu]", gid);
 }
 
-ITask* SerialTask::SetQueHandler(IHandler* handler)
+void SerialTask::Destroy()
 {
-    handler_ = handler;
-    return this;
+    // release user func
+    auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
+    f->destroy(f);
+    // free serial task object
+    DecDeleteRef();
+}
+
+void SerialTask::Notify()
+{
+    FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid);
+    std::unique_lock lock(mutex);
+    isFinished_.store(true);
+    if (onWait_) {
+        cond.notify_all();
+    }
+}
+
+void SerialTask::Execute()
+{
+    if (isFinished_.load()) {
+        FFRT_LOGE("task [gid=%llu] is complete, no need to execute again", gid);
+        return;
+    }
+
+    handler_->Dispatch(this);
+    FFRT_TASKDONE_MARKER(gid);
 }
 
 void SerialTask::Wait()
 {
     std::unique_lock lock(mutex_);
-    while (!isFinished_) {
+    onWait_ = true;
+    while (!isFinished_.load()) {
         cond_.wait(lock);
     }
-}
-
-void SerialTask::Notify()
-{
-    std::unique_lock lock(mutex_);
-    isFinished_ = true;
-    cond_.notify_all();
 }
 
 void SerialTask::freeMem()

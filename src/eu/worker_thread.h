@@ -91,7 +91,10 @@ public:
 #ifdef FFRT_PTHREAD_ENABLE
     void Start(void*(*ThreadFunc)(void*), void* args)
     {
-        pthread_create(&thread_, &attr_, ThreadFunc, args);
+        int ret = pthread_create(&thread_, &attr_, ThreadFunc, args);
+        if (ret != 0) {
+            exited = true;
+        }
         pthread_attr_destroy(&attr_);
     }
 

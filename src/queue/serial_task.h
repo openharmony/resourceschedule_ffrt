@@ -46,7 +46,7 @@ public:
         qos_ = qos;
     }
 
-    inline uint_64_t GetDelay() const
+    inline uint64_t GetDelay() const
     {
         return delay_;
     }
@@ -63,7 +63,7 @@ public:
 
     inline uint32_t GetQueueId() const
     {
-        return handler_->GetQueueid();
+        return handler_->GetQueueId();
     }
 
     inline bool GetFinishStatus() const
@@ -81,7 +81,7 @@ public:
         nextTask_ = task;
     }
 
-    uint8_t func_storage[ffrt_auto_managed_function_storage_size]
+    uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 
 private:
     void FreeMem() override;
@@ -90,7 +90,7 @@ private:
     uint64_t delay_ = 0;
     int qos_ = qos_inherit;
 
-    SerialTask* nextTask_ nullptr;
+    SerialTask* nextTask_ = nullptr;
     std::atomic_bool isFinished_ = {false};
     bool onWait_ = {false};
 

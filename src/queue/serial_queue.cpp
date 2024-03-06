@@ -65,7 +65,7 @@ int SerialQueue::Push(SerialTask* task)
 
     whenMap_.insert({task->GetUptime(), task});
     if (task == whenMap_.begin()->second) {
-        cond_.notify_one;
+        cond_.notify_one();
     }
 
     return SUCC;
@@ -107,7 +107,7 @@ SerialTask* SerialQueue::Pull()
         FFRT_LOGD("[queueId=%u] switch into inactive", queueId_);
         return nullptr;
     }
-    FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot pull task, [queueId=%u] is exiting", queueId_);    
+    FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);    
 
     // dequeue due tasks in batch
     SerialTask* head = whenMap_.begin()->second;
@@ -124,7 +124,7 @@ SerialTask* SerialQueue::Pull()
         node = next;
     }
 
-    FFRT_LOGD("dequeue [gid=%llu -> gid=%llu], %u other tasks in [queueId=%u]",
+    FFRT_LOGD("dequeue [gid=%llu -> gid=%llu], %u other tasks in [queueId=%u] ",
         head->gid, node->gid, whenMap_.size(), queueId_);
     return head;
 }

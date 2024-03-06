@@ -71,7 +71,7 @@ QueueMonitor& QueueMonitor::GetInstance()
 void QueueMonitor::RegisterQueueId(uint32_t queueId, SerialHandler* queueStruct)
 {
     std::unique_lock lock(mutex_);
-    if (queueId == queuesRunningInfo.size()) {
+    if (queueId == queuesRunningInfo_.size()) {
         queuesRunningInfo_.emplace_back(std::make_pair(INVALID_TASK_ID, std::chrono::steady_clock::now()));
         queuesStructInfo_.emplace_back(queueStruct);
         FFRT_LOGD("queue registration in monitor gid=%u in turn succ", queueId);
@@ -79,8 +79,8 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId, SerialHandler* queueStruct)
     }
 
     // only need to ensure that the corresponding info index has been initialized after constructed.
-    if (queueId > QueuesRunningInfo.size()) {
-        for (uint32_t i = QueuesRunningInfo.size(); i <= queueId; ++i) {
+    if (queueId > queuesRunningInfo_.size()) {
+        for (uint32_t i = queuesRunningInfo_.size(); i <= queueId; ++i) {
             queuesRunningInfo_.emplace_back(std::make_pair(INVALID_TASK_ID, std::chrono::steady_clock::now()));
             queuesStructInfo_.emplace_back(nullptr);
         }
@@ -92,7 +92,7 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId, SerialHandler* queueStruct)
     FFRT_LOGD("queue registration in monitor gid=%u by skip succ", queueId);
 }
 
-void QueueMonitor::ResetQueueInfo(uint32_t queueId)
+uint64_t QueueMonitor::ResetQueueInfo(uint32_t queueId)
 {
     std::shared_lock lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,
@@ -167,6 +167,9 @@ void QueueMonitor::CheckQueuesStatus()
             std::stringstream ss;
             ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i << ", serial task gid=" << taskId << " execution " <<
                 timeoutUs_ << " us.";
+            if (queuesStructInfo_[i] != nullptr) {
+                ss << queuesStructInfo_[i]->GetDfxInfo();
+            }
             FFRT_LOGE("%s", ss.str().c_str());
 
             ffrt_watchdog_cb func = ffrt_watchdog_get_cb();

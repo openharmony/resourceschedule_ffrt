@@ -15,7 +15,6 @@
 #ifndef FFRT_QUEUE_MONITOR_H
 #define FFRT_QUEUE_MONITOR_H
 
-#include <mutex>
 #include <shared_mutex>
 #include <string>
 #include <vector>
@@ -34,7 +33,7 @@ public:
 
 private:
     QueueMonitor();
-    ~QueueMonitor() = default;
+    ~QueueMonitor();
     QueueMonitor(const QueueMonitor &) = delete;
     QueueMonitor(QueueMonitor &&) = delete;
     QueueMonitor &operator=(const QueueMonitor &) = delete;

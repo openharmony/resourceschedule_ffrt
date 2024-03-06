@@ -69,7 +69,10 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
 #endif
-
+    if (task == nullptr) {
+        FFRT_LOGE("task is nullptr");
+        return;
+    }
     ffrt_executor_task_func func = nullptr;
     ffrt_executor_task_type_t type = static_cast<ffrt_executor_task_type_t>(task->type);
     if (type == ffrt_io_task) {
@@ -106,7 +109,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUT
     auto ctx = ExecuteCtx::Cur();
     CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
     worker->curTask = task;
-    switch (curTask = task) {
+    switch (curtask->type) {
         case ffrt_normal_task: {
             lastTask = task;
         }
@@ -281,7 +284,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
         BboxCheckAndFreeze();
         worker->curTask = task;
-        switch (curTask = task) {
+        switch (task->type) {
             case ffrt_normal_task: {
                 lastTask = task;
             }
@@ -292,9 +295,8 @@ void CPUWorker::Dispatch(CPUWorker* worker)
                 break;
             }
             default: {
-                ctx->exec_task = curtask;
-                Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
-                ctx->exec_task = nullptr;
+                ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
+                Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
                 break;
             }
         }

@@ -26,15 +26,15 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
-void CPUEUTask::SetQos(QoS& new_qos)
+void CPUEUTask::SetQos(QoS& newQos)
 {
-    if (new_qos == qos_inherit) {
+    if (newQos == qos_inherit) {
         if (!this->IsRoot()) {
             this->qos = parent->qos;
         }
         FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos());
     } else {
-        this->qos = new_qos;
+        this->qos = newQos;
     }
 }
 
@@ -49,7 +49,7 @@ void CPUEUTask::Execute()
     UpdateState(TaskState::RUNNING);
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;
-    if (likely(__atomic_compare_exchange_n(&co->task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
+    if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
         f->exec(f);
     }

@@ -72,7 +72,7 @@ SerialHandler::~SerialHandler()
     // release callback resource
     if (timeout_ > 0) {
         // wait for all delayedWorker to complete.
-        while (delayedCbCnt.load() > 0) {
+        while (delayedCbCnt_.load() > 0) {
             this_task::sleep_for(std::chrono::microseconds(timeout_));
         }
 
@@ -102,7 +102,7 @@ void SerialHandler::Submit(SerialTask* task)
         return;
     }
 
-    // active queue
+    // activate queue
     if (task->GetDelay() == 0) {
         TransferTask(task);
         FFRT_LOGD("task [%llu] activate %s", task->gid, name_.c_str());
@@ -115,7 +115,7 @@ void SerialHandler::Submit(SerialTask* task)
 
 int SerialHandler::Cancel(SerialTask* task)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot canel, [queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", queueId_);
     FFRT_COND_DO_ERR((task == nullptr), return INACTIVE, "input invalid, serial task is nullptr");
 
     int ret = queue_->Remove(task);
@@ -129,7 +129,7 @@ int SerialHandler::Cancel(SerialTask* task)
     return ret;
 }
 
-void SerialHandler::Dispatch(SerialTask* task)
+void SerialHandler::Dispatch(SerialTask* inTask)
 {
     SerialTask* nextTask = nullptr;
     for (SerialTask* task = inTask; task != nullptr; task = nextTask) {
@@ -146,7 +146,7 @@ void SerialHandler::Dispatch(SerialTask* task)
         task->Notify();
 
         // run task batch
-        nextTask - task->GetNextTask();
+        nextTask = task->GetNextTask();
         if (nextTask == nullptr) {
             QueueMonitor::GetInstance().ResetQueueInfo(queueId_);
             Deliver();
@@ -163,7 +163,7 @@ void SerialHandler::Deliver()
     }
 }
 
-void SerialHandler::TransferTask(SerialTask* task)
+void SerialHandler::TransferTask()
 {
     auto entry = &task->fq_we;
     FFRTScheduler* sch = FFRTScheduler::Instance();
@@ -198,13 +198,13 @@ void SerialHandler::SetTimeoutMonitor(SerialTask* task)
         }
         delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry>(we));
+        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
     });
 
     // set delayed worker wakeup time
     std::chrono::microseconds timeout(timeout_);
     auto now = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
-    we->tp - std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
+    we->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
 
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         task->DecDeleteRef();
@@ -228,9 +228,9 @@ void SerialHandler::RunTimeOutCallback(SerialTask* task)
 
 #ifdef FFRT_SEND_EVENT
     time_t cur_time = time(nullptr);
-    std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg +"\n";
+    std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
-        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "PID", getpid(), "TGID", getgid(), "UID",getuid(),
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "PID", getpid(), "TGID", getgid(), "UID", getuid(),
         "MODULE_NAME", "ffrt", "PROCESS_NAME", "ffrt", "MSG", sendMsg);
 #endif
 

@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <iostream>
 #include "serial_task.h"
+#include <iostream>
 #include "c/task.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "util/slab.h"
@@ -28,7 +28,7 @@ SerialTask::SerialTask(IHandler* handler, const task_attr_private* attr) : handl
     }
 
     fq_we.task = reinterpret_cast<CPUEUTask*>(this);
-    uptime_ = std::chrono::duration_cast<std::chrono::mircroseconds>(
+    uptime_ = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
 
     if (attr) {
@@ -57,10 +57,10 @@ void SerialTask::Destroy()
 void SerialTask::Notify()
 {
     FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid);
-    std::unique_lock lock(mutex);
+    std::unique_lock lock(mutex_);
     isFinished_.store(true);
     if (onWait_) {
-        cond.notify_all();
+        cond_.notify_all();
     }
 }
 

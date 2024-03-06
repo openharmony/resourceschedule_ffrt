@@ -20,11 +20,10 @@
 #include <atomic>
 #include "cpp/condition_variable.h"
 #include "internal_inc/non_copyable.h"
-#include "itask.h"
 
 namespace ffrt {
 enum QueueAction {
-    INACTIVE = -1;
+    INACTIVE = -1,
     SUCC,
     FAILED,
 };
@@ -41,7 +40,7 @@ public:
     void Stop();
 
     uint64_t GetMapSize();
-    inline bool GetActiveState() const
+    inline bool GetActiveStatus() const
     {
         return isActiveState_.load();
     }

@@ -68,7 +68,6 @@ static inline void CoStartEntry(void* arg)
         }
     }
 
-    FFRT_TASKDONE_MARKER(task->gid);
     co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
     CoExit(co);
 }

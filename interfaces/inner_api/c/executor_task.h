@@ -20,7 +20,8 @@
 typedef enum {
     ffrt_normal_task = 0,
     ffrt_io_task = 1,
-    ffrt_uv_task // only used to register func for libuv
+    ffrt_uv_task, // only used to register func for libuv
+    ffrt_serial_task,
 } ffrt_executor_task_type_t;
 
 typedef struct ffrt_executor_task {

@@ -753,6 +753,18 @@ static inline uint64_t get_id()
 {
     return ffrt_this_task_get_id();
 }
+
+/**
+ * @brief Obtains the ID of this queue.
+ *
+ * @return Returns the queue ID.
+ * @since 10
+ * @version 1.0
+ */
+static inline uint64_t get_queue_id()
+{
+    return ffrt_this_queue_get_id();
+}
 } // namespace this_task
 } // namespace ffrt
 #endif

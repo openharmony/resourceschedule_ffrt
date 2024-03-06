@@ -12,9 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <iostream>
 #include "serial_task.h"
+#include "c/task.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "util/slab.h"
+#include "ffrt_trace.h"
 
 namespace ffrt {
 SerialTask::SerialTask()

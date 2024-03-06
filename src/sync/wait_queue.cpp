@@ -126,7 +126,6 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     if (!USE_COROUTINE || task == nullptr || legacyMode) {
         return ThreadWaitUntil(&ctx->wn, lk, tp, legacyMode, task);
     }
-
     task->wue = new WaitUntilEntry(task);
     task->wue->hasWaitTime = true;
     task->wue->tp = tp;
@@ -136,7 +135,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         if (!WeTimeoutProc(this, wue)) {
             return;
         }
-        FFRT_LOGD("task(%s) timeout out", task->label.c_str());
+        FFRT_LOGD("task(%d) timeout out", task->gid);
         CoWake(task, true);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);

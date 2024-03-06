@@ -15,24 +15,54 @@
 #ifndef FFRT_SERIAL_HANDLER_H
 #define FFRT_SERIAL_HANDLER_H
 
+#include <atomic>
+#include <memory>
+#include <string>
+
+#include "cpp/task.h"
 #include "ihandler.h"
-#include "serial_looper.h"
 
 namespace ffrt {
-class ITask;
+class SerialTask;
+class SerialQueue;
 class SerialHandler : public IHandler {
 public:
-    explicit SerialHandler(const std::shared_ptr<SerialLooper>& looper) : looper_(looper)
+    SerialHandler(const char* name, const ffrt_queue_attr_t* attr);
+    ~SerialHandler() override;
+
+    int Cancel(SerialTask* task) override;
+    void Dispatch(SerialTask* task) override;
+    void Submit(SerialTask* task) override;
+    void TransferTask(SerialTask* task) override;
+
+    std::string GetDfxInfo() const;
+
+    inline std::string GetName() override
     {
+        return name_;
     }
 
-    int Cancel(ITask* task) override;
-    void DispatchTask(ITask* task) override;
-    int SubmitDelayed(ITask* task, uint64_t delayUs = 0) override;
+    inline uint32_t GetQueueId() override
+    {
+        return queueId_;
+    }
 
 private:
-    void DestroyTask(ITask* task);
-    const std::shared_ptr<SerialLooper> looper_;
+    void Deliver();
+    void TransferInitTask();
+    void SetTimeoutMonitor(SerialTask* task);
+    void RunTimeOutCallback(SerialTask* task);
+
+    // queue info
+    std::string name_;
+    int qos_ = qos_default;
+    const uint32_t queueId_;
+    std::unique_ptr<SerialQueue> queue_;
+
+    // for timeout watchdog
+    uint64_t timeout_ = 0;
+    std::atomic_int delayedCbCnt_ = {0};
+    ffrt_function_header_t* timeoutCb_ = nullptr;
 };
 } // namespace ffrt
 

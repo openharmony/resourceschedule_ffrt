@@ -13,7 +13,13 @@
  * limitations under the License.
  */
 #include "serial_handler.h"
+#include <sstream>
+#include "c/queue.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "queue_monitor.h"
+#include "serial_task.h"
+#include "serial_queue.h"
+#include "sched/scheduler.h"
 #include "ffrt_trace.h"
 
 namespace ffrt {

@@ -223,7 +223,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline int cancel(task_handle& handle)
+    inline int cancel(const task_handle& handle)
     {
         return ffrt_queue_cancel(handle);
     }

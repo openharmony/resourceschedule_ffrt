@@ -20,14 +20,17 @@
 #include <string>
 #include <vector>
 #include "sched/execute_ctx.h"
+#include "serial_handler.h"
 
 namespace ffrt {
 class QueueMonitor {
 public:
     static QueueMonitor &GetInstance();
-    void RegisterQueueId(uint32_t queueId);
+    void RegisterQueueId(uint32_t queueId, SerialHandler* queueStruct);
     void ResetQueueInfo(uint32_t queueId);
+    void ResetQueueStruct(uint32_t queueId);
     void UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId);
+    uint64_t QueryQueueStatus(uint32_t queueId);
 
 private:
     QueueMonitor();
@@ -43,7 +46,8 @@ private:
 
     uint64_t timeoutUs_ = 0;
     std::shared_mutex mutex_;
-    std::vector<std::pair<uint64_t, time_point_t>> QueuesRunningInfo;
+    std::vector<std::pair<uint64_t, time_point_t>> queuesRunningInfo_;
+    std::vector<SerialHandler*> queuesStructInfo_;
 };
 } // namespace ffrt
 

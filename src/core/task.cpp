@@ -347,6 +347,19 @@ uint64_t ffrt_this_task_get_id()
 }
 
 API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_this_queue_get_id()
+{
+    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+    if (curTask == nullptr || curTask->type != ffrt_serial_task) {
+        // not serial queue task
+        return -1;
+    }
+
+    ffrt::SerialTask* task = reinterpret_cast<ffrt::SerialTask*>(curTask);
+    return task->GetQueueId();
+}
+
+API_ATTRIBUTE((visibility("default")))
 int ffrt_skip(ffrt_task_handle_t handle)
 {
     if (!handle) {

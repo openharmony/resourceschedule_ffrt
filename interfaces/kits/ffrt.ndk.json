@@ -36,6 +36,7 @@
     { "name": "ffrt_task_attr_get_delay" },
     { "name": "ffrt_this_task_update_qos" },
     { "name": "ffrt_this_task_get_id" },
+    { "name": "ffrt_this_queue_get_id" },
     { "name": "ffrt_alloc_auto_managed_function_storage_base" },
     { "name": "ffrt_submit_base" },
     { "name": "ffrt_submit_h_base" },

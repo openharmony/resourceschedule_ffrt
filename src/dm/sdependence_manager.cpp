@@ -53,7 +53,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     auto en = Entity::Instance();
 
     // 2 Get current task's parent
-    auto parent = ctx->task ? ctx->task : DependenceManager::Root();
+    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
 
     std::vector<const void*> insNoDup;
     std::vector<const void*> outsNoDup;

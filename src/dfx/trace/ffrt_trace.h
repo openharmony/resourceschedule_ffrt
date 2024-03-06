@@ -297,6 +297,6 @@ static bool _IsTagEnabled(uint64_t label)
     }
 #define FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid) \
     { \
-        FFRT_TRACE_ASYNC_END("F", gid); \
+        FFRT_TRACE_ASYNC_END("D", gid); \
     }
 #endif

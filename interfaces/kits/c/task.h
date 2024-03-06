@@ -141,6 +141,15 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
 FFRT_C_API uint64_t ffrt_this_task_get_id(void);
 
 /**
+ * @brief Obtains the ID of this queue.
+ *
+ * @return Returns the queue ID.
+ * @since 10
+ * @version 1.0
+ */
+FFRT_C_API uint64_t ffrt_this_queue_get_id(void);
+
+/**
  * @brief Applies for memory for the function execution structure.
  *
  * @param kind Indicates the type of the function execution structure, which can be common or queue.

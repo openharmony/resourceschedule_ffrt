@@ -92,7 +92,7 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId, SerialHandler* queueStruct)
     FFRT_LOGD("queue registration in monitor gid=%u by skip succ", queueId);
 }
 
-uint64_t QueueMonitor::ResetQueueInfo(uint32_t queueId)
+void QueueMonitor::ResetQueueInfo(uint32_t queueId)
 {
     std::shared_lock lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,

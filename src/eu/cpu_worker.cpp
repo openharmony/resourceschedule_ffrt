@@ -43,7 +43,7 @@ void CPUWorker::Run(CPUEUTask* task)
     if constexpr(USE_COROUTINE) {
         CoStart(task);
         return;
-    } 
+    }
     
     switch (task->type) {
         case ffrt_normal_task: {

@@ -107,7 +107,7 @@ SerialTask* SerialQueue::Pull()
         FFRT_LOGD("[queueId=%u] switch into inactive", queueId_);
         return nullptr;
     }
-    FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);    
+    FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue due tasks in batch
     SerialTask* head = whenMap_.begin()->second;

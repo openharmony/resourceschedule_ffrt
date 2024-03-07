@@ -163,7 +163,7 @@ void SerialHandler::Deliver()
     }
 }
 
-void SerialHandler::TransferTask()
+void SerialHandler::TransferTask(SerialTask* task)
 {
     auto entry = &task->fq_we;
     FFRTScheduler* sch = FFRTScheduler::Instance();
@@ -173,7 +173,7 @@ void SerialHandler::TransferTask()
     }
 }
 
-void SerialHandler::TransferInitTask(SerialTask* task)
+void SerialHandler::TransferInitTask()
 {
     std::function<void()> initFunc = []{};
     auto f = create_function_wrapper(initFunc, ffrt_function_kind_queue);

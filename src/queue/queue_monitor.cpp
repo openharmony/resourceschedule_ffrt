@@ -116,7 +116,7 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
     queuesRunningInfo_[queueId] = {taskId, std::chrono::steady_clock::now()};
 }
 
-void QueueMonitor::QueryQueueStatus(uint32_t queueId)
+uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
 {
     std::shared_lock lock(mutex_);
     return queuesRunningInfo_[queueId].first;

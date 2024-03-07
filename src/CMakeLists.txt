@@ -23,5 +23,5 @@ file(GLOB_RECURSE FFRT_SRC_LIST
 set_property(GLOBAL APPEND PROPERTY FFRT_SRC_LIST ${FFRT_SRC_LIST})
 
 add_library(${PROJECT_NAME} SHARED ${FFRT_SRC_LIST})
-
+target_link_libraries(${PROJECT_NAME} -ldl)
 target_link_libraries(${PROJECT_NAME} -lpthread)

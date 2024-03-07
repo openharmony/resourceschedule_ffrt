@@ -16,7 +16,7 @@ option(FFRT_BBOX_ENABLE "Enables ffrt black box" ON)
 option(FFRT_EXAMPLE "Enables ffrt examples compile" ON)
 option(FFRT_BENCHMARKS "Enables ffrt Benchmarks" OFF)
 option(FFRT_TEST_ENABLE "Enables ffrt test" OFF)
-option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" ON)
+option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" OFF)
 option(FFRT_SANITIZE "enable address or thread sanitizer" OFF)
 option(FFRT_IO_TASK_SCHEDULER "enalbe io task scheduler" OFF)
 

@@ -25,7 +25,7 @@ namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
 class TaskBase {
 public:
-    uintprt_t reserved = 0;
+    uintptr_t reserved = 0;
     uintptr_t type = 0;
     WaitEntry fq_we; // used on fifo fast que
     TaskBase(): gid(++s_gid) {}
@@ -41,7 +41,7 @@ public:
 
     std::string label;
     std::vector<std::string> traceTag;
-    bool wakeupTimeout = false;
+    bool wakeupTimeOut = false;
     WaitUntilEntry* wue = nullptr;
     CoRoutine* coRoutine = nullptr;
 };

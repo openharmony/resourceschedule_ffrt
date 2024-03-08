@@ -83,9 +83,9 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
     }
     task->wue = new WaitUntilEntry(task);
     FFRT_BLOCK_TRACER(task->gid, cnd);
-    CoWait([&](CPUEUTask* inTask) -> bool {
+    CoWait([&](CPUEUTask* task) -> bool {
         wqlock.lock();
-        push_back(inTask->wue);
+        push_back(task->wue);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
         wqlock.unlock();
         return true;
@@ -126,7 +126,6 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     if (!USE_COROUTINE || task == nullptr || legacyMode) {
         return ThreadWaitUntil(&ctx->wn, lk, tp, legacyMode, task);
     }
-
     task->wue = new WaitUntilEntry(task);
     task->wue->hasWaitTime = true;
     task->wue->tp = tp;
@@ -136,12 +135,12 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         if (!WeTimeoutProc(this, wue)) {
             return;
         }
-        FFRT_LOGD("task(%s) timeout out", task->label.c_str());
+        FFRT_LOGD("task(%d) timeout out", task->gid);
         CoWake(task, true);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
-    CoWait([&](CPUEUTask* inTask) -> bool {
-        WaitUntilEntry* we = inTask->wue;
+    CoWait([&](CPUEUTask* task) -> bool {
+        WaitUntilEntry* we = task->wue;
         wqlock.lock();
         push_back(we);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
@@ -152,7 +151,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
             if (!WeTimeoutProc(this, we)) {
                 return true;
             }
-            inTask->wakeupTimeOut = true;
+            task->wakeupTimeOut = true;
             return false;
         }
     });

@@ -32,7 +32,7 @@ __attribute__((constructor)) static void ffrt_init()
             return static_cast<ffrt::CPUEUTask*>(ffrt::SimpleAllocator<ffrt::SCPUEUTask>::allocMem());
         },
         [] (ffrt::CPUEUTask* task) {
-            ffrt::SimpleAllocator<ffrt::SCPUEUTask>::freeMem(static_cast<ffrt::SCPUEUTask*>(task));
+            ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
     });
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::SFIFOScheduler; },

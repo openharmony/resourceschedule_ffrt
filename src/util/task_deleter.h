@@ -27,7 +27,7 @@ class TaskDeleter : private NonCopyable {
 public:
     TaskDeleter() {};
     virtual ~TaskDeleter() {}
-    virtual void freeMem() = 0;
+    virtual void FreeMem() = 0;
 
     inline void IncDeleteRef()
     {
@@ -38,7 +38,7 @@ public:
     {
         auto v = rc.fetch_sub(1);
         if (v == 1) {
-            freeMem();
+            FreeMem();
         }
     }
     std::atomic_uint32_t rc = 1;

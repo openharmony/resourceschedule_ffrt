@@ -22,6 +22,7 @@
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
+#include "queue/serial_task.h"
 #include "sched/scheduler.h"
 #include "sync/sync.h"
 #include "util/slab.h"
@@ -31,6 +32,7 @@
 #include "dfx/bbox/bbox.h"
 #include "co_routine_factory.h"
 
+using namespace ffrt;
 static thread_local CoRoutineEnv* g_CoThreadEnv = nullptr;
 
 static inline void CoSwitch(CoCtx* from, CoCtx* to)
@@ -46,18 +48,26 @@ static inline void CoExit(CoRoutine* co)
 static inline void CoStartEntry(void* arg)
 {
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
-    {
-        FFRT_LOGD("Execute func() task[%lu], name[%s]", co->task->gid, co->task->label.c_str());
-        auto f = reinterpret_cast<ffrt_function_header_t*>(co->task->func_storage);
-        auto exp = ffrt::SkipStatus::SUBMITTED;
-        if (likely(__atomic_compare_exchange_n(&co->task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
-            __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-            f->exec(f);
+    ffrt::CPUEUTask* task = co->task;
+    switch (task->type) {
+        case ffrt_normal_task: {
+            task->Execute();
+            break;
         }
-        f->destroy(f);
+        case ffrt_serial_task: {
+            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+            // Before the batch execution is complete, head node cannot be released.
+            sTask->IncDeleteRef();
+            sTask->Execute();
+            sTask->DecDeleteRef();
+            break;
+        }
+        default: {
+            FFRT_LOGE("CoStart unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->label.c_str());
+            break;
+        }
     }
-    FFRT_TASKDONE_MARKER(co->task->gid);
-    co->task->UpdateState(ffrt::TaskState::EXITED);
+
     co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
     CoExit(co);
 }
@@ -296,5 +306,20 @@ void CoWake(ffrt::CPUEUTask* task, bool timeOut)
     FFRT_LOGD("Cowake task[%lu], name[%s], timeOut[%d]", task->gid, task->label.c_str(), timeOut);
     task->wakeupTimeOut = timeOut;
     FFRT_WAKE_TRACER(task->gid);
-    task->UpdateState(ffrt::TaskState::READY);
+    switch (task->type) {
+        case ffrt_normal_task: {
+            task->UpdateState(ffrt::TaskState::READY);
+            break;
+        }
+        case ffrt_serial_task: {
+            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+            auto handle = sTask->GetHandler();
+            handle->TransferTask(sTask);
+            break;
+        }
+        default: {
+            FFRT_LOGE("CoWake unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->label.c_str());
+            break;
+        }
+    }
 }

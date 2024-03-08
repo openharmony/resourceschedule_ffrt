@@ -49,4 +49,13 @@ FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t time
  * @version 1.0
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
+
+/**
+ * @brief Obtains the ID of this queue.
+ *
+ * @return Returns the queue ID.
+ * @since 10
+ * @version 1.0
+ */
+FFRT_C_API uint64_t ffrt_this_queue_get_id(void);
 #endif

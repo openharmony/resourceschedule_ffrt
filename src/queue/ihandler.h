@@ -15,17 +15,20 @@
 #ifndef FFRT_INTERFACE_HANDLER_H
 #define FFRT_INTERFACE_HANDLER_H
 
-#include <cstdint>
 #include "internal_inc/non_copyable.h"
 
 namespace ffrt {
-class ITask;
+class SerialTask;
 class IHandler : private NonCopyable {
 public:
     virtual ~IHandler() = default;
-    virtual int Cancel(ITask* task) = 0;
-    virtual void DispatchTask(ITask* task) = 0;
-    virtual int SubmitDelayed(ITask* task, uint64_t delayUs) = 0;
+    virtual int Cancel(SerialTask* task) = 0;
+    virtual void Dispatch(SerialTask* task) = 0;
+    virtual void Submit(SerialTask* task) = 0;
+    virtual void TransferTask(SerialTask* task) = 0;
+
+    virtual std::string GetName() = 0;
+    virtual uint32_t GetQueueId() = 0;
 };
 } // namespace ffrt
 

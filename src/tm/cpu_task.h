@@ -12,10 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef FFRT_CPU_TASK_H
-#define FFRT_CPU_TASK_H
-
+#ifndef _CPU_TASK_H_
+#define _CPU_TASK_H_
 
 #include <string>
 #include <functional>
@@ -27,7 +25,7 @@
 #include <set>
 #include <list>
 #include <memory>
-#include "sched/task_state.h"
+#include "task_base.h"
 #include "sched/interval.h"
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"
@@ -37,15 +35,6 @@
 namespace ffrt {
 struct VersionCtx;
 class SCPUEUTask;
-class TaskBase {
-public:
-    uintptr_t reserved = 0;
-    uintptr_t type = 0;
-    WaitEntry fq_we; // used on fifo fast que
-    TaskBase();
-    const uint64_t gid; // global unique id in this process
-};
-
 #ifdef FFRT_IO_TASK_SCHEDULER
 class UserDefinedTask : public TaskBase {
     ffrt_io_callable_t work;
@@ -53,19 +42,15 @@ class UserDefinedTask : public TaskBase {
 };
 #endif
 
-class CPUEUTask : public TaskBase, public TaskDeleter {
+class CPUEUTask : public CoTask {
 public:
-    CPUEUTask(const task_attr_private* attr, CPUEUTask* parent, const uint64_t& id, const QoS &qos);
-    WaitUntilEntry* wue;
-    bool wakeupTimeOut = false;
+    CPUEUTask(const task_attr_private *attr, CPUEUTask* parent, const uint64_t& id, const QoS &qos);
     SkipStatus skipped = SkipStatus::SUBMITTED;
     TaskStatus status = TaskStatus::PENDING;
 
     uint8_t func_storage[ffrt_auto_managed_function_storage_size]; // 函数闭包、指针或函数对象
     CPUEUTask* parent = nullptr;
     const uint64_t rank = 0x0;
-    CoRoutine* coRoutine = nullptr;
-    std::vector<std::string> traceTag;
     std::mutex lock; // used in coroute
 
     TaskState state;
@@ -74,15 +59,14 @@ public:
      * because the dynamic graph child nodes will grow to assist in the generation of id
      */
     std::atomic<uint64_t> childNum {0};
-
-    std::string label; // used for debug
     bool isWatchdogEnable = false;
 
     QoS qos;
     void SetQos(QoS& newQos);
     uint64_t reserved[8];
 
-    void freeMem() override;
+    void FreeMem() override;
+    void Execute() override;
 
     virtual void RecycleTask() = 0;
     inline bool IsRoot()

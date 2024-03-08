@@ -15,37 +15,44 @@
 #ifndef FFRT_SERIAL_QUEUE_H
 #define FFRT_SERIAL_QUEUE_H
 
-#include <list>
 #include <map>
 #include <string>
+#include <atomic>
 #include "cpp/condition_variable.h"
 #include "internal_inc/non_copyable.h"
-#include "itask.h"
 
 namespace ffrt {
+enum QueueAction {
+    INACTIVE = -1,
+    SUCC,
+    FAILED,
+};
+
+class SerialTask;
 class SerialQueue : public NonCopyable {
 public:
-    SerialQueue(const uint32_t qid, const std::string& name) : qid_(qid), name_(name) {}
+    explicit SerialQueue(uint32_t queueId);
     ~SerialQueue();
 
-    inline uint32_t GetMapSize() const
+    SerialTask* Pull();
+    int Push(SerialTask* task);
+    int Remove(const SerialTask* task);
+    void Stop();
+
+    uint64_t GetMapSize();
+    inline bool GetActiveStatus() const
     {
-        return mapSize_.load();
+        return isActiveState_.load();
     }
 
-    ITask* Next();
-    int PushTask(ITask* task, uint64_t upTime);
-    int RemoveTask(const ITask* task);
-    void Quit();
-
 private:
+    const uint32_t queueId_;
+    bool isExit_ = false;
+    std::atomic_bool isActiveState_ = {0};
+    std::multimap<uint64_t, SerialTask*> whenMap_;
+
     ffrt::mutex mutex_;
     ffrt::condition_variable cond_;
-    bool isExit_ = false;
-    const uint32_t qid_;
-    std::string name_;
-    std::atomic_uint32_t mapSize_ = {0};
-    std::map<uint64_t, std::list<ITask*>> whenMap_;
 };
 } // namespace ffrt
 

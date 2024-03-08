@@ -21,6 +21,8 @@
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
+#include "queue/serial_task.h"
+
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
@@ -36,19 +38,29 @@ namespace ffrt {
 void CPUWorker::Run(CPUEUTask* task)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
+    FFRT_LOGD("Execute task[%lu], name[%s]", task->gid, task->label.c_str());
+
     if constexpr(USE_COROUTINE) {
         CoStart(task);
-    } else {
-        auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-        auto exp = ffrt::SkipStatus::SUBMITTED;
-        if (likely(__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
-            __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-            FFRT_TASK_BEGIN(task->label, task->gid);
-            f->exec(f);
-            FFRT_TASK_END();
+        return;
+    }
+    
+    switch (task->type) {
+        case ffrt_normal_task: {
+            task->Execute();
+            break;
         }
-        f->destroy(f);
-        task->UpdateState(ffrt::TaskState::EXITED);
+        case ffrt_serial_task: {
+            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+            sTask->IncDeleteRef();
+            sTask->Execute();
+            sTask->DecDeleteRef();
+            break;
+        }
+        default: {
+            FFRT_LOGE("run unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->label.c_str());
+            break;
+        }
     }
 }
 
@@ -57,7 +69,10 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
 #endif
-
+    if (task == nullptr) {
+        FFRT_LOGE("task is nullptr");
+        return;
+    }
     ffrt_executor_task_func func = nullptr;
     ffrt_executor_task_type_t type = static_cast<ffrt_executor_task_type_t>(task->type);
     if (type == ffrt_io_task) {
@@ -93,23 +108,25 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUT
 {
     auto ctx = ExecuteCtx::Cur();
     CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
-    if (curtask->type != 0) {
-        ctx->exec_task = curtask;
-        worker->curTask = task;
-        Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
-        worker->curTask = nullptr;
-        ctx->exec_task = nullptr;
-    } else {
-        FFRT_LOGD("EU pick task[%lu]", task->gid);
-        task->UpdateState(TaskState::RUNNING);
-
-        lastTask = task;
-        ctx->task = task;
-        worker->curTask = task;
-        Run(task);
-        worker->curTask = nullptr;
-        ctx->task = nullptr;
+    worker->curTask = task;
+    switch (curtask->type) {
+        case ffrt_normal_task: {
+            lastTask = task;
+        }
+        case ffrt_serial_task: {
+            ctx->task = task;
+            Run(task);
+            ctx->task = nullptr;
+            break;
+        }
+        default: {
+            ctx->exec_task = curtask;
+            Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
+            ctx->exec_task = nullptr;
+            break;
+        }
     }
+    worker->curTask = nullptr;
 }
 
 void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEUTask* &lastTask)
@@ -240,7 +257,8 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     free(worker->steal_buffer);
     worker->ops.WorkerRetired(worker);
 }
-#else
+
+#else // FFRT_IO_TASK_SCHEDULER
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     auto ctx = ExecuteCtx::Cur();
@@ -265,22 +283,25 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         }
 
         BboxCheckAndFreeze();
-
-        if (task->type != 0) {
-            worker->curTask = task;
-            ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
-            Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
-        } else {
-            FFRT_LOGD("EU pick task[%lu]", task->gid);
-            task->UpdateState(TaskState::RUNNING);
-
-            lastTask = task;
-            ctx->task = task;
-            worker->curTask = task;
-            Run(task);
+        worker->curTask = task;
+        switch (task->type) {
+            case ffrt_normal_task: {
+                lastTask = task;
+            }
+            case ffrt_serial_task: {
+                ctx->task = task;
+                Run(task);
+                ctx->task = nullptr;
+                break;
+            }
+            default: {
+                ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
+                Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
+                break;
+            }
         }
-        BboxCheckAndFreeze();
         worker->curTask = nullptr;
+        BboxCheckAndFreeze();
         ctx->task = nullptr;
     }
 
@@ -288,5 +309,5 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_LOGD("ExecutionThread exited");
     worker->ops.WorkerRetired(worker);
 }
-#endif
+#endif // FFRT_IO_TASK_SCHEDULER
 } // namespace ffrt

@@ -39,14 +39,14 @@ void Entity::RecycleVersion()
         if (cur->last != nullptr) {
             cur->last->next = next;
         }
-        SimpleAllocator<VersionCtx>::freeMem(cur);
+        SimpleAllocator<VersionCtx>::FreeMem(cur);
         if (next->next == nullptr) {
             // Delete root version
             auto data = std::as_const(Entity::Instance()->vaMap).find(next->signature);
             if (data != Entity::Instance()->vaMap.end()) {
                 Entity::Instance()->vaMap.erase(data);
             }
-            SimpleAllocator<VersionCtx>::freeMem(next);
+            SimpleAllocator<VersionCtx>::FreeMem(next);
         }
         Entity::Instance()->versionTrashcan.erase(it++);
     }

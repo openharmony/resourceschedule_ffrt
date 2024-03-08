@@ -51,5 +51,18 @@ static inline int set_cpu_worker_max_num(qos qos_, uint32_t num)
 {
     return ffrt_set_cpu_worker_max_num(qos_, num);
 }
+
+namespace this_task {
+/**
+ * @brief Obtains the ID of this queue.
+ *
+ * @return Returns the queue ID.
+ * @version 1.0
+ */
+static inline uint64_t get_queue_id()
+{
+    return ffrt_this_queue_get_id();
+}
+} // this_task
 } // namespace ffrt
 #endif

@@ -14,7 +14,6 @@
  */
 #include <pthread.h>
 #include <random>
-#include "ffrt_inner.h"
 #include "core/task_io.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
@@ -74,12 +73,11 @@ static void ffrt_executor_io_task_init()
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 API_ATTRIBUTE((visibility("default")))
-void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,
-    const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy, const ffrt_deps_t* in_deps,
+    const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
-    FFRT_COND_DO_ERR((exec==nullptr), return, "input invalid, exec==nullptr");
+    FFRT_COND_DO_ERR((exec==nullptr), return, "input invalid, exec == nullptr");
     pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
@@ -91,7 +89,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     task->work.data = co;
     task->status = ffrt::ExecTaskStatus::ET_READY;
 
-    ffrt_executor_task_submit((ffrt_executor_task_t*)task, attr);
+    ffrt_executor_task_submit(dynamic_cast<ffrt_executor_task_t*>(task), attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -105,7 +103,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_wake_coroutine(void* task)
 {
     if (task == nullptr) {
-        FFRT_LOGE("Task is nullptr");
+        FFRT_LOGE("Task is nullptr.");
         return;
     }
 
@@ -116,13 +114,13 @@ void ffrt_wake_coroutine(void* task)
     ffrt::ffrt_executor_io_task* wakedTask = static_cast<ffrt::ffrt_executor_io_task*>(task);
     wakedTask->status = ffrt::ExecTaskStatus::ET_READY;
 
-    // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the veild funtion
-    bool selfAwake = (ffrt::ExecuteCtx::Cur()->exec_task == task);
-    if (!selfAwake && ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(wakedTask)) {
+    // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yeild funtion
+    bool selfWakeup = (ffrt::ExecuteCtx::Cur()->exec_task == task);
+    if (!selfWakeup && ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(wakedTask)) {
         return;
     }
 
-    if (selfAwake || rand() % INSERT_GLOBAL_QUEUE_FREQ) {
+    if (selfWakeup || rand() % INSERT_GLOBAL_QUEUE_FREQ) {
         if (ffrt::ExecuteCtx::Cur()->localFifo != nullptr &&
             ffrt::ExecuteCtx::Cur()->localFifo->PushTail(task) == 0) {
             ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(wakedTask->qos);
@@ -130,30 +128,10 @@ void ffrt_wake_coroutine(void* task)
             }
     }
 
-    ffrt::LinkedList* node = (ffrt::LinkedList *)(&wakedTask->wq);
+    ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&wakedTask->wq);
     if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, wakedTask->qos)) {
-        FFRT_LOGE("Submit IO task failed");
+        FFRT_LOGE("Submit io task failed!");
     }
-}
-
-API_ATTRIBUTE((visibility("default")))
-void ffrt_task_attr_set_coroutine_type(ffrt_task_attr_t* attr, ffrt_coroutine_t coroutine_type)
-{
-    if (!attr) {
-        FFRT_LOGE("attr should be a valid address");
-        return;
-    }
-    return;
-}
-
-API_ATTRIBUTE((visibility("default")))
-ffrt_coroutine_t ffrt_task_attr_get_coroutine_type(const ffrt_task_attr_t* attr)
-{
-    if (!attr) {
-        FFRT_LOGE("attr should be a valid address");
-        return ffrt_coroutine_with_stack;
-    }
-    return ffrt_coroutine_stackless;
 }
 #ifdef __cplusplus
 }

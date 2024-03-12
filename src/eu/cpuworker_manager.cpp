@@ -48,7 +48,6 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         return false;
     }
     worker->WorkerSetup(worker.get());
-    WorkerJoinTg(qos, worker->Id());
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
     return true;
 }
@@ -114,7 +113,7 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         if (queue->GetLength() == queue->GetCapacity()) {
             return task;
         }
-    
+
         CPUEUTask* task2local = sched.PickNextTask();
         if (task2local == nullptr) {
             return task;
@@ -129,7 +128,7 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 bool InsertTask(void* task, int qos)
 {
     ffrt_executor_task_t* task_ = (ffrt_executor_task_t *)task;
-    LinkedList* node = (LinkedList *)(&task_->wq);
+    LinkedList* node = reinterpret_cast<LinkedList *>(&task_->wq);
     return FFRTScheduler::Instance()->InsertNode(node, ffrt::QoS(qos));
 }
 
@@ -138,6 +137,7 @@ void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
     if (tearDown) {
         return;
     }
+
     SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(thread)->localFifo);
     if (queue->GetLength() == queue->GetCapacity()) {
         queue->PopHeadToGlobalQueue(queue->GetLength() / 2, thread->GetQos(), InsertTask);
@@ -153,6 +153,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
+
     std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     AddStealingWorker(thread->GetQos());
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
@@ -161,7 +162,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(iter->first)->localFifo);
         unsigned int queueLen = queue->GetLength();
         if (iter->first != thread && queueLen > 0) {
-            int popLen = queue->PopHeadToAnotherQueue(
+            unsigned int popLen = queue->PopHeadToAnotherQueue(
                 reinterpret_cast<CPUWorker*>(thread)->localFifo, (queueLen + 1) / 2);
             SubStealingWorker(thread->GetQos());
             return popLen;
@@ -177,7 +178,6 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
     if (tearDown || PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap()) {
         return PollerRet::RET_NULL;
     }
-
     auto& pollerMtx = pollersMtx[thread->GetQos()];
     if (pollerMtx.try_lock()) {
         polling_ = true;
@@ -234,11 +234,12 @@ void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
 
 CPUWorkerManager::CPUWorkerManager()
 {
-    groupCtl[qos_deadline_request].tg = std::unique_ptr<ThreadGroup>(new ThreadGroup());
+    groupCtl[qos_deadline_request].tg = std::make_unique<ThreadGroup>();
 }
 
 void CPUWorkerManager::WorkerJoinTg(const QoS& qos, pid_t pid)
 {
+    std::shared_lock<std::shared_mutex> lock(groupCtl[qos()].tgMutex);
     if (qos == qos_user_interactive) {
         (void)JoinWG(pid);
         return;

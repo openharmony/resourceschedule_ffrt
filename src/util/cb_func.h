@@ -16,6 +16,7 @@
 #ifndef FFRT_CB_FUNC_H_
 #define FFRT_CB_FUNC_H_
 #include <functional>
+#include <vector>
 
 template <typename T>
 struct SingleInsCB {
@@ -26,6 +27,7 @@ template <typename T>
 struct TaskAllocCB {
     using Alloc = std::function<T *()>;
     using Free = std::function<void (T *)>;
+    using GetUnfreedMem = std::function<std::vector<void *>()>;
 };
 
 #endif /* FFRT_CB_FUNC_H_ */

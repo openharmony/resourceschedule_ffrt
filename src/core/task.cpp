@@ -15,10 +15,8 @@
 
 #include <memory>
 #include <vector>
-#include <climits>
 
 #include "ffrt_inner.h"
-
 #include "internal_inc/osal.h"
 #include "sync/io_poller.h"
 #include "qos.h"
@@ -26,14 +24,14 @@
 #include "task_attr_private.h"
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
-
 #include "eu/worker_thread.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/watchdog/watchdog_util.h"
 #include "queue/serial_task.h"
 #include "eu/func_manager.h"
-#include "eu/sexecute_unit.h"
 #include "util/ffrt_facade.h"
+#include "eu/sexecute_unit.h"
+
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "core/task_io.h"
 #include "sync/poller.h"
@@ -84,7 +82,7 @@ void create_delay_deps(
     uint64_t delayUs = p->delay_;
     std::function<void()> &&func = [delayUs]() {
         this_task::sleep_for(std::chrono::microseconds(delayUs));
-        FFRT_LOGI("submit task delay time [%d us] has ended.", delayUs);
+        FFRT_LOGD("submit task delay time [%d us] has ended.", delayUs);
     };
     ffrt_function_header_t *delay_func = create_function_wrapper(std::move(func));
     submit_impl(true, handle, delay_func, nullptr, nullptr, reinterpret_cast<task_attr_private *>(p));
@@ -271,7 +269,7 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
 {
-    if (!handle) {
+    if (handle == nullptr) {
         FFRT_LOGE("input task handle is invalid");
         return;
     }
@@ -312,6 +310,18 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
 }
 
 API_ATTRIBUTE((visibility("default")))
+void ffrt_restore_qos_config()
+{
+    ffrt::WorkerGroupCtl *wgCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
+    for (auto qos = ffrt::QoS::Min(); qos < ffrt::QoS::Max(); ++qos) {
+        std::unique_lock<std::shared_mutex> lck(wgCtl[qos].tgMutex);
+        for (auto& thread : wgCtl[qos].threads) {
+            ffrt::SetThreadAttr(thread.first, qos);
+        }
+    }
+}
+
+API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
     ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
@@ -331,14 +341,21 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
         return ffrt_error_inval;
     }
 
-    ffrt::WorkerGroupCtl* groupCtl = ffrt::ExecuteUnit::Instance().GetGroupCtl();
+    ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
     if (!groupCtl[qos].threads.empty()) {
         FFRT_LOGE("Stack size can be set only when there is no worker.");
         return ffrt_error;
     }
 
-    size_t pageSize = getpagesize();
-    groupCtl[qos].workerStackSize = (stack_size - 1 + pageSize) & -pageSize;
+    int pageSize = getpagesize();
+    if (pageSize < 0) {
+        FFRT_LOGE("Invalid pagesize : %d", pageSize);
+        return ffrt_error;
+    }
+
+    groupCtl[qos].workerStackSize = (stack_size - 1 + static_cast<size_t>(pageSize)) &
+        -(static_cast<size_t>(pageSize));
+    
     return ffrt_success;
 }
 
@@ -411,7 +428,7 @@ int ffrt_poller_register(int fd, uint32_t events, void* data, ffrt_poller_cb cb)
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     int ret = ffrt::PollerProxy::Instance()->GetPoller(qos).AddFdEvent(events, fd, data, cb);
     if (ret == 0) {
-        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
+        ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(qos);
     }
     return ret;
 }
@@ -436,7 +453,7 @@ int ffrt_timer_start(uint64_t timeout, void* data, ffrt_timer_cb cb)
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     int handle = ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimer(timeout, data, cb);
     if (handle >= 0) {
-        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
+        ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(qos);
     }
     return handle;
 }
@@ -457,13 +474,13 @@ ffrt_timer_query_t ffrt_timer_query(int handle)
 #endif
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr)
+void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t *attr)
 {
     if (task == nullptr) {
         FFRT_LOGE("function handler should not be empty");
         return;
     }
-    ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
+    ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
         ffrt::FFRTFacade::GetDMInstance().onSubmitUV(task, p);
         return;
@@ -479,7 +496,7 @@ void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executo
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
+int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 {
     if (task == nullptr) {
         FFRT_LOGE("function handler should not be empty");

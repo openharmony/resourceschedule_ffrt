@@ -37,7 +37,7 @@ class FFRTScheduler {
 public:
     FFRTScheduler(const FFRTScheduler&) = delete;
     FFRTScheduler& operator=(const FFRTScheduler&) = delete;
-    ~FFRTScheduler()
+    virtual ~FFRTScheduler()
     {
         for (int i = 0; i < QoS::Max(); i++) {
             SchedulerFactory::Recycle(fifoQue[i]);
@@ -82,16 +82,71 @@ public:
     }
 #endif
 
+    bool InsertNode(LinkedList* node, const QoS qos)
+    {
+        if (node == nullptr) {
+            return false;
+        } 
+
+        int level = qos();
+        if (level == qos_inherit) {
+            return false;
+        }
+
+        ffrt_executor_task_t* task = reinterpret_cast<ffrt_executor_task_t*>(reinterpret_cast<char*>(node) -
+            offsetof(ffrt_executor_task_t, wq));
+        uintptr_t taskType = task->type;
+
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        fifoQue[static_cast<size_t>(level)]->WakeupNode(node);
+        lock->unlock();
+
+#ifdef FFRT_IO_TASK_SCHEDULER
+        if (taskType == ffrt_io_task) {
+            ExecuteUnit::Instance().NotifyLocalTaskAdded(level);
+            return true;
+        }
+#endif
+
+        ExecuteUnit::Instance().NotifyTaskAdded(level);
+        return true;
+    }
+
+    bool RemoveNode(LinkedList* node, const QoS qos)
+    {
+        if (node == nullptr) {
+            return false;
+        } 
+
+        int level = qos();
+        if (level == qos_inherit) {
+            return false;
+        }
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+        lock->lock();
+        if (!node->InList()) {
+            lock->unlock();
+            return false;
+        }
+        fifoQue[static_cast<size_t>(level)]->RemoveNode(node);
+        lock->unlock();
+#ifdef FFRT_BBOX_ENABLE
+        TaskFinishCounterInc();
+#endif
+        return true;
+    }
+
     bool WakeupTask(CPUEUTask* task)
     {
-        int qos_level = static_cast<int>(qos_default);
+        int level = static_cast<int>(qos_default);
         if (task != nullptr) {
-            qos_level = task->qos();
-            if (qos_level == qos_inherit) {
+            level = task->qos();
+            if (level == qos_inherit) {
                 return false;
             }
         }
-        QoS _qos = QoS(qos_level);
+        QoS _qos = QoS(level);
         int level = _qos();
         auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
         lock->lock();
@@ -99,51 +154,6 @@ public:
         lock->unlock();
         FFRT_LOGD("qos[%d] task[%lu] entered q", level, task->gid);
         ExecuteUnit::Instance().NotifyTaskAdded(level);
-        return true;
-    }
-
-    bool InsertNode(LinkedList* node, const QoS qos)
-    {
-        int qos_level = qos();
-        if (qos_level == qos_inherit) {
-            return false;
-        }
-
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
-        lock->lock();
-        fifoQue[static_cast<size_t>(qos_level)]->WakeupNode(node);
-        lock->unlock();
-
-#ifdef FFRT_IO_TASK_SCHEDULER
-        ffrt_executor_task_t* task = reinterpret_cast<ffrt_executor_task_t*>(reinterpret_cast<char*>(node) -
-            offsetof(ffrt_executor_task_t, wq));
-        if (task->type == ffrt_io_task) {
-            ExecuteUnit::Instance().NotifyLocalTaskAdded(qos_level);
-            return true;
-        }
-#endif
-
-        ExecuteUnit::Instance().NotifyTaskAdded(qos_level);
-        return true;
-    }
-
-    bool RemoveNode(LinkedList* node, const QoS qos)
-    {
-        int qos_level = qos();
-        if (qos_level == qos_inherit) {
-            return false;
-        }
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(qos_level);
-        lock->lock();
-        if (!node->InList()) {
-            lock->unlock();
-            return false;
-        }
-        fifoQue[static_cast<size_t>(qos_level)]->RemoveNode(node);
-        lock->unlock();
-#ifdef FFRT_BBOX_ENABLE
-        TaskFinishCounterInc();
-#endif
         return true;
     }
 
@@ -158,7 +168,6 @@ protected:
 
 private:
     std::array<TaskScheduler*, QoS::Max()> fifoQue;
-
 #ifdef QOS_DEPENDENCY
     void resetDeadline(CPUEUTask* task, int64_t deadline)
     {

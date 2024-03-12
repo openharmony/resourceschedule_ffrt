@@ -21,5 +21,4 @@ TaskFactory& TaskFactory::Instance()
     static TaskFactory fac;
     return fac;
 }
-
 } // namespace ffrt

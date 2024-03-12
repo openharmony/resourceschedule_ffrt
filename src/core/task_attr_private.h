@@ -15,15 +15,15 @@
 #ifndef TASK_ATTR_PRIVATE_H
 #define TASK_ATTR_PRIVATE_H
 #include <string>
-#include "c/type_def.h"
-#include "cpp/task.h"
+#include "c/type_def_ext.h"
+#include "cpp/task_ext.h"
 #include "qos.h"
 
 namespace ffrt {
 class task_attr_private {
 public:
     task_attr_private()
-        : qos_map(static_cast<int>(qos_default))
+        : qos_map(qos_default)
     {
     }
 

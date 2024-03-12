@@ -59,7 +59,7 @@ static int TrivalOpenQosCtrlNode(void)
     char fileName[] = "/proc/thread-self/sched_qos_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGE("task %d belong to user %d open qos node failed\n", getpid(), getuid());
+        FFRT_LOGW("task %d belong to user %d open qos node failed\n", getpid(), getuid());
     }
 
     return fd;
@@ -239,7 +239,7 @@ int FFRTQosApplyForOther(unsigned int level, int tid)
 
     ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("qos apply failed for task %d\n", tid);
+        FFRT_LOGW("qos apply failed for task %d\n", tid);
     }
     close(fd);
     return ret;
@@ -309,7 +309,7 @@ int QosPolicy(struct QosPolicyDatas *policyDatas)
     return ret;
 }
 
-int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas)
+int FFRTThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas)
 {
     int fd;
     int ret;
@@ -348,7 +348,7 @@ int FFRTQosGetForOther(int tid, struct QosCtrlData &data)
 
     int ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("%{public}s: qos get failed for thread %{public}d, return %{public}d", __func__, tid, ret);
+        FFRT_LOGE("%s: qos get failed for thread %d, return %d", __func__, tid, ret);
     }
     close(fd);
 

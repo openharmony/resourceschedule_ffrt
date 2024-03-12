@@ -49,7 +49,7 @@ public:
                     out.push_back(s);
                 }
                 for (auto const& line: out) {
-                    FFRT_LOGE("ffrt callstack %{public}s", line.c_str());
+                    FFRT_LOGE("ffrt callstack %s", line.c_str());
                 }
             }
 #endif
@@ -88,6 +88,7 @@ public:
     {
         return qos;
     }
+
 #ifdef FFRT_PTHREAD_ENABLE
     void Start(void*(*ThreadFunc)(void*), void* args)
     {
@@ -111,7 +112,7 @@ public:
         if (tid > 0) {
             pthread_detach(thread_);
         } else {
-            FFRT_LOGI("qos %d thread not joinable.", qos());
+            FFRT_LOGD("qos %d thread not joinable.", qos());
         }
         tid = -1;
     }
@@ -144,7 +145,7 @@ public:
         if (thread.joinable()) {
             thread.detach();
         } else {
-            FFRT_LOGI("qos %d thread not joinable\n", qos());
+            FFRT_LOGD("qos %d thread not joinable\n", qos());
         }
         tid = -1;
     }
@@ -166,7 +167,7 @@ private:
 
     QoS qos;
 #ifdef FFRT_PTHREAD_ENABLE
-    pthread_t thread_;
+    pthread_t thread_{0};
     pthread_attr_t attr_;
 #else
     std::thread thread;

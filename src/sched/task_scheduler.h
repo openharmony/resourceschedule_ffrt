@@ -24,7 +24,6 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
-
 class TaskScheduler {
 public:
     virtual ~TaskScheduler() = default;
@@ -156,4 +155,5 @@ private:
     RecycleCB recycle_;
 };
 } // namespace ffrt
+
 #endif

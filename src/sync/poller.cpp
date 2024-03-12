@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include "poller.h"
-
 #include "sched/execute_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
 
@@ -45,7 +44,13 @@ Poller::~Poller() noexcept
 int Poller::AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
 {
     auto wakeData = std::unique_ptr<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb));
-    epoll_event ev = { .events = events, .data = {.ptr = static_cast<void*>(wakeData.get())} };
+    void* ptr = static_cast<void*>(wakeData.get());
+    if (ptr == nullptr || wakeData == nullptr) {
+        FFRT_LOGE("Construct WakeDataWithCb instance failed! or wakeData is nullptr");
+        return -1;
+    }
+
+    epoll_event ev = { .events = events, .data = {.ptr = ptr)} };
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
         FFRT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
@@ -73,14 +78,13 @@ int Poller::DelFdEvent(int fd) noexcept
 void Poller::WakeUp() noexcept
 {
     uint64_t one = 1;
-    ssize_t n = ::write(m_wakeData.fd, &one, sizeof one);
+    (void)::write(m_wakeData.fd, &one, sizeof one);
 }
 
 PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;
     int timerHandle = -1;
-    PollerRet ret = PollerRet::RET_NULL;
     
     timerMutex_.lock();
     if (!timerMap_.empty()) {
@@ -130,7 +134,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
-            ssize_t n = ::read(m_wakeData.fd, &one, sizeof one);
+            (void)::read(m_wakeData.fd, &one, sizeof one);
             continue;
         }
 
@@ -149,7 +153,7 @@ void Poller::ReleaseFdWakeData() noexcept
     std::unique_lock lock(m_mapMutex);
     for (auto delIter = m_delCntMap.begin(); delIter != m_delCntMap.end();) {
         int delFd = delIter->first;
-        int delCnt = delIter->second;
+        unsigned int delCnt = static_assert<unsigned int>(delIter->second);
         auto& wakeDataList = m_wakeDataMap[delFd];
         int diff = wakeDataList.size() - delCnt;
         if (diff == 0) {
@@ -157,7 +161,7 @@ void Poller::ReleaseFdWakeData() noexcept
             m_delCntMap.erase(delIter++);
             continue;
         } else if (diff == 1) {
-            for (int i = 0; i < delCnt - 1; i++) {
+            for (unsigned int i = 0; i < delCnt - 1; i++) {
                 wakeDataList.pop_front();
             }
             m_delCntMap[delFd] = 1;
@@ -169,6 +173,7 @@ void Poller::ReleaseFdWakeData() noexcept
 
     fdEmpty_.store(m_wakeDataMap.empty());
 }
+
 void Poller::ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept
 {
     std::vector<TimerDataWithCb> timerData;
@@ -190,7 +195,7 @@ void Poller::ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterat
     }
 }
 
-int Poller::RegisterTimer(uint64_t timeout, void* data, void(*cb)(void*)) noexcept
+int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb) noexcept
 {
     if (cb == nullptr || flag_ == EpollStatus::TEARDOWN) {
         return -1;

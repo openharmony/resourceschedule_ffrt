@@ -15,7 +15,6 @@ import("//build/ohos.gni")
 
 import("//build/ohos_var.gni")
 import("//build/test.gni")
-import("//foundation/resourceschedule/ffrt/ffrt_io_task_scheuduler.gni")
 
 module_output_path = "ffrttest/"
 

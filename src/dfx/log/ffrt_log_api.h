@@ -16,8 +16,96 @@
 #ifndef __FFRT_LOG_API_H__
 #define __FFRT_LOG_API_H__
 
+#ifdef OHOS_STANDARD_SYSTEM
+#include <array>
+#include <string_view>
+#include "hilog/log.h"
+#else
 #include "log_base.h"
+#endif
 
+#define FFRT_LOG_ERROR(0)
+#define FFRT_LOG_WARN(1)
+#define FFRT_LOG_INFO(2)
+#define FFRT_LOG_DEBUG(3)
+#define FFRT_LOG_LEVEL_MAX(FFRT_LOG_DEBUG + 1)
+
+unsigned int GetLogId(void);
+
+#ifdef OHOS_STANDARD_SYSTEM
+template<size_t N>
+constexpr auto convertFmtToPublic(const char(&str)[N])
+{
+    constexpr std::string_view fmtpub = "{public}";
+    std::array<char, (N / 2) * fmtpub.size() + N> res{};
+    for (size_t i = 0, j = 0; i < N; ++i) {
+        res[j++] = str[i];
+        if (str[i] != '%') {
+            continue;
+        }
+
+        if (str[i + 1] != '%' && str[i + 1] != '{') {
+            for (size_t k = 0; k < fmtpub.size(); ++k) {
+                res[j++] = fmtpub[k];
+            }
+        } else {
+            res[j++] = str[i + 1];
+            i += 1;
+        }
+    }
+
+    return res;
+}
+
+#ifdef HILOG_FMTID
+#define HILOG_IMPL_STD_ARRAY(type, level, fmt, ...) \
+    do { \
+        FmtId fmtid{ HILOG_UUID, HILOG_FMT_OFFSET(fmt.data()) }; \
+        HiLogPrintDict(type, level, 0xD001719, "ffrt", &fmtid, fmt.data(), ##__VA_ARGS__); \
+    } while (0)
+#else
+#define HILOG_IMPL_STD_ARRAY(type, level, fmt, ...) \
+    do { \
+        HiLogPrint(type, level, 0xD001719, "ffrt", fmt.data(), ##__VA_ARGS__); \
+    } while (0)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)
+#define FFRT_LOGD(format, ...) \
+    do { \
+        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_DEBUG, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+#else
+#define FFRT_LOGD(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_INFO)
+#define FFRT_LOGI(format, ...) \
+    do { \
+        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_INFO, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+#else
+#define FFRT_LOGI(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_WARN)
+#define FFRT_LOGW(format, ...) \
+    do { \
+        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_WARN, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+#else
+#define FFRT_LOGW(format, ...)
+#endif
+
+#define FFRT_LOGE(format, ...) \
+    do { \
+        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_ERROR, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+#else
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)
 #define FFRT_LOGD(format, ...) FFRT_LOG(FFRT_LOG_DEBUG, format, ##__VA_ARGS__)
 #else
@@ -37,6 +125,10 @@
 #endif
 
 #define FFRT_LOGE(format, ...) FFRT_LOG(FFRT_LOG_ERROR, format, ##__VA_ARGS__)
+#endif
+
+
+#define FFRT_BBOX_LOG(format, ...) FFRT_LOGE(format, ##__VA_ARGS__)
 
 #define FFRT_COND_DO_ERR(cond, expr, format, ...) \
     if (cond) {                                   \

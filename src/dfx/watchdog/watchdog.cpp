@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <securec.h>
 #include "c/ffrt_watchdog.h"
 #include "internal_inc/osal.h"
 #include "dfx/bbox/bbox.h"
@@ -37,12 +38,18 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 void ffrt_watchdog_dumpinfo(char *buf, uint32_t len)
 {
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     if (FFRTIsWork()) {
         std::string dumpInfo;
         dumpInfo += SaveTaskCounterInfo();
         dumpInfo += SaveWorkerStatusInfo();
         dumpInfo += SaveReadyQueueStatusInfo();
         dumpInfo += SaveTaskStatusInfo();
+        int printed_num = snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
+        if (printed_num == -1) {
+            snprintf_s(buf, len, len - 1, "%s", "FFRT has done all tasks!");
+        }
+#endif
         snprintf(buf, len, "%s", dumpInfo.c_str());
     } else {
         snprintf(buf, len, "%s", "FFRT has done all tasks!");

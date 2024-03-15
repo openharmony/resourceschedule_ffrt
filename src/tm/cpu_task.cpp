@@ -142,7 +142,7 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
 
         if (flag == 0) {
             FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
-                          (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+                (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
         } else {
             ss << "FFRT | #" << frame_id << " pc: " << std::hex << unw_proc.start_ip << " " << info.dli_fname;
             ss << "(" << std::hex << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ")";

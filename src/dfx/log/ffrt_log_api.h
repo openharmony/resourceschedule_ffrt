@@ -24,11 +24,11 @@
 #include "log_base.h"
 #endif
 
-#define FFRT_LOG_ERROR(0)
-#define FFRT_LOG_WARN(1)
-#define FFRT_LOG_INFO(2)
-#define FFRT_LOG_DEBUG(3)
-#define FFRT_LOG_LEVEL_MAX(FFRT_LOG_DEBUG + 1)
+#define FFRT_LOG_ERROR (0)
+#define FFRT_LOG_WARN (1)
+#define FFRT_LOG_INFO (2)
+#define FFRT_LOG_DEBUG (3)
+#define FFRT_LOG_LEVEL_MAX (FFRT_LOG_DEBUG + 1)
 
 unsigned int GetLogId(void);
 

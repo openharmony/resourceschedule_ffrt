@@ -230,6 +230,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         if (worker->localFifo.GetLength() == 0) {
             worker->ops.StealTaskBatch(worker);
         }
+
         if (!LocalEmpty(worker)) {
             worker->tick = 1;
             continue;
@@ -255,7 +256,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
     CoWorkerExit();
     FFRT_LOGD("ExecutionThread exited");
-    free(worker->steal_buffer);
     worker->ops.WorkerRetired(worker);
 }
 

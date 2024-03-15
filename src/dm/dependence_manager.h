@@ -78,7 +78,7 @@ public:
     {
     }
 
-    virtual void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private* attr)
+    virtual void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
     {
     }
 

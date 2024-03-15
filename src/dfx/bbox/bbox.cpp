@@ -443,7 +443,8 @@ std::string SaveTaskStatusInfo(void)
     auto unfree = TaskFactory::GetUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         std::vector<CPUEUTask*> tmp;
-        for (auto t : unfree) {
+        for (auto task : unfree) {
+            auto t = reinterpret_cast<CPUEUTask*>(task);
             if (filter(t)) {
                 tmp.emplace_back(reinterpret_cast<CPUEUTask*>(t));
             }

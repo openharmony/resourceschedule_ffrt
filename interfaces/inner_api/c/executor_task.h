@@ -20,7 +20,7 @@
 
 typedef struct ffrt_executor_task {
     uintptr_t reserved[2];
-    uintptr_t type; // 0: TaskCtx, 1: io task, User Space Address: libuv work
+    uintptr_t type; // 0: TaskCtx, 1~: Dynamicly Define Task, User Space Address: libuv work
     void* wq[2];
 } ffrt_executor_task_t;
 
@@ -48,7 +48,7 @@ FFRT_C_API ffrt_timer_query_t ffrt_timer_query(int handle);
 FFRT_C_API void ffrt_poller_wakeup();
 
 // ffrt_executor_task
-FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,ffrt_function_t destroy,
+FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,
     const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 // waker

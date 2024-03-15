@@ -701,7 +701,7 @@ static inline void wait()
  */
 static inline void wait(std::initializer_list<dependence> deps)
 {
-    ffrt_deps_t d {static_cast<uint32_t>(deps.size()), deps.begin()};
+    ffrt_deps_t d{static_cast<uint32_t>(deps.size()), deps.begin()};
     ffrt_wait_deps(&d);
 }
 
@@ -714,7 +714,7 @@ static inline void wait(std::initializer_list<dependence> deps)
  */
 static inline void wait(const std::vector<dependence>& deps)
 {
-    ffrt_deps_t d {static_cast<uint32_t>(deps.size()), deps.data()};
+    ffrt_deps_t d{static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt_wait_deps(&d);
 }
 

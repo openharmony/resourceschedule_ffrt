@@ -355,7 +355,7 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
 
     groupCtl[qos].workerStackSize = (stack_size - 1 + static_cast<size_t>(pageSize)) &
         -(static_cast<size_t>(pageSize));
-    
+
     return ffrt_success;
 }
 
@@ -392,7 +392,7 @@ uint64_t ffrt_this_task_get_id()
 }
 
 API_ATTRIBUTE((visibility("default")))
-uint64_t ffrt_this_queue_get_id()
+int64_t ffrt_this_queue_get_id()
 {
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr || curTask->type != ffrt_serial_task) {
@@ -474,7 +474,7 @@ ffrt_timer_query_t ffrt_timer_query(int handle)
 #endif
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t *attr)
+void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr)
 {
     if (task == nullptr) {
         FFRT_LOGE("function handler should not be empty");

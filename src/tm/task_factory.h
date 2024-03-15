@@ -57,6 +57,6 @@ private:
     TaskAllocCB<CPUEUTask>::GetUnfreedMem getUnfreedMem_;
 };
 
-} /* namespace ffrt */
+} // namespace ffrt
 
 #endif

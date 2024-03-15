@@ -47,13 +47,12 @@ void ffrt_watchdog_dumpinfo(char *buf, uint32_t len)
         dumpInfo += SaveTaskStatusInfo();
         int printed_num = snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
         if (printed_num == -1) {
-            snprintf_s(buf, len, len - 1, "%s", "FFRT has done all tasks!");
+            snprintf_s(buf, len, len - 1, "%s", "watchdog fail to print dumpinfo");
         }
-#endif
-        snprintf(buf, len, "%s", dumpInfo.c_str());
     } else {
-        snprintf(buf, len, "%s", "FFRT has done all tasks!");
+        snprintf_s(buf, len, len -1, "%s", "FFRT has done all tasks!");
     }
+#endif
 }
 
 API_ATTRIBUTE((visibility("default")))

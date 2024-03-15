@@ -299,11 +299,11 @@ int ffrt_recursive_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
     if (!mutex) {
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
-    }    
+    }
     if (attr != nullptr) {
         FFRT_LOGE("only support normal mutex");
         return ffrt_error;
-    }   
+    }
     static_assert(sizeof(ffrt::RecursiveMutexPrivate) <= ffrt_mutex_storage_size,
         "size must be less than ffrt_mutex_storage_size");
 

@@ -86,7 +86,7 @@ public:
     {
         if (node == nullptr) {
             return false;
-        } 
+        }
 
         int level = qos();
         if (level == qos_inherit) {
@@ -117,7 +117,7 @@ public:
     {
         if (node == nullptr) {
             return false;
-        } 
+        }
 
         int level = qos();
         if (level == qos_inherit) {

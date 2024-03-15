@@ -116,11 +116,11 @@ private:
             return false;
         }
 
-#define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));                   \
-        if (x == nullptr)                                                                \
-        {                                                                                \
-            FFRT_LOGE("load func %s from %s failed", #x, TRACE_LIB_PATH.c_str());        \
-            return false;                                                                \
+#define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));                        \
+        if (x == nullptr)                                                                     \
+        {                                                                                     \
+            FFRT_LOGE("load func %s from %s failed", #x, TRACE_LIB_PATH.c_str());             \
+            return false;                                                                     \
         }
             LOAD_FUNC(IsTagEnabled);
             LOAD_FUNC(StartTrace);
@@ -220,7 +220,7 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_SUBMIT_MARKER(tag, gid) \
     { \
         FFRT_TRACE_ASYNC_END("P", gid); \
-    } while (false)
+    }
 #define FFRT_READY_MARKER(gid) \
     { \
         FFRT_TRACE_ASYNC_END("R", gid); \
@@ -259,19 +259,19 @@ static bool _IsTagEnabled(uint64_t label)
 // DFX Trace for FFRT Executor Task
 #define FFRT_EXECUTOR_TASK_SUBMIT_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("P", (reinterpret_cast<uintptr_t>(ptr) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("P", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
 #define FFRT_EXECUTOR_TASK_READY_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("R", (reinterpret_cast<uintptr_t>(ptr) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("R", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
 #define FFRT_EXECUTOR_TASK_BLOCK_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("B", (reinterpret_cast<uintptr_t>(ptr) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("B", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
 #define FFRT_EXECUTOR_TASK_FINISH_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("F", (reinterpret_cast<uintptr_t>(ptr) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("F", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
     { \

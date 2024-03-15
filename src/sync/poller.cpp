@@ -50,7 +50,7 @@ int Poller::AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) n
         return -1;
     }
 
-    epoll_event ev = { .events = events, .data = {.ptr = ptr)} };
+    epoll_event ev = { .events = events, .data = {.ptr = ptr } };
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
         FFRT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
@@ -85,7 +85,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;
     int timerHandle = -1;
-    
+
     timerMutex_.lock();
     if (!timerMap_.empty()) {
         auto cur = timerMap_.begin();
@@ -153,7 +153,7 @@ void Poller::ReleaseFdWakeData() noexcept
     std::unique_lock lock(m_mapMutex);
     for (auto delIter = m_delCntMap.begin(); delIter != m_delCntMap.end();) {
         int delFd = delIter->first;
-        unsigned int delCnt = static_assert<unsigned int>(delIter->second);
+        unsigned int delCnt = static_cast<unsigned int>(delIter->second);
         auto& wakeDataList = m_wakeDataMap[delFd];
         int diff = wakeDataList.size() - delCnt;
         if (diff == 0) {

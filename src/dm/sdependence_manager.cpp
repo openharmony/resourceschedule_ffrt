@@ -16,6 +16,10 @@
 #include "sdependence_manager.h"
 #include "util/worker_monitor.h"
 
+#ifdef ASYNC_STACKTRACE
+#include "async_stack.h"
+#endif
+
 namespace ffrt {
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
@@ -82,6 +86,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
     FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
+#ifdef ASYNC_STACKTRACE
+    {
+        task->stackId = CollectAsyncStack();
+    }
+#endif
 #ifdef FFRT_BBOX_ENABLE
     TaskSubmitCounterInc();
 #endif

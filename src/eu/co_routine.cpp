@@ -32,6 +32,10 @@
 #include "dfx/bbox/bbox.h"
 #include "co_routine_factory.h"
 
+#ifdef ASYNC_STACKTRACE
+#include "async_stack.h"
+#endif
+
 using namespace ffrt;
 static thread_local CoRoutineEnv* g_CoThreadEnv = nullptr;
 
@@ -241,6 +245,9 @@ void CoStart(ffrt::CPUEUTask* task)
     for (;;) {
         FFRT_LOGD("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
+#ifdef ASYNC_STACKTRACE
+        SetStackId(task->stackId);
+#endif
         FFRT_TASK_BEGIN(task->label, task->gid);
         CoSwitchInTrace(task);
 

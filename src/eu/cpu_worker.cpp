@@ -29,8 +29,12 @@
 #endif
 #include "tm/cpu_task.h"
 
-namespace {
-int PLACE_HOLDER = 0;
+#ifdef ASYNC_STACKTRACE
+#include "async_stack.h"
+#endif
+
+namespace ffrt {
+const int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
 }
 
@@ -47,11 +51,17 @@ void CPUWorker::Run(CPUEUTask* task)
 
     switch (task->type) {
         case ffrt_normal_task: {
+#ifdef ASYNC_STACKTRACE
+            SetStackId(task->stackId);
+#endif
             task->Execute();
             break;
         }
         case ffrt_serial_task: {
             SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+#ifdef ASYNC_STACKTRACE
+            SetStackId(sTask->stackId);
+#endif
             sTask->IncDeleteRef();
             sTask->Execute();
             sTask->DecDeleteRef();

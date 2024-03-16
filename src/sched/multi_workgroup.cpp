@@ -85,7 +85,7 @@ void WorkgroupStopInterval(struct Workgroup* wg)
 
     int ret = OHOS::RME::EndFrameFreq(wg->rtgId);
     if (ret == 0) {
-        wg->started = false; 
+        wg->started = false;
     } else {
         FFRT_LOGE("[WorkGroup] stop rtg(%d) work interval failed", wg->rtgId);
     }

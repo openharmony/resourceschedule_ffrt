@@ -30,7 +30,9 @@
                 "hilog",
                 "hisysevent",
                 "napi",
-                "faultloggerd",
+                "faultloggerd"
+            ],
+            "third_party": [
                 "libunwind"
             ]
         },

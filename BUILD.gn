@@ -52,7 +52,6 @@ config("ffrt_config") {
     "FFRT_BBOX_ENABLE",
     "FFRT_OH_EVENT_RECORD",
     "FFRT_CO_BACKTRACE_OH_ENABLE",
-    "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
     "ASYNC_STACKTRACE",
   ]
@@ -167,8 +166,9 @@ ohos_shared_library("libffrt") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-    "libunwind:libunwind","
   ]
+
+  deps = [ "//third_party/libunwind:libunwind" ]
 
   output_extension = "so"
   part_name = "ffrt"
@@ -260,8 +260,9 @@ ohos_shared_library("ffrt_ndk") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-    "libunwind:libunwind",
   ]
+
+  deps = [ "//third_party/libunwind:libunwind" ]
 
   part_name = "ffrt"
   subsystem_name = "resourceschedule"

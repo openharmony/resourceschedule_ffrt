@@ -82,6 +82,15 @@ typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
 
+typedef enum {
+    DEV_CPU,
+    DEV_NPU_HWTS,
+    DEV_HTS,
+    DEV_GPU,
+    DEV_NPU_TSCPU,
+    DEV_DSS,
+} dev_type;
+
 #ifdef FFRT_IO_TASK_SCHEDULER
 typedef enum {
     ffrt_coroutine_stackless,

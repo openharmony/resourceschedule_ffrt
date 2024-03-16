@@ -26,13 +26,11 @@
         "ram": "",
         "deps": {
             "components": [
+                "bounds_checking_function",
                 "hilog",
                 "hisysevent",
                 "napi",
-                "faultloggerd"
-            ],
-            "third_party": [
-                "bounds_checking_function",
+                "faultloggerd",
                 "libunwind"
             ]
         },

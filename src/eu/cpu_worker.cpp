@@ -34,7 +34,7 @@
 #endif
 
 namespace ffrt {
-const int PLACE_HOLDER = 0;
+int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
 }
 

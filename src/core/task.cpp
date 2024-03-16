@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <vector>
+#include <climits>
 
 #include "ffrt_inner.h"
 #include "internal_inc/osal.h"

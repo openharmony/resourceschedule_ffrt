@@ -39,7 +39,7 @@ struct sched_attr {
 };
 
 /*
- * Scheduling policies 
+ * Scheduling policies
  */
 #define SCHED_NORMAL     0
 #define SCHED_FIFO       1
@@ -53,7 +53,7 @@ struct sched_attr {
 #define SCHED_RESET_ON_FORK    0x40000000
 
 /*
- * For the sched_{set,get}attr() calls 
+ * For the sched_{set,get}attr() calls
  */
 #define SCHED_FLAG_RESET_ON_FORK    0x01
 #define SCHED_FLAG_RECLAIM          0x02

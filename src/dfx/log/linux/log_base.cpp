@@ -78,7 +78,7 @@ void LogWarn(const char* fmt, ...)
     char warnLog[g_logBufferSize];
     va_list arg;
     va_start(arg, fmt);
-    int ret = vsnprintf_s(warnLog, sizeof(errLog), sizeof(warnLog) - 1, fmt, arg);
+    int ret = vsnprintf_s(warnLog, sizeof(warnLog), sizeof(warnLog) - 1, fmt, arg);
     va_end(arg);
     if (ret < 0) {
         return;
@@ -91,7 +91,7 @@ void LogInfo(const char* fmt, ...)
     char infoLog[g_logBufferSize];
     va_list arg;
     va_start(arg, fmt);
-    int ret = vsnprintf_s(infoLog, sizeof(errLog), sizeof(infoLog) - 1, fmt, arg);
+    int ret = vsnprintf_s(infoLog, sizeof(infoLog), sizeof(infoLog) - 1, fmt, arg);
     va_end(arg);
     if (ret < 0) {
         return;
@@ -104,7 +104,7 @@ void LogDebug(const char* fmt, ...)
     char debugLog[g_logBufferSize];
     va_list arg;
     va_start(arg, fmt);
-    int ret = vsnprintf_s(debugLog, sizeof(errLog), sizeof(debugLog) - 1, fmt, arg);
+    int ret = vsnprintf_s(debugLog, sizeof(debugLog), sizeof(debugLog) - 1, fmt, arg);
     va_end(arg);
     if (ret < 0) {
         return;

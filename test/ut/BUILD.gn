@@ -30,6 +30,7 @@ ffrt_ut_base_external_deps = [
   "c_utils:utils",
   "faultloggerd:libbacktrace_local",
   "faultloggerd:libdfx_dumpcatcher",
+  "hilog:libhilog",
 ]
 
 config("ffrt_test_config") {

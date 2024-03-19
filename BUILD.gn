@@ -52,6 +52,7 @@ config("ffrt_config") {
     "FFRT_BBOX_ENABLE",
     "FFRT_OH_EVENT_RECORD",
     "FFRT_CO_BACKTRACE_OH_ENABLE",
+    "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
     "ASYNC_STACKTRACE",
   ]
@@ -160,7 +161,6 @@ ohos_shared_library("libffrt") {
   ]
 
   external_deps = [
-    "bounds_checking_function:libsec_shared",
     "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
@@ -168,7 +168,10 @@ ohos_shared_library("libffrt") {
     "hisysevent:libhisysevent",
   ]
 
-  deps = [ "//third_party/libunwind:libunwind" ]
+  deps = [
+    "//third_party/bounds_checking_function:libsec_shared",
+    "//third_party/libunwind:libunwind",
+  ]
 
   output_extension = "so"
   part_name = "ffrt"
@@ -254,7 +257,6 @@ ohos_shared_library("ffrt_ndk") {
   ]
 
   external_deps = [
-    "bounds_checking_function:libsec_shared",
     "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
@@ -262,7 +264,10 @@ ohos_shared_library("ffrt_ndk") {
     "hisysevent:libhisysevent",
   ]
 
-  deps = [ "//third_party/libunwind:libunwind" ]
+  deps = [
+    "//third_party/bounds_checking_function:libsec_shared",
+    "//third_party/libunwind:libunwind",
+  ]
 
   part_name = "ffrt"
   subsystem_name = "resourceschedule"

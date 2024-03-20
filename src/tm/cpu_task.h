@@ -44,7 +44,7 @@ class UserDefinedTask : public TaskBase {
 
 class CPUEUTask : public CoTask {
 public:
-    CPUEUTask(const task_attr_private *attr, CPUEUTask* parent, const uint64_t& id, const QoS &qos);
+    CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id, const QoS &qos);
     SkipStatus skipped = SkipStatus::SUBMITTED;
     TaskStatus status = TaskStatus::PENDING;
 
@@ -103,5 +103,17 @@ public:
     static void DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag = 0); /* 0:hilog others:hiview */
 #endif
 };
+
+inline bool LegacyMode(CPUEUTask* task)
+{
+    bool legacyMode = (task && task->coRoutine) ? task->coRoutine->legacyMode : false;
+    return legacyMode;
+}
+
+inline bool BlockThread(CPUEUTask* task)
+{
+    bool blockThread = (task && task->coRoutine) ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
+    return blockThread;
+}
 } /* namespace ffrt */
 #endif

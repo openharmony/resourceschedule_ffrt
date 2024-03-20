@@ -22,7 +22,6 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
-
 class TaskManager {
 public:
     static TaskManager& Instance()
@@ -70,7 +69,6 @@ private:
     std::atomic_uint64_t maxRunningTime;
     std::atomic<double> avgRunningTime;
 };
-
 } // namespace ffrt
 
 #endif

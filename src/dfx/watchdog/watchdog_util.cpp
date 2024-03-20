@@ -21,16 +21,17 @@
 #include "c/ffrt_watchdog.h"
 #endif
 namespace {
-    constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
-    constexpr uint64_t VALID_TIMEOUT_MAX = 30000;
-    constexpr uint32_t CONVERT_TIME_UNIT = 1000;
-    constexpr int SEND_COUNT_MIN = 1;
-    constexpr int SEND_COUNT_MAX = 3;
+constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
+constexpr uint64_t VALID_TIMEOUT_MAX = 30000;
+constexpr uint32_t CONVERT_TIME_UNIT = 1000;
+constexpr int SEND_COUNT_MIN = 1;
+constexpr int SEND_COUNT_MAX = 3;
 }
 
 namespace ffrt {
-    static std::map<uint64_t, uint64_t> taskStatusMap;
+    static std::map<uint64_t, int> taskStatusMap;
     static std::mutex lock;
+
 
     bool IsValidTimeout(uint64_t gid, uint64_t timeout_ms)
     {
@@ -88,24 +89,24 @@ namespace ffrt {
     void RunTimeOutCallback(uint64_t gid, uint64_t timeout)
     {
 #ifdef FFRT_OH_WATCHDOG_ENABLE
-    std::stringstream ss;
-    ss << "parallel task gid=" << gid << " execution time exceeds " << timeout << " us";
-    std::string msg = ss.str();
-    FFRT_LOGE("%s", msg.c_str());
-    ffrt_watchdog_cb func = ffrt_watchdog_get_cb();
-    if (func) {
-        func(gid, msg.c_str(), msg.size());
-    }
-    int sendCount = taskStatusMap[gid];
-    if (sendCount >= SEND_COUNT_MAX) {
-        FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than the max count", gid);
-        return;
-    }
-    if (!SendTimeoutWatchdog(gid, timeout, 0)) {
-        FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);
-        return;
-    }
-    taskStatusMap[gid] = (++sendCount);
+        std::stringstream ss;
+        ss << "parallel task gid=" << gid << " execution time exceeds " << timeout << " ms";
+        std::string msg = ss.str();
+        FFRT_LOGE("%s", msg.c_str());
+        ffrt_watchdog_cb func = ffrt_watchdog_get_cb();
+        if (func) {
+            func(gid, msg.c_str(), msg.size());
+        }
+        int sendCount = taskStatusMap[gid];
+        if (sendCount >= SEND_COUNT_MAX) {
+            FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than the max count", gid);
+            return;
+        }
+        if (!SendTimeoutWatchdog(gid, timeout, 0)) {
+            FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);
+            return;
+        };
+        taskStatusMap[gid] = (++sendCount);
 #endif
     }
 }

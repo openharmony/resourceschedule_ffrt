@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include "execute_ctx.h"
-
 namespace ffrt {
 
 ExecuteCtx::ExecuteCtx()

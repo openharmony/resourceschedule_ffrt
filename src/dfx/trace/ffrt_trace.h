@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef __FFRT_HMOS_TRACE_H__
-#define __FFRT_HMOS_TRACE_H__
+#ifndef __FFRT_TRACE_H__
+#define __FFRT_TRACE_H__
 
 #include <atomic>
 #include <chrono>
@@ -65,7 +65,7 @@ private:
 } // namespace ffrt
 
 #ifdef FFRT_OH_TRACE_ENABLE
-constexpr uint64_t HITRACE_TAG_FFRT = (1ULL << 13); // ffrt task.
+constexpr uint64_t HITRACE_TAG_FFRT = (1ULL << 13); // ffrt tasks.
 bool IsTagEnabled(uint64_t tag);
 void StartTrace(uint64_t label, const std::string& value, float limit = -1);
 void FinishTrace(uint64_t label);
@@ -116,11 +116,11 @@ private:
             return false;
         }
 
-#define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));                    \
-        if (x == nullptr)                                                                \
-        {                                                                                \
-            FFRT_LOGE("load func %s from %s failed", #x, TRACE_LIB_PATH.c_str());        \
-            return false;                                                                \
+#define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));                        \
+        if (x == nullptr)                                                                     \
+        {                                                                                     \
+            FFRT_LOGE("load func %s from %s failed", #x, TRACE_LIB_PATH.c_str());             \
+            return false;                                                                     \
         }
             LOAD_FUNC(IsTagEnabled);
             LOAD_FUNC(StartTrace);
@@ -156,7 +156,6 @@ static bool _IsTagEnabled(uint64_t label)
     }
     return false;
 }
-
 #define _StartTrace(label, tag, limit) \
     do { \
         auto func = GET_TRACE_FUNC(StartTrace); \
@@ -219,10 +218,9 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_WORKER_IDLE_BEGIN_MARKER()
 #define FFRT_WORKER_IDLE_END_MARKER()
 #define FFRT_SUBMIT_MARKER(tag, gid) \
-    do { \
-        FFRT_TRACE_BEGIN(("P[" + (tag) + "]|" + std::to_string(gid)).c_str()); \
-        FFRT_TRACE_END(); \
-    } while (false)
+    { \
+        FFRT_TRACE_ASYNC_END("P", gid); \
+    }
 #define FFRT_READY_MARKER(gid) \
     { \
         FFRT_TRACE_ASYNC_END("R", gid); \
@@ -241,7 +239,7 @@ static bool _IsTagEnabled(uint64_t label)
     }
 #define FFRT_TASK_BEGIN(tag, gid) \
     { \
-        FFRT_TRACE_BEGIN(("FFRT::[" + (tag) + "]|" + std::to_string(gid)).c_str()); \
+        FFRT_TRACE_BEGIN(("FFRT" + (tag) + "|" + std::to_string(gid)).c_str()); \
     }
 #define FFRT_TASK_END() \
     { \
@@ -249,7 +247,7 @@ static bool _IsTagEnabled(uint64_t label)
     }
 #define FFRT_BLOCK_TRACER(gid, tag) \
     do { \
-        FFRT_TRACE_BEGIN(("FFBK[" #tag "]|" + std::to_string(gid)).c_str()); \
+        FFRT_TRACE_BEGIN(("FFBK" #tag "|" + std::to_string(gid)).c_str()); \
         FFRT_TRACE_END(); \
     } while (false)
 #define FFRT_WAKE_TRACER(gid) \
@@ -260,25 +258,25 @@ static bool _IsTagEnabled(uint64_t label)
 
 // DFX Trace for FFRT Executor Task
 #define FFRT_EXECUTOR_TASK_SUBMIT_MARKER(ptr) \
-    do { \
-        FFRT_TRACE_BEGIN(("P[executor_task]|" + std::to_string(((uintptr_t)(ptr) & 0x11111111))).c_str()); \
-        FFRT_TRACE_END(); \
-    } while (false)
+    { \
+        FFRT_TRACE_ASYNC_END("P", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
+    }
 #define FFRT_EXECUTOR_TASK_READY_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("R", ((uintptr_t)(ptr) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("R", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
 #define FFRT_EXECUTOR_TASK_BLOCK_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("B", ((uintptr_t)(ptr) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("B", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
 #define FFRT_EXECUTOR_TASK_FINISH_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("F", ((uintptr_t)(ptr) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("F", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
     { \
-        FFRT_TRACE_BEGIN(("FFRT::[executor_task]|" + std::to_string(((uintptr_t)(ptr) & 0x11111111))).c_str()); \
+        FFRT_TRACE_BEGIN(("FFRTex_task|" + \
+            std::to_string(((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111))).c_str()); \
     }
 #define FFRT_EXECUTOR_TASK_END() \
     { \

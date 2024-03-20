@@ -30,10 +30,11 @@
 #include "util/spmc_queue.h"
 
 namespace {
-const int TRIGGER_SUPPRESS_WORKER_COUNT = 4;
-const int TRIGGER_SUPPRESS_EXECUTION_NUM = 2;
+const int TIGGER_SUPPRESS_WORKER_COUNT = 4;
+const int TIGGER_SUPPRESS_EXECUTION_NUM = 2;
 }
 #endif
+
 namespace ffrt {
 void CPUMonitor::HandleBlocked(const QoS& qos)
 {
@@ -56,7 +57,7 @@ void MonitorMain(CPUMonitor* monitor)
     (void)pthread_setname_np(pthread_self(), CPU_MONITOR_NAME);
     int ret = prctl(PR_WGCM_CTL, WGCM_CTL_SERVER_REG, 0, 0, 0);
     if (ret) {
-        FFRT_LOGE("[SERVER] wgcm register server failed ret is %{public}d", ret);
+        FFRT_LOGE("[SERVER] wgcm register server failed ret is %d", ret);
     }
 
     ret = syscall(SYS_gettid);
@@ -74,7 +75,7 @@ void MonitorMain(CPUMonitor* monitor)
         grp.max_workers_sum = DEFAULT_HARDLIMIT;
         ret = prctl(PR_WGCM_CTL, WGCM_CTL_SET_GRP, &grp, 0, 0);
         if (ret) {
-            FFRT_LOGE("[SERVER] wgcm group %u register failed\n ret is %{public}d", i, ret);
+            FFRT_LOGE("[SERVER] wgcm group %u register failed\n ret is %d", i, ret);
         }
     }
 
@@ -82,7 +83,7 @@ void MonitorMain(CPUMonitor* monitor)
         struct wgcm_workergrp_data data = {0, 0, 0, 0, 0, 0, 0, 0};
         ret = prctl(PR_WGCM_CTL, WGCM_CTL_WAIT, &data, 0, 0);
         if (ret) {
-            FFRT_LOGE("[SERVER] wgcm server wait failed ret is %{public}d", ret);
+            FFRT_LOGE("[SERVER] wgcm server wait failed ret is %d", ret);
             sleep(1);
             continue;
         }
@@ -96,7 +97,7 @@ void MonitorMain(CPUMonitor* monitor)
     }
     ret = prctl(PR_WGCM_CTL, WGCM_CTL_UNREGISTER, 0, 0, 0);
     if (ret) {
-        FFRT_LOGE("[SERVER] wgcm server unregister failed ret is %{public}d.", ret);
+        FFRT_LOGE("[SERVER] wgcm server unregister failed ret is %d.", ret);
     }
 }
 
@@ -294,9 +295,9 @@ void CPUMonitor::Poke(const QoS& qos, TaskNotifyType notifyType)
     workerCtrl.lock.lock();
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-    bool triggerSuppression = (ops.GetWorkerCount(qos) > TRIGGER_SUPPRESS_WORKER_COUNT) &&
-        (workerCtrl.executionNum > TRIGGER_SUPPRESS_EXECUTION_NUM) && (ops.GetTaskCount(qos) < workerCtrl.executionNum);
-    if (notifyType != TaskNotifyType::TASK_ADDED && triggerSuppression) {
+    bool tiggerSuppression = (ops.GetWorkerCount(qos) > TIGGER_SUPPRESS_WORKER_COUNT) &&
+        (workerCtrl.executionNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (ops.GetTaskCount(qos) < workerCtrl.executionNum);
+    if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }

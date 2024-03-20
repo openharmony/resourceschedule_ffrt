@@ -15,7 +15,6 @@ import("//build/ohos.gni")
 
 import("//build/ohos_var.gni")
 import("//build/test.gni")
-import("//foundation/resourceschedule/ffrt/ffrt_io_task_scheuduler.gni")
 
 module_output_path = "ffrttest/"
 
@@ -31,6 +30,7 @@ ffrt_ut_base_external_deps = [
   "c_utils:utils",
   "faultloggerd:libbacktrace_local",
   "faultloggerd:libdfx_dumpcatcher",
+  "hilog:libhilog",
 ]
 
 config("ffrt_test_config") {

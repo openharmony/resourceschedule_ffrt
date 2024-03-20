@@ -23,15 +23,14 @@
 #include "eu/execute_unit.h"
 #include "eu/worker_manager.h"
 #include "internal_inc/osal.h"
+#include "sched/scheduler.h"
 
 namespace {
+constexpr int TASK_OVERRUN_THRESHOLD = 1000;
 constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint64_t MONITOR_TIMEOUT_MAX_COUNT = 2;
-constexpr uint64_t MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
+constexpr uint64_t MONITOR_SAMPLING_CYCLE_US = 1500 * 1000;
 constexpr uint64_t TIMEOUT_RECORD_CYCLE_US = 60 * 1000 * 1000;
-
-using UvFunc = void(*)(void*);
-constexpr unsigned int UV_FUNC_OFFSET = 2 *sizeof(uintptr_t);
 }
 
 namespace ffrt {
@@ -42,10 +41,12 @@ WorkerMonitor::WorkerMonitor()
     // hdc在调用hdc shell的时候会长期占用worker，过滤该进程以防止一直打印超时信息
     // 另外，对hdc进程进行监控会概率性导致hdc断连，原因未知，暂时规避
     skipSampling_ = (strstr(processName, "hdcd") != nullptr);
+    SubmitSamplingTask();
 }
 
 WorkerMonitor::~WorkerMonitor()
 {
+    std::lock_guard lock(mutex_);
     skipSampling_ = true;
 }
 
@@ -64,20 +65,26 @@ void WorkerMonitor::SubmitSamplingTask()
 
 void WorkerMonitor::CheckWorkerStatus()
 {
+    std::lock_guard lock(mutex_);
+    if (skipSampling_) {
+        return;
+    }
+
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     QoS _qos = QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
+        auto& sched = FFRTScheduler::Instance()->GetScheduler(i);
+        int taskCount = sched.RQSize();
+        if (taskCount >= TASK_OVERRUN_THRESHOLD) {
+            FFRT_LOGW("qos [%d], task count [%d] exceeds threshold.", i, taskCount);
+        }
+
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             WorkerThread* worker = thread.first;
             CPUEUTask* workerTask = worker->curTask;
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
-                continue;
-            }
-
-            // only support uv task
-            if (!(workerTask->type != ffrt_normal_task && workerTask->type != ffrt_io_task)) {
                 continue;
             }
 
@@ -97,8 +104,8 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
     }
 
     if (workerIter->second.first == workerTask) {
-        if (++workerIter->second.second >= MONITOR_TIMEOUT_MAX_COUNT) {
-            RecordSymbolAndBacktrace(workerTask, worker->Id());
+        if (++workerIter->second.second >= static_cast<int>(MONITOR_TIMEOUT_MAX_COUNT)) {
+            RecordSymbolAndBacktrace(worker->Id());
             workerIter->second.second =
                 -static_cast<int>(TIMEOUT_RECORD_CYCLE_US / MONITOR_SAMPLING_CYCLE_US - MONITOR_TIMEOUT_MAX_COUNT);
         }
@@ -108,25 +115,15 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
     workerIter->second = { workerTask, 0 };
 }
 
-void WorkerMonitor::RecordSymbolAndBacktrace(CPUEUTask* task, int tid)
+void WorkerMonitor::RecordSymbolAndBacktrace(int tid)
 {
-    void* func = nullptr;
-    if (task->type != 0) {
-        UvFunc* funcAddr = reinterpret_cast<UvFunc*>(reinterpret_cast<char*>(task) - UV_FUNC_OFFSET);
-        func = reinterpret_cast<void*>(*funcAddr);
+    FFRT_LOGW("Function [%s] in [%s] occupies worker for more than 3s.");
+
+#ifdef FFRT_OH_TRACE_ENABLE
+    std::string dumpInfo;
+    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, tid, 0, false)) {
+        FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
     }
-
-    Dl_info info;
-    if (dladdr(func, &info)) {
-        FFRT_LOGW("Function [%s] in [%s] occupies worker for more than 1s.",
-            (info.dli_sname ? info.dli_sname : "unknown"), (info.dli_fname ? info.dli_fname : "unknown"));
-
-#ifdef FFRT_OF_TRACE_ENABLE
-        std::string dumpInfo;
-        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, tid, 0, false)) {
-            FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
-        }
 #endif
-    }
 }
 }

@@ -44,7 +44,7 @@ SCPUEUTask::SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const u
 void SCPUEUTask::DecDepRef()
 {
     if (--depRefCnt == 0) {
-        FFRT_LOGI("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
+        FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
         FFRT_WAKE_TRACER(this->gid);
         this->UpdateState(TaskState::READY);
 #ifdef FFRT_BBOX_ENABLE

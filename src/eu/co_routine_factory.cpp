@@ -36,4 +36,5 @@ void CoRoutineInstance(std::size_t size)
 {
     QSimpleAllocator<CoRoutine>::instance(size);
 }
+
 }

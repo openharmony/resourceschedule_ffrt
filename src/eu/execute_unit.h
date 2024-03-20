@@ -68,8 +68,10 @@ public:
 
 protected:
     ExecuteUnit();
+    virtual ~ExecuteUnit() = default;
 
     std::array<std::unique_ptr<WorkerManager>, static_cast<size_t>(DevType::DEVMAX)> wManager;
 };
+
 } // namespace ffrt
 #endif

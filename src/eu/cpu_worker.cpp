@@ -34,7 +34,7 @@
 #endif
 
 namespace ffrt {
-const int PLACE_HOLDER = 0;
+int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
 }
 
@@ -148,7 +148,7 @@ void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEU
         lifoCount++;
         ffrt_executor_task_t* priorityTask = reinterpret_cast<ffrt_executor_task_t*>(worker->priority_task);
         // set a placeholder to prevent the task from being placed in the priority again
-        worker->priority_task = (lifoCount > worker->budget) ? const_cast<int*>(&PLACE_HOLDER) : nullptr;
+        worker->priority_task = (lifoCount > worker->budget) ? &PLACE_HOLDER : nullptr;
 
         RunTask(priorityTask, worker, lastTask);
     }
@@ -190,7 +190,7 @@ PollerRet CPUWorker::TryPoll(CPUWorker* worker, int timeout)
 
 bool CPUWorker::LocalEmpty(CPUWorker* worker)
 {
-    return (worker->priority_task == nullptr) && (worker->localFifo.GetLength() == 0);
+    return ((worker->priority_task == nullptr) && (worker->localFifo.GetLength() == 0));
 }
 
 void CPUWorker::Dispatch(CPUWorker* worker)
@@ -201,7 +201,8 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     ctx->qos = worker->GetQos();
     CPUEUTask* lastTask = nullptr;
 
-    FFRT_LOGD("qos[%d] thread start succ", (int)worker->GetQos());
+    worker->ops.WorkerPrepare(worker);
+    FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
     for (;;) {
         FFRT_LOGD("task picking");
         // get task in the order of priority -> local queue -> global queue
@@ -239,6 +240,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         if (worker->localFifo.GetLength() == 0) {
             worker->ops.StealTaskBatch(worker);
         }
+
         if (!LocalEmpty(worker)) {
             worker->tick = 1;
             continue;
@@ -264,7 +266,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
     CoWorkerExit();
     FFRT_LOGD("ExecutionThread exited");
-    free(worker->steal_buffer);
     worker->ops.WorkerRetired(worker);
 }
 

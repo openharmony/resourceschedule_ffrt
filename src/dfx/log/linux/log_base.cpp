@@ -17,6 +17,7 @@
 #include <string>
 #include <cstdarg>
 #include <iostream>
+#include <securec.h>
 #include <chrono>
 #include "internal_inc/osal.h"
 
@@ -64,7 +65,7 @@ void LogErr(const char* fmt, ...)
     char errLog[g_logBufferSize];
     va_list arg;
     va_start(arg, fmt);
-    int ret = vsnprintf(errLog, sizeof(errLog) - 1, fmt, arg);
+    int ret = vsnprintf_s(errLog, sizeof(errLog), sizeof(errLog) - 1, fmt, arg);
     va_end(arg);
     if (ret < 0) {
         return;
@@ -77,7 +78,7 @@ void LogWarn(const char* fmt, ...)
     char warnLog[g_logBufferSize];
     va_list arg;
     va_start(arg, fmt);
-    int ret = vsnprintf(warnLog, sizeof(warnLog) - 1, fmt, arg);
+    int ret = vsnprintf_s(warnLog, sizeof(warnLog), sizeof(warnLog) - 1, fmt, arg);
     va_end(arg);
     if (ret < 0) {
         return;
@@ -90,7 +91,7 @@ void LogInfo(const char* fmt, ...)
     char infoLog[g_logBufferSize];
     va_list arg;
     va_start(arg, fmt);
-    int ret = vsnprintf(infoLog, sizeof(infoLog) - 1, fmt, arg);
+    int ret = vsnprintf_s(infoLog, sizeof(infoLog), sizeof(infoLog) - 1, fmt, arg);
     va_end(arg);
     if (ret < 0) {
         return;
@@ -103,7 +104,7 @@ void LogDebug(const char* fmt, ...)
     char debugLog[g_logBufferSize];
     va_list arg;
     va_start(arg, fmt);
-    int ret = vsnprintf(debugLog, sizeof(debugLog) - 1, fmt, arg);
+    int ret = vsnprintf_s(debugLog, sizeof(debugLog), sizeof(debugLog) - 1, fmt, arg);
     va_end(arg);
     if (ret < 0) {
         return;

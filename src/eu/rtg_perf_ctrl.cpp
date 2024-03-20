@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <securec.h>
 
 static int open_perf_ctrl(void)
 {
@@ -95,7 +96,7 @@ void set_rtg_load_mode(unsigned int grp_id, bool util_enabled, bool freq_enabled
 {
     struct rtg_load_mode load_mode;
 
-    memset(&load_mode, 0, sizeof(struct rtg_load_mode));
+    memset_s(&load_mode, sizeof(struct rtg_load_mode), 0, sizeof(struct rtg_load_mode));
     load_mode.grp_id = grp_id;
     load_mode.util_enabled = !!util_enabled;
     load_mode.freq_enabled = !!freq_enabled;

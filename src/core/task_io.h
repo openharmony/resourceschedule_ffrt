@@ -19,7 +19,6 @@
 #include "internal_inc/types.h"
 #include "sched/task_state.h"
 #include "sched/interval.h"
-#include "task_attr_private.h"
 #include "util/slab.h"
 #include "c/executor_task.h"
 
@@ -35,6 +34,7 @@ struct ffrt_executor_io_task: public ffrt_executor_task {
     ffrt_executor_io_task(const QoS &qos) : qos(qos)
     {
         type = ffrt_io_task;
+        work = {nullptr, nullptr, nullptr};
     }
 
     QoS qos;

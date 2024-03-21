@@ -26,6 +26,7 @@
         "ram": "",
         "deps": {
             "components": [
+                "bounds_checking_function",
                 "hilog",
                 "hisysevent",
                 "napi",

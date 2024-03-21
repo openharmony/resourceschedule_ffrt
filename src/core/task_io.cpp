@@ -17,7 +17,6 @@
 #include "core/task_io.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
-#include "libunwind.h"
 #endif
 #include "util/slab.h"
 #include "util/ffrt_facade.h"

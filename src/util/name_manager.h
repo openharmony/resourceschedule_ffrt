@@ -30,4 +30,4 @@ static const char* DELAYED_WORKER_NAME = "delayed_worker";
 static const char* IO_POLLER_NAME = "ffrt_io";
 #endif
 } // namespace ffrt
-#endif // __NAME_MANAGER_H__
+#endif  // __NAME_MANAGER_H__

@@ -15,14 +15,7 @@
 #ifndef FFRT_API_C_EXECUTOR_TASK_H
 #define FFRT_API_C_EXECUTOR_TASK_H
 
-#include <stdint.h>
-#include "type_def_ext.h"
-
-typedef struct ffrt_executor_task {
-    uintptr_t reserved[2];
-    uintptr_t type; // 0: TaskCtx, 1~: Dynamicly Define Task, User Space Address: libuv work
-    void* wq[2];
-} ffrt_executor_task_t;
+#include "type_def.h"
 
 typedef enum {
     ffrt_normal_task = 0,
@@ -31,10 +24,17 @@ typedef enum {
     ffrt_serial_task
 } ffrt_executor_task_type_t;
 
+typedef struct ffrt_executor_task {
+    uintptr_t reserved[2];
+    uintptr_t type; // 0: TaskCtx, 1: io task, User Space Address: libuv work
+    void* wq[2];
+} ffrt_executor_task_t;
+
 typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t qos);
+
 FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
-FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr);
-FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos);
+FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr);
+FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos);
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 // poller
@@ -47,9 +47,8 @@ FFRT_C_API void ffrt_timer_stop(int handle);
 FFRT_C_API ffrt_timer_query_t ffrt_timer_query(int handle);
 FFRT_C_API void ffrt_poller_wakeup();
 
-// ffrt_executor_task
-FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,
-    const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
+FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec,
+    ffrt_function_t destroy, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 // waker
 FFRT_C_API void ffrt_wake_coroutine(void* task);

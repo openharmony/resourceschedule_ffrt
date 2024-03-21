@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+ 
  /**
  * @file type_def.h
  *
@@ -24,7 +24,7 @@
 #ifndef FFRT_INNER_API_C_TYPE_DEF_H
 #define FFRT_INNER_API_C_TYPE_DEF_H
 #include <stdint.h>
-#include "c/type_def.h"
+#include "../../kits/c/type_def.h"
 
 #ifdef __cplusplus
 #define FFRT_C_API  extern "C"
@@ -81,41 +81,6 @@ typedef enum {
 typedef void* ffrt_sys_event_handle_t;
 
 typedef void* ffrt_config_t;
-
-typedef enum {
-    DEV_CPU,
-    DEV_NPU_HWTS,
-    DEV_HTS,
-    DEV_GPU,
-    DEV_NPU_TSCPU,
-    DEV_DSS,
-} dev_type;
-
-#ifdef FFRT_IO_TASK_SCHEDULER
-typedef enum {
-    ffrt_coroutine_stackless,
-    ffrt_coroutine_with_stack,
-} ffrt_coroutine_t;
-
-typedef enum {
-    ffrt_coroutine_pending = 0,
-    ffrt_coroutine_ready = 1,
-} ffrt_coroutine_ret_t;
-
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
-
-typedef struct {
-    int fd;
-    void* data;
-    void(*cb)(void*, uint32_t);
-} ffrt_poller_t;
-
-typedef enum {
-    ffrt_timer_notfound = -1,
-    ffrt_timer_not_executed = 0,
-    ffrt_timer_executed = 1,
-} ffrt_timer_query_t;
-#endif
 
 #ifdef __cplusplus
 namespace ffrt {

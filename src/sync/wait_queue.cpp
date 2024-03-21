@@ -14,7 +14,6 @@
  */
 
 #include "wait_queue.h"
-#include "sched/execute_ctx.h"
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
@@ -77,7 +76,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 {
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     CPUEUTask* task = ctx->task;
-    bool legacyMode = LegacyMode(task);
+    bool legacyMode = task != nullptr ? (task->coRoutine != nullptr ? task->coRoutine->legacyMode : false) : false;
     if (!USE_COROUTINE || task == nullptr || legacyMode) {
         ThreadWait(&ctx->wn, lk, legacyMode, task);
         return;
@@ -123,7 +122,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     bool ret = false;
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     CPUEUTask* task = ctx->task;
-    bool legacyMode = LegacyMode(task);
+    bool legacyMode = task != nullptr ? (task->coRoutine != nullptr ? task->coRoutine->legacyMode : false) : false;
     if (!USE_COROUTINE || task == nullptr || legacyMode) {
         return ThreadWaitUntil(&ctx->wn, lk, tp, legacyMode, task);
     }
@@ -191,7 +190,8 @@ void WaitQueue::NotifyOne() noexcept
     while (!empty()) {
         WaitUntilEntry* we = pop_front();
         CPUEUTask* task = we->task;
-        bool blockThread = BlockThread(task);
+        bool blockThread = task != nullptr ?
+            (task->coRoutine != nullptr ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false) : false;
         if (!USE_COROUTINE || we->weType == 2 || blockThread) {
             std::unique_lock<std::mutex> lk(we->wl);
             if (blockThread) {
@@ -218,7 +218,8 @@ void WaitQueue::NotifyAll() noexcept
     while (!empty()) {
         WaitUntilEntry* we = pop_front();
         CPUEUTask* task = we->task;
-        bool blockThread = BlockThread(task);
+        bool blockThread = task != nullptr ?
+            (task->coRoutine != nullptr ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false) : false;
         if (!USE_COROUTINE || we->weType == 2 || blockThread) {
             std::unique_lock<std::mutex> lk(we->wl);
             if (blockThread) {

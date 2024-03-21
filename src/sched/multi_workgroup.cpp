@@ -45,9 +45,9 @@ bool JoinWG(int tid)
     }
     int addRet = OHOS::RME::AddThreadToRtg(tid, wgId);
     if (addRet == 0) {
-        FFRT_LOGI("[WorkGroup] update thread %d success", tid);
+        FFRT_LOGI("[WorkGroup] update thread %{public}d success", tid);
     } else {
-        FFRT_LOGE("[WorkGroup] update thread %d failed, return %d", tid, addRet);
+        FFRT_LOGE("[WorkGroup] update thread %{public}d failed, return %{public}d", tid, addRet);
     }
     return true;
 }
@@ -67,7 +67,7 @@ void WorkgroupStartInterval(struct Workgroup* wg)
     if (OHOS::RME::BeginFrameFreq(wg->rtgId, 0) == 0) {
         wg->started = true;
     } else {
-        FFRT_LOGE("[WorkGroup] start rtg(%d) work interval failed", wg->rtgId);
+        FFRT_LOGE("[WorkGroup] start rtg(%{public}d) work interval failed", wg->rtgId);
     }
 }
 
@@ -87,7 +87,7 @@ void WorkgroupStopInterval(struct Workgroup* wg)
     if (ret == 0) {
         wg->started = false;
     } else {
-        FFRT_LOGE("[WorkGroup] stop rtg(%d) work interval failed", wg->rtgId);
+        FFRT_LOGE("[WorkGroup] stop rtg(%{public}d) work interval failed", wg->rtgId);
     }
 }
 
@@ -122,10 +122,10 @@ struct Workgroup* WorkgroupCreate(uint64_t interval)
     }
 
     if (rtgId < 0) {
-        FFRT_LOGE("[WorkGroup] create rtg group %d failed", rtgId);
+        FFRT_LOGE("[WorkGroup] create rtg group %{public}d failed", rtgId);
         return nullptr;
     }
-    FFRT_LOGI("[WorkGroup] create rtg group %d success", rtgId);
+    FFRT_LOGI("[WorkGroup] create rtg group %{public}d success", rtgId);
 
     Workgroup* wg = nullptr;
     wg = new struct Workgroup();
@@ -147,10 +147,12 @@ void WorkgroupJoin(struct Workgroup* wg, int tid)
         FFRT_LOGE("[WorkGroup] input workgroup is null");
         return;
     }
-    FFRT_LOGI("[WorkGroup] %s uid = %d rtgid = %d", __func__, (int)getuid(), wg->rtgId);
+    FFRT_LOGI("[WorkGroup] %{public}s uid = %{public}d rtgid = %{public}d", __func__, (int)getuid(), wg->rtgId);
     int addRet = OHOS::RME::AddThreadToRtg(tid, wg->rtgId);
-    if (addRet != 0) {
-        FFRT_LOGE("[WorkGroup] join fail with %d threads for %d", addRet, tid);
+    if (addRet == 0) {
+        FFRT_LOGI("[WorkGroup] join thread %{public}ld success", tid);
+    } else {
+        FFRT_LOGE("[WorkGroup] join fail with %{public}d threads for %{public}d", addRet, tid);
     }
 }
 
@@ -167,6 +169,7 @@ int WorkgroupClear(struct Workgroup* wg)
         if (ret != 0) {
             FFRT_LOGE("[WorkGroup] destroy rtg group failed");
         } else {
+            FFRT_LOGI("[WorkGroup] destroy rtg group success");
             {
                 std::lock_guard<std::mutex> lck(wgLock);
                 wgCount--;

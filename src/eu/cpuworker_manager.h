@@ -36,7 +36,7 @@ class CPUWorkerManager : public WorkerManager {
 public:
     CPUWorkerManager();
 
-    ~CPUWorkerManager() override
+    virtual ~CPUWorkerManager() override
     {
     }
 
@@ -83,11 +83,11 @@ protected:
     int GetTaskCount(const QoS& qos);
     int GetWorkerCount(const QoS& qos);
     void WakeupWorkers(const QoS& qos);
-    void WorkerJoinTg(const QoS& qos, pid_t pid);
 
     CPUMonitor* monitor = nullptr;
     bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::Max()];
+
 #ifdef FFRT_IO_TASK_SCHEDULER
     bool polling_ = false;
     fast_mutex pollersMtx[QoS::Max()];
@@ -101,6 +101,7 @@ private:
     CPUEUTask* PickUpTask(WorkerThread* thread);
     void NotifyTaskPicked(const WorkerThread* thread);
     virtual WorkerAction WorkerIdleAction(const WorkerThread* thread) = 0;
+    void WorkerJoinTg(const QoS& qos, pid_t pid);
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
 
 #ifdef FFRT_IO_TASK_SCHEDULER

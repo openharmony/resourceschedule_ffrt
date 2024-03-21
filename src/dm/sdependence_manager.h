@@ -15,7 +15,6 @@
 
 #ifndef FFRT_SDEPENDENCE_MANAGER_H
 #define FFRT_SDEPENDENCE_MANAGER_H
-
 #include "dependence_manager.h"
 
 namespace ffrt {
@@ -27,10 +26,10 @@ public:
         return ins;
     }
 
-    void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f, const ffrt_deps_t *ins,
-        const ffrt_deps_t *outs, const task_attr_private *attr) override;
+    void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) override;
 
-    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr) override;
+    void onSubmitUV(ffrt_executor_task_t* task, const task_attr_private* attr) override;
 
     void onWait() override;
 
@@ -44,8 +43,8 @@ public:
 
 private:
     SDependenceManager();
-    ~SDependenceManager() override;
-
+    ~SDependenceManager();
+    
     void MapSignature2Deps(SCPUEUTask* task, const std::vector<const void*>& inDeps,
         const std::vector<const void*>& outDeps, std::vector<std::pair<VersionCtx*, NestType>>& inVersions,
         std::vector<std::pair<VersionCtx*, NestType>>& outVersions);

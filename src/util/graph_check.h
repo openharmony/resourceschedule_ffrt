@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <map>
 #include <list>
+#include <stdint.h>
 
 namespace ffrt {
 struct VertexStatus {

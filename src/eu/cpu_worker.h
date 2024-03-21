@@ -34,6 +34,7 @@ public:
     {
 #ifdef FFRT_IO_TASK_SCHEDULER
         localFifo.Init(LOCAL_QUEUE_SIZE);
+        steal_buffer = (void**)malloc(sizeof(void *) * STEAL_BUFFER_SIZE);
 #endif
 #ifdef FFRT_PTHREAD_ENABLE
         Start(CPUWorker::WarpDispatch, this);
@@ -49,6 +50,7 @@ public:
     unsigned int tick = 0;
     unsigned int global_interval = 60;
     unsigned int budget = 10;
+    void** steal_buffer;
 #endif
 
 private:

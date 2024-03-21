@@ -59,4 +59,4 @@ private:
     std::unordered_map<ffrt_executor_task_type_t, ffrt_executor_task_func> func_map;
 };
 }
-#endif
+#endif /* FFRT_FUNC_MANAGER_HPP */

@@ -15,7 +15,7 @@
 #ifndef FFRT_API_CPP_THREAD_H
 #define FFRT_API_CPP_THREAD_H
 #include <memory>
-#include "cpp/task.h"
+#include "../../kits/cpp/task.h"
 
 namespace ffrt {
 class thread {

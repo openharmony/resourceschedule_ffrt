@@ -112,8 +112,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
 
     epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&data)} };
     FFRT_BLOCK_TRACER(ctx->task->gid, fd);
-    bool legacyMode = LegacyMode(ctx->task);
-    if (!USE_COROUTINE || legacyMode) {
+    if (!USE_COROUTINE || ctx->task->coRoutine->legacyMode) {
         std::unique_lock<std::mutex> lck(ctx->task->lock);
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
             ctx->task->coRoutine->blockType = BlockType::BLOCK_THREAD;
@@ -150,22 +149,23 @@ void IOPoller::PollOnce(int timeout) noexcept
             continue;
         }
 
-        if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) != 0) {
-            FFRT_LOGI("epoll_ctl fd = %d errorno = %d", data->fd, errno);
+        if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) == 0) {
+            auto task = reinterpret_cast<CPUEUTask *>(data->data);
+            bool blockThread = task != nullptr ?
+                (task->coRoutine != nullptr ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false) : false;
+            if (!USE_COROUTINE || blockThread) {
+                std::unique_lock<std::mutex> lck(task->lock);
+                if (blockThread) {
+                    task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+                }
+                reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
+            } else {
+                CoWake(task, false);
+            }
             continue;
         }
 
-        auto task = reinterpret_cast<CPUEUTask *>(data->data);
-        bool blockThread = BlockThread(task);
-        if (!USE_COROUTINE || blockThread) {
-            std::unique_lock<std::mutex> lck(task->lock);
-            if (blockThread) {
-                task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
-            }
-            reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
-        } else {
-            CoWake(task, false);
-        }
+        FFRT_LOGI("epoll_ctl fd = %d errorno = %d", data->fd, errno);
     }
 }
 }

@@ -23,9 +23,8 @@
  */
 #ifndef FFRT_INNER_API_CPP_TASK_H
 #define FFRT_INNER_API_CPP_TASK_H
-#include <cstdint>
-#include "c/task_ext.h"
-#include "cpp/task.h"
+#include "../c/task.h"
+#include "../../kits/cpp/task.h"
 
 namespace ffrt {
 /**
@@ -48,16 +47,6 @@ void set_trace_tag(const char* name);
 
 void clear_trace_tag();
 
-static inline int set_cgroup_attr(qos qos_, ffrt_os_sched_attr *attr)
-{
-    return ffrt_set_cgroup_attr(qos_, attr);
-}
-
-static inline void restore_qos_config()
-{
-    ffrt_restore_qos_config();
-}
-
 static inline int set_cpu_worker_max_num(qos qos_, uint32_t num)
 {
     return ffrt_set_cpu_worker_max_num(qos_, num);
@@ -70,10 +59,10 @@ namespace this_task {
  * @return Returns the queue ID.
  * @version 1.0
  */
-static inline int64_t get_queue_id()
+static inline uint64_t get_queue_id()
 {
     return ffrt_this_queue_get_id();
 }
-} // namespace this_task
+} // this_task
 } // namespace ffrt
 #endif

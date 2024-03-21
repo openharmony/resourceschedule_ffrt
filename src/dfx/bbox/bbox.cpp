@@ -23,8 +23,6 @@
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
-#include "tm/task_factory.h"
-#include "eu/cpuworker_manager.h"
 
 using namespace ffrt;
 
@@ -39,8 +37,6 @@ static std::atomic<unsigned int> g_taskPendingCounter(0);
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 #endif
 static CPUEUTask* g_cur_task;
-static unsigned int g_cur_tid;
-static const char* g_cur_signame;
 std::mutex bbox_handle_lock;
 std::condition_variable bbox_handle_end;
 
@@ -96,8 +92,8 @@ static inline void SaveCurrent()
     auto t = g_cur_task;
     if (t) {
         if (t->type == 0) {
-            FFRT_BBOX_LOG("signal %s striggered: source tid %d, task id %lu, qos %d, name %s",
-                g_cur_signame, g_cur_tid, t->gid, t->qos(), t->label.c_str());
+            FFRT_BBOX_LOG("current: thread id %u, task id %lu, qos %d, name %s", gettid(),
+                t->gid, t->qos(), t->label.c_str());
         }
     }
 }
@@ -154,12 +150,12 @@ static inline void SaveReadyQueueStatus()
         for (int j = 0; j < nt; j++) {
             CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
-                FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i, j, nt);
+                FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i + 1, j, nt);
                 continue;
             }
             if (t->type == 0) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> id %lu name %s",
-                    i, j, nt, t->gid, t->label.c_str());
+                    i + 1, j, nt, t->gid, t->label.c_str());
             }
         }
     }
@@ -167,11 +163,10 @@ static inline void SaveReadyQueueStatus()
 
 static inline void SaveTaskStatus()
 {
-    auto unfree = TaskFactory::GetUnfreedMem();
+    auto unfree = SimpleAllocator<CPUEUTask>::getUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
-        std::vector<CPUEUTask*> tmp;
-        for (auto task : unfree) {
-            auto t = reinterpret_cast<CPUEUTask*>(task);
+        decltype(unfree) tmp;
+        for (auto t : unfree) {
             if (filter(t)) {
                 tmp.emplace_back(t);
             }
@@ -218,6 +213,7 @@ void BboxFreeze()
 
 void backtrace(int ignoreDepth)
 {
+    FFRT_BBOX_LOG("backtrace");
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::string dumpInfo;
     CPUEUTask::DumpTask(nullptr, dumpInfo);
@@ -309,8 +305,6 @@ static const char* GetSigName(const siginfo_t* info)
 static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
 {
     g_cur_task = ExecuteCtx::Cur()->task;
-    g_cur_tid = gettid();
-    g_cur_signame = GetSigName(info);
     if (FFRTIsWork()) {
         SaveTheBbox();
     }
@@ -347,7 +341,7 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGKILL);
 }
 
-__attribute__((destructor)) static void BBoxDeInit()
+__attribute__((constructor)) static void BBoxDeInit()
 {
     SignalUnReg(SIGABRT);
     SignalUnReg(SIGBUS);
@@ -360,6 +354,7 @@ __attribute__((destructor)) static void BBoxDeInit()
     SignalUnReg(SIGINT);
     SignalUnReg(SIGKILL);
 }
+
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 std::string SaveTaskCounterInfo(void)
@@ -410,9 +405,6 @@ std::string SaveReadyQueueStatusInfo()
     ss << "<<<=== ready queue status ===>>>" << std::endl;
     ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(QoS(i)));
-        std::lock_guard lg(*lock);
-
         int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;
@@ -421,16 +413,14 @@ std::string SaveReadyQueueStatusInfo()
         for (int j = 0; j < nt; j++) {
             CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
-                ss << "qos " << i << ": ready queue task <" << j << "/" << nt << ">"
+                ss << "qos " << (i + 1) << ": ready queue task <" << j << "/" << nt << ">"
                    << " null" << std::endl;
                 continue;
             }
             if (t->type == 0) {
-                ss << "qos " << i << ": ready queue task <" << j << "/" << nt << "> id "
+                ss << "qos " << (i + 1) << ": ready queue task <" << j << "/" << nt << "> id "
                 << t->gid << " name " << t->label.c_str() << std::endl;
             }
-
-            FFRTScheduler::Instance()->GetScheduler(QoS(i)).WakeupTask(t);
         }
     }
     return ss.str();
@@ -440,13 +430,12 @@ std::string SaveTaskStatusInfo(void)
 {
     std::string ffrtStackInfo;
     std::ostringstream ss;
-    auto unfree = TaskFactory::GetUnfreedMem();
+    auto unfree = SimpleAllocator<CPUEUTask>::getUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
-        std::vector<CPUEUTask*> tmp;
-        for (auto task : unfree) {
-            auto t = reinterpret_cast<CPUEUTask*>(task);
+        decltype(unfree) tmp;
+        for (auto t : unfree) {
             if (filter(t)) {
-                tmp.emplace_back(reinterpret_cast<CPUEUTask*>(t));
+                tmp.emplace_back(t);
             }
         }
 

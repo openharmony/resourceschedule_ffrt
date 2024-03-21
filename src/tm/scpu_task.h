@@ -13,15 +13,15 @@
  * limitations under the License.
  */
 
-#ifndef _SCPU_TASK_H_
-#define _SCPU_TASK_H_
+#ifndef FFRT_SCPU_TASK_H
+#define FFRT_SCPU_TASK_H
 
 #include "tm/cpu_task.h"
 
 namespace ffrt {
 class SCPUEUTask : public CPUEUTask {
 public:
-    SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id, const QoS &qos = QoS());
+    SCPUEUTask(const task_attr_private* attr, CPUEUTask* parent, const uint64_t& id, const QoS& qos = QoS());
     std::unordered_set<VersionCtx*> ins;
     std::unordered_set<VersionCtx*> outs;
     std::vector<CPUEUTask*> in_handles;
@@ -82,7 +82,7 @@ public:
             lck.unlock();
             delete root;
         } else {
-            root->thread_exit = true;
+            root->thread_exit = true ;
         }
     }
     CPUEUTask* Root()

@@ -16,7 +16,6 @@
 #ifndef FFRT_WORKER_MONITOR_H
 #define FFRT_WORKER_MONITOR_H
 
-#include <mutex>
 #include "eu/worker_thread.h"
 #include "tm/cpu_task.h"
 
@@ -30,13 +29,12 @@ private:
     void SubmitSamplingTask();
     void CheckWorkerStatus();
     void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask);
-    void RecordSymbolAndBacktrace(int tid);
+    void RecordSymbolAndBacktrace(CPUEUTask* task, int tid);
 
 private:
-    std::mutex mutex_;
     bool skipSampling_ = true;
     WaitUntilEntry waitEntry_;
-    std::map<WorkerThread*, std::pair<CPUEUTask*, int>> workerStatus_;
+    std::map<void*, std::pair<CPUEUTask*, int>> workerStatus_;
 };
 }
 #endif

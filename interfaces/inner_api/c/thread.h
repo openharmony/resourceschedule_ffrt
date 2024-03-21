@@ -14,7 +14,7 @@
  */
 #ifndef FFRT_API_C_THREAD_H
 #define FFRT_API_C_THREAD_H
-#include "type_def_ext.h"
+#include "type_def.h"
 
 FFRT_C_API int ffrt_thread_create(ffrt_thread_t* thr, const ffrt_thread_attr_t* attr, void*(*func)(void*), void* arg);
 FFRT_C_API int ffrt_thread_join(ffrt_thread_t thr, void** res);

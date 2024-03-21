@@ -59,7 +59,7 @@ public:
                         "MODULE_NAME", "ffrt",
                         "PROCESS_NAME", "ffrt",
                         "MSG", sendMsg);
-        FFRT_LOGE("send event [FRAMEWORK,%s], msg=%s", eventName.c_str(), msg.c_str());
+        FFRT_LOGE("send event [FRAMEWORK,%{public}s], msg=%{public}s", eventName.c_str(), msg.c_str());
 #endif
     }
 
@@ -103,7 +103,7 @@ public:
 class mutexPrivate {
     std::atomic<int> l;
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    std::atomic<uintptr_t> owner;
+    std::atomic<uint64_t> owner;
 #endif
     fast_mutex wlock;
     LinkedList list;
@@ -130,18 +130,17 @@ public:
     void lock();
     void unlock();
     bool try_lock();
-
+    
     RecursiveMutexPrivate() = default;
     ~RecursiveMutexPrivate() = default;
     RecursiveMutexPrivate(RecursiveMutexPrivate const&) = delete;
     void operator = (RecursiveMutexPrivate const&) = delete;
-
+    
 private:
     std::pair<uint64_t, uint32_t> taskLockNums = std::make_pair(UINT64_MAX, 0);
     fast_mutex fMutex;
     mutexPrivate mt;
 };
-
 } // namespace ffrt
 
 #endif

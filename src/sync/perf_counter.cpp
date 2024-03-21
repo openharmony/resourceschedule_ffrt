@@ -304,7 +304,7 @@ static void perf_counter_output(struct perf_stat_t* stat)
     }
 
     for (auto iter = m_counters.begin(); iter != m_counters.end(); iter++) {
-        fprintf_s(fd,
+        fprintf(fd,
             "pid:%d, taskname:%s, taskid:%d, recordid:%d, evt_num:%d, pmu_%x:%lu, pmu_%x:%lu, pmu_%x:%lu, pmu_%x:%lu, "
             "pmu_%x:%lu, pmu_%x:%lu, pmu_%x:%lu, nr:%lu.\n",
             stat->pid, iter->first.c_str(), 0, 1, stat->n_counters, pmu_event[0], iter->second.vals[0], pmu_event[1],

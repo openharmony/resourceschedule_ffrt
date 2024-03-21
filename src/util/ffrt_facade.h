@@ -14,6 +14,7 @@
  */
 #ifndef UTIL_FFRTFACADE_HPP
 #define UTIL_FFRTFACADE_HPP
+#include "util/slab.h"
 #include "tm/cpu_task.h"
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"
@@ -26,7 +27,7 @@ public:
     {
         return Instance().GetEUInstanceImpl();
     }
-
+    
     static inline DependenceManager& GetDMInstance()
     {
         return Instance().GetDMInstanceImpl();

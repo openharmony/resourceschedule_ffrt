@@ -24,7 +24,7 @@
 #ifndef FFRT_API_CPP_QUEUE_H
 #define FFRT_API_CPP_QUEUE_H
 
-#include "c/queue.h"
+#include "../c/queue.h"
 #include "task.h"
 
 namespace ffrt {
@@ -76,7 +76,7 @@ public:
     }
 
     // set timeout callback
-    inline queue_attr& callback(const std::function<void()>& func)
+    inline queue_attr& callback(std::function<void()>& func)
     {
         ffrt_queue_attr_set_callback(this, create_function_wrapper(func, ffrt_function_kind_queue));
         return *this;
@@ -111,7 +111,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void submit(const std::function<void()>& func)
+    inline void submit(std::function<void()>& func)
     {
         ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
     }
@@ -124,7 +124,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void submit(const std::function<void()>& func, const task_attr& attr)
+    inline void submit(std::function<void()>& func, const task_attr& attr)
     {
         ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
     }
@@ -163,7 +163,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline task_handle submit_h(const std::function<void()>& func)
+    inline task_handle submit_h(std::function<void()>& func)
     {
         return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
     }
@@ -178,7 +178,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr)
+    inline task_handle submit_h(std::function<void()>& func, const task_attr& attr)
     {
         return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
     }
@@ -235,7 +235,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void wait(const task_handle& handle)
+    inline void wait(task_handle& handle)
     {
         return ffrt_queue_wait(handle);
     }

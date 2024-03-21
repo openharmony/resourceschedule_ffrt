@@ -48,7 +48,7 @@ class CPUEUTask;
 struct WaitEntry {
     WaitEntry() : prev(this), next(this), task(nullptr), weType(0) {
     }
-    explicit WaitEntry(CPUEUTask *task) : prev(nullptr), next(nullptr), task(task), weType(0) {
+    explicit WaitEntry(CPUEUTask *inTask) : prev(nullptr), next(nullptr), task(inTask), weType(0) {
     }
     LinkedList node;
     WaitEntry* prev;
@@ -61,7 +61,7 @@ struct WaitUntilEntry : WaitEntry {
     WaitUntilEntry() : WaitEntry(), status(we_status::INIT), hasWaitTime(false)
     {
     }
-    explicit WaitUntilEntry(CPUEUTask* task) : WaitEntry(task), status(we_status::INIT), hasWaitTime(false)
+    explicit WaitUntilEntry(CPUEUTask* inTask) : WaitEntry(inTask), status(we_status::INIT), hasWaitTime(false)
     {
     }
     std::atomic_int32_t status;
@@ -75,7 +75,6 @@ struct WaitUntilEntry : WaitEntry {
 struct ExecuteCtx {
     ExecuteCtx();
     virtual ~ExecuteCtx();
-
 #ifdef FFRT_IO_TASK_SCHEDULER
     ffrt_executor_task_t* exec_task = nullptr;
     void** priority_task_ptr = nullptr;

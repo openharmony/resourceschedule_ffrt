@@ -36,10 +36,6 @@ public:
 
     Interval* operator->()
     {
-        if (it == nullptr) {
-            FFRT_LOGE("Invalid QoS Interval!");
-            return nullptr;
-        }
         return it.get();
     }
 

@@ -55,11 +55,10 @@ int ffrt_thread_create(ffrt_thread_t* thr, const ffrt_thread_attr_t* attr, void*
 API_ATTRIBUTE((visibility("default")))
 int ffrt_thread_join(ffrt_thread_t thr, void** res)
 {
-    if (!thr || !res) {
-        FFRT_LOGE("thr or res should not be empty");
+    if (!thr) {
+        FFRT_LOGE("thr should not be empty");
         return ffrt_error_inval;
     }
-
     auto p = reinterpret_cast<thread_res*>(thr);
     if (p == nullptr || !p->is_joinable) {
         return ffrt_error_inval;

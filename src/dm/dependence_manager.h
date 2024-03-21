@@ -78,12 +78,7 @@ public:
     {
     }
 
-    virtual void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
-    {
-    }
-
-    virtual void onSubmitDev(dev_type dev, bool has_handle, ffrt_task_handle_t &handle, void *data,
-        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+    virtual void onSubmitUV(ffrt_executor_task_t* task, const task_attr_private* attr)
     {
     }
 
@@ -104,7 +99,7 @@ public:
     virtual void onTaskDone(CPUEUTask* task)
     {
     }
-
+    
     static inline CPUEUTask* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval
@@ -116,6 +111,5 @@ protected:
     DependenceManager() {}
     virtual ~DependenceManager() {}
 };
-
 } // namespace ffrt
 #endif

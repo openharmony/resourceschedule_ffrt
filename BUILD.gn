@@ -11,12 +11,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
+import("//foundation/resourceschedule/ffrt/ffrt_io_task_scheuduler.gni")
 
 defines = []
+
+if (ffrt_io_task_scheuduler) {
+  defines += [ "FFRT_IO_TASK_SCHEDULER" ]
+}
 
 config("ffrt_config") {
   visibility = [ ":*" ]
   include_dirs = [
+    "interfaces",
     "interfaces/kits",
     "interfaces/inner_api",
   ]
@@ -81,6 +87,8 @@ config("ffrt_inner_config") {
     "src/dfx/log",
     "src/dfx/trace",
     "src/sched",
+    "//third_party/jsoncpp/include",
+    "//third_party/libunwind/include",
   ]
 
   if (is_ohos && is_clang && (target_cpu == "arm" || target_cpu == "arm64")) {
@@ -94,7 +102,6 @@ config("ffrt_inner_config") {
 ohos_shared_library("libffrt") {
   public_configs = [ ":ffrt_config" ]
   configs = [ ":ffrt_inner_config" ]
-  ldflags = [ "-Wl,-z,nodelete" ]
 
   sources = [
     "src/core/entity.cpp",
@@ -103,6 +110,7 @@ ohos_shared_library("libffrt") {
     "src/core/version_ctx.cpp",
     "src/dfx/bbox/bbox.cpp",
     "src/dfx/log/ffrt_log.cpp",
+    "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
     "src/dfx/watchdog/watchdog.cpp",
     "src/dfx/watchdog/watchdog_util.cpp",
@@ -119,7 +127,7 @@ ohos_shared_library("libffrt") {
     "src/eu/qos_convert.cpp",
     "src/eu/qos_interface.cpp",
     "src/eu/rtg_ioctl.cpp",
-    "src/eu/rtg_perf_ctrl.cpp",
+    "src/eu/rtg_perf_ctrl.c",
     "src/eu/scpu_monitor.cpp",
     "src/eu/scpuworker_manager.cpp",
     "src/eu/sexecute_unit.cpp",
@@ -199,6 +207,7 @@ ohos_shared_library("ffrt_ndk") {
     "src/core/version_ctx.cpp",
     "src/dfx/bbox/bbox.cpp",
     "src/dfx/log/ffrt_log.cpp",
+    "src/dfx/log/hmos/log_base.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
     "src/dfx/watchdog/watchdog.cpp",
     "src/dfx/watchdog/watchdog_util.cpp",
@@ -215,13 +224,12 @@ ohos_shared_library("ffrt_ndk") {
     "src/eu/qos_convert.cpp",
     "src/eu/qos_interface.cpp",
     "src/eu/rtg_ioctl.cpp",
-    "src/eu/rtg_perf_ctrl.cpp",
+    "src/eu/rtg_perf_ctrl.c",
     "src/eu/scpu_monitor.cpp",
     "src/eu/scpuworker_manager.cpp",
     "src/eu/sexecute_unit.cpp",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
-    "src/ipc/ipc.cpp",
     "src/queue/queue_monitor.cpp",
     "src/queue/serial_handler.cpp",
     "src/queue/serial_queue.cpp",

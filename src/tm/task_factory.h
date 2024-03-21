@@ -35,28 +35,17 @@ public:
         Instance().free_(task);
     }
 
-    static std::vector<void *> GetUnfreedMem()
-    {
-        if (Instance().getUnfreedMem_ != nullptr) {
-            return Instance().getUnfreedMem_();
-        }
-        return {};
-    }
-
-    static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&free,
-        TaskAllocCB<CPUEUTask>::GetUnfreedMem &&getUnfreedMem = nullptr)
+    static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&free)
     {
         Instance().alloc_ = std::move(alloc);
         Instance().free_ = std::move(free);
-        Instance().getUnfreedMem_ = std::move(getUnfreedMem);
     }
 
 private:
-    TaskAllocCB<CPUEUTask>::Free free_;
     TaskAllocCB<CPUEUTask>::Alloc alloc_;
-    TaskAllocCB<CPUEUTask>::GetUnfreedMem getUnfreedMem_;
+    TaskAllocCB<CPUEUTask>::Free free_;
 };
 
-} // namespace ffrt
+} /* namespace ffrt */
 
 #endif

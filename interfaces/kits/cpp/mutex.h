@@ -23,7 +23,7 @@
  */
 #ifndef FFRT_API_CPP_MUTEX_H
 #define FFRT_API_CPP_MUTEX_H
-#include "c/mutex.h"
+#include "../c/mutex.h"
 
 namespace ffrt {
 class mutex : public ffrt_mutex_t {
@@ -63,25 +63,25 @@ public:
     {
         ffrt_recursive_mutex_init(this, nullptr);
     }
-
+    
     ~recursive_mutex()
     {
         ffrt_recursive_mutex_destroy(this);
     }
-
+    
     recursive_mutex(recursive_mutex const&) = delete;
     void operator=(recursive_mutex const&) = delete;
-
+    
     inline bool try_lock()
     {
         return ffrt_recursive_mutex_trylock(this) == ffrt_success ? true : false;
     }
-
+    
     inline void lock()
     {
         ffrt_recursive_mutex_lock(this);
     }
-
+    
     inline void unlock()
     {
         ffrt_recursive_mutex_unlock(this);

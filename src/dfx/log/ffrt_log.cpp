@@ -31,6 +31,11 @@ int GetFFRTLogLevel(void)
     return g_ffrtLogLevel;
 }
 
+void SetFFRTLogLevel(int level)
+{
+    g_ffrtLogLevel = level;
+}
+
 static void SetLogLevel(void)
 {
     std::string envLogStr = GetEnv("FFRT_LOG_LEVEL");

@@ -120,7 +120,5 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 
 void SCPUWorkerManager::WorkerPrepare(WorkerThread* thread)
 {
-    WorkerJoinTg(thread->GetQos(), thread->Id());
 }
-
 } // namespace ffrt

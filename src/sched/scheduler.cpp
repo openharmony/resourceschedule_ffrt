@@ -12,13 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "scheduler.h"
-
 #include "util/singleton_register.h"
-
 namespace ffrt {
-
 FFRTScheduler* FFRTScheduler::Instance()
 {
     return &SingletonRegister<FFRTScheduler>::Instance();
@@ -28,5 +24,4 @@ void FFRTScheduler::RegistInsCb(SingleInsCB<FFRTScheduler>::Instance &&cb)
 {
     SingletonRegister<FFRTScheduler>::RegistInsCb(std::move(cb));
 }
-
 } // namespace ffrt

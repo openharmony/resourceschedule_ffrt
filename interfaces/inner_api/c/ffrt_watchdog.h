@@ -15,7 +15,7 @@
 #ifndef FFRT_WATCHDOG_H
 #define FFRT_WATCHDOG_H
 #include <stdint.h>
-#include "type_def_ext.h"
+#include "type_def.h"
 
 typedef void(*ffrt_watchdog_cb)(uint64_t, const char *, uint32_t);
 FFRT_C_API void ffrt_watchdog_dumpinfo(char *buf, uint32_t len);

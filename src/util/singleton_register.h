@@ -36,7 +36,6 @@ public:
     {
         Instance_().cb_ = std::move(cb);
     }
-
 private:
     typename SingleInsCB<T>::Instance cb_;
 };

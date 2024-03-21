@@ -30,11 +30,6 @@ public:
         EnQueueImpl(task);
     }
 
-    CPUEUTask* DeQueue()
-    {
-        return DeQueueImpl();
-    }
-
     void EnQueueNode(LinkedList* node)
     {
         EnQueueNodeImpl(node);
@@ -43,6 +38,11 @@ public:
     void RmQueueNode(LinkedList* node)
     {
         RmQueueNodeImpl(node);
+    }
+
+    CPUEUTask* DeQueue()
+    {
+        return DeQueueImpl();
     }
 
     bool Empty()
@@ -86,6 +86,7 @@ private:
         if (node == nullptr) {
             return nullptr;
         }
+
         ffrt_executor_task_t* w = reinterpret_cast<ffrt_executor_task_t *>(reinterpret_cast<char *>(node) -
             offsetof(ffrt_executor_task_t, wq));
         if (w->type != ffrt_normal_task && w->type != ffrt_serial_task) {

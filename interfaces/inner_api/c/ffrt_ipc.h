@@ -14,7 +14,7 @@
  */
 #ifndef FFRT_IPC_H
 #define FFRT_IPC_H
-#include "type_def_ext.h"
+#include "type_def.h"
 
 /**
  * @brief ipc set legacy mode to ffrt.

@@ -41,11 +41,10 @@ static inline std::string GetEnv(const char* name)
     }
     return val;
 }
-
 static inline void GetProcessName(char* processName, int bufferLength)
 {
     int fd = open("/proc/self/cmdline", O_RDONLY);
-    if (fd != -1) {
+    if (fd != 1) {
         ssize_t ret = syscall(SYS_read, fd, processName, bufferLength - 1);
         if (ret != -1) {
             processName[ret] = 0;

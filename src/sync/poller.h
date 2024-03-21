@@ -50,8 +50,8 @@ struct WakeDataWithCb {
         : fd(fdVal), data(dataVal), cb(cbVal) {}
 
     int fd = 0;
-    void* data = nullptr;
-    std::function<void(void*, uint32_t, uint8_t)> cb = nullptr;
+    void *data = nullptr;
+    std::function<void(void *, uint32_t, uint8_t)> cb = nullptr;
 };
 
 struct TimerDataWithCb {
@@ -75,7 +75,7 @@ public:
     PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
 
-    int RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb) noexcept;
+    int RegisterTimer(uint64_t timeout, void* data, void(*cb)(void*)) noexcept;
     void DeregisterTimer(int handle) noexcept;
     bool DetermineEmptyMap() noexcept;
     ffrt_timer_query_t GetTimerStatus(int handle) noexcept;

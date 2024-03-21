@@ -68,16 +68,16 @@ public:
     {
         node.prev->next = node.next;
         node.next->prev = node.prev;
-        node.next = &node;
-        node.prev = &node;
+        node.next = nullptr;
+        node.prev = nullptr;
     }
 
     static void Delete(LinkedList* node) noexcept
     {
         node->prev->next = node->next;
         node->next->prev = node->prev;
-        node->next = node;
-        node->prev = node;
+        node->next = nullptr;
+        node->prev = nullptr;
     }
 
     static void RemoveCur(LinkedList& node) noexcept

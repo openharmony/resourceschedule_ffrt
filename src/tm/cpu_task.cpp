@@ -19,7 +19,6 @@
 #include "libunwind.h"
 #include "backtrace_local.h"
 #endif
-#include <securec.h>
 #include "dm/dependence_manager.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
@@ -94,7 +93,7 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
         }
         return;
     } else {
-        memset_s(&ctx, sizeof(ctx), 0, sizeof(ctx));
+        memset(&ctx, 0, sizeof(ctx));
 #if defined(__aarch64__)
         ctx.uc_mcontext.regs[UNW_AARCH64_X29] = task->coRoutine->ctx.regs[10];
         ctx.uc_mcontext.sp = task->coRoutine->ctx.regs[13];
@@ -122,6 +121,7 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
     Dl_info info;
     unw_word_t prevPc = 0;
     unw_word_t offset;
+    char symbol[512];
     std::ostringstream ss;
     do {
         ret = unw_get_proc_info(&unw_cur, &unw_proc);
@@ -140,13 +140,25 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
             break;
         }
 
-        if (flag == 0) {
-            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
-                (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+        memset(symbol, 0, sizeof(symbol));
+        if (unw_get_proc_name(&unw_cur, symbol, sizeof(symbol), &offset) == 0) {
+            if (flag == 0) {
+                FFRT_LOGE("FFRT | #%d pc: %lx %s(%p) %s", frame_id, unw_proc.start_ip, info.dli_fname,
+                          (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)), symbol);
+            } else {
+                ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ") ";
+                ss << std::string(symbol, strlen(symbol)) <<std::endl;
+            }
         } else {
-            ss << "FFRT | #" << frame_id << " pc: " << std::hex << unw_proc.start_ip << " " << info.dli_fname;
-            ss << "(" << std::hex << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ")";
-            ss << std::endl;
+            if (flag == 0) {
+                FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
+                          (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
+            } else {
+                ss << "FFRT | #" << frame_id << " pc: " << unw_proc.start_ip << " " << info.dli_fname;
+                ss << "(" << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ")";
+                ss << std::endl;
+            }
         }
         ++frame_id;
     } while (unw_step(&unw_cur) > 0);

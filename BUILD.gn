@@ -167,9 +167,8 @@ ohos_shared_library("libffrt") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
+    "libunwind:libunwind",
   ]
-
-  deps = [ "//third_party/libunwind:libunwind" ]
 
   output_extension = "so"
   part_name = "ffrt"
@@ -261,9 +260,8 @@ ohos_shared_library("ffrt_ndk") {
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
+    "libunwind:libunwind",
   ]
-
-  deps = [ "//third_party/libunwind:libunwind" ]
 
   part_name = "ffrt"
   subsystem_name = "resourceschedule"

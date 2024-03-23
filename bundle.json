@@ -30,7 +30,8 @@
                 "hilog",
                 "hisysevent",
                 "napi",
-                "faultloggerd"
+                "faultloggerd",
+                "libunwind"
             ],
             "third_party": [
                 "bounds_checking_function",

@@ -161,16 +161,13 @@ ohos_shared_library("libffrt") {
   ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-  ]
-
-  deps = [
-    "//third_party/bounds_checking_function:libsec_shared",
-    "//third_party/libunwind:libunwind",
+    "libunwind:libunwind",
   ]
 
   output_extension = "so"
@@ -257,16 +254,13 @@ ohos_shared_library("ffrt_ndk") {
   ]
 
   external_deps = [
+    "bounds_checking_function:libsec_shared",
     "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
-  ]
-
-  deps = [
-    "//third_party/bounds_checking_function:libsec_shared",
-    "//third_party/libunwind:libunwind",
+    "libunwind:libunwind",
   ]
 
   part_name = "ffrt"

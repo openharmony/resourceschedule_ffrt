@@ -29,7 +29,7 @@ namespace {
 constexpr int TASK_OVERRUN_THRESHOLD = 1000;
 constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint64_t MONITOR_TIMEOUT_MAX_COUNT = 2;
-constexpr uint64_t MONITOR_SAMPLING_CYCLE_US = 1500 * 1000;
+constexpr uint64_t MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr uint64_t TIMEOUT_RECORD_CYCLE_US = 60 * 1000 * 1000;
 }
 
@@ -117,7 +117,7 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
 
 void WorkerMonitor::RecordSymbolAndBacktrace(int tid)
 {
-    FFRT_LOGW("Function occupies worker for more than 3s.");
+    FFRT_LOGW("Function in occupies worker for more than 1s.");
 
 #ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;

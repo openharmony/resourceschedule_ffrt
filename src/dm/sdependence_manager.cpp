@@ -38,9 +38,10 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 
-#ifdef FFRT_OH_TRACE_ENABLE
+#ifdef FFRT_WORKER_MONITOR
     static WorkerMonitor workerMonitor;
-
+#endif
+#ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif

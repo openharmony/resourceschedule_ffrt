@@ -104,12 +104,12 @@ void SerialHandler::Submit(SerialTask* task)
 
     // activate queue
     if (task->GetDelay() == 0) {
-        TransferTask(task);
         FFRT_LOGD("task [%llu] activate %s", task->gid, name_.c_str());
+        TransferTask(task);
     } else {
+        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", task->gid, task->GetDelay(), name_.c_str());
         queue_->Push(task);
         TransferInitTask();
-        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", task->gid, task->GetDelay(), name_.c_str());
     }
 }
 

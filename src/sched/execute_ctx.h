@@ -24,7 +24,11 @@
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "c/executor_task.h"
 #include "util/spmc_queue.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #endif
 
 namespace ffrt {

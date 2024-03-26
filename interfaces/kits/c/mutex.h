@@ -122,7 +122,7 @@ FFRT_C_API int ffrt_recursive_mutex_lock(ffrt_mutex_t* mutex);
  *
  * @param mutex Indicates a pointer to the mutex.
  * @return Returns <b>ffrt_thrd_success</b> if the mutex is unlocked;
-           returns <b>ffrt_thrd_error</b>otherwise.
+           returns <b>ffrt_thrd_error</b> otherwise.
  * @since 10
  * @version 1.0
  */

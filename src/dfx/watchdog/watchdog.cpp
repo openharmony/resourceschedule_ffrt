@@ -50,7 +50,7 @@ void ffrt_watchdog_dumpinfo(char *buf, uint32_t len)
             snprintf_s(buf, len, len - 1, "%s", "watchdog fail to print dumpinfo");
         }
     } else {
-        snprintf_s(buf, len, len -1, "%s", "FFRT has done all tasks!");
+        snprintf_s(buf, len, len - 1, "%s", "FFRT has done all tasks!");
     }
 #endif
 }

@@ -213,7 +213,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
 #endif
 {
     auto ctx = ExecuteCtx::Cur();
-    auto baseTask = ctx->task ? ctx->task : DependenceManager::Root();
+    auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
 
     auto dataDepFun = [&]() {

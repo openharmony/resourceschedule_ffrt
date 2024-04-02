@@ -50,7 +50,7 @@ int Poller::AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) n
         return -1;
     }
 
-    epoll_event ev = { .events = events, .data = {.ptr = ptr } };
+    epoll_event ev = { .events = events, .data = { .ptr = ptr } };
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
         FFRT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;

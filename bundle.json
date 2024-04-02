@@ -16,6 +16,9 @@
         "syscap": [
             "SystemCapability.Resourceschedule.Ffrt.Core"
         ],
+        "features": [
+            "ffrt_support_enable"
+        ],
         "adapted_system_type": [
             "standard"
         ],

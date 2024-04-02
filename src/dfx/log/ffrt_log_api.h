@@ -60,8 +60,9 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #ifdef HILOG_FMTID
 #define HILOG_IMPL_STD_ARRAY(type, level, fmt, ...) \
     do { \
-        FmtId fmtid{ HILOG_UUID, HILOG_FMT_OFFSET(fmt.data()) }; \
-        HiLogPrintDict(type, level, 0xD001719, "ffrt", &fmtid, fmt.data(), ##__VA_ARGS__); \
+        constexpr HILOG_FMT_IN_SECTION static auto hilogFmt = fmt; \
+        FmtId fmtid{ HILOG_UUID, HILOG_FMT_OFFSET(hilogFmt.data()) }; \
+        HiLogPrintDict(type, level, 0xD001719, "ffrt", &fmtid, hilogFmt.data(), ##__VA_ARGS__); \
     } while (0)
 #else
 #define HILOG_IMPL_STD_ARRAY(type, level, fmt, ...) \

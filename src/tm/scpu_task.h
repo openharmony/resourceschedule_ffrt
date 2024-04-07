@@ -17,6 +17,7 @@
 #define _SCPU_TASK_H_
 
 #include "tm/cpu_task.h"
+#include "hitrace/trace.h"
 
 namespace ffrt {
 class SCPUEUTask : public CPUEUTask {
@@ -36,6 +37,10 @@ public:
 
     uint64_t dataWaitRefCnt {0}; // waited data count called by ffrt_wait()
     std::condition_variable dataWaitCond_; // wait data cond
+
+#ifdef ENABLE_HITRACE
+    std::unique_ptr<OHOS::HiviewDFX::HiTraceId> traceId_{nullptr};
+#endif
 
     inline void IncDepRef()
     {

@@ -19,6 +19,7 @@
 #ifdef ASYNC_STACKTRACE
 #include "async_stack.h"
 #endif
+using namespace OHOS::HiviewDFX;
 
 namespace ffrt {
 
@@ -92,6 +93,14 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         task->stackId = CollectAsyncStack();
     }
 #endif
+
+#ifdef ENABLE_HITRACE
+    if (HiTraceChain::GetId().IsValid()) {
+        task->traceId_ = std::make_unique<HiTraceId>(HiTraceChain::CreateSpan());
+        HiTraceChain::Tracepoint(HITRACE_TP_CS, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
+    }
+#endif
+
 #ifdef FFRT_BBOX_ENABLE
     TaskSubmitCounterInc();
 #endif
@@ -143,9 +152,22 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         task->in_handles.swap(in_handles);
         if (task->depRefCnt != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
+
+#ifdef ENABLE_HITRACE
+            if (task->traceId_ != nullptr) {
+                HiTraceChain::Tracepoint(HITRACE_TP_CR, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
+            }
+#endif
+
             return;
         }
     }
+
+#ifdef ENABLE_HITRACE
+    if (task->traceId_ != nullptr) {
+        HiTraceChain::Tracepoint(HITRACE_TP_CR, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
+    }
+#endif
 
     FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);

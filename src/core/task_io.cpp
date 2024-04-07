@@ -115,15 +115,17 @@ void ffrt_wake_coroutine(void* task)
 
     // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yeild function
     bool selfWakeup = (ffrt::ExecuteCtx::Cur()->exec_task == task);
-    if (!selfWakeup && ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(wakedTask)) {
-        return;
-    }
-
-    if (selfWakeup || rand() % INSERT_GLOBAL_QUEUE_FREQ) {
-        if (ffrt::ExecuteCtx::Cur()->localFifo != nullptr &&
-            ffrt::ExecuteCtx::Cur()->localFifo->PushTail(task) == 0) {
-            ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(wakedTask->qos);
+    if (!selfWakeup) {
+        if (ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(wakedTask)) {
             return;
+        }
+
+        if (rand() % INSERT_GLOBAL_QUEUE_FREQ) {
+            if (ffrt::ExecuteCtx::Cur()->localFifo != nullptr &&
+                ffrt::ExecuteCtx::Cur()->localFifo->PushTail(task) == 0) {
+                ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(wakedTask->qos);
+                return;
+            }
         }
     }
 

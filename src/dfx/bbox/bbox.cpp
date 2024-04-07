@@ -96,7 +96,7 @@ static inline void SaveCurrent()
     auto t = g_cur_task;
     if (t) {
         if (t->type == 0) {
-            FFRT_BBOX_LOG("signal %s striggered: source tid %d, task id %lu, qos %d, name %s",
+            FFRT_BBOX_LOG("signal %s triggered: source tid %d, task id %lu, qos %d, name %s",
                 g_cur_signame, g_cur_tid, t->gid, t->qos(), t->label.c_str());
         }
     }

@@ -121,6 +121,26 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
 FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 
 /**
+ * @brief Sets the task priority.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @param priority Indicates the execute priority of concurrent queue task.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_task_attr_set_priority(ffrt_task_attr_t* attr, uint64_t delay_us);
+
+/**
+ * @brief Obtains the task task priority.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @return Returns the priority of concurrent queue task.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API int ffrt_task_attr_get_priority(const ffrt_task_attr_t* attr);
+
+/**
  * @brief Updates the QoS of this task.
  *
  * @param qos Indicates the new QoS.
@@ -130,6 +150,15 @@ FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
  * @version 1.0
  */
 FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
+
+/**
+ * @brief Obtains the qos of this task.
+ *
+ * @return Returns the task qos.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos();
 
 /**
  * @brief Obtains the ID of this task.

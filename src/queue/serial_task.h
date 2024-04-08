@@ -16,7 +16,7 @@
 #define FFRT_SERIAL_TASK_H
 
 #include <atomic>
-#include "core/task_attr_private.h"
+#include "queue_attr_private.h"
 #include "ihandler.h"
 #include "util/task_deleter.h"
 #include "tm/cpu_task.h"
@@ -81,6 +81,22 @@ public:
         nextTask_ = task;
     }
 
+    inline void SetPriority(const task_priority prio) {
+        prio_ = prio;
+    }
+
+    inline task_priority GetPriority() {
+        return prio_;
+    }
+
+    inline void SetName(const std::string name) {
+        name_ = name;
+    }
+
+    inline std::string GetName() {
+        return name_;
+    }
+
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 
 private:
@@ -96,6 +112,9 @@ private:
 
     std::mutex mutex_;
     std::condition_variable cond_;
+
+    task_priority prio_ = low;
+    std::string name_;
 };
 } // namespace ffrt
 

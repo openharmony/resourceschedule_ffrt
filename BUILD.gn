@@ -127,6 +127,8 @@ ohos_shared_library("libffrt") {
       "src/eu/sexecute_unit.cpp",
       "src/eu/worker_manager.cpp",
       "src/eu/worker_thread.cpp",
+      "src/eu/loop.cpp"
+      "src/eu/loop_api.cpp"
       "src/ipc/ipc.cpp",
       "src/queue/queue_monitor.cpp",
       "src/queue/serial_handler.cpp",
@@ -149,6 +151,8 @@ ohos_shared_library("libffrt") {
       "src/sync/mutex.cpp",
       "src/sync/perf_counter.cpp",
       "src/sync/poller.cpp",
+      "src/sync/poller_api.cpp",
+      "src/sync/timer_api.cpp",
       "src/sync/sleep.cpp",
       "src/sync/sync.cpp",
       "src/sync/thread.cpp",
@@ -170,6 +174,7 @@ ohos_shared_library("libffrt") {
       "hilog:libhilog",
       "hisysevent:libhisysevent",
       "libunwind:libunwind",
+      "eventhandler:libeventhandler",
     ]
 
     output_extension = "so"
@@ -221,6 +226,8 @@ ohos_shared_library("ffrt_ndk") {
     "src/eu/sexecute_unit.cpp",
     "src/eu/worker_manager.cpp",
     "src/eu/worker_thread.cpp",
+    "src/eu/loop.cpp",
+    "src/eu/loop_api.cpp",
     "src/ipc/ipc.cpp",
     "src/queue/queue_monitor.cpp",
     "src/queue/serial_handler.cpp",
@@ -264,6 +271,7 @@ ohos_shared_library("ffrt_ndk") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "libunwind:libunwind",
+    "eventhandler:libeventhandler",
   ]
 
   part_name = "ffrt"

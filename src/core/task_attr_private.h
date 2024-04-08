@@ -30,7 +30,9 @@ public:
     explicit task_attr_private(const task_attr attr)
         : qos_map(attr.qos()),
           name_(attr.name()),
-          delay_(attr.delay())
+          delay_(attr.delay()),
+          prio_(attr.priority())
+          
     {
     }
 
@@ -38,6 +40,7 @@ public:
     std::string name_;
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
+    task_priority prio_ = low;
     ffrt_function_header_t* timeoutCb_ = nullptr;
 };
 }

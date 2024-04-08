@@ -12,21 +12,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_FFRT_H
-#define FFRT_API_FFRT_H
-#ifdef __cplusplus
-#include "cpp/task.h"
-#include "cpp/mutex.h"
-#include "cpp/condition_variable.h"
-#include "cpp/sleep.h"
-#include "cpp/queue.h"
-#include "c/timer.h"
-#else
-#include "c/task.h"
-#include "c/mutex.h"
-#include "c/condition_variable.h"
-#include "c/sleep.h"
-#include "c/queue.h"
-#include "c/timer.h"
-#endif
-#endif
+#ifndef FFRT_QUEUE_ATTR_PRIVATE_H
+#define FFRT_QUEUE_ATTR_PRIVATE_H
+
+#include <string>
+#include "qos.h"
+
+namespace ffrt {
+class queue_attr_private {
+public:
+    queue_attr_private(): qos_(qos_default) {}
+
+    explicit queue_attr_private(const queue_attr attr) : qos_(attr.qos()) {}
+
+    int qos_;
+    uint64_t timeout_ = 0;
+    int maxConcurrency_ = 1;
+    ffrt_function_header_t* timeoutCb_ = nullptr;
+};
+} // namespace ffrt
+
+#endif // FFRT_QUEUE_ATTR_PRIVATE_H

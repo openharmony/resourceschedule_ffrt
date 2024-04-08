@@ -16,7 +16,6 @@
 #include "sched/execute_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
     m_events(1024)
@@ -141,7 +140,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         if (data->cb == nullptr) {
             continue;
         }
-        data->cb(data->data, m_events[i].events, pollerCount_);
+        data->cb(data->data, m_events[i].events);
     }
 
     ReleaseFdWakeData();
@@ -195,8 +194,12 @@ void Poller::ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterat
     }
 }
 
-int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb) noexcept
+int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
 {
+    if (repeat) {
+        FFRT_LOGE("repeat not supported yet");
+        return -1;
+    }
     if (cb == nullptr || flag_ == EpollStatus::TEARDOWN) {
         return -1;
     }
@@ -218,10 +221,10 @@ int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb) noexce
     return timerHandle_;
 }
 
-void Poller::DeregisterTimer(int handle) noexcept
+int Poller::UnregisterTimer(int handle) noexcept
 {
     if (flag_ == EpollStatus::TEARDOWN) {
-        return;
+        return -1;
     }
 
     std::lock_guard lock(timerMutex_);
@@ -231,16 +234,18 @@ void Poller::DeregisterTimer(int handle) noexcept
             std::this_thread::yield();
         }
         executedHandle_.erase(it);
-        return;
+        return 0;
     }
 
     bool wake = false;
+    int ret = -1;
     for (auto cur = timerMap_.begin(); cur != timerMap_.end(); cur++) {
         if (cur->second.handle == handle) {
             if (cur == timerMap_.begin() && flag_ == EpollStatus::WAIT) {
                 wake = true;
             }
             timerMap_.erase(cur);
+            ret = 0;
             break;
         }
     }
@@ -250,11 +255,31 @@ void Poller::DeregisterTimer(int handle) noexcept
     if (wake) {
         WakeUp();
     }
+    return ret;
 }
 
 bool Poller::DetermineEmptyMap() noexcept
 {
     return fdEmpty_ && timerEmpty_;
+}
+
+bool Poller::DeterminePollerReady() noexcept
+{
+    return IsFdExist() || IsTimerReady();
+}
+
+bool Poller::Is() noexcept
+{
+    time_point_t now = std::chrono::steady_clock::now();
+    std::lock_guard lock(timerMutex_);
+    if (timerMap_.empty()) {
+        return false;
+    }
+
+    if(now >= timerMap_.begin()->first) {
+        return true;
+    }
+    return false;
 }
 
 ffrt_timer_query_t Poller::GetTimerStatus(int handle) noexcept
@@ -280,5 +305,9 @@ ffrt_timer_query_t Poller::GetTimerStatus(int handle) noexcept
 
     return ffrt_timer_notfound;
 }
+
+uint8_t Poller::GetPollCount() noexcept
+{
+    return pollerCount_;
 }
-#endif
+}

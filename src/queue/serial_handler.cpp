@@ -107,7 +107,7 @@ SerialTask* SerialHandler::PickUpTask()
 
 uint64_t SerialHandler::GetNextTimeout()
 {
-    return queue_->GetNextTimeout()
+    return queue_->GetNextTimeout();
 }
 
 void SerialHandler::NormalSerialTaskSubmit(SerialTask* task)
@@ -162,7 +162,7 @@ void SerialHandler::MainSerialTaskSubmit(SerialTask* task)
         f->exec(f);
         f->destroy(f);
     };
-    FFRT_LOGD("Enter main queue, mainFunc out.");
+    FFRT_LOGD("Enter main queue. mainFunc out");
     bool taskStatus = eventHandler_->PostTask(mainFunc, std::string(processName) + "_main_" + task->GetName(), delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
     FFRT_LOGD("PostTask status: %d.", taskStatus);
     FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
@@ -183,7 +183,7 @@ void SerialHandler::WorkerSerialTaskSubmit(SerialTask* task)
         f->exec(f);
         f->destroy(f);
     };
-    FFRT_LOGD("Enter worker queue, workerFunc out.");
+    FFRT_LOGD("Enter worker queue. workerFunc out");
     bool taskStatus = eventHandler_->PostTask(workerFunc, std::string(processName) + "_worker_" + task->GetName(), delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
     FFRT_LOGD("PostTask status: %d.", taskStatus);
     FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");

@@ -58,7 +58,7 @@ bool SerialQueue::ClearLoop()
     return true;
 }
 
-bool SeralQueue::IsOnLoop()
+bool SerialQueue::IsOnLoop()
 {
     return isOnLoop_.load();
 }
@@ -246,13 +246,13 @@ SerialTask* SerialQueue::PullConcurrentTask()
     // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
         uint8_t oldValue = concurrency_.fetch_sub(1); //取不到后继的task，当前这个task正式退出
-        FFRT_LOGD("concurrency[%u] - 1[queueId=%u] switch into inactive", oldValue, queueId_);
+        FFRT_LOGD("concurrency[%u] - 1 [queueId=%u] switch into inactive", oldValue, queueId_);
         return nullptr;
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue next expired task by priority
-    return DuqueTaskPriorityWithGreedy(now);
+    return DequeTaskPriorityWithGreedy(now);
 }
 
 SerialTask* SerialQueue::Pull()

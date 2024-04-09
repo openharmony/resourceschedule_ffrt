@@ -261,8 +261,8 @@ ohos_shared_library("ffrt_ndk") {
     "src/util/init.cpp",
     "src/util/spmc_queue.cpp",
     "src/util/worker_monitor.cpp",
-    "src/sync/poller_api.cpp"
-    "src/sync/timer_api.cpp"
+    "src/sync/poller_api.cpp",
+    "src/sync/timer_api.cpp",
   ]
 
   external_deps = [

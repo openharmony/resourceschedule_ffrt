@@ -17,7 +17,9 @@
 #define _SCPU_TASK_H_
 
 #include "tm/cpu_task.h"
+#ifdef ENABLE_HITRACE
 #include "hitrace/trace.h"
+#endif
 
 namespace ffrt {
 class SCPUEUTask : public CPUEUTask {

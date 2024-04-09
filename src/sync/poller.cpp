@@ -17,8 +17,7 @@
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
-Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
-    m_events(1024)
+Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
     m_wakeData.cb = nullptr;
     m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
@@ -38,6 +37,12 @@ Poller::~Poller() noexcept
     timerMap_.clear();
     executedHandle_.clear();
     flag_ = EpollStatus::TEARDOWN;
+}
+
+PollerProxy* PollerProxy::Instance()
+{
+    static PollerProxy pollerInstance;
+    return &pollerInstance;
 }
 
 int Poller::AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept

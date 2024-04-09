@@ -52,7 +52,7 @@ struct WakeDataWithCb {
 
     int fd = 0;
     void* data = nullptr;
-    std::function<void(void*, uint32_t, uint32_t)> cb = nullptr;
+    std::function<void(void*, uint32_t)> cb = nullptr;
 };
 
 struct TimerDataWithCb {
@@ -80,7 +80,7 @@ public:
     int UnregisterTimer(int handle) noexcept;
     ffrt_timer_query_t GetTimerStatus(int handle) noexcept;
 
-    uint8_t GetPollCount() no except;
+    uint8_t GetPollCount() noexcept;
 
     bool DetermineEmptyMap() noexcept;
     bool DeterminePollerReady() noexcept;

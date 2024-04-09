@@ -145,7 +145,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         if (data->cb == nullptr) {
             continue;
         }
-        data->cb(data->data, m_events[i].events);
+        data->cb(data->data, waitedEvents[i].events);
     }
 
     ReleaseFdWakeData();
@@ -273,7 +273,12 @@ bool Poller::DeterminePollerReady() noexcept
     return IsFdExist() || IsTimerReady();
 }
 
-bool Poller::Is() noexcept
+bool Poller::IsFdExist() noexcept
+{
+    return !fdEmpty_;
+}
+
+bool Poller::IsTimerReady() noexcept
 {
     time_point_t now = std::chrono::steady_clock::now();
     std::lock_guard lock(timerMutex_);
@@ -281,7 +286,7 @@ bool Poller::Is() noexcept
         return false;
     }
 
-    if(now >= timerMap_.begin()->first) {
+    if (now >= timerMap_.begin()->first) {
         return true;
     }
     return false;

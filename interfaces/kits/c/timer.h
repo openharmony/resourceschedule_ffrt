@@ -52,7 +52,7 @@
  * @since 12
  * @version 1.0
 */
-FFRT_C_API ffrt_timer_t ffrt_time_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
+FFRT_C_API ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
 
 /**
  * @brief Stop a timer on ffrt worker
@@ -64,5 +64,5 @@ FFRT_C_API ffrt_timer_t ffrt_time_start(ffrt_qos_t qos, uint64_t timeout, void* 
  * @since 12
  * @version 1.0
 */
-FFRT_C_API int ffrt_time_stop(ffrt_qos_t qos, ffrt_timer_t handle);
+FFRT_C_API int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);
 #endif

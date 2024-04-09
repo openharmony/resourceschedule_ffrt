@@ -63,7 +63,7 @@ FFRT_C_API ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
  * @since 12
  * @version 1.0
 */
-FFRT_C_API int ffrt_loop_destory(ffrt_loop_t loop);
+FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
 
 /**
  * @brief start loop run
@@ -99,7 +99,7 @@ FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
  * @since 12
  * @version 1.0
 */
-FFRT_C_API void ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb);
+FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb);
 
 /**
  * @brief Start a timer on ffrt loop

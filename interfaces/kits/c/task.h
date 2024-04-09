@@ -128,10 +128,10 @@ FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
  * @since 12
  * @version 1.0
  */
-FFRT_C_API void ffrt_task_attr_set_priority(ffrt_task_attr_t* attr, uint64_t delay_us);
+FFRT_C_API void ffrt_task_attr_set_priority(ffrt_task_attr_t* attr, int priority);
 
 /**
- * @brief Obtains the task task priority.
+ * @brief Obtains the task priority.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns the priority of concurrent queue task.

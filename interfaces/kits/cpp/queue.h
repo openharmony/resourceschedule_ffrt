@@ -98,7 +98,7 @@ public:
     // get max concurrency of queue
     inline int max_concurrency() const
     {
-        ffrt_queue_attr_get_max_concurrency(this);
+        return ffrt_queue_attr_get_max_concurrency(this);
     }
 };
 
@@ -108,6 +108,7 @@ public:
     {
         queue_handle = ffrt_queue_create(ffrt_queue_type_t(type), name, &attr);
     }
+
     queue(const char* name, const queue_attr& attr = {})
     {
         queue_handle = ffrt_queue_create(ffrt_queue_serial, name, &attr);

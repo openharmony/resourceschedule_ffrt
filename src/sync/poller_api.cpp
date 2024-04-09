@@ -5,7 +5,7 @@
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 API_ATTRIBUTE((visibility("default")))
-int ffrt_epoll_ctl(ffrt_qos_t qos, int op,int fd, uint32_t events, void* data, ffrt_poller_cb cb)
+int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb)
 {
     int ret = 0;
     ffrt::QoS pollerQos = ffrt::QoS(qos);
@@ -29,7 +29,7 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op,int fd, uint32_t events, void* data, f
 API_ATTRIBUTE((visibility("default")))
 void ffrt_poller_wakeup(ffrt_qos_t qos)
 {
-    ffrt::PollerProxy::Instance()->GetPoller(ffrt::QoS(qos)).wakeup();
+    ffrt::PollerProxy::Instance()->GetPoller(ffrt::QoS(qos)).WakeUp();
 }
 
 API_ATTRIBUTE((visibility("default")))

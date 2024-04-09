@@ -11,7 +11,6 @@ ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue)
 {
     FFRT_COND_DO_ERR((queue == nullptr), return nullptr, "input invalid, queue is nullptr");
     SerialHandler* handler = static_cast<SerialHandler*>(queue);
-
     FFRT_COND_DO_ERR((!handler->IsValidForLoop()), return nullptr, "queue invalid for loop");
 
     Loop* innerLoop = new (std::nothrow) Loop(handler);
@@ -25,9 +24,9 @@ ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue)
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_loop_destory(ffrt_loop_t loop)
+int ffrt_loop_destroy(ffrt_loop_t loop)
 {
-    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input is invalid, loop is nullptr");
+    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input invalid, loop is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
     delete innerLoop;
     return 0;
@@ -36,40 +35,41 @@ int ffrt_loop_destory(ffrt_loop_t loop)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_loop_run(ffrt_loop_t loop)
 {
-    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input is invalid, loop is nullptr");
+    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input invalid, loop is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
     innerLoop->Run();
     return 0;
 }
 
+
 API_ATTRIBUTE((visibility("default")))
 void ffrt_loop_stop(ffrt_loop_t loop)
 {
-    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input is invalid, loop is nullptr");
+    FFRT_COND_DO_ERR((loop == nullptr), return, "input invalid, loop is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
     innerLoop->Stop();
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, int32_t events, void *data, ffrt_poller_cb cb)
+int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb)
 {
-    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input is invalid, loop is nullptr");
+    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input invalid, loop is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
     return  innerLoop->EpollCtl(op, fd, events, data, cb);
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_loop_timer_start(ffrt_loop_t loop, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
+ffrt_timer_t ffrt_loop_timer_start(ffrt_loop_t loop, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
 {
-    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input is invalid, loop is nullptr");
+    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input invalid, loop is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
     return innerLoop->TimerStart(timeout, data, cb, repeat);
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle)
+int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle)
 {
-    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input is invalid, loop is nullptr");
+    FFRT_COND_DO_ERR((loop == nullptr), return -1, "input invalid, loop is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
     return innerLoop->TimerStop(handle);
 }

@@ -127,8 +127,8 @@ ohos_shared_library("libffrt") {
       "src/eu/sexecute_unit.cpp",
       "src/eu/worker_manager.cpp",
       "src/eu/worker_thread.cpp",
-      "src/eu/loop.cpp"
-      "src/eu/loop_api.cpp"
+      "src/eu/loop.cpp",
+      "src/eu/loop_api.cpp",
       "src/ipc/ipc.cpp",
       "src/queue/queue_monitor.cpp",
       "src/queue/serial_handler.cpp",
@@ -261,6 +261,8 @@ ohos_shared_library("ffrt_ndk") {
     "src/util/init.cpp",
     "src/util/spmc_queue.cpp",
     "src/util/worker_monitor.cpp",
+    "src/sync/poller_api.cpp"
+    "src/sync/timer_api.cpp"
   ]
 
   external_deps = [

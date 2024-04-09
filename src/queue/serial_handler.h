@@ -18,7 +18,6 @@
 #include <atomic>
 #include <memory>
 #include <string>
-
 #ifdef OHOS_STANDARD_SYSTEM
 #include <event_handler.h>
 #endif
@@ -51,7 +50,7 @@ public:
     bool ClearLoop();
 
     SerialTask* PickUpTask();
-    uint64_t GetNextTimeOut();
+    uint64_t GetNextTimeout();
 
     inline bool IsValidForLoop()
     {
@@ -69,12 +68,12 @@ public:
     }
 
     inline void SetHandlerType(HandlerType type) {
-        handlerType_ = type;
+        handleType_ = type;
     }
 #ifdef OHOS_STANDARD_SYSTEM
     inline void SetEventHandler(std::shared_ptr<OHOS::AppExecFwk::EventHandler> eventHandler)
     {
-        eventHandler_ = eventHandler
+        eventHandler_ = eventHandler;
     }
 
     inline std::shared_ptr<OHOS::AppExecFwk::EventHandler> GetEventHandler()

@@ -139,7 +139,7 @@ FFRT_C_API void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, con
  * @since 12
  * @version 1.0
  */
-FFRT_C_API int ffrt_queue_attr_get_max_concurrency(ffrt_queue_attr_t* attr);
+FFRT_C_API int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr);
 
 /**
  * @brief Creates a queue.

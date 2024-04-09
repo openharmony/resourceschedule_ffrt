@@ -119,9 +119,9 @@ public:
     }
 
     /**
-     * @brief Set the priority for this task.
-     * 
-     * @param prio Indicates the execute priority of concurrent queue task.
+     * @brief Sets the priority for this task.
+     *
+     * @param priority Indicates the execute priority of concurrent queue task.
      * @since 12
      * @version 1.0
      */
@@ -131,7 +131,7 @@ public:
         return *this;
     }
 
-     /**
+    /**
      * @brief Obtains the priority of this task.
      * 
      * @return Returns the priority of concurrent queue task.

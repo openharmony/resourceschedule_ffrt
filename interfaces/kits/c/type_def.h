@@ -36,6 +36,7 @@
  */
 #ifndef FFRT_API_C_TYPE_DEF_H
 #define FFRT_API_C_TYPE_DEF_H
+
 #include <stdint.h>
 #include <errno.h>
 
@@ -48,14 +49,14 @@
 /**
  * @brief Enumerates the task priority types.
  * 
-*/
+ */
 typedef enum {
     /** should be distributed at once if possible, handle time equals to send time, prior to high level */
     ffrt_task_priority_immediate = 0,
     /** high priority, sorted by handle time, prior to low level. */
-    ffrt_task_priority_high = 1,
-    /** low priority, sorted by handle time, piror to idle level. */
-    ffrt_task_priority_low = 2,
+    ffrt_task_priority_high,
+    /** low priority, sorted by handle time, prior to idle level. */
+    ffrt_task_priority_low,
     /** lowest priority, sorted by handle time, only distribute when there is no other level inside queue. */
     ffrt_task_priority_idle,
 } ffrt_task_priority_t;
@@ -201,6 +202,7 @@ typedef void (*ffrt_timer_cb)(void* data);
 
 typedef int ffrt_timer_t;
 
+
 #ifdef __cplusplus
 namespace ffrt {
 enum qos_default {
@@ -222,7 +224,7 @@ enum task_priority {
 enum queue_type {
     queue_serial = ffrt_queue_serial,
     queue_concurrent = ffrt_queue_concurrent,
-    queue_max = ffrt_queue_max
+    queue_max = ffrt_queue_max,
 };
 }
 #endif

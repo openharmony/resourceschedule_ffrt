@@ -74,7 +74,7 @@ void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
 
-    (reinterpret_cast<ffrt::queue_attr_private*>(attr))->qos_map = qos;
+    (reinterpret_cast<ffrt::queue_attr_private*>(attr))->qos_ = ffrt::GetFuncQosMap()(qos);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -82,7 +82,7 @@ ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return ffrt_qos_default, "input invalid, attr == nullptr");
     ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);
-    return (reinterpret_cast<ffrt::queue_attr_private*>(p))->qos_map.m_qos;
+    return (reinterpret_cast<ffrt::queue_attr_private*>(p))->qos_;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -124,11 +124,11 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_concurrency)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
-    (reinterpret_cast<ffrt::queue_attr_private*>(attr))->maxConcurrency_ = max_concurrency;    
+    (reinterpret_cast<ffrt::queue_attr_private*>(attr))->maxConcurrency_ = max_concurrency;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_queue_atttr_get_max_concurrency(const ffrt_queue_attr_t* attr)
+int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return 0, "input invalid, attr == nullptr");
     ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);
@@ -211,7 +211,7 @@ ffrt_queue_t ffrt_get_current_queue()
     SerialHandler *handler = new (std::nothrow) SerialHandler("current_queue", nullptr);
     FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct WorkerThreadSerialHandler");
     handler->SetHandlerType(WORKERTHREAD_SERIAL_HANDLER);
-    handler->SetEventHandler(workHandler);
+    handler->SetEventHandler(workerHandler);
     return static_cast<ffrt_queue_t>(handler);
 }
 #endif

@@ -15,7 +15,6 @@
 
 #ifndef FFRT_LOOP_HPP
 #define FFRT_LOOP_HPP
-
 #include "queue/serial_handler.h"
 #include "sync/poller.h"
 
@@ -36,7 +35,7 @@ public:
 private:
     SerialHandler* handler_;
     Poller poller_;
-    std::atomic<bool> stopFlag_ { flase };
+    std::atomic<bool> stopFlag_ { false };
 };
 }
 

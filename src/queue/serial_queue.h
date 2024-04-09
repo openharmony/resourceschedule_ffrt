@@ -25,8 +25,8 @@
 
 namespace ffrt {
 enum QueueAction {
-    INACTIVE = -1, // queue is null or serial queue is empty
-    CONCURRENT,
+    INACTIVE = -1, // queue is nullptr or serial queue is empty
+    CONCURRENT, // concurrency less than max concurrency
     SUCC,
     FAILED,
 };
@@ -47,7 +47,7 @@ public:
     bool ClearLoop();
     bool IsOnLoop();
 
-    int GetNextTimeOut();
+    int GetNextTimeout();
 
     uint64_t GetMapSize();
     inline bool GetActiveStatus() const
@@ -61,7 +61,7 @@ public:
                 status = concurrency_.load();
                 break;
             default: {
-                FFRT_LOGE("Unsupport queue type=%d.", queueTYpe_);
+                FFRT_LOGE("Unsupport queue type=%d.", queueType_);
                 break;
             }
         }
@@ -70,7 +70,7 @@ public:
 
 private:
     SerialTask* DequeTaskBatch(const uint64_t now);
-    SerialTask* DequeTaskPriorityWithGreedy(cons uint64_t now);
+    SerialTask* DequeTaskPriorityWithGreedy(const uint64_t now);
 
     int PushSerialTask(SerialTask* task);
     int PushConcurrentTask(SerialTask* task);
@@ -84,13 +84,13 @@ private:
     std::atomic_bool isActiveState_ = {0};
     std::multimap<uint64_t, SerialTask*> whenMap_;
     Loop* loop_ = nullptr;
-    std::atomic_bool IsOnLoop_ = false;
+    std::atomic_bool isOnLoop_ = false;
     
     ffrt::mutex mutex_;
     ffrt::condition_variable cond_;
 
-    int maxConcurrency_{1};
-    std::atomic_int concurrency_{0};
+    int maxConcurrency_ {1};
+    std::atomic_int concurrency_ {0};
     ffrt_queue_type_t queueType_ = ffrt_queue_serial;
 };
 } // namespace ffrt

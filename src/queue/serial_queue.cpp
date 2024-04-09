@@ -29,7 +29,7 @@ inline uint64_t GetNow()
 } // namespace
 
 namespace ffrt {
-SerialQueue::SerialQueue(uint32_t queueId, const int maxConcurrency, const ffrt_queue_type_t type) : queueId_(queueId), maxConcurrency_(maxConcurrency), queueType_(type){}
+SerialQueue::SerialQueue(uint32_t queueId, const int maxConcurrency, const ffrt_queue_type_t type) : queueId_(queueId), maxConcurrency_(maxConcurrency), queueType_(type) {}
 
 SerialQueue::~SerialQueue()
 {
@@ -39,12 +39,12 @@ SerialQueue::~SerialQueue()
 bool SerialQueue::SetLoop(Loop* loop)
 {
     if (loop == nullptr || loop_ != nullptr) {
-        FFRT_LOGE("queueID %s should bind to loop invalid", queueId_);
+        FFRT_LOGE("queueId %s should bind to loop invalid", queueId_);
         return false;
     }
 
     loop_ = loop;
-    IsOnLoop_.stroe(true);
+    isOnLoop_.store(true);
     return true;
 }
 
@@ -53,29 +53,29 @@ bool SerialQueue::ClearLoop()
     if (loop_ == nullptr) {
         return false;
     }
-    
+
     loop_ = nullptr;
     return true;
 }
 
-bool SerailQueue::IsOnLoop()
+bool SeralQueue::IsOnLoop()
 {
-    return IsOnLoop_.load();
+    return isOnLoop_.load();
 }
 
-int SerialQueue::GetNextTimeOut()
+int SerialQueue::GetNextTimeout()
 {
     std::unique_lock lock(mutex_);
     if (whenMap_.empty()) {
         return -1;
     }
     uint64_t now = GetNow();
-    if (now >= whenMap_.begin()->first()) {
+    if (now >= whenMap_.begin()->first) {
         return 0;
     }
-    uint64_t diff = whenMap_.begin()->first() - now;
-    uint64_t timeOut = (diff - 1) / 1000 + 1; // us->ms
-    return timeOut > INT_MAX ? INT_MAX : static_cast<int>(timeOut);
+    uint64_t diff = whenMap_.begin()->first - now;
+    uint64_t timeout = (diff - 1) / 1000 + 1; // us->ms
+    return timeout > INT_MAX ? INT_MAX : (int)timeout;
 }
 
 void SerialQueue::Stop()
@@ -91,7 +91,7 @@ void SerialQueue::Stop()
     }
     whenMap_.clear();
     if (loop_ == nullptr) {
-        cond_.notify_noe();
+        cond_.notify_one();
     }
 
     FFRT_LOGI("clear [queueId=%u] succ", queueId_);
@@ -120,9 +120,9 @@ static void DelayTaskCb(void* task)
 int SerialQueue::PushDelayTaskToTimer(SerialTask* task)
 {
     uint64_t delayMs = (task->GetDelay() - 1) / 1000 + 1;
-    int timeOut = delayMs > INT_MAX ? INT_MAX : delayMs;
-    if (loop_->TimerStart(timeOut, task, DelayTaskCb, false) < 0) {
-        FFRT_LOGE("push delay queue task to timer fail")
+    int timeout = delayMs > INT_MAX ? INT_MAX : delayMs;
+    if (loop_->TimerStart(timeout, task, DelayTaskCb, false) < 0) {
+        FFRT_LOGE("push delay queue task to timer fail");
         return FAILED;
     }
     return SUCC;
@@ -132,7 +132,7 @@ int SerialQueue::PushConcurrentTask(SerialTask* task)
 {
     if (loop_ != nullptr) {
         if (task->GetDelay() == 0) {
-            whenMap_.insert({task->GetUpTime(), task});
+            whenMap_.insert({task->GetUptime(), task});
             loop_->WakeUp();
             return SUCC;
         }
@@ -145,21 +145,21 @@ int SerialQueue::PushConcurrentTask(SerialTask* task)
         FFRT_LOGD("task [gid=%llu] concurrency[%u] + 1 [queueId=%u]", task->gid, oldValue, queueId_);
 
         if (task->GetDelay() > 0) {
-            whenMap_.insert({task->GetUpTime(), task});
+            whenMap_.insert({task->GetUptime(), task});
         }
 
         return CONCURRENT;
     }
 
-    whenMap_.insert({task->GetUpTime(), task});
-    if (task == whenMap_.begin()->second()) {
+    whenMap_.insert({task->GetUptime(), task});
+    if (task == whenMap_.begin()->second) {
         cond_.notify_all();
     }
 
     return SUCC;
 }
 
-int SerialQueue::Push(SearialTask* task)
+int SerialQueue::Push(SerialTask* task)
 {
     std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot push task, [queueId=%u] is exiting", queueId_);
@@ -173,7 +173,7 @@ int SerialQueue::Push(SearialTask* task)
             FFRT_LOGD("ffrt_queue_concurrent");
             status = PushConcurrentTask(task);
             break;
-        default:{
+        default: {
             FFRT_LOGE("Unsupport queue type=%d.", queueType_);
             break;
         }
@@ -230,7 +230,7 @@ SerialTask* SerialQueue::PullConcurrentTask()
     uint64_t now = GetNow();
     if (loop_ != nullptr) {
         if (!whenMap_.empty() && now >= whenMap_.begin()->first && !isExit_) {
-            return DequeTaskPriorityWithGreddy(now);
+            return DequeTaskPriorityWithGreedy(now);
         }
         return nullptr;
     }
@@ -243,16 +243,16 @@ SerialTask* SerialQueue::PullConcurrentTask()
         now = GetNow();
     }
 
-    // about dequeue in abnormal scenarios
+    // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
-        uint8_t oldValue = concurrency_.fetch_sub(1); //取不到后继的task,当前这个task正式退出
-        FFRT_LOGD("concurrency[%u] - 1[queueId=%u] switch into inactive", oldValue, queueId);
+        uint8_t oldValue = concurrency_.fetch_sub(1); //取不到后继的task，当前这个task正式退出
+        FFRT_LOGD("concurrency[%u] - 1[queueId=%u] switch into inactive", oldValue, queueId_);
         return nullptr;
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue next expired task by priority
-    return DuequeTaskPriorityWithGreedy(now);
+    return DuqueTaskPriorityWithGreedy(now);
 }
 
 SerialTask* SerialQueue::Pull()
@@ -268,7 +268,7 @@ SerialTask* SerialQueue::Pull()
             task = PullConcurrentTask();
             break;
         default: {
-            FFRT_LOGD("Unsupport queue type=%d.", queueType_);
+            FFRT_LOGE("Unsupport queue type=%d.", queueType_);
             break;
         }
     }
@@ -305,16 +305,16 @@ SerialTask* SerialQueue::DequeTaskPriorityWithGreedy(const uint64_t now)
         if (ite_target->second->GetPriority() == immediate) {
             break;
         }
-        if (ite->second->getPriority() < ite_target->second->GetPriority()) {
+        if (ite->second->GetPriority() < ite_target->second->GetPriority()) {
             ite_target = ite;
         }
     }
 
     SerialTask* head = ite_target->second;
-    whenMap_.erase(tie_target);
+    whenMap_.erase(ite_target);
 
     FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ",
-        head->gid, whenMap_.size(),queueId_);
+        head->gid, whenMap_.size(), queueId_);
     return head;
 }
 

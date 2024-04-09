@@ -6,7 +6,7 @@
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 API_ATTRIBUTE((visibility("default")))
-ffrt_timer_t ffrt_time_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
+ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
 {
     ffrt::QoS pollerQos = ffrt::QoS(qos);
     int handle = ffrt::PollerProxy::Instance()->GetPoller(pollerQos).RegisterTimer(timeout, data, cb);
@@ -25,6 +25,6 @@ int ffrt_timer_stop(ffrt_qos_t qos, int handle)
 API_ATTRIBUTE((visibility("default")))
 ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, int handle)
 {
-    return ffrt:: PollerProxy::Instance()->GetPoller(ffrt::QoS(qos)).GetTimerStatus(handle);
+    return ffrt::PollerProxy::Instance()->GetPoller(ffrt::QoS(qos)).GetTimerStatus(handle);
 }
 #endif

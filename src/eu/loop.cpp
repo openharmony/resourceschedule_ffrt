@@ -2,7 +2,7 @@
 #include "queue/serial_task.h"
 
 namespace ffrt {
-Loop::Loop(SerialHandler* handler) : handler_(handler);
+Loop::Loop(SerialHandler* handler) : handler_(handler) {}
 
 Loop::~Loop()
 {
@@ -44,7 +44,7 @@ int Loop::EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb c
         return poller_.AddFdEvent(events, fd , data, cb);
     } else if (op == EPOLL_CTL_DEL) {
         return poller_.DelFdEvent(fd);
-    } else if (op ==m EPOLL_CTL_MOD) {
+    } else if (op == EPOLL_CTL_MOD) {
         FFRT_LOGE("EPOLL_CTL_MOD not supported yet");
         return -1;
     } else {
@@ -60,6 +60,6 @@ ffrt_timer_t Loop::TimerStart(uint64_t timeout, void *data, ffrt_timer_cb cb, bo
 
 int Loop::TimerStop(ffrt_timer_t handle)
 {
-    return poller_.UnRegiseterTimer(handle);
+    return poller_.UnregisterTimer(handle);
 }
 } // ffrt

@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifdef OHOS_STANDARD_SYSTEM
+#include "faultloggerd_client.h"
+#endif
 #include <string>
 #include <atomic>
 #include "ffrt_log_api.h"

@@ -28,7 +28,7 @@ public:
     void Stop();
 
     int EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb);
-    ffrt_timer_t TimerStart(uint64_t timeout, void *data, ffrt_timer_cb cb, bool repeat);
+    ffrt_timer_t TimerStart(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
     int TimerStop(ffrt_timer_t handle);
     void WakeUp();
 
@@ -38,5 +38,4 @@ private:
     std::atomic<bool> stopFlag_ { false };
 };
 }
-
 #endif

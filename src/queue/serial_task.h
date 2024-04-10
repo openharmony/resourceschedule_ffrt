@@ -81,19 +81,23 @@ public:
         nextTask_ = task;
     }
 
-    inline void SetPriority(const task_priority prio) {
+    inline void SetPriority(const queue_priority prio)
+    {
         prio_ = prio;
     }
 
-    inline task_priority GetPriority() {
+    inline queue_priority GetPriority()
+    {
         return prio_;
     }
 
-    inline void SetName(const std::string name) {
+    inline void SetName(const std::string name)
+    {
         name_ = name;
     }
 
-    inline std::string GetName() {
+    inline std::string GetName()
+    {
         return name_;
     }
 
@@ -113,7 +117,7 @@ private:
     std::mutex mutex_;
     std::condition_variable cond_;
 
-    task_priority prio_ = low;
+    queue_priority prio_ = low;
     std::string name_;
 };
 } // namespace ffrt

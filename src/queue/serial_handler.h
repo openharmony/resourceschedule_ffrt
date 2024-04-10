@@ -67,7 +67,8 @@ public:
         return queueId_;
     }
 
-    inline void SetHandlerType(HandlerType type) {
+    inline void SetHandlerType(HandlerType type)
+    {
         handleType_ = type;
     }
 #ifdef OHOS_STANDARD_SYSTEM

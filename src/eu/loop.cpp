@@ -12,7 +12,7 @@ Loop::~Loop()
 
 void Loop::Run()
 {
-    while(!stopFlag_.load()) {
+    while (!stopFlag_.load()) {
         auto task = handler_->PickUpTask();
         if (task) {
             task->Execute();
@@ -41,7 +41,7 @@ void Loop::WakeUp()
 int Loop::EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb)
 {
     if (op == EPOLL_CTL_ADD) {
-        return poller_.AddFdEvent(events, fd , data, cb);
+        return poller_.AddFdEvent(events, fd, data, cb);
     } else if (op == EPOLL_CTL_DEL) {
         return poller_.DelFdEvent(fd);
     } else if (op == EPOLL_CTL_MOD) {
@@ -53,7 +53,7 @@ int Loop::EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb c
     }
 }
 
-ffrt_timer_t Loop::TimerStart(uint64_t timeout, void *data, ffrt_timer_cb cb, bool repeat)
+ffrt_timer_t Loop::TimerStart(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
 {
     return poller_.RegisterTimer(timeout, data, cb, repeat);
 }

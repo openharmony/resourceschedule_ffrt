@@ -31,13 +31,14 @@ constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
 std::atomic_uint32_t queueId(0);
 }
 namespace ffrt {
-SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr, const ffrt_queue_type_t type) : queueId_(queueId++), queueType_(type)
+SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr, const ffrt_queue_type_t type)
+    : queueId_(queueId++), queueType_(type)
 {
     int maxConcurrency = 1;
-
     // parse queue attribute
     if (attr) {
-        maxConcurrency = (ffrt_queue_attr_get_max_concurrency(attr)) <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
+        maxConcurrency = (ffrt_queue_attr_get_max_concurrency(attr))
+            <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
         qos_ = (ffrt_queue_attr_get_qos(attr) >= ffrt_qos_background) ? ffrt_queue_attr_get_qos(attr) : qos_;
         timeout_ = ffrt_queue_attr_get_timeout(attr);
         timeoutCb_ = ffrt_queue_attr_get_callback(attr);
@@ -158,13 +159,11 @@ void SerialHandler::MainSerialTaskSubmit(SerialTask* task)
 
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> mainFunc = [=]() {
-        FFRT_LOGD("Enter main queue. mainFunc in");
         f->exec(f);
         f->destroy(f);
     };
-    FFRT_LOGD("Enter main queue. mainFunc out");
-    bool taskStatus = eventHandler_->PostTask(mainFunc, std::string(processName) + "_main_" + task->GetName(), delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
-    FFRT_LOGD("PostTask status: %d.", taskStatus);
+    bool taskStatus = eventHandler_->PostTask(mainFunc, std::string(processName) + "_main_" + task->GetName(),
+        delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
     FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
 }
 
@@ -179,13 +178,12 @@ void SerialHandler::WorkerSerialTaskSubmit(SerialTask* task)
 
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> workerFunc = [=]() {
-        FFRT_LOGD("Enter worker queue. workerFunc in");
         f->exec(f);
         f->destroy(f);
     };
-    FFRT_LOGD("Enter worker queue. workerFunc out");
-    bool taskStatus = eventHandler_->PostTask(workerFunc, std::string(processName) + "_worker_" + task->GetName(), delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
-    FFRT_LOGD("PostTask status: %d.", taskStatus);
+
+    bool taskStatus = eventHandler_->PostTask(workerFunc, std::string(processName) + "_worker_" + task->GetName(),
+        delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
     FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
 }
 #endif
@@ -194,20 +192,17 @@ void SerialHandler::Submit(SerialTask* task)
 {
     switch (handleType_) {
         case NORMAL_SERIAL_HANDLER:
-            FFRT_LOGD("NORMAL_SERIAL_HANDLER");
             NormalSerialTaskSubmit(task);
             break;
         case MAINTHREAD_SERIAL_HANDLER:
-            FFRT_LOGD("MAINTHREAD_SERIAL_HANDLER");
-        #ifdef OHOS_STANDARD_SYSTEM
+#ifdef OHOS_STANDARD_SYSTEM
             MainSerialTaskSubmit(task);
-        #endif
+#endif
             break;
         case WORKERTHREAD_SERIAL_HANDLER:
-            FFRT_LOGD("WORKERTHREAD_SERIAL_HANDLER");
-        #ifdef OHOS_STANDARD_SYSTEM
+#ifdef OHOS_STANDARD_SYSTEM
             WorkerSerialTaskSubmit(task);
-        #endif
+#endif
             break;
         default: {
             FFRT_LOGE("Unsupport serial handle type=%d.", handleType_);

@@ -209,7 +209,13 @@ void ffrt_task_attr_set_priority(ffrt_task_attr_t* attr, int priority)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->prio_ = ffrt::task_priority(priority);
+
+    if (priority < ffrt_queue_priority_immediate || priority > ffrt_queue_priority_idle) {
+        FFRT_LOGE("priority should be a valid priority");
+        return;
+    }
+    
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->prio_ = ffrt::queue_priority(priority);
 }
 
 API_ATTRIBUTE((visibility("default")))

@@ -42,7 +42,7 @@
 
 /**
  * @brief Start a timer on ffrt worker
- * 
+ *
  * @param qos Indicates qos of the worker that runs timer.
  * @param timeout Indicates the number of milliseconds that specifies timeout.
  * @param data Indicates user data used in cb.

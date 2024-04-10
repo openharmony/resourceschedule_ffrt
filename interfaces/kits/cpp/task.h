@@ -125,7 +125,7 @@ public:
      * @since 12
      * @version 1.0
      */
-    inline task_attr& priority(task_priority prio)
+    inline task_attr& priority(queue_priority prio)
     {
         ffrt_task_attr_set_priority(this, prio);
         return *this;
@@ -133,14 +133,14 @@ public:
 
     /**
      * @brief Obtains the priority of this task.
-     * 
+     *
      * @return Returns the priority of concurrent queue task.
      * @since 12
      * @version 1.0
      */
-    inline task_priority priority() const
+    inline queue_priority priority() const
     {
-        return task_priority(ffrt_task_attr_get_priority(this));
+        return queue_priority(ffrt_task_attr_get_priority(this));
     }
 };
 

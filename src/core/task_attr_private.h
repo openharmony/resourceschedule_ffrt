@@ -41,7 +41,7 @@ public:
     std::string name_;
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
-    task_priority prio_ = low;
+    queue_priority prio_ = low;
     ffrt_function_header_t* timeoutCb_ = nullptr;
 };
 }

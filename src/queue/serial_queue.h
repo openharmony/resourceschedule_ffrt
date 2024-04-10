@@ -18,6 +18,7 @@
 #include <map>
 #include <string>
 #include <atomic>
+#include <climits>
 #include <limits.h>
 #include "cpp/condition_variable.h"
 #include "internal_inc/non_copyable.h"
@@ -26,16 +27,17 @@
 namespace ffrt {
 enum QueueAction {
     INACTIVE = -1, // queue is nullptr or serial queue is empty
-    CONCURRENT, // concurrency less than max concurrency
     SUCC,
     FAILED,
+    CONCURRENT, // concurrency less than max concurrency
 };
 
 class SerialTask;
 class Loop;
 class SerialQueue : public NonCopyable {
 public:
-    explicit SerialQueue(uint32_t queueId, const int maxConcurrency = 1, const ffrt_queue_type_t type = ffrt_queue_serial);
+    explicit SerialQueue(
+        uint32_t queueId, const int maxConcurrency = 1, const ffrt_queue_type_t type = ffrt_queue_serial);
     ~SerialQueue();
 
     SerialTask* Pull();
@@ -50,23 +52,8 @@ public:
     int GetNextTimeout();
 
     uint64_t GetMapSize();
-    inline bool GetActiveStatus() const
-    {
-        bool status = isActiveState_.load();
-        switch (queueType_) {
-            case ffrt_queue_serial:
-                status = isActiveState_.load();
-                break;
-            case ffrt_queue_concurrent:
-                status = concurrency_.load();
-                break;
-            default: {
-                FFRT_LOGE("Unsupport queue type=%d.", queueType_);
-                break;
-            }
-        }
-        return status;
-    }
+
+    bool GetActiveStatus() const;
 
 private:
     SerialTask* DequeTaskBatch(const uint64_t now);
@@ -85,7 +72,7 @@ private:
     std::multimap<uint64_t, SerialTask*> whenMap_;
     Loop* loop_ = nullptr;
     std::atomic_bool isOnLoop_ = false;
-    
+
     ffrt::mutex mutex_;
     ffrt::condition_variable cond_;
 

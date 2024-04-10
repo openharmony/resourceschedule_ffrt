@@ -124,6 +124,10 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_concurrency)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
+
+    if (max_concurrency <= 0) {
+        (reinterpret_cast<ffrt::queue_attr_private*>(attr))->maxConcurrency_ = 1;
+    }
     (reinterpret_cast<ffrt::queue_attr_private*>(attr))->maxConcurrency_ = max_concurrency;
 }
 
@@ -138,7 +142,8 @@ int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr)
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr)
 {
-    FFRT_COND_DO_ERR(((type != ffrt_queue_serial) && (type != ffrt_queue_concurrent)), return nullptr, "input invalid, type unsupport");
+    FFRT_COND_DO_ERR(((type != ffrt_queue_serial) && (type != ffrt_queue_concurrent)),
+        return nullptr, "input invalid, type unsupport");
     SerialHandler* handler = new (std::nothrow) SerialHandler(name, attr, type);
     FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct SerialHandler");
     handler->SetHandlerType(NORMAL_SERIAL_HANDLER);

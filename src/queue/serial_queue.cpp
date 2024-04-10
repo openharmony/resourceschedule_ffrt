@@ -29,7 +29,8 @@ inline uint64_t GetNow()
 } // namespace
 
 namespace ffrt {
-SerialQueue::SerialQueue(uint32_t queueId, const int maxConcurrency, const ffrt_queue_type_t type) : queueId_(queueId), maxConcurrency_(maxConcurrency), queueType_(type) {}
+SerialQueue::SerialQueue(uint32_t queueId, const int maxConcurrency, const ffrt_queue_type_t type)
+    : queueId_(queueId), maxConcurrency_(maxConcurrency), queueType_(type) {}
 
 SerialQueue::~SerialQueue()
 {
@@ -75,7 +76,7 @@ int SerialQueue::GetNextTimeout()
     }
     uint64_t diff = whenMap_.begin()->first - now;
     uint64_t timeout = (diff - 1) / 1000 + 1; // us->ms
-    return timeout > INT_MAX ? INT_MAX : (int)timeout;
+    return timeout > INT_MAX ? INT_MAX : static_cast<int>(timeout);
 }
 
 void SerialQueue::Stop()
@@ -166,11 +167,9 @@ int SerialQueue::Push(SerialTask* task)
     int status = 0;
     switch (queueType_) {
         case ffrt_queue_serial:
-            FFRT_LOGD("ffrt_queue_serial");
             status = PushSerialTask(task);
             break;
         case ffrt_queue_concurrent:
-            FFRT_LOGD("ffrt_queue_concurrent");
             status = PushConcurrentTask(task);
             break;
         default: {
@@ -226,7 +225,7 @@ SerialTask* SerialQueue::PullSerialTask()
 SerialTask* SerialQueue::PullConcurrentTask()
 {
     std::unique_lock lock(mutex_);
-    //wait for delay task
+    // wait for delay task
     uint64_t now = GetNow();
     if (loop_ != nullptr) {
         if (!whenMap_.empty() && now >= whenMap_.begin()->first && !isExit_) {
@@ -245,7 +244,7 @@ SerialTask* SerialQueue::PullConcurrentTask()
 
     // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
-        uint8_t oldValue = concurrency_.fetch_sub(1); //取不到后继的task，当前这个task正式退出
+        uint8_t oldValue = concurrency_.fetch_sub(1); // 取不到后继的task，当前这个task正式退出
         FFRT_LOGD("concurrency[%u] - 1 [queueId=%u] switch into inactive", oldValue, queueId_);
         return nullptr;
     }
@@ -258,13 +257,11 @@ SerialTask* SerialQueue::PullConcurrentTask()
 SerialTask* SerialQueue::Pull()
 {
     SerialTask* task = nullptr;
-    switch(queueType_) {
+    switch (queueType_) {
         case ffrt_queue_serial:
-            FFRT_LOGD("ffrt_queue_serial");
             task = PullSerialTask();
             break;
         case ffrt_queue_concurrent:
-            FFRT_LOGD("ffrt_queue_concurrent");
             task = PullConcurrentTask();
             break;
         default: {
@@ -322,5 +319,23 @@ uint64_t SerialQueue::GetMapSize()
 {
     std::unique_lock lock(mutex_);
     return whenMap_.size();
+}
+
+bool SerialQueue::GetActiveStatus() const
+{
+    bool status = isActiveState_.load();
+    switch (queueType_) {
+        case ffrt_queue_serial:
+            status = isActiveState_.load();
+            break;
+        case ffrt_queue_concurrent:
+            status = concurrency_.load();
+            break;
+        default: {
+            FFRT_LOGE("Unsupport queue type=%d.", queueType_);
+            break;
+        }
+    }
+    return status;
 }
 } // namespace ffrt

@@ -55,7 +55,7 @@ int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void 
 {
     FFRT_COND_DO_ERR((loop == nullptr), return -1, "input invalid, loop is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
-    return  innerLoop->EpollCtl(op, fd, events, data, cb);
+    return innerLoop->EpollCtl(op, fd, events, data, cb);
 }
 
 API_ATTRIBUTE((visibility("default")))

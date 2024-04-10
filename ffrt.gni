@@ -12,4 +12,9 @@
 # limitations under the License.
 declare_args() {
   ffrt_support_enable = true
+  ffrt_profiler_enable = true
+
+  if (!defined(global_parts_info.developtools_hiprofiler)) {
+    ffrt_profiler_enable = false
+  }
 }

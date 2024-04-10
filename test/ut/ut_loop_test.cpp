@@ -83,5 +83,93 @@ TEST_F(LoopTest, loop_concurrent_queue_create_succ)
     (void)ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
 
-    auto loop = 
+    auto loop = ffrt_loop_create(queue_handle);
+    EXPECT_NE(loop, nullptr);
+
+    int ret = ffrt_loop_destroy(loop);
+    EXPECT_EQ(ret, 0);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+ * 测试用例名称：loop_concurrent_queue_create_fail
+ * 测试用例描述：有任务队列创建loop失败
+ * 预置条件    ：1、调用串行队列创建接口创建concurrent队列
+ *             2、创建loop前向队列提交任务
+ * 操作步骤    ：1、创建loop
+ * 
+ * 预期结果    ：创建失败
+ */
+TEST_F(LoopTest, loop_concurrent_queue_create_fail)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
+
+    int result1 = 0;
+    std::function<void()>&& basicFunc1 = [&result1]() { result1 += 10; };
+    ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc1, ffrt_function_kind_queue), nullptr);
+
+    auto loop = ffrt_loop_create(queue_handle);
+    EXPECT_EQ(loop, nullptr);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+ * 测试用例名称：loop_run_fail
+ * 测试用例描述：非法loop run失败
+ * 操作步骤    ：1、执行loop run
+ *
+ * 预期结果    ：执行失败
+ */
+TEST_F(LoopTest, loop_run_fail)
+{
+    int ret = ffrt_loop_run(nullptr);
+    EXPECT_NE(ret, 0);
+}
+
+/*
+ * 测试用例名称：loop_destory_fail
+ * 测试用例描述：非法loop destory失败
+ * 操作步骤    ：1、执行loop run
+ * 
+ * 预期结果    ：执行失败
+ */
+TEST_F(LoopTest, loop_destory_fail)
+{
+    int ret = ffrt_loop_destroy(nullptr);
+    EXPECT_NE(ret, 0);
+}
+
+/*
+ * 测试用例名称：loop_run_destory_success
+ * 测试用例描述：正常loop run成功、destroy
+ * 预置条件    ：1、调用串行队列创建接口创建concurrent队列
+ *             2、用队列创建loop
+ * 操作步骤    ：1、启动线程执行loop run
+ *             2、销毁loop成功
+ * 预期结果    ：执行成功
+ */
+TEST_F(LoopTest, loop_run_destory_success)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
+
+    auto loop = ffrt_loop_create(queue_handle);
+    EXPECT_NE(loop, nullptr);
+
+    pthread_t thread;
+    pthread_create(&thread, 0, ThreadFunc, loop);
+
+    ffrt_loop_stop(loop);
+    int ret = ffrt_loop_destroy(loop);
+    EXPECT_EQ(ret, 0);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
 }

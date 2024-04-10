@@ -41,7 +41,7 @@ protected:
     {
     }
         
-    static void TearDownTestCase()        
+    static void TearDownTestCase()
     {
     }
 
@@ -61,7 +61,7 @@ protected:
 TEST_F(ffrtIoTest, Iopoller_1Producer_1Consumer)
 {
     uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0,EFD_NONBLOCK | EFD_CLOEXEC);
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     ffrt::submit([&]() {
         ffrt::sync_io(testFd);
         uint64_t value = 0;
@@ -247,7 +247,7 @@ TEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwake)
     ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     EXPECT_EQ(1, ffrt_timer_start(qos, timeout2, data, cb, false));
     struct TestData testData {.fd = testFd, .expected = expected};
-    ffrt_epoll_clt(qos, EPOLL_CTL_ADD, testFd, EPOLLIN,reinterpret_cast<void*>(&testData), testCallBack);
+    ffrt_epoll_clt(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
 
     usleep(15000);
     ffrt::submit([&]() {
@@ -457,7 +457,7 @@ TEST_F(ffrtIoTest, ffrt_timer_query_stop)
 
     ffrt_timer_stop(qos, handle);
     struct TestData testData {.fd = testFd, .expected = expected};
-    ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN,reinterpret_cast<void*>(&testData), testCallBack);
+    ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
 
     usleep(15000);
 

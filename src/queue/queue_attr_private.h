@@ -14,7 +14,6 @@
  */
 #ifndef QUEUE_ATTR_PRIVATE_H
 #define QUEUE_ATTR_PRIVATE_H
-
 #include <string>
 #include "qos.h"
 

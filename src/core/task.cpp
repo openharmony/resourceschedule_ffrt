@@ -214,7 +214,7 @@ void ffrt_task_attr_set_priority(ffrt_task_attr_t* attr, int priority)
         FFRT_LOGE("priority should be a valid priority");
         return;
     }
-    
+
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->prio_ = ffrt::queue_priority(priority);
 }
 

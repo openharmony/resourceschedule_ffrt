@@ -124,8 +124,8 @@ FFRT_C_API ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue
 /**
  * @brief Set the queue max concurrency.
  *
- * @param attr Indicates a pointer to the queue attribute.
- * @param max_concurrency Indicates queue max concurrency.
+ * @param attr Queue Property Pointer.
+ * @param max_concurrency queue max concurrency.
  * @since 12
  * @version 1.0
  */
@@ -134,7 +134,7 @@ FFRT_C_API void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, con
 /**
  * @brief Get the queue max concurrency.
  *
- * @param attr Indicates a pointer to the queue attribute.
+ * @param attr Queue Property Pointer.
  * @return Returns the queue max concurrency.
  * @since 12
  * @version 1.0
@@ -211,7 +211,7 @@ FFRT_C_API int ffrt_queue_cancel(ffrt_task_handle_t handle);
 /**
  * @brief Get application main thread queue.
  *
- * @return Returns applicaiton main thread queue.
+ * @return Returns application main thread queue.
  * @since 12
  * @version 1.0
  */
@@ -220,7 +220,7 @@ FFRT_C_API ffrt_queue_t ffrt_get_main_queue();
 /**
  * @brief Get application worker(ArkTs) thread queue.
  *
- * @return Returns applicaiton worker(ArkTs) thread queue.
+ * @return Returns application worker(ArkTs) thread queue.
  * @since 12
  * @version 1.0
  */

@@ -204,5 +204,323 @@ TEST_F(QueueTest, serial_queue_task_create_destroy_fail)
  *             2、循环提交延时任务20次，取消10次
  * 预期结果    ：总共应执行100+取消前已执行的次数
  */
+TEST_F(QueueTest, serial_multi_submit_succ)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); //初始化属性，必须
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "testqueue", &queue_attr);
 
-)
+    int result = 0;
+    int cancelFailedNum = 0;
+    std::function<void()>&& basicFunc = [&result]() { OnePlusForTest(static_cast<void*>(&result)); };
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
+    ffrt_task_attr_set_delay(&task_attr, 100); // 设置任务0.1ms后才执行，非必须
+
+    for (int n = 0; n < 10; ++n) {
+        for (int i = 0; i < 9; ++i) {
+            ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+        }
+
+        ffrt_task_handle_t t1 =
+            ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+        ffrt_task_handle_t t2 =
+            ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+        cancelFailedNum += ffrt_queue_cancel(t1);
+        ffrt_task_handle_destroy(t1); // 销毁task_handle，必须
+
+        ffrt_queue_wait(t2);
+        ffrt_task_handle_destroy(t2);
+    }
+
+    EXPECT_EQ(result, (cancelFailedNum + 100));
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+ * 测试用例名称：serial_early_quit_succ
+ * 测试用例描述：主动销毁队列，为执行的任务取消
+ * 操作步骤    ：1、提交10000个斐波那契任务
+ *             2、至少取消一个
+ * 预期结果    ：取消成功
+ */
+TEST_F(QueueTest, serial_early_quit_succ)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化实行，必须
+    ffrt_queueu_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    int fibnum = 10;
+    int result = 0;
+    int expect = fibonacci(fibnum);
+    std::function<void()>&& basicFunc = [&result, fibnum]() { FibonacciTest(static_cast<void*>(&result), fibnum); };
+    for (int i = 0; i < 10000; ++i) {
+        ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+    }
+
+    ffrt_queue_destroy(queue_handle);
+    printf("result = %d\n", result);
+    EXPECT_EQ(result < expect * 10000, 1);
+}
+
+/*
+ * 测试用例名称：serial_double_cancel_failed
+ * 测试用例描述：对一个任务取消两次
+ * 操作步骤    ：1、调用串行队列创建接口创建队列，设置延时并提交任务
+ *             2、调用两次ffrt_queue_cancel取消统一任务
+ * 预期结果    ：首次取消成功，第二次取消失败
+ */
+TEST_F(QueueTest, serial_double_cancel_failed)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    int result = 0;
+    std::function<void()>&& basicFunc = [&result]() { OnePlusForTest(static_cast<void*>(&result)); };
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
+    ffrt_task_attr_set_delay(&task_attr, 100); // 设置任务0.1ms后才执行，非必须
+
+    ffrt_task_handle_t t1 =
+        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+    int cancel = ffrt_queue_cancel(t1);
+    EXPECT(cancel, 0);
+    cancel = ffrt_queue_cancel(t1);
+    EXPECT_EQ(cancel, 1);
+    ffrt_task_handle_destroy(t1); // 销毁task_handle，必须
+
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+ * 测试用例名称：ffrt_queue_attr_des
+ * 测试用例描述：设置串行队列qos等级，销毁队列attr
+ * 操作步骤    ：1、设置队列qos等级，调用串行队列创建接口创建队列
+ *             2、调用ffrt_queue_attr_destroy接口销毁队列创建的attr
+ * 预期结果    ：设置与销毁成功
+ */
+TEST_F(QueueTest, ffrt_queue_attr_des)
+{
+    ffrt_queue_attr_t queue_qttr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_qos(&queue_attr, ffrt_qos_background);
+    ffrt_qos_t qos = ffrt_queue_attr_get_qos(&queue_attr);
+    EXPECT_EQ(qos == ffrt_qos_background, 1);
+    ffrt_queue_attr_destroy(&queue_attr);
+}
+
+/*
+ * 测试用例名称：ffrt_queue_delay_timeout
+ * 测试用例描述：任务队列超时，以及延时任务
+ * 操作步骤    ：1、设置队列超时时间与超时回调，调用串行队列创建接口创建队列
+ *             2、设置延时并提交任务
+ * 预期结果    ：超时执行回调
+ */
+TEST_F(QueueTest, ffrt_queue_delay_timeout)
+{
+    int x = 0;
+    std::function<void()>&& basicFunc1 = [&]() {
+        x = x + 1;
+    };
+    ffrt_function_header_t* ffrt_header_t = ffrt::create_function_wrapper((basicFunc1));
+
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_callback(&queue_attr, ffrt_header_t);
+    ffrt_queue_attr_set_timeout(&queue_attr, 2000);
+    uint64_t timeout = ffrt_queue_attr_get_timeout(&queueu_attr);
+    EXPECT_EQ(timeout, 2000);
+    
+    ffrt_queue_attr_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    int result = 0;
+    std::function<void()>&& basicFunc = [&result]() {
+        OnePlusForTest(static_cast<void*>(&result));
+        usleep(3000);
+    };
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_delay(&task_attr, 1000);
+
+    ffrt_task_handle_t t1 =
+        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+    
+    ffrt_queue_wait(t1);
+    ffrt_task_handle_destroy(t1);
+    EXPECT_EQ(result, 1);
+    EXPECT_EQ(x, 1);
+    ffrt_queue_destroy(queue_handle);
+}
+
+TEST_F(QueueTest, ffrt_queue_dfx_api_001)
+{
+    // ffrt_queue_attr_set_timeout接口attr为异常值
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_timeout(nullptr, 10000);
+    uint64_t time = ffrt_queue_attr_get_timeout(&queue_attr);
+    EXPECT_EQ(time, 0);
+    ffrt_queue_attr_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    EXPECT_TRUE(queue_handle != nullptr);
+
+    // 销毁队列
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+TEST_F(QueueTest, ffrt_queue_dfx_api_0002)
+{
+    // ffrt_queue_attr_get_timeout接口attr为异常值
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_attr_set_timeout(&queue_attr, 10000);
+    uint64_t time = ffrt_queue_attr_get_timeout(nullptr);
+    EXPECT_EQ(time, 0);
+    time = ffrt_queue_attr_get_timeout(&queue_attr);
+    EXPECT_EQ(time, 10000);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    EXPECT_TRUE(queue_handle != nullptr);
+
+    // 销毁队列
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+TEST_F(QueueTest, ffrt_queue_dfx_api_0003)
+{
+    // ffrt_queue_attr_set_timeoutCb接口attr为异常值
+    std::function<void()> cbOne = []() { printf("first set callback\n"); };
+
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_attr_set_callback(nullptr, ffrt::create_function_wrapper(cbOne, ffrt_function_kind_queue));
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    EXPECT_TRUE(queue_handle != nullptr);
+
+    // 销毁队列
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+TEST_F(QueueTest, ffrt_queue_dfx_api_0004)
+{
+    // ffrt_queue_attr_get_timeoutCb接口attr为异常值
+    std::function<void()> cbOne = []() { printf("first set callback\n"); };
+
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_attr_set_callback(&queue_attr, ffrt::create_function_wrapper(cbOne, ffrt_function_kind_queue));
+    ffrt_function_header_t* func = ffrt_queue_attr_get_callback(nullptr);
+    EXPECT_TRUE(func == nullptr);
+    func = ffrt_queue_attr_get_callback(&queue_attr);
+    EXPECT_TRUE(func != nullptr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    EXPECT_TRUE(queue_handle != nullptr);
+
+    // 销毁队列
+    ffrt_queue_destroy(queue_handle);
+    ffrt_queue_attr_destroy(&queue_attr);
+}
+
+/*
+ * 测试用例名称：ffrt_task_attr_set_priority
+ * 测试用例描述：测试ffrt_task_attr_set_priority
+ * 操作步骤    ：1、调用ffrt_task_attr_set_priority接口设置队列优先级
+ *             2、使用ffrt_task_attr_get_priority查询优先级
+ * 预期结果    ：查询结果与设定相同，值为3
+ */
+TEST_F(QueueTest, ffrt_task_attr_set_priority)
+{
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr);
+    uint64_t priority = 3;
+    ffrt_task_attr_set_priority(nullptr, priority);
+    ffrt_task_attr_get_priority(&task_attr, priority);
+    priority = ffrt_task_attr_get_priority(nullptr);
+    EXPECT_EQ(priority, 0);
+    priority = ffrt_task_attr_get_priority(&task_attr);
+    EXPECT_EQ(priority, 3);
+    ffrt_task_attr_destroy(&task_attr);
+}
+
+/*
+ * 测试用例名称：ffrt_queue_attr_set_max_concurrency
+ * 测试用例描述：测试ffrt_queue_attr_set_max_concurrency
+ * 操作步骤    ：1、调用ffrt_queue_attr_set_max_concurrency设置FFRT并行队列，并行度为4
+ *             2、使用ffrt_queue_attr_set_max_concurrency查询并行度
+ * 预期结果    ：查询结果与设定相同，值为4
+ */
+TEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    uint64_t concurrency = 4;
+    ffrt_queue_attr_set_max_concurrency(nullptr, concurrency);
+    ffrt_queue_attr_get_max_concurrency(&queue_attr, concurrency);
+    // error and return 0
+    concurrency = ffrt_queue_attr_get_max_concurrency(nullptr);
+    EXPECT_EQ(concurrency, 0);
+    concurrency = ffrt_queue_attr_get_max_concurrency(&queue_attr);
+    EXPECT_EQ(concurrency, 4);
+    ffrt_queue_attr_destroy(&queue_attr);
+}
+
+#ifdef OHOS_STANDARD_SYSTEM
+TEST_F(QueueTest, ffrt_get_main_queue)
+{
+ // ffrt test case begin
+    ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
+    ffrt_queue_t mainQueue = ffrt_get_main_queue();
+    ffrt_task_attr_t attr;
+    ffrt_task_attr_init(&attr);
+    ffrt_task_attr_set_qos(&attr, ffrt_qos_user_initiated);
+    int result = 0;
+    std::function<void()>&& basicFunc = [&result]() {
+        OnePlusForTest(static_cast<void*>(&result));
+        OnePlusForTest(static_cast<void*>(&result));
+        EXPECT_EQ(result, 2);
+        usleep(3000);
+    };
+
+    ffrt::task_handle handle = serial_Queue->submit_h(
+        [&] {
+            result = result + 1;
+            ffrt_queue_submit(mainQueue, ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue),
+                             &attr);
+        },
+        ffrt::task_attr().qos(3).name("ffrt main_queue."));
+
+    serial_Queue->wait(handle);
+    EXPECT_EQ(result, 1);
+}
+
+TEST_F(QueueTest, ffrt_get_current_queue)
+{
+ // ffrt test case begin
+    ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
+    ffrt_queue_t currentQueue = ffrt_get_current_queue();
+    ffrt_task_attr_t attr;
+    ffrt_task_attr_init(&attr);
+    ffrt_task_attr_set_qos(&attr, ffrt_qos_user_initiated);
+    int result = 0;
+    std::function<void()>&& basicFunc = [&result]() {
+        OnePlusForTest(static_cast<void*>(&result));
+        OnePlusForTest(static_cast<void*>(&result));
+        EXPECT_EQ(result, 3);
+        usleep(3000);
+    };
+
+    ffrt::task_handle handle = serialQueue->submit_h(
+        [&] {
+            result = result + 1;
+            ffrt_queue_submit(currentQueue, ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue),
+                             &attr);
+        },
+        ffrt::task_attr().qos(3).name("ffrt current_queue."));
+
+    serialQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+}
+#endif

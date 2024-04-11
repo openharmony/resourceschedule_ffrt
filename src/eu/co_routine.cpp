@@ -245,13 +245,12 @@ void CoStart(ffrt::CPUEUTask* task)
 #endif
 
 #ifdef ENABLE_HITRACE
-        using namespace OHOS::HiviewDFX;
-        auto scpuTask = reinterpret_cast<ffrt::SCPUEUTask*>(task);
-        HiTraceId currentId = HiTraceChain::GetId();
-        if (scpuTask->traceId_ != nullptr) {
-            HiTraceChain::SaveAndSet(*(scpuTask->traceId_));
-            HiTraceChain::Tracepoint(HITRACE_TP_SR, *(scpuTask->traceId_), "ffrt::CoStart");
-        }
+    using namespace OHOS::HiviewDFX;
+    HiTraceId currentId = HiTraceChain::GetId();
+    if (task != nullptr && task->traceId_ != nullptr) {
+        HiTraceChain::SaveAndSet(*(task->traceId_));
+        HiTraceChain::Tracepoint(HITRACE_TP_SR, *(task->traceId_), "ffrt::CoStart");
+    }
 #endif
 
     for (;;) {

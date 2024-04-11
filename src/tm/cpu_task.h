@@ -32,6 +32,10 @@
 #include "core/task_io.h"
 #include "util/task_deleter.h"
 
+#ifdef ENABLE_HITRACE
+#include "hitrace/trace.h"
+#endif
+
 namespace ffrt {
 struct VersionCtx;
 class SCPUEUTask;
@@ -54,6 +58,10 @@ public:
     std::mutex lock; // used in coroute
 
     TaskState state;
+
+#ifdef ENABLE_HITRACE
+    std::unique_ptr<OHOS::HiviewDFX::HiTraceId> traceId_{nullptr};
+#endif
 
     /* The current number of child nodes does not represent the real number of child nodes,
      * because the dynamic graph child nodes will grow to assist in the generation of id

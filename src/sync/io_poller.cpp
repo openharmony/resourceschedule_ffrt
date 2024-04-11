@@ -116,7 +116,9 @@ void IOPoller::WaitFdEvent(int fd) noexcept
     if (!USE_COROUTINE || legacyMode) {
         std::unique_lock<std::mutex> lck(ctx->task->lock);
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
-            ctx->task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+            if (legacyMode) {
+                ctx->task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+            }
             reinterpret_cast<SCPUEUTask*>(ctx->task)->childWaitCond_.wait(lck);
         }
         return;

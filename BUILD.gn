@@ -176,6 +176,7 @@ ohos_shared_library("libffrt") {
 
     output_extension = "so"
     part_name = "ffrt"
+    subsystem_name = "resourceschedule"
     install_images = [
       "system",
       "updater",

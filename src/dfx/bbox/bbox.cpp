@@ -183,8 +183,9 @@ static inline void SaveTaskStatus()
         size_t idx = 1;
         for (auto t : tmp) {
             if (t->type == 0) {
-                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx++,
+                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
                     tmp.size(), t->gid, t->qos(), t->label.c_str());
+                idx++;
             }
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))
                 && t != g_cur_task) {

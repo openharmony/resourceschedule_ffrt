@@ -127,7 +127,7 @@ public:
      */
     inline task_attr& priority(queue_priority prio)
     {
-        ffrt_task_attr_set_priority(this, prio);
+        ffrt_task_attr_set_queue_priority(this, static_cast<ffrt_queue_priority_t>(prio));
         return *this;
     }
 
@@ -140,7 +140,7 @@ public:
      */
     inline queue_priority priority() const
     {
-        return queue_priority(ffrt_task_attr_get_priority(this));
+        return queue_priority(ffrt_task_attr_get_queue_priority(this));
     }
 };
 

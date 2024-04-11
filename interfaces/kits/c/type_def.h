@@ -173,12 +173,6 @@ typedef enum {
     ffrt_error_inval = EINVAL
 } ffrt_error_t;
 
-typedef enum {
-    ffrt_queue_serial = 0,
-    ffrt_queue_concurrent,
-    ffrt_queue_max
-} ffrt_queue_type_t;
-
 typedef struct {
     long storage;
 } ffrt_condattr_t;
@@ -218,12 +212,6 @@ enum queue_priority {
     high = ffrt_queue_priority_high,
     low = ffrt_queue_priority_low,
     idle = ffrt_queue_priority_idle,
-};
-
-enum queue_type {
-    queue_serial = ffrt_queue_serial,
-    queue_concurrent = ffrt_queue_concurrent,
-    queue_max = ffrt_queue_max,
 };
 }
 #endif

@@ -19,6 +19,7 @@
 #include <string>
 #include <atomic>
 #include <climits>
+#include "c/queue.h"
 #include <limits.h>
 #include "cpp/condition_variable.h"
 #include "internal_inc/non_copyable.h"

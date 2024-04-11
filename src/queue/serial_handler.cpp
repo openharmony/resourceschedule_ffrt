@@ -15,7 +15,6 @@
 #include "serial_handler.h"
 
 #include <sstream>
-#include "c/queue.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "queue_monitor.h"
 #include "serial_task.h"

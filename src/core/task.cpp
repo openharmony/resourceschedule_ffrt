@@ -203,7 +203,7 @@ uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t *attr)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_task_attr_set_priority(ffrt_task_attr_t* attr, int priority)
+void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priority_t priority)
 {
     if (unlikely(!attr)) {
         FFRT_LOGE("attr should be a valid address");
@@ -219,14 +219,14 @@ void ffrt_task_attr_set_priority(ffrt_task_attr_t* attr, int priority)
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_task_attr_get_priority(const ffrt_task_attr_t* attr)
+ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_task_attr_t* attr)
 {
     if (unlikely(!attr)) {
         FFRT_LOGE("attr should be a valid address");
-        return 0;
+        return ffrt_queue_priority_immediate;
     }
     ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
-    return (reinterpret_cast<ffrt::task_attr_private *>(p))->prio_;
+    return static_cast<ffrt_queue_priority_t>((reinterpret_cast<ffrt::task_attr_private *>(p))->prio_);
 }
 
 // submit

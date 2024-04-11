@@ -21,6 +21,7 @@
 #ifdef OHOS_STANDARD_SYSTEM
 #include <event_handler.h>
 #endif
+#include "c/queue.h"
 #include "cpp/task.h"
 #include "ihandler.h"
 

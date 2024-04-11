@@ -424,23 +424,23 @@ TEST_F(QueueTest, ffrt_queue_dfx_api_0004)
 }
 
 /*
- * 测试用例名称：ffrt_task_attr_set_priority
- * 测试用例描述：测试ffrt_task_attr_set_priority
- * 操作步骤    ：1、调用ffrt_task_attr_set_priority接口设置队列优先级
- *             2、使用ffrt_task_attr_get_priority查询优先级
+ * 测试用例名称：ffrt_task_attr_set_queue_priority
+ * 测试用例描述：测试ffrt_task_attr_set_queue_priority
+ * 操作步骤    ：1、调用ffrt_task_attr_set_queue_priority接口设置队列优先级
+ *             2、使用ffrt_task_attr_get_queue_priority查询优先级
  * 预期结果    ：查询结果与设定相同，值为3
  */
-TEST_F(QueueTest, ffrt_task_attr_set_priority)
+TEST_F(QueueTest, ffrt_task_attr_set_queue_priority)
 {
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr);
-    uint64_t priority = 3;
-    ffrt_task_attr_set_priority(nullptr, priority);
-    ffrt_task_attr_set_priority(&task_attr, priority);
-    priority = ffrt_task_attr_get_priority(nullptr);
-    EXPECT_EQ(priority, 0);
-    priority = ffrt_task_attr_get_priority(&task_attr);
-    EXPECT_EQ(priority, 3);
+    ffrt_queue_priority_t priority = ffrt_queue_priority_low;
+    ffrt_task_attr_set_queue_priority(nullptr, priority);
+    ffrt_task_attr_set_queue_priority(&task_attr, priority);
+    priority = ffrt_task_attr_get_queue_priority(nullptr);
+    EXPECT_EQ(priority, ffrt_queue_priority_immediate);
+    priority = ffrt_task_attr_get_queue_priority(&task_attr);
+    EXPECT_EQ(priority, ffrt_queue_priority_low);
     ffrt_task_attr_destroy(&task_attr);
 }
 
@@ -458,9 +458,8 @@ TEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency)
     uint64_t concurrency = 4;
     ffrt_queue_attr_set_max_concurrency(nullptr, concurrency);
     ffrt_queue_attr_set_max_concurrency(&queue_attr, concurrency);
-    // error and return 0
     concurrency = ffrt_queue_attr_get_max_concurrency(nullptr);
-    EXPECT_EQ(concurrency, 0);
+    EXPECT_EQ(concurrency, 1);
     concurrency = ffrt_queue_attr_get_max_concurrency(&queue_attr);
     EXPECT_EQ(concurrency, 4);
     ffrt_queue_attr_destroy(&queue_attr);

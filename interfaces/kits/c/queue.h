@@ -39,6 +39,12 @@
 
 #include "type_def.h"
 
+typedef enum {
+    ffrt_queue_serial = 0,
+    ffrt_queue_concurrent,
+    ffrt_queue_max
+} ffrt_queue_type_t;
+
 typedef void* ffrt_queue_t;
 
 /**

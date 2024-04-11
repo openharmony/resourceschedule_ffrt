@@ -28,6 +28,11 @@
 #include "task.h"
 
 namespace ffrt {
+enum queue_type {
+    queue_serial = ffrt_queue_serial,
+    queue_concurrent = ffrt_queue_concurrent,
+    queue_max = ffrt_queue_max,
+};
 class queue_attr : public ffrt_queue_attr_t {
 public:
     queue_attr()

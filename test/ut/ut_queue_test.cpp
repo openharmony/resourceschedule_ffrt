@@ -147,8 +147,62 @@ TEST_F(QueueTest, serial_queue_create_fail)
 /*
  * 测试用例名称：ffrt_task_attr_set_get_delay
  * 测试用例描述：测试 ffrt_task_attr_set_get_delay
- * 操作步骤    ：1、调用
- * 
- * 预期结果    ：创建失败
+ * 操作步骤    ：1、调用ffrt_task_attr_set_delay接口设置队列拖延时间
+ *             2、使用ffrt_task_attr_get_delay查询时间
+ * 预期结果    ：查询结果与设定相同，初始值为0
  */
+TEST_F(QueueTest, ffrt_task_attr_set_get_delay)
+{
+    // succ free
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr); // attr 缺少 init 无法看护
+    // set_attr_delay
+    uint64_t delay = 100;
+    ffrt_task_attr_set_delay(nullptr, delay);
+    ffrt_task_attr_set_delay(&task_attr, delay);
+    // error and return 0
+    delay = ffrt_task_attr_get_delay(nullptr);
+    EXPECT_EQ(delay, 0);
+    delay = ffrt_task_attr_get_delay(&task_attr);
+    EXPECT_EQ(delay, 100);
+    ffrt_task_attr_destroy(&task_attr);
+}
+
+/*
+ * 测试用例名称：serial_queue_task_create_destory_fail
+ * 测试用例描述：串行任务提交和销毁失败
+ * 操作步骤    ：1、直接调用串行队列接口提交空任务，随后销毁任务
+ *             2、调用串行队列创建接口创建队列并提交空任务
+ *             3、调用串行队列创建接口创建队列兵提交任务，随后销毁任务
+ * 预期结果    ：2提交失败并返回nullptr，3提交成功
+ */
+TEST_F(QueueTest, serial_queue_task_create_destroy_fail)
+{
+    // input invalid
+    ffrt_task_handle_t task = ffrt_queue_submit_h(nullptr, nullptr, nullptr);
+    ffrt_task_handle_destroy(task);
+
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    task = ffrt_queue_submit_h(queue_handle, nullptr, nullptr);
+    EXPECT_EQ(task == nullptr, 1);
+
+    std::function<void()> basicFunc = std::bind(PrintForTest, nullptr);
+    task = ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+    ffrt_queue_wait(task);
+    // succ free
+    EXPECT_EQ(task == nullptr, 0);
+    ffrt_task_handle_destroy(task);
+    ffrt_queue_attr_destroy(&queue_attr);
+}
+
+/*
+ * 测试用例名称：serial_multi_submit_succ
+ * 测试用例描述：循环提交普通任务和延时任务，执行成功
+ * 操作步骤    ：1、循环提交普通任务90次
+ *             2、循环提交延时任务20次，取消10次
+ * 预期结果    ：总共应执行100+取消前已执行的次数
+ */
+
 )

@@ -227,7 +227,7 @@ TEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwait)
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
         EXPECT_EQ(sizeof(n), sizeof(uint64_t));
         }, {}, {});
-    ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0 , nullptr, nullptr);
+    ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
     EXPECT_EQ(1, x);
     close(testFd);
@@ -256,8 +256,8 @@ TEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwake)
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
-    EXPECT_EQ(1, x); 
-    close(testFd);   
+    EXPECT_EQ(1, x);
+    close(testFd);
 }
 
 TEST_F(ffrtIoTest, ffrt_timer_start_succ_long_timeout_flagwake)

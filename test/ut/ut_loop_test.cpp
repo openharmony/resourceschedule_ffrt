@@ -74,7 +74,7 @@ TEST_F(LoopTest, loop_serial_queue_create_succ)
  * 测试用例描述：无任务concurrent队列创建loop成功
  * 预置条件    ：1、调用串行队列创建接口创建concurrent队列
  * 操作步骤    ：1、创建loop
- * 
+ *
  * 预期结果    ：创建成功
  */
 TEST_F(LoopTest, loop_concurrent_queue_create_succ)

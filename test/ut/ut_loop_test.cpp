@@ -22,7 +22,7 @@ protected:
     {
     }
 
-    virtual void TeatDown()
+    virtual void TearDown()
     {
     }
 };
@@ -39,7 +39,7 @@ void* ThreadFunc(void* p)
  * 测试用例描述：非法队列创建loop失败
  * 预置条件    ：无
  * 操作步骤    ：1、创建loop失败
- * 
+ *
  * 预期结果    ：创建失败
  */
 TEST_F(LoopTest, loop_null_queue_create_fail)
@@ -53,7 +53,7 @@ TEST_F(LoopTest, loop_null_queue_create_fail)
  * 测试用例描述：serial队列创建loop失败
  * 预置条件    ：1、调用串行队列创建接口创建serial队列
  * 操作步骤    ：1、创建loop
- * 
+ *
  * 预期结果    ：创建失败
  */
 TEST_F(LoopTest, loop_serial_queue_create_succ)
@@ -66,7 +66,7 @@ TEST_F(LoopTest, loop_serial_queue_create_succ)
     EXPECT_EQ(loop, nullptr);
 
     ffrt_queue_attr_destroy(&queue_attr);
-    ffrt_queue_destotry(queue_handle);
+    ffrt_queue_destroy(queue_handle);
 }
 
 /*
@@ -75,7 +75,7 @@ TEST_F(LoopTest, loop_serial_queue_create_succ)
  * 预置条件    ：1、调用串行队列创建接口创建concurrent队列
  * 操作步骤    ：1、创建loop
  *
- * 预期结果    ：创建成功
+ * 预期结果    ：执行成功
  */
 TEST_F(LoopTest, loop_concurrent_queue_create_succ)
 {
@@ -97,9 +97,9 @@ TEST_F(LoopTest, loop_concurrent_queue_create_succ)
  * 测试用例名称：loop_concurrent_queue_create_fail
  * 测试用例描述：有任务队列创建loop失败
  * 预置条件    ：1、调用串行队列创建接口创建concurrent队列
- *             2、创建loop前向队列提交任务
+ *            2、创建loop前向队列提交任务
  * 操作步骤    ：1、创建loop
- * 
+ *
  * 预期结果    ：创建失败
  */
 TEST_F(LoopTest, loop_concurrent_queue_create_fail)
@@ -133,28 +133,28 @@ TEST_F(LoopTest, loop_run_fail)
 }
 
 /*
- * 测试用例名称：loop_destory_fail
- * 测试用例描述：非法loop destory失败
+ * 测试用例名称：loop_destroy_fail
+ * 测试用例描述：非法loop destroy失败
  * 操作步骤    ：1、执行loop run
- * 
+ *
  * 预期结果    ：执行失败
  */
-TEST_F(LoopTest, loop_destory_fail)
+TEST_F(LoopTest, loop_destroy_fail)
 {
     int ret = ffrt_loop_destroy(nullptr);
     EXPECT_NE(ret, 0);
 }
 
 /*
- * 测试用例名称：loop_run_destory_success
+ * 测试用例名称：loop_run_destroy_success
  * 测试用例描述：正常loop run成功、destroy
  * 预置条件    ：1、调用串行队列创建接口创建concurrent队列
- *             2、用队列创建loop
+ *            2、用队列创建loop
  * 操作步骤    ：1、启动线程执行loop run
- *             2、销毁loop成功
+ *            2、销毁loop成功
  * 预期结果    ：执行成功
  */
-TEST_F(LoopTest, loop_run_destory_success)
+TEST_F(LoopTest, loop_run_destroy_success)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);

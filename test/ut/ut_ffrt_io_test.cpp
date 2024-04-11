@@ -10,7 +10,7 @@
 * distributed under the License is distributed on an "AS IS" BASIS,
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
-* limiations under the License.
+* limitations under the License.
 */
 
 #include <gtest/gtest.h>
@@ -40,7 +40,7 @@ protected:
     static void SetUpTestCase()
     {
     }
- 
+
     static void TearDownTestCase()
     {
     }
@@ -241,7 +241,7 @@ TEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwake)
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     uint64_t timeout1 = 400;
     uint64_t timeout2 = 10;
-    uint64_texpected = 0xabacadae;
+    uint64_t expected = 0xabacadae;
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
     ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;

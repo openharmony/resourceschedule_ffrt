@@ -125,9 +125,9 @@ public:
      * @since 12
      * @version 1.0
      */
-    inline task_attr& priority(queue_priority prio)
+    inline task_attr& priority(ffrt_queue_priority_t prio)
     {
-        ffrt_task_attr_set_queue_priority(this, static_cast<ffrt_queue_priority_t>(prio));
+        ffrt_task_attr_set_queue_priority(this, prio);
         return *this;
     }
 
@@ -138,9 +138,9 @@ public:
      * @since 12
      * @version 1.0
      */
-    inline queue_priority priority() const
+    inline ffrt_queue_priority_t priority() const
     {
-        return queue_priority(ffrt_task_attr_get_queue_priority(this));
+        return ffrt_task_attr_get_queue_priority(this);
     }
 };
 

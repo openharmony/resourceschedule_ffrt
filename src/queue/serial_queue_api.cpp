@@ -126,7 +126,7 @@ void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
 
     FFRT_COND_DO_ERR((max_concurrency <= 0), return,
-        "max concurrency less than or equal to 0, use default max concurrency 1");
+        "max concurrency should be a valid value");
 
     (reinterpret_cast<ffrt::queue_attr_private*>(attr))->maxConcurrency_ = max_concurrency;
 }

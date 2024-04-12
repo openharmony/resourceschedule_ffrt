@@ -215,7 +215,7 @@ void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priori
         return;
     }
 
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->prio_ = ffrt::queue_priority(priority);
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->prio_ = priority;
 }
 
 API_ATTRIBUTE((visibility("default")))

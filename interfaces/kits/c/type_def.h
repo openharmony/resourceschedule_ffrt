@@ -51,7 +51,7 @@
  */
 typedef enum {
     /** should be distributed at once if possible, handle time equals to send time, prior to high level */
-    ffrt_queue_priority_immediate = 0,
+    ffrt_queue_priority_immediate,
     /** high priority, sorted by handle time, prior to low level. */
     ffrt_queue_priority_high,
     /** low priority, sorted by handle time, prior to idle level. */
@@ -207,12 +207,6 @@ enum qos_default {
 };
 using qos = int;
 
-enum queue_priority {
-    immediate = ffrt_queue_priority_immediate,
-    high = ffrt_queue_priority_high,
-    low = ffrt_queue_priority_low,
-    idle = ffrt_queue_priority_idle,
-};
 }
 #endif
 #endif

@@ -121,17 +121,17 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
 FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 
 /**
- * @brief Sets the queue priority.
+ * @brief Sets the task priority.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @param priority Indicates the dequeue priority of concurrent queue task.
+ * @param priority Indicates the execute priority of concurrent queue task.
  * @since 12
  * @version 1.0
  */
 FFRT_C_API void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priority_t priority);
 
 /**
- * @brief Obtains the queue priority.
+ * @brief Obtains the task priority.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns the priority of concurrent queue task.

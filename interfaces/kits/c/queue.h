@@ -40,7 +40,7 @@
 #include "type_def.h"
 
 typedef enum {
-    ffrt_queue_serial = 0,
+    ffrt_queue_serial,
     ffrt_queue_concurrent,
     ffrt_queue_max
 } ffrt_queue_type_t;
@@ -131,7 +131,7 @@ FFRT_C_API ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue
  * @brief Set the queue max concurrency.
  *
  * @param attr Queue Property Pointer.
- * @param max_concurrency queue max concurrency.
+ * @param max_concurrency queue max_concurrency.
  * @since 12
  * @version 1.0
  */

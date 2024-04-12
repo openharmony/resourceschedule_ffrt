@@ -459,10 +459,18 @@ TEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency)
     ffrt_queue_attr_set_max_concurrency(nullptr, concurrency);
     ffrt_queue_attr_set_max_concurrency(&queue_attr, concurrency);
     concurrency = ffrt_queue_attr_get_max_concurrency(nullptr);
-    EXPECT_EQ(concurrency, 1);
+    EXPECT_EQ(concurrency, 0);
     concurrency = ffrt_queue_attr_get_max_concurrency(&queue_attr);
     EXPECT_EQ(concurrency, 4);
     ffrt_queue_attr_destroy(&queue_attr);
+
+    ffrt_queue_attr_t queue_attr1;
+    (void)ffrt_queue_attr_init(&queue_attr1);
+    concurrency = 0;
+    ffrt_queue_attr_set_max_concurrency(&queue_attr1, concurrency);
+    concurrency = ffrt_queue_attr_get_max_concurrency(queue_attr1);
+    EXPECT_EQ(concurrency, 1);
+    ffrt_queue_attr_destroy(&queue_attr1);
 }
 
 #ifdef OHOS_STANDARD_SYSTEM

@@ -35,9 +35,11 @@ SerialTask::SerialTask(IHandler* handler, const task_attr_private* attr) : handl
         delay_ = attr->delay_;
         qos_ = attr->qos_map.m_qos;
         uptime_ += delay_;
+        name_ = attr->name_;
+        prio_ = attr->prio_;
     }
 
-    FFRT_LOGD("ctor task [gid=%llu], delay=%llu us", gid, delay_);
+    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%llu, prio=%u", gid, delay_, type, prio_);
 }
 
 SerialTask::~SerialTask()

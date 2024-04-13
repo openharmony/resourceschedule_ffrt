@@ -28,6 +28,11 @@
 #include "task.h"
 
 namespace ffrt {
+enum queue_type {
+    queue_serial = ffrt_queue_serial,
+    queue_concurrent = ffrt_queue_concurrent,
+    queue_max = ffrt_queue_max,
+};
 class queue_attr : public ffrt_queue_attr_t {
 public:
     queue_attr()
@@ -87,10 +92,28 @@ public:
     {
         return ffrt_queue_attr_get_callback(this);
     }
+
+    // set max concurrency of queue
+    inline queue_attr& max_concurrency(const int max_concurrency)
+    {
+        ffrt_queue_attr_set_max_concurrency(this, max_concurrency);
+        return *this;
+    }
+
+    // get max concurrency of queue
+    inline int max_concurrency() const
+    {
+        return ffrt_queue_attr_get_max_concurrency(this);
+    }
 };
 
 class queue {
 public:
+    queue(const queue_type type, const char* name, const queue_attr& attr = {})
+    {
+        queue_handle = ffrt_queue_create(ffrt_queue_type_t(type), name, &attr);
+    }
+
     queue(const char* name, const queue_attr& attr = {})
     {
         queue_handle = ffrt_queue_create(ffrt_queue_serial, name, &attr);

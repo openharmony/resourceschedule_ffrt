@@ -15,34 +15,29 @@
 #include "serial_handler.h"
 
 #include <sstream>
-#include "c/queue.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "queue_monitor.h"
 #include "serial_task.h"
 #include "serial_queue.h"
 #include "sched/scheduler.h"
 #include "ffrt_trace.h"
+#include "internal_inc/osal.h"
 
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
+constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
 std::atomic_uint32_t queueId(0);
 }
 namespace ffrt {
-SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr) : queueId_(queueId++)
+SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr, const ffrt_queue_type_t type)
+    : queueId_(queueId++), queueType_(type)
 {
-    queue_ = std::make_unique<SerialQueue>(queueId_);
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
-
-    if (name != nullptr && std::string(name).size() <= STRING_SIZE_MAX) {
-        name_ = "sq_" + std::string(name) + "_" + std::to_string(queueId_);
-    } else {
-        name_ += "sq_unnamed_" + std::to_string(queueId_);
-        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", queueId_);
-    }
-
+    int maxConcurrency = 1;
     // parse queue attribute
     if (attr) {
+        maxConcurrency = (ffrt_queue_attr_get_max_concurrency(attr))
+            <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
         qos_ = (ffrt_queue_attr_get_qos(attr) >= ffrt_qos_background) ? ffrt_queue_attr_get_qos(attr) : qos_;
         timeout_ = ffrt_queue_attr_get_timeout(attr);
         timeoutCb_ = ffrt_queue_attr_get_callback(attr);
@@ -52,6 +47,16 @@ SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr) : 
     if (timeout_ > 0 && timeoutCb_ != nullptr) {
         SerialTask* cbTask = GetSerialTaskByFuncStorageOffset(timeoutCb_);
         cbTask->IncDeleteRef();
+    }
+
+    queue_ = std::make_unique<SerialQueue>(queueId_, maxConcurrency, type);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
+
+    if (name != nullptr && std::string(name).size() <= STRING_SIZE_MAX) {
+        name_ = "sq_" + std::string(name) + "_" + std::to_string(queueId_);
+    } else {
+        name_ += "sq_unnamed_" + std::to_string(queueId_);
+        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", queueId_);
     }
 
     QueueMonitor::GetInstance().RegisterQueueId(queueId_, this);
@@ -84,9 +89,29 @@ SerialHandler::~SerialHandler()
     FFRT_LOGI("destruct %s leave", name_.c_str());
 }
 
-void SerialHandler::Submit(SerialTask* task)
+bool SerialHandler::SetLoop(Loop* loop)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "cannot set loop, [queueId=%u] constructed failed", queueId_);
+    return queue_->SetLoop(loop);
+}
+
+bool SerialHandler::ClearLoop()
+{
+    return queue_->ClearLoop();
+}
+
+SerialTask* SerialHandler::PickUpTask()
+{
+    return queue_->Pull();
+}
+
+uint64_t SerialHandler::GetNextTimeout()
+{
+    return queue_->GetNextTimeout();
+}
+
+void SerialHandler::NormalSerialTaskSubmit(SerialTask* task)
+{
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
     // if qos not specified, qos of the queue is inherited by task
@@ -97,9 +122,16 @@ void SerialHandler::Submit(SerialTask* task)
     FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(queueId_, task->gid);
 
     int ret = queue_->Push(task);
-    if (ret != INACTIVE) {
+    if (ret == SUCC) {
         FFRT_LOGD("submit task[%lu] into %s", task->gid, name_.c_str());
         return;
+    }
+    if (ret == FAILED) {
+        return;
+    }
+
+    if (!isUsed_.load()) {
+        isUsed_.store(true);
     }
 
     // activate queue
@@ -108,8 +140,73 @@ void SerialHandler::Submit(SerialTask* task)
         TransferTask(task);
     } else {
         FFRT_LOGD("task [%llu] with delay [%llu] activate %s", task->gid, task->GetDelay(), name_.c_str());
-        queue_->Push(task);
+        if (ret == INACTIVE) {
+            queue_->Push(task);
+        }
         TransferInitTask();
+    }
+}
+#ifdef OHOS_STANDARD_SYSTEM
+void SerialHandler::MainSerialTaskSubmit(SerialTask* task)
+{
+    FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
+    int prio = task->GetPriority();
+    int delayUs = task->GetDelay();
+
+    char processName[PROCESS_NAME_BUFFER_LENGTH];
+    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
+
+    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
+    std::function<void()> mainFunc = [=]() {
+        f->exec(f);
+        f->destroy(f);
+    };
+    bool taskStatus = eventHandler_->PostTask(mainFunc, std::string(processName) + "_main_" + task->GetName(),
+        delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
+    FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
+}
+
+void SerialHandler::WorkerSerialTaskSubmit(SerialTask* task)
+{
+    FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
+    int prio = task->GetPriority();
+    int delayUs = task->GetDelay();
+
+    char processName[PROCESS_NAME_BUFFER_LENGTH];
+    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
+
+    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
+    std::function<void()> workerFunc = [=]() {
+        f->exec(f);
+        f->destroy(f);
+    };
+
+    bool taskStatus = eventHandler_->PostTask(workerFunc, std::string(processName) + "_worker_" + task->GetName(),
+        delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
+    FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
+}
+#endif
+
+void SerialHandler::Submit(SerialTask* task)
+{
+    switch (handleType_) {
+        case NORMAL_SERIAL_HANDLER:
+            NormalSerialTaskSubmit(task);
+            break;
+        case MAINTHREAD_SERIAL_HANDLER:
+#ifdef OHOS_STANDARD_SYSTEM
+            MainSerialTaskSubmit(task);
+#endif
+            break;
+        case WORKERTHREAD_SERIAL_HANDLER:
+#ifdef OHOS_STANDARD_SYSTEM
+            WorkerSerialTaskSubmit(task);
+#endif
+            break;
+        default: {
+            FFRT_LOGE("Unsupport serial handle type=%d.", handleType_);
+            break;
+        }
     }
 }
 
@@ -149,7 +246,9 @@ void SerialHandler::Dispatch(SerialTask* inTask)
         nextTask = task->GetNextTask();
         if (nextTask == nullptr) {
             QueueMonitor::GetInstance().ResetQueueInfo(queueId_);
-            Deliver();
+            if (!queue_->IsOnLoop()) {
+                Deliver();
+            }
         }
         task->DecDeleteRef();
     }

@@ -299,7 +299,7 @@ SerialTask* SerialQueue::DequeTaskPriorityWithGreedy(const uint64_t now)
     // dequeue next expired task by priority
     auto ite_target = whenMap_.begin();
     for (auto ite = whenMap_.begin(); ite != whenMap_.end() && ite->first < now; ite++) {
-        if (ite_target->second->GetPriority() == immediate) {
+        if (ite_target->second->GetPriority() == ffrt_queue_priority_immediate) {
             break;
         }
         if (ite->second->GetPriority() < ite_target->second->GetPriority()) {

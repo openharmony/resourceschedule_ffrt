@@ -183,8 +183,9 @@ static inline void SaveTaskStatus()
         size_t idx = 1;
         for (auto t : tmp) {
             if (t->type == 0) {
-                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx++,
+                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
                     tmp.size(), t->gid, t->qos(), t->label.c_str());
+                idx++;
             }
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))
                 && t != g_cur_task) {
@@ -220,8 +221,11 @@ void backtrace(int ignoreDepth)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::string dumpInfo;
-    CPUEUTask::DumpTask(nullptr, dumpInfo);
-#endif
+    CPUEUTask::DumpTask(nullptr, dumpInfo, 1);
+    if (!dumpInfo.empty()) {
+        FFRT_BBOX_LOG("%s", dumpInfo.c_str());
+    }
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
 }
 
 unsigned int GetBboxEnableState(void)
@@ -248,6 +252,9 @@ void SaveTheBbox()
             unsigned int tid = static_cast<unsigned int>(gettid());
             (void)g_bbox_tid_is_dealing.compare_exchange_strong(expect, tid);
 
+#ifdef OHOS_STANDARD_SYSTEM
+            FaultLoggerFdManager::Instance().InitFaultLoggerFd();
+#endif
             FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
             SaveCurrent();
             SaveTaskCounter();
@@ -255,6 +262,9 @@ void SaveTheBbox()
             SaveReadyQueueStatus();
             SaveTaskStatus();
             FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
+#ifdef OHOS_STANDARD_SYSTEM
+            FaultLoggerFdManager::Instance().CloseFd();
+#endif
 
             std::unique_lock handle_end_lk(bbox_handle_lock);
             bbox_handle_end.notify_one();
@@ -271,11 +281,11 @@ void SaveTheBbox()
     } else {
         unsigned int tid = static_cast<unsigned int>(gettid());
         if (tid == g_bbox_tid_is_dealing.load()) {
-            FFRT_BBOX_LOG("thread %u black box save failed", tid);
+            FFRT_LOGE("thread %u black box save failed", tid);
             g_bbox_tid_is_dealing.store(0);
             g_bbox_cv.notify_all();
         } else {
-            FFRT_BBOX_LOG("thread %u trigger signal again, when thread %u is saving black box",
+            FFRT_LOGE("thread %u trigger signal again, when thread %u is saving black box",
                 tid, g_bbox_tid_is_dealing.load());
             BboxFreeze(); // hold other thread's signal resend
         }
@@ -286,7 +296,7 @@ static void ResendSignal(siginfo_t* info)
 {
     int rc = syscall(SYS_rt_tgsigqueueinfo, getpid(), syscall(SYS_gettid), info->si_signo, info);
     if (rc != 0) {
-        FFRT_BBOX_LOG("ffrt failed to resend signal during crash");
+        FFRT_LOGE("ffrt failed to resend signal during crash");
     }
 }
 

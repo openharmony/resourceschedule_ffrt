@@ -35,7 +35,8 @@
                 "napi",
                 "faultloggerd",
                 "hitrace",
-                "libunwind"
+                "libunwind",
+                "eventhandler"
             ],
             "third_party": [
                 "bounds_checking_function",

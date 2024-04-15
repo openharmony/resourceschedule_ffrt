@@ -20,6 +20,10 @@
 #include <array>
 #include <string_view>
 #include "hilog/log.h"
+#include <atomic>
+#include <unistd.h>
+#include <cstdint>
+#include "dfx/bbox/fault_logger_fd_manager.h"
 #else
 #include "log_base.h"
 #endif
@@ -128,8 +132,15 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #define FFRT_LOGE(format, ...) FFRT_LOG(FFRT_LOG_ERROR, format, ##__VA_ARGS__)
 #endif
 
-
+#ifdef OHOS_STANDARD_SYSTEM
+#define FFRT_BBOX_LOG(format, ...) \
+    do { \
+        FFRT_LOGE(format, ##__VA_ARGS__); \
+        FaultLoggerFdManager::Instance().WriteFaultLogger(format, ##__VA_ARGS__); \
+    } while (0)
+#else
 #define FFRT_BBOX_LOG(format, ...) FFRT_LOGE(format, ##__VA_ARGS__)
+#endif
 
 #define FFRT_COND_DO_ERR(cond, expr, format, ...) \
     if (cond) {                                   \

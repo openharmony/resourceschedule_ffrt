@@ -21,11 +21,12 @@
 #endif
 #include "qos.h"
 #include "sync/sync.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include <list>
 #include <unordered_map>
 #include <array>
 #include "internal_inc/non_copyable.h"
+#include "c/executor_task.h"
+#include "c/timer.h"
 namespace ffrt {
 enum class PollerRet {
     RET_NULL,
@@ -46,12 +47,12 @@ enum class TimerStatus {
 
 struct WakeDataWithCb {
     WakeDataWithCb() {}
-    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t, uint8_t)> cbVal)
+    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal)
         : fd(fdVal), data(dataVal), cb(cbVal) {}
 
     int fd = 0;
     void* data = nullptr;
-    std::function<void(void*, uint32_t, uint8_t)> cb = nullptr;
+    std::function<void(void*, uint32_t)> cb = nullptr;
 };
 
 struct TimerDataWithCb {
@@ -75,14 +76,21 @@ public:
     PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
 
-    int RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb) noexcept;
-    void DeregisterTimer(int handle) noexcept;
-    bool DetermineEmptyMap() noexcept;
+    int RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat = false) noexcept;
+    int UnregisterTimer(int handle) noexcept;
     ffrt_timer_query_t GetTimerStatus(int handle) noexcept;
+
+    uint8_t GetPollCount() noexcept;
+
+    bool DetermineEmptyMap() noexcept;
+    bool DeterminePollerReady() noexcept;
 
 private:
     void ReleaseFdWakeData() noexcept;
     void ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept;
+
+    bool IsFdExist() noexcept;
+    bool IsTimerReady() noexcept;
 
     int m_epFd;
     uint8_t pollerCount_ = 0;
@@ -119,5 +127,4 @@ private:
     std::array<Poller, QoS::Max()> qosPollers;
 };
 } // namespace ffrt
-#endif
 #endif

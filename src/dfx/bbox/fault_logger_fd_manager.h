@@ -12,21 +12,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_FFRT_H
-#define FFRT_API_FFRT_H
-#ifdef __cplusplus
-#include "cpp/task.h"
-#include "cpp/mutex.h"
-#include "cpp/condition_variable.h"
-#include "cpp/sleep.h"
-#include "cpp/queue.h"
-#include "c/timer.h"
-#else
-#include "c/task.h"
-#include "c/mutex.h"
-#include "c/condition_variable.h"
-#include "c/sleep.h"
-#include "c/queue.h"
-#include "c/timer.h"
-#endif
-#endif
+#ifndef __FAULT_LOGGER_FD_MANAGER_h__
+#define __FAULT_LOGGER_FD_MANAGER_h__
+
+class FaultLoggerFdManager {
+public:
+    static FaultLoggerFdManager& Instance()
+    {
+        static FaultLoggerFdManager faultLoggerFdManager;
+        return faultLoggerFdManager;
+    }
+    ~FaultLoggerFdManager();
+    void CloseFd();
+    int InitFaultLoggerFd();
+    int GetFaultLoggerFd();
+    void WriteFaultLogger(const char* format, ...);
+
+private:
+    int faultLoggerFd_ = -1;
+
+    FaultLoggerFdManager();
+};
+#endif /* __FAULT_LOGGER_FD_MANAGER_h__ */

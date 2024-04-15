@@ -12,21 +12,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_FFRT_H
-#define FFRT_API_FFRT_H
-#ifdef __cplusplus
-#include "cpp/task.h"
-#include "cpp/mutex.h"
-#include "cpp/condition_variable.h"
-#include "cpp/sleep.h"
-#include "cpp/queue.h"
-#include "c/timer.h"
-#else
-#include "c/task.h"
-#include "c/mutex.h"
-#include "c/condition_variable.h"
-#include "c/sleep.h"
-#include "c/queue.h"
-#include "c/timer.h"
-#endif
+
+#ifndef FFRT_LOOP_HPP
+#define FFRT_LOOP_HPP
+#include "queue/serial_handler.h"
+#include "sync/poller.h"
+
+namespace ffrt {
+class Loop {
+public:
+    explicit Loop(SerialHandler* handler);
+    ~Loop();
+
+    void Run();
+    void Stop();
+
+    int EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb);
+    ffrt_timer_t TimerStart(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
+    int TimerStop(ffrt_timer_t handle);
+    void WakeUp();
+
+private:
+    SerialHandler* handler_;
+    Poller poller_;
+    std::atomic<bool> stopFlag_ { false };
+};
+}
 #endif

@@ -233,7 +233,7 @@ void CoStart(ffrt::CPUEUTask* task)
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
         if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
-            FFRT_BBOX_LOG("executed by worker suddenly, ignore backtrace");
+            FFRT_LOGE("executed by worker suddenly, ignore backtrace");
             return;
         }
     }

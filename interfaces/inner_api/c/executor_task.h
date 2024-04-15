@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include "type_def_ext.h"
+#include "c/timer.h"
 
 typedef struct ffrt_executor_task {
     uintptr_t reserved[2];
@@ -36,16 +37,15 @@ FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, f
 FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr);
 FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos);
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 // poller
-typedef void (*ffrt_poller_cb)(void*, uint32_t, uint8_t);
-typedef void (*ffrt_timer_cb)(void*);
-FFRT_C_API int ffrt_poller_register(int fd, uint32_t events, void* data, ffrt_poller_cb cb);
-FFRT_C_API int ffrt_poller_deregister(int fd);
-FFRT_C_API int ffrt_timer_start(uint64_t timeout, void* data, ffrt_timer_cb cb);
-FFRT_C_API void ffrt_timer_stop(int handle);
-FFRT_C_API ffrt_timer_query_t ffrt_timer_query(int handle);
-FFRT_C_API void ffrt_poller_wakeup();
+#ifdef FFRT_IO_TASK_SCHEDULER
+FFRT_C_API int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb);
+
+FFRT_C_API void ffrt_poller_wakeup(ffrt_qos_t qos);
+
+FFRT_C_API uint8_t ffrt_epoll_get_count(ffrt_qos_t qos);
+
+FFRT_C_API ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t handle);
 
 // ffrt_executor_task
 FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,

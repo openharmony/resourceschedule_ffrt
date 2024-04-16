@@ -361,7 +361,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
     if (ffrt::GetFuncQosMap() == nullptr) {
-        FFRT_LOGE("FuncQosMap has no regist");
+        FFRT_LOGE("FuncQosMap has not regist");
         return -1;
     }
     ffrt::QoS _qos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));

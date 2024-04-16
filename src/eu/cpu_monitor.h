@@ -51,7 +51,7 @@ public:
     void IncSleepingRef(const QoS& qos);
     void DecSleepingRef(const QoS& qos);
     virtual SleepType IntoSleep(const QoS& qos) = 0;
-    virtual void WakeupCount(const QoS& qos, isDeepSleepWork = false);
+    virtual void WakeupCount(const QoS& qos, bool isDeepSleepWork = false);
     void IntoDeepSleep(const QoS& qos);
     void OutOfDeepSleep(const QoS& qos);
 #ifdef FFRT_IO_TASK_SCHEDULER

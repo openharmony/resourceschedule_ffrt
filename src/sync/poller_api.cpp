@@ -19,10 +19,10 @@
 #include "util/ffrt_facade.h"
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-static boo QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
+static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
 	if (ffrt::GetFuncQosMap() == nullptr) {
-		FFRT_LOGE("FuncQosMap has not regist);
+		FFRT_LOGE("FuncQosMap has not regist");
 		return false;
 	}
 	mappedQos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));

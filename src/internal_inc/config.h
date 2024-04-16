@@ -65,7 +65,7 @@ private:
         }
     }
 
-    size_t cpu_worker_num[QoS::Max()];
+    size_t cpu_worker_num[QoS::MaxNum()];
 };
 }
 

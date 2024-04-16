@@ -80,6 +80,23 @@ public:
 
     virtual void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
     {
+        FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
+        FFRT_TRACE_SCOPE(1, onSubmitUV);
+#ifdef FFRT_BBOX_ENABLE
+        TaskSubmitCounterInc();
+#endif
+        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+
+        LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
+        FFRTScheduler* sch = FFRTScheduler::Instance();
+        if (!sch->InsertNode(node, qos)) {
+            FFRT_LOGE("Submit UV task failed!");
+            return;
+        }
+
+#ifdef FFRT_BBOX_ENABLE
+    TaskEnQueuCounterInc();
+#endif
     }
 
     virtual void onSubmitDev(dev_type dev, bool has_handle, ffrt_task_handle_t &handle, void *data,

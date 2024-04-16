@@ -52,16 +52,6 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     return true;
 }
 
-void CPUWorkerManager::WakeupWorkers(const QoS& qos)
-{
-    if (tearDown) {
-        return;
-    }
-
-    auto& ctl = sleepCtl[qos()];
-    ctl.cv.notify_one();
-}
-
 int CPUWorkerManager::GetTaskCount(const QoS& qos)
 {
     auto& sched = FFRTScheduler::Instance()->GetScheduler(qos);
@@ -222,7 +212,7 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
         if (ret != 1) {
             FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
-        WorkerLeaveTg(qos, pid);
+        WorkerLeaveTg(QoS(qos), pid);
         worker = nullptr;
     }
 }

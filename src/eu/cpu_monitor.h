@@ -35,6 +35,7 @@ struct WorkerCtrl {
     bool pollWaitFlag = false;
 #endif
     int deepSleepingWorkerNum = 0;
+	bool hasWorkDeepSleep = 0;
     std::mutex lock;
 };
 
@@ -50,7 +51,7 @@ public:
     void IncSleepingRef(const QoS& qos);
     void DecSleepingRef(const QoS& qos);
     virtual SleepType IntoSleep(const QoS& qos) = 0;
-    void WakeupCount(const QoS& qos);
+    virtual void WakeupCount(const QoS& qos, isDeepSleepWork = false);
     void IntoDeepSleep(const QoS& qos);
     void OutOfDeepSleep(const QoS& qos);
 #ifdef FFRT_IO_TASK_SCHEDULER
@@ -63,13 +64,11 @@ public:
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
     int SetWorkerMaxNum(const QoS& qos, int num);
     bool IsExceedDeepSleepThreshold();
-#ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
-#endif
 
     uint32_t monitorTid = 0;
 protected:
-    WorkerCtrl ctrlQueue[QoS::Max()];
+    WorkerCtrl ctrlQueue[QoS::MaxNum()];
     void Poke(const QoS& qos, TaskNotifyType notifyType);
     CpuMonitorOps& GetOps()
     {

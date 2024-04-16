@@ -43,7 +43,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
         while (try_cnt-- > 0) {
 #ifdef FFRT_IO_TASK_SCHEDULER
             pollersMtx[qos].unlock();
-            PollerProxy::Instance()->GetPoller(qos).WakeUp();
+            PollerProxy::Instance()->GetPoller(QoS(qos)).WakeUp();
 #endif
             sleepCtl[qos].cv.notify_all();
             {
@@ -121,6 +121,15 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 void SCPUWorkerManager::WorkerPrepare(WorkerThread* thread)
 {
     WorkerJoinTg(thread->GetQos(), thread->Id());
+}
+void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
+{
+	if (tearDown) {
+		return;	
+	}
+
+	auto& ctl = sleepCtl[qos()];
+	ctl.cv.notify_one();
 }
 
 } // namespace ffrt

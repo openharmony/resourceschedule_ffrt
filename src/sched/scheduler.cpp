@@ -29,4 +29,91 @@ void FFRTScheduler::RegistInsCb(SingleInsCB<FFRTScheduler>::Instance &&cb)
     SingletonRegister<FFRTScheduler>::RegistInsCb(std::move(cb));
 }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
+void FFRTScheduler::PushTask(CPUEUTask* task)
+{
+    int level = task->qos();
+    auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+    lock->lock();
+    fifoQue[static_cast<unsigned short>(level)]->WakeupTask(task);
+    lock->unlock();
+    ExecuteUnit::Instance().NotifyTaskAdded(QoS(level));
+}
+#endif
+
+bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
+{
+    if (node == nullptr) {
+        return false;
+    }
+
+    int level = qos();
+    if (level == qos_inherit) {
+        return false;
+    }
+
+    ffrt_executor_task_t* task = reinterpret_cast<ffrt_executor_task_t*>(reinterpret_cast<char*>(node) -
+        offsetof(ffrt_executor_task_t, wq));
+    uintptr_t taskType = task->type;
+
+    auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+    lock->lock();
+    fifoQue[static_cast<unsigned short>(level)]->WakeupNode(node);
+    lock->unlock();
+
+#ifdef FFRT_IO_TASK_SCHEDULER
+    if (taskType == ffrt_io_task) {
+        ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
+        return true;
+    }
+#endif
+
+    ExecuteUnit::Instance().NotifyTaskAdded(qos);
+    return true;
+}
+
+bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
+{
+    if (node == nullptr) {
+        return false;
+    }
+
+    int level = qos();
+    if (level == qos_inherit) {
+        return false;
+    }
+    auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+    lock->lock();
+    if (!node->InList()) {
+        lock->unlock();
+        return false;
+    }
+    fifoQue[static_cast<unsigned short>(level)]->RemoveNode(node);
+    lock->unlock();
+#ifdef FFRTT_BBOX_ENABLE
+    TaskFinishCounterInc();
+#endif
+    return true;
+}
+
+bool FFRTScheduler::WakeupTask(CPUEUTask* task)
+{
+    int qos_level = static_cast<int>(qos_default);
+    if (task != nullptr) {
+        qos_level = task->qos();
+        if (qos_level == qos_inherit) {
+            return false;
+        }
+    }
+    QoS _qos = QoS(qos_level);
+    int level = _qos();
+    auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+    lock->lock();
+    fifoQue[static_cast<unsigned short>(level)]->WakeupTask(task);
+    lock->unlock();
+    FFRT_LOGD("qos[%d] task[%lu] entered q", level, task->gid);
+    ExecuteUnit::Instance().NotifyTaskAdded(_qos);
+    return true;
+}
+
 } // namespace ffrt

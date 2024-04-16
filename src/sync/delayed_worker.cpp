@@ -25,13 +25,13 @@
 namespace ffrt {
 DelayedWorker::DelayedWorker() : futex(0)
 {
+    std::thread t([this]() {
     struct sched_param param;
     param.sched_priority = 1;
     int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
     if (ret != 0) {
         FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
     }
-    std::thread t([this]() {
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         for (;;) {
             lock.lock();

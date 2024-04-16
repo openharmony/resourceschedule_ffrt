@@ -33,7 +33,7 @@ SerialTask::SerialTask(IHandler* handler, const task_attr_private* attr) : handl
 
     if (attr) {
         delay_ = attr->delay_;
-        qos_ = attr->qos_map.m_qos;
+        qos_ = attr->qos_;
         uptime_ += delay_;
         name_ = attr->name_;
         prio_ = attr->prio_;

@@ -82,15 +82,14 @@ protected:
     bool IncWorker(const QoS& qos) override;
     int GetTaskCount(const QoS& qos);
     int GetWorkerCount(const QoS& qos);
-    void WakeupWorkers(const QoS& qos);
     void WorkerJoinTg(const QoS& qos, pid_t pid);
 
     CPUMonitor* monitor = nullptr;
     bool tearDown = false;
-    WorkerSleepCtl sleepCtl[QoS::Max()];
+    WorkerSleepCtl sleepCtl[QoS::MaxNum()];
 #ifdef FFRT_IO_TASK_SCHEDULER
     bool polling_ = false;
-    fast_mutex pollersMtx[QoS::Max()];
+    fast_mutex pollersMtx[QoS::MaxNum()];
 #endif
 
 private:
@@ -109,7 +108,7 @@ private:
     unsigned int StealTaskBatch(WorkerThread* thread);
     CPUEUTask* PickUpTaskBatch(WorkerThread* thread);
     void TryMoveLocal2Global(WorkerThread* thread);
-    std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
+    std::atomic_uint64_t stealWorkers[QoS::MaxNum()] = {0};
 #endif
 };
 } // namespace ffrt

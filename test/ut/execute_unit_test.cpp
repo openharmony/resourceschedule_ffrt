@@ -51,7 +51,7 @@ protected:
  */
 HWTEST_F(ExecuteUnitTest, NotifyTaskAdded, TestSize.Level1)
 {
-    ExecuteUnit::Instance().NotifyTaskAdded(qos(5));
+    ExecuteUnit::Instance().NotifyTaskAdded(QoS(qos(5)));
 }
 
 /**

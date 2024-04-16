@@ -266,7 +266,7 @@ void SerialHandler::TransferTask(SerialTask* task)
 {
     auto entry = &task->fq_we;
     FFRTScheduler* sch = FFRTScheduler::Instance();
-    if (!sch->InsertNode(&entry->node, task->GetQos())) {
+    if (!sch->InsertNode(&entry->node, QoS(task->GetQos()))) {
         FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, queueId_, name_.c_str());
         return;
     }

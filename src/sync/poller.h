@@ -112,19 +112,15 @@ private:
 
 struct PollerProxy {
 public:
-    static inline PollerProxy* Instance()
-    {
-        static PollerProxy pollerInstance;
-        return &pollerInstance;
-    }
+    static PollerProxy* Instance();
 
-    Poller& GetPoller(const QoS& qos = ffrt_qos_default)
+    Poller& GetPoller(const QoS& qos = QoS(ffrt_qos_default))
     {
-        return qosPollers[static_cast<size_t>(qos)];
+        return qosPollers[static_cast<size_t>(qos())];
     }
 
 private:
-    std::array<Poller, QoS::Max()> qosPollers;
+    std::array<Poller, QoS::MaxNum()> qosPollers;
 };
 } // namespace ffrt
 #endif

@@ -39,6 +39,12 @@ Poller::~Poller() noexcept
     flag_ = EpollStatus::TEARDOWN;
 }
 
+PollerProxy* PollerProxy::Instance()
+{
+    static PollerProxy pollerInstance;
+    return &pollerInstance;
+}
+
 int Poller::AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
 {
     auto wakeData = std::unique_ptr<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb));

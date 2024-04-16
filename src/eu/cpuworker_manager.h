@@ -79,6 +79,7 @@ public:
 
 protected:
     virtual void WorkerPrepare(WorkerThread* thread) = 0;
+    virtual void WakeupWorkers(const QoS& qos) = 0;
     bool IncWorker(const QoS& qos) override;
     int GetTaskCount(const QoS& qos);
     int GetWorkerCount(const QoS& qos);

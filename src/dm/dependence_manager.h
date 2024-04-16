@@ -78,7 +78,7 @@ public:
     {
     }
 
-    virtual void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
+    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
     {
         FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
         FFRT_TRACE_SCOPE(1, onSubmitUV);

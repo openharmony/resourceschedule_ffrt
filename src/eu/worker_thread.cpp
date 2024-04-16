@@ -45,7 +45,7 @@ void WorkerThread::NativeConfig()
 
 void WorkerThread::WorkerSetup(WorkerThread* wthread)
 {
-    static int threadIndex[QoS::Max()] = {0};
+    static int threadIndex[QoS::MaxNum()] = {0};
     std::string qosStr = std::to_string(qos());
     std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
         std::string(WORKER_THREAD_SYMBOL) + std::to_string(threadIndex[qos()]++);

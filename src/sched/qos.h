@@ -21,22 +21,22 @@
 constexpr unsigned char NR_QOS = 6;
 
 namespace ffrt {
-struct QoSMap {
-    QoSMap(int _qos = qos_default)
-    {
-        if (_qos <= static_cast<int>(qos_inherit)) {
-            m_qos = qos_inherit;
-        } else if (_qos >= static_cast<int>(qos_background) && _qos <= static_cast<int>(qos_max)) {
-            m_qos = _qos;
-        } else {
-            m_qos = qos_default;
-        }
-    }
-    int m_qos;
-};
+
+typedef int (*Func_qos_map)(int qos);
+void SetFuncQosMap(Func_qos_map func);
+Func_qos_map GetFuncQosMap(void);
+
+int QosMap(int qos);
+
+typedef int (*Func_qos_max)(void);
+void SetFuncQosMax(Func_qos_max func);
+Func_qos_max GetFuncQosMax(void);
+
+int QoSMax(void);
+
 class QoS {
 public:
-    QoS(int qos = qos_default)
+    explicit QoS(int qos = qos_default)
     {
         if (qos < static_cast<int>(qos_inherit)) {
             qos = qos_inherit;
@@ -44,11 +44,6 @@ public:
             qos = qos_max;
         }
         qos_ = qos;
-    }
-
-    QoS(const QoSMap& qosattr)
-    {
-        qos_ = qosattr.m_qos;
     }
 
     QoS(const QoS& qos) : qos_(qos())
@@ -104,7 +99,12 @@ public:
         return qos_background;
     }
 
-    static constexpr int Max()
+    static int Max()
+    {
+        return qos_max + 1;
+    }
+
+    static constexpr int MaxNum()
     {
         return qos_max + 1;
     }

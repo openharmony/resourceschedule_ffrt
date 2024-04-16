@@ -20,10 +20,10 @@
 #include "util/ffrt_facade.h"
 
 #ifdef FFRT_IO_TASK_SCHEDULER
-static boo QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
+static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
 	if (ffrt::GetFuncQosMap() == nullptr) {
-		FFRT_LOGE("FuncQosMap has not regist);
+		FFRT_LOGE("FuncQosMap has not regist");
 		return false;
 	}
 	mappedQos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
@@ -32,6 +32,7 @@ static boo QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 	}
 	return true;
 }
+
 API_ATTRIBUTE((visibility("default")))
 ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
 {
@@ -61,7 +62,7 @@ ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, int handle)
 {
 	ffrt::QoS pollerQos;
 	if (!QosConvert(qos, pollerQos)) {
-		return -1;
+		return ffrt_timer_notfound;
 	}
     return ffrt::PollerProxy::Instance()->GetPoller(ffrt::QoS(ffrt::GetFuncQosMap()(qos))).GetTimerStatus(handle);
 }

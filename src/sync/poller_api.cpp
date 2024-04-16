@@ -62,7 +62,7 @@ void ffrt_poller_wakeup(ffrt_qos_t qos)
 {
 	ffrt::QoS pollerQos;
 	if (!QosConvert(qos, pollerQos)) {
-		return -1;
+		return;
 	}
     ffrt::PollerProxy::Instance()->GetPoller(pollerQos).WakeUp();
 }

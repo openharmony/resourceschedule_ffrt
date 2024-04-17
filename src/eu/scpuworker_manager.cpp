@@ -126,7 +126,7 @@ void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
 {
     if (tearDown) {
         return;
-	}
+    }
 
     auto& ctl = sleepCtl[qos()];
     ctl.cv.notify_one();

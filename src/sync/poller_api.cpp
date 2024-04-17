@@ -21,21 +21,21 @@
 #ifdef FFRT_IO_TASK_SCHEDULER
 static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
-	if (ffrt::GetFuncQosMap() == nullptr) {
+    if (ffrt::GetFuncQosMap() == nullptr) {
 		FFRT_LOGE("FuncQosMap has not regist");
-		return false;
+        return false;
 	}
 	mappedQos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
-	if (mappedQos == ffrt::qos_inherit) {
-		mappedQos = ffrt::ExecuteCtx::Cur()->qos();
-	}
-	return true;
+    if (mappedQos == ffrt::qos_inherit) {
+        mappedQos = ffrt::ExecuteCtx::Cur()->qos();
+    }
+    return true;
 }
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb)
 {
-	ffrt::QoS pollerQos;
+    ffrt::QoS pollerQos;
 	if (!QosConvert(qos, pollerQos)) {
         return -1;
 	}
@@ -61,19 +61,19 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_poller_wakeup(ffrt_qos_t qos)
 {
     ffrt::QoS pollerQos;
-	if (!QosConvert(qos, pollerQos)) {
-		return;
-	}
+    if (!QosConvert(qos, pollerQos)) {
+        return;
+    }
     ffrt::PollerProxy::Instance()->GetPoller(pollerQos).WakeUp();
 }
 
 API_ATTRIBUTE((visibility("default")))
 uint8_t ffrt_epoll_get_count(ffrt_qos_t qos)
 {
-	ffrt::QoS pollerQos;
-	if (!QosConvert(qos, pollerQos)) {
-		return 0;
-	}
-	return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetPollCount();
+    ffrt::QoS pollerQos;
+    if (!QosConvert(qos, pollerQos)) {
+        return 0;
+    }
+    return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetPollCount();
 }
 #endif

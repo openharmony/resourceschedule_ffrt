@@ -45,7 +45,7 @@ __attribute__((constructor)) static void ffrt_init()
     ffrt::ExecuteUnit::RegistInsCb(ffrt::SExecuteUnit::Instance);
     ffrt::FFRTScheduler::RegistInsCb(ffrt::SFFRTScheduler::Instance);
     ffrt::SetFuncQosMap(ffrt::QoSMap);
-    ffrt::GetFuncQosMap(ffrt::QoSMax);
+    ffrt::SetFuncQosMax(ffrt::QoSMax);
 }
 #ifdef __cplusplus
 }

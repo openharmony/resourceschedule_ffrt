@@ -32,7 +32,7 @@
 #include "core/task_io.h"
 #include "util/task_deleter.h"
 
-#ifdef ENABLE_HITRACE
+#ifdef FFRT_ENABLE_HITRACE
 #include "hitrace/trace.h"
 #endif
 
@@ -59,7 +59,7 @@ public:
 
     TaskState state;
 
-#ifdef ENABLE_HITRACE
+#ifdef FFRT_ENABLE_HITRACE
     std::unique_ptr<OHOS::HiviewDFX::HiTraceId> traceId_{nullptr};
 #endif
 

@@ -94,7 +94,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     }
 #endif
 
-#ifdef ENABLE_HITRACE
+#ifdef FFRT_ENABLE_HITRACE
     if (HiTraceChain::GetId().IsValid() && task != nullptr) {
         task->traceId_ = std::make_unique<HiTraceId>(HiTraceChain::CreateSpan());
         HiTraceChain::Tracepoint(HITRACE_TP_CS, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
@@ -153,7 +153,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         if (task->depRefCnt != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
 
-#ifdef ENABLE_HITRACE
+#ifdef FFRT_ENABLE_HITRACE
             if (task != nullptr && task->traceId_ != nullptr) {
                 HiTraceChain::Tracepoint(HITRACE_TP_CR, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
             }
@@ -163,7 +163,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         }
     }
 
-#ifdef ENABLE_HITRACE
+#ifdef FFRT_ENABLE_HITRACE
     if (task != nullptr && task->traceId_ != nullptr) {
         HiTraceChain::Tracepoint(HITRACE_TP_CR, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
     }

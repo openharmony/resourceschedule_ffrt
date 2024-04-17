@@ -22,10 +22,10 @@
 static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
     if (ffrt::GetFuncQosMap() == nullptr) {
-		FFRT_LOGE("FuncQosMap has not regist");
+        FFRT_LOGE("FuncQosMap has not regist");
         return false;
-	}
-	mappedQos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
+    }
+    mappedQos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
     if (mappedQos == ffrt::qos_inherit) {
         mappedQos = ffrt::ExecuteCtx::Cur()->qos();
     }
@@ -36,9 +36,9 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb)
 {
     ffrt::QoS pollerQos;
-	if (!QosConvert(qos, pollerQos)) {
+    if (!QosConvert(qos, pollerQos)) {
         return -1;
-	}
+    }
     int ret = 0;
     if (op == EPOLL_CTL_ADD) {
         ret = ffrt::PollerProxy::Instance()->GetPoller(pollerQos).AddFdEvent(events, fd, data, cb);

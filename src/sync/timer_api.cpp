@@ -24,8 +24,8 @@ static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
     if (ffrt::GetFuncQosMap() == nullptr) {
         FFRT_LOGE("FuncQosMap has not regist");
-		return false;
-	}
+        return false;
+    }
     mappedQos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
     if (mappedQos == ffrt::qos_inherit) {
         mappedQos = ffrt::ExecuteCtx::Cur()->qos();
@@ -36,9 +36,9 @@ static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 API_ATTRIBUTE((visibility("default")))
 ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
 {
-	ffrt::QoS pollerQos;
+    ffrt::QoS pollerQos;
     if (!QosConvert(qos, pollerQos)) {
-		return -1;
+        return -1;
     }
     int handle = ffrt::PollerProxy::Instance()->GetPoller(pollerQos).RegisterTimer(timeout, data, cb);
     if (handle >= 0) {
@@ -51,8 +51,8 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_timer_stop(ffrt_qos_t qos, int handle)
 {
     ffrt::QoS pollerQos;
-	if (!QosConvert(qos, pollerQos)) {
-		return -1;
+    if (!QosConvert(qos, pollerQos)) {
+        return -1;
     }
     return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).UnregisterTimer(handle);
 }

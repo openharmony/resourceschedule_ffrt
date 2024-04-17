@@ -205,7 +205,7 @@ void WaitQueue::NotifyOne() noexcept
                 continue;
             }
             wqlock.unlock();
-            CoWCoRoutineFactory::CoWakeFuncake(task, false);
+            CoWCoRoutineFactory::CoWakeFunc(task, false);
         }
         return;
     }

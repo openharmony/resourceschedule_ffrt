@@ -67,7 +67,7 @@ public:
 
     TaskScheduler& GetScheduler(const QoS& qos)
     {
-        return *fifoQue[static_cast<size_t>(qos)];
+        return *fifoQue[static_cast<unsigned short>(qos)];
     }
 
 #ifdef FFRT_IO_TASK_SCHEDULER

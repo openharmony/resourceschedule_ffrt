@@ -330,3 +330,9 @@ void CoWake(ffrt::CPUEUTask* task, bool timeOut)
         }
     }
 }
+
+CoRoutineFactory &CoRoutineFactory::Instance()
+{
+    static CoRoutineFactory fac;
+    return fac;
+}

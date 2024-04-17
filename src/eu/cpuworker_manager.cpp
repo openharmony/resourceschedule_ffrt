@@ -21,6 +21,7 @@
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
+#include "qos.h"
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)

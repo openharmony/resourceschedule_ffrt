@@ -74,7 +74,7 @@ config("ffrt_config") {
   }
 
   #defines += ffrt_release_defines
-  defines += [ "FFRT_ENABLE_HITRACE" ]
+  defines += [ "FFRT_HITRACE_ENABLE" ]
 }
 
 config("ffrt_inner_config") {

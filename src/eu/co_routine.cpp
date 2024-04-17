@@ -244,7 +244,7 @@ void CoStart(ffrt::CPUEUTask* task)
     TaskRunCounterInc();
 #endif
 
-#ifdef FFRT_ENABLE_HITRACE
+#ifdef FFRT_HITRACE_ENABLE
     using namespace OHOS::HiviewDFX;
     HiTraceId currentId = HiTraceChain::GetId();
     if (task != nullptr && task->traceId_ != nullptr) {
@@ -280,7 +280,7 @@ void CoStart(ffrt::CPUEUTask* task)
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();
 #endif
-#ifdef FFRT_ENABLE_HITRACE
+#ifdef FFRT_HITRACE_ENABLE
         HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
         HiTraceChain::Restore(currentId);
 #endif
@@ -289,7 +289,7 @@ void CoStart(ffrt::CPUEUTask* task)
         FFRT_WAKE_TRACER(task->gid); // fast path wk
         g_CoThreadEnv->runningCo = co;
     }
-#ifdef FFRT_ENABLE_HITRACE
+#ifdef FFRT_HITRACE_ENABLE
     HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
     HiTraceChain::Restore(currentId);
 #endif

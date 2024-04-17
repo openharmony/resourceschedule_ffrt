@@ -124,12 +124,12 @@ void SCPUWorkerManager::WorkerPrepare(WorkerThread* thread)
 }
 void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
 {
-	if (tearDown) {
-		return;	
+    if (tearDown) {
+        return;
 	}
 
-	auto& ctl = sleepCtl[qos()];
-	ctl.cv.notify_one();
+    auto& ctl = sleepCtl[qos()];
+    ctl.cv.notify_one();
 }
 
 } // namespace ffrt

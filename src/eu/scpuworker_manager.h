@@ -24,7 +24,7 @@ public:
     ~SCPUWorkerManager() override;
     WorkerAction WorkerIdleAction(const WorkerThread* thread) override;
     void WorkerPrepare(WorkerThread* thread) override;
-	void WakeupWorkers(const QoS& qos) override;
+    void WakeupWorkers(const QoS& qos) override;
 };
 } // namespace ffrt
 #endif

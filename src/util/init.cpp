@@ -14,8 +14,10 @@
  */
 #include <dlfcn.h>
 #include "sched/task_scheduler.h"
+#include "eu/co_routine.h"
 #include "eu/execute_unit.h"
 #include "eu/sexecute_unit.h"
+#include "eu/thread_factory.h"
 #include "dm/dependence_manager.h"
 #include "dm/sdependence_manager.h"
 #include "dfx/log/ffrt_log_api.h"

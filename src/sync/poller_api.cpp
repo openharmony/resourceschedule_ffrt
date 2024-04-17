@@ -74,6 +74,6 @@ uint8_t ffrt_epoll_get_count(ffrt_qos_t qos)
 	if (!QosConvert(qos, pollerQos)) {
 		return 0;
 	}
-    return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetPollCount();
+	return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetPollCount();
 }
 #endif

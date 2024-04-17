@@ -15,7 +15,7 @@
 #include "qos.h"
 
 namespace ffrt {
-int QosMap(int qos)
+int QoSMap(int qos)
 {
     if (qos <= static_cast<int>(qos_inherit)) {
         return qos_inherit;
@@ -38,7 +38,7 @@ Func_qos_map GetFuncQosMap(void)
     return func_qos_map;
 }
 
-int QosMax(void)
+int QoSMax(void)
 {
     return qos_max + 1;
 }

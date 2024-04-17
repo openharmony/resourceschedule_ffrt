@@ -35,7 +35,7 @@ struct WorkerCtrl {
     bool pollWaitFlag = false;
 #endif
     int deepSleepingWorkerNum = 0;
-	bool hasWorkDeepSleep = 0;
+    bool hasWorkDeepSleep = 0;
     std::mutex lock;
 };
 

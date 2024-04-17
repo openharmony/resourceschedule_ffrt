@@ -26,7 +26,7 @@ typedef int (*Func_qos_map)(int qos);
 void SetFuncQosMap(Func_qos_map func);
 Func_qos_map GetFuncQosMap(void);
 
-int QosMap(int qos);
+int QoSMap(int qos);
 
 typedef int (*Func_qos_max)(void);
 void SetFuncQosMax(Func_qos_max func);

@@ -74,6 +74,7 @@ config("ffrt_config") {
   }
 
   #defines += ffrt_release_defines
+  defines += [ "FFRT_HITRACE_ENABLE" ]
 }
 
 config("ffrt_inner_config") {
@@ -176,6 +177,7 @@ ohos_shared_library("libffrt") {
       "faultloggerd:libfaultloggerd",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
+      "hitrace:libhitracechain",
       "libunwind:libunwind",
     ]
 
@@ -278,6 +280,7 @@ ohos_shared_library("ffrt_ndk") {
     "faultloggerd:libfaultloggerd",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
+    "hitrace:libhitracechain",
     "libunwind:libunwind",
   ]
 

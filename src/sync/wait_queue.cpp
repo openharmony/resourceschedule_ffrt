@@ -155,7 +155,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
             task->wakeupTimeOut = true;
             return false;
         }
-    });
+    })
     ret = task->wakeupTimeOut;
     task->wue = nullptr;
     task->wakeupTimeOut = false;
@@ -205,7 +205,7 @@ void WaitQueue::NotifyOne() noexcept
                 continue;
             }
             wqlock.unlock();
-            CoWCoRoutineFactory::CoWakeFunc(task, false);
+            CoRoutineFactory::CoWakeFunc(task, false);
         }
         return;
     }

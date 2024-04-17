@@ -39,13 +39,13 @@ __attribute__((constructor)) static void ffrt_init()
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::SFIFOScheduler; },
         [] (ffrt::TaskScheduler* schd) { delete schd; });
-    ffrt::CoRoutineFactory::RegistCb(
+    ffrt::CoRotineFactory::RegistCb(
         [] (ffrt::CPUEUTask* task, bool timeOut) -> void {CoWake(task, timeOut);});
     ffrt::DependenceManager::RegistInsCb(ffrt::SDependenceManager::Instance);
     ffrt::ExecuteUnit::RegistInsCb(ffrt::SExecuteUnit::Instance);
     ffrt::FFRTScheduler::RegistInsCb(ffrt::SFFRTScheduler::Instance);
-    ffrt::SetFuncQosMap(QoSMap);
-    ffrt::GetFuncQosMap(QoSMax);
+    ffrt::SetFuncQosMap(ffrt::QoSMap);
+    ffrt::GetFuncQosMap(ffrt::QoSMax);
 
 }
 #ifdef __cplusplus

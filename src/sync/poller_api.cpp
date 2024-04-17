@@ -37,7 +37,7 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
 {
 	ffrt::QoS pollerQos;
 	if (!QosConvert(qos, pollerQos)) {
-		return -1;
+        return -1;
 	}
     int ret = 0;
     if (op == EPOLL_CTL_ADD) {
@@ -60,7 +60,7 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_poller_wakeup(ffrt_qos_t qos)
 {
-	ffrt::QoS pollerQos;
+    ffrt::QoS pollerQos;
 	if (!QosConvert(qos, pollerQos)) {
 		return;
 	}

@@ -137,10 +137,10 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
             return;
         }
         FFRT_LOGD("task(%d) timeout out", task->gid);
-        CoWake(task, true);
+        CoRoutineFactory::CoWakeFunc(task, true);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
-    CoRoutineFactory::CoWakeFunc([&](CPUEUTask* task) -> bool {
+    CoWait([&](CPUEUTask* task) -> bool {
         WaitUntilEntry* we = task->wue;
         wqlock.lock();
         push_back(we);
@@ -155,7 +155,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
             task->wakeupTimeOut = true;
             return false;
         }
-    })
+    });
     ret = task->wakeupTimeOut;
     task->wue = nullptr;
     task->wakeupTimeOut = false;

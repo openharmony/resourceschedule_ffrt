@@ -112,7 +112,9 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     timerMutex_.unlock();
 
     pollerCount_++;
-    int nfds = epoll_wait(m_epFd, m_events.data(), m_events.size(), realTimeout);
+
+    std::array<epoll_event, 1024> waitedEvents;
+    int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
         FFRT_LOGE("epoll_wait error.");
@@ -134,7 +136,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     }
 
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
-        struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(m_events[i].data.ptr);
+        struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(waitedEvents[i].data.ptr);
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
@@ -145,7 +147,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         if (data->cb == nullptr) {
             continue;
         }
-        data->cb(data->data, m_events[i].events);
+        data->cb(data->data, waitedEvents[i].events);
     }
 
     ReleaseFdWakeData();

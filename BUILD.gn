@@ -170,6 +170,7 @@ ohos_shared_library("libffrt") {
 
     external_deps = [
       "bounds_checking_function:libsec_shared",
+      "c_utils:utils",
       "eventhandler:libeventhandler",
       "faultloggerd:libasync_stack",
       "faultloggerd:libbacktrace_local",
@@ -273,6 +274,7 @@ ohos_shared_library("ffrt_ndk") {
 
   external_deps = [
     "bounds_checking_function:libsec_shared",
+    "c_utils:utils",
     "eventhandler:libeventhandler",
     "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",

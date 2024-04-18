@@ -30,6 +30,7 @@
         "deps": {
             "components": [
                 "bounds_checking_function",
+                "c_utils",
                 "hilog",
                 "hisysevent",
                 "napi",

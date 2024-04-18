@@ -105,9 +105,7 @@ private:
     std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;
     mutable spin_mutex timerMutex_;
-#ifndef _MSC_VER
     std::vector<epoll_event> m_events;
-#endif
 };
 
 struct PollerProxy {

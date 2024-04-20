@@ -74,6 +74,7 @@ config("ffrt_config") {
   }
 
   #defines += ffrt_release_defines
+  defines += [ "FFRT_HITRACE_ENABLE" ]
 }
 
 config("ffrt_inner_config") {
@@ -104,6 +105,7 @@ ohos_shared_library("libffrt") {
       "src/core/task_io.cpp",
       "src/core/version_ctx.cpp",
       "src/dfx/bbox/bbox.cpp",
+      "src/dfx/bbox/fault_logger_fd_manager.cpp",
       "src/dfx/log/ffrt_log.cpp",
       "src/dfx/trace/ffrt_trace.cpp",
       "src/dfx/watchdog/watchdog.cpp",
@@ -117,6 +119,8 @@ ohos_shared_library("libffrt") {
       "src/eu/cpu_worker.cpp",
       "src/eu/cpuworker_manager.cpp",
       "src/eu/execute_unit.cpp",
+      "src/eu/loop.cpp",
+      "src/eu/loop_api.cpp",
       "src/eu/osattr_manager.cpp",
       "src/eu/qos_convert.cpp",
       "src/eu/qos_interface.cpp",
@@ -149,9 +153,11 @@ ohos_shared_library("libffrt") {
       "src/sync/mutex.cpp",
       "src/sync/perf_counter.cpp",
       "src/sync/poller.cpp",
+      "src/sync/poller_api.cpp",
       "src/sync/sleep.cpp",
       "src/sync/sync.cpp",
       "src/sync/thread.cpp",
+      "src/sync/timer_api.cpp",
       "src/sync/wait_queue.cpp",
       "src/tm/cpu_task.cpp",
       "src/tm/scpu_task.cpp",
@@ -164,11 +170,15 @@ ohos_shared_library("libffrt") {
 
     external_deps = [
       "bounds_checking_function:libsec_shared",
+      "c_utils:utils",
+      "eventhandler:libeventhandler",
       "faultloggerd:libasync_stack",
       "faultloggerd:libbacktrace_local",
       "faultloggerd:libdfx_dumpcatcher",
+      "faultloggerd:libfaultloggerd",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
+      "hitrace:libhitracechain",
       "libunwind:libunwind",
     ]
 
@@ -182,6 +192,7 @@ ohos_shared_library("libffrt") {
 
     output_extension = "so"
     part_name = "ffrt"
+    subsystem_name = "resourceschedule"
     install_images = [
       "system",
       "updater",
@@ -206,6 +217,7 @@ ohos_shared_library("ffrt_ndk") {
     "src/core/task_io.cpp",
     "src/core/version_ctx.cpp",
     "src/dfx/bbox/bbox.cpp",
+    "src/dfx/bbox/fault_logger_fd_manager.cpp",
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
     "src/dfx/watchdog/watchdog.cpp",
@@ -219,6 +231,8 @@ ohos_shared_library("ffrt_ndk") {
     "src/eu/cpu_worker.cpp",
     "src/eu/cpuworker_manager.cpp",
     "src/eu/execute_unit.cpp",
+    "src/eu/loop.cpp",
+    "src/eu/loop_api.cpp",
     "src/eu/osattr_manager.cpp",
     "src/eu/qos_convert.cpp",
     "src/eu/qos_interface.cpp",
@@ -251,9 +265,11 @@ ohos_shared_library("ffrt_ndk") {
     "src/sync/mutex.cpp",
     "src/sync/perf_counter.cpp",
     "src/sync/poller.cpp",
+    "src/sync/poller_api.cpp",
     "src/sync/sleep.cpp",
     "src/sync/sync.cpp",
     "src/sync/thread.cpp",
+    "src/sync/timer_api.cpp",
     "src/sync/wait_queue.cpp",
     "src/tm/cpu_task.cpp",
     "src/tm/scpu_task.cpp",
@@ -266,11 +282,15 @@ ohos_shared_library("ffrt_ndk") {
 
   external_deps = [
     "bounds_checking_function:libsec_shared",
+    "c_utils:utils",
+    "eventhandler:libeventhandler",
     "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "faultloggerd:libfaultloggerd",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
+    "hitrace:libhitracechain",
     "libunwind:libunwind",
   ]
 

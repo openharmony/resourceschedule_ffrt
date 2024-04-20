@@ -117,6 +117,31 @@ public:
     {
         return ffrt_task_attr_get_delay(this);
     }
+
+    /**
+     * @brief Sets the priority for this task.
+     *
+     * @param priority Indicates the execute priority of concurrent queue task.
+     * @since 12
+     * @version 1.0
+     */
+    inline task_attr& priority(ffrt_queue_priority_t prio)
+    {
+        ffrt_task_attr_set_queue_priority(this, prio);
+        return *this;
+    }
+
+    /**
+     * @brief Obtains the priority of this task.
+     *
+     * @return Returns the priority of concurrent queue task.
+     * @since 12
+     * @version 1.0
+     */
+    inline ffrt_queue_priority_t priority() const
+    {
+        return ffrt_task_attr_get_queue_priority(this);
+    }
 };
 
 class task_handle {

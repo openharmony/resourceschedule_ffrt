@@ -84,7 +84,7 @@ TEST_F(CoroutineTest, coroutine_submit_succ)
     ffrt_task_attr_init(&attr);
     ffrt_submit_coroutine((void *)co1, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
     ffrt_submit_coroutine((void *)co2, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
-    ffrt_poller_wakeup();
+    ffrt_poller_wakeup(ffrt_qos_default);
     usleep(100000);
     EXPECT_EQ(co1.count, 4);
     EXPECT_EQ(co2.count, 4);
@@ -106,7 +106,7 @@ struct TestData {
     uint64_t expected;
 };
 
-static void testCallBack(void* token, uint32_t event, uint8_t count)
+static void testCallBack(void* token, uint32_t event)
 {
     struct TestData* testData = reinterpret_cast<TestData*>(token);
     uint64_t value = 0;
@@ -115,7 +115,7 @@ static void testCallBack(void* token, uint32_t event, uint8_t count)
     EXPECT_EQ(value, testData->expected);
 }
 
-TEST_F(CoroutineTest, ffrt_poller_register_deregister)
+TEST_F(CoroutineTest, ffrt_epoll_ctl_add_del)
 {
     uint64_t expected = 0xabacadae;
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
@@ -126,8 +126,8 @@ TEST_F(CoroutineTest, ffrt_poller_register_deregister)
     }, {}, {})
 
     struct TestData testData {.fd = testFd, .expected = expected};
-    ffrt_poller_register(testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
+    ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
     usleep(100);
-    ffrt_poller_deregister(testFd);
+    ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     close(testFd);
 }

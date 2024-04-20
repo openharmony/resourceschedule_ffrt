@@ -30,13 +30,16 @@
         "deps": {
             "components": [
                 "bounds_checking_function",
+                "c_utils",
                 "hilog",
                 "hisysevent",
                 "napi",
                 "faultloggerd",
-                "libunwind",
                 "hiprofiler",
                 "init",
+                "hitrace",
+                "libunwind",
+                "eventhandler"
             ],
             "third_party": [
                 "bounds_checking_function",

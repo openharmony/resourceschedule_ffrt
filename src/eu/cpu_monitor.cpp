@@ -304,11 +304,15 @@ void CPUMonitor::Poke(const QoS& qos, TaskNotifyType notifyType)
 #endif
 
     FFRT_LOGD("qos[%d] exe num[%d] slp num[%d]", (int)qos, workerCtrl.executionNum, workerCtrl.sleepingWorkerNum);
-    if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.maxConcurrency) {
+    if (static_cast<uint32_t>(workerCtrl.executionNum - ops.GetBlockingNum(qos)) < workerCtrl.maxConcurrency) {
         if (workerCtrl.sleepingWorkerNum == 0) {
-            workerCtrl.executionNum++;
-            workerCtrl.lock.unlock();
-            ops.IncWorker(qos);
+            if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.hardLimit) {
+                workerCtrl.executionNum++;
+                workerCtrl.lock.unlock();
+                ops.IncWorker(qos);
+            } else {
+                workerCtrl.lock.unlock();
+            }
         } else {
             workerCtrl.lock.unlock();
             ops.WakeupWorkers(qos);
@@ -322,4 +326,17 @@ void CPUMonitor::Poke(const QoS& qos, TaskNotifyType notifyType)
         workerCtrl.lock.unlock();
     }
 }
+
+bool CPUMonitor::IsExceedMaxConcurrency(const QoS& qos)
+{
+    bool ret = false;
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+    if (static_cast<uint32_t>(workerCtrl.executionNum - ops.GetBlockingNum(qos)) > workerCtrl.maxConcurrency) {
+        ret = true;
+    }
+    workerCtrl.lock.unlock();
+    return ret;
+}
+
 }

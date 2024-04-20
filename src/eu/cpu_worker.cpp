@@ -321,4 +321,14 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     worker->ops.WorkerRetired(worker);
 }
 #endif // FFRT_IO_TASK_SCHEDULER
+
+void CPUWorker::SetWorkerBlocked(bool var)
+{
+    if (blocked != var) {
+        blocked = var;
+        FFRT_LOGW("QoS %ld worker %ld block %s", this->GetQos()(), this->Id(), var ? "true" : "false");
+        this->ops.UpdateBlockingNum(this->GetQos(), var);
+    }
+}
+
 } // namespace ffrt

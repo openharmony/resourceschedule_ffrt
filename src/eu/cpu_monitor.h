@@ -66,6 +66,7 @@ public:
 #ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
 #endif
+    bool IsExceedMaxConcurrency(const QoS& qos);
 
     uint32_t monitorTid = 0;
 protected:

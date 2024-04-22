@@ -32,7 +32,9 @@ SCPUWorkerManager::SCPUWorkerManager()
         std::bind(&SCPUWorkerManager::IncWorker, this, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::WakeupWorkers, this, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetTaskCount, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetWorkerCount, this, std::placeholders::_1)});
+        std::bind(&SCPUWorkerManager::GetWorkerCount, this, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::GetBlockingNum, this, std::placeholders::_1)
+    });
 }
 
 SCPUWorkerManager::~SCPUWorkerManager()

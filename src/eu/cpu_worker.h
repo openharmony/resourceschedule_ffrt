@@ -52,6 +52,7 @@ public:
 #endif
 
 private:
+    bool blocked = false;
     static void* WarpDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
     static void Run(CPUEUTask* task);
@@ -63,6 +64,7 @@ private:
     static PollerRet TryPoll(CPUWorker* worker, int timeout);
     static bool LocalEmpty(CPUWorker* worker);
 #endif
+    void SetWorkerBlocked(bool var) override;
 };
 } // namespace ffrt
 #endif

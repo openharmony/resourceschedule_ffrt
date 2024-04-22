@@ -55,6 +55,7 @@ struct CpuWorkerOps {
     std::function<CPUEUTask* (WorkerThread*)> PickUpTaskBatch;
     std::function<void (WorkerThread*)> TryMoveLocal2Global;
 #endif
+    std::function<void (const QoS& qos, bool var)> UpdateBlockingNum;
 };
 
 struct CpuMonitorOps {
@@ -62,6 +63,7 @@ struct CpuMonitorOps {
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
     std::function<int (const QoS& qos)> GetWorkerCount;
+    std::function<int (const QoS& qos)> GetBlockingNum;
 };
 }
 #endif

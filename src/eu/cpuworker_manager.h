@@ -77,6 +77,21 @@ public:
         return monitor;
     }
 
+    void UpdateBlockingNum(const QoS& qos, bool var)
+    {
+        if (var) {
+            blockingNum[qos]++;
+        } else {
+            blockingNum[qos]--;
+        }
+        FFRT_LOGW("QoS %ld blocking num %ld", (int)qos, blockingNum[qos].load());
+    }
+
+    int GetBlockingNum(const QoS& qos)
+    {
+        return blockingNum[qos].load();
+    }
+
 protected:
     virtual void WorkerPrepare(WorkerThread* thread) = 0;
     bool IncWorker(const QoS& qos) override;
@@ -111,6 +126,7 @@ private:
     void TryMoveLocal2Global(WorkerThread* thread);
     std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
 #endif
+    std::atomic_int blockingNum[QoS::Max()] = {0};
 };
 } // namespace ffrt
 #endif

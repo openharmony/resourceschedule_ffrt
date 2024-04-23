@@ -182,6 +182,14 @@ ohos_shared_library("libffrt") {
       "libunwind:libunwind",
     ]
 
+    if (ffrt_profiler_enable && !is_emulator) {
+      external_deps += [
+        "hiprofiler:libffrt_profiler",
+        "init:libbegetutil",
+      ]
+      defines = [ "FFRT_PROFILER" ]
+    }
+
     output_extension = "so"
     part_name = "ffrt"
     subsystem_name = "resourceschedule"

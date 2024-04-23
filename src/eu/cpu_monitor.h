@@ -65,6 +65,7 @@ public:
     int SetWorkerMaxNum(const QoS& qos, int num);
     bool IsExceedDeepSleepThreshold();
     int WakedWorkerNum(const QoS& qos);
+    bool IsExceedMaxConcurrency(const QoS& qos);
 
     uint32_t monitorTid = 0;
 protected:

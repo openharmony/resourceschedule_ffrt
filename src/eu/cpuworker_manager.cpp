@@ -43,6 +43,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::PickUpTaskBatch, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::TryMoveLocal2Global, this, std::placeholders::_1),
 #endif
+        std::bind(&CPUWorkerManager::UpdateBlockingNum, this, std::placeholders::_1, std::placeholders::_2),
     }));
     if (worker == nullptr || worker->Exited()) {
         FFRT_LOGE("Inc CPUWorker: create worker\n");
@@ -66,7 +67,7 @@ int CPUWorkerManager::GetWorkerCount(const QoS& qos)
 
 CPUEUTask* CPUWorkerManager::PickUpTask(WorkerThread* thread)
 {
-    if (tearDown) {
+    if (tearDown || monitor->IsExceedMaxConcurrency(thread->GetQos())) {
         return nullptr;
     }
 
@@ -206,6 +207,7 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
 
     {
         std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
+        thread->SetWorkerBlocked(false);
         thread->SetExited(true);
         thread->Detach();
         auto worker = std::move(groupCtl[qos].threads[thread]);

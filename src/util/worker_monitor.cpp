@@ -85,6 +85,7 @@ void WorkerMonitor::CheckWorkerStatus()
             CPUEUTask* workerTask = worker->curTask;
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
+                worker->SetWorkerBlocked(false);
                 continue;
             }
 
@@ -105,13 +106,14 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
 
     if (workerIter->second.first == workerTask) {
         if (++workerIter->second.second >= static_cast<int>(MONITOR_TIMEOUT_MAX_COUNT)) {
+            worker->SetWorkerBlocked(true);
             RecordSymbolAndBacktrace(worker->Id());
             workerIter->second.second =
                 -static_cast<int>(TIMEOUT_RECORD_CYCLE_US / MONITOR_SAMPLING_CYCLE_US - MONITOR_TIMEOUT_MAX_COUNT);
         }
         return;
     }
-
+    worker->SetWorkerBlocked(false);
     workerIter->second = { workerTask, 0 };
 }
 

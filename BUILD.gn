@@ -74,6 +74,7 @@ config("ffrt_config") {
   }
 
   #defines += ffrt_release_defines
+  defines += [ "FFRT_HITRACE_ENABLE" ]
 }
 
 config("ffrt_inner_config") {
@@ -104,6 +105,7 @@ ohos_shared_library("libffrt") {
       "src/core/task_io.cpp",
       "src/core/version_ctx.cpp",
       "src/dfx/bbox/bbox.cpp",
+      "src/dfx/bbox/fault_logger_fd_manager.cpp",
       "src/dfx/log/ffrt_log.cpp",
       "src/dfx/trace/ffrt_trace.cpp",
       "src/dfx/watchdog/watchdog.cpp",
@@ -174,13 +176,24 @@ ohos_shared_library("libffrt") {
       "faultloggerd:libasync_stack",
       "faultloggerd:libbacktrace_local",
       "faultloggerd:libdfx_dumpcatcher",
+      "faultloggerd:libfaultloggerd",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
+      "hitrace:libhitracechain",
       "libunwind:libunwind",
     ]
 
+    if (ffrt_profiler_enable && !is_emulator) {
+      external_deps += [
+        "hiprofiler:libffrt_profiler",
+        "init:libbegetutil",
+      ]
+      defines = [ "FFRT_PROFILER" ]
+    }
+
     output_extension = "so"
     part_name = "ffrt"
+    subsystem_name = "resourceschedule"
     install_images = [
       "system",
       "updater",
@@ -205,6 +218,7 @@ ohos_shared_library("ffrt_ndk") {
     "src/core/task_io.cpp",
     "src/core/version_ctx.cpp",
     "src/dfx/bbox/bbox.cpp",
+    "src/dfx/bbox/fault_logger_fd_manager.cpp",
     "src/dfx/log/ffrt_log.cpp",
     "src/dfx/trace/ffrt_trace.cpp",
     "src/dfx/watchdog/watchdog.cpp",
@@ -275,8 +289,10 @@ ohos_shared_library("ffrt_ndk") {
     "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
+    "faultloggerd:libfaultloggerd",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
+    "hitrace:libhitracechain",
     "libunwind:libunwind",
   ]
 

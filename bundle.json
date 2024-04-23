@@ -35,6 +35,9 @@
                 "hisysevent",
                 "napi",
                 "faultloggerd",
+                "hiprofiler",
+                "init",
+                "hitrace",
                 "libunwind",
                 "eventhandler"
             ],

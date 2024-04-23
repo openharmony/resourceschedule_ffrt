@@ -156,6 +156,10 @@ public:
     }
 #endif
 
+    virtual void SetWorkerBlocked(bool var)
+    {
+    }
+
     void WorkerSetup(WorkerThread* wthread);
     void NativeConfig();
 

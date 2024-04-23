@@ -39,6 +39,8 @@
 using namespace ffrt;
 static thread_local CoRoutineEnv* g_CoThreadEnv = nullptr;
 
+using namespace OHOS::HiviewDFX;
+
 static inline void CoSwitch(CoCtx* from, CoCtx* to)
 {
     co2_switch_context(from, to);
@@ -231,7 +233,7 @@ void CoStart(ffrt::CPUEUTask* task)
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
         if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
-            FFRT_BBOX_LOG("executed by worker suddenly, ignore backtrace");
+            FFRT_LOGE("executed by worker suddenly, ignore backtrace");
             return;
         }
     }
@@ -240,6 +242,15 @@ void CoStart(ffrt::CPUEUTask* task)
 
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
+#endif
+
+#ifdef FFRT_HITRACE_ENABLE
+    using namespace OHOS::HiviewDFX;
+    HiTraceId currentId = HiTraceChain::GetId();
+    if (task != nullptr && task->traceId_ != nullptr) {
+        HiTraceChain::SaveAndSet(*(task->traceId_));
+        HiTraceChain::Tracepoint(HITRACE_TP_SR, *(task->traceId_), "ffrt::CoStart");
+    }
 #endif
 
     for (;;) {
@@ -269,11 +280,19 @@ void CoStart(ffrt::CPUEUTask* task)
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();
 #endif
+#ifdef FFRT_HITRACE_ENABLE
+        HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
+        HiTraceChain::Restore(currentId);
+#endif
             return;
         }
         FFRT_WAKE_TRACER(task->gid); // fast path wk
         g_CoThreadEnv->runningCo = co;
     }
+#ifdef FFRT_HITRACE_ENABLE
+    HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
+    HiTraceChain::Restore(currentId);
+#endif
 }
 
 // called by thread work

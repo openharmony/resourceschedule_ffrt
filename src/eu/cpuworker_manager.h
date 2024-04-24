@@ -104,7 +104,7 @@ protected:
     bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::MaxNum()];
 #ifdef FFRT_IO_TASK_SCHEDULER
-    bool polling_ = false;
+    uint8_t polling_[QoS::MaxNum()] = {};
     fast_mutex pollersMtx[QoS::MaxNum()];
 #endif
 
@@ -126,7 +126,7 @@ private:
     void TryMoveLocal2Global(WorkerThread* thread);
     std::atomic_uint64_t stealWorkers[QoS::MaxNum()] = {0};
 #endif
-    std::atomic_int blockingNum[QoS::Max()] = {0};
+    std::atomic_int blockingNum[QoS::MaxNum()] = {0};
 };
 } // namespace ffrt
 #endif

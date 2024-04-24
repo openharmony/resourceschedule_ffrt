@@ -172,7 +172,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
     }
     auto& pollerMtx = pollersMtx[thread->GetQos()];
     if (pollerMtx.try_lock()) {
-        polling_ = true;
+        polling_[thread->GetQos()] = 1;
         if (timeout == -1) {
             monitor->IntoPollWait(thread->GetQos());
         }
@@ -180,7 +180,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
         if (timeout == -1) {
             monitor->OutOfPollWait(thread->GetQos());
         }
-        polling_ = false;
+        polling_[thread->GetQos()] = 0;
         pollerMtx.unlock();
         return ret;
     }

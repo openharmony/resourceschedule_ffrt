@@ -73,7 +73,7 @@ void WorkerMonitor::CheckWorkerStatus()
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     QoS _qos = QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
-        auto& sched = FFRTScheduler::Instance()->GetScheduler(i);
+        auto& sched = FFRTScheduler::Instance()->GetScheduler(QoS(i));
         int taskCount = sched.RQSize();
         if (taskCount >= TASK_OVERRUN_THRESHOLD) {
             FFRT_LOGW("qos [%d], task count [%d] exceeds threshold.", i, taskCount);

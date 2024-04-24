@@ -87,7 +87,7 @@ public:
 
 private:
     void ReleaseFdWakeData() noexcept;
-    void ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept;
+    void ExecuteTimerCb(time_point_t timer) noexcept;
 
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
@@ -105,26 +105,19 @@ private:
     std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;
     mutable spin_mutex timerMutex_;
-#ifndef _MSC_VER
-    std::vector<epoll_event> m_events;
-#endif
 };
 
 struct PollerProxy {
 public:
-    static inline PollerProxy* Instance()
-    {
-        static PollerProxy pollerInstance;
-        return &pollerInstance;
-    }
+    static PollerProxy* Instance();
 
-    Poller& GetPoller(const QoS& qos = ffrt_qos_default)
+    Poller& GetPoller(const QoS& qos = QoS(ffrt_qos_default))
     {
-        return qosPollers[static_cast<size_t>(qos)];
+        return qosPollers[static_cast<size_t>(qos())];
     }
 
 private:
-    std::array<Poller, QoS::Max()> qosPollers;
+    std::array<Poller, QoS::MaxNum()> qosPollers;
 };
 } // namespace ffrt
 #endif

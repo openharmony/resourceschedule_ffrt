@@ -21,6 +21,7 @@
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
+#include "qos.h"
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -51,16 +52,6 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     worker->WorkerSetup(worker.get());
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
     return true;
-}
-
-void CPUWorkerManager::WakeupWorkers(const QoS& qos)
-{
-    if (tearDown) {
-        return;
-    }
-
-    auto& ctl = sleepCtl[qos()];
-    ctl.cv.notify_one();
 }
 
 int CPUWorkerManager::GetTaskCount(const QoS& qos)
@@ -181,7 +172,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
     }
     auto& pollerMtx = pollersMtx[thread->GetQos()];
     if (pollerMtx.try_lock()) {
-        polling_ = true;
+        polling_[thread->GetQos()] = 1;
         if (timeout == -1) {
             monitor->IntoPollWait(thread->GetQos());
         }
@@ -189,7 +180,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
         if (timeout == -1) {
             monitor->OutOfPollWait(thread->GetQos());
         }
-        polling_ = false;
+        polling_[thread->GetQos()] = 0;
         pollerMtx.unlock();
         return ret;
     }
@@ -224,7 +215,7 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
         if (ret != 1) {
             FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
-        WorkerLeaveTg(qos, pid);
+        WorkerLeaveTg(QoS(qos), pid);
         worker = nullptr;
     }
 }

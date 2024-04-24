@@ -80,7 +80,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
-    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_map));
+    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
 
     ffrt::ffrt_executor_io_task* task = new ffrt::ffrt_executor_io_task(qos);
     task->work.exec = exec;

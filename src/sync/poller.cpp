@@ -39,6 +39,12 @@ Poller::~Poller() noexcept
     flag_ = EpollStatus::TEARDOWN;
 }
 
+PollerProxy* PollerProxy::Instance()
+{
+    static PollerProxy pollerInstance;
+    return &pollerInstance;
+}
+
 int Poller::AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
 {
     auto wakeData = std::unique_ptr<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb));
@@ -92,7 +98,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
             cur->first - std::chrono::steady_clock::now()).count();
         if (realTimeout <= 0) {
-            ExecuteTimerCb(cur);
+            ExecuteTimerCb(cur->first);
             return PollerRet::RET_TIMER;
         }
 
@@ -106,7 +112,9 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     timerMutex_.unlock();
 
     pollerCount_++;
-    int nfds = epoll_wait(m_epFd, m_events.data(), m_events.size(), realTimeout);
+
+    std::array<epoll_event, 1024> waitedEvents;
+    int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
         FFRT_LOGE("epoll_wait error.");
@@ -118,7 +126,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
             timerMutex_.lock();
             for (auto it = timerMap_.begin(); it != timerMap_.end(); it++) {
                 if (it->second.handle == timerHandle) {
-                    ExecuteTimerCb(it);
+                    ExecuteTimerCb(it->first);
                     return PollerRet::RET_TIMER;
                 }
             }
@@ -128,7 +136,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     }
 
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
-        struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(m_events[i].data.ptr);
+        struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(waitedEvents[i].data.ptr);
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
@@ -139,7 +147,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         if (data->cb == nullptr) {
             continue;
         }
-        data->cb(data->data, m_events[i].events);
+        data->cb(data->data, waitedEvents[i].events);
     }
 
     ReleaseFdWakeData();
@@ -172,11 +180,11 @@ void Poller::ReleaseFdWakeData() noexcept
     fdEmpty_.store(m_wakeDataMap.empty());
 }
 
-void Poller::ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept
+void Poller::ExecuteTimerCb(time_point_t timer) noexcept
 {
     std::vector<TimerDataWithCb> timerData;
     for (auto iter = timerMap_.begin(); iter != timerMap_.end();) {
-        if (iter->first <= timer->first) {
+        if (iter->first <= timer) {
             timerData.emplace_back(iter->second);
             executedHandle_[iter->second.handle] = TimerStatus::EXECUTING;
             iter = timerMap_.erase(iter);

@@ -267,7 +267,7 @@ void mutexPrivate::wake()
         wue->cv.notify_one();
     } else {
         wlock.unlock();
-        CoWake(task, false);
+        CoRoutineFactory::CoWakeFunc(task, false);
     }
 }
 } // namespace ffrt

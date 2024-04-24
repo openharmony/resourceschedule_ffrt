@@ -94,18 +94,18 @@ public:
 
 protected:
     virtual void WorkerPrepare(WorkerThread* thread) = 0;
+    virtual void WakeupWorkers(const QoS& qos) = 0;
     bool IncWorker(const QoS& qos) override;
     int GetTaskCount(const QoS& qos);
     int GetWorkerCount(const QoS& qos);
-    void WakeupWorkers(const QoS& qos);
     void WorkerJoinTg(const QoS& qos, pid_t pid);
 
     CPUMonitor* monitor = nullptr;
     bool tearDown = false;
-    WorkerSleepCtl sleepCtl[QoS::Max()];
+    WorkerSleepCtl sleepCtl[QoS::MaxNum()];
 #ifdef FFRT_IO_TASK_SCHEDULER
-    bool polling_ = false;
-    fast_mutex pollersMtx[QoS::Max()];
+    uint8_t polling_[QoS::MaxNum()] = {};
+    fast_mutex pollersMtx[QoS::MaxNum()];
 #endif
 
 private:
@@ -124,9 +124,9 @@ private:
     unsigned int StealTaskBatch(WorkerThread* thread);
     CPUEUTask* PickUpTaskBatch(WorkerThread* thread);
     void TryMoveLocal2Global(WorkerThread* thread);
-    std::atomic_uint64_t stealWorkers[QoS::Max()] = {0};
+    std::atomic_uint64_t stealWorkers[QoS::MaxNum()] = {0};
 #endif
-    std::atomic_int blockingNum[QoS::Max()] = {0};
+    std::atomic_int blockingNum[QoS::MaxNum()] = {0};
 };
 } // namespace ffrt
 #endif

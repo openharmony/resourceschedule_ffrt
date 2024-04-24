@@ -166,7 +166,7 @@ void IOPoller::PollOnce(int timeout) noexcept
             }
             reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
         } else {
-            CoWake(task, false);
+            CoRoutineFactory::CoWakeFunc(task, false);
         }
     }
 }

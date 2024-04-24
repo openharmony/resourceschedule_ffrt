@@ -56,7 +56,7 @@ protected:
  */
 HWTEST_F(WorkerThreadTest, IdleTest, TestSize.Level1)
 {
-    WorkerThread* wt = new WorkerThread(6);
+    WorkerThread* wt = new WorkerThread(QoS(6));
     bool ret = wt->Idle();
     EXPECT_FALSE(ret);
 }
@@ -68,7 +68,7 @@ HWTEST_F(WorkerThreadTest, IdleTest, TestSize.Level1)
  */
 HWTEST_F(WorkerThreadTest, SetIdleTest, TestSize.Level1)
 {
-    WorkerThread* wt = new WorkerThread(6);
+    WorkerThread* wt = new WorkerThread(QoS(6));
     bool var = false;
     wt->SetIdle(var);
     EXPECT_FALSE(wt->idle);
@@ -81,7 +81,7 @@ HWTEST_F(WorkerThreadTest, SetIdleTest, TestSize.Level1)
  */
 HWTEST_F(WorkerThreadTest, ExitedTest, TestSize.Level1)
 {
-    WorkerThread* wt = new WorkerThread(6);
+    WorkerThread* wt = new WorkerThread(QoS(6));
     bool ret = wt->Exited();
     EXPECT_FALSE(ret);
 }
@@ -93,7 +93,7 @@ HWTEST_F(WorkerThreadTest, ExitedTest, TestSize.Level1)
  */
 HWTEST_F(WorkerThreadTest, SetExitedTest, TestSize.Level1)
 {
-    WorkerThread* wt = new WorkerThread(6);
+    WorkerThread* wt = new WorkerThread(QoS(6));
     bool var = false;
     wt->SetExited(var);
     EXPECT_FALSE(wt->exited);
@@ -106,7 +106,7 @@ HWTEST_F(WorkerThreadTest, SetExitedTest, TestSize.Level1)
  */
 HWTEST_F(WorkerThreadTest, GetQosTest, TestSize.Level1)
 {
-    WorkerThread* wt = new WorkerThread(6);
+    WorkerThread* wt = new WorkerThread(QoS(6));
     QoS ret = wt->GetQos();
 }
 
@@ -117,7 +117,7 @@ HWTEST_F(WorkerThreadTest, GetQosTest, TestSize.Level1)
  */
 HWTEST_F(WorkerThreadTest, JoinTest, TestSize.Level1)
 {
-    WorkerThread* wt = new WorkerThread(6);
+    WorkerThread* wt = new WorkerThread(QoS(6));
     wt->Join();
 }
 
@@ -128,6 +128,6 @@ HWTEST_F(WorkerThreadTest, JoinTest, TestSize.Level1)
  */
 HWTEST_F(WorkerThreadTest, DetachTest, TestSize.Level1)
 {
-    WorkerThread* wt = new WorkerThread(6);
+    WorkerThread* wt = new WorkerThread(QoS(6));
     wt->Detach();
 }

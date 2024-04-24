@@ -63,7 +63,7 @@ public:
     }
 protected:
     ThreadGroup tg;
-    WorkerGroupCtl groupCtl[QoS::Max()];
+    WorkerGroupCtl groupCtl[QoS::MaxNum()];
 };
 } // namespace ffrt
 #endif

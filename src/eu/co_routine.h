@@ -103,6 +103,25 @@ public:
     }
 };
 
+class CoRoutineFactory {
+public:
+    using CowakeCB = std::function<void (ffrt::CPUEUTask*, bool)>;
+
+    static CoRoutineFactory &Instance();
+
+    static void CoWakeFunc(ffrt::CPUEUTask* task, bool timeOut)
+    {
+        return Instance().cowake_(task, timeOut);
+    }
+
+    static void RegistCb(const CowakeCB &cowake)
+    {
+        Instance().cowake_ = cowake;
+    }
+private:
+    CowakeCB cowake_;
+};
+
 void CoStackFree(void);
 void CoWorkerExit(void);
 

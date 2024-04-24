@@ -87,7 +87,7 @@ public:
 
 private:
     void ReleaseFdWakeData() noexcept;
-    void ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept;
+    void ExecuteTimerCb(time_point_t timer) noexcept;
 
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;

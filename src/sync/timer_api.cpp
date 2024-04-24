@@ -40,7 +40,7 @@ ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt
     if (!QosConvert(qos, pollerQos)) {
         return -1;
     }
-    int handle = ffrt::PollerProxy::Instance()->GetPoller(pollerQos).RegisterTimer(timeout, data, cb);
+    int handle = ffrt::PollerProxy::Instance()->GetPoller(pollerQos).RegisterTimer(timeout, data, cb, repeat);
     if (handle >= 0) {
         ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(pollerQos);
     }
@@ -64,6 +64,6 @@ ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, int handle)
     if (!QosConvert(qos, pollerQos)) {
         return ffrt_timer_notfound;
     }
-    return ffrt::PollerProxy::Instance()->GetPoller(ffrt::QoS(ffrt::GetFuncQosMap()(qos))).GetTimerStatus(handle);
+    return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetTimerStatus(handle);
 }
 #endif

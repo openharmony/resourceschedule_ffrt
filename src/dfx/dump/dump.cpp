@@ -12,21 +12,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_FFRT_INNER_H
-#define FFRT_API_FFRT_INNER_H
-#include "ffrt.h"
-#ifdef __cplusplus
 #include "c/ffrt_dump.h"
-#include "cpp/thread.h"
-#include "cpp/future.h"
-#include "cpp/task_ext.h"
-#include "cpp/deadline.h"
-#include "cpp/qos_convert.h"
-#else
-#include "c/task_ext.h"
-#include "c/thread.h"
 #include "c/ffrt_watchdog.h"
-#include "c/executor_task.h"
-#include "c/ffrt_dump.h"
+#include "internal_inc/osal.h"
+#include "dfx/log/ffrt_log_api.h"
+
+#ifdef __cplusplus
+extern "C" {
 #endif
+API_ATTRIBUTE((visibility("default")))
+int ffrt_dump(uint32_t cmd, char *buf, uint32_t len)
+{
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    switch (static_cast<ffrt_dump_cmd_t>(cmd)) {
+        case ffrt_dump_cmd_t::DUMP_INFO_ALL: {
+            return ffrt_watchdog_dumpinfo(buf, len);
+        }
+        default: {
+            FFRT_LOGE("ffr_dump unsupport cmd[%d]", cmd);
+            return -1;
+        }
+    }
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
+}
+#ifdef __cplusplus
+}
 #endif

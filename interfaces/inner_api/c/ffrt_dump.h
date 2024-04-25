@@ -12,15 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_WATCHDOG_H
-#define FFRT_WATCHDOG_H
+#ifndef FFRT_API_C_FFRT_DUMP_H
+#define FFRT_API_C_FFRT_DUMP_H
 #include <stdint.h>
 #include "type_def_ext.h"
 
-typedef void(*ffrt_watchdog_cb)(uint64_t, const char *, uint32_t);
-FFRT_C_API int ffrt_watchdog_dumpinfo(char *buf, uint32_t len);
-FFRT_C_API void ffrt_watchdog_register(ffrt_watchdog_cb cb, uint32_t timeout_ms, uint32_t interval_ms);
-FFRT_C_API ffrt_watchdog_cb ffrt_watchdog_get_cb(void);
-FFRT_C_API uint32_t ffrt_watchdog_get_timeout(void);
-FFRT_C_API uint32_t ffrt_watchdog_get_interval(void);
-#endif /* FFRT_WATCHDOG_H */
+typedef enum {
+    DUMP_INFO_ALL = 0,
+} ffrt_dump_cmd_t;
+
+FFRT_C_API int ffrt_dump(uint32_t cmd, char *buf, uint32_t len);
+#endif /* FFRT_API_C_FFRT_DUMP_H */

@@ -16,6 +16,7 @@
 #include "c/ffrt_watchdog.h"
 #include "internal_inc/osal.h"
 #include "dfx/bbox/bbox.h"
+#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 constexpr uint32_t DEFAULT_TIMEOUT_MS = 30000;
@@ -36,22 +37,31 @@ struct WatchdogCfg {
 extern "C" {
 #endif
 API_ATTRIBUTE((visibility("default")))
-void ffrt_watchdog_dumpinfo(char *buf, uint32_t len)
+int ffrt_watchdog_dumpinfo(char *buf, uint32_t len)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     if (FFRTIsWork()) {
         std::string dumpInfo;
+        dumpInfo += "|-> Launcher proc ffrt, pid:" + std::to_string(GetPid()) + "\n";
         dumpInfo += SaveTaskCounterInfo();
         dumpInfo += SaveWorkerStatusInfo();
         dumpInfo += SaveReadyQueueStatusInfo();
         dumpInfo += SaveTaskStatusInfo();
+        if (dumpInfo.length() > (len - 1)) {
+            FFRT_LOGW("dumpInfo exceeds the buffer length, length:%d", dumpInfo.length());
+        }
         int printed_num = snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
         if (printed_num == -1) {
-            snprintf_s(buf, len, len - 1, "%s", "watchdog fail to print dumpinfo");
+            return snprintf_s(buf, len, len - 1, "|-> watchdog fail to print dumpinfo, pid: %s\n",
+                std::to_string(GetPid()).c_str());
         }
+        return printed_num;
     } else {
-        snprintf_s(buf, len, len - 1, "%s", "FFRT has done all tasks!");
+        return snprintf_s(buf, len, len - 1, "|-> FFRT has done all tasks, pid: %s\n",
+            std::to_string(GetPid()).c_str());
     }
+#else
+    return -1;
 #endif
 }
 

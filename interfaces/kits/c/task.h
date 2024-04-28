@@ -37,6 +37,8 @@
 #ifndef FFRT_API_C_TASK_H
 #define FFRT_API_C_TASK_H
 #include <stdint.h>
+#include <stdbool.h>
+#include <sys/epoll.h>
 #include "type_def.h"
 
 /**
@@ -241,4 +243,14 @@ FFRT_C_API void ffrt_wait(void);
  * @version 1.0
  */
 FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
+
+FFRT_C_API void* ffrt_get_cur_task();
+
+FFRT_C_API ffrt_qos_t ffrt_get_current_qos();
+
+FFRT_C_API bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size);
+
+FFRT_C_API void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local);
+
+FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
 #endif

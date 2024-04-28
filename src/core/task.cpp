@@ -414,7 +414,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
     }
 
     if (_qos() == curTask->qos) {
-        FFRT_LOGW("the target qos is euqal to current qos, no need update");
+        FFRT_LOGW("the target qos is equal to current qos, no need update");
         return 0;
     }
 
@@ -475,6 +475,26 @@ int ffrt_skip(ffrt_task_handle_t handle)
     return 1;
 }
 
+#ifdef FFRT_IO_TASK_SCHEDULER
+API_ATTRIBUTE((visibility("default")))
+int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb)
+{
+    ffrt::QoS ffrtQos(qos);
+    if (op == EPOLL_CTL_DEL) {
+        return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).DelFdEvent(fd):
+    } else if (op == EPOLL_VTL_ALL || op == EPOLL_CTL_MOD) {
+        int ret = ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
+        if (ret == 0) {
+            ffrt::FFRTFacade::GetEUInstance().NotifyLocalTassAdded(ffrtQos);
+        }
+        return ret;
+    } else {
+        FFRT_LOGE("ffrt_epoll_ctl input error: op=%d, fd=%d", op, fd);
+        return -1;
+    }
+}
+#endif // FFRT_IO_TASK_SCHEDULER
+
 API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr)
 {
@@ -510,6 +530,68 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::FFRTFacade::GetDMInstance();
     ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
     return static_cast<int>(sch->RemoveNode(node, _qos));
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_poller_wait(struct epoll_event* events, int max_events, int timeout, int* nfds)
+{
+#ifdef FFRT_IO_TASK_SCHEDULER
+    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
+    ffrt::PollerProxy::Instance()->GetPoller(qos).WaitFdEvent(events, max_evnets, timeout, nfds);
+#endif // FFRT_IO_TASK_SCHEDULER
+}
+
+API_ATTRIBUTE((visibility("default")))
+void* ffrt_get_cur_task()
+{
+    return ffrt::ExecuteCtx::Cur()->task;
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_qos_t ffrt_get_current_qos()
+{
+    ffrt_qos_t qos = ffrt_qos_default;
+    if (ffrt::ExecuteCtx::Cur()->task) {
+        qos = ffrt::ExecuteCtx::Cur()->task->qos;
+    }
+    return qos;
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
+{
+    if (sttack_addr == nullptr || size == nullptr) {
+        return false;
+    }
+
+    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+    if (curTask != nullptr) {
+        auto co = curTask->coRoutine;
+        *size = co->stkMem.size;
+        *stackAddr = (void*)((char*)co + sizeof(CoRoutine) - 8);
+        return true;
+    }
+    return false;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_ = task_local;
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return false;
+    }
+    return (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_;
 }
 #ifdef __cplusplus
 }

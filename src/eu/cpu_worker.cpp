@@ -107,7 +107,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #endif
 }
 
-void* CPUWorker::WarpDispatch(void* worker)
+void* CPUWorker::WrapDispatch(void* worker)
 {
     reinterpret_cast<CPUWorker*>(worker)->NativeConfig();
     Dispatch(reinterpret_cast<CPUWorker*>(worker));

@@ -19,11 +19,11 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #endif
-#include "qos.h"
-#include "sync/sync.h"
 #include <list>
 #include <unordered_map>
 #include <array>
+#include "qos.h"
+#include "sync/sync.h"
 #include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"
 #include "c/timer.h"
@@ -107,7 +107,7 @@ private:
     void ReleaseFdWakeData() noexcept;
     void WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept;
     void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
-                          std::array<epoll_event, 1024>& waitedEvents) noexcept
+                          std::array<epoll_event, 1024>& waitedEvents) noexcept;
     void ExecuteTimerCb(time_point_t timer) noexcept;
 
     bool IsFdExist() noexcept;

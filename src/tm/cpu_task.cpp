@@ -83,11 +83,11 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
     taskLocal = false;
     tsd = nullptr;
     if (attr && attr->taskLocal_) {
-        tsd = (vod **)malloc(TSD_SIZE * sizeof(void *));
+        tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
         memset(tsd, 0, TSD_SIZE * sizeof(void *));
         taskLocal = attr->taskLocal_;
     }
-    FFRT_LOGD("create task name:%s gid=%lu tasklocal:%d", label.c_str(), gid, taskLocal);
+    FFRT_LOGD("create task name:%s gid=%lu taskLocal:%d", label.c_str(), gid, taskLocal);
 }
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE

@@ -29,7 +29,7 @@ void ExecuteCtxTlsDestructor(void* args)
 
 void MakeExecuteCtxTlsKey()
 {
-    pthread_key_create(&g_executeCtxTlsKey, ExecuteCtxTlsDestructor)
+    pthread_key_create(&g_executeCtxTlsKey, ExecuteCtxTlsDestructor);
 }
 } // namespace
 

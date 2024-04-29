@@ -78,6 +78,19 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     return 0;
 }
 
+int Poller::DelFdEvent(int fd) noexcept
+{
+    if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
+        FFRT_LOGE("epoll_ctl del fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
+        return -1;
+    }
+
+    std::unique_lock lock(m_mapMutex);
+    m_delCntMap[fd]++;
+    WakeUp();
+    return 0;
+}
+
 int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeout, int* nfdsPtr) noexcept
 {
     if (eventsPtr == nullptr || nfdsPtr == nullptr) {
@@ -87,7 +100,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
 
     auto task = ExecuteCtx::Cur()->task;
     if (!task) {
-        FFRT_LOGI("nonworker shall not call this fun");
+        FFRT_LOGI("nonworker shall not call this fun.");
         return -1;
     }
 
@@ -121,7 +134,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         m_mapMutex.lock();
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_LOGE("task has waited before");
-            return -1;
+            return false;
         }
         m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, nfdsPtr};
         if (timeout > -1) {
@@ -131,19 +144,6 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         m_mapMutex.unlock();
         return true;
     });
-    return 0;
-}
-
-int Poller::DelFdEvent(int fd) noexcept
-{
-    if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
-        FFRT_LOGE("epoll_ctl del fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
-        return -1;
-    }
-
-    std::unique_lock lock(m_mapMutex);
-    m_delCntMap[fd]++;
-    WakeUp();
     return 0;
 }
 
@@ -158,7 +158,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
 {
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(waitedEvents[i].data.ptr);
-        int  currFd = data->fd;
+        int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
             ssize_t n = ::read(m_wakeData.fd, &one, sizeof one);
@@ -177,7 +177,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
     }
 }
 
-void Poller::WakeSyncTask(std::unorder_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept
+void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept
 {
     if (syncTaskEvents.empty()) {
         return;
@@ -265,7 +265,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     }
 
     std::unordered_map<CPUEUTask*, EventVec> syncTaskEvents;
-    ProcessWaitedFds(nfds, syncTaskEvnets, waitedEvents);
+    ProcessWaitedFds(nfds, syncTaskEvents, waitedEvents);
     WakeSyncTask(syncTaskEvents);
 
     ReleaseFdWakeData();

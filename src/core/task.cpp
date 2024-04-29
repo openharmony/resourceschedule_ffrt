@@ -412,7 +412,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
         FFRT_LOGW("task is nullptr");
         return 1;
     }
-
+    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 1, "update qos task type invalid");
     if (_qos() == curTask->qos) {
         FFRT_LOGW("the target qos is equal to current qos, no need update");
         return 0;
@@ -441,7 +441,7 @@ uint64_t ffrt_this_task_get_id()
     if (curTask == nullptr) {
         return 0;
     }
-
+    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 0, "get id task type invalid");
     return curTask->gid;
 }
 
@@ -481,17 +481,24 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
 {
     ffrt::QoS ffrtQos(qos);
     if (op == EPOLL_CTL_DEL) {
-        return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).DelFdEvent(fd):
-    } else if (op == EPOLL_VTL_ALL || op == EPOLL_CTL_MOD) {
+        return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).DelFdEvent(fd);
+    } else if (op == EPOLL_CTL_ADD || op == EPOLL_CTL_MOD) {
         int ret = ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
         if (ret == 0) {
-            ffrt::FFRTFacade::GetEUInstance().NotifyLocalTassAdded(ffrtQos);
+            ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(ffrtQos);
         }
         return ret;
     } else {
         FFRT_LOGE("ffrt_epoll_ctl input error: op=%d, fd=%d", op, fd);
         return -1;
     }
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_poller_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout, int* nfds);
+{
+    ffrt::QoS ffrtQos(qos);
+    return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout, nfds);
 }
 #endif // FFRT_IO_TASK_SCHEDULER
 
@@ -533,15 +540,6 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_poller_wait(struct epoll_event* events, int max_events, int timeout, int* nfds)
-{
-#ifdef FFRT_IO_TASK_SCHEDULER
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    ffrt::PollerProxy::Instance()->GetPoller(qos).WaitFdEvent(events, max_evnets, timeout, nfds);
-#endif // FFRT_IO_TASK_SCHEDULER
-}
-
-API_ATTRIBUTE((visibility("default")))
 void* ffrt_get_cur_task()
 {
     return ffrt::ExecuteCtx::Cur()->task;
@@ -558,9 +556,9 @@ ffrt_qos_t ffrt_get_current_qos()
 }
 
 API_ATTRIBUTE((visibility("default")))
-bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
+bool ffrt_get_current_coroutine_stack(void** stackAddr, size_t* size)
 {
-    if (sttack_addr == nullptr || size == nullptr) {
+    if (stackAddr == nullptr || size == nullptr) {
         return false;
     }
 

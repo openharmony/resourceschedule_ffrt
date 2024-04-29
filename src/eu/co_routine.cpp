@@ -97,7 +97,7 @@ bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 
 void InitWorkerTsdValueToTask(void** taskTsd)
 {
-    std::unordered_map<std::string, pthread_key_t> upKeyMap = {
+    std::unordered_map<std::string, pthread_key_t> updKeyMap = {
         {"g_executeCtxTlsKey", g_executeCtxTlsKey},
         {"g_coThreadTlsKey", g_coThreadTlsKey}
     };
@@ -162,7 +162,7 @@ bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 
 void UpdateWorkerTsdValueToThread(void** taskTsd)
 {
-    std::unordered_map<std::string, pthread_key_t> upKeyMap = {
+    std::unordered_map<std::string, pthread_key_t> updKeyMap = {
         {"g_executeCtxTlsKey", g_executeCtxTlsKey},
         {"g_coThreadTlsKey", g_coThreadTlsKey}
     };
@@ -202,7 +202,7 @@ static void SwitchTsdToThread(ffrt::CPUEUTask* task)
         return;
     }
 
-    if (!SwitchTsdToThread(task)) {
+    if (!SwitchTsdAddrToThread(task)) {
         return;
     }
 
@@ -228,7 +228,7 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
     }
 
     if (task->threadTsd != nullptr) {
-        FFRT_LOGI("thrad tsd[%llx] not null, switch to thread first", (uint64_t)task->threadTsd);
+        FFRT_LOGI("thread tsd[%llx] not null, switch to thread first", (uint64_t)task->threadTsd);
         SwitchTsdToThread(task);
     }
 
@@ -245,9 +245,9 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 static inline void CoSwitch(CoCtx* from, CoCtx* to, CoRoutine* co, SwitchType switchtype)
 {
 #ifdef FFRT_IO_TASK_SCHEDULER
-    if (switchtype == SwitchType::THREAD_TO_TASK) {
+    if (switchType == SwitchType::THREAD_TO_TASK) {
         SwitchTsdToTask(co->task);
-    } else if (switchtype == SwitchType::THREAD_TO_THREAD) {
+    } else if (switchType == SwitchType::TASK_TO_THREAD) {
         SwitchTsdToThread(co->task);
     }
 #endif

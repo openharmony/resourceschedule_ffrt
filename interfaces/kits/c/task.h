@@ -239,6 +239,8 @@ FFRT_C_API void ffrt_wait(void);
 /**
  * @brief Sets the thread stack size of a specified QoS level.
  *
+ * @param qos Indicates the QoS.
+ * @param stack_size Indicates worker thread stack size.
  * @since 10
  * @version 1.0
  */

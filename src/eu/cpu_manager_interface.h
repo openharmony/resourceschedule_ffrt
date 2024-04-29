@@ -22,6 +22,7 @@
 #include "sync/poller.h"
 #endif
 #include "tm/cpu_task.h"
+#include "sync/poller.h"
 
 namespace ffrt {
 enum class WorkerAction {

@@ -48,13 +48,13 @@ enum class TimerStatus {
 
 struct WakeDataWithCb {
     WakeDataWithCb() {}
-    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t, uint8_t)> cbVal, CPUEUTask *taskVal)
+    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal, CPUEUTask *taskVal)
         : fd(fdVal), data(dataVal), cb(cbVal), task(taskVal)
     {}
 
     int fd = 0;
     void* data = nullptr;
-    std::function<void(void*, uint32_t, uint8_t)> cb = nullptr;
+    std::function<void(void*, uint32_t)> cb = nullptr;
     CPUEUTask* task = nullptr;
 };
 

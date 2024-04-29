@@ -166,7 +166,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
         }
 
         if (data->cb != nullptr) {
-            data->cb(data->data, waitedEvents[i].events, pollerCount_);
+            data->cb(data->data, waitedEvents[i].events);
             continue;
         }
 
@@ -344,7 +344,7 @@ int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool r
         FFRT_LOGE("repeat not supported yet");
         return -1;
     }
-    if (cb == nullptr || flag_ == EpollStatus::TEARDOWN) {
+    if (flag_ == EpollStatus::TEARDOWN) {
         return -1;
     }
 

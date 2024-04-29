@@ -520,16 +520,6 @@ void* ffrt_get_cur_task()
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_qos_t ffrt_get_current_qos()
-{
-    ffrt_qos_t qos = ffrt_qos_default;
-    if (ffrt::ExecuteCtx::Cur()->task) {
-        qos = ffrt::ExecuteCtx::Cur()->task->qos;
-    }
-    return qos;
-}
-
-API_ATTRIBUTE((visibility("default")))
 bool ffrt_get_current_coroutine_stack(void** stackAddr, size_t* size)
 {
     if (stackAddr == nullptr || size == nullptr) {

@@ -257,16 +257,6 @@ FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_
 FFRT_C_API void* ffrt_get_cur_task();
 
 /**
- * @brief Obtains the QoS of current task.
- *
- * @param none.
- * @return Returns the QoS of current task.
- * @since 12
- * @version 1.0
- */
-FFRT_C_API ffrt_qos_t ffrt_get_current_qos();
-
-/**
  * @brief Obtains current coroutine stack address and size.
  *
  * @param stack_addr Coroutine stack address.

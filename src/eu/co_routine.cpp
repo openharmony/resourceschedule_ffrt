@@ -28,12 +28,12 @@
 #include "sched/scheduler.h"
 #include "sync/sync.h"
 #include "util/slab.h"
-#include "util/pthread_internal.h"
 #include "sched/sched_deadline.h"
 #include "sync/perf_counter.h"
 #include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
 #include "co_routine_factory.h"
+#include "pthread_ffrt.h"
 
 #ifdef ASYNC_STACKTRACE
 #include "async_stack.h"

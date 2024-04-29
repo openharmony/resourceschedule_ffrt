@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include "execute_ctx.h"
-#include <securec.h>
 pthread_key_t g_executeCtxTlsKey = 0;
 pthread_once_t g_executeCtxKeyOnce = PTHREAD_ONCE_INIT;
 

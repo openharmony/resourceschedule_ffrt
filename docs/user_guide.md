@@ -2839,19 +2839,16 @@ void ffrt_yield();
 ```
 W C01719/ffrt: 60500:RecordSymbolAndBacktrace:159 Tid[16579] function occupies worker for more than [1]s.
 W C01719/ffrt: 60501:RecordSymbolAndBacktrace:164 Backtrace:
-W C01719/ffrt: #00 pc 0000000000197f6c /lib/ld-musl-aarch64.so.1
-W C01719/ffrt: #01 pc 00000000000075f0 /system/lib64/module/file/libhash.z.so
-W C01719/ffrt: #02 pc 0000000000008758 /system/lib64/module/file/libhash.z.so
-W C01719/ffrt: #03 pc 0000000000012b98 /system/lib64/module/file/libhash.z.so
-W C01719/ffrt: #04 pc 000000000002aaa0 /system/lib64/platformsdk/libfilemgmt_libn.z.so
-W C01719/ffrt: #05 pc 0000000000054b2c /system/lib64/platformsdk/libace_napi.z.so
-W C01719/ffrt: #06 pc 00000000000133a8 /system/lib64/platformsdk/libuv.so
-W C01719/ffrt: #07 pc 00000000000461a0 /system/lib64/chipset-sdk/libffrt.so
-W C01719/ffrt: #08 pc 0000000000046d44 /system/lib64/chipset-sdk/libffrt.so
-W C01719/ffrt: #09 pc 0000000000046a6c /system/lib64/chipset-sdk/libffrt.so
-W C01719/ffrt: #10 pc 00000000000467b0 /system/lib64/chipset-sdk/libffrt.so
-W C01719/ffrt: #11 pc 00000000001b59d8 /lib/ld-musl-aarch64.so.1
-W C01719/ffrt: #12 pc 00000000000a1df4 /lib/ld-musl-aarch64.so.1
+W C01719/ffrt: #00 pc 00000000000075f0 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #01 pc 0000000000008758 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #02 pc 0000000000012b98 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #03 pc 000000000002aaa0 /system/lib64/platformsdk/libfilemgmt_libn.z.so
+W C01719/ffrt: #04 pc 0000000000054b2c /system/lib64/platformsdk/libace_napi.z.so
+W C01719/ffrt: #05 pc 00000000000133a8 /system/lib64/platformsdk/libuv.so
+W C01719/ffrt: #06 pc 00000000000461a0 /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #07 pc 0000000000046d44 /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #08 pc 0000000000046a6c /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #09 pc 00000000000467b0 /system/lib64/chipset-sdk/libffrt.so
 ```
 该维测会打印出worker上执行时间超过阈值的任务堆栈、worker线程号、执行时间，请自行根据堆栈找对应组件确认阻塞原因。
 

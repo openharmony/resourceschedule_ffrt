@@ -46,6 +46,8 @@ enum class TimerStatus {
     EXECUTED,
 };
 
+constexpr int EPOLL_EVENT_SIZE = 1024;
+
 struct WakeDataWithCb {
     WakeDataWithCb() {}
     WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal, CPUEUTask *taskVal)
@@ -107,7 +109,7 @@ private:
     void ReleaseFdWakeData() noexcept;
     void WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept;
     void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
-                          std::array<epoll_event, 1024>& waitedEvents) noexcept;
+                          std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
     void ExecuteTimerCb(time_point_t timer) noexcept;
 
     bool IsFdExist() noexcept;

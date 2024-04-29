@@ -104,7 +104,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         return -1;
     }
 
-    if (maxevents < 1024) {
+    if (maxevents < EPOLL_EVENT_SIZE) {
         FFRT_LOGE("maxEvents:%d cannot be less than 1024", maxevents);
         return -1;
     }
@@ -154,7 +154,7 @@ void Poller::WakeUp() noexcept
 }
 
 void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
-                              std::array<epoll_event, 1024>& waitedEvents) noexcept
+                              std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept
 {
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(waitedEvents[i].data.ptr);
@@ -242,7 +242,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
 
     pollerCount_++;
 
-    std::array<epoll_event, 1024> waitedEvents;
+    std::array<epoll_event, EPOLL_EVENT_SIZE> waitedEvents;
     int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {

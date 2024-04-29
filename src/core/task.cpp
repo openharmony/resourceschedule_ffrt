@@ -441,6 +441,7 @@ uint64_t ffrt_this_task_get_id()
     if (curTask == nullptr) {
         return 0;
     }
+
     FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 0, "get id task type invalid");
     return curTask->gid;
 }

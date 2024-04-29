@@ -189,7 +189,7 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
         auto iter = syncTaskEvents.find(currTask);
         if (iter == syncTaskEvents.end()) {
             FFRT_LOGE(" event not coming, task=%lu, syncTaskEvents num=%u, m_waitTaskMap "
-                      "num=%u", currTask->rank, syncTaskEvents.size(),, m_waitTaskMap.size());
+                      "num=%u", currTask->rank, syncTaskEvents.size(), m_waitTaskMap.size());
             syncFditer++;
             continue;
         }

@@ -28,7 +28,7 @@
 #include "sched/scheduler.h"
 #include "sync/sync.h"
 #include "util/slab.h"
-#include "util/pthread_interal.h"
+#include "util/pthread_internal.h"
 #include "sched/sched_deadline.h"
 #include "sync/perf_counter.h"
 #include "sync/io_poller.h"
@@ -481,7 +481,7 @@ void CoYield(void)
     CoSwitchOutTrace(co->task);
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
-    SwitchTsdToTask(co->task);
+    SwitchTsdToThread(co->task);
 #endif
     CoSwitch(&co->ctx, &GetCoEnv()->schCtx);
     while (GetBboxEnableState() != 0) {

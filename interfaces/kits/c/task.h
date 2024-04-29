@@ -272,7 +272,7 @@ FFRT_C_API ffrt_qos_t ffrt_get_current_qos();
  * @param stack_addr Coroutine stack address.
  * @param size Coroutine stack size.
  * @return Returns <b>0</b> if the stack is obtained;
- *         returns <b>1</b> otherwise.
+ *         returns <b>-1</b> otherwise.
  * @since 12
  * @version 1.0
  */

@@ -74,7 +74,7 @@ config("ffrt_config") {
   }
 
   if (is_ohos) {
-    defines += ["FFRT_TASK_LOCAL_ENABLE"]
+    defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
   }
 
   #defines += ffrt_release_defines

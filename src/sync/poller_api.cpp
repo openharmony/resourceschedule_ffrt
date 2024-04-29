@@ -35,26 +35,32 @@ static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb)
 {
-    ffrt::QoS pollerQos;
-    if (!QosConvert(qos, pollerQos)) {
+    ffrt::QoS ffrtQos;
+    if (!QosConvert(qos, ffrtQos)) {
         return -1;
     }
-    int ret = 0;
-    if (op == EPOLL_CTL_ADD) {
-        ret = ffrt::PollerProxy::Instance()->GetPoller(pollerQos).AddFdEvent(events, fd, data, cb);
+    if (op == EPOLL_CTL_DEL) {
+        return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).DelFdEvent(fd);
+    } else if (op == EPOLL_CTL_ADD || op == EPOLL_CTL_MOD) {
+        int ret = ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
         if (ret == 0) {
-            ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(pollerQos);
+            ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(ffrtQos);
         }
         return ret;
-    } else if (op == EPOLL_CTL_DEL) {
-        return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).DelFdEvent(fd);
-    } else if (op == EPOLL_CTL_MOD) {
-        FFRT_LOGE("EPOLL_CTL_MOD not supported yet");
-        return -1;
     } else {
-        FFRT_LOGE("EPOLL_CTL op invalid");
+        FFRT_LOGE("ffrt_epoll_ctl input error: op=%d, fd=%d", op, fd);
         return -1;
     }
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_poller_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout, int* nfds)
+{
+    ffrt::QoS ffrtQos;
+    if (!QosConvert(qos, ffrtQos)) {
+        return -1;
+    }
+    return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout, nfds);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -64,6 +70,7 @@ void ffrt_poller_wakeup(ffrt_qos_t qos)
     if (!QosConvert(qos, pollerQos)) {
         return;
     }
+
     ffrt::PollerProxy::Instance()->GetPoller(pollerQos).WakeUp();
 }
 
@@ -74,6 +81,7 @@ uint8_t ffrt_epoll_get_count(ffrt_qos_t qos)
     if (!QosConvert(qos, pollerQos)) {
         return 0;
     }
+
     return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetPollCount();
 }
 #endif

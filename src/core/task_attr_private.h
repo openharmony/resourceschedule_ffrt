@@ -40,6 +40,7 @@ public:
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
+    bool taskLocal_ = false;
     ffrt_function_header_t* timeoutCb_ = nullptr;
 };
 }

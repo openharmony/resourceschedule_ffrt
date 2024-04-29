@@ -22,6 +22,7 @@
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
 #include "queue/serial_task.h"
+#include "pthread_ffrt.h"
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
@@ -106,7 +107,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #endif
 }
 
-void* CPUWorker::WarpDispatch(void* worker)
+void* CPUWorker::WrapDispatch(void* worker)
 {
     reinterpret_cast<CPUWorker*>(worker)->NativeConfig();
     Dispatch(reinterpret_cast<CPUWorker*>(worker));

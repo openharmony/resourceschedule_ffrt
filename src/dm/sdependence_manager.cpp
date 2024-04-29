@@ -15,6 +15,7 @@
 
 #include "sdependence_manager.h"
 #include "util/worker_monitor.h"
+#include "pthread_ffrt.h"
 
 #ifdef ASYNC_STACKTRACE
 #include "async_stack.h"

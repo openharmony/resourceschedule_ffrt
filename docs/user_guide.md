@@ -2822,6 +2822,42 @@ void ffrt_yield();
 
 * 省略
 
+# 维测
+
+## 长耗时任务监测
+在对应进程日志中搜索 `RecordSymbolAndBacktrace` 关键字，对应的日志示例如下：
+
+```
+W C01719/ffrt: 60500:RecordSymbolAndBacktrace:159 Tid[16579] function occupies worker for more than [1]s.
+W C01719/ffrt: 60501:RecordSymbolAndBacktrace:164 Backtrace:
+W C01719/ffrt: #00 pc 0000000000197f6c /lib/ld-musl-aarch64.so.1
+W C01719/ffrt: #01 pc 00000000000075f0 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #02 pc 0000000000008758 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #03 pc 0000000000012b98 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #04 pc 000000000002aaa0 /system/lib64/platformsdk/libfilemgmt_libn.z.so
+W C01719/ffrt: #05 pc 0000000000054b2c /system/lib64/platformsdk/libace_napi.z.so
+W C01719/ffrt: #06 pc 00000000000133a8 /system/lib64/platformsdk/libuv.so
+W C01719/ffrt: #07 pc 00000000000461a0 /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #08 pc 0000000000046d44 /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #09 pc 0000000000046a6c /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #10 pc 00000000000467b0 /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #11 pc 00000000001b59d8 /lib/ld-musl-aarch64.so.1
+W C01719/ffrt: #12 pc 00000000000a1df4 /lib/ld-musl-aarch64.so.1
+```
+该维测会打印出worker上执行时间超过阈值的任务堆栈、worker线程号、执行时间，请自行根据堆栈找对应组件确认阻塞原因。
+* 长耗时任务打印机制  
+  当任务执行时间超过一秒时，会触发一次堆栈打印，后续该任务堆栈打印频率调整为一分钟。连续打印十次后，打印频率调整为十分钟。再触发十次打印后，打印频率固定为三十分钟。
+* 该机制的堆栈打印调用的是DFX的 `GetBacktraceStringByTid` 接口，该接口会向阻塞线程发送抓栈信号，触发中断并抓取调用栈返回。  
+
+**注意事项：**  
+如果代码中存在 `sleep` 等会被中断唤醒的阻塞，用户需主动接收该阻塞的返回值，并重新调用。  
+示例如下：
+```
+unsigned int leftTime = sleep(10);
+while (leftTime != 0) {
+    leftTime = sleep(leftTime);
+}
+```
 
 # 部署
 

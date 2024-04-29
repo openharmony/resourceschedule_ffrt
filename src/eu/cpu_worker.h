@@ -49,6 +49,8 @@ public:
     unsigned int tick = 0;
     unsigned int global_interval = 60;
     unsigned int budget = 10;
+#else
+    unsigned int tick = 0;
 #endif
 
 private:

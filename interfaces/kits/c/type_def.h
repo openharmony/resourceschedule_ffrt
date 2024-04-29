@@ -189,7 +189,7 @@ typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
 
-typedef void (*ffrt_poller_cb)(void* data, uint32_t event);
+typedef void (*ffrt_poller_cb)(void* data, uint32_t event, uint8_t num);
 
 typedef void (*ffrt_timer_cb)(void* data);
 

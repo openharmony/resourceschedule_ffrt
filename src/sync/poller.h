@@ -111,7 +111,7 @@ private:
     void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
                           std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
     void ExecuteTimerCb(time_point_t timer) noexcept;
-
+    void ProcessTimerDataCb(CPUEUTask* task) noexcept;
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
 

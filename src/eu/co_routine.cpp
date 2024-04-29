@@ -170,7 +170,8 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
             FFRT_LOGW("new [%s] key=[%d] addr=[%llx] from task to thread", keyName.c_str(), key, (uint64_t)threadVal);
         } else if (threadVal && taskVal) {
             if (threadVal != taskVal) {
-                FFRT_LOGE("mismatch [%s] key=[%d] thread addr=[%llx], task addr=[%llx]", keyName.c_str(), key, (uint64_t)threadVal, (uint64_t)taskVal);
+                FFRT_LOGE("mismatch [%s] key=[%d] thread addr=[%llx], task addr=[%llx]",
+                    keyName.c_str(), key, (uint64_t)threadVal, (uint64_t)taskVal);
                 abort();
             }
         } else if (threadVal && !taskVal) {

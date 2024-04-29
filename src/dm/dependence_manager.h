@@ -67,24 +67,6 @@ inline void insDeDup(std::vector<CPUEUTask*> &in_handles, std::vector<const void
     }
 }
 
-static pthread_key_t g_rootWrapTlsKey = 0;
-static pthread_once_t g_rootWrapTlsOnce = PTHREAD_ONCE_INIT;
-
-namespace {
-void RootWrapTlsDestructor(void* args)
-{
-    auto root_wrapper = static_cast<RootTaskCtxWrapper*>(args);
-    if (root_wrapper) {
-        delete root_wrapper;
-    }
-}
-
-void RootWrapMakeTlsKey()
-{
-    pthread_key_create(&g_rootWrapTlsKey, RootWrapTlsDestructor);
-}
-}
-
 class DependenceManager : public NonCopyable {
 public:
     static DependenceManager& Instance();
@@ -143,21 +125,8 @@ public:
     static inline CPUEUTask* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval
-        RootTaskCtxWrapper* root_wrapper = nullptr;
-        pthread_once(&g_rootWrapTlsOnce, RootWrapMakeTlsKey);
-        if (g_rootWrapTlsKey <= 0) {
-            FFRT_LOGE("g_rootWrapTlsKey[%d] invalid", g_rootWrapTlsKey);
-            abort();
-        }
-
-        void *curTls = pthread_getspecific(g_rootWrapTlsKey);
-        if (curTls != nullptr) {
-            root_wrapper = reinterpret_cast<RootTaskCtxWrapper *>(curTls);
-        } else {
-            root_wrapper = new (std::nothrow) RootTaskCtxWrapper();
-            pthread_setspecific(g_rootWrapTlsKey, root_wrapper);
-        }
-        return root_wrapper->Root();
+        thread_local static RootTaskCtxWrapper root_wrapper;
+        return root_wrapper.Root();
     }
 
 protected:

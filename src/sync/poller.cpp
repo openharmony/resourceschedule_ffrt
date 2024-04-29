@@ -49,7 +49,7 @@ PollerProxy* PollerProxy::Instance()
 
 int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
 {
-    auto wakeData = std::unique_ptr<WakeDataWithCb>(new (std::nothrow) WakeDataWithCb(fd, data, cb, ExecuteCtx::Cur()->task));
+    auto wakeData = std::make_unique<WakeDataWithCb>(fd, data, cb, ExecuteCtx::Cur()->task);
     void* ptr = static_cast<void*>(wakeData.get());
     if (ptr == nullptr || wakeData == nullptr) {
         FFRT_LOGE("Construct WakeDataWithCb instance failed! or wakeData is nullptr");
@@ -298,6 +298,26 @@ void Poller::ReleaseFdWakeData() noexcept
     fdEmpty_.store(m_wakeDataMap.empty());
 }
 
+void Poller::ProcessTimerDataCb(CPUEUTask* task) noexcept
+{
+    m_mapMutex.lock();
+    auto iter = m_waitTaskMap.find(task);
+    if (iter != m_waitTaskMap.end()) {
+        bool blockThread = BlockThread(task);
+        if (!USE_COROUTINE || blockThread) {
+            std::unique_lock<std::mutex> lck(task->lock);
+            if (blockThread) {
+                task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+            }
+            reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
+        } else {
+            CoWake(task, false);
+        }
+        m_waitTaskMap.erase(iter);
+    }
+    m_mapMutex.unlock();
+}
+
 void Poller::ExecuteTimerCb(time_point_t timer) noexcept
 {
     std::vector<TimerDataWithCb> timerData;
@@ -317,22 +337,7 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
         if (data.cb) {
             data.cb(data.data);
         } else if (data.task != nullptr) {
-            m_mapMutex.lock();
-            auto iter = m_waitTaskMap.find(data.task);
-            if (iter != m_waitTaskMap.end()) {
-                bool blockThread = BlockThread(data.task);
-                if (!USE_COROUTINE || blockThread) {
-                    std::unique_lock<std::mutex> lck(data.task->lock);
-                    if (blockThread) {
-                        data.task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
-                    }
-                    reinterpret_cast<SCPUEUTask*>(data.task)->childWaitCond_.notify_one();
-                } else {
-                    CoWake(data.task, false);
-                }
-                m_waitTaskMap.erase(iter);
-            }
-            m_mapMutex.unlock();
+            ProcessTimerDataCb(data.task);
         }
         executedHandle_[data.handle] = TimerStatus::EXECUTED;
     }

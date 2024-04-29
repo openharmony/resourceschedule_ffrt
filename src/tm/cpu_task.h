@@ -60,6 +60,7 @@ public:
     std::mutex lock; // used in coroute
 
     TaskState state;
+    bool isTaskDone = false;
 
 #ifdef FFRT_HITRACE_ENABLE
     std::unique_ptr<OHOS::HiviewDFX::HiTraceId> traceId_{nullptr};

@@ -42,7 +42,7 @@ void CPUEUTask::SetQos(QoS& newQos)
 void CPUEUTask::FreeMem()
 {
     BboxCheckAndFreeze();
-#ifdef FFRT_IO_TASK_SCHEDULER
+#ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif
     ffrt::TaskFactory::Free(this);
@@ -59,7 +59,7 @@ void CPUEUTask::Execute()
     }
     f->destroy(f);
     FFRT_TASKDONE_MARKER(gid);
-    UpdateState(ffrt::TaskState::EXITED);
+    isTaskDone = true;
 }
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
@@ -82,6 +82,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
 
     taskLocal = false;
     tsd = nullptr;
+    isTaskDone = false;
     if (attr && attr->taskLocal_) {
         tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
         memset(tsd, 0, TSD_SIZE * sizeof(void *));

@@ -475,33 +475,6 @@ int ffrt_skip(ffrt_task_handle_t handle)
     return 1;
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
-API_ATTRIBUTE((visibility("default")))
-int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb)
-{
-    ffrt::QoS ffrtQos(qos);
-    if (op == EPOLL_CTL_DEL) {
-        return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).DelFdEvent(fd);
-    } else if (op == EPOLL_CTL_ADD || op == EPOLL_CTL_MOD) {
-        int ret = ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
-        if (ret == 0) {
-            ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(ffrtQos);
-        }
-        return ret;
-    } else {
-        FFRT_LOGE("ffrt_epoll_ctl input error: op=%d, fd=%d", op, fd);
-        return -1;
-    }
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_poller_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout, int* nfds);
-{
-    ffrt::QoS ffrtQos(qos);
-    return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout, nfds);
-}
-#endif // FFRT_IO_TASK_SCHEDULER
-
 API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr)
 {

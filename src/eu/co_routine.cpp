@@ -47,12 +47,6 @@ using namespace OHOS::HiviewDFX;
 
 extern pthread_key_t g_executeCtxTlsKey;
 
-enum class SwitchType {
-    THREAD_TO_TASK,
-    TASK_TO_THREAD,
-    EXIT
-};
-
 static void CoEnvDestructor(void* args)
 {
     auto coEnv = static_cast<CoRoutineEnv*>(args);
@@ -81,6 +75,7 @@ static CoRoutineEnv* GetCoEnv()
     return coEnv;
 }
 
+#ifdef FFRT_TASK_LOCAL_ENABLE
 namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
@@ -101,7 +96,6 @@ void InitWorkerTsdValueToTask(void** taskTsd)
         {"g_executeCtxTlsKey", g_executeCtxTlsKey},
         {"g_coThreadTlsKey", g_coThreadTlsKey}
     };
-#ifdef FFRT_IO_TASK_SCHEDULER
     auto threadTsd = pthread_gettsd();
     for (const auto& updPair : updKeyMap) {
         pthread_key_t key = updPair.second;
@@ -120,17 +114,13 @@ void InitWorkerTsdValueToTask(void** taskTsd)
             abort();
         }
     }
-#endif
 }
 
 void SwitchTsdAddrToTask(ffrt::CPUEUTask* task)
 {
-#ifdef FFRT_IO_TASK_SCHEDULER
     auto threadTsd = pthread_gettsd();
     task->threadTsd = threadTsd;
     pthread_settsd(task->tsd);
-    FFRT_LOGI("thread tsd[%llx] to task tsd[%llx]", (uint64_t)threadTsd, (uint64_t)(task->tsd));
-#endif
 }
 } // namespace
 
@@ -152,11 +142,9 @@ bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
     if (!task->threadTsd) {
         return false;
     }
-#ifdef FFRT_IO_TASK_SCHEDULER
     pthread_settsd(task->threadTsd);
     FFRT_LOGI("switch to backend thread tsd[%llx]", (uint64_t)(task->threadTsd));
     task->threadTsd = nullptr;
-#endif
     return true;
 }
 
@@ -166,7 +154,6 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
         {"g_executeCtxTlsKey", g_executeCtxTlsKey},
         {"g_coThreadTlsKey", g_coThreadTlsKey}
     };
-#ifdef FFRT_IO_TASK_SCHEDULER
     auto threadTsd = pthread_gettsd();
     for (const auto& updPair : updKeyMap) {
         pthread_key_t key = updPair.second;
@@ -192,7 +179,6 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
         }
         taskTsd[key] = nullptr;
     }
-#endif
 }
 } // namespace
 
@@ -214,9 +200,7 @@ namespace {
 void TaskTsdRunDtors(ffrt::CPUEUTask* task)
 {
     SwitchTsdAddrToTask(task);
-#ifdef FFRT_IO_TASK_SCHEDULER
     pthread_tsd_run_dtors();
-#endif
     SwitchTsdAddrToThread(task);
 }
 } // namespace
@@ -228,7 +212,7 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
     }
 
     if (task->threadTsd != nullptr) {
-        FFRT_LOGI("thread tsd[%llx] not null, switch to thread first", (uint64_t)task->threadTsd);
+        FFRT_LOGE("thread tsd[%llx] not null", (uint64_t)task->threadTsd);
         SwitchTsdToThread(task);
     }
 
@@ -241,16 +225,10 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
     }
     FFRT_LOGI("task tsd deconstruct done");
 }
-
-static inline void CoSwitch(CoCtx* from, CoCtx* to, CoRoutine* co, SwitchType switchtype)
-{
-#ifdef FFRT_IO_TASK_SCHEDULER
-    if (switchType == SwitchType::THREAD_TO_TASK) {
-        SwitchTsdToTask(co->task);
-    } else if (switchType == SwitchType::TASK_TO_THREAD) {
-        SwitchTsdToThread(co->task);
-    }
 #endif
+
+static inline void CoSwitch(CoCtx* from, CoCtx* to)
+{
     if (co2_save_context(from) == 0) {
         co2_restore_context(to);
     }
@@ -258,7 +236,10 @@ static inline void CoSwitch(CoCtx* from, CoCtx* to, CoRoutine* co, SwitchType sw
 
 static inline void CoExit(CoRoutine* co)
 {
-    CoSwitch(&co->ctx, &co->thEnv->schCtx, co, SwitchType::EXIT);
+#ifdef FFRT_TASK_LOCAL_ENABLE
+    SwitchTsdToThread(co->task);
+#endif
+    CoSwitch(&co->ctx, &co->thEnv->schCtx);
 }
 
 static inline void CoStartEntry(void* arg)
@@ -346,12 +327,7 @@ void CoStackFree(void)
 
 void CoWorkerExit(void)
 {
-    if (GetCoEnv()) {
-        if (GetCoEnv()->runningCo) {
-            CoMemFree(GetCoEnv()->runningCo);
-            GetCoEnv()->runningCo = nullptr;
-        }
-    }
+    CoStackFree();
 }
 
 static inline void BindNewCoRoutione(ffrt::CPUEUTask* task)
@@ -457,8 +433,13 @@ void CoStart(ffrt::CPUEUTask* task)
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
         CoSwitchInTrace(task);
-
-        CoSwitch(&co->thEnv->schCtx, &co->ctx, co, SwitchType::THREAD_TO_TASK);
+#ifdef FFRT_TASK_LOCAL_ENABLE
+        SwitchTsdToTask(co->task);
+#endif
+        CoSwitch(&co->thEnv->schCtx, &co->ctx);
+        if (task->type == ffrt_normal_task && task->isTaskDone) {
+            task->UpdateState(ffrt::TaskState::EXITED);
+        }
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
         CoStackCheck(co);
@@ -499,7 +480,10 @@ void CoYield(void)
     GetCoEnv()->runningCo = nullptr;
     CoSwitchOutTrace(co->task);
     FFRT_BLOCK_MARKER(co->task->gid);
-    CoSwitch(&co->ctx, &GetCoEnv()->schCtx, co, SwitchType::TASK_TO_THREAD);
+#ifdef FFRT_TASK_LOCAL_ENABLE
+    SwitchTsdToTask(co->task);
+#endif
+    CoSwitch(&co->ctx, &GetCoEnv()->schCtx);
     while (GetBboxEnableState() != 0) {
         if (GetBboxEnableState() != gettid()) {
             BboxFreeze(); // freeze non-crash thread

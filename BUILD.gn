@@ -42,7 +42,6 @@ config("ffrt_config") {
     "-DFFRT_IO_TASK_SCHEDULER",
     "-DFFRT_PTHREAD_ENABLE",
     "-DFFRT_OH_WATCHDOG_ENABLE",
-    "-DFFRT_TASK_LOCAL_ENABLE",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -72,6 +71,10 @@ config("ffrt_config") {
 
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
+  }
+
+  if (is_ohos) {
+    defines += ["FFRT_TASK_LOCAL_ENABLE"]
   }
 
   #defines += ffrt_release_defines

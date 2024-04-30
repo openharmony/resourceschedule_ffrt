@@ -78,6 +78,9 @@ static CoRoutineEnv* GetCoEnv()
 namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
+    if (task->type != ffrt_normal_task) {
+        return false;
+    }
     if (!task->taskLocal) {
         return false;
     }

@@ -19,7 +19,6 @@
 
 #include <atomic>
 #include <chrono>
-#include "interval_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 #ifdef FFRT_OH_TRACE_ENABLE
 #include <dlfcn.h>

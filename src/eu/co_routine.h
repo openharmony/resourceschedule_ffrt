@@ -131,8 +131,4 @@ void CoYield(void);
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
 void CoWake(ffrt::CPUEUTask* task, bool timeOut);
 
-#ifdef FFRT_TASK_LOCAL_ENABLE
-void TaskTsdDeconstruct(ffrt::CPUEUTask* task);
-#endif
-
 #endif

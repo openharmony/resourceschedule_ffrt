@@ -56,7 +56,7 @@ void Loop::WakeUp()
 int Loop::EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb)
 {
     if (op == EPOLL_CTL_ADD) {
-        return poller_.AddFdEvent(op, events, fd, data, cb);
+        return poller_.AddFdEvent(events, fd, data, cb);
     } else if (op == EPOLL_CTL_DEL) {
         return poller_.DelFdEvent(fd);
     } else if (op == EPOLL_CTL_MOD) {

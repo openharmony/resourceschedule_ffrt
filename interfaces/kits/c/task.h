@@ -37,8 +37,6 @@
 #ifndef FFRT_API_C_TASK_H
 #define FFRT_API_C_TASK_H
 #include <stdint.h>
-#include <stdbool.h>
-#include <sys/epoll.h>
 #include "type_def.h"
 
 /**
@@ -239,53 +237,8 @@ FFRT_C_API void ffrt_wait(void);
 /**
  * @brief Sets the thread stack size of a specified QoS level.
  *
- * @param qos Indicates the QoS.
- * @param stack_size Indicates worker thread stack size.
  * @since 10
  * @version 1.0
  */
 FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
-
-/**
- * @brief Obtains current task.
- *
- * @param none.
- * @return Returns current task.
- * @since 12
- * @version 1.0
- */
-FFRT_C_API void* ffrt_get_cur_task();
-
-/**
- * @brief Obtains current coroutine stack address and size.
- *
- * @param stack_addr Coroutine stack address.
- * @param size Coroutine stack size.
- * @return Returns <b>0</b> if the stack is obtained;
- *         returns <b>-1</b> otherwise.
- * @since 12
- * @version 1.0
- */
-FFRT_C_API bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size);
-
-/**
- * @brief Set the taskLocal flag in ffrt_task_attr.
- *
- * @param attr The ffrt_task_attr struct.
- * @param task_local The bool value to be set.
- * @return none.
- * @since 12
- * @version 1.0
- */
-FFRT_C_API void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local);
-
-/**
- * @brief Obtains the taskLocal flag in ffrt_task_attr.
- *
- * @param attr The ffrt_task_attr struct.
- * @return The bool value of task_local.
- * @since 12
- * @version 1.0
- */
-FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
 #endif

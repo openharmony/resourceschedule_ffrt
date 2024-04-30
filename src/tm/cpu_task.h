@@ -46,8 +46,6 @@ class UserDefinedTask : public TaskBase {
 };
 #endif
 
-#define TSD_SIZE 128
-
 class CPUEUTask : public CoTask {
 public:
     CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id, const QoS &qos);
@@ -60,7 +58,6 @@ public:
     std::mutex lock; // used in coroute
 
     TaskState state;
-    bool isTaskDone = false;
 
 #ifdef FFRT_HITRACE_ENABLE
     std::unique_ptr<OHOS::HiviewDFX::HiTraceId> traceId_{nullptr};
@@ -71,10 +68,6 @@ public:
      */
     std::atomic<uint64_t> childNum {0};
     bool isWatchdogEnable = false;
-
-    void** threadTsd = nullptr;
-    void** tsd = nullptr;
-    bool taskLocal = false;
 
     QoS qos;
     void SetQos(QoS& newQos);

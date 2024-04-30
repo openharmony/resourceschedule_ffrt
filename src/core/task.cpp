@@ -412,9 +412,9 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
         FFRT_LOGW("task is nullptr");
         return 1;
     }
-    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 1, "update qos task type invalid");
+
     if (_qos() == curTask->qos) {
-        FFRT_LOGW("the target qos is equal to current qos, no need update");
+        FFRT_LOGW("the target qos is euqal to current qos, no need update");
         return 0;
     }
 
@@ -442,7 +442,6 @@ uint64_t ffrt_this_task_get_id()
         return 0;
     }
 
-    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 0, "get id task type invalid");
     return curTask->gid;
 }
 
@@ -511,49 +510,6 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::FFRTFacade::GetDMInstance();
     ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
     return static_cast<int>(sch->RemoveNode(node, _qos));
-}
-
-API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_cur_task()
-{
-    return ffrt::ExecuteCtx::Cur()->task;
-}
-
-API_ATTRIBUTE((visibility("default")))
-bool ffrt_get_current_coroutine_stack(void** stackAddr, size_t* size)
-{
-    if (stackAddr == nullptr || size == nullptr) {
-        return false;
-    }
-
-    auto curTask = ffrt::ExecuteCtx::Cur()->task;
-    if (curTask != nullptr) {
-        auto co = curTask->coRoutine;
-        *size = co->stkMem.size;
-        *stackAddr = (void*)((char*)co + sizeof(CoRoutine) - 8);
-        return true;
-    }
-    return false;
-}
-
-API_ATTRIBUTE((visibility("default")))
-void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local)
-{
-    if (unlikely(!attr)) {
-        FFRT_LOGE("attr should be a valid address");
-        return;
-    }
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_ = task_local;
-}
-
-API_ATTRIBUTE((visibility("default")))
-bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr)
-{
-    if (unlikely(!attr)) {
-        FFRT_LOGE("attr should be a valid address");
-        return false;
-    }
-    return (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_;
 }
 #ifdef __cplusplus
 }

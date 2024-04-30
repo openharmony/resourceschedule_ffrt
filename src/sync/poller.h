@@ -19,15 +19,14 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #endif
+#include "qos.h"
+#include "sync/sync.h"
 #include <list>
 #include <unordered_map>
 #include <array>
-#include "qos.h"
-#include "sync/sync.h"
 #include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"
 #include "c/timer.h"
-#include "eu/worker_thread.h"
 namespace ffrt {
 enum class PollerRet {
     RET_NULL,
@@ -46,52 +45,33 @@ enum class TimerStatus {
     EXECUTED,
 };
 
-constexpr int EPOLL_EVENT_SIZE = 1024;
-
 struct WakeDataWithCb {
     WakeDataWithCb() {}
-    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal, CPUEUTask *taskVal)
-        : fd(fdVal), data(dataVal), cb(cbVal), task(taskVal)
-    {}
+    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal)
+        : fd(fdVal), data(dataVal), cb(cbVal) {}
 
     int fd = 0;
     void* data = nullptr;
     std::function<void(void*, uint32_t)> cb = nullptr;
-    CPUEUTask* task = nullptr;
 };
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CPUEUTask *taskVal) : data(dataVal), cb(cbVal), task(taskVal)
-    {}
+    TimerDataWithCb(void* dataVal, void(*cbVal)(void*)) : data(dataVal), cb(cbVal) {}
 
     void* data = nullptr;
     void(*cb)(void*) = nullptr;
     int handle = -1;
-    CPUEUTask* task = nullptr;
-};
-
-struct SyncData {
-    SyncData() {}
-    SyncData(void *eventsPtr, int maxEvents, int *nfdsPtr)
-        : eventsPtr(eventsPtr), maxEvents(maxEvents), nfdsPtr(nfdsPtr)
-    {}
-
-    void* eventsPtr = nullptr;
-    int maxEvents = 0;
-    int* nfdsPtr = nullptr;
 };
 
 class Poller : private NonCopyable {
     using WakeDataList = typename std::list<std::unique_ptr<struct WakeDataWithCb>>;
-    using EventVec = typename std::vector<epoll_event>;
 public:
     Poller() noexcept;
     ~Poller() noexcept;
 
-    int AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept;
+    int AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept;
     int DelFdEvent(int fd) noexcept;
-    int WaitFdEvent(struct epoll_event *eventsVec, int maxevents, int timeout, int* nfds) noexcept;
 
     PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
@@ -107,11 +87,8 @@ public:
 
 private:
     void ReleaseFdWakeData() noexcept;
-    void WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept;
-    void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
-                          std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
     void ExecuteTimerCb(time_point_t timer) noexcept;
-    void ProcessTimerDataCb(CPUEUTask* task) noexcept;
+
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
 
@@ -122,8 +99,6 @@ private:
     struct WakeDataWithCb m_wakeData;
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
-    std::unordered_map<CPUEUTask*, SyncData> m_waitTaskMap;
-
     std::unordered_map<int, TimerStatus> executedHandle_;
     std::multimap<time_point_t, TimerDataWithCb> timerMap_;
     std::atomic_bool fdEmpty_ {true};

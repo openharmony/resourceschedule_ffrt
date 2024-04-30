@@ -40,12 +40,6 @@ ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt
     if (!QosConvert(qos, pollerQos)) {
         return -1;
     }
-
-    if (cb == nullptr) {
-        FFRT_LOGE("cb cannot be null");
-        return -1;
-    }
-
     int handle = ffrt::PollerProxy::Instance()->GetPoller(pollerQos).RegisterTimer(timeout, data, cb, repeat);
     if (handle >= 0) {
         ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(pollerQos);

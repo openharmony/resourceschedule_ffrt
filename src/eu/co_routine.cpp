@@ -17,7 +17,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <securec.h>
 #include <string>
 #include <sys/mman.h>
 #include <unordered_map>
@@ -214,7 +213,6 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 
     if (task->threadTsd != nullptr) {
         FFRT_LOGE("thread tsd[%llx] not null", (uint64_t)task->threadTsd);
-        SwitchTsdToThread(task);
     }
 
     TaskTsdRunDtors(task);

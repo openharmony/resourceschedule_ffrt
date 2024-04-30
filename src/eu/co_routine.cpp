@@ -17,7 +17,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <securec.h>
 #include <string>
 #include <sys/mman.h>
 #include <unordered_map>
@@ -79,6 +78,9 @@ static CoRoutineEnv* GetCoEnv()
 namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
+    if (task->type != ffrt_normal_task) {
+        return false;
+    }
     if (!task->taskLocal) {
         return false;
     }
@@ -214,7 +216,6 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 
     if (task->threadTsd != nullptr) {
         FFRT_LOGE("thread tsd[%llx] not null", (uint64_t)task->threadTsd);
-        SwitchTsdToThread(task);
     }
 
     TaskTsdRunDtors(task);
@@ -440,6 +441,9 @@ void CoStart(ffrt::CPUEUTask* task)
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
         if (task->type == ffrt_normal_task && task->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
+        } else if (task->type == ffrt_serial_task) {
+            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+            sTask->DecDeleteRef();
         }
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()

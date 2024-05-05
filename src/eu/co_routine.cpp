@@ -36,7 +36,7 @@
 #include "pthread_ffrt.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
 using namespace ffrt;
@@ -430,7 +430,7 @@ void CoStart(ffrt::CPUEUTask* task)
         FFRT_LOGD("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef ASYNC_STACKTRACE
-        SetStackId(task->stackId);
+        FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
         CoSwitchInTrace(task);

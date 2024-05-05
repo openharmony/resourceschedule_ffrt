@@ -18,7 +18,7 @@
 #include "pthread_ffrt.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 using namespace OHOS::HiviewDFX;
 
@@ -91,7 +91,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef ASYNC_STACKTRACE
     {
-        task->stackId = CollectAsyncStack();
+        task->stackId = FFRTCollectAsyncStack();
     }
 #endif
 

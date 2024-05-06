@@ -236,10 +236,12 @@ static inline void CoSwitch(CoCtx* from, CoCtx* to)
     }
 }
 
-static inline void CoExit(CoRoutine* co)
+static inline void CoExit(CoRoutine* co, bool isNormalTask)
 {
 #ifdef FFRT_TASK_LOCAL_ENABLE
-    SwitchTsdToThread(co->task);
+    if (isNormalTask) {
+        SwitchTsdToThread(co->task);
+    }
 #endif
     CoSwitch(&co->ctx, &co->thEnv->schCtx);
 }
@@ -248,8 +250,10 @@ static inline void CoStartEntry(void* arg)
 {
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
     ffrt::CPUEUTask* task = co->task;
+    bool isNormalTask = false;
     switch (task->type) {
         case ffrt_normal_task: {
+            isNormalTask = true;
             task->Execute();
             break;
         }
@@ -268,7 +272,7 @@ static inline void CoStartEntry(void* arg)
     }
 
     co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
-    CoExit(co);
+    CoExit(co, isNormalTask);
 }
 
 static void CoSetStackProt(CoRoutine* co, int prot)
@@ -497,6 +501,7 @@ void CoYield(void)
         const int IGNORE_DEPTH = 3;
         backtrace(IGNORE_DEPTH);
         co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH)); // recovery to old state
+        bool isNormalTask = (co->task->type == ffrt_normal_task);
         CoExit(co);
     }
 }

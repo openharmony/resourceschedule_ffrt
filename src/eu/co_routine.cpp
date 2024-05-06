@@ -445,9 +445,6 @@ void CoStart(ffrt::CPUEUTask* task)
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
         if (task->type == ffrt_normal_task && task->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
-        } else if (task->type == ffrt_serial_task) {
-            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
-            sTask->DecDeleteRef();
         }
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()

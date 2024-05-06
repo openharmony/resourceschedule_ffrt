@@ -105,7 +105,7 @@ private:
 #define LOAD_FUNC(func) func = reinterpret_cast<func##Type>(dlsym(handle_1, #func));            \
         if (func != nullptr)                                                                    \
         {                                                                                       \
-            FFRT_LOGI("load func %s from %s success", #func, TRACE_LIB_PATH_1.c_str);           \
+            FFRT_LOGI("load func %s from %s success", #func, TRACE_LIB_PATH_1.c_str());         \
         } else {                                                                                \
             func = reinterpret_cast<func##Type>(dlsym(handle_2, #func()));                      \
             if (func == nullptr)                                                                \

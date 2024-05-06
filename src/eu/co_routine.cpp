@@ -502,7 +502,7 @@ void CoYield(void)
         backtrace(IGNORE_DEPTH);
         co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH)); // recovery to old state
         bool isNormalTask = (co->task->type == ffrt_normal_task);
-        CoExit(co);
+        CoExit(co, isNormalTask);
     }
 }
 

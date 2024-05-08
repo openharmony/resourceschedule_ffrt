@@ -9,7 +9,7 @@
 
 | 版本 | 编辑                                                         | 主要变更                                                     | 日期       |
 | ---- | ------------------------------------------------------------ | ------------------------------------------------------------ | ---------- |
-| V0.1 | linjiashu <br />zhangguowei <br />huangyouzhong  | 发布以下API：<br />1. task 管理，包括：submit，wait，task_attr, task_handle/submit_h<br />2. 同步原语，包括：mutex，condition_variable<br />3. Deadline 调度<br />4. 杂项：sleep，yield<br /> | 2022/09/26 |
+| V0.1 | linjiashu <br />zhangguowei <br />huangyouzhong  | 发布以下API：<br />1. task 管理，包括：submit，wait，task_attr, task_handle/submit_h<br />2. 同步原语，包括：mutex，shared_mutex, condition_variable<br />3. Deadline 调度<br />4. 杂项：sleep，yield<br /> | 2022/09/26 |
 | V0.1.1 | shengxia  | 部分描述更新 | 2023/08/24 |
 | V0.1.2 | wanghuachen  | 新增串行队列相关接口以及说明，增加规范以避免double free问题 | 2023/10/07 |
 | V0.1.3 | shengxia  | 优化串行队列内容描述 | 2024/01/12 |
@@ -842,9 +842,9 @@ int main(int narg, char** argv)
 
 * 任务粒度，串行队列支持任务执行超时检测（默认阈值30s，进程可配），因此队列中的单个任务不应该常驻（如循环任务），超过30s会向DFX上报超时。
 
-* 同步原语，任务中如果使用了 std::mutex/std::condition_variable等std同步原语，会影响协程效率，需修改ffrt同步原语。
+* 同步原语，任务中如果使用了 std::mutex/std::shared_mutex/std::condition_variable等std同步原语，会影响协程效率，需修改ffrt同步原语。
 
-  当前FFRT仅支持ffrt::mutex / ffrt::recursive_mutex / ffrt::condition_variable，用法和std相同，在ffrt的任务中使用未支持同步原语可能导致未定义的行为。
+  当前FFRT仅支持ffrt::mutex / ffrt::shared_mutex / ffrt::recursive_mutex / ffrt::condition_variable，用法和std相同，在ffrt的任务中使用未支持同步原语可能导致未定义的行为。
 
 * 生命周期，进程结束前需要释放FFRT资源。
 
@@ -1076,6 +1076,85 @@ sum=45
 
 * 该例子为功能示例，实际中并不鼓励这样使用
 
+### shared_mutex
+<hr/>
+* FFRT提供的类似std::shared_mutex 的性能实现
+
+#### 声明
+
+```{.cpp}
+namespace ffrt {
+class shared_mutex {
+public:
+    shared_mutex(shared_mutex const &) = delete;
+    void operator =(shared_mutex const &) = delete;
+
+    void lock();
+    void unlock();
+    bool try_lock();
+
+    void lock_shared();
+    void unlock_shared();
+    bool try_lock_shared();
+};
+}
+```
+
+#### 参数
+
+* 不涉及
+
+#### 返回值
+
+* 不涉及
+
+#### 描述
+* 该功能能够避免传统的std::shared_mutex 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
+
+#### 样例
+
+```{.cpp}
+#include <iostream>
+#include "ffrt.h"
+
+void ffrt_shared_mutex_task()
+{
+    int sum = 0;
+    ffrt::shared_mutex mtx;
+    for (int i = 0; i < 10; i++) {
+        ffrt::submit([&sum, i, &mtx] {
+             mtx.lock();
+             sum = sum + i;
+             mtx.unlock();
+        }, {}, {});
+        for (int j = 0; j < 5; j++) {
+            ffrt::submit([&sum, j, &mtx] {
+                mtx.lock_shared();
+                std::cout << "sum = " << sum << std::endl;
+                mtx.unlock_shared();
+            }, {}, {});
+        }
+    }
+    ffrt::wait();
+    std::cout << "sum = " << sum << std::endl;
+}
+
+int main(int narg, char** argv)
+{
+    int r;
+    ffrt::submit(ffrt_shared_mutex_task);
+    ffrt::wait();
+    return 0;
+}
+```
+
+预期输出为
+
+```
+sum=45
+```
+
+* 该例子为功能示例，实际中并不鼓励这样使用
 
 ### condition_variable
 <hr/>
@@ -2492,6 +2571,177 @@ int main(int narg, char** argv)
 {
     int r;
     ffrt_submit_c(ffrt_mutex_task, NULL, NULL, NULL, NULL, NULL);
+    ffrt_wait();
+    return 0;
+}
+```
+
+预期输出为
+
+```
+sum=10
+```
+
+* 该例子为功能示例，实际中并不鼓励这样使用
+
+### ffrt_rwlock_t
+<hr/>
+* FFRT提供的类似pthread rwlock 的性能实现
+
+#### 声明
+
+```{.cpp}
+typedef enum {
+    ffrt_error = -1,
+    ffrt_success = 0,
+    ffrt_error_nomem = ENOMEM,
+    ffrt_error_timedout = ETIMEDOUT,
+    ffrt_error_busy = EBUSY,
+    ffrt_error_inval = EINVAL
+} ffrt_error_t;
+
+struct ffrt_rwlock_t;
+
+int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* attr);
+int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_destroy(ffrt_rwlock_t* rwlock);
+```
+
+#### 参数
+
+`attr`
+
+* 当前FFRT只支持基础类型的rwlock，因此attr必须为空指针
+
+`rwlock`
+
+* 指向所操作的读写锁的指针
+
+#### 返回值
+
+* 若成功则为 ffrt_success ，否则发生错误
+
+#### 描述
+* 该接口只能在FFRT task 内部调用，在FFRT task 外部调用存在未定义的行为
+* 该功能能够避免pthread传统的pthread_rwlock_t 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
+* **注意：目前暂不支持递归和定时功能**
+* **注意：C API中的ffrt_rwlock_t需要用户调用`ffrt_rwlock_init`和`ffrt_rwlock_destroy`显式创建和销毁，而C++ API无需该操作**
+* **注意：C API中的ffrt_rwlock_t对象的置空和销毁由用户完成，对同一个ffrt_rwlock_t仅能调用一次`ffrt_rwlock_destroy`，重复对同一个ffrt_rwlock_t调用`ffrt_rwlock_destroy`，其行为是未定义的**
+* **注意：在`ffrt_rwlock_destroy`之后再对ffrt_rwlock_t进行访问，其行为是未定义的**
+
+#### 样例
+
+```{.c}
+#include <stdio.h>
+#include "ffrt_inner.h"
+
+typedef struct {
+    int* sum;
+    ffrt_rwlock_t* mtx;
+} tuple;
+
+void func1(void* arg)
+{
+    tuple* t = (tuple*)arg;
+
+    int ret = ffrt_rwlock_wrlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+    (*t->sum)++;
+    ret = ffrt_rwlock_unlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+}
+
+void func2(void* arg)
+{
+    tuple* t = (tuple*)arg;
+
+    int ret = ffrt_rwlock_rdlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+    printf("sum is %d\n", *t->sum);
+    ret = ffrt_rwlock_unlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+}
+
+typedef struct {
+    ffrt_function_header_t header;
+    ffrt_function_t func;
+    ffrt_function_t after_func;
+    void* arg;
+} c_function;
+
+static void ffrt_exec_function_wrapper(void* t)
+{
+    c_function* f = (c_function*)t;
+    if (f->func) {
+        f->func(f->arg);
+    }
+}
+
+static void ffrt_destroy_function_wrapper(void* t)
+{
+    c_function* f = (c_function*)t;
+    if (f->after_func) {
+        f->after_func(f->arg);
+    }
+}
+
+#define FFRT_STATIC_ASSERT(cond, msg) int x(int static_assertion_##msg[(cond) ? 1 : -1])
+static inline ffrt_function_header_t* ffrt_create_function_wrapper(const ffrt_function_t func,
+    const ffrt_function_t after_func, void* arg)
+{
+    FFRT_STATIC_ASSERT(sizeof(c_function) <= ffrt_auto_managed_function_storage_size,
+        size_of_function_must_be_less_than_ffrt_auto_managed_function_storage_size);
+    c_function* f = (c_function*)ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_general);
+    f->header.exec = ffrt_exec_function_wrapper;
+    f->header.destroy = ffrt_destroy_function_wrapper;
+    f->func = func;
+    f->after_func = after_func;
+    f->arg = arg;
+    return (ffrt_function_header_t*)f;
+}
+
+static inline void ffrt_submit_c(ffrt_function_t func, const ffrt_function_t after_func,
+    void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+{
+    ffrt_submit_base(ffrt_create_function_wrapper(func, after_func, arg), in_deps, out_deps, attr);
+}
+
+void ffrt_rwlock_task(void* arg)
+{
+    int sum = 0;
+    ffrt_rwlock_t mtx;
+    tuple t = {&sum, &mtx};
+    int ret = ffrt_rwlock_init(&mtx, NULL);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+    for (int i = 0; i < 10; i++) {
+        ffrt_submit_c(func1, NULL, &t, NULL, NULL, NULL);
+        for (int j = 0; j < 5; j++) {
+            ffrt_submit_c(func2, NULL, &t, NULL, NULL, NULL);
+        }
+    }
+    ffrt_rwlock_destroy(&mtx);
+    ffrt_wait();
+    printf("sum = %d", sum);
+}
+
+int main(int narg, char** argv)
+{
+    int r;
+    ffrt_submit_c(ffrt_rwlock_task, NULL, NULL, NULL, NULL, NULL);
     ffrt_wait();
     return 0;
 }

@@ -33,7 +33,7 @@ public:
     void WakeUp();
 
 private:
-    SerialHandler* handler_ = nullptr;
+    SerialHandler* handler_;
     Poller poller_;
     std::atomic<bool> stopFlag_ { false };
 };

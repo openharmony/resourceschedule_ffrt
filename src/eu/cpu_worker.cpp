@@ -22,6 +22,7 @@
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
 #include "queue/serial_task.h"
+#include "pthread_ffrt.h"
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"

@@ -77,10 +77,6 @@ config("ffrt_config") {
     defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
   }
 
-  if (is_ohos) {
-    defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
-  }
-
   #defines += ffrt_release_defines
   defines += [ "FFRT_HITRACE_ENABLE" ]
 }

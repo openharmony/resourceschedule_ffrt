@@ -30,7 +30,7 @@
 #include "tm/cpu_task.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
 namespace ffrt {
@@ -52,7 +52,7 @@ void CPUWorker::Run(CPUEUTask* task)
     switch (task->type) {
         case ffrt_normal_task: {
 #ifdef ASYNC_STACKTRACE
-            SetStackId(task->stackId);
+            FFRTSetStackId(task->stackId);
 #endif
             task->Execute();
             break;
@@ -60,7 +60,7 @@ void CPUWorker::Run(CPUEUTask* task)
         case ffrt_serial_task: {
             SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
 #ifdef ASYNC_STACKTRACE
-            SetStackId(sTask->stackId);
+            FFRTSetStackId(sTask->stackId);
 #endif
             sTask->IncDeleteRef();
             sTask->Execute();

@@ -55,7 +55,6 @@ config("ffrt_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
-    "ASYNC_STACKTRACE",
   ]
 
   #ffrt_release_defines = [
@@ -178,7 +177,6 @@ ohos_shared_library("libffrt") {
       "bounds_checking_function:libsec_shared",
       "c_utils:utils",
       "eventhandler:libeventhandler",
-      "faultloggerd:libasync_stack",
       "faultloggerd:libbacktrace_local",
       "faultloggerd:libdfx_dumpcatcher",
       "faultloggerd:libfaultloggerd",
@@ -188,12 +186,18 @@ ohos_shared_library("libffrt") {
       "libunwind:libunwind",
     ]
 
+    defines = []
     if (ffrt_profiler_enable && !is_emulator) {
       external_deps += [
         "hiprofiler:libffrt_profiler",
         "init:libbegetutil",
       ]
-      defines = [ "FFRT_PROFILER" ]
+      defines += [ "FFRT_PROFILER" ]
+    }
+
+    if (ffrt_async_stack_enable) {
+      defines += [ "ASYNC_STACKTRACE" ]
+      sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
     }
 
     output_extension = "so"
@@ -292,7 +296,6 @@ ohos_shared_library("ffrt_ndk") {
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "eventhandler:libeventhandler",
-    "faultloggerd:libasync_stack",
     "faultloggerd:libbacktrace_local",
     "faultloggerd:libdfx_dumpcatcher",
     "faultloggerd:libfaultloggerd",
@@ -301,6 +304,11 @@ ohos_shared_library("ffrt_ndk") {
     "hitrace:libhitracechain",
     "libunwind:libunwind",
   ]
+
+  if (ffrt_async_stack_enable) {
+    defines = [ "ASYNC_STACKTRACE" ]
+    sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
+  }
 
   part_name = "ffrt"
   subsystem_name = "resourceschedule"

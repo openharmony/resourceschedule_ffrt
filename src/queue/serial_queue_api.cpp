@@ -16,6 +16,7 @@
 #include "dm/dependence_manager.h"
 #include "serial_handler.h"
 #include "serial_task.h"
+#include "util/event_handler_adapter.h"
 
 using namespace std;
 using namespace ffrt;
@@ -198,8 +199,7 @@ int ffrt_queue_cancel(ffrt_task_handle_t handle)
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_get_main_queue()
 {
-    std::shared_ptr<OHOS::AppExecFwk::EventHandler> mainHandler =
-        (std::make_shared<OHOS::AppExecFwk::EventHandler>(OHOS::AppExecFwk::EventRunner::GetMainEventRunner()));
+    void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
     FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
     SerialHandler *handler = new (std::nothrow) SerialHandler("main_queue", nullptr);
     FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct MainThreadSerialHandler");
@@ -211,7 +211,7 @@ ffrt_queue_t ffrt_get_main_queue()
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_get_current_queue()
 {
-    std::shared_ptr<OHOS::AppExecFwk::EventHandler> workerHandler = OHOS::AppExecFwk::EventHandler::Current();
+    void* workerHandler = EventHandlerAdapter::Instance()->GetCurrentEventHandler();
     FFRT_COND_DO_ERR((workerHandler == nullptr), return nullptr, "failed to get ArkTs worker queue.");
     SerialHandler *handler = new (std::nothrow) SerialHandler("current_queue", nullptr);
     FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct WorkerThreadSerialHandler");

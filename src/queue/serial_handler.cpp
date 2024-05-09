@@ -22,6 +22,7 @@
 #include "sched/scheduler.h"
 #include "ffrt_trace.h"
 #include "internal_inc/osal.h"
+#include "util/event_handler_adapter.h"
 
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
@@ -153,16 +154,13 @@ void SerialHandler::MainSerialTaskSubmit(SerialTask* task)
     int prio = task->GetPriority();
     int delayUs = task->GetDelay();
 
-    char processName[PROCESS_NAME_BUFFER_LENGTH];
-    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> mainFunc = [=]() {
         f->exec(f);
         f->destroy(f);
     };
-    bool taskStatus = eventHandler_->PostTask(mainFunc, std::string(processName) + "_main_" + task->GetName(),
-        delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
+    bool taskStatus = EventHandlerAdapter::Instance()->PostTask(
+        eventHandler_, mainFunc, task->GetName(), delayUs / 1000, static_cast<Priority>(prio));
     FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
 }
 
@@ -172,17 +170,14 @@ void SerialHandler::WorkerSerialTaskSubmit(SerialTask* task)
     int prio = task->GetPriority();
     int delayUs = task->GetDelay();
 
-    char processName[PROCESS_NAME_BUFFER_LENGTH];
-    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> workerFunc = [=]() {
         f->exec(f);
         f->destroy(f);
     };
 
-    bool taskStatus = eventHandler_->PostTask(workerFunc, std::string(processName) + "_worker_" + task->GetName(),
-        delayUs / 1000, static_cast<OHOS::AppExecFwk::EventHandler::Priority>(prio), {});
+    bool taskStatus = EventHandlerAdapter::Instance()->PostTask(
+        eventHandler_, workerFunc, task->GetName(), delayUs / 1000, static_cast<Priority>(prio));
     FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
 }
 #endif
@@ -215,7 +210,23 @@ int SerialHandler::Cancel(SerialTask* task)
     FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", queueId_);
     FFRT_COND_DO_ERR((task == nullptr), return INACTIVE, "input invalid, serial task is nullptr");
 
-    int ret = queue_->Remove(task);
+    int ret = SUCC;
+    switch (handleType_) {
+        case NORMAL_SERIAL_HANDLER:
+            ret = queue_->Remove(task);
+            break;
+        case MAINTHREAD_SERIAL_HANDLER:
+        case WORKERTHREAD_SERIAL_HANDLER:
+#ifdef OHOS_STANDARD_SYSTEM
+            EventHandlerAdapter::Instance()->RemoveTask(eventHandler_, task->GetName());
+#endif
+            break;
+        default: {
+            FFRT_LOGE("Unsupport serial handle type=%d.", handleType_);
+            break;
+        }
+    }
+
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
         task->Notify();

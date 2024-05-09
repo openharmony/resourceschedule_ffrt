@@ -91,10 +91,10 @@ int Poller::DelFdEvent(int fd) noexcept
     return 0;
 }
 
-int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeout, int* nfdsPtr) noexcept
+int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeout) noexcept
 {
-    if (eventsPtr == nullptr || nfdsPtr == nullptr) {
-        FFRT_LOGE("eventsPtr and nfdsPtr cannot be null");
+    if (eventsPtr == nullptr) {
+        FFRT_LOGE("eventsPtr cannot be null");
         return -1;
     }
 
@@ -110,6 +110,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
     }
 
     bool legacyMode = LegacyMode(task);
+    int nfds = 0;
     if (!USE_COROUTINE || legacyMode) {
         std::unique_lock<std::mutex> lck(task->lock);
         m_mapMutex.lock();
@@ -120,7 +121,8 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         if (legacyMode) {
             task->coRoutine->blockType = BlockType::BLOCK_THREAD;
         }
-        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, nfdsPtr};
+        auto currTime = std::chrono::steady_clock::now();
+        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGE("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
@@ -136,7 +138,8 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
             FFRT_LOGE("task has waited before");
             return false;
         }
-        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, nfdsPtr};
+        auto currTime = std::chrono::steady_clock::now();
+        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGE("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
@@ -214,6 +217,17 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
     m_mapMutex.unlock();
 }
 
+uint64_t Poller::GetTaskWaitTime(CPUEUTask* task) noexcept
+{
+    std::unique_lock lock(m_mapMutex);
+    auto iter = m_waitTaskMap.find(task);
+    if (iter == m_waitTaskMap.end()) {
+        return 0;
+    }
+
+    return std::chrono::duration_cast<std::chrono::seconds>(
+        iter->second.waitTP.time_since_epoch()).count();
+}
 PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;

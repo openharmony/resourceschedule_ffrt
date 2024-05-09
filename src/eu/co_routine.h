@@ -80,6 +80,7 @@ struct CoRoutine {
     CoCtx ctx;
     bool legacyMode = false;
     BlockType blockType = BlockType::BLOCK_COROUTINE;
+    bool isTaskDone = false;
     StackMem stkMem;
 };
 

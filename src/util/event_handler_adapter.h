@@ -65,7 +65,7 @@ public:
 
     static EventHandlerAdapter* Instance()
     {
-        static EventHandlerAdapter* instance;
+        static EventHandlerAdapter instance;
         return &instance;
     }
 

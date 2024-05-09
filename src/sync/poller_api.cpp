@@ -54,13 +54,13 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_poller_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout, int* nfds)
+int ffrt_epoll_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout)
 {
     ffrt::QoS ffrtQos;
     if (!QosConvert(qos, ffrtQos)) {
         return -1;
     }
-    return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout, nfds);
+    return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -83,5 +83,17 @@ uint8_t ffrt_epoll_get_count(ffrt_qos_t qos)
     }
 
     return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetPollCount();
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_epoll_get_wait_time(void* taskHandle)
+{
+    if (taskHandle == nullptr) {
+        FFRT_LOGE("invalid task handle");
+        return false;
+    }
+
+    auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
+    return ffrt::PollerProxy::Instance()->GetPoller(task->qos).GetTaskWaitTime(task);
 }
 #endif

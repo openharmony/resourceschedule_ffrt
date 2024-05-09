@@ -40,6 +40,12 @@ enum class TaskTimeoutState {
     TIMEOUT,
 };
 
+enum class SharedMutexWaitType {
+    NORMAL,
+    READ,
+    WRITE,
+};
+
 namespace we_status {
 const int INIT = 0;
 const int NOTIFIED = 1;
@@ -50,15 +56,17 @@ const int HANDOVER = 3;
 class CPUEUTask;
 
 struct WaitEntry {
-    WaitEntry() : prev(this), next(this), task(nullptr), weType(0) {
+    WaitEntry() : prev(this), next(this), task(nullptr), weType(0), wtType(SharedMutexWaitType::NORMAL) {
     }
-    explicit WaitEntry(CPUEUTask *task) : prev(nullptr), next(nullptr), task(task), weType(0) {
+    explicit WaitEntry(CPUEUTask *task) : prev(nullptr), next(nullptr), task(task), weType(0),
+        wtType(SharedMutexWaitType::NORMAL) {
     }
     LinkedList node;
     WaitEntry* prev;
     WaitEntry* next;
     CPUEUTask* task;
     int weType;
+    SharedMutexWaitType wtType;
 };
 
 struct WaitUntilEntry : WaitEntry {

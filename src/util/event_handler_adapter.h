@@ -51,7 +51,7 @@ using GetCurrentEventHandlerype = decltype(GetCurrentEventHandlerForFFRT)*;
 using PostTaskType = decltype(PostTaskByFFRT)*;
 using RemoveTaskType = decltype(RemoveTaskForFFRT)*;
 
-class EventHandlerAdapter (
+class EventHandlerAdapter {
 public:
     EventHandlerAdapter()
     {
@@ -118,6 +118,6 @@ private:
 
     void* handle_ = nullptr;
     std::mutex mutex_;
-);
+};
 } // namespace ffrt
 #endif // FFRT_EVENT_HANDLER_ADAPTER_H

@@ -443,8 +443,9 @@ void CoStart(ffrt::CPUEUTask* task)
         SwitchTsdToTask(co->task);
 #endif
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
-        if (task->type == ffrt_normal_task && task->isTaskDone) {
+        if (co->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
+            co->isTaskDone = false;
         }
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()

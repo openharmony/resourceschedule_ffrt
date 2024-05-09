@@ -59,7 +59,7 @@ void CPUEUTask::Execute()
     }
     f->destroy(f);
     FFRT_TASKDONE_MARKER(gid);
-    isTaskDone = true;
+    this->coRoutine->isTaskDone = true;
 }
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
@@ -82,7 +82,6 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
 
     taskLocal = false;
     tsd = nullptr;
-    isTaskDone = false;
     if (attr && attr->taskLocal_) {
         tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
         memset_s(tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));

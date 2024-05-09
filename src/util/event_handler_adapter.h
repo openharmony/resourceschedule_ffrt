@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FFRT_EVENT_HANDLER_ADAPTER_H_
-#define FFRT_EVENT_HANDLER_ADAPTER_H_
+#ifndef FFRT_EVENT_HANDLER_ADAPTER_H
+#define FFRT_EVENT_HANDLER_ADAPTER_H
 #include <dlfcn.h>
 #include <string>
 #include <mutex>
@@ -120,4 +120,4 @@ private:
     std::mutex mutex_;
 );
 } // namespace ffrt
-#endif // FFRT_EVENT_HANDLER_ADAPTER_H_
+#endif // FFRT_EVENT_HANDLER_ADAPTER_H

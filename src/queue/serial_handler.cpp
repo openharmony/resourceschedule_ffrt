@@ -170,9 +170,6 @@ void SerialHandler::WorkerSerialTaskSubmit(SerialTask* task)
     int prio = task->GetPriority();
     int delayUs = task->GetDelay();
 
-    char processName[PROCESS_NAME_BUFFER_LENGTH];
-    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> workerFunc = [=]() {
         f->exec(f);
@@ -218,8 +215,8 @@ int SerialHandler::Cancel(SerialTask* task)
         case NORMAL_SERIAL_HANDLER:
             ret = queue_->Remove(task);
             break;
-        case MainSerialTaskSubmit:
-        case WorkerSerialTaskSubmit:
+        case MAINTHREAD_SERIAL_HANDLER:
+        case WORKERTHREAD_SERIAL_HANDLER:
 #ifdef OHOS_STANDARD_SYSTEM
             EventHandlerAdapter::Instance()->RemoveTask(eventHandler_, task->GetName());
 #endif

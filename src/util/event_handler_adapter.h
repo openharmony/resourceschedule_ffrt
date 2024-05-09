@@ -30,9 +30,9 @@ static const std::string EVENTHANDLER_LIB_PATH = "/system/lib/chipset-pub-sdk/li
 enum class Priority : uint32_t {
     // Event that should be distributed at once if possible.
     IMMEDIATE = 0,
-    // High priority event, sorted by handler time, should be distributed before low priority event.
+    // High priority event, sorted by handle time, should be distributed before low priority event.
     HIGH,
-    // Normal event, sorted by handler time,
+    // Normal event, sorted by handle time
     LOW,
     // Event that should be distributed only if no other event right now.
     IDLE,
@@ -47,7 +47,7 @@ bool PostTaskByFFRT(void* handler, const std::function<void()>& callback,
 void RemoveTaskForFFRT(void* handler, const std::string &name);
 
 using GetMainEventHandlerType = decltype(GetMainEventHandlerForFFRT)*;
-using GetCurrentEventHandlerype = decltype(GetCurrentEventHandlerForFFRT)*;
+using GetCurrentEventHandlerType = decltype(GetCurrentEventHandlerForFFRT)*;
 using PostTaskType = decltype(PostTaskByFFRT)*;
 using RemoveTaskType = decltype(RemoveTaskForFFRT)*;
 
@@ -70,7 +70,7 @@ public:
     }
 
     GetMainEventHandlerType GetMainEventHandler = nullptr;
-    GetCurrentEventHandlerype GetCurrentEventHandler = nullptr;
+    GetCurrentEventHandlerType GetCurrentEventHandler = nullptr;
     PostTaskType PostTask = nullptr;
     RemoveTaskType RemoveTask = nullptr;
 
@@ -94,7 +94,7 @@ private:
             return;
         }
 
-        GetCurrentEventHandler = reinterpret_cast<GetCurrentEventHandlerype>(
+        GetCurrentEventHandler = reinterpret_cast<GetCurrentEventHandlerType>(
             dlsym(handle_, "GetCurrentEventHandlerForFFRT"));
         if (GetCurrentEventHandler == nullptr) {
             FFRT_LOGE("get GetCurrentEventHandlerForFFRT symbol fail.");

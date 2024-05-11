@@ -526,12 +526,17 @@ bool ffrt_get_current_coroutine_stack(void** stackAddr, size_t* size)
         return false;
     }
 
+    if (!ffrt::USE_COROUTINE) {
+        return false;
+    }
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask != nullptr) {
         auto co = curTask->coRoutine;
-        *size = co->stkMem.size;
-        *stackAddr = (void*)((char*)co + sizeof(CoRoutine) - 8);
-        return true;
+        if (co) {
+            *size = co->stkMem.size;
+            *stackAddr = (void*)((char*)co + sizeof(CoRoutine) - 8);
+            return true;
+        }
     }
     return false;
 }

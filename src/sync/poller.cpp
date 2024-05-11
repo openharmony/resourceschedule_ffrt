@@ -211,7 +211,17 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
             }
         }
         m_waitTaskMap.erase(syncFditer++);
-        CoWake(currTask, false);
+
+        bool blockThread = BlockThread(currTask);
+        if (!USE_COROUTINE || blockThread) {
+            std::unique_lock<std::mutex> lck(currTask->lock);
+            if (blockThread) {
+                currTask->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+            }
+            reinterpret_cast<SCPUEUTask*>(currTask)->childWaitCond_.notify_one();
+        } else {
+            CoWake(currTask, false);
+        }
         syncTaskEvents.erase(iter);
     }
     m_mapMutex.unlock();

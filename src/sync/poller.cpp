@@ -131,6 +131,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.wait(lck);
         return 0;
     }
+    FFRT_LOGI("====[zr], poller cowait task=[%llx]", (uint64_t)task);
 
     CoWait([&](CPUEUTask *task)->bool {
         m_mapMutex.lock();
@@ -147,6 +148,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         m_mapMutex.unlock();
         return true;
     });
+    FFRT_LOGI("=====[ZR],  task[%lx] get nfds=[%d]", (uint64_t)task, nfds);
     return 0;
 }
 

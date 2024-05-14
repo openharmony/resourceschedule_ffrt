@@ -70,6 +70,7 @@ static CoRoutineEnv* GetCoEnv()
     } else {
         coEnv = new (std::nothrow) CoRoutineEnv();
         pthread_setspecific(g_coThreadTlsKey, coEnv);
+        FFRT_LOGI("====[ZR] create CoEnv=[%llx]", (uint64_t)coEnv);
     }
     return coEnv;
 }
@@ -123,6 +124,7 @@ void SwitchTsdAddrToTask(ffrt::CPUEUTask* task)
     auto threadTsd = pthread_gettsd();
     task->threadTsd = threadTsd;
     pthread_settsd(task->tsd);
+    FFRT_LOGI("====[ZR] switch thread tsd[%llx] to task tsd[%llx]", (uint64_t)threadTsd, (uint64_t)task->tsd);
 }
 } // namespace
 
@@ -131,11 +133,15 @@ static void SwitchTsdToTask(ffrt::CPUEUTask* task)
     if (!IsTaskLocalEnable(task)) {
         return;
     }
+    FFRT_LOGI("====[ZR] switch in, task=[%llx], co=[%llx], runnint co=[%llx], co task=[%llx], execute task=[%llx]",
+        (uint64_t)task, (uint64_t)task->coRoutine, (uint64_t)GetCoEnv()->runningCo, (uint64_t)task->coRoutine->task, (uint64_t)ExecuteCtx::Cur()->task);
 
     InitWorkerTsdValueToTask(task->tsd);
 
     SwitchTsdAddrToTask(task);
     FFRT_LOGI("switch tsd to task Success");
+    FFRT_LOGI("====[ZR] after switch in, task=[%llx], co=[%llx], runnint co=[%llx], co task=[%llx], execute task=[%llx]",
+        (uint64_t)task, (uint64_t)task->coRoutine, (uint64_t)GetCoEnv()->runningCo, (uint64_t)task->coRoutine->task, (uint64_t)ExecuteCtx::Cur()->task);    
 }
 
 namespace {
@@ -181,6 +187,7 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
             abort();
         }
         taskTsd[key] = nullptr;
+        FFRT_LOGI("====[ZR] clear task tsd value done");
     }
 }
 } // namespace
@@ -341,6 +348,10 @@ static inline void BindNewCoRoutione(ffrt::CPUEUTask* task)
     task->coRoutine = GetCoEnv()->runningCo;
     task->coRoutine->task = task;
     task->coRoutine->thEnv = GetCoEnv();
+    if (task->taskLocal) {
+        FFRT_LOGI("====[zr] task=[%llx] bind to new co=[%llx], co task=[%llx], execute task=[%llx]",
+            (uint64_t)task, (uint64_t)task->coRoutine, (uint64_t)task->coRoutine->task, (uint64_t)ExecuteCtx::Cur()->task);
+    }
 }
 
 static inline void UnbindCoRoutione(ffrt::CPUEUTask* task)
@@ -356,9 +367,12 @@ static inline int CoAlloc(ffrt::CPUEUTask* task)
             CoMemFree(GetCoEnv()->runningCo);
         }
         GetCoEnv()->runningCo = task->coRoutine;
+        FFRT_LOGI("====[ZR], set task co=[%llx] to coenv=[%llx]", (uint64_t)task->coRoutine, (uint64_t)GetCoEnv());
     } else {
         if (!GetCoEnv()->runningCo) {
-            GetCoEnv()->runningCo = AllocNewCoRoutine();
+            auto newCo = AllocNewCoRoutine();
+            GetCoEnv()->runningCo = newCo;
+            FFRT_LOGI("====[ZR], alloc new co=[%llx] to coenv=[%llx], size=[%lx]", (uint64_t)newCo, (uint64_t)GetCoEnv(), CoStackAttr::Instance()->size);
         }
     }
     BindNewCoRoutione(task);
@@ -432,7 +446,7 @@ void CoStart(ffrt::CPUEUTask* task)
 #endif
 
     for (;;) {
-        FFRT_LOGD("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
+        FFRT_LOGI("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
@@ -484,10 +498,13 @@ void CoYield(void)
 {
     CoRoutine* co = static_cast<CoRoutine*>(GetCoEnv()->runningCo);
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
+    FFRT_LOGI("====[ZR] coyield start, co=[%llx]", (uint64_t)co);
     GetCoEnv()->runningCo = nullptr;
+    FFRT_LOGI("====[ZR] task=[%llx], execute task=[%llx]", (uint64_t)co->task, (uint64_t)ExecuteCtx::Cur()->task);
     CoSwitchOutTrace(co->task);
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
+    FFRT_LOGI("====[ZR] try to switchtsdtothread");
     SwitchTsdToThread(co->task);
 #endif
     CoSwitch(&co->ctx, &GetCoEnv()->schCtx);

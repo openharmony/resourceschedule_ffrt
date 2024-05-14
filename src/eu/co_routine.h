@@ -54,7 +54,7 @@ enum class BlockType {
 #if defined(__aarch64__)
     constexpr uint64_t STACK_SIZE = 1 << 20; // 至少3*PAGE_SIZE
 #elif defined(__arm__)
-    constexpr uint64_t STACK_SIZE = 1 << 15;
+    constexpr uint64_t STACK_SIZE = 1 << 21;
 #else
     constexpr uint64_t STACK_SIZE = 1 << 20;
 #endif

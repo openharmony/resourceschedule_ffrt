@@ -129,9 +129,9 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         }
         m_mapMutex.unlock();
         reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.wait(lck);
-        return 0;
+        return nfds;
     }
-    FFRT_LOGI("====[zr], poller cowait task=[%llx]", (uint64_t)task);
+    FFRT_LOGI("====[zr], poller cowait task=[%llx], timeout=%d", (uint64_t)task, timeout);
 
     CoWait([&](CPUEUTask *task)->bool {
         m_mapMutex.lock();
@@ -148,8 +148,8 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         m_mapMutex.unlock();
         return true;
     });
-    FFRT_LOGI("=====[ZR],  task[%lx] get nfds=[%d]", (uint64_t)task, nfds);
-    return 0;
+    FFRT_LOGI("=====[ZR], after cowait task[%llx] get nfds=[%d]", (uint64_t)task, nfds);
+    return nfds;
 }
 
 void Poller::WakeUp() noexcept
@@ -210,6 +210,7 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
             int* nfdsPtr = syncFditer->second.nfdsPtr;
             if (nfdsPtr) {
                 *nfdsPtr = nfds;
+                FFRT_LOGI("=====[ZR], after epwait task[%llx] get nfds=[%d]", (uint64_t)currTask, nfds);
             }
         }
         m_waitTaskMap.erase(syncFditer++);
@@ -223,6 +224,7 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
             reinterpret_cast<SCPUEUTask*>(currTask)->childWaitCond_.notify_one();
         } else {
             CoWake(currTask, false);
+            FFRT_LOGI("=====[ZR], cowake task[%llx] by poller", (uint64_t)currTask);
         }
         syncTaskEvents.erase(iter);
     }
@@ -338,6 +340,7 @@ void Poller::ProcessTimerDataCb(CPUEUTask* task) noexcept
             reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
         } else {
             CoWake(task, false);
+            FFRT_LOGI("=====[ZR], cowake task[%llx] by timer", (uint64_t)task);
         }
         m_waitTaskMap.erase(iter);
     }

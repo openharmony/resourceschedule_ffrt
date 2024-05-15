@@ -34,7 +34,7 @@ private:
 
 private:
     std::mutex mutex_;
-    bool skipSampling_ = true;
+    bool skipSampling_ = false;
     WaitUntilEntry waitEntry_;
     std::map<WorkerThread*, std::pair<CPUEUTask*, int>> workerStatus_;
 };

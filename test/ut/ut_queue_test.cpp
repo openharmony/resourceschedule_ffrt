@@ -473,18 +473,6 @@ TEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency)
     ffrt_queue_attr_destroy(&queue_attr1);
 }
 
-/*
- * 测试用例名称：ffrt_queue_attr_set_max_concurrency
- * 测试用例描述：测试ffrt_queue_attr_set_max_concurrency
- * 操作步骤    ：1、调用ffrt_queue_attr_set_max_concurrency设置FFRT并行队列，并行度为4
- *             2、使用ffrt_queue_attr_get_max_concurrency查询并行度
- * 预期结果    ：查询结果与设定相同，值为4
- */
-TEST_F(QueueTest, ffrt_queue_has_task)
-{
-
-}
-
 #ifdef OHOS_STANDARD_SYSTEM
 TEST_F(QueueTest, ffrt_get_main_queue)
 {

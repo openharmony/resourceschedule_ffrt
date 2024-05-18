@@ -41,6 +41,14 @@ std::string FormatDateString(const std::chrono::system_clock::time_point& timePo
     return std::string(sysTime) + msString;
 }
 
+std::string FormatDateString(uint64_t steadyClockTimeStamp)
+{
+    std::chrono::microseconds ms(steadyClockTimeStamp - std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now()::time_since_epoch()).count());
+    auto tp = std::chrono::system_clock::now() + ms;
+    return FormatDateString(tp);
+}
+
 void DumpRunningTaskInfo(const char* tag, const ffrt::HistoryTask& currentRunningTask, std::ostringstream& oss)
 {
     oss << tag << " Current Running: ";
@@ -51,7 +59,7 @@ void DumpRunningTaskInfo(const char* tag, const ffrt::HistoryTask& currentRunnin
         oss << "Event { ";
         oss << "send thread = " << currentRunningTask.senderKernelThreadId_;
         oss << ", send time = " << FormatDateString(currentRunningTask.sendTime_);
-        oss << ", handle time" << FormatDateString(currentRunningTask.handleTime_);
+        oss << ", handle time = " << FormatDateString(currentRunningTask.handleTime_);
         oss << ", task name = " << currentRunningTask.taskName_;
         oss << " }\n";
     }
@@ -69,16 +77,16 @@ void DumpHistoryTaskInfo(const char* tag, const std::vector<ffrt::HistoryTask>& 
         oss << tag << " No. " << i + 1 << " : Event { ";
         oss << "send thread = " << historyTask.senderKernelThreadId_;
         oss << ", send time = " << FormatDateString(historyTask.sendTime_);
-        oss << ", handle time" << FormatDateString(historyTask.handleTime_);
-        oss << ", triggter time" << FormatDateString(historyTask.triggterTime_);
-        oss << ", complete time" << FormatDateString(historyTask.completeTime_);
+        oss << ", handle time = " << FormatDateString(historyTask.handleTime_);
+        oss << ", trigger time = " << FormatDateString(historyTask.triggterTime_);
+        oss << ", complete time = " << FormatDateString(historyTask.completeTime_);
         oss << ", task name = " << historyTask.taskName_;
         oss << " }\n";
     }
 }
 
-void DumpUnexecutedTaskInfo(onst char* tag,
-    const std::multimap<uint64_t, ffrt::QueueTask*> whenMap, std::ostringstream& oss)
+void DumpUnexecutedTaskInfo(const char* tag,
+    const std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, std::ostringstream& oss)
 {
     static std::pair<ffrt_inner_queue_priority_t, std::string> priorityPairArr[] = {
         {ffrt_inner_queue_priority_immediate, "Immediate"}, {ffrt_inner_queue_priority_high, "High"},
@@ -94,11 +102,11 @@ void DumpUnexecutedTaskInfo(onst char* tag,
     }
 
     auto taskDumpFun = [&](int n, ffrt::QueueTask* task) {
-        oss << tag << " No. " << i + 1 << " : Event { ";
-        oss << "send thread = " << task.senderKernelThreadId_;
-        oss << ", send time = " << FormatDateString(task.sendTime_);
-        oss << ", handle time" << FormatDateString(task.handleTime_);
-        oss << ", task name = " << task.taskName_;
+        oss << tag << " No. " << n << " : Event { ";
+        oss << "send thread = " << task->GetSenderKernelThreadId();
+        oss << ", send time = " << FormatDateString(task->GetUptime() - task->GetDelay());
+        oss << ", handle time = " << FormatDateString(task->GetUptime());
+        oss << ", task name = " << task->label;
         oss << " }\n";
         dumpSize--;
     };
@@ -106,7 +114,6 @@ void DumpUnexecutedTaskInfo(onst char* tag,
     for (auto pair : priorityPairArr) {
         auto range = priorityMap.equal_range(pair.first);
         oss << tag << " " << pair.second << " priority event queue information:\n";
-
         int n = 0;
         for (auto it = range.first; it != range.second; ++it) {
             total++;
@@ -159,7 +166,7 @@ int EventHandlerAdapterQueue::Push(QueueTask* task)
     return SUCC;
 }
 
-QueueTask* ConcurrentQueue::Pull()
+QueueTask* EventHandlerAdapterQueue::Pull()
 {
     std::unique_lock lock(mutex_);
     // wait for delay task
@@ -207,8 +214,7 @@ int EventHandlerAdapterQueue::Dump(const char* tag, char* buf, uint32_t len, boo
 int EventHandlerAdapterQueue::DumpSize(ffrt_inner_queue_priority_t priority)
 {
     std::unique_lock lock(mutex_);
-    return std::count_if(whenMap_.cbegin(), whenMap_.cend(),
-        [](const auto& pair) {
+    return std::count_if(whenMap_.begin(), whenMap_.end(), [=](const auto& pair) {
             return static_cast<ffrt_inner_queue_priority_t>(pair.second->GetPriority()) == priority;
         });
 }

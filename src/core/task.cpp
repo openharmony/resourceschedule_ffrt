@@ -38,6 +38,7 @@
 #include "util/spmc_queue.h"
 #endif
 #include "tm/task_factory.h"
+#include "tm/queue_task.h"
 
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,

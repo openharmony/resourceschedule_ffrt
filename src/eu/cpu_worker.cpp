@@ -27,6 +27,7 @@
 #include "util/spmc_queue.h"
 #endif
 #include "tm/cpu_task.h"
+#include "tm/queue_task.h"
 
 #ifdef ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"

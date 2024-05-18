@@ -65,7 +65,7 @@ FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_head_h(
  * @brief Checks whether a task with the given name can be found in the queue.
  *
  * @param queue Indicates a queue handle.
- * @param name Indicates name to be searched for, regular expressions are supperted.
+ * @param name Indicates name to be searched for, regular expressions are supported.
  * @return Returns whether the task is found.
  * @version 1.0
  */
@@ -80,10 +80,10 @@ FFRT_C_API bool ffrt_queue_has_task(ffrt_queue_t queue, const char* name);
 FFRT_C_API void ffrt_queue_cancel_all(ffrt_queue_t queue);
 
 /**
- * @brief Cancels all unexecuted tasks in the queue.
+ * @brief Cancels a task with the given name in the queue.
  *
  * @param queue Indicates a queue handle.
- * @param name Indicates name to be searched for, regular expressions are supperted.
+ * @param name Indicates name of the task to be canceled, regular expressions are supperted.
  * @return Returns <b>0</b> if the task is canceled;
            returns <b>1</b> otherwise.
  * @version 1.0
@@ -101,14 +101,14 @@ FFRT_C_API bool ffrt_queue_is_idle(ffrt_queue_t queue);
 
 /**
  * @brief Dumps queue information;
- *        including current execution, historical execution, and remainning unexecuted task information, etc.
+ *        including current execution, historical execution, and remaining unexecuted task information, etc.
  *
  * @param queue Indicates a queue handle.
  * @param tag Indicates tag prefix for dump information.
  * @param buf Indicates produce output, write to the character string buf.
  * @param len Indicates the size of the buffer (in bytes).
  * @param history_info Indicates whether dump history information.
- * @return Returns the number of characters printed (not including the terminating nulll byte '\0');
+ * @return Returns the number of characters printed (not including the terminating null byte '\0');
            returns -1 if an error occurred, pay special attention to returning -1 when truncation occurs.
  * @version 1.0
  */

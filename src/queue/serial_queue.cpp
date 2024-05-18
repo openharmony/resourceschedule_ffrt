@@ -56,8 +56,8 @@ QueueTask* SerialQueue::Pull()
 
     // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
-        isActiveState_.store(false);
         FFRT_LOGD("[queueId=%u] switch into inactive", queueId_);
+        isActiveState_.store(false);
         return nullptr;
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);

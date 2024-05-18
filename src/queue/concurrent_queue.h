@@ -54,14 +54,14 @@ public:
 
     bool IsOnLoop() override
     {
-        return IsOnLoop_.load();
+        return isOnLoop_.load();
     }
 
 private:
     int PushDelayTaskToTimer(QueueTask* task);
 
     Loop* loop_ { nullptr };
-    std::atomic_bool IsOnLoop_ { false };
+    std::atomic_bool isOnLoop_ { false };
 
     int maxConcurrency_ {1};
     std::atomic_int concurrency_ {0};

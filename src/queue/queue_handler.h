@@ -28,15 +28,15 @@ class QueueTask;
 class SerialQueue;
 class Loop;
 
-class SerialHandler {
+class QueueHandler {
 public:
-    SerialHandler(const char* name, const ffrt_queue_attr_t* attr, const int type = ffrt_queue_serial);
-    ~SerialHandler();
+    QueueHandler(const char* name, const ffrt_queue_attr_t* attr, const int type = ffrt_queue_serial);
+    ~QueueHandler();
 
     void Cancel();
     int Cancel(const char* name);
     int Cancel(QueueTask* task);
-    void Dispatch(QueueTask* task);
+    void Dispatch(QueueTask* inTask);
     void Submit(QueueTask* task);
     void TransferTask(QueueTask* task);
 

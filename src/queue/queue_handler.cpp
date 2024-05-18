@@ -26,18 +26,14 @@
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
-constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
 std::atomic_uint32_t queueId(0);
 }
 namespace ffrt {
 QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, const int type)
-    : queueId_(queueId++), queueType_(type)
+    : queueId_(queueId++)
 {
-    int maxConcurrency = 1;
     // parse queue attribute
     if (attr) {
-        maxConcurrency = (ffrt_queue_attr_get_max_concurrency(attr))
-            <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
         qos_ = (ffrt_queue_attr_get_qos(attr) >= ffrt_qos_background) ? ffrt_queue_attr_get_qos(attr) : qos_;
         timeout_ = ffrt_queue_attr_get_timeout(attr);
         timeoutCb_ = ffrt_queue_attr_get_callback(attr);
@@ -119,7 +115,7 @@ uint64_t QueueHandler::GetNextTimeout()
 
 void QueueHandler::Submit(QueueTask* task)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", queueId_);
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
     // if qos not specified, qos of the queue is inherited by task
@@ -130,12 +126,12 @@ void QueueHandler::Submit(QueueTask* task)
     uint64_t gid = task->gid;
     FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(queueId_, gid);
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
-        task->SetSendKernelThreadId(syscall(SYS_gettid));
+        task->SetSenderKernelThreadId(syscall(SYS_gettid));
     }
 
     int ret = queue_->Push(task);
     if (ret == SUCC) {
-        FFRT_LOGD("submit task[%lu] into %s", task->gid, name_.c_str());
+        FFRT_LOGD("submit task[%lu] into %s", gid, name_.c_str());
         return;
     }
     if (ret == FAILED) {
@@ -148,10 +144,10 @@ void QueueHandler::Submit(QueueTask* task)
 
     // activate queue
     if (task->GetDelay() == 0) {
-        FFRT_LOGD("task [%llu] activate %s", task->gid, name_.c_str());
+        FFRT_LOGD("task [%llu] activate %s", gid, name_.c_str());
         TransferTask(task);
     } else {
-        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", task->gid, task->GetDelay(), name_.c_str());
+        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", gid, task->GetDelay(), name_.c_str());
         if (ret == INACTIVE) {
             queue_->Push(task);
         }
@@ -188,7 +184,7 @@ int QueueHandler::Cancel(QueueTask* task)
         task->Notify();
         task->Destroy();
     } else {
-        FFRT_LOGW("cancel task[%llu] %s failed, task may have been executed", task->gid, task->label.c_str());
+        FFRT_LOGD("cancel task[%llu] %s failed, task may have been executed", task->gid, task->label.c_str());
     }
     return ret;
 }

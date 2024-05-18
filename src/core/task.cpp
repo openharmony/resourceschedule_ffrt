@@ -215,7 +215,7 @@ void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priori
     }
 
     // eventhandler inner priority is one more than the kits priority
-    if (priority < ffrt_queue_priority_immediate || priority > ffrt_queue_priority_idle +1) {
+    if (priority < ffrt_queue_priority_immediate || priority > ffrt_queue_priority_idle + 1) {
         FFRT_LOGE("priority should be a valid priority");
         return;
     }

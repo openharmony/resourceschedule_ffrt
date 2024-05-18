@@ -44,7 +44,7 @@ std::string FormatDateString(const std::chrono::system_clock::time_point& timePo
 std::string FormatDateString(uint64_t steadyClockTimeStamp)
 {
     std::chrono::microseconds ms(steadyClockTimeStamp - std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now()::time_since_epoch()).count());
+        std::chrono::steady_clock::now().time_since_epoch()).count());
     auto tp = std::chrono::system_clock::now() + ms;
     return FormatDateString(tp);
 }
@@ -78,7 +78,7 @@ void DumpHistoryTaskInfo(const char* tag, const std::vector<ffrt::HistoryTask>& 
         oss << "send thread = " << historyTask.senderKernelThreadId_;
         oss << ", send time = " << FormatDateString(historyTask.sendTime_);
         oss << ", handle time = " << FormatDateString(historyTask.handleTime_);
-        oss << ", trigger time = " << FormatDateString(historyTask.triggterTime_);
+        oss << ", trigger time = " << FormatDateString(historyTask.triggerTime_);
         oss << ", complete time = " << FormatDateString(historyTask.completeTime_);
         oss << ", task name = " << historyTask.taskName_;
         oss << " }\n";
@@ -232,7 +232,7 @@ void EventHandlerAdapterQueue::PushHistoryTask(QueueTask* task, uint64_t trigger
     historyTask.sendTime_ = task->GetUptime() - task->GetDelay();
     historyTask.handleTime_ = task->GetUptime();
     historyTask.triggerTime_ = triggerTime;
-    historyTask.completeTime_ = completetime;
+    historyTask.completeTime_ = completeTime;
     historyTasks_[historyTaskIndex_.fetch_add(1) & (HISTORY_TASK_NUM_POWER - 1)] = historyTask;
 }
 

@@ -30,7 +30,7 @@ const std::map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_eventhandler_interactive, ffrt::CreateEventHandlerInteractiveQueue },
     { ffrt_queue_eventhandler_adapter, ffrt::CreateEventHandlerAdapterQueue },
 };
-} // namespace
+}
 
 namespace ffrt {
 void BaseQueue::Stop()
@@ -46,7 +46,7 @@ void BaseQueue::Stop()
 void BaseQueue::Remove()
 {
     std::unique_lock lock(mutex_);
-    FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot remove task, [queueId=%u] is exiting", queueId_);
+    FFRT_COND_DO_ERR(isExit_, return, "cannot remove task, [queueId=%u] is exiting", queueId_);
 
     ClearWhenMap();
 
@@ -58,23 +58,23 @@ int BaseQueue::Remove(const char* name)
     std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot remove task, [queueId=%u] is exiting", queueId_);
 
-    int removeCount = 0;
+    int removedCount = 0;
     for (auto iter = whenMap_.begin(); iter != whenMap_.end();) {
         if (iter->second->IsMatch(name)) {
             FFRT_LOGD("cancel task[%llu] %s succ", iter->second->gid, iter->second->label.c_str());
-            it->second->Notify();
-            it->second->Destroy();
+            iter->second->Notify();
+            iter->second->Destroy();
             iter = whenMap_.erase(iter);
-            removeCount++;
+            removedCount++;
         } else {
             ++iter;
         }
     }
 
-    return removeCount > 0 ? SUCC : FAILED;
+    return removedCount > 0 ? SUCC : FAILED;
 }
 
-int BaseQueue::Remove(const SerialTask* task)
+int BaseQueue::Remove(const QueueTask* task)
 {
     std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot remove task, [queueId=%u] is exiting", queueId_);
@@ -97,7 +97,7 @@ int BaseQueue::GetNextTimeout()
         return -1;
     }
     uint64_t now = GetNow();
-    if (now > whenMap_.begin()->first) {
+    if (now >= whenMap_.begin()->first) {
         return 0;
     }
     uint64_t diff = whenMap_.begin()->first - now;

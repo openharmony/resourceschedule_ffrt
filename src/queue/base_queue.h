@@ -39,7 +39,7 @@ enum QueueAction {
 class BaseQueue : public NonCopyable {
 public:
     explicit BaseQueue(const uint32_t queueId) : queueId_(queueId) {}
-    ~BaseQueue() = default;
+    virtual ~BaseQueue() = default;
 
     virtual int Push(QueueTask* task) = 0;
     virtual QueueTask* Pull() = 0;
@@ -75,7 +75,7 @@ protected:
 
     const uint32_t queueId_;
     bool isExit_ { false };
-    std::atomic_bool isActiveState_ = { false };
+    std::atomic_bool isActiveState_ { false };
     std::multimap<uint64_t, QueueTask*> whenMap_;
     QueueStrategy<QueueTask>::DequeFunc dequeFunc_ { nullptr };
 

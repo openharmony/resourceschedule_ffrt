@@ -27,7 +27,7 @@ public:
 
     int Push(QueueTask* task) override;
 
-    QueueTask* Pull() override;
+    QueueTask* Pull() override
     {
         return nullptr;
     }
@@ -51,7 +51,7 @@ public:
     void Stop() override
     {
         std::unique_lock lock(mutex_);
-        isExit_ = truel
+        isExit_ = true;
     }
 
     inline void SetEventHandler(void* eventHandler)

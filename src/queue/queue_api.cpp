@@ -216,7 +216,7 @@ int ffrt_queue_cancel(ffrt_task_handle_t handle)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_cancel_all(ffrt_queue_t queue)
 {
-    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return -1, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return, "input invalid, queue is nullptr");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
     handler->Cancel();
 }
@@ -233,8 +233,8 @@ int ffrt_queue_cancel_by_name(ffrt_queue_t queue, const char* name)
 API_ATTRIBUTE((visibility("default")))
 bool ffrt_queue_has_task(ffrt_queue_t queue, const char* name)
 {
-    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return -1, "input invalid, queue is nullptr");
-    FFRT_COND_DO_ERR(unlikely(name == nullptr), return -1, "input invalid, name is nullptr");
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return false, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR(unlikely(name == nullptr), return false, "input invalid, name is nullptr");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
     return handler->HasTask(name);
 }
@@ -242,7 +242,7 @@ bool ffrt_queue_has_task(ffrt_queue_t queue, const char* name)
 API_ATTRIBUTE((visibility("default")))
 bool ffrt_queue_is_idle(ffrt_queue_t queue)
 {
-    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return -1, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return false, "input invalid, queue is nullptr");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
     return handler->IsIdle();
 }
@@ -250,9 +250,9 @@ bool ffrt_queue_is_idle(ffrt_queue_t queue)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandler)
 {
-    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return -1, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return, "input invalid, queue is nullptr");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
-    return handler->SetEventHandler(eventhandler);
+    handler->SetEventHandler(eventhandler);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -264,8 +264,8 @@ void* ffrt_get_current_queue_eventhandler()
         return nullptr;
     }
 
-    QueueHandler* handler = reinterpret_cast<QueueHandler*>(curTask)->GetHandler();
-    FFRT_COND_DO_ERR(unlikely(handler == nullptr), return -1, "task handler is nullptr");
+    QueueHandler* handler = reinterpret_cast<QueueTask*>(curTask)->GetHandler();
+    FFRT_COND_DO_ERR(unlikely(handler == nullptr), return nullptr, "task handler is nullptr");
     return handler->GetEventHandler();
 }
 
@@ -274,7 +274,8 @@ ffrt_queue_t ffrt_get_main_queue()
 {
     void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
     FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
-    QueueHandler *handler = new (std::nothrow) QueueHandler("main_queue", nullptr, ffrt_queue_eventhandler_interactive);
+    QueueHandler *handler = new (std::nothrow) QueueHandler(
+        "main_queue", nullptr, ffrt_queue_eventhandler_interactive);
     FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct MainThreadQueueHandler");
     handler->SetEventHandler(mainHandler);
     return static_cast<ffrt_queue_t>(handler);

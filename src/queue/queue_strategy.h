@@ -23,7 +23,7 @@
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
-template <typename T>
+template<typename T>
 class QueueStrategy {
 public:
     using DequeFunc = T*(*)(const uint32_t, const uint64_t, std::multimap<uint64_t, T*>&, void*);
@@ -52,8 +52,8 @@ public:
         return head;
     }
 
-    static T* DequeSingleByPriority(const uint32_t queueId, const uint64_t now,
-        std::multimap<uint64_t, T*>& whenMap, void* args)
+    static T* DequeSingleByPriority(const uint32_t queueId,
+        const uint64_t now, std::multimap<uint64_t, T*>& whenMap, void* args)
     {
         (void)args;
         // dequeue next expired task by priority
@@ -70,13 +70,12 @@ public:
         T* head = iterTarget->second;
         whenMap.erase(iterTarget);
 
-        FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ",
-            head->gid, whenMap.size(), queueId);
+        FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ", head->gid, whenMap.size(), queueId);
         return head;
     }
 
-    static T* DequeSingleAgainstStarvation(const uint32_t queueId, const uint64_t now,
-        std::multimap<uint64_t, T*>& whenMap, void* args)
+    static T* DequeSingleAgainstStarvation(const uint32_t queueId,
+        const uint64_t now, std::multimap<uint64_t, T*>& whenMap, void* args)
     {
         // dequeue in descending order of priority
         // a low-priority task is dequeued every time five high-priority tasks are dequeued
@@ -84,7 +83,7 @@ public:
         std::vector<int>* pulledTaskCount = static_cast<std::vector<int>*>(args);
 
         auto iterTarget = whenMap.begin();
-        for(int idx = 0; idx < ffrt_inner_queue_priority_idle; idx++) {
+        for (int idx = 0; idx < ffrt_inner_queue_priority_idle; idx++) {
             if ((*pulledTaskCount)[idx] >= maxPullTaskCount) {
                 continue;
             }
@@ -104,8 +103,7 @@ public:
         }
 
         whenMap.erase(iterTarget);
-        FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ",
-            head->gid, whenMap.size(), queueId);
+        FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ", head->gid, whenMap.size(), queueId);
 
         return head;
     }

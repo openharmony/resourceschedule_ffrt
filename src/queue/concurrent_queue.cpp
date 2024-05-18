@@ -128,7 +128,7 @@ bool ConcurrentQueue::SetLoop(Loop* loop)
     return true;
 }
 
-int ConcurrentQueue::PushDelayTaskToTimer(SerialTask* task)
+int ConcurrentQueue::PushDelayTaskToTimer(QueueTask* task)
 {
     uint64_t delayMs = (task->GetDelay() - 1) / 1000 + 1;
     int timeout = delayMs > INT_MAX ? INT_MAX : delayMs;
@@ -141,7 +141,7 @@ int ConcurrentQueue::PushDelayTaskToTimer(SerialTask* task)
 
 std::unique_ptr<BaseQueue> CreateConcurrentQueue(uint32_t queueId, const ffrt_queue_attr_t* attr)
 {
-    int maxConcurrency = ffrt_queue_attr_get_max_concurrency(attr) < 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
+    int maxConcurrency = ffrt_queue_attr_get_max_concurrency(attr) <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
     return std::make_unique<ConcurrentQueue>(queueId, maxConcurrency);
 }
 } // namespace ffrt

@@ -23,13 +23,13 @@
 #include "queue/queue_handler.h"
 
 #define GetQueueTaskByFuncStorageOffset(f)                                                                     \
-    (reinterpret_cast<QueueTask *>(static_cast<uintptr_t>(static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - \
-        (reinterpret_cast<size_t>(&((reinterpret_cast<QueueTask *>(0))->func_storage))))))
+    (reinterpret_cast<QueueTask*>(static_cast<uintptr_t>(static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - \
+        (reinterpret_cast<size_t>(&((reinterpret_cast<QueueTask*>(0))->func_storage))))))
 
 namespace ffrt {
 class QueueTask : public CoTask {
 public:
-    explicit QueueTask(IHandler* handler, const task_attr_private* attr = nullptr, bool insertHead = false);
+    explicit QueueTask(QueueHandler* handler, const task_attr_private* attr = nullptr, bool insertHead = false);
     ~QueueTask();
 
     void Destroy();
@@ -97,7 +97,7 @@ public:
 
     inline bool InsertHead() const
     {
-        return InsertHead_;
+        return insertHead_;
     }
 
     inline uint64_t GetSenderKernelThreadId()
@@ -105,7 +105,7 @@ public:
         return senderKernelThreadId;
     }
 
-    inline void SetSendKernelThreadId(uint64_t senderKernelThreadId)
+    inline void SetSenderKernelThreadId(uint64_t senderKernelThreadId)
     {
         senderKernelThreadId_ = senderKernelThreadId;
     }
@@ -116,6 +116,7 @@ private:
     void FreeMem() override;
     uint64_t uptime_;
     QueueHandler* handler_;
+    bool insertHead_ = false;
     uint64_t delay_ = 0;
     int qos_ = qos_inherit;
 

@@ -69,7 +69,7 @@ public:
         return &instance;
     }
 
-    Priority ConvertPriority(ffrt_queue_priority_t priroity)
+    Priority ConvertPriority(ffrt_queue_priority_t priority)
     {
         return static_cast<Priority>(priority + 1);
     }

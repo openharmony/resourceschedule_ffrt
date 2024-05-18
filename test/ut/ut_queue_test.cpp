@@ -331,7 +331,7 @@ TEST_F(QueueTest, ffrt_queue_delay_timeout)
     ffrt_queue_attr_set_timeout(&queue_attr, 2000);
     uint64_t timeout = ffrt_queue_attr_get_timeout(&queue_attr);
     EXPECT_EQ(timeout, 2000);
-    
+
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
 
     int result = 0;
@@ -345,7 +345,7 @@ TEST_F(QueueTest, ffrt_queue_delay_timeout)
 
     ffrt_task_handle_t t1 =
         ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
-    
+
     ffrt_queue_wait(t1);
     ffrt_task_handle_destroy(t1);
     EXPECT_EQ(result, 1);
@@ -471,6 +471,18 @@ TEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency)
     concurrency = ffrt_queue_attr_get_max_concurrency(queue_attr1);
     EXPECT_EQ(concurrency, 1);
     ffrt_queue_attr_destroy(&queue_attr1);
+}
+
+/*
+ * 测试用例名称：ffrt_queue_attr_set_max_concurrency
+ * 测试用例描述：测试ffrt_queue_attr_set_max_concurrency
+ * 操作步骤    ：1、调用ffrt_queue_attr_set_max_concurrency设置FFRT并行队列，并行度为4
+ *             2、使用ffrt_queue_attr_get_max_concurrency查询并行度
+ * 预期结果    ：查询结果与设定相同，值为4
+ */
+TEST_F(QueueTest, ffrt_queue_has_task)
+{
+
 }
 
 #ifdef OHOS_STANDARD_SYSTEM

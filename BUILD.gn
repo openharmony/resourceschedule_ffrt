@@ -144,7 +144,6 @@ ohos_shared_library("libffrt") {
       "src/queue/eventhandler_interactive_queue.cpp",
       "src/queue/eventhandler_adapter_queue.cpp",
       "src/queue/queue_api.cpp",
-      "src/queue/serial_task.cpp",
       "src/sched/deadline.cpp",
       "src/sched/execute_ctx.cpp",
       "src/sched/frame_interval.cpp",

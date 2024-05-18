@@ -36,7 +36,7 @@ public:
         localFifo.Init(LOCAL_QUEUE_SIZE);
 #endif
 #ifdef FFRT_PTHREAD_ENABLE
-        Start(CPUWorker::WarpDispatch, this);
+        Start(CPUWorker::WrapDispatch, this);
 #else
         Start(CPUWorker::Dispatch, this);
 #endif
@@ -52,7 +52,8 @@ public:
 #endif
 
 private:
-    static void* WarpDispatch(void* worker);
+    bool blocked = false;
+    static void* WrapDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
     static void Run(CPUEUTask* task);
     static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
@@ -63,6 +64,7 @@ private:
     static PollerRet TryPoll(CPUWorker* worker, int timeout);
     static bool LocalEmpty(CPUWorker* worker);
 #endif
+    void SetWorkerBlocked(bool var) override;
 };
 } // namespace ffrt
 #endif

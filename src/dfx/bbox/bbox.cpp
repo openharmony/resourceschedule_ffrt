@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <string>
 #include <sstream>
+#include <vector>
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
 #include "tm/task_factory.h"
@@ -375,17 +376,17 @@ __attribute__((destructor)) static void BBoxDeInit()
 std::string SaveTaskCounterInfo(void)
 {
     std::ostringstream ss;
-    ss << "<<<=== task counter ===>>>" << std::endl;
-    ss << "FFRT BBOX TaskSubmitCounter:" << g_taskSubmitCounter.load() << " TaskEnQueueCounter:"
+    ss << "    |-> task counter" << std::endl;
+    ss << "        FFRT BBOX TaskSubmitCounter:" << g_taskSubmitCounter.load() << " TaskEnQueueCounter:"
        << g_taskEnQueueCounter.load() << " TaskDoneCounter:" << g_taskDoneCounter.load() << std::endl;
 
-    ss << "FFRT BBOX TaskRunCounter:" << g_taskRunCounter.load() << " TaskSwitchCounter:"
+    ss << "        FFRT BBOX TaskRunCounter:" << g_taskRunCounter.load() << " TaskSwitchCounter:"
        << g_taskSwitchCounter.load() << " TaskFinishCounter:" << g_taskFinishCounter.load() << std::endl;
 
     if (g_taskSwitchCounter.load() + g_taskFinishCounter.load() == g_taskRunCounter.load()) {
-        ss << "TaskRunCounter equals TaskSwitchCounter + TaskFinishCounter" << std::endl;
+        ss << "        TaskRunCounter equals TaskSwitchCounter + TaskFinishCounter" << std::endl;
     } else {
-        ss << "TaskRunCounter is not equal to TaskSwitchCounter + TaskFinishCounter" << std::endl;
+        ss << "        TaskRunCounter is not equal to TaskSwitchCounter + TaskFinishCounter" << std::endl;
     }
     return ss.str();
 }
@@ -393,31 +394,49 @@ std::string SaveTaskCounterInfo(void)
 std::string SaveWorkerStatusInfo(void)
 {
     std::ostringstream ss;
+    std::ostringstream oss;
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
-    ss << "<<<=== worker status ===>>>" << std::endl;
+    oss << "    |-> worker count" << std::endl;
+    ss << "    |-> worker status" << std::endl;
     ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
+        std::vector<int> tidArr;
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             CPUEUTask* t = thread.first->curTask;
+            tidArr.push_back(thread.first->Id());
             if (t == nullptr) {
-                ss << "qos " << i << ": worker tid " << thread.first->Id()
+                ss << "        qos " << i << ": worker tid " << thread.first->Id()
                    << " is running nothing" << std::endl;
                 continue;
             }
+
             if (t->type == 0) {
-                ss << "qos " << i << ": worker tid " << thread.first->Id()
-                << " is running task id " << t->gid << " name " << t->label.c_str() << std::endl;
+                ss << "        qos " << i << ": worker tid " << thread.first->Id()
+                << " is running, task id " << t->gid << " name " << t->label.c_str() << std::endl;
             }
         }
+        if (tidArr.size() == 0) {
+            continue;
+        }
+        oss << "        qos " << i << ": worker num:" << tidArr.size() << "tid:";
+        std::for_each(tidArr.begin(), tidArr.end(), [&](const int &t) {
+            if (&t == &tidArr.back()) {
+                oss << t;
+            } else {
+                oss << t << ", ";
+            }
+        });
+        oss << std::endl;
     }
-    return ss.str();
+    oss << ss.str();
+    return oss.str();
 }
 
 std::string SaveReadyQueueStatusInfo()
 {
     std::ostringstream ss;
-    ss << "<<<=== ready queue status ===>>>" << std::endl;
+    ss << "    |-> ready queue status" << std::endl;
     ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
         auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(QoS(i)));
@@ -428,15 +447,15 @@ std::string SaveReadyQueueStatusInfo()
             continue;
         }
 
-        for (int j = 0; j < nt; j++) {
+        for (int j = 1; j <= nt; j++) {
             CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
-                ss << "qos " << i << ": ready queue task <" << j << "/" << nt << ">"
+                ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << ">"
                    << " null" << std::endl;
                 continue;
             }
             if (t->type == 0) {
-                ss << "qos " << i << ": ready queue task <" << j << "/" << nt << "> id "
+                ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << "> task id "
                 << t->gid << " name " << t->label.c_str() << std::endl;
             }
 
@@ -461,15 +480,15 @@ std::string SaveTaskStatusInfo(void)
         }
 
         if (tmp.size() > 0) {
-            ss << "<<<=== " << tag << "===>>>" << std::endl;
+            ss << "    |-> " << tag << std::endl;
             ffrtStackInfo += ss.str();
         }
         size_t idx = 1;
         for (auto t : tmp) {
             ss.str("");
             if (t->type == 0) {
-                ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
-                << t->qos() << "name" << t->label.c_str() << std::endl;
+                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id" << t->gid << "qos"
+                << t->qos() << ",name " << t->label.c_str() << std::endl;
             }
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {

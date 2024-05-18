@@ -80,6 +80,7 @@ struct CoRoutine {
     CoCtx ctx;
     bool legacyMode = false;
     BlockType blockType = BlockType::BLOCK_COROUTINE;
+    bool isTaskDone = false;
     StackMem stkMem;
 };
 
@@ -103,6 +104,25 @@ public:
     }
 };
 
+class CoRoutineFactory {
+public:
+    using CowakeCB = std::function<void (ffrt::CPUEUTask*, bool)>;
+
+    static CoRoutineFactory &Instance();
+
+    static void CoWakeFunc(ffrt::CPUEUTask* task, bool timeOut)
+    {
+        return Instance().cowake_(task, timeOut);
+    }
+
+    static void RegistCb(const CowakeCB &cowake)
+    {
+        Instance().cowake_ = cowake;
+    }
+private:
+    CowakeCB cowake_;
+};
+
 void CoStackFree(void);
 void CoWorkerExit(void);
 
@@ -111,5 +131,9 @@ void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
 void CoWake(ffrt::CPUEUTask* task, bool timeOut);
+
+#ifdef FFRT_TASK_LOCAL_ENABLE
+void TaskTsdDeconstruct(ffrt::CPUEUTask* task);
+#endif
 
 #endif

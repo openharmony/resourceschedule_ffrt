@@ -17,7 +17,7 @@
 #include "util/worker_monitor.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 using namespace OHOS::HiviewDFX;
 
@@ -90,7 +90,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef ASYNC_STACKTRACE
     {
-        task->stackId = CollectAsyncStack();
+        task->stackId = FFRTCollectAsyncStack();
     }
 #endif
 
@@ -116,7 +116,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         handle = static_cast<ffrt_task_handle_t>(task);
         outsNoDup.push_back(handle); // handle作为任务的输出signature
     }
-    QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_map));
+    QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
     task->SetQos(qos);
     /* The parent's number of subtasks to be completed increases by one,
         * and decreases by one after the subtask is completed
@@ -171,27 +171,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 
     FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);
-#ifdef FFRT_BBOX_ENABLE
-    TaskEnQueuCounterInc();
-#endif
-}
-
-void SDependenceManager::onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
-{
-    FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
-    FFRT_TRACE_SCOPE(1, onSubmitUV);
-#ifdef FFRT_BBOX_ENABLE
-    TaskSubmitCounterInc();
-#endif
-    QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_map.m_qos));
-
-    LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
-    FFRTScheduler* sch = FFRTScheduler::Instance();
-    if (!sch->InsertNode(node, qos)) {
-        FFRT_LOGE("Submit UV task failed!");
-        return;
-    }
-
 #ifdef FFRT_BBOX_ENABLE
     TaskEnQueuCounterInc();
 #endif

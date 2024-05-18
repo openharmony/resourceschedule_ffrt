@@ -13,7 +13,24 @@
  * limitations under the License.
  */
 #include "execute_ctx.h"
+pthread_key_t g_executeCtxTlsKey = 0;
+pthread_once_t g_executeCtxKeyOnce = PTHREAD_ONCE_INIT;
+
 namespace ffrt {
+namespace {
+void ExecuteCtxTlsDestructor(void* args)
+{
+    auto ctx = static_cast<ExecuteCtx*>(args);
+    if (ctx) {
+        delete ctx;
+    }
+}
+
+void MakeExecuteCtxTlsKey()
+{
+    pthread_key_create(&g_executeCtxTlsKey, ExecuteCtxTlsDestructor);
+}
+} // namespace
 
 ExecuteCtx::ExecuteCtx()
 {
@@ -27,8 +44,17 @@ ExecuteCtx::~ExecuteCtx()
 
 ExecuteCtx* ExecuteCtx::Cur()
 {
-    thread_local static ExecuteCtx ctx;
-    return &ctx;
+    ExecuteCtx* ctx = nullptr;
+    pthread_once(&g_executeCtxKeyOnce, MakeExecuteCtxTlsKey);
+
+    void *curTls = pthread_getspecific(g_executeCtxTlsKey);
+    if (curTls != nullptr) {
+        ctx = reinterpret_cast<ExecuteCtx *>(curTls);
+    } else {
+        ctx = new (std::nothrow) ExecuteCtx();
+        pthread_setspecific(g_executeCtxTlsKey, ctx);
+    }
+    return ctx;
 }
 
 } // namespace ffrt

@@ -35,9 +35,10 @@
                 "hisysevent",
                 "napi",
                 "faultloggerd",
+                "hiprofiler",
+                "init",
                 "hitrace",
-                "libunwind",
-                "eventhandler"
+                "libunwind"
             ],
             "third_party": [
                 "bounds_checking_function",

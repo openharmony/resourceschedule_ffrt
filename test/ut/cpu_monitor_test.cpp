@@ -85,7 +85,7 @@ HWTEST_F(CpuMonitorTest, HandleBlocked, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.HandleBlocked(5);
+    cpu.HandleBlocked(QoS(5));
 }
 
 /**
@@ -103,7 +103,7 @@ HWTEST_F(CpuMonitorTest, DecExeNumRef, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.DecExeNumRef(5);
+    cpu.DecExeNumRef(QoS(5));
 }
 
 /**
@@ -121,7 +121,7 @@ HWTEST_F(CpuMonitorTest, IncSleepingRef, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.IncSleepingRef(5);
+    cpu.IncSleepingRef(QoS(5));
 }
 
 /**
@@ -139,7 +139,7 @@ HWTEST_F(CpuMonitorTest, DecSleepingRef, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.DecSleepingRef(5);
+    cpu.DecSleepingRef(QoS(5));
 }
 
 /**
@@ -157,7 +157,7 @@ HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.IntoSleep(5);
+    cpu.IntoSleep(QoS(5));
 }
 
 /**
@@ -175,7 +175,7 @@ HWTEST_F(CpuMonitorTest, WakeupCount, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.WakeupCount(5);
+    cpu.WakeupCount(QoS(5));
 }
 
 /**
@@ -193,7 +193,7 @@ HWTEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.TimeoutCount(5);
+    cpu.TimeoutCount(QoS(5));
 }
 
 /**
@@ -211,7 +211,7 @@ HWTEST_F(CpuMonitorTest, RegWorker, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.RegWorker(5);
+    cpu.RegWorker(QoS(5));
 }
 
 /**
@@ -247,5 +247,5 @@ HWTEST_F(CpuMonitorTest, Notify, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.Notify(5, TaskNotifyType(1));
+    cpu.Notify(QoS(5), TaskNotifyType(1));
 }

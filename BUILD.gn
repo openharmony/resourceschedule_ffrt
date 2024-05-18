@@ -55,7 +55,6 @@ config("ffrt_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
-    "ASYNC_STACKTRACE",
   ]
 
   #ffrt_release_defines = [
@@ -71,6 +70,10 @@ config("ffrt_config") {
 
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
+  }
+
+  if (is_ohos && target_cpu == "arm64") {
+    defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
   }
 
   #defines += ffrt_release_defines
@@ -106,6 +109,7 @@ ohos_shared_library("libffrt") {
       "src/core/version_ctx.cpp",
       "src/dfx/bbox/bbox.cpp",
       "src/dfx/bbox/fault_logger_fd_manager.cpp",
+      "src/dfx/dump/dump.cpp",
       "src/dfx/log/ffrt_log.cpp",
       "src/dfx/trace/ffrt_trace.cpp",
       "src/dfx/watchdog/watchdog.cpp",
@@ -143,6 +147,7 @@ ohos_shared_library("libffrt") {
       "src/sched/interval.cpp",
       "src/sched/load_tracking.cpp",
       "src/sched/multi_workgroup.cpp",
+      "src/sched/qos.cpp",
       "src/sched/sched_deadline.cpp",
       "src/sched/scheduler.cpp",
       "src/sched/task_manager.cpp",
@@ -154,6 +159,7 @@ ohos_shared_library("libffrt") {
       "src/sync/perf_counter.cpp",
       "src/sync/poller.cpp",
       "src/sync/poller_api.cpp",
+      "src/sync/shared_mutex.cpp",
       "src/sync/sleep.cpp",
       "src/sync/sync.cpp",
       "src/sync/thread.cpp",
@@ -171,8 +177,6 @@ ohos_shared_library("libffrt") {
     external_deps = [
       "bounds_checking_function:libsec_shared",
       "c_utils:utils",
-      "eventhandler:libeventhandler",
-      "faultloggerd:libasync_stack",
       "faultloggerd:libbacktrace_local",
       "faultloggerd:libdfx_dumpcatcher",
       "faultloggerd:libfaultloggerd",
@@ -181,6 +185,20 @@ ohos_shared_library("libffrt") {
       "hitrace:libhitracechain",
       "libunwind:libunwind",
     ]
+
+    defines = []
+    if (ffrt_profiler_enable && !is_emulator) {
+      external_deps += [
+        "hiprofiler:libffrt_profiler",
+        "init:libbegetutil",
+      ]
+      defines += [ "FFRT_PROFILER" ]
+    }
+
+    if (ffrt_async_stack_enable) {
+      defines += [ "ASYNC_STACKTRACE" ]
+      sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
+    }
 
     output_extension = "so"
     symlink_target_name = [ "libffrt.z.so" ]

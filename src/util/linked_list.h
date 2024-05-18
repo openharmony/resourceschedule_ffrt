@@ -96,6 +96,27 @@ public:
         Delete(node);
     }
 
+    static LinkedList* Next(LinkedList* cur) noexcept
+    {
+        if (cur->Empty()) {
+            return nullptr;
+        }
+
+        LinkedList* next = cur->next;
+        return next;
+    }
+
+    template <typename T>
+    static T* Next(LinkedList* cur, LinkedList T::*member) noexcept
+    {
+        if (cur->Empty()) {
+            return nullptr;
+        }
+
+        LinkedList* next = cur->next;
+        return ContainerOf<T>(next, member);
+    }
+
     static LinkedList* RemoveNext(LinkedList* cur) noexcept
     {
         if (cur->Empty()) {
@@ -162,6 +183,17 @@ public:
         InsertBefore(this, node);
     }
 
+    LinkedList* Next() noexcept
+    {
+        return Next(this);
+    }
+
+    template <typename T>
+    T* Next(LinkedList T::*member) noexcept
+    {
+        return Next(this, member);
+    }
+
     LinkedList* RemoveNext() noexcept
     {
         return RemoveNext(this);
@@ -202,6 +234,17 @@ public:
     void PushBack(LinkedList* node) noexcept
     {
         InsertBefore(node);
+    }
+
+    LinkedList* Front() noexcept
+    {
+        return Next();
+    }
+
+    template <typename T>
+    T* Front(LinkedList T::*member) noexcept
+    {
+        return Next(member);
     }
 
     LinkedList* PopFront() noexcept

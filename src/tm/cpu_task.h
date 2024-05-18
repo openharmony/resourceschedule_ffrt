@@ -46,6 +46,8 @@ class UserDefinedTask : public TaskBase {
 };
 #endif
 
+#define TSD_SIZE 128
+
 class CPUEUTask : public CoTask {
 public:
     CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id, const QoS &qos);
@@ -68,6 +70,10 @@ public:
      */
     std::atomic<uint64_t> childNum {0};
     bool isWatchdogEnable = false;
+
+    void** threadTsd = nullptr;
+    void** tsd = nullptr;
+    bool taskLocal = false;
 
     QoS qos;
     void SetQos(QoS& newQos);

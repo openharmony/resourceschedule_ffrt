@@ -14,6 +14,7 @@
  */
 #include <dlfcn.h>
 #include "sched/task_scheduler.h"
+#include "eu/co_routine.h"
 #include "eu/execute_unit.h"
 #include "eu/sexecute_unit.h"
 #include "dm/dependence_manager.h"
@@ -21,6 +22,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/singleton_register.h"
 #include "tm/task_factory.h"
+#include "qos.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,9 +39,13 @@ __attribute__((constructor)) static void ffrt_init()
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::SFIFOScheduler; },
         [] (ffrt::TaskScheduler* schd) { delete schd; });
+    CoRoutineFactory::RegistCb(
+        [] (ffrt::CPUEUTask* task, bool timeOut) -> void {CoWake(task, timeOut);});
     ffrt::DependenceManager::RegistInsCb(ffrt::SDependenceManager::Instance);
     ffrt::ExecuteUnit::RegistInsCb(ffrt::SExecuteUnit::Instance);
     ffrt::FFRTScheduler::RegistInsCb(ffrt::SFFRTScheduler::Instance);
+    ffrt::SetFuncQosMap(ffrt::QoSMap);
+    ffrt::SetFuncQosMax(ffrt::QoSMax);
 }
 #ifdef __cplusplus
 }

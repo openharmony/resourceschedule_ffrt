@@ -146,7 +146,11 @@ void ffrt_task_attr_set_qos(ffrt_task_attr_t *attr, ffrt_qos_t qos)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_map = ffrt::QoSMap(qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_ = ffrt::GetFuncQosMap()(qos);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -157,7 +161,7 @@ ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t *attr)
         return static_cast<int>(ffrt_qos_default);
     }
     ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
-    return (reinterpret_cast<ffrt::task_attr_private *>(p))->qos_map.m_qos;
+    return (reinterpret_cast<ffrt::task_attr_private *>(p))->qos_;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -333,7 +337,11 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
         FFRT_LOGE("attr should not be empty");
         return -1;
     }
-    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return -1;
+    }
+    ffrt::QoS _qos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
     return ffrt::OSAttrManager::Instance()->UpdateSchedAttr(_qos, attr);
 }
 
@@ -344,7 +352,7 @@ void ffrt_restore_qos_config()
     for (auto qos = ffrt::QoS::Min(); qos < ffrt::QoS::Max(); ++qos) {
         std::unique_lock<std::shared_mutex> lck(wgCtl[qos].tgMutex);
         for (auto& thread : wgCtl[qos].threads) {
-            ffrt::SetThreadAttr(thread.first, qos);
+            ffrt::SetThreadAttr(thread.first, ffrt::QoS(qos));
         }
     }
 }
@@ -352,7 +360,11 @@ void ffrt_restore_qos_config()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
-    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return -1;
+    }
+    ffrt::QoS _qos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
     if (((qos != ffrt::qos_default) && (_qos() == ffrt::qos_default)) || (qos <= ffrt::qos_inherit)) {
         FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
@@ -390,15 +402,19 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_this_task_update_qos(ffrt_qos_t qos)
 {
-    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return 1;
+    }
+    ffrt::QoS _qos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
         FFRT_LOGW("task is nullptr");
         return 1;
     }
-
+    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 1, "update qos task type invalid");
     if (_qos() == curTask->qos) {
-        FFRT_LOGW("the target qos is euqal to current qos, no need update");
+        FFRT_LOGW("the target qos is equal to current qos, no need update");
         return 0;
     }
 
@@ -426,6 +442,7 @@ uint64_t ffrt_this_task_get_id()
         return 0;
     }
 
+    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 0, "get id task type invalid");
     return curTask->gid;
 }
 
@@ -491,8 +508,57 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::QoS _qos = ffrt::QoS(qos);
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
+    ffrt::FFRTFacade::GetDMInstance();
     ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
     return static_cast<int>(sch->RemoveNode(node, _qos));
+}
+
+API_ATTRIBUTE((visibility("default")))
+void* ffrt_get_cur_task()
+{
+    return ffrt::ExecuteCtx::Cur()->task;
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_get_current_coroutine_stack(void** stackAddr, size_t* size)
+{
+    if (stackAddr == nullptr || size == nullptr) {
+        return false;
+    }
+
+    if (!ffrt::USE_COROUTINE) {
+        return false;
+    }
+    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+    if (curTask != nullptr) {
+        auto co = curTask->coRoutine;
+        if (co) {
+            *size = co->stkMem.size;
+            *stackAddr = (void*)((char*)co + sizeof(CoRoutine) - 8);
+            return true;
+        }
+    }
+    return false;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_ = task_local;
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return false;
+    }
+    return (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_;
 }
 #ifdef __cplusplus
 }

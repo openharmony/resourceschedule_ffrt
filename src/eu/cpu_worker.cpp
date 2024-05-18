@@ -30,7 +30,7 @@
 #include "tm/cpu_task.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
 namespace ffrt {
@@ -52,7 +52,7 @@ void CPUWorker::Run(CPUEUTask* task)
     switch (task->type) {
         case ffrt_normal_task: {
 #ifdef ASYNC_STACKTRACE
-            SetStackId(task->stackId);
+            FFRTSetStackId(task->stackId);
 #endif
             task->Execute();
             break;
@@ -60,7 +60,7 @@ void CPUWorker::Run(CPUEUTask* task)
         case ffrt_serial_task: {
             SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
 #ifdef ASYNC_STACKTRACE
-            SetStackId(sTask->stackId);
+            FFRTSetStackId(sTask->stackId);
 #endif
             sTask->IncDeleteRef();
             sTask->Execute();
@@ -106,7 +106,7 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #endif
 }
 
-void* CPUWorker::WarpDispatch(void* worker)
+void* CPUWorker::WrapDispatch(void* worker)
 {
     reinterpret_cast<CPUWorker*>(worker)->NativeConfig();
     Dispatch(reinterpret_cast<CPUWorker*>(worker));
@@ -321,4 +321,14 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     worker->ops.WorkerRetired(worker);
 }
 #endif // FFRT_IO_TASK_SCHEDULER
+
+void CPUWorker::SetWorkerBlocked(bool var)
+{
+    if (blocked != var) {
+        blocked = var;
+        FFRT_LOGW("QoS %ld worker %ld block %s", this->GetQos()(), this->Id(), var ? "true" : "false");
+        this->ops.UpdateBlockingNum(this->GetQos(), var);
+    }
+}
+
 } // namespace ffrt

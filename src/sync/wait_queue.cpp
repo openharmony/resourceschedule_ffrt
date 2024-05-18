@@ -137,7 +137,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
             return;
         }
         FFRT_LOGD("task(%d) timeout out", task->gid);
-        CoWake(task, true);
+        CoRoutineFactory::CoWakeFunc(task, true);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
     CoWait([&](CPUEUTask* task) -> bool {
@@ -205,7 +205,7 @@ void WaitQueue::NotifyOne() noexcept
                 continue;
             }
             wqlock.unlock();
-            CoWake(task, false);
+            CoRoutineFactory::CoWakeFunc(task, false);
         }
         return;
     }
@@ -232,7 +232,7 @@ void WaitQueue::NotifyAll() noexcept
                 continue;
             }
             wqlock.unlock();
-            CoWake(task, false);
+            CoRoutineFactory::CoWakeFunc(task, false);
         }
         wqlock.lock();
     }

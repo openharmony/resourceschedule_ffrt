@@ -25,6 +25,10 @@
 #include <dlfcn.h>
 #endif
 
+#ifdef FFRT_PROFILER
+#include "ffrt_profiler.h"
+#endif
+
 namespace ffrt {
 enum TraceLevel {
     TRACE_LEVEL0 = 0,
@@ -185,23 +189,38 @@ static bool _IsTagEnabled(uint64_t label)
         } \
     } while (0)
 
+#ifdef FFRT_PROFILER
+#define FFRT_PROFILER_WITH_TRACE(trace_type, lable, cookie) \
+    do { \
+        if (__builtin_expect(!!(FfrtProfilerIns->IsProfilerEnabled()), 0)) { \
+            FfrtProfilerIns->FfrtProfilerTrace(trace_type, lable, cookie); \
+        } \
+    } while (false)
+#else
+#define FFRT_PROFILER_WITH_TRACE(trace_type, lable, cookie)
+#endif
+
 #define FFRT_TRACE_BEGIN(tag) \
     do { \
+        FFRT_PROFILER_WITH_TRACE('B', tag, 0); \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _StartTrace(HITRACE_TAG_FFRT, tag, -1); \
     } while (false)
 #define FFRT_TRACE_END() \
     do { \
+        FFRT_PROFILER_WITH_TRACE('E', "", 0); \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _FinishTrace(HITRACE_TAG_FFRT); \
     } while (false)
 #define FFRT_TRACE_ASYNC_BEGIN(tag, tid) \
     do { \
+        FFRT_PROFILER_WITH_TRACE('S', tag, tid); \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _StartAsyncTrace(HITRACE_TAG_FFRT, tag, tid, -1); \
     } while (false)
 #define FFRT_TRACE_ASYNC_END(tag, tid) \
     do { \
+        FFRT_PROFILER_WITH_TRACE('F', tag, tid); \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _FinishAsyncTrace(HITRACE_TAG_FFRT, tag, tid); \
     } while (false)

@@ -12,19 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef FFRT_API_C_FFRT_DUMP_H
+#define FFRT_API_C_FFRT_DUMP_H
+#include <stdint.h>
+#include "type_def_ext.h"
 
-#ifndef FFRT_SCPUWORKER_MANAGER_HPP
-#define FFRT_SCPUWORKER_MANAGER_HPP
-#include "eu/cpuworker_manager.h"
+typedef enum {
+    DUMP_INFO_ALL = 0,
+} ffrt_dump_cmd_t;
 
-namespace ffrt {
-class SCPUWorkerManager : public CPUWorkerManager {
-public:
-    SCPUWorkerManager();
-    ~SCPUWorkerManager() override;
-    WorkerAction WorkerIdleAction(const WorkerThread* thread) override;
-    void WorkerPrepare(WorkerThread* thread) override;
-    void WakeupWorkers(const QoS& qos) override;
-};
-} // namespace ffrt
-#endif
+FFRT_C_API int ffrt_dump(uint32_t cmd, char *buf, uint32_t len);
+#endif /* FFRT_API_C_FFRT_DUMP_H */

@@ -23,24 +23,24 @@ namespace ffrt {
 class task_attr_private {
 public:
     task_attr_private()
-        : qos_map(qos_default)
+        : qos_(qos_default)
     {
     }
 
     explicit task_attr_private(const task_attr attr)
-        : qos_map(attr.qos()),
+        : qos_(attr.qos()),
           name_(attr.name()),
           delay_(attr.delay()),
           prio_(attr.priority())
-          
     {
     }
 
-    QoSMap qos_map;
+    int qos_;
     std::string name_;
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
+    bool taskLocal_ = false;
     ffrt_function_header_t* timeoutCb_ = nullptr;
 };
 }

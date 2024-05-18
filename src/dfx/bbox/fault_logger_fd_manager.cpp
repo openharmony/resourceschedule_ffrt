@@ -45,7 +45,9 @@ int FaultLoggerFdManager::InitFaultLoggerFd()
 {
     if (faultLoggerFd_ == -1) {
         faultLoggerFd_ = RequestFileDescriptor(FaultLoggerType::FFRT_CRASH_LOG);
-        FFRT_COND_DO_ERR((faultLoggerFd_ < 0), return faultLoggerFd_, "fail to InitFaultLoggerFd");
+        if (faultLoggerFd_ < 0) {
+            FFRT_LOGW("fail to InitFaultLoggerFd");
+        }
     }
     return faultLoggerFd_;
 }
@@ -58,7 +60,9 @@ int FaultLoggerFdManager::GetFaultLoggerFd()
 void FaultLoggerFdManager::WriteFaultLogger(const char* format, ...)
 {
     int fd = GetFaultLoggerFd();
-    FFRT_COND_DO_ERR((fd <= 0), return, "invalid faultLoggerFd");
+    if (fd < 0) {
+        return;
+    }
 
     char errLog[g_logBufferSize];
     va_list args;
@@ -73,5 +77,8 @@ void FaultLoggerFdManager::WriteFaultLogger(const char* format, ...)
 
     std::string msg = errLog;
     int n = write(fd, msg.data(), msg.size());
-    FFRT_COND_DO_ERR((n < 0), return, "fail to write faultLogger msg:%s, fd:%d, errno:%d", msg.data(), fd, errno);
+    if (n < 0) {
+        FFRT_LOGW("fail to write faultLogger msg:%s, fd:%d, errno:%d", msg.data(), fd, errno);
+        CloseFd();
+    }
 }

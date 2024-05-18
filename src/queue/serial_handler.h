@@ -18,9 +18,7 @@
 #include <atomic>
 #include <memory>
 #include <string>
-#ifdef OHOS_STANDARD_SYSTEM
-#include <event_handler.h>
-#endif
+
 #include "c/queue.h"
 #include "cpp/task.h"
 #include "ihandler.h"
@@ -72,17 +70,17 @@ public:
     {
         handleType_ = type;
     }
-#ifdef OHOS_STANDARD_SYSTEM
-    inline void SetEventHandler(std::shared_ptr<OHOS::AppExecFwk::EventHandler> eventHandler)
+
+    inline void SetEventHandler(void* eventHandler)
     {
         eventHandler_ = eventHandler;
     }
 
-    inline std::shared_ptr<OHOS::AppExecFwk::EventHandler> GetEventHandler()
+    inline void* GetEventHandler()
     {
         return eventHandler_;
     }
-#endif
+
 private:
     void Deliver();
     void TransferInitTask();
@@ -107,9 +105,7 @@ private:
 
     HandlerType handleType_ = NORMAL_SERIAL_HANDLER;
     ffrt_queue_type_t queueType_ = ffrt_queue_serial;
-#ifdef OHOS_STANDARD_SYSTEM
-    std::shared_ptr<OHOS::AppExecFwk::EventHandler> eventHandler_;
-#endif
+    void* eventHandler_;
 };
 } // namespace ffrt
 

@@ -31,6 +31,7 @@ constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint64_t MONITOR_TIMEOUT_MAX_COUNT = 2;
 constexpr uint64_t MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr uint64_t TIMEOUT_RECORD_CYCLE_US = 60 * 1000 * 1000;
+const std::vector<std::string> SKIP_SAMPLING_PROCESS = {"hdcd", "updater"};
 }
 
 namespace ffrt {
@@ -40,7 +41,13 @@ WorkerMonitor::WorkerMonitor()
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     // hdc在调用hdc shell的时候会长期占用worker，过滤该进程以防止一直打印超时信息
     // 另外，对hdc进程进行监控会概率性导致hdc断连，原因未知，暂时规避
-    skipSampling_ = (strstr(processName, "hdcd") != nullptr);
+    for (const auto& skipProcess : SKIP_SAMPLING_PROCESS) {
+        if (strstr(processName, skipProcess.c_str()) != nullptr) {
+            skipSampling_ = true;
+            break;
+        }
+    }
+
     SubmitSamplingTask();
 }
 
@@ -73,7 +80,7 @@ void WorkerMonitor::CheckWorkerStatus()
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     QoS _qos = QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
-        auto& sched = FFRTScheduler::Instance()->GetScheduler(i);
+        auto& sched = FFRTScheduler::Instance()->GetScheduler(QoS(i));
         int taskCount = sched.RQSize();
         if (taskCount >= TASK_OVERRUN_THRESHOLD) {
             FFRT_LOGW("qos [%d], task count [%d] exceeds threshold.", i, taskCount);
@@ -85,6 +92,7 @@ void WorkerMonitor::CheckWorkerStatus()
             CPUEUTask* workerTask = worker->curTask;
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
+                worker->SetWorkerBlocked(false);
                 continue;
             }
 
@@ -105,13 +113,14 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
 
     if (workerIter->second.first == workerTask) {
         if (++workerIter->second.second >= static_cast<int>(MONITOR_TIMEOUT_MAX_COUNT)) {
+            worker->SetWorkerBlocked(true);
             RecordSymbolAndBacktrace(worker->Id());
             workerIter->second.second =
                 -static_cast<int>(TIMEOUT_RECORD_CYCLE_US / MONITOR_SAMPLING_CYCLE_US - MONITOR_TIMEOUT_MAX_COUNT);
         }
         return;
     }
-
+    worker->SetWorkerBlocked(false);
     workerIter->second = { workerTask, 0 };
 }
 

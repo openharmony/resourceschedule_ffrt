@@ -91,10 +91,10 @@ int Poller::DelFdEvent(int fd) noexcept
     return 0;
 }
 
-int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeout) noexcept
+int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeout) noexcept
 {
-    if (eventsPtr == nullptr) {
-        FFRT_LOGE("eventsPtr cannot be null");
+    if (eventsVec == nullptr) {
+        FFRT_LOGE("eventsVec cannot be null");
         return -1;
     }
 
@@ -122,7 +122,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
             task->coRoutine->blockType = BlockType::BLOCK_THREAD;
         }
         auto currTime = std::chrono::steady_clock::now();
-        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, &nfds, currTime};
+        m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGE("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
@@ -139,7 +139,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
             return false;
         }
         auto currTime = std::chrono::steady_clock::now();
-        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, &nfds, currTime};
+        m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGE("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
@@ -164,7 +164,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
-            ssize_t n = ::read(m_wakeData.fd, &one, sizeof one);
+            (void)::read(m_wakeData.fd, &one, sizeof one);
             continue;
         }
 

@@ -105,7 +105,7 @@ private:
 
     HandlerType handleType_ = NORMAL_SERIAL_HANDLER;
     ffrt_queue_type_t queueType_ = ffrt_queue_serial;
-    void* eventHandler_;
+    void* eventHandler_ = nullptr;
 };
 } // namespace ffrt
 

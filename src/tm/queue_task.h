@@ -12,29 +12,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_SERIAL_TASK_H
-#define FFRT_SERIAL_TASK_H
+#ifndef FFRT_QUEUE_TASK_H
+#define FFRT_QUEUE_TASK_H
 
 #include <atomic>
-#include "queue_attr_private.h"
-#include "ihandler.h"
+#include <regex>
 #include "util/task_deleter.h"
-#include "tm/cpu_task.h"
+#include "cpu_task.h"
+#include "queue/queue_attr_private.h"
+#include "queue/queue_handler.h"
 
-#define GetSerialTaskByFuncStorageOffset(f)                                                                     \
-    (reinterpret_cast<SerialTask *>(static_cast<uintptr_t>(static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - \
-        (reinterpret_cast<size_t>(&((reinterpret_cast<SerialTask *>(0))->func_storage))))))
+#define GetQueueTaskByFuncStorageOffset(f)                                                                     \
+    (reinterpret_cast<QueueTask *>(static_cast<uintptr_t>(static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - \
+        (reinterpret_cast<size_t>(&((reinterpret_cast<QueueTask *>(0))->func_storage))))))
 
 namespace ffrt {
-class SerialTask : public CoTask {
+class QueueTask : public CoTask {
 public:
-    explicit SerialTask(IHandler* handler, const task_attr_private* attr = nullptr);
-    ~SerialTask();
+    explicit QueueTask(IHandler* handler, const task_attr_private* attr = nullptr, bool insertHead = false);
+    ~QueueTask();
 
     void Destroy();
     void Wait();
     void Notify();
     void Execute() override;
+
+    uint32_t GetQueueId() const;
 
     inline int GetQos() const
     {
@@ -56,14 +59,9 @@ public:
         return uptime_;
     }
 
-    inline IHandler* GetHandler() const
+    inline QueueHandler* GetHandler() const
     {
         return handler_;
-    }
-
-    inline uint32_t GetQueueId() const
-    {
-        return handler_->GetQueueId();
     }
 
     inline bool GetFinishStatus() const
@@ -71,12 +69,12 @@ public:
         return isFinished_.load();
     }
 
-    inline SerialTask* GetNextTask() const
+    inline QueueTask* GetNextTask() const
     {
         return nextTask_;
     }
 
-    inline void SetNextTask(SerialTask* task)
+    inline void SetNextTask(QueueTask* task)
     {
         nextTask_ = task;
     }
@@ -91,14 +89,25 @@ public:
         return prio_;
     }
 
-    inline void SetName(const std::string name)
+    inline bool IsMatch(std::string name) const
     {
-        name_ = name;
+        std::string pattern = ".*_" + name + "_.*";
+        return std::regex_match(label, std::regex(pattern));
     }
 
-    inline std::string GetName()
+    inline bool InsertHead() const
     {
-        return name_;
+        return InsertHead_;
+    }
+
+    inline uint64_t GetSenderKernelThreadId()
+    {
+        return senderKernelThreadId;
+    }
+
+    inline void SetSendKernelThreadId(uint64_t senderKernelThreadId)
+    {
+        senderKernelThreadId_ = senderKernelThreadId;
     }
 
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
@@ -106,11 +115,11 @@ public:
 private:
     void FreeMem() override;
     uint64_t uptime_;
-    IHandler* handler_;
+    QueueHandler* handler_;
     uint64_t delay_ = 0;
     int qos_ = qos_inherit;
 
-    SerialTask* nextTask_ = nullptr;
+    QueueTask* nextTask_ = nullptr;
     std::atomic_bool isFinished_ = {false};
     bool onWait_ = {false};
 
@@ -118,8 +127,8 @@ private:
     std::condition_variable cond_;
 
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
-    std::string name_;
+    uint64_t senderKernelThreadId_{0};
 };
 } // namespace ffrt
 
-#endif // FFRT_SERIAL_TASK_H
+#endif // FFRT_QUEUE_TASK_H

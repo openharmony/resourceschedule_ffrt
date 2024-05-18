@@ -15,17 +15,16 @@
 #ifndef FFRT_QUEUE_MONITOR_H
 #define FFRT_QUEUE_MONITOR_H
 
-#include <shared_mutex>
-#include <string>
 #include <vector>
+#include <shared_mutex>
 #include "sched/execute_ctx.h"
-#include "serial_handler.h"
+#include "queue_handler.h"
 
 namespace ffrt {
 class QueueMonitor {
 public:
     static QueueMonitor &GetInstance();
-    void RegisterQueueId(uint32_t queueId, SerialHandler* queueStruct);
+    void RegisterQueueId(uint32_t queueId, QueueHandler* queueStruct);
     void ResetQueueInfo(uint32_t queueId);
     void ResetQueueStruct(uint32_t queueId);
     void UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId);
@@ -46,7 +45,7 @@ private:
     uint64_t timeoutUs_ = 0;
     std::shared_mutex mutex_;
     std::vector<std::pair<uint64_t, time_point_t>> queuesRunningInfo_;
-    std::vector<SerialHandler*> queuesStructInfo_;
+    std::vector<QueueHandler*> queuesStructInfo_;
 };
 } // namespace ffrt
 

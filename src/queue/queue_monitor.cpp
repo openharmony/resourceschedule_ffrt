@@ -13,11 +13,8 @@
  * limitations under the License.
  */
 #include "queue_monitor.h"
-#include <cstdint>
 #include <sstream>
-#include <iomanip>
 #include "dfx/log/ffrt_log_api.h"
-#include "internal_inc/osal.h"
 #include "sync/sync.h"
 #include "c/ffrt_watchdog.h"
 
@@ -68,7 +65,7 @@ QueueMonitor& QueueMonitor::GetInstance()
     return instance;
 }
 
-void QueueMonitor::RegisterQueueId(uint32_t queueId, SerialHandler* queueStruct)
+void QueueMonitor::RegisterQueueId(uint32_t queueId, QueueHandler* queueStruct)
 {
     std::unique_lock lock(mutex_);
     if (queueId == queuesRunningInfo_.size()) {

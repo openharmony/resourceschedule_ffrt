@@ -12,17 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "serial_handler.h"
-
+#include "queue_handler.h"
+#include <sys/syscall.h>
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "queue_monitor.h"
-#include "serial_task.h"
-#include "serial_queue.h"
-#include "sched/scheduler.h"
-#include "ffrt_trace.h"
-#include "internal_inc/osal.h"
 #include "util/event_handler_adapter.h"
+#include "tm/queue_task.h"
+#include "concurrent_queue.h"
+#include "eventhandler_adapter_queue.h"
+#include "sched/scheduler.h"
 
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
@@ -31,7 +30,7 @@ constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
 std::atomic_uint32_t queueId(0);
 }
 namespace ffrt {
-SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr, const ffrt_queue_type_t type)
+QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, const int type)
     : queueId_(queueId++), queueType_(type)
 {
     int maxConcurrency = 1;
@@ -46,11 +45,11 @@ SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr, co
 
     // callback reference counting is to ensure life cycle
     if (timeout_ > 0 && timeoutCb_ != nullptr) {
-        SerialTask* cbTask = GetSerialTaskByFuncStorageOffset(timeoutCb_);
+        QueueTask* cbTask = GetQueueTaskByFuncStorageOffset(timeoutCb_);
         cbTask->IncDeleteRef();
     }
 
-    queue_ = std::make_unique<SerialQueue>(queueId_, maxConcurrency, type);
+    queue_ = CreateQueue(type, queueId_, attr);
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
 
     if (name != nullptr && std::string(name).size() <= STRING_SIZE_MAX) {
@@ -64,7 +63,7 @@ SerialHandler::SerialHandler(const char* name, const ffrt_queue_attr_t* attr, co
     FFRT_LOGI("construct %s succ", name_.c_str());
 }
 
-SerialHandler::~SerialHandler()
+QueueHandler::~QueueHandler()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot destruct, [queueId=%u] constructed failed", queueId_);
     FFRT_LOGI("destruct %s enter", name_.c_str());
@@ -83,36 +82,44 @@ SerialHandler::~SerialHandler()
         }
 
         if (timeoutCb_ != nullptr) {
-            SerialTask* cbTask = GetSerialTaskByFuncStorageOffset(timeoutCb_);
+            QueueTask* cbTask = GetQueueTaskByFuncStorageOffset(timeoutCb_);
             cbTask->DecDeleteRef();
         }
     }
     FFRT_LOGI("destruct %s leave", name_.c_str());
 }
 
-bool SerialHandler::SetLoop(Loop* loop)
+bool QueueHandler::SetLoop(Loop* loop)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "cannot set loop, [queueId=%u] constructed failed", queueId_);
-    return queue_->SetLoop(loop);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_concurrent),
+        return false, "[queueId=%u] type invalid", queueId_);
+    return reinterpret_cast<ConcurrentQueue*>(queue_.get())->SetLoop(loop);
 }
 
-bool SerialHandler::ClearLoop()
+bool QueueHandler::ClearLoop()
 {
-    return queue_->ClearLoop();
+    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_concurrent),
+        return false, "[queueId=%u] type invalid", queueId_);
+    return reinterpret_cast<ConcurrentQueue*>(queue_.get())->ClearLoop();
 }
 
-SerialTask* SerialHandler::PickUpTask()
+QueueTask* QueueHandler::PickUpTask()
 {
+    FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", queueId_);
     return queue_->Pull();
 }
 
-uint64_t SerialHandler::GetNextTimeout()
+uint64_t QueueHandler::GetNextTimeout()
 {
+    FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "[queueId=%u] constructed failed", queueId_);
     return queue_->GetNextTimeout();
 }
 
-void SerialHandler::NormalSerialTaskSubmit(SerialTask* task)
+void QueueHandler::Submit(QueueTask* task)
 {
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
     // if qos not specified, qos of the queue is inherited by task
@@ -120,7 +127,11 @@ void SerialHandler::NormalSerialTaskSubmit(SerialTask* task)
         task->SetQos(qos_);
     }
 
-    FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(queueId_, task->gid);
+    uint64_t gid = task->gid;
+    FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(queueId_, gid);
+    if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
+        task->SetSendKernelThreadId(syscall(SYS_gettid));
+    }
 
     int ret = queue_->Push(task);
     if (ret == SUCC) {
@@ -147,85 +158,30 @@ void SerialHandler::NormalSerialTaskSubmit(SerialTask* task)
         TransferInitTask();
     }
 }
-#ifdef OHOS_STANDARD_SYSTEM
-void SerialHandler::MainSerialTaskSubmit(SerialTask* task)
-{
-    FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
-    int prio = task->GetPriority();
-    int delayUs = task->GetDelay();
 
-    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-    std::function<void()> mainFunc = [=]() {
-        f->exec(f);
-        f->destroy(f);
-    };
-    bool taskStatus = EventHandlerAdapter::Instance()->PostTask(
-        eventHandler_, mainFunc, task->GetName(), delayUs / 1000, static_cast<Priority>(prio));
-    FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
+void QueueHandler::Cancel()
+{
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancel, [queueId=%u] constructed failed", queueId_);
+    queue_->Remove();
 }
 
-void SerialHandler::WorkerSerialTaskSubmit(SerialTask* task)
+int QueueHandler::Cancel(const char* name)
 {
-    FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
-    int prio = task->GetPriority();
-    int delayUs = task->GetDelay();
-
-    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-    std::function<void()> workerFunc = [=]() {
-        f->exec(f);
-        f->destroy(f);
-    };
-
-    bool taskStatus = EventHandlerAdapter::Instance()->PostTask(
-        eventHandler_, workerFunc, task->GetName(), delayUs / 1000, static_cast<Priority>(prio));
-    FFRT_COND_DO_ERR((taskStatus == false), return, "post task fail");
-}
-#endif
-
-void SerialHandler::Submit(SerialTask* task)
-{
-    switch (handleType_) {
-        case NORMAL_SERIAL_HANDLER:
-            NormalSerialTaskSubmit(task);
-            break;
-        case MAINTHREAD_SERIAL_HANDLER:
-#ifdef OHOS_STANDARD_SYSTEM
-            MainSerialTaskSubmit(task);
-#endif
-            break;
-        case WORKERTHREAD_SERIAL_HANDLER:
-#ifdef OHOS_STANDARD_SYSTEM
-            WorkerSerialTaskSubmit(task);
-#endif
-            break;
-        default: {
-            FFRT_LOGE("Unsupport serial handle type=%d.", handleType_);
-            break;
-        }
+    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", queueId_);
+    int ret = queue_->Remove(name);
+    if (ret != SUCC) {
+        FFRT_LOGD("cancel task %s failed, task may have been executed", name);
     }
+
+    return ret;
 }
 
-int SerialHandler::Cancel(SerialTask* task)
+int QueueHandler::Cancel(QueueTask* task)
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", queueId_);
     FFRT_COND_DO_ERR((task == nullptr), return INACTIVE, "input invalid, serial task is nullptr");
 
-    int ret = SUCC;
-    switch (handleType_) {
-        case NORMAL_SERIAL_HANDLER:
-            ret = queue_->Remove(task);
-            break;
-        case MAINTHREAD_SERIAL_HANDLER:
-        case WORKERTHREAD_SERIAL_HANDLER:
-#ifdef OHOS_STANDARD_SYSTEM
-            EventHandlerAdapter::Instance()->RemoveTask(eventHandler_, task->GetName());
-#endif
-            break;
-        default: {
-            FFRT_LOGE("Unsupport serial handle type=%d.", handleType_);
-            break;
-        }
-    }
+    int ret = queue_->Remove(task);
 
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
@@ -237,10 +193,10 @@ int SerialHandler::Cancel(SerialTask* task)
     return ret;
 }
 
-void SerialHandler::Dispatch(SerialTask* inTask)
+void QueueHandler::Dispatch(QueueTask* inTask)
 {
-    SerialTask* nextTask = nullptr;
-    for (SerialTask* task = inTask; task != nullptr; task = nextTask) {
+    QueueTask* nextTask = nullptr;
+    for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
         // dfx watchdog
         SetTimeoutMonitor(task);
         QueueMonitor::GetInstance().UpdateQueueInfo(queueId_, task->gid);
@@ -249,7 +205,21 @@ void SerialHandler::Dispatch(SerialTask* inTask)
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, queueId_);
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(task->gid);
+
+        uint64_t triggerTime{0};
+        if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
+            triggerTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+        }
+
         f->exec(f);
+
+        if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
+            uint64_t completeTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+            reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
+        }
+
         f->destroy(f);
         task->Notify();
 
@@ -265,17 +235,20 @@ void SerialHandler::Dispatch(SerialTask* inTask)
     }
 }
 
-void SerialHandler::Deliver()
+void QueueHandler::Deliver()
 {
-    SerialTask* task = queue_->Pull();
+    QueueTask* task = queue_->Pull();
     if (task != nullptr) {
         TransferTask(task);
     }
 }
 
-void SerialHandler::TransferTask(SerialTask* task)
+void QueueHandler::TransferTask(QueueTask* task)
 {
     auto entry = &task->fq_we;
+    if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
+        reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->SetCurrentRunningTask(task);
+    }
     FFRTScheduler* sch = FFRTScheduler::Instance();
     if (!sch->InsertNode(&entry->node, QoS(task->GetQos()))) {
         FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, queueId_, name_.c_str());
@@ -283,17 +256,17 @@ void SerialHandler::TransferTask(SerialTask* task)
     }
 }
 
-void SerialHandler::TransferInitTask()
+void QueueHandler::TransferInitTask()
 {
     std::function<void()> initFunc = []{};
     auto f = create_function_wrapper(initFunc, ffrt_function_kind_queue);
-    SerialTask* initTask = GetSerialTaskByFuncStorageOffset(f);
-    new (initTask)ffrt::SerialTask(this);
+    QueueTask* initTask = GetQueueTaskByFuncStorageOffset(f);
+    new (initTask)ffrt::QueueTask(this);
     initTask->SetQos(qos_);
     TransferTask(initTask);
 }
 
-void SerialHandler::SetTimeoutMonitor(SerialTask* task)
+void QueueHandler::SetTimeoutMonitor(QueueTask* task)
 {
     if (timeout_ <= 0) {
         return;
@@ -328,7 +301,7 @@ void SerialHandler::SetTimeoutMonitor(SerialTask* task)
     FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, name_.c_str());
 }
 
-void SerialHandler::RunTimeOutCallback(SerialTask* task)
+void QueueHandler::RunTimeOutCallback(QueueTask* task)
 {
     std::stringstream ss;
     ss << "serial queue [" << name_ << "] queueId=" << queueId_ << ", serial task gid=" << task->gid <<
@@ -350,7 +323,7 @@ void SerialHandler::RunTimeOutCallback(SerialTask* task)
     }
 }
 
-std::string SerialHandler::GetDfxInfo() const
+std::string QueueHandler::GetDfxInfo() const
 {
     std::stringstream ss;
     ss << " queue name [" << name_ << "]";
@@ -358,5 +331,52 @@ std::string SerialHandler::GetDfxInfo() const
         ss << ", remaining tasks count=" << queue_->GetMapSize();
     }
     return ss.str();
+}
+
+bool QueueHandler::IsIdle()
+{
+    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_eventhandler_adapter),
+        return false, "[queueId=%u] type invalid", queueId_);
+
+    return reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->IsIdle();
+}
+
+void QueueHandler::SetEventHandler(void* eventHandler)
+{
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
+
+    bool typeInvalid = (queue_->GetQueueType() != ffrt_queue_eventhandler_interactive) &&
+        (queue_->GetQueueType() != ffrt_queue_eventhandler_adapter);
+    FFRT_COND_DO_ERR(typeInvalid, return, "[queueId=%u] type invalid", queueId_);
+
+    reinterpret_cast<EventHandlerInteractiveQueue*>(queue_.get())->SetEventHandler(eventHandler);
+}
+
+void* QueueHandler::GetEventHandler()
+{
+    FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", queueId_);
+
+    bool typeInvalid = (queue_->GetQueueType() != ffrt_queue_eventhandler_interactive) &&
+        (queue_->GetQueueType() != ffrt_queue_eventhandler_adapter);
+    FFRT_COND_DO_ERR(typeInvalid, return nullptr, "[queueId=%u] type invalid", queueId_);
+
+    return reinterpret_cast<EventHandlerInteractiveQueue*>(queue_.get())->GetEventHandler();
+}
+
+int QueueHandler::Dump(const char* tag, char* buf, uint32_t len, bool historyInfo)
+{
+    FFRT_COND_DO_ERR((queue_ == nullptr), return -1, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_eventhandler_adapter),
+        return -1, "[queueId=%u] type invalid", queueId_);
+    return reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->Dump(tag, buf, len, historyInfo);
+}
+
+int QueueHandler::DumpSize(ffrt_inner_queue_priority_t priority)
+{
+    FFRT_COND_DO_ERR((queue_ == nullptr), return -1, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_eventhandler_adapter),
+        return -1, "[queueId=%u] type invalid", queueId_);
+    return reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->DumpSize(priority);
 }
 } // namespace ffrt

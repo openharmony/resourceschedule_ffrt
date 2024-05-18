@@ -102,7 +102,7 @@ public:
 
     inline uint64_t GetSenderKernelThreadId()
     {
-        return senderKernelThreadId;
+        return senderKernelThreadId_;
     }
 
     inline void SetSenderKernelThreadId(uint64_t senderKernelThreadId)

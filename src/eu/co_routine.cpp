@@ -23,7 +23,7 @@
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
-#include "queue/serial_task.h"
+#include "tm/queue_task.h"
 #include "sched/scheduler.h"
 #include "sync/sync.h"
 #include "util/slab.h"
@@ -257,8 +257,8 @@ static inline void CoStartEntry(void* arg)
             task->Execute();
             break;
         }
-        case ffrt_serial_task: {
-            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+        case ffrt_queue_task: {
+            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
             // Before the batch execution is complete, head node cannot be released.
             sTask->IncDeleteRef();
             sTask->Execute();
@@ -525,8 +525,8 @@ void CoWake(ffrt::CPUEUTask* task, bool timeOut)
             task->UpdateState(ffrt::TaskState::READY);
             break;
         }
-        case ffrt_serial_task: {
-            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+        case ffrt_queue_task: {
+            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
             auto handle = sTask->GetHandler();
             handle->TransferTask(sTask);
             break;

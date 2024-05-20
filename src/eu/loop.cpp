@@ -14,10 +14,10 @@
  */
 
 #include "loop.h"
-#include "queue/serial_task.h"
+#include "tm/queue_task.h"
 
 namespace ffrt {
-Loop::Loop(SerialHandler* handler) : handler_(handler) {}
+Loop::Loop(QueueHandler* handler) : handler_(handler) {}
 
 Loop::~Loop()
 {

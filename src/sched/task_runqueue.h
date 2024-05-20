@@ -88,7 +88,7 @@ private:
         }
         ffrt_executor_task_t* w = reinterpret_cast<ffrt_executor_task_t *>(reinterpret_cast<char *>(node) -
             offsetof(ffrt_executor_task_t, wq));
-        if (w->type != ffrt_normal_task && w->type != ffrt_serial_task) {
+        if (w->type != ffrt_normal_task && w->type != ffrt_queue_task) {
             w->wq[0] = &w->wq;
             w->wq[1] = &w->wq;
             size--;

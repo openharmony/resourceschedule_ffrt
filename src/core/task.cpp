@@ -28,7 +28,6 @@
 #include "eu/worker_thread.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/watchdog/watchdog_util.h"
-#include "queue/serial_task.h"
 #include "eu/func_manager.h"
 #include "util/ffrt_facade.h"
 #include "eu/sexecute_unit.h"
@@ -39,6 +38,7 @@
 #include "util/spmc_queue.h"
 #endif
 #include "tm/task_factory.h"
+#include "tm/queue_task.h"
 
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
@@ -214,7 +214,8 @@ void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priori
         return;
     }
 
-    if (priority < ffrt_queue_priority_immediate || priority > ffrt_queue_priority_idle) {
+    // eventhandler inner priority is one more than the kits priority
+    if (priority < ffrt_queue_priority_immediate || priority > ffrt_queue_priority_idle + 1) {
         FFRT_LOGE("priority should be a valid priority");
         return;
     }
@@ -240,7 +241,7 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
     if (kind == ffrt_function_kind_general) {
         return ffrt::TaskFactory::Alloc()->func_storage;
     }
-    return ffrt::SimpleAllocator<ffrt::SerialTask>::allocMem()->func_storage;
+    return ffrt::SimpleAllocator<ffrt::QueueTask>::allocMem()->func_storage;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -442,20 +443,23 @@ uint64_t ffrt_this_task_get_id()
         return 0;
     }
 
-    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 0, "get id task type invalid");
-    return curTask->gid;
+    if (curTask->type == ffrt_normal_task || curTask->type == ffrt_queue_task) {
+        return curTask->gid;
+    }
+
+    return 0;
 }
 
 API_ATTRIBUTE((visibility("default")))
 int64_t ffrt_this_queue_get_id()
 {
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
-    if (curTask == nullptr || curTask->type != ffrt_serial_task) {
+    if (curTask == nullptr || curTask->type != ffrt_queue_task) {
         // not serial queue task
         return -1;
     }
 
-    ffrt::SerialTask* task = reinterpret_cast<ffrt::SerialTask*>(curTask);
+    ffrt::QueueTask* task = reinterpret_cast<ffrt::QueueTask*>(curTask);
     return task->GetQueueId();
 }
 

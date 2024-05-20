@@ -93,10 +93,7 @@ int Poller::DelFdEvent(int fd) noexcept
 
 int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeout) noexcept
 {
-    if (eventsVec == nullptr) {
-        FFRT_LOGE("eventsVec cannot be null");
-        return -1;
-    }
+    FFRT_COND_DO_ERR((eventsVec == nullptr), return -1, "eventsVec cannot be null");
 
     auto task = ExecuteCtx::Cur()->task;
     if (!task) {
@@ -104,10 +101,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         return -1;
     }
 
-    if (maxevents < EPOLL_EVENT_SIZE) {
-        FFRT_LOGE("maxEvents:%d cannot be less than 1024", maxevents);
-        return -1;
-    }
+    FFRT_COND_DO_ERR((maxevents < EPOLL_EVENT_SIZE), return -1, "maxEvents:%d cannot be less than 1024", maxevents);
 
     bool legacyMode = LegacyMode(task);
     int nfds = 0;

@@ -72,7 +72,7 @@ config("ffrt_config") {
     defines += [ "APP_USE_ARM" ]
   }
 
-  if (is_ohos && target_cpu == "arm64") {
+  if (is_ohos) {
     defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
   }
 

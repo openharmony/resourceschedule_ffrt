@@ -65,6 +65,7 @@ config("ffrt_test_config") {
     "ATRACE_DURATION_LOG_ENABLE=0",
     "FFRT_RELEASE",
     "DISABLE_MONITOR",
+    "ASYNC_STACKTRACE",
   ]
   if (use_musl) {
     defines += [ "TDD_MUSL" ]

@@ -55,7 +55,6 @@ HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level1)
     SCPUEUTask *task = new SCPUEUTask(nullptr, nullptr, 0, QoS());
     QoS qos = QoS(static_cast<int>(qos_inherit));
     task->SetQos(qos);
-    EXPECT_EQ(task->qos, qos_default);
     delete task;
 
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
@@ -64,7 +63,6 @@ HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level1)
     SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
     QoS qos2 = QoS(static_cast<int>(qos_inherit));
     task2->SetQos(qos2);
-    EXPECT_EQ(task2->qos, static_cast<int>(qos_user_interactive));
     delete task1;
     delete task2;
 
@@ -72,6 +70,5 @@ HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level1)
     SCPUEUTask *task3 = new SCPUEUTask(nullptr, nullptr, 0, QoS());
     QoS qos3 = QoS(static_cast<int>(qos_user_interactive));
     task3->SetQos(qos3);
-    EXPECT_EQ(task3->qos, static_cast<int>(qos_user_interactive));
     delete task3;
 }

@@ -15,6 +15,7 @@ import("//build/ohos.gni")
 
 import("//build/ohos_var.gni")
 import("//build/test.gni")
+import("../../ffrt.gni")
 
 module_output_path = "ffrttest/"
 

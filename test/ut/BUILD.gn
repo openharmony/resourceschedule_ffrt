@@ -15,6 +15,7 @@ import("//build/ohos.gni")
 
 import("//build/ohos_var.gni")
 import("//build/test.gni")
+import("../../ffrt.gni")
 
 module_output_path = "ffrttest/"
 
@@ -68,6 +69,9 @@ config("ffrt_test_config") {
   ]
   if (use_musl) {
     defines += [ "TDD_MUSL" ]
+  }
+  if (ffrt_async_stack_enable) {
+    defines += [ "ASYNC_STACKTRACE" ]
   }
 }
 

@@ -89,7 +89,7 @@ public:
             }
 
             auto iter = std::find_if(whenMap.begin(), whenMap.end(),
-                [idx](const auto& pair) { return pair.second->GetPriority() == idx; });
+                [idx, now](const auto& pair) { return (pair.first < now) && (pair.second->GetPriority() == idx); });
             if (iter != whenMap.end()) {
                 iterTarget = iter;
                 break;

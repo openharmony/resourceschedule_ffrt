@@ -349,43 +349,55 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
         break;
     }
     timerEmpty_.store(timerMap_.empty());
-
-    timerMutex_.unlock();
+   
     for (const auto& data : timerData) {
+        timerMutex_.unlock();
         if (data.cb) {
             data.cb(data.data);
         } else if (data.task != nullptr) {
             ProcessTimerDataCb(data.task);
         }
-        executedHandle_[data.handle] = TimerStatus::EXECUTED;
+        timerMutex_.lock()
+        if(data.repeat) {
+            executedHandle_.erase(data.handle);
+            RegisterTimerImpl(data);
+        } else {
+            executedHandle_[data.handle] = TimerStatus::EXECUTED;
+        }
     }
+    timerMutex_.unlock();
 }
 
-int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
+void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept
 {
-    if (repeat) {
-        FFRT_LOGE("repeat not supported yet");
-        return -1;
-    }
     if (flag_ == EpollStatus::TEARDOWN) {
-        return -1;
+        return;
     }
 
-    std::lock_guard lock(timerMutex_);
-    time_point_t absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout);
+    time_point_t absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data.timeout);
     bool wake = timerMap_.empty() || (absoluteTime < timerMap_.begin()->first && flag_ == EpollStatus::WAIT);
 
-    TimerDataWithCb timerMapValue(data, cb, ExecuteCtx::Cur()->task);
-    timerHandle_ += 1;
-    timerMapValue.handle = timerHandle_;
-    timerMap_.emplace(absoluteTime, timerMapValue);
+    timerMap_.emplace(absoluteTime, data);
     timerEmpty_.store(false);
 
     if (wake) {
         WakeUp();
     }
+}
 
-    return timerHandle_;
+int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
+{
+    if (flag == EpollStatus::TEARDOWN) {
+        return -1;
+    }
+
+    std::lock_guard lock(timerMutex_);
+    timerHandle_ +=1;
+
+    TimerDataWithCb timerMapValue(data, cb, ExecuteCtx::Cur()->task, repeat, timeout);
+    timerMapValue.handle = timerHandle_;
+    RegisterTimerImpl(timerMapValue);
+    return timerHandle_
 }
 
 int Poller::UnregisterTimer(int handle) noexcept

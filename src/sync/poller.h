@@ -62,13 +62,16 @@ struct WakeDataWithCb {
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CPUEUTask *taskVal) : data(dataVal), cb(cbVal), task(taskVal)
+    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CPUEUTask *taskVal, bool repeat, uint64_t timeout)
+        : data(dataVal), cb(cbVal), task(taskVal), repeat(repeat), timeout(timeout)
     {}
 
     void* data = nullptr;
     void(*cb)(void*) = nullptr;
     int handle = -1;
     CPUEUTask* task = nullptr;
+    bool repeat = false;
+    uint64_t timeout = 0;
 };
 
 struct SyncData {
@@ -116,6 +119,8 @@ private:
                           std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
     void ExecuteTimerCb(time_point_t timer) noexcept;
     void ProcessTimerDataCb(CPUEUTask* task) noexcept;
+    void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
+
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
 

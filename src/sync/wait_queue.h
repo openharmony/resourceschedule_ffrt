@@ -97,6 +97,10 @@ private:
 
     inline void push_back(WaitUntilEntry* we)
     {
+        if ((we == nullptr) || (whead->prev == nullptr)) {
+            FFRT_LOGE("we or whead->prev is nullptr");
+            return;
+        }
         we->next = whead;
         we->prev = whead->prev;
         whead->prev->next = we;
@@ -105,10 +109,11 @@ private:
 
     inline WaitUntilEntry* pop_front()
     {
-        WaitEntry *we = whead->next;
-        if (we->next == nullptr) {
+        if ((whead->next == nullptr) || (whead->next->next == nullptr)) {
+            FFRT_LOGE("whead->next or whead->next->next is nullptr");
             return nullptr;
         }
+        WaitEntry *we = whead->next;
         whead->next = we->next;
         we->next->prev = whead;
         we->next = nullptr;

@@ -20,6 +20,7 @@
 #include "sched/execute_ctx.h"
 #include "util/IntrusiveList.h"
 #include "sync/mutex_private.h"
+#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 class CPUEUTask;

@@ -357,7 +357,7 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
         } else if (data.task != nullptr) {
             ProcessTimerDataCb(data.task);
         }
-        timerMutex_.lock()
+        timerMutex_.lock();
         if(data.repeat) {
             executedHandle_.erase(data.handle);
             RegisterTimerImpl(data);
@@ -387,7 +387,7 @@ void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept
 
 int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
 {
-    if (flag == EpollStatus::TEARDOWN) {
+    if (flag_ == EpollStatus::TEARDOWN) {
         return -1;
     }
 
@@ -397,7 +397,7 @@ int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool r
     TimerDataWithCb timerMapValue(data, cb, ExecuteCtx::Cur()->task, repeat, timeout);
     timerMapValue.handle = timerHandle_;
     RegisterTimerImpl(timerMapValue);
-    return timerHandle_
+    return timerHandle_;
 }
 
 int Poller::UnregisterTimer(int handle) noexcept

@@ -358,7 +358,7 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
             ProcessTimerDataCb(data.task);
         }
         timerMutex_.lock();
-        if(data.repeat) {
+        if (data.repeat) {
             executedHandle_.erase(data.handle);
             RegisterTimerImpl(data);
         } else {

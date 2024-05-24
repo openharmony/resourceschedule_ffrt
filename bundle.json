@@ -33,12 +33,13 @@
                 "c_utils",
                 "hilog",
                 "hisysevent",
-                "napi",
                 "faultloggerd",
                 "hiprofiler",
                 "init",
                 "hitrace",
-                "libunwind"
+                "libunwind",
+
+                "napi"
             ],
             "third_party": [
                 "bounds_checking_function",

@@ -40,11 +40,18 @@ enum class Priority : uint32_t {
     IDLE,
 };
 
+struct TaskOptions {
+    std::string dfxName_;
+    int64_t delayTime_;
+    EventQueue::Priority priority_;
+    uintptr_t taskId_;
+    TaskOptions(std::string dfxName, int64_t delayTime, Priority priority, uintptr_t taskId)
+        : dfxName_(dfxName), delayTime_(delayTime), priority_(priority), taskId_(taskId) {}
+ };
 void* GetMainEventHandlerForFFRT();
 void* GetCurrentEventHandlerForFFRT();
-bool PostTaskByFFRT(void* handler, const std::function<void()>& callback,
-    const std::string &name, int64_t delayTime, Priority priority);
-void RemoveTaskForFFRT(void* handler, const std::string &name);
+bool PostTaskByFFRT(void* handler, const std::function<void()>& callback, const TaskOptions &task);
+void RemoveTaskForFFRT(void* handler, const uintptr_t taskId);
 
 using GetMainEventHandlerType = decltype(GetMainEventHandlerForFFRT)*;
 using GetCurrentEventHandlerType = decltype(GetCurrentEventHandlerForFFRT)*;

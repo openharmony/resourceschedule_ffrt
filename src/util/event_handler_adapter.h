@@ -51,7 +51,7 @@ struct TaskOptions {
 void* GetMainEventHandlerForFFRT();
 void* GetCurrentEventHandlerForFFRT();
 bool PostTaskByFFRT(void* handler, const std::function<void()>& callback, const TaskOptions &task);
-void RemoveTaskForFFRT(void* handler, const uintptr_t taskId);
+int RemoveTaskForFFRT(void* handler, const uintptr_t taskId);
 
 using GetMainEventHandlerType = decltype(GetMainEventHandlerForFFRT)*;
 using GetCurrentEventHandlerType = decltype(GetCurrentEventHandlerForFFRT)*;

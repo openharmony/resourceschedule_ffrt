@@ -21,17 +21,16 @@
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
-#include "queue/serial_task.h"
-#include "pthread_ffrt.h"
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
 #endif
 #include "tm/cpu_task.h"
+#include "tm/queue_task.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
 namespace ffrt {
@@ -53,15 +52,15 @@ void CPUWorker::Run(CPUEUTask* task)
     switch (task->type) {
         case ffrt_normal_task: {
 #ifdef ASYNC_STACKTRACE
-            SetStackId(task->stackId);
+            FFRTSetStackId(task->stackId);
 #endif
             task->Execute();
             break;
         }
-        case ffrt_serial_task: {
-            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+        case ffrt_queue_task: {
+            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
 #ifdef ASYNC_STACKTRACE
-            SetStackId(sTask->stackId);
+            FFRTSetStackId(sTask->stackId);
 #endif
             sTask->IncDeleteRef();
             sTask->Execute();
@@ -124,7 +123,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUT
         case ffrt_normal_task: {
             lastTask = task;
         }
-        case ffrt_serial_task: {
+        case ffrt_queue_task: {
             ctx->task = task;
             Run(task);
             ctx->task = nullptr;
@@ -300,7 +299,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
             case ffrt_normal_task: {
                 lastTask = task;
             }
-            case ffrt_serial_task: {
+            case ffrt_queue_task: {
                 ctx->task = task;
                 Run(task);
                 ctx->task = nullptr;

@@ -37,7 +37,6 @@ public:
     {
         bool ret = false;
         {
-            FFRT_READY_MARKER(task->gid);
             ret = WakeupTaskImpl(task);
         }
         return ret;
@@ -47,7 +46,6 @@ public:
     {
         bool ret = false;
         {
-            FFRT_EXECUTOR_TASK_READY_MARKER(reinterpret_cast<char*>(node) - offsetof(ffrt_executor_task_t, wq));
             ret = WakeupNodeImpl(node);
         }
         return ret;

@@ -29,7 +29,7 @@ typedef enum {
     ffrt_normal_task = 0,
     ffrt_io_task = 1,
     ffrt_uv_task, // only used to register func for libuv
-    ffrt_serial_task
+    ffrt_queue_task
 } ffrt_executor_task_type_t;
 
 typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t qos);
@@ -47,7 +47,9 @@ FFRT_C_API ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t hand
 
 FFRT_C_API int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb);
 
-FFRT_C_API int ffrt_poller_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout, int* nfds);
+FFRT_C_API int ffrt_epoll_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout);
+
+FFRT_C_API uint64_t ffrt_epoll_get_wait_time(void* taskHandle);
 
 // ffrt_executor_task
 FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,

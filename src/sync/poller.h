@@ -62,24 +62,28 @@ struct WakeDataWithCb {
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CPUEUTask *taskVal) : data(dataVal), cb(cbVal), task(taskVal)
+    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CPUEUTask *taskVal, bool repeat, uint64_t timeout)
+        : data(dataVal), cb(cbVal), task(taskVal), repeat(repeat), timeout(timeout)
     {}
 
     void* data = nullptr;
     void(*cb)(void*) = nullptr;
     int handle = -1;
     CPUEUTask* task = nullptr;
+    bool repeat = false;
+    uint64_t timeout = 0;
 };
 
 struct SyncData {
     SyncData() {}
-    SyncData(void *eventsPtr, int maxEvents, int *nfdsPtr)
-        : eventsPtr(eventsPtr), maxEvents(maxEvents), nfdsPtr(nfdsPtr)
+    SyncData(void *eventsPtr, int maxEvents, int *nfdsPtr, time_point_t waitTP)
+        : eventsPtr(eventsPtr), maxEvents(maxEvents), nfdsPtr(nfdsPtr), waitTP(waitTP)
     {}
 
     void* eventsPtr = nullptr;
     int maxEvents = 0;
     int* nfdsPtr = nullptr;
+    time_point_t waitTP;
 };
 
 class Poller : private NonCopyable {
@@ -91,7 +95,7 @@ public:
 
     int AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept;
     int DelFdEvent(int fd) noexcept;
-    int WaitFdEvent(struct epoll_event *eventsVec, int maxevents, int timeout, int* nfds) noexcept;
+    int WaitFdEvent(struct epoll_event *eventsVec, int maxevents, int timeout) noexcept;
 
     PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
@@ -101,6 +105,9 @@ public:
     ffrt_timer_query_t GetTimerStatus(int handle) noexcept;
 
     uint8_t GetPollCount() noexcept;
+
+    bool GetTaskWaitStatus(CPUEUTask* task) noexcept;
+    uint64_t GetTaskWaitTime(CPUEUTask* task) noexcept;
 
     bool DetermineEmptyMap() noexcept;
     bool DeterminePollerReady() noexcept;
@@ -112,6 +119,8 @@ private:
                           std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
     void ExecuteTimerCb(time_point_t timer) noexcept;
     void ProcessTimerDataCb(CPUEUTask* task) noexcept;
+    void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
+
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
 

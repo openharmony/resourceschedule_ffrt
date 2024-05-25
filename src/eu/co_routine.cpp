@@ -17,14 +17,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <securec.h>
 #include <string>
 #include <sys/mman.h>
 #include <unordered_map>
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
-#include "queue/serial_task.h"
+#include "tm/queue_task.h"
 #include "sched/scheduler.h"
 #include "sync/sync.h"
 #include "util/slab.h"
@@ -36,7 +35,7 @@
 #include "pthread_ffrt.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
 using namespace ffrt;
@@ -79,6 +78,9 @@ static CoRoutineEnv* GetCoEnv()
 namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
+    if (task->type != ffrt_normal_task) {
+        return false;
+    }
     if (!task->taskLocal) {
         return false;
     }
@@ -214,7 +216,6 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 
     if (task->threadTsd != nullptr) {
         FFRT_LOGE("thread tsd[%llx] not null", (uint64_t)task->threadTsd);
-        SwitchTsdToThread(task);
     }
 
     TaskTsdRunDtors(task);
@@ -235,10 +236,12 @@ static inline void CoSwitch(CoCtx* from, CoCtx* to)
     }
 }
 
-static inline void CoExit(CoRoutine* co)
+static inline void CoExit(CoRoutine* co, bool isNormalTask)
 {
 #ifdef FFRT_TASK_LOCAL_ENABLE
-    SwitchTsdToThread(co->task);
+    if (isNormalTask) {
+        SwitchTsdToThread(co->task);
+    }
 #endif
     CoSwitch(&co->ctx, &co->thEnv->schCtx);
 }
@@ -247,13 +250,15 @@ static inline void CoStartEntry(void* arg)
 {
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
     ffrt::CPUEUTask* task = co->task;
+    bool isNormalTask = false;
     switch (task->type) {
         case ffrt_normal_task: {
+            isNormalTask = true;
             task->Execute();
             break;
         }
-        case ffrt_serial_task: {
-            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+        case ffrt_queue_task: {
+            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
             // Before the batch execution is complete, head node cannot be released.
             sTask->IncDeleteRef();
             sTask->Execute();
@@ -267,7 +272,7 @@ static inline void CoStartEntry(void* arg)
     }
 
     co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
-    CoExit(co);
+    CoExit(co, isNormalTask);
 }
 
 static void CoSetStackProt(CoRoutine* co, int prot)
@@ -430,7 +435,7 @@ void CoStart(ffrt::CPUEUTask* task)
         FFRT_LOGD("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef ASYNC_STACKTRACE
-        SetStackId(task->stackId);
+        FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
         CoSwitchInTrace(task);
@@ -438,8 +443,9 @@ void CoStart(ffrt::CPUEUTask* task)
         SwitchTsdToTask(co->task);
 #endif
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
-        if (task->type == ffrt_normal_task && task->isTaskDone) {
+        if (co->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
+            co->isTaskDone = false;
         }
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
@@ -493,7 +499,8 @@ void CoYield(void)
         const int IGNORE_DEPTH = 3;
         backtrace(IGNORE_DEPTH);
         co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH)); // recovery to old state
-        CoExit(co);
+        bool isNormalTask = (co->task->type == ffrt_normal_task);
+        CoExit(co, isNormalTask);
     }
 }
 
@@ -518,8 +525,8 @@ void CoWake(ffrt::CPUEUTask* task, bool timeOut)
             task->UpdateState(ffrt::TaskState::READY);
             break;
         }
-        case ffrt_serial_task: {
-            SerialTask* sTask = reinterpret_cast<SerialTask*>(task);
+        case ffrt_queue_task: {
+            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
             auto handle = sTask->GetHandler();
             handle->TransferTask(sTask);
             break;

@@ -12,10 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "c/queue_ext.h"
 #include "cpp/queue.h"
+#include "util/event_handler_adapter.h"
 #include "dm/dependence_manager.h"
-#include "serial_handler.h"
-#include "serial_task.h"
+#include "tm/queue_task.h"
+#include "queue_handler.h"
 
 using namespace std;
 using namespace ffrt;
@@ -26,20 +28,20 @@ inline void ResetTimeoutCb(ffrt::queue_attr_private* p)
     if (p->timeoutCb_ == nullptr) {
         return;
     }
-    SerialTask* cbTask = GetSerialTaskByFuncStorageOffset(p->timeoutCb_);
+    QueueTask* cbTask = GetQueueTaskByFuncStorageOffset(p->timeoutCb_);
     cbTask->DecDeleteRef();
     p->timeoutCb_ = nullptr;
 }
 
-inline SerialTask* ffrt_queue_submit_base(ffrt_queue_t queue, ffrt_function_header_t* f, bool withHandle,
-    const ffrt_task_attr_t* attr)
+inline QueueTask* ffrt_queue_submit_base(ffrt_queue_t queue, ffrt_function_header_t* f, bool withHandle,
+    bool insertHead, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR(unlikely(queue == nullptr), return nullptr, "input invalid, queue == nullptr");
     FFRT_COND_DO_ERR(unlikely(f == nullptr), return nullptr, "input invalid, function header == nullptr");
-    SerialHandler* handler = static_cast<SerialHandler*>(queue);
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
-    SerialTask* task = GetSerialTaskByFuncStorageOffset(f);
-    new (task)ffrt::SerialTask(handler, p);
+    QueueTask* task = GetQueueTaskByFuncStorageOffset(f);
+    new (task)ffrt::QueueTask(handler, p, insertHead);
     if (withHandle) {
         task->IncDeleteRef();
     }
@@ -107,9 +109,9 @@ void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_
     ffrt::queue_attr_private* p = reinterpret_cast<ffrt::queue_attr_private*>(attr);
     ResetTimeoutCb(p);
     p->timeoutCb_ = f;
-    // the memory of timeoutCb are managed in the form of SerialTask
-    SerialTask* task = GetSerialTaskByFuncStorageOffset(f);
-    new (task)ffrt::SerialTask(nullptr);
+    // the memory of timeoutCb are managed in the form of QueueTask
+    QueueTask* task = GetQueueTaskByFuncStorageOffset(f);
+    new (task)ffrt::QueueTask(nullptr);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -142,11 +144,11 @@ int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr)
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr)
 {
-    FFRT_COND_DO_ERR(((type != ffrt_queue_serial) && (type != ffrt_queue_concurrent)),
-        return nullptr, "input invalid, type unsupport");
-    SerialHandler* handler = new (std::nothrow) SerialHandler(name, attr, type);
-    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct SerialHandler");
-    handler->SetHandlerType(NORMAL_SERIAL_HANDLER);
+    bool invalidType = (type == ffrt_queue_max) || (type < ffrt_queue_serial) ||
+        (type >= static_cast<ffrt_queue_type_t>(ffrt_queue_inner_max));
+    FFRT_COND_DO_ERR(invalidType, return nullptr, "input invalid, type unsupport");
+    QueueHandler* handler = new (std::nothrow) QueueHandler(name, attr, type);
+    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct QueueHandler");
     return static_cast<ffrt_queue_t>(handler);
 }
 
@@ -154,7 +156,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_destroy(ffrt_queue_t queue)
 {
     FFRT_COND_DO_ERR((queue == nullptr), return, "input invalid, queue is nullptr");
-    SerialHandler* handler = static_cast<SerialHandler*>(queue);
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
     delete handler;
 }
 
@@ -162,7 +164,15 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, function is nullptr");
-    SerialTask* task = ffrt_queue_submit_base(queue, f, false, attr);
+    QueueTask* task = ffrt_queue_submit_base(queue, f, false, false, attr);
+    FFRT_COND_DO_ERR((task == nullptr), return, "failed to submit serial task");
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_queue_submit_head(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
+{
+    FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, function is nullptr");
+    QueueTask* task = ffrt_queue_submit_base(queue, f, false, true, attr);
     FFRT_COND_DO_ERR((task == nullptr), return, "failed to submit serial task");
 }
 
@@ -170,7 +180,16 @@ API_ATTRIBUTE((visibility("default")))
 ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR((f == nullptr), return nullptr, "input invalid, function is nullptr");
-    SerialTask* task = ffrt_queue_submit_base(queue, f, true, attr);
+    QueueTask* task = ffrt_queue_submit_base(queue, f, true, false, attr);
+    FFRT_COND_DO_ERR((task == nullptr), return nullptr, "failed to submit serial task");
+    return static_cast<ffrt_task_handle_t>(task);
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_task_handle_t ffrt_queue_submit_head_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
+{
+    FFRT_COND_DO_ERR((f == nullptr), return nullptr, "input invalid, function is nullptr");
+    QueueTask* task = ffrt_queue_submit_base(queue, f, true, true, attr);
     FFRT_COND_DO_ERR((task == nullptr), return nullptr, "failed to submit serial task");
     return static_cast<ffrt_task_handle_t>(task);
 }
@@ -179,7 +198,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_wait(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return, "input invalid, task_handle is nullptr");
-    SerialTask* task = static_cast<SerialTask*>(handle);
+    QueueTask* task = static_cast<QueueTask*>(handle);
     task->Wait();
 }
 
@@ -187,23 +206,77 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_cancel(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return -1, "input invalid, handle is nullptr");
-    SerialTask* task = reinterpret_cast<SerialTask*>(static_cast<CPUEUTask*>(handle));
-    IHandler* handler = task->GetHandler();
+    QueueTask* task = reinterpret_cast<QueueTask*>(static_cast<CPUEUTask*>(handle));
+    QueueHandler* handler = task->GetHandler();
     FFRT_COND_DO_ERR((handler == nullptr), return -1, "task handler is nullptr");
     int ret = handler->Cancel(task);
     return ret;
 }
 
-#ifdef OHOS_STANDARD_SYSTEM
+API_ATTRIBUTE((visibility("default")))
+void ffrt_queue_cancel_all(ffrt_queue_t queue)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return, "input invalid, queue is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    handler->Cancel();
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_queue_cancel_by_name(ffrt_queue_t queue, const char* name)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return -1, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR(unlikely(name == nullptr), return -1, "input invalid, name is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    return handler->Cancel(name);
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_queue_has_task(ffrt_queue_t queue, const char* name)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return false, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR(unlikely(name == nullptr), return false, "input invalid, name is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    return handler->HasTask(name);
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_queue_is_idle(ffrt_queue_t queue)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return false, "input invalid, queue is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    return handler->IsIdle();
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandler)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return, "input invalid, queue is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    handler->SetEventHandler(eventhandler);
+}
+
+API_ATTRIBUTE((visibility("default")))
+void* ffrt_get_current_queue_eventhandler()
+{
+    CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
+    if (curTask == nullptr || curTask->type != ffrt_queue_task) {
+        FFRT_LOGW("Current task is nullptr or is not a serial task.");
+        return nullptr;
+    }
+
+    QueueHandler* handler = reinterpret_cast<QueueTask*>(curTask)->GetHandler();
+    FFRT_COND_DO_ERR(unlikely(handler == nullptr), return nullptr, "task handler is nullptr");
+    return handler->GetEventHandler();
+}
+
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_get_main_queue()
 {
-    std::shared_ptr<OHOS::AppExecFwk::EventHandler> mainHandler =
-        (std::make_shared<OHOS::AppExecFwk::EventHandler>(OHOS::AppExecFwk::EventRunner::GetMainEventRunner()));
+    void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
     FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
-    SerialHandler *handler = new (std::nothrow) SerialHandler("main_queue", nullptr);
-    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct MainThreadSerialHandler");
-    handler->SetHandlerType(MAINTHREAD_SERIAL_HANDLER);
+    QueueHandler *handler = new (std::nothrow) QueueHandler(
+        "main_queue", nullptr, ffrt_queue_eventhandler_interactive);
+    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct MainThreadQueueHandler");
     handler->SetEventHandler(mainHandler);
     return static_cast<ffrt_queue_t>(handler);
 }
@@ -211,12 +284,28 @@ ffrt_queue_t ffrt_get_main_queue()
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_get_current_queue()
 {
-    std::shared_ptr<OHOS::AppExecFwk::EventHandler> workerHandler = OHOS::AppExecFwk::EventHandler::Current();
+    void* workerHandler = EventHandlerAdapter::Instance()->GetCurrentEventHandler();
     FFRT_COND_DO_ERR((workerHandler == nullptr), return nullptr, "failed to get ArkTs worker queue.");
-    SerialHandler *handler = new (std::nothrow) SerialHandler("current_queue", nullptr);
-    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct WorkerThreadSerialHandler");
-    handler->SetHandlerType(WORKERTHREAD_SERIAL_HANDLER);
+    QueueHandler *handler = new (std::nothrow) QueueHandler(
+        "current_queue", nullptr, ffrt_queue_eventhandler_interactive);
+    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct WorkerThreadQueueHandler");
     handler->SetEventHandler(workerHandler);
     return static_cast<ffrt_queue_t>(handler);
 }
-#endif
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_queue_dump(ffrt_queue_t queue, const char* tag, char* buf, uint32_t len, bool history_info)
+{
+    FFRT_COND_DO_ERR((queue == nullptr), return -1, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR((tag == nullptr || buf == nullptr), return -1, "input invalid, tag or buf is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    return handler->Dump(tag, buf, len, history_info);
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_queue_size_dump(ffrt_queue_t queue, ffrt_inner_queue_priority_t priority)
+{
+    FFRT_COND_DO_ERR((queue == nullptr), return -1, "input invalid, queue is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    return handler->DumpSize(priority);
+}

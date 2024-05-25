@@ -56,6 +56,10 @@ bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
         offsetof(ffrt_executor_task_t, wq));
     uintptr_t taskType = task->type;
 
+    if (taskType == ffrt_uv_task || taskType == ffrt_io_task) {
+        FFRT_EXECUTOR_TASK_READY_MARKER(task); // uv/io task ready to enque
+    }
+
     auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
     lock->lock();
     fifoQue[static_cast<unsigned short>(level)]->WakeupNode(node);
@@ -107,11 +111,13 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
     }
     QoS _qos = QoS(qos_level);
     int level = _qos();
+    uint64_t gid = task->gid;
+    FFRT_READY_MARKER(gid); // ffrt normal task ready to enque
     auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
     lock->lock();
     fifoQue[static_cast<unsigned short>(level)]->WakeupTask(task);
     lock->unlock();
-    FFRT_LOGD("qos[%d] task[%lu] entered q", level, task->gid);
+    FFRT_LOGD("qos[%d] task[%lu] entered q", level, gid);
     ExecuteUnit::Instance().NotifyTaskAdded(_qos);
     return true;
 }

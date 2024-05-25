@@ -15,7 +15,7 @@
 
 #include "c/loop.h"
 #include "loop.h"
-#include "queue/serial_handler.h"
+#include "queue/queue_handler.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 
@@ -25,7 +25,7 @@ API_ATTRIBUTE((visibility("default")))
 ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue)
 {
     FFRT_COND_DO_ERR((queue == nullptr), return nullptr, "input invalid, queue is nullptr");
-    SerialHandler* handler = static_cast<SerialHandler*>(queue);
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
     FFRT_COND_DO_ERR((!handler->IsValidForLoop()), return nullptr, "queue invalid for loop");
 
     Loop* innerLoop = new (std::nothrow) Loop(handler);

@@ -15,10 +15,9 @@
 
 #include "sdependence_manager.h"
 #include "util/worker_monitor.h"
-#include "pthread_ffrt.h"
 
 #ifdef ASYNC_STACKTRACE
-#include "async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 using namespace OHOS::HiviewDFX;
 
@@ -56,7 +55,6 @@ SDependenceManager::~SDependenceManager()
 void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
-    FFRT_TRACE_SCOPE(1, onSubmit);
     // 1 Init eu and scheduler
     auto ctx = ExecuteCtx::Cur();
     auto en = Entity::Instance();
@@ -88,10 +86,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(SCPUEUTask, func_storage)));
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
+    FFRT_TRACE_BEGIN(("submit|" + std::to_string(task->gid)).c_str());
     FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef ASYNC_STACKTRACE
     {
-        task->stackId = CollectAsyncStack();
+        task->stackId = FFRTCollectAsyncStack();
     }
 #endif
 
@@ -159,7 +158,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
                 HiTraceChain::Tracepoint(HITRACE_TP_CR, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
             }
 #endif
-
+            FFRT_TRACE_END();
             return;
         }
     }
@@ -175,6 +174,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 #ifdef FFRT_BBOX_ENABLE
     TaskEnQueuCounterInc();
 #endif
+    FFRT_TRACE_END();
 }
 
 void SDependenceManager::onWait()

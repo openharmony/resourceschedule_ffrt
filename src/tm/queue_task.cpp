@@ -12,19 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "serial_task.h"
-#include <iostream>
-#include "c/task.h"
-#include "dfx/log/ffrt_log_api.h"
-#include "util/slab.h"
+#include "queue_task.h"
 #include "ffrt_trace.h"
+#include "dfx/log/ffrt_log_api.h"
+#include "c/task.h"
+#include "util/slab.h"
 
 namespace ffrt {
-SerialTask::SerialTask(IHandler* handler, const task_attr_private* attr) : handler_(handler)
+QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool insertHead)
+    : handler_(handler), insertHead_(insertHead)
 {
-    type = ffrt_serial_task;
+    type = ffrt_queue_task;
     if (handler) {
-        label = handler->GetName() + "_" + std::to_string(gid);
+        label = handler->GetName();
     }
 
     fq_we.task = reinterpret_cast<CPUEUTask*>(this);
@@ -35,19 +35,20 @@ SerialTask::SerialTask(IHandler* handler, const task_attr_private* attr) : handl
         delay_ = attr->delay_;
         qos_ = attr->qos_;
         uptime_ += delay_;
-        name_ = attr->name_;
         prio_ = attr->prio_;
+        label = label + "_" + attr->name_;
     }
+    label = label + "_" + std::to_string(gid);
 
     FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%llu, prio=%u", gid, delay_, type, prio_);
 }
 
-SerialTask::~SerialTask()
+QueueTask::~QueueTask()
 {
     FFRT_LOGD("dtor task [gid=%llu]", gid);
 }
 
-void SerialTask::Destroy()
+void QueueTask::Destroy()
 {
     // release user func
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
@@ -56,7 +57,7 @@ void SerialTask::Destroy()
     DecDeleteRef();
 }
 
-void SerialTask::Notify()
+void QueueTask::Notify()
 {
     FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid);
     std::unique_lock lock(mutex_);
@@ -66,7 +67,7 @@ void SerialTask::Notify()
     }
 }
 
-void SerialTask::Execute()
+void QueueTask::Execute()
 {
     if (isFinished_.load()) {
         FFRT_LOGE("task [gid=%llu] is complete, no need to execute again", gid);
@@ -77,7 +78,7 @@ void SerialTask::Execute()
     FFRT_TASKDONE_MARKER(gid);
 }
 
-void SerialTask::Wait()
+void QueueTask::Wait()
 {
     std::unique_lock lock(mutex_);
     onWait_ = true;
@@ -86,8 +87,13 @@ void SerialTask::Wait()
     }
 }
 
-void SerialTask::FreeMem()
+void QueueTask::FreeMem()
 {
-    SimpleAllocator<SerialTask>::FreeMem(this);
+    SimpleAllocator<QueueTask>::FreeMem(this);
+}
+
+uint32_t QueueTask::GetQueueId() const
+{
+    return handler_->GetQueueId();
 }
 } // namespace ffrt

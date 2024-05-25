@@ -148,51 +148,48 @@ private:
     void* handle_2 = nullptr;
 };
 
-#define GET_SCHED_TRACE_FUNC(x) (TaskClientAdapter::Instance()->x)
-
-static int _EndFrameFreq(int stateParam)
+static int EndFrameFreq(int stateParam)
 {
-
-    auto func = GET_SCHED_TRACE_FUNC(EndFrameFreq);
+    auto func = TaskClientAdapter::Instance()->(EndFrameFreq);
     if (func != nullptr) {
         return func(stateParam);
     }
     return -1;
 }
 
-static int _BeginFrameFreq(int stateParam)
+static int BeginFrameFreq(int stateParam)
 {
-    auto func = GET_SCHED_TRACE_FUNC(BeginFrameFreq);
+    auto func = TaskClientAdapter::Instance()->(BeginFrameFreq);
     if (func != nullptr) {
         return func(stateParam);
     }
     return -1;
 }
 
-static int _DestroyRtgGrp(int grpId)
+static int DestroyRtgGrp(int grpId)
 {
-    auto func = GET_SCHED_TRACE_FUNC(DestroyRtgGrp);
+    auto func = TaskClientAdapter::Instance()->(DestroyRtgGrp);
     if (func != nullptr) {
         return func(grpId);
     }
     return -1;
 }
 
-static int _AddThreadToRtg(int tid, int grpId, int prioType = 0)
+static int AddThreadToRtg(int tid, int grpId, int prioType = 0)
 {
-    auto func = GET_SCHED_TRACE_FUNC(AddThreadToRtg);
+    auto func = TaskClientAdapter::Instance()->(AddThreadToRtg);
     if (func != nullptr) {
         return func(tid, grpId, prioType);
     }
     return -1;
 }
 
-#define _CTC_QueryInterval(queryItem, queryRs)                  \
-    do {                                                        \
-        auto func = GET_SCHED_TRACE_FUNC(CTC_QueryInterval);    \
-        if (func != nullptr) {                                  \
-            func(queryItem, queryRs);                           \
-        }                                                       \
+#define CTC_QUERY_INTERVAL(queryItem, queryRs)                             \
+    do {                                                                   \
+        auto func = TaskClientAdapter::Instance()->(CTC_QueryInterval);    \
+        if (func != nullptr) {                                             \
+            func(queryItem, queryRs);                                      \
+        }                                                                  \
     } while (0)                                                 
 
 #endif /* __FFRT_TASKCLIENT_ADAPTER_H__ */

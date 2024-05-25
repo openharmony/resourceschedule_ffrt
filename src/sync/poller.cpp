@@ -91,12 +91,9 @@ int Poller::DelFdEvent(int fd) noexcept
     return 0;
 }
 
-int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeout, int* nfdsPtr) noexcept
+int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeout) noexcept
 {
-    if (eventsPtr == nullptr || nfdsPtr == nullptr) {
-        FFRT_LOGE("eventsPtr and nfdsPtr cannot be null");
-        return -1;
-    }
+    FFRT_COND_DO_ERR((eventsVec == nullptr), return -1, "eventsVec cannot be null");
 
     auto task = ExecuteCtx::Cur()->task;
     if (!task) {
@@ -104,12 +101,10 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         return -1;
     }
 
-    if (maxevents < EPOLL_EVENT_SIZE) {
-        FFRT_LOGE("maxEvents:%d cannot be less than 1024", maxevents);
-        return -1;
-    }
+    FFRT_COND_DO_ERR((maxevents < EPOLL_EVENT_SIZE), return -1, "maxEvents:%d cannot be less than 1024", maxevents);
 
     bool legacyMode = LegacyMode(task);
+    int nfds = 0;
     if (!USE_COROUTINE || legacyMode) {
         std::unique_lock<std::mutex> lck(task->lock);
         m_mapMutex.lock();
@@ -120,14 +115,15 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         if (legacyMode) {
             task->coRoutine->blockType = BlockType::BLOCK_THREAD;
         }
-        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, nfdsPtr};
+        auto currTime = std::chrono::steady_clock::now();
+        m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGE("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
         }
         m_mapMutex.unlock();
         reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.wait(lck);
-        return 0;
+        return nfds;
     }
 
     CoWait([&](CPUEUTask *task)->bool {
@@ -136,7 +132,8 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
             FFRT_LOGE("task has waited before");
             return false;
         }
-        m_waitTaskMap[task] = {(void*)eventsPtr, maxevents, nfdsPtr};
+        auto currTime = std::chrono::steady_clock::now();
+        m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGE("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
@@ -144,7 +141,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsPtr, int maxevents, int timeou
         m_mapMutex.unlock();
         return true;
     });
-    return 0;
+    return nfds;
 }
 
 void Poller::WakeUp() noexcept
@@ -161,7 +158,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
-            ssize_t n = ::read(m_wakeData.fd, &one, sizeof one);
+            (void)::read(m_wakeData.fd, &one, sizeof one);
             continue;
         }
 
@@ -208,12 +205,33 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
             }
         }
         m_waitTaskMap.erase(syncFditer++);
-        CoWake(currTask, false);
+
+        bool blockThread = BlockThread(currTask);
+        if (!USE_COROUTINE || blockThread) {
+            std::unique_lock<std::mutex> lck(currTask->lock);
+            if (blockThread) {
+                currTask->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+            }
+            reinterpret_cast<SCPUEUTask*>(currTask)->childWaitCond_.notify_one();
+        } else {
+            CoWake(currTask, false);
+        }
         syncTaskEvents.erase(iter);
     }
     m_mapMutex.unlock();
 }
 
+uint64_t Poller::GetTaskWaitTime(CPUEUTask* task) noexcept
+{
+    std::unique_lock lock(m_mapMutex);
+    auto iter = m_waitTaskMap.find(task);
+    if (iter == m_waitTaskMap.end()) {
+        return 0;
+    }
+
+    return std::chrono::duration_cast<std::chrono::seconds>(
+        iter->second.waitTP.time_since_epoch()).count();
+}
 PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;
@@ -331,42 +349,54 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
         break;
     }
     timerEmpty_.store(timerMap_.empty());
-
-    timerMutex_.unlock();
+   
     for (const auto& data : timerData) {
+        timerMutex_.unlock();
         if (data.cb) {
             data.cb(data.data);
         } else if (data.task != nullptr) {
             ProcessTimerDataCb(data.task);
         }
-        executedHandle_[data.handle] = TimerStatus::EXECUTED;
+        timerMutex_.lock();
+        if (data.repeat) {
+            executedHandle_.erase(data.handle);
+            RegisterTimerImpl(data);
+        } else {
+            executedHandle_[data.handle] = TimerStatus::EXECUTED;
+        }
     }
+    timerMutex_.unlock();
 }
 
-int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
+void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept
 {
-    if (repeat) {
-        FFRT_LOGE("repeat not supported yet");
-        return -1;
-    }
     if (flag_ == EpollStatus::TEARDOWN) {
-        return -1;
+        return;
     }
 
-    std::lock_guard lock(timerMutex_);
-    time_point_t absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout);
+    time_point_t absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data.timeout);
     bool wake = timerMap_.empty() || (absoluteTime < timerMap_.begin()->first && flag_ == EpollStatus::WAIT);
 
-    TimerDataWithCb timerMapValue(data, cb, ExecuteCtx::Cur()->task);
-    timerHandle_ += 1;
-    timerMapValue.handle = timerHandle_;
-    timerMap_.emplace(absoluteTime, timerMapValue);
+    timerMap_.emplace(absoluteTime, data);
     timerEmpty_.store(false);
 
     if (wake) {
         WakeUp();
     }
+}
 
+int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
+{
+    if (flag_ == EpollStatus::TEARDOWN) {
+        return -1;
+    }
+
+    std::lock_guard lock(timerMutex_);
+    timerHandle_ +=1;
+
+    TimerDataWithCb timerMapValue(data, cb, ExecuteCtx::Cur()->task, repeat, timeout);
+    timerMapValue.handle = timerHandle_;
+    RegisterTimerImpl(timerMapValue);
     return timerHandle_;
 }
 

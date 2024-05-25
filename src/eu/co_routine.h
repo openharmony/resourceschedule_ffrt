@@ -54,7 +54,7 @@ enum class BlockType {
 #if defined(__aarch64__)
     constexpr uint64_t STACK_SIZE = 1 << 20; // 至少3*PAGE_SIZE
 #elif defined(__arm__)
-    constexpr uint64_t STACK_SIZE = 1 << 15;
+    constexpr uint64_t STACK_SIZE = 1 << 20;
 #else
     constexpr uint64_t STACK_SIZE = 1 << 20;
 #endif
@@ -80,6 +80,7 @@ struct CoRoutine {
     CoCtx ctx;
     bool legacyMode = false;
     BlockType blockType = BlockType::BLOCK_COROUTINE;
+    bool isTaskDone = false;
     StackMem stkMem;
 };
 

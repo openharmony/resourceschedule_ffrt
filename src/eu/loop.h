@@ -15,13 +15,13 @@
 
 #ifndef FFRT_LOOP_HPP
 #define FFRT_LOOP_HPP
-#include "queue/serial_handler.h"
+#include "queue/queue_handler.h"
 #include "sync/poller.h"
 
 namespace ffrt {
 class Loop {
 public:
-    explicit Loop(SerialHandler* handler);
+    explicit Loop(QueueHandler* handler);
     ~Loop();
 
     void Run();
@@ -33,7 +33,7 @@ public:
     void WakeUp();
 
 private:
-    SerialHandler* handler_;
+    QueueHandler* handler_ = nullptr;
     Poller poller_;
     std::atomic<bool> stopFlag_ { false };
 };

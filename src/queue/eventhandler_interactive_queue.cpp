@@ -36,7 +36,6 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
 
     ffrt::TaskOptions taskOptions(
         task->label, delayUs / 1000, static_cast<Priority>(prio), reinterpret_cast<uintptr_t>(task));
-    EventHandlerAdapter::Instance()->PostTask(eventHandler_, func,  prio);
     bool taskStatus = EventHandlerAdapter::Instance()->PostTask(eventHandler_, func, taskOptions);
     FFRT_COND_DO_ERR((taskStatus == false), return FAILED, "post task fail");
 

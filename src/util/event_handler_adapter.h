@@ -47,7 +47,7 @@ struct TaskOptions {
     uintptr_t taskId_;
     TaskOptions(std::string dfxName, int64_t delayTime, Priority priority, uintptr_t taskId)
         : dfxName_(dfxName), delayTime_(delayTime), priority_(priority), taskId_(taskId) {}
- };
+};
 void* GetMainEventHandlerForFFRT();
 void* GetCurrentEventHandlerForFFRT();
 bool PostTaskByFFRT(void* handler, const std::function<void()>& callback, const TaskOptions &task);

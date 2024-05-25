@@ -43,7 +43,7 @@ enum class Priority : uint32_t {
 struct TaskOptions {
     std::string dfxName_;
     int64_t delayTime_;
-    EventQueue::Priority priority_;
+    Priority priority_;
     uintptr_t taskId_;
     TaskOptions(std::string dfxName, int64_t delayTime, Priority priority, uintptr_t taskId)
         : dfxName_(dfxName), delayTime_(delayTime), priority_(priority), taskId_(taskId) {}

@@ -246,6 +246,7 @@ void QueueHandler::TransferTask(QueueTask* task)
         reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->SetCurrentRunningTask(task);
     }
     FFRTScheduler* sch = FFRTScheduler::Instance();
+    FFRT_READY_MARKER(task->gid); // ffrt queue task ready to enque
     if (!sch->InsertNode(&entry->node, QoS(task->GetQos()))) {
         FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, queueId_, name_.c_str());
         return;

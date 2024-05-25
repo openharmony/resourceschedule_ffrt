@@ -180,7 +180,7 @@ int WorkgroupClear(struct Workgroup* wg)
     int ret = -1;
     int uid = getuid();
     if (uid != RS_UID) {
-        ret = _DestoryRtgGrp(wg->rtgId);
+        ret = _DestroyRtgGrp(wg->rtgId);
         if (ret != 0) {
             FFRT_LOGE("[WorkGroup] destroy rtg group failed");
         } else {

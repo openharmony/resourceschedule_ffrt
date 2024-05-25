@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <chrono>
+#include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 #ifdef FFRT_OH_TRACE_ENABLE
 #include <dlfcn.h>
@@ -43,7 +44,7 @@ enum QueryIntervalItem {
 
 extern "C" {
     int AddThreadToRtg(int tid, int grpId, int prioType = 0);
-    int DestoryRtgGrp(int grpId);
+    int DestroyRtgGrp(int grpId);
     int BeginFrameFreq(int stateParam);
     int EndFrameFreq(int stateParam);
     void CTC_QueryInterval(int queryItem, IntervalReply& queryRs);
@@ -74,7 +75,7 @@ public:
     REG_FUNC(AddThreadToRtg);
     REG_FUNC(BeginFrameFreq);
     REG_FUNC(EndFrameFreq);
-    REG_FUNC(DestoryRtgGrp);
+    REG_FUNC(DestroyRtgGrp);
     REG_FUNC(CTC_QueryInterval);
 #undef REG_FUNC
 
@@ -107,7 +108,7 @@ private:
         {                                                                                       \
             FFRT_LOGI("load func %s from %s success", #func, TRACE_LIB_PATH_1.c_str());         \
         } else {                                                                                \
-            func = reinterpret_cast<func##Type>(dlsym(handle_2, #func()));                      \
+            func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                      \
             if (func == nullptr)                                                                \
             {                                                                                   \
                 FFRT_LOGE("load func %s from %s failed", #func, TRACE_LIB_PATH_2.c_str());      \
@@ -118,7 +119,7 @@ private:
             LOAD_FUNC(AddThreadToRtg);
             LOAD_FUNC(BeginFrameFreq);
             LOAD_FUNC(EndFrameFreq);
-            LOAD_FUNC(DestoryRtgGrp);
+            LOAD_FUNC(DestroyRtgGrp);
             LOAD_FUNC(CTC_QueryInterval);
 #undef LOAD_FUNC
         return true;
@@ -133,7 +134,7 @@ private:
             handle_1 = nullptr;
             return true;
         }
-        if (handle_2 = != nullptr) {
+        if (handle_2 != nullptr) {
             if (dlclose(handle_2) != 0) {
                 return false;
             }
@@ -168,9 +169,9 @@ static int _BeginFrameFreq(int stateParam)
     return -1;
 }
 
-static int _DestoryRtgGrp(int grpId)
+static int _DestroyRtgGrp(int grpId)
 {
-    auto func = GET_SCHED_TRACE_FUNC(DestoryRtgGrp);
+    auto func = GET_SCHED_TRACE_FUNC(DestroyRtgGrp);
     if (func != nullptr) {
         return func(grpId);
     }

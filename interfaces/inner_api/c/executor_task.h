@@ -61,5 +61,47 @@ FFRT_C_API void ffrt_wake_coroutine(void* task);
 // get
 FFRT_C_API void* ffrt_get_current_task();
 
+/**
+ * @brief Obtains current coroutine stack address and size.
+ *
+ * @param stack_addr Coroutine stack address.
+ * @param size Coroutine stack size.
+ * @return Returns <b>0</b> if the stack is obtained;
+ *         returns <b>-1</b> otherwise.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size);
+
+/**
+ * @brief Obtains current task.
+ *
+ * @param none.
+ * @return Returns current task.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API void* ffrt_get_cur_task();
+
+/**
+ * @brief Set the taskLocal flag in ffrt_task_attr.
+ *
+ * @param attr The ffrt_task_attr struct.
+ * @param task_local The bool value to be set.
+ * @return none.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local);
+
+/**
+ * @brief Obtains the taskLocal flag in ffrt_task_attr.
+ *
+ * @param attr The ffrt_task_attr struct.
+ * @return The bool value of task_local.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
 #endif
 #endif

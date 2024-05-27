@@ -186,7 +186,7 @@ static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
 
 #define CTC_QUERY_INTERVAL(queryItem, queryRs)                             \
     do {                                                                   \
-        auto func = TaskClientAdapter::Instance()->CTC_QueryInterval;    \
+        auto func = TaskClientAdapter::Instance()->CTC_QueryInterval;      \
         if (func != nullptr) {                                             \
             func(queryItem, queryRs);                                      \
         }                                                                  \

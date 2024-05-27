@@ -37,9 +37,6 @@
 #endif
 #ifdef ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
-#ifdef FFRT_TASK_LOCAL_ENABLE
-#include "pthread_ffrt.h"
-#endif
 #endif
 
 using namespace ffrt;
@@ -78,10 +75,8 @@ CoRoutineEnv* GetCoEnv()
     }
     return coEnv;
 }
-} // namespace
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
-namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
     if ((task->type != ffrt_normal_task) || (!task->taskLocal)) {

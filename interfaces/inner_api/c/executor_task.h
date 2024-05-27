@@ -16,6 +16,8 @@
 #define FFRT_API_C_EXECUTOR_TASK_H
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <sys/epoll.h>
 #include "type_def_ext.h"
 #include "c/timer.h"
 

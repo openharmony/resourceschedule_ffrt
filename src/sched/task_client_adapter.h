@@ -148,7 +148,7 @@ private:
     void* handle_2 = nullptr;
 };
 
-static int EndFrameFreq(int stateParam)
+static int EndFrameFreqAdapter(int stateParam)
 {
     auto func = TaskClientAdapter::Instance()->(EndFrameFreq);
     if (func != nullptr) {
@@ -157,7 +157,7 @@ static int EndFrameFreq(int stateParam)
     return -1;
 }
 
-static int BeginFrameFreq(int stateParam)
+static int BeginFrameFreqAdapter(int stateParam)
 {
     auto func = TaskClientAdapter::Instance()->(BeginFrameFreq);
     if (func != nullptr) {
@@ -166,7 +166,7 @@ static int BeginFrameFreq(int stateParam)
     return -1;
 }
 
-static int DestroyRtgGrp(int grpId)
+static int DestroyRtgGrpAdapter(int grpId)
 {
     auto func = TaskClientAdapter::Instance()->(DestroyRtgGrp);
     if (func != nullptr) {
@@ -175,7 +175,7 @@ static int DestroyRtgGrp(int grpId)
     return -1;
 }
 
-static int AddThreadToRtg(int tid, int grpId, int prioType = 0)
+static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
 {
     auto func = TaskClientAdapter::Instance()->(AddThreadToRtg);
     if (func != nullptr) {

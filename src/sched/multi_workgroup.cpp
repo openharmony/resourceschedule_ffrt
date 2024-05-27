@@ -52,7 +52,7 @@ bool JoinWG(int tid)
             FFRT_LOGE("[WorkGroup] update thread %{public}d failed", tid);
         }
     } else {
-        int addRet = AddThreadToRtg(tid, wgId, 0);
+        int addRet = AddThreadToRtgAdapter(tid, wgId, 0);
         if (addRet == 0) {
             FFRT_LOGE("[WorkGroup] update thread %{public}d success", tid);
         } else {
@@ -74,7 +74,7 @@ void WorkgroupStartInterval(struct Workgroup* wg)
         return;
     }
 
-    if (BeginFrameFreq(0) == 0) {
+    if (BeginFrameFreqAdapter(0) == 0) {
         wg->started = true;
     } else {
         FFRT_LOGE("[WorkGroup] start rtg(%d) work interval failed", wg->rtgId);
@@ -93,7 +93,7 @@ void WorkgroupStopInterval(struct Workgroup* wg)
         return;
     }
 
-    int ret = EndFrameFreq(0);
+    int ret = EndFrameFreqAdapter(0);
     if (ret == 0) {
         wg->started = false;
     } else {
@@ -162,7 +162,7 @@ void WorkgroupJoin(struct Workgroup* wg, int tid)
         CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
         FFRT_LOGI("[WorkGroup] join thread %{public}ld", tid);
     } else {
-        int addRet = AddThreadToRtg(tid, wg->rtgId, 0);
+        int addRet = AddThreadToRtgAdapter(tid, wg->rtgId, 0);
         if (addRet == 0) {
             FFRT_LOGI("[WorkGroup] join thread %{public}ld success", tid);
         } else {
@@ -180,7 +180,7 @@ int WorkgroupClear(struct Workgroup* wg)
     int ret = -1;
     int uid = getuid();
     if (uid != RS_UID) {
-        ret = DestroyRtgGrp(wg->rtgId);
+        ret = DestroyRtgGrpAdapter(wg->rtgId);
         if (ret != 0) {
             FFRT_LOGE("[WorkGroup] destroy rtg group failed");
         } else {

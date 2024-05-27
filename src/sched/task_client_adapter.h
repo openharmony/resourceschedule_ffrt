@@ -80,27 +80,27 @@ public:
 #undef REG_FUNC
 
 private:
-    bool Load()
+    void Load()
     {
         if (handle_1 != nullptr) {
             FFRT_LOGD("handle_1 exits");
-            return true;
+            return;
         }
         if (handle_2 != nullptr) {
             FFRT_LOGD("handle_2 exits");
-            return true;
+            return;
         }
 
         handle_1 = dlopen(TRACE_LIB_PATH_1.c_str(), RTLD_NOW | RTLD_LOCAL);
-        handle_2 = dlopen(TRACE_LIB_PATH_2.c_str(), RTLD_NOW | RTLD_LOCAL);
-
         if (handle_1 == nullptr) {
             FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH_1.c_str());
-            return false;
+            return;
         }
+
+        handle_2 = dlopen(TRACE_LIB_PATH_2.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (handle_2 == nullptr) {
             FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH_2.c_str());
-            return false;
+            return;
         }
 
 #define LOAD_FUNC(func) func = reinterpret_cast<func##Type>(dlsym(handle_1, #func));            \
@@ -108,11 +108,11 @@ private:
         {                                                                                       \
             FFRT_LOGI("load func %s from %s success", #func, TRACE_LIB_PATH_1.c_str());         \
         } else {                                                                                \
-            func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                      \
+            func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                        \
             if (func == nullptr)                                                                \
             {                                                                                   \
                 FFRT_LOGE("load func %s from %s failed", #func, TRACE_LIB_PATH_2.c_str());      \
-                return false;                                                                   \
+                return;                                                                         \
             }                                                                                   \
         }                                                                                       
 
@@ -122,30 +122,23 @@ private:
             LOAD_FUNC(DestroyRtgGrp);
             LOAD_FUNC(CTC_QueryInterval);
 #undef LOAD_FUNC
-        return true;
     }
 
-    bool UnLoad()
+    void UnLoad()
     {
         if (handle_1 != nullptr) {
             if (dlclose(handle_1) != 0) {
-                return false;
+                FFRT_LOGE("unLoad handle_1 fail");
             }
             handle_1 = nullptr;
-            return true;
         }
         if (handle_2 != nullptr) {
             if (dlclose(handle_2) != 0) {
-                return false;
+                FFRT_LOGE("unLoad handle_2 fail");
             }
             handle_2 = nullptr;
-            return true;
         }
-        return true;
     }
-
-    void* handle_1 = nullptr;
-    void* handle_2 = nullptr;
 };
 
 static int EndFrameFreqAdapter(int stateParam)

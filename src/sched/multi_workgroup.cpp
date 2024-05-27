@@ -40,6 +40,7 @@ bool JoinWG(int tid)
         }
         return false;
     }
+
     IntervalReply rs;
     rs.rtgId = -1;
     rs.tid = tid;
@@ -47,17 +48,17 @@ bool JoinWG(int tid)
     if (uid == RS_UID) {
         CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
         if (rs.rtgId > 0) {
-            FFRT_LOGE("[WorkGroup] update thread %{public}d success", tid);
+            FFRT_LOGI("[WorkGroup] update thread %{public}d success", tid);
         } else {
             FFRT_LOGE("[WorkGroup] update thread %{public}d failed", tid);
         }
+        return true;
+    }
+    int addRet = AddThreadToRtgAdapter(tid, wgId, 0);
+    if (addRet == 0) {
+        FFRT_LOGI("[WorkGroup] update thread %{public}d success", tid);
     } else {
-        int addRet = AddThreadToRtgAdapter(tid, wgId, 0);
-        if (addRet == 0) {
-            FFRT_LOGE("[WorkGroup] update thread %{public}d success", tid);
-        } else {
-            FFRT_LOGE("[WorkGroup] update thread %{public}d failed, return %{public}d", tid, addRet);
-        }
+        FFRT_LOGE("[WorkGroup] update thread %{public}d failed, return %{public}d", tid, addRet);
     }
     return true;
 }
@@ -161,13 +162,13 @@ void WorkgroupJoin(struct Workgroup* wg, int tid)
         rs.tid = tid;
         CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
         FFRT_LOGI("[WorkGroup] join thread %{public}ld", tid);
+        return;
+    }
+    int addRet = AddThreadToRtgAdapter(tid, wg->rtgId, 0);
+    if (addRet == 0) {
+        FFRT_LOGI("[WorkGroup] join thread %{public}ld success", tid);
     } else {
-        int addRet = AddThreadToRtgAdapter(tid, wg->rtgId, 0);
-        if (addRet == 0) {
-            FFRT_LOGI("[WorkGroup] join thread %{public}ld success", tid);
-        } else {
-            FFRT_LOGE("[WorkGroup] join fail with %{public}d threads for %{public}d", addRet, tid);
-        }
+        FFRT_LOGE("[WorkGroup] join fail with %{public}d threads for %{public}d", addRet, tid);
     }
 }
 
@@ -184,10 +185,8 @@ int WorkgroupClear(struct Workgroup* wg)
         if (ret != 0) {
             FFRT_LOGE("[WorkGroup] destroy rtg group failed");
         } else {
-            {
-                std::lock_guard<std::mutex> lck(wgLock);
-                wgCount--;
-            }
+            std::lock_guard<std::mutex> lck(wgLock);
+            wgCount--;
         }
     }
     delete wg;

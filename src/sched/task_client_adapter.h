@@ -150,7 +150,7 @@ private:
 
 static int EndFrameFreqAdapter(int stateParam)
 {
-    auto func = TaskClientAdapter::Instance()->(EndFrameFreq);
+    auto func = TaskClientAdapter::Instance()->EndFrameFreq;
     if (func != nullptr) {
         return func(stateParam);
     }
@@ -159,7 +159,7 @@ static int EndFrameFreqAdapter(int stateParam)
 
 static int BeginFrameFreqAdapter(int stateParam)
 {
-    auto func = TaskClientAdapter::Instance()->(BeginFrameFreq);
+    auto func = TaskClientAdapter::Instance()->BeginFrameFreq;
     if (func != nullptr) {
         return func(stateParam);
     }
@@ -168,7 +168,7 @@ static int BeginFrameFreqAdapter(int stateParam)
 
 static int DestroyRtgGrpAdapter(int grpId)
 {
-    auto func = TaskClientAdapter::Instance()->(DestroyRtgGrp);
+    auto func = TaskClientAdapter::Instance()->DestroyRtgGrp;
     if (func != nullptr) {
         return func(grpId);
     }
@@ -177,7 +177,7 @@ static int DestroyRtgGrpAdapter(int grpId)
 
 static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
 {
-    auto func = TaskClientAdapter::Instance()->(AddThreadToRtg);
+    auto func = TaskClientAdapter::Instance()->AddThreadToRtg;
     if (func != nullptr) {
         return func(tid, grpId, prioType);
     }
@@ -186,7 +186,7 @@ static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
 
 #define CTC_QUERY_INTERVAL(queryItem, queryRs)                             \
     do {                                                                   \
-        auto func = TaskClientAdapter::Instance()->(CTC_QueryInterval);    \
+        auto func = TaskClientAdapter::Instance()->CTC_QueryInterval;    \
         if (func != nullptr) {                                             \
             func(queryItem, queryRs);                                      \
         }                                                                  \

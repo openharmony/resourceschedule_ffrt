@@ -233,7 +233,7 @@ CPUWorkerManager::CPUWorkerManager()
 void CPUWorkerManager::WorkerJoinTg(const QoS& qos, pid_t pid)
 {
     std::shared_lock<std::shared_mutex> lock(groupCtl[qos()].tgMutex);
-    if (qos == qos_user_interactive) {
+    if (qos == qos_user_interactive || qos == qos_deadline_request) {
         (void)JoinWG(pid);
         return;
     }

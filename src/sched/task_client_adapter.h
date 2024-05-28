@@ -139,6 +139,9 @@ private:
             handle_2 = nullptr;
         }
     }
+
+    void* handle_1 = nullptr;
+    void* handle_2 = nullptr;
 };
 
 static int EndFrameFreqAdapter(int stateParam)

@@ -139,7 +139,7 @@ bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 
 void UpdateWorkerTsdValueToThread(void** taskTsd)
 {
-    const pthread_key_t> updKeyMap = {g_executeCtxTlsKey, g_coThreadTlsKey};
+    const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
         if (key <= 0) {

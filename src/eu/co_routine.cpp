@@ -86,7 +86,7 @@ bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
     }
     if (task->tsd == nullptr) {
         FFRT_LOGE("taskLocal enabled but task tsd invalid");
-        abort();
+        return false;
     }
 
     return true;

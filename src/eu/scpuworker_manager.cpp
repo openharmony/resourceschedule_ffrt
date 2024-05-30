@@ -25,7 +25,7 @@
 #include "eu/scpuworker_manager.h"
 
 namespace ffrt {
-constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000000;
+constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000;
 SCPUWorkerManager::SCPUWorkerManager()
 {
     monitor = new SCPUMonitor({
@@ -49,7 +49,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
 #endif
             sleepCtl[qos].cv.notify_all();
             {
-                usleep(1);
+                usleep(1000);
                 std::shared_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
                 if (groupCtl[qos].threads.empty()) {
                     break;

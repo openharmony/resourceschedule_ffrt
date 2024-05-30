@@ -220,8 +220,10 @@ static inline void CoStartEntry(void* arg)
 {
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
     ffrt::CPUEUTask* task = co->task;
+    bool isNormalTask = false;
     switch (task->type) {
         case ffrt_normal_task: {
+            isNormalTask = true;
             task->Execute();
             break;
         }
@@ -240,7 +242,7 @@ static inline void CoStartEntry(void* arg)
     }
 
     co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
-    CoExit(co, task->type == ffrt_normal_task);
+    CoExit(co, isNormalTask);
 }
 
 static void CoSetStackProt(CoRoutine* co, int prot)

@@ -37,13 +37,11 @@
                 "hiprofiler",
                 "init",
                 "hitrace",
-                "libunwind",
 
                 "napi"
             ],
             "third_party": [
-                "bounds_checking_function",
-                "libunwind"
+                "bounds_checking_function"
             ]
         },
         "build": {

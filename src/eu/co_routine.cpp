@@ -32,21 +32,23 @@
 #include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
 #include "co_routine_factory.h"
+#ifdef FFRT_TASK_LOCAL_ENABLE
 #include "pthread_ffrt.h"
-
+#endif
 #ifdef ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
 using namespace ffrt;
-static pthread_key_t g_coThreadTlsKey = 0;
-static pthread_once_t g_coThreadTlsKeyOnce = PTHREAD_ONCE_INIT;
 
 using namespace OHOS::HiviewDFX;
 
 extern pthread_key_t g_executeCtxTlsKey;
+namespace {
+pthread_key_t g_coThreadTlsKey = 0;
+pthread_once_t g_coThreadTlsKeyOnce = PTHREAD_ONCE_INIT;
 
-static void CoEnvDestructor(void* args)
+void CoEnvDestructor(void* args)
 {
     auto coEnv = static_cast<CoRoutineEnv*>(args);
     if (coEnv) {
@@ -54,12 +56,12 @@ static void CoEnvDestructor(void* args)
     }
 }
 
-static void MakeCoEnvTlsKey()
+void MakeCoEnvTlsKey()
 {
     pthread_key_create(&g_coThreadTlsKey, CoEnvDestructor);
 }
 
-static CoRoutineEnv* GetCoEnv()
+CoRoutineEnv* GetCoEnv()
 {
     CoRoutineEnv* coEnv = nullptr;
     pthread_once(&g_coThreadTlsKeyOnce, MakeCoEnvTlsKey);
@@ -75,15 +77,12 @@ static CoRoutineEnv* GetCoEnv()
 }
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
-namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
-    if (task->type != ffrt_normal_task) {
+    if ((task->type != ffrt_normal_task) || (!task->taskLocal)) {
         return false;
     }
-    if (!task->taskLocal) {
-        return false;
-    }
+
     if (task->tsd == nullptr) {
         FFRT_LOGE("taskLocal enabled but task tsd invalid");
         return false;
@@ -94,26 +93,17 @@ bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 
 void InitWorkerTsdValueToTask(void** taskTsd)
 {
-    std::unordered_map<std::string, pthread_key_t> updKeyMap = {
-        {"g_executeCtxTlsKey", g_executeCtxTlsKey},
-        {"g_coThreadTlsKey", g_coThreadTlsKey}
-    };
+    const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
-    for (const auto& updPair : updKeyMap) {
-        pthread_key_t key = updPair.second;
-        auto keyName = updPair.first;
+    for (const auto& key : updKeyMap) {
         if (key <= 0) {
-            FFRT_LOGE("[%s] key[%d] invalid", keyName.c_str(), key);
+            FFRT_LOGE("key[%d] invalid", key);
             abort();
         }
 
         auto addr = threadTsd[key];
         if (addr) {
             taskTsd[key] = addr;
-            FFRT_LOGI("copy [%s] key=[%d] addr=[%llx] from thread to task", keyName.c_str(), key, (uint64_t)addr);
-        } else if (keyName == "g_executeCtxTlsKey") {
-            FFRT_LOGE("g_executeCtxTlsKey addr invalid");
-            abort();
         }
     }
 }
@@ -124,9 +114,8 @@ void SwitchTsdAddrToTask(ffrt::CPUEUTask* task)
     task->threadTsd = threadTsd;
     pthread_settsd(task->tsd);
 }
-} // namespace
 
-static void SwitchTsdToTask(ffrt::CPUEUTask* task)
+void SwitchTsdToTask(ffrt::CPUEUTask* task)
 {
     if (!IsTaskLocalEnable(task)) {
         return;
@@ -135,33 +124,26 @@ static void SwitchTsdToTask(ffrt::CPUEUTask* task)
     InitWorkerTsdValueToTask(task->tsd);
 
     SwitchTsdAddrToTask(task);
-    FFRT_LOGI("switch tsd to task Success");
+    FFRT_LOGD("switch tsd to task Success");
 }
 
-namespace {
 bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 {
     if (!task->threadTsd) {
         return false;
     }
     pthread_settsd(task->threadTsd);
-    FFRT_LOGI("switch to backend thread tsd[%llx]", (uint64_t)(task->threadTsd));
     task->threadTsd = nullptr;
     return true;
 }
 
 void UpdateWorkerTsdValueToThread(void** taskTsd)
 {
-    std::unordered_map<std::string, pthread_key_t> updKeyMap = {
-        {"g_executeCtxTlsKey", g_executeCtxTlsKey},
-        {"g_coThreadTlsKey", g_coThreadTlsKey}
-    };
+    const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
-    for (const auto& updPair : updKeyMap) {
-        pthread_key_t key = updPair.second;
-        auto keyName = updPair.first;
+    for (const auto& key : updKeyMap) {
         if (key <= 0) {
-            FFRT_LOGE("[%s] key[%d] invalid", keyName.c_str(), key);
+            FFRT_LOGE("key[%d] invalid", key);
             abort();
         }
 
@@ -169,13 +151,9 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
         auto taskVal = taskTsd[key];
         if (!threadVal && taskVal) {
             threadTsd[key] = taskVal;
-            FFRT_LOGW("new [%s] key=[%d] addr=[%llx] from task to thread", keyName.c_str(), key, (uint64_t)threadVal);
-        } else if (threadVal && taskVal) {
-            if (threadVal != taskVal) {
-                FFRT_LOGE("mismatch [%s] key=[%d] thread addr=[%llx], task addr=[%llx]",
-                    keyName.c_str(), key, (uint64_t)threadVal, (uint64_t)taskVal);
-                abort();
-            }
+        } else if (threadVal && taskVal && (threadVal != taskVal)) {
+            FFRT_LOGE("mismatch key=[%d]", key);
+            abort();
         } else if (threadVal && !taskVal) {
             FFRT_LOGE("unexpected: thread exists but task not exists");
             abort();
@@ -183,9 +161,8 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
         taskTsd[key] = nullptr;
     }
 }
-} // namespace
 
-static void SwitchTsdToThread(ffrt::CPUEUTask* task)
+void SwitchTsdToThread(ffrt::CPUEUTask* task)
 {
     if (!IsTaskLocalEnable(task)) {
         return;
@@ -196,10 +173,9 @@ static void SwitchTsdToThread(ffrt::CPUEUTask* task)
     }
 
     UpdateWorkerTsdValueToThread(task->tsd);
-    FFRT_LOGI("switch tsd to thread Success");
+    FFRT_LOGD("switch tsd to thread Success");
 }
 
-namespace {
 void TaskTsdRunDtors(ffrt::CPUEUTask* task)
 {
     SwitchTsdAddrToTask(task);
@@ -214,10 +190,6 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
         return;
     }
 
-    if (task->threadTsd != nullptr) {
-        FFRT_LOGE("thread tsd[%llx] not null", (uint64_t)task->threadTsd);
-    }
-
     TaskTsdRunDtors(task);
     if (task->tsd != nullptr) {
         FFRT_LOGI("clear task tsd[%llx]", (uint64_t)(task->tsd));
@@ -225,15 +197,13 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
         task->tsd = nullptr;
         task->taskLocal = false;
     }
-    FFRT_LOGI("task tsd deconstruct done");
+    FFRT_LOGD("task tsd deconstruct done, task[%lu], name[%s]", task->gid, task->label.c_str());
 }
 #endif
 
 static inline void CoSwitch(CoCtx* from, CoCtx* to)
 {
-    if (co2_save_context(from) == 0) {
-        co2_restore_context(to);
-    }
+    co2_switch_context(from, to);
 }
 
 static inline void CoExit(CoRoutine* co, bool isNormalTask)
@@ -499,8 +469,7 @@ void CoYield(void)
         const int IGNORE_DEPTH = 3;
         backtrace(IGNORE_DEPTH);
         co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH)); // recovery to old state
-        bool isNormalTask = (co->task->type == ffrt_normal_task);
-        CoExit(co, isNormalTask);
+        CoExit(co, co->task->type == ffrt_normal_task);
     }
 }
 

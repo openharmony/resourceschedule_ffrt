@@ -57,7 +57,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     }
 
     epoll_event ev = { .events = events, .data = { .ptr = ptr } };
-    if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
+    if (epoll_ctl(m_epFd, op, fd, &ev) != 0) {
         FFRT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
     }
@@ -69,7 +69,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     } else if (op == EPOLL_CTL_MOD) {
         auto iter = m_wakeDataMap.find(fd);
         if (iter->second.size() < 1) {
-            FFRT_LOGE("epoll_ctl mod fd wakedata num invalid\n");
+            FFRT_LOGE("epoll_ctl mod fd wakedata num invalid");
             return -1;
         }
         iter->second.pop_back();
@@ -97,7 +97,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 
     auto task = ExecuteCtx::Cur()->task;
     if (!task) {
-        FFRT_LOGI("nonworker shall not call this fun.");
+        FFRT_LOGE("nonworker shall not call this fun.");
         return -1;
     }
 
@@ -118,7 +118,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
         if (timeout > -1) {
-            FFRT_LOGE("poller meet timeout={%d}", timeout);
+            FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
         }
         m_mapMutex.unlock();
@@ -135,7 +135,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
         if (timeout > -1) {
-            FFRT_LOGE("poller meet timeout={%d}", timeout);
+            FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
         }
         m_mapMutex.unlock();

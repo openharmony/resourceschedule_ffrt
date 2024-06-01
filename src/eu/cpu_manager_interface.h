@@ -56,6 +56,10 @@ struct CpuWorkerOps {
     std::function<void (WorkerThread*)> TryMoveLocal2Global;
 #endif
     std::function<void (const QoS& qos, bool var)> UpdateBlockingNum;
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    std::function<bool (WorkerThread*)> IsExceedRunningThreshold;
+    std::function<bool (void)> IsBlockAwareInit;
+#endif
 };
 
 struct CpuMonitorOps {

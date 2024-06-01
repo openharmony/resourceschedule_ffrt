@@ -23,6 +23,9 @@
 #include "qos.h"
 #include "util/name_manager.h"
 #include "util/sched_ext.h"
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+#include "eu/blockaware.h"
+#endif
 
 namespace ffrt {
 WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
@@ -33,6 +36,9 @@ WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1)
     if (stackSize > 0) {
         pthread_attr_setstacksize(&attr_, stackSize);
     }
+#endif
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    domain_id = (qos() <= BLOCKAWARE_DOMAIN_ID_MAX) ? qos() : BLOCKAWARE_DOMAIN_ID_MAX + 1;
 #endif
 }
 

@@ -89,6 +89,13 @@ public:
         return qos;
     }
 
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    unsigned int GetDomainId() const
+    {
+        return domain_id;
+    }
+#endif
+
 #ifdef FFRT_PTHREAD_ENABLE
     void Start(void*(*ThreadFunc)(void*), void* args)
     {
@@ -175,6 +182,9 @@ private:
     pthread_attr_t attr_;
 #else
     std::thread thread;
+#endif
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    unsigned int domain_id;
 #endif
 };
 void SetThreadAttr(WorkerThread* thread, const QoS& qos);

@@ -22,6 +22,9 @@
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
 #include "qos.h"
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+#include "eu/blockaware.h"
+#endif
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -44,6 +47,10 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::TryMoveLocal2Global, this, std::placeholders::_1),
 #endif
         std::bind(&CPUWorkerManager::UpdateBlockingNum, this, std::placeholders::_1, std::placeholders::_2),
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        std::bind(&CPUWorkerManager::IsExceedRunningThreshold, this, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::IsBlockAwareInit, this),
+#endif
     }));
     if (worker == nullptr || worker->Exited()) {
         FFRT_LOGE("Inc CPUWorker: create worker\n");
@@ -211,11 +218,19 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
         thread->SetExited(true);
         thread->Detach();
         auto worker = std::move(groupCtl[qos].threads[thread]);
-        size_t ret = groupCtl[qos].threads.erase(thread);
+        int ret = groupCtl[qos].threads.erase(thread);
         if (ret != 1) {
             FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
         WorkerLeaveTg(QoS(qos), pid);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (IsBlockAwareInit()) {
+            ret = BlockawareUnregister();
+            if (ret != 0) {
+                FFRT_LOGE("blockaware unregister fail, ret[%d]", ret);
+            }
+        }
+#endif
         worker = nullptr;
     }
 }
@@ -265,4 +280,16 @@ void CPUWorkerManager::WorkerLeaveTg(const QoS& qos, pid_t pid)
 
     tgwrap.tg->Leave(pid);
 }
+
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+bool CPUWorkerManager::IsExceedRunningThreshold(const WorkerThread* thread)
+{
+    return monitor->IsExceedRunningThreshold(thread->GetQos());
+}
+
+bool CPUWorkerManager::IsBlockAwareInit()
+{
+    return monitor->IsBlockAwareInit();
+}
+#endif
 } // namespace ffrt

@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
+#include <securec.h>
 #include "sched/scheduler.h"
 #include "eu/wgcm.h"
 #include "eu/execute_unit.h"
@@ -28,94 +29,76 @@
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-
 namespace {
-const int TIGGER_SUPPRESS_WORKER_COUNT = 4;
-const int TIGGER_SUPPRESS_EXECUTION_NUM = 2;
+const size_t TIGGER_SUPPRESS_WORKER_COUNT = 4;
+const size_t TIGGER_SUPPRESS_EXECUTION_NUM = 2;
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+constexpr int JITTER_DELAY_MS = 5;
+#endif
 }
 #endif
 
 namespace ffrt {
-void CPUMonitor::HandleBlocked(const QoS& qos)
+CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
 {
-    int taskCount = ops.GetTaskCount(qos);
-    if (taskCount == 0) {
-        return;
-    }
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    size_t exeValue = static_cast<uint32_t>(workerCtrl.executionNum);
-    workerCtrl.lock.unlock();
-    size_t blockedNum = CountBlockedNum(qos);
-    if (blockedNum > 0 && (exeValue - blockedNum < workerCtrl.maxConcurrency) && exeValue < workerCtrl.hardLimit) {
-        Poke(qos, TaskNotifyType::TASK_ADDED);
-    }
+    SetupMonitor();
+    StartMonitor();
 }
 
-void MonitorMain(CPUMonitor* monitor)
+CPUMonitor::~CPUMonitor()
 {
-    (void)pthread_setname_np(pthread_self(), CPU_MONITOR_NAME);
-    int ret = prctl(PR_WGCM_CTL, WGCM_CTL_SERVER_REG, 0, 0, 0);
-    if (ret) {
-        FFRT_LOGE("[SERVER] wgcm register server failed ret is %d", ret);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    stopMonitor = true;
+    if (blockAwareInit) {
+        BlockawareWake();
     }
-
-    ret = syscall(SYS_gettid);
-    if (ret == -1) {
-        monitor->monitorTid = 0;
-        FFRT_LOGE("syscall(SYS_gettid) failed");
-    } else {
-        monitor->monitorTid = static_cast<uint32_t>(ret);
+#endif
+    if (monitorThread != nullptr) {
+        monitorThread->join();
     }
-
-    for (unsigned int i = 0; i < static_cast<unsigned int>(QoS::Max()); i++) {
-        struct wgcm_workergrp_data grp = {0, 0, 0, 0, 0, 0, 0, 0};
-        grp.gid = i;
-        grp.min_concur_workers = DEFAULT_MINCONCURRENCY;
-        grp.max_workers_sum = DEFAULT_HARDLIMIT;
-        ret = prctl(PR_WGCM_CTL, WGCM_CTL_SET_GRP, &grp, 0, 0);
-        if (ret) {
-            FFRT_LOGE("[SERVER] wgcm group %u register failed\n ret is %d", i, ret);
-        }
-    }
-
-    while (true) {
-        struct wgcm_workergrp_data data = {0, 0, 0, 0, 0, 0, 0, 0};
-        ret = prctl(PR_WGCM_CTL, WGCM_CTL_WAIT, &data, 0, 0);
-        if (ret) {
-            FFRT_LOGE("[SERVER] wgcm server wait failed ret is %d", ret);
-            sleep(1);
-            continue;
-        }
-        if (data.woken_flag == WGCM_ACTIVELY_WAKE) {
-            break;
-        }
-
-        for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
-            monitor->HandleBlocked(QoS(qos));
-        }
-    }
-    ret = prctl(PR_WGCM_CTL, WGCM_CTL_UNREGISTER, 0, 0, 0);
-    if (ret) {
-        FFRT_LOGE("[SERVER] wgcm server unregister failed ret is %d.", ret);
-    }
+    delete monitorThread;
+    monitorThread = nullptr;
 }
 
 void CPUMonitor::SetupMonitor()
 {
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT;
-        ctrlQueue[qos].workerManagerID = static_cast<uint32_t>(qos);
         ctrlQueue[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(QoS(qos));
+        setWorkerMaxNum[qos] = false;
     }
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    memset_s(&domainInfoMonitor, sizeof(domainInfoMonitor), 0, sizeof(domainInfoMonitor));
+    memset_s(&domainInfoNotify, sizeof(domainInfoNotify), 0, sizeof(domainInfoNotify));
+    wakeupCond.check_ahead = false;
+    wakeupCond.global.low = 0;
+    wakeupCond.global.high = 0;
+    for (int i = 0; i < qosMonitorMaxNum; i++) {
+        wakeupCond.local[i].low = 0;
+        wakeupCond.local[i].high = ctrlQueue[i].maxConcurrency;
+        wakeupCond.global.low += wakeupCond.local[i].low;
+        wakeupCond.global.high += wakeupCond.local[i].high;
+    }
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        exceedUpperWaterLine[i] = false;
+    }
+#endif
+}
+
+void CPUMonitor::StartMonitor()
+{
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    monitorThread = new std::thread(&CPUMonitor::MonitorMain, this);
+#else
+    monitorThread = nullptr;
+#endif
 }
 
 int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[qos()];
     workerCtrl.lock.lock();
-    static bool setFlag[QoS::MaxNum()] = {false};
-    if (setFlag[qos()]) {
+    if (setWorkerMaxNum[qos()]) {
         FFRT_LOGE("qos[%d] worker num can only been setup once", qos());
         workerCtrl.lock.unlock();
         return -1;
@@ -125,49 +108,10 @@ int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
         workerCtrl.lock.unlock();
         return -1;
     }
-    workerCtrl.maxConcurrency = num;
-    setFlag[qos()] = true;
+    workerCtrl.hardLimit = num;
+    setWorkerMaxNum[qos()] = true;
     workerCtrl.lock.unlock();
     return 0;
-}
-
-void CPUMonitor::RegWorker(const QoS& qos)
-{
-    struct wgcm_workergrp_data grp = {0, 0, 0, 0, 0, 0, 0, 0};
-    grp.gid = static_cast<uint32_t>(qos);
-    grp.server_tid = monitorTid;
-    int ret = prctl(PR_WGCM_CTL, WGCM_CTL_WORKER_REG, &grp, 0, 0);
-    if (ret) {
-        FFRT_LOGE("[WORKER] Register failed! error=%d\n", ret);
-    }
-}
-
-void CPUMonitor::UnRegWorker()
-{
-    int ret = prctl(PR_WGCM_CTL, WGCM_CTL_UNREGISTER, 0, 0, 0);
-    if (ret) {
-        FFRT_LOGE("leave workgroup failed  error=%d\n", ret);
-    }
-}
-
-CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
-{
-    SetupMonitor();
-    monitorThread = nullptr;
-}
-
-CPUMonitor::~CPUMonitor()
-{
-    if (monitorThread != nullptr) {
-        monitorThread->join();
-    }
-    delete monitorThread;
-    monitorThread = nullptr;
-}
-
-void CPUMonitor::StartMonitor()
-{
-    monitorThread = new std::thread(MonitorMain, this);
 }
 
 uint32_t CPUMonitor::GetMonitorTid() const
@@ -175,43 +119,63 @@ uint32_t CPUMonitor::GetMonitorTid() const
     return monitorTid;
 }
 
-void CPUMonitor::IncSleepingRef(const QoS& qos)
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+void MonitorMain(CPUMonitor* monitor)
 {
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    workerCtrl.sleepingWorkerNum++;
-    workerCtrl.lock.unlock();
-}
-
-void CPUMonitor::DecSleepingRef(const QoS& qos)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    workerCtrl.sleepingWorkerNum--;
-    workerCtrl.lock.unlock();
-}
-
-void CPUMonitor::DecExeNumRef(const QoS& qos)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    workerCtrl.executionNum--;
-    workerCtrl.lock.unlock();
-}
-
-size_t CPUMonitor::CountBlockedNum(const QoS& qos)
-{
-    struct wgcm_workergrp_data grp = {0, 0, 0, 0, 0, 0, 0, 0};
-    grp.gid = static_cast<uint32_t>(qos);
-    grp.server_tid = monitorTid;
-    int ret = prctl(PR_WGCM_CTL, WGCM_CTL_GET, &grp, 0, 0);
-    if (ret) {
-        FFRT_LOGE("failed to get wgcm count");
+    int ret = BlockawareInit(&keyPtr);
+    if (ret != 0) {
+        FFRT_LOGE("blockaware init fail, ret[%d], key[0x%lx]", ret, keyPtr);
+        return;
     } else {
-        return static_cast<size_t>(grp.blk_workers_sum);
+        blockAwareInit = true;
     }
-    return 0;
+    (void)pthread_setname_np(pthread_self(), CPU_MONITOR_NAME);
+    ret = syscall(SYS_gettid());
+    if (ret == -1) {
+        monitorTid = 0;
+        FFRT_LOGE("syscall(SYS_gettid) failed");
+    }
+    while (true) {
+        if (stopMonitor) {
+            break;
+        }
+        ret = BlockawareWaitCond(&wakeupCond);
+        if (ret != 0) {
+            FFRT_LOGE("blockaware cond wait fail, ret[%d]", ret);
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(JITTER_DELAY_MS));
+        ret = BlockawareLoadSnapshot(keyPtr, &domainInfoMonitor);
+        if (ret != 0) {
+            FFRT_LOGE("blockaware load snapshot fail, ret[%d]", ret);
+            break;
+        }
+        for (int i = 0; i < qosMonitorMaxNum; i++) {
+            size_t taskCount = static_cast<size_t>(ops.GetTaskCount(QoS(i)));
+            if (taskCount > 0 && domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
+                Poke(QoS(i), taskCount, TaskNotifyType::TASK_ADDED);
+            }
+            if (domainInfoMonitor.localinfo[i].nrRunning > wakeupCond.local[i].high) {
+                exceedUpperWaterLine[i] = true;
+            }
+        }
+    }
 }
+
+bool CPUMonitor::IsExceedRunningThreshold(const QoS& qos)
+{
+    if (blockAwareInit && exceedUpperWaterLine[qos()]) {
+        exceedUpperWaterLine[qos()] = false;
+        return true;
+    }
+    return false;
+}
+
+bool CPUMonitor::IsBlockAwareInit(void)
+{
+    return blockAwareInit;
+}
+#endif
 
 void CPUMonitor::TimeoutCount(const QoS& qos)
 {
@@ -287,35 +251,38 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
     return deepSleepingWorkerNum * 2 > totalWorker;
 }
 
-void CPUMonitor::Poke(const QoS& qos, TaskNotifyType notifyType)
+void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-
+    size_t runningNum = workerCtrl.executionNum;
+    size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    /* There is no need to update running num when executionNum < maxConcurrency */
+    if (workerCtrl.executionNum >= workerCtrl.maxConcurrency) {
+        if (blockawareInit && !BlockawareLoadSnapshot(keyPtr, &domainInfoNotify)) {
+            /* nrRunning may not be updated in a timely manner */
+            runningNum = workerCtrl.executionNum - domainInfoNotify.localinfo[qos()].nrBlocked;
+        }
+    }
+#endif
 #ifdef FFRT_IO_TASK_SCHEDULER
-    bool tiggerSuppression = (ops.GetWorkerCount(qos) > TIGGER_SUPPRESS_WORKER_COUNT) &&
-        (workerCtrl.executionNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (ops.GetTaskCount(qos) < workerCtrl.executionNum);
+    bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) && (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM)
+        && (taskCount < runningNum);
     if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }
 #endif
 
-    FFRT_LOGD("qos[%d] exe num[%d] slp num[%d]", (int)qos, workerCtrl.executionNum, workerCtrl.sleepingWorkerNum);
-    if (static_cast<uint32_t>(workerCtrl.executionNum - ops.GetBlockingNum(qos)) < workerCtrl.maxConcurrency) {
-        if (workerCtrl.sleepingWorkerNum == 0) {
-            if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.hardLimit) {
-                workerCtrl.executionNum++;
-                workerCtrl.lock.unlock();
-                ops.IncWorker(qos);
-            } else {
-                workerCtrl.lock.unlock();
-            }
-        } else {
-            workerCtrl.lock.unlock();
-            ops.WakeupWorkers(qos);
-        }
-    } else {
+    if (static_cast<uint32_t>workerCtrl.sleepingWorkerNum > 0) {
+        workerCtrl.lock.unlock();
+        ops.WakeupWorkers(qos);
+    } else if (runningNum < workerCtrl.maxConcurrency && (totalNum < workerCtrl.hardLimit)) {
+        workerCtrl.executionNum++;
+        workerCtrl.lock.unlock();
+        ops.IncWorker(qos);
+    }  else {
 #ifdef FFRT_IO_TASK_SCHEDULER
         if (workerCtrl.pollWaitFlag) {
             PollerProxy::Instance()->GetPoller(qos).WakeUp();

@@ -29,19 +29,17 @@ SleepType SCPUMonitor::IntoSleep(const QoS& qos)
 
 void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
-    int taskCount = GetOps().GetTaskCount(qos);
-    FFRT_LOGD("qos[%d] task notify op[%d] cnt[%d]", static_cast<int>(qos), static_cast<int>(notifyType),
-        taskCount);
+    size_t taskCount = GetOps().GetTaskCount(qos);
     switch (notifyType) {
         case TaskNotifyType::TASK_ADDED:
         case TaskNotifyType::TASK_PICKED:
             if (taskCount > 0) {
-                Poke(qos, notifyType);
+                Poke(qos, taskCount, notifyType);
             }
             break;
 #ifdef FFRT_IO_TASK_SCHEDULER
         case TaskNotifyType::TASK_LOCAL:
-                Poke(qos, notifyType);
+                Poke(qos, taskCount, notifyType);
             break;
 #endif
         default:

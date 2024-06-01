@@ -40,9 +40,6 @@ int TaskState::OnTransition(State state, CPUEUTask* task, Op&& op)
     task->state.preState = task->state.curState;
     task->state.curState = state;
 
-    FFRT_LOGD(
-        "task(%s) status: %s -=> %s ", task->label.c_str(), String(task->state.preState), String(task->state.curState));
-
 #if (TASKSTAT_LOG_ENABLE == 1)
     task->state.stat.Count(task);
 #endif

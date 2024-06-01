@@ -86,6 +86,7 @@ protected:
         TaskState::RegisterOps(TaskState::READY, std::bind(&FFRTScheduler::WakeupTask, this, std::placeholders::_1));
         for (int i = 0; i < QoS::Max(); i++) {
             fifoQue[i] = SchedulerFactory::Alloc();
+            fifoQue[i]->qos = i;
         }
     }
 

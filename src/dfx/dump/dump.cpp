@@ -65,7 +65,7 @@ int dump_info_all(char *buf, uint32_t len)
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_dump(uint32_t cmd, char *buf, uint32_t len)
+int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     switch (static_cast<ffrt_dump_cmd_t>(cmd)) {

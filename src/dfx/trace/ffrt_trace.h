@@ -191,11 +191,11 @@ static bool _IsTagEnabled(uint64_t label)
             func(label, tag, tid); \
         } \
     } while (0)
-#define _TraceCount(label, tag, tid) \
+#define _TraceCount(label, tag, value) \
     do { \
         auto func = GET_TRACE_FUNC(CountTrace); \
         if (func != nullptr) { \
-            func(label, tag, tid); \
+            func(label, tag, value); \
         } \
     } while (0)
 

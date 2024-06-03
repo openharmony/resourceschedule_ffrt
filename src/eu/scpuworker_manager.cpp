@@ -23,6 +23,7 @@
 #include "sched/workgroup_internal.h"
 #include "eu/co_routine_factory.h"
 #include "eu/scpuworker_manager.h"
+#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
 constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000;
@@ -73,6 +74,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     auto& ctl = sleepCtl[thread->GetQos()];
     std::unique_lock lk(ctl.mutex);
     (void)monitor->IntoSleep(thread->GetQos());
+    FFRT_PERF_WORKER_IDLE(static_cast<int>(thread->GetQos()));
 #if !defined(IDLE_WORKER_DESTRUCT)
     constexpr int waiting_seconds = 10;
 #else
@@ -92,6 +94,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         [this, thread] {return tearDown || GetTaskCount(thread->GetQos());})) {
 #endif
         monitor->WakeupCount(thread->GetQos());
+        FFRT_PERF_WORKER_AWAKE(static_cast<int>(thread->GetQos()));
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
@@ -133,6 +136,7 @@ void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
 
     auto& ctl = sleepCtl[qos()];
     ctl.cv.notify_one();
+    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
 }
 
 } // namespace ffrt

@@ -22,6 +22,7 @@
 #include "sync/semaphore.h"
 #include "ffrt_trace.h"
 #include "tm/cpu_task.h"
+#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
 class TaskScheduler {
@@ -30,7 +31,9 @@ public:
 
     CPUEUTask* PickNextTask()
     {
-        return PickNextTaskImpl();
+        auto ret = PickNextTaskImpl();
+        FFRT_PERF_TASK_NUM(qos, RQSize());
+        return ret;
     }
 
     bool WakeupTask(CPUEUTask* task)
@@ -39,6 +42,7 @@ public:
         {
             ret = WakeupTaskImpl(task);
         }
+        FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
     }
 
@@ -48,6 +52,7 @@ public:
         {
             ret = WakeupNodeImpl(node);
         }
+        FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
     }
 
@@ -57,6 +62,7 @@ public:
         {
             ret = RemoveNodeImpl(node);
         }
+        FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
     }
 
@@ -70,6 +76,7 @@ public:
         return RQSizeImpl();
     }
 
+    int qos {0};
 private:
     virtual CPUEUTask* PickNextTaskImpl() = 0;
     virtual bool WakeupNodeImpl(LinkedList* node) = 0;

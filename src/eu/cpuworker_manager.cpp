@@ -22,6 +22,7 @@
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
 #include "qos.h"
+#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -51,6 +52,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     }
     worker->WorkerSetup(worker.get());
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
+    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
     return true;
 }
 

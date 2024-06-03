@@ -21,6 +21,7 @@
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
+#include "dfx/perf/ffrt_perf.h"
 
 #ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
@@ -203,6 +204,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
     worker->ops.WorkerPrepare(worker);
     FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
+    FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
     for (;;) {
         FFRT_LOGD("task picking");
         // get task in the order of priority -> local queue -> global queue

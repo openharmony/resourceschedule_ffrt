@@ -42,7 +42,6 @@ config("ffrt_config") {
     "-DFFRT_IO_TASK_SCHEDULER",
     "-DFFRT_PTHREAD_ENABLE",
     "-DFFRT_OH_WATCHDOG_ENABLE",
-    "-DFFRT_WORKERS_DYNAMIC_SCALING",
   ]
 
   cflags = ffrt_defaults_cflags

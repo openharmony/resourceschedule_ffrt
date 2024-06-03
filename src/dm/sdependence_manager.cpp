@@ -81,7 +81,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     // 2.1 Create task ctx
     SCPUEUTask* task = nullptr;
     {
-        FFRT_TRACE_SCOPE(1, CreateTask);
         task = reinterpret_cast<SCPUEUTask*>(static_cast<uintptr_t>(
             static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(SCPUEUTask, func_storage)));
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
@@ -128,14 +127,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 
     if (!(insNoDup.empty() && outsNoDup.empty())) {
         // 3 Put the submitted task into Entity
-        FFRT_TRACE_SCOPE(1, submitBeforeLock);
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
-        FFRT_TRACE_SCOPE(1, submitAfterLock);
 
         MapSignature2Deps(task, insNoDup, outsNoDup, inDatas, outDatas);
 
         {
-            FFRT_TRACE_SCOPE(1, dealInDepend);
             // 3.1 Process input dependencies
             for (auto& i : std::as_const(inDatas)) {
                 i.first->AddConsumer(task, i.second);
@@ -143,7 +139,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         }
 
         {
-            FFRT_TRACE_SCOPE(1, dealOutDepend);
             // 3.2 Process output dependencies
             for (auto& o : std::as_const(outDatas)) {
                 o.first->AddProducer(task);
@@ -280,7 +275,6 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
 void SDependenceManager::onTaskDone(CPUEUTask* task)
 {
     auto sTask = static_cast<SCPUEUTask*>(task);
-    FFRT_LOGD("Task completed, task[%lu], name[%s]", sTask->gid, sTask->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
     TaskDoneCounterInc();
 #endif

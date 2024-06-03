@@ -107,6 +107,10 @@ protected:
     uint8_t polling_[QoS::MaxNum()] = {};
     fast_mutex pollersMtx[QoS::MaxNum()];
 #endif
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    bool IsExceedRunningThreshold(const WorkerThread* thread);
+    bool IsBlockAwareInit(void);
+#endif
 
 private:
     bool WorkerTearDown();

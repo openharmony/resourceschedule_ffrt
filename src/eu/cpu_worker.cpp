@@ -33,7 +33,6 @@
 #ifdef ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
-
 namespace ffrt {
 int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
@@ -43,7 +42,6 @@ namespace ffrt {
 void CPUWorker::Run(CPUEUTask* task)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
-    FFRT_LOGD("Execute task[%lu], name[%s]", task->gid, task->label.c_str());
 
     if constexpr(USE_COROUTINE) {
         CoStart(task);
@@ -196,6 +194,14 @@ bool CPUWorker::LocalEmpty(CPUWorker* worker)
 
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    if (worker->ops.IsBlockAwareInit()) {
+        int ret = BlockawareRegister(worker->GetDomainId());
+        if (ret != 0) {
+            FFRT_LOGE("blockaware register fail, ret[%d]", ret);
+        }
+    }
+#endif
     auto ctx = ExecuteCtx::Cur();
     ctx->localFifo = &(worker->localFifo);
     ctx->priority_task_ptr = &(worker->priority_task);
@@ -206,6 +212,9 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
     for (;;) {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (!worker->ops.IsExceedRunningThreshold(worker)) {
+#endif
         FFRT_LOGD("task picking");
         // get task in the order of priority -> local queue -> global queue
         void* local_task = GetTask(worker);
@@ -254,7 +263,9 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         if (ret != PollerRet::RET_NULL) {
             continue;
         }
-
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        }
+#endif
         FFRT_WORKER_IDLE_BEGIN_MARKER();
         auto action = worker->ops.WaitForNewAction(worker);
         FFRT_WORKER_IDLE_END_MARKER();
@@ -274,48 +285,61 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 #else // FFRT_IO_TASK_SCHEDULER
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    if (worker->ops.IsBlockAwareInit()) {
+        int ret = BlockawareRegister(worker->GetDomainId());
+        if (ret != 0) {
+            FFRT_LOGE("blockaware register fail, ret[%d]", ret);
+        }
+    }
+#endif
     auto ctx = ExecuteCtx::Cur();
     CPUEUTask* lastTask = nullptr;
 
     worker->ops.WorkerPrepare(worker);
     FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
     for (;;) {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (!worker->ops.IsExceedRunningThreshold(worker)) {
+#endif
         FFRT_LOGD("task picking");
         CPUEUTask* task = worker->ops.PickUpTask(worker);
         if (task) {
             worker->ops.NotifyTaskPicked(worker);
-        } else {
-            FFRT_WORKER_IDLE_BEGIN_MARKER();
-            auto action = worker->ops.WaitForNewAction(worker);
-            FFRT_WORKER_IDLE_END_MARKER();
-            if (action == WorkerAction::RETRY) {
-                continue;
-            } else if (action == WorkerAction::RETIRE) {
-                break;
+            BboxCheckAndFreeze();
+            worker->curTask = task;
+            switch (task->type) {
+                case ffrt_normal_task: {
+                    lastTask = task;
+                }
+                case ffrt_queue_task: {
+                    ctx->task = task;
+                    Run(task);
+                    ctx->task = nullptr;
+                    break;
+                }
+                default: {
+                    ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
+                    Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
+                    break;
+                }
             }
+            worker->curTask = nullptr;
+            BboxCheckAndFreeze();
+            ctx->task = nullptr;
+            continue;
         }
-
-        BboxCheckAndFreeze();
-        worker->curTask = task;
-        switch (task->type) {
-            case ffrt_normal_task: {
-                lastTask = task;
-            }
-            case ffrt_queue_task: {
-                ctx->task = task;
-                Run(task);
-                ctx->task = nullptr;
-                break;
-            }
-            default: {
-                ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
-                Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
-                break;
-            }
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
         }
-        worker->curTask = nullptr;
-        BboxCheckAndFreeze();
-        ctx->task = nullptr;
+#endif
+        FFRT_WORKER_IDLE_BEGIN_MARKER();
+        auto action = worker->ops.WaitForNewAction(worker);
+        FFRT_WORKER_IDLE_END_MARKER();
+        if (action == WorkerAction::RETRY) {
+            continue;
+        } else if (action == WorkerAction::RETIRE) {
+            break;
+        }
     }
 
     CoWorkerExit();

@@ -75,6 +75,7 @@ void StartTrace(uint64_t label, const std::string& value, float limit = -1);
 void FinishTrace(uint64_t label);
 void StartAsyncTrace(uint64_t label, const std::string& value, int32_t taskId, float limit = -1);
 void FinishAsyncTrace(uint64_t label, const std::string& value, int32_t taskId);
+void CountTrace(uint64_t label, const std::string& name, int64_t count);
 #ifdef APP_USE_ARM
 static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
 #else
@@ -104,6 +105,7 @@ public:
     REG_FUNC(FinishTrace);
     REG_FUNC(StartAsyncTrace);
     REG_FUNC(FinishAsyncTrace);
+    REG_FUNC(CountTrace);
 #undef REG_FUNC
 
 private:
@@ -131,6 +133,7 @@ private:
             LOAD_FUNC(FinishTrace);
             LOAD_FUNC(StartAsyncTrace);
             LOAD_FUNC(FinishAsyncTrace);
+            LOAD_FUNC(CountTrace);
 #undef LOAD_FUNC
         return true;
     }
@@ -188,6 +191,13 @@ static bool _IsTagEnabled(uint64_t label)
             func(label, tag, tid); \
         } \
     } while (0)
+#define _TraceCount(label, tag, tid) \
+    do { \
+        auto func = GET_TRACE_FUNC(CountTrace); \
+        if (func != nullptr) { \
+            func(label, tag, tid); \
+        } \
+    } while (0)
 
 #ifdef FFRT_PROFILER
 #define FFRT_PROFILER_WITH_TRACE(trace_type, lable, cookie) \
@@ -224,12 +234,18 @@ static bool _IsTagEnabled(uint64_t label)
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _FinishAsyncTrace(HITRACE_TAG_FFRT, tag, tid); \
     } while (false)
+#define FFRT_TRACE_COUNT(tag, value) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _TraceCount(HITRACE_TAG_FFRT, tag, value); \
+    } while (false)
 #define FFRT_TRACE_SCOPE(level, tag) ffrt::ScopedTrace ___tracer##tag(level, #tag)
 #else
 #define FFRT_TRACE_BEGIN(tag)
 #define FFRT_TRACE_END()
 #define FFRT_TRACE_ASYNC_BEGIN(tag, tid)
 #define FFRT_TRACE_ASYNC_END(tag, tid)
+#define FFRT_TRACE_COUNT(tag, value)
 #define FFRT_TRACE_SCOPE(level, tag)
 #endif
 

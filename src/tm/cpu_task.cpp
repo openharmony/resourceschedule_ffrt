@@ -16,7 +16,7 @@
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
 #include <sstream>
-#include "libunwind.h"
+#include "unwinder.h"
 #include "backtrace_local.h"
 #endif
 #include <securec.h>
@@ -26,6 +26,9 @@
 #include "tm/task_factory.h"
 #include "tm/cpu_task.h"
 
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+using namespace OHOS::HiviewDFX;
+#endif
 namespace ffrt {
 void CPUEUTask::SetQos(QoS& newQos)
 {
@@ -93,9 +96,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
 {
-    unw_context_t ctx;
-    unw_cursor_t unw_cur;
-    unw_proc_info_t unw_proc;
+    ucontext_t ctx;
 
     if (ExecuteCtx::Cur()->task == task || task == nullptr) {
         if (flag == 0) {
@@ -107,7 +108,7 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
     } else {
         memset_s(&ctx, sizeof(ctx), 0, sizeof(ctx));
 #if defined(__aarch64__)
-        ctx.uc_mcontext.regs[UNW_AARCH64_X29] = task->coRoutine->ctx.regs[10];
+        ctx.uc_mcontext.regs[REG_AARCH64_X29] = task->coRoutine->ctx.regs[10];
         ctx.uc_mcontext.sp = task->coRoutine->ctx.regs[13];
         ctx.uc_mcontext.pc = task->coRoutine->ctx.regs[11];
 #elif defined(__x86_64__)
@@ -116,56 +117,40 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
         ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.regs[6];
         ctx.uc_mcontext.gregs[REG_RIP] = *(reinterpret_cast<greg_t *>(ctx.uc_mcontext.gregs[REG_RSP] - 8));
 #elif defined(__arm__)
-        ctx.regs[13] = task->coRoutine->ctx.regs[0]; /* sp */
-        ctx.regs[15] = task->coRoutine->ctx.regs[1]; /* pc */
-        ctx.regs[14] = task->coRoutine->ctx.regs[1]; /* lr */
-        ctx.regs[11] = task->coRoutine->ctx.regs[10]; /* fp */
+        ctx.uc_mcontext.arm_sp = task->coRoutine->ctx.regs[0]; /* sp */
+        ctx.uc_mcontext.arm_pc = task->coRoutine->ctx.regs[1]; /* pc */
+        ctx.uc_mcontext.arm_lr = task->coRoutine->ctx.regs[1]; /* lr */
+        ctx.uc_mcontext.arm_fp = task->coRoutine->ctx.regs[10]; /* fp */
 #endif
     }
 
-    int ret;
-    int frame_id = 0;
-    ret = unw_init_local(&unw_cur, &ctx);
-    if (ret < 0) {
+    auto co = task->coRoutine;
+    uintptr_t stackBottom = (uintptr_t)((char*)co + sizeof(CoRoutine) - 8);
+    uintptr_t stackTop = (uintptr_t)(stackBottom + co->stkMem.size);
+    auto unwinder = std::make_shared<Unwinder>();
+    auto regs = DfxRegs::CreateFromUcontext(ctx);
+    unwinder->SetRegs(regs);
+    UnwindContext context;
+    context.pid = UNWIND_TYPE_LOCAL;
+    context.regs = regs;
+    context.maps = unwinder->GetMaps();
+    context.stackCheck = false;
+    context.stackBottom = stackBottom;
+    context.stackTop = stackTop;
+    bool resFlag = unwinder->Unwind(&context);
+    if (!resFlag) {
+        FFRT_LOGE("Call Unwind failed");
         return;
     }
-
-    Dl_info info;
-    unw_word_t prevPc = 0;
-    unw_word_t offset;
     std::ostringstream ss;
-    do {
-        ret = unw_get_proc_info(&unw_cur, &unw_proc);
-        if (ret) {
-            break;
-        }
-
-        if (prevPc == unw_proc.start_ip) {
-            break;
-        }
-
-        prevPc = unw_proc.start_ip;
-
-        ret = dladdr(reinterpret_cast<void *>(unw_proc.start_ip), &info);
-        if (!ret) {
-            break;
-        }
-
-        if (flag == 0) {
-            FFRT_LOGE("FFRT | #%d pc: %lx %s(%p)", frame_id, unw_proc.start_ip, info.dli_fname,
-                (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)));
-        } else {
-            ss << "FFRT | #" << frame_id << " pc: " << std::hex << unw_proc.start_ip << " " << info.dli_fname;
-            ss << "(" << std::hex << (unw_proc.start_ip - reinterpret_cast<unw_word_t>(info.dli_fbase)) << ")";
-            ss << std::endl;
-        }
-        ++frame_id;
-    } while (unw_step(&unw_cur) > 0);
-
+    auto frames = unwinder->GetFrames();
     if (flag != 0) {
+        ss << Unwinder::GetFramesStr(frames);
+        ss << std::endl;
         stackInfo = ss.str();
+        return;
     }
-    return;
+    FFRT_LOGE("%s", Unwinder::GetFramesStr(frames).c_str());
 }
 #endif
 } /* namespace ffrt */

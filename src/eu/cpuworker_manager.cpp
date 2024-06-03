@@ -25,6 +25,7 @@
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
+#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
@@ -58,6 +59,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     }
     worker->WorkerSetup(worker.get());
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
+    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
     return true;
 }
 

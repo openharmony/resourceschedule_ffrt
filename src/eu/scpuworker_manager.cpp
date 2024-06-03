@@ -26,6 +26,7 @@
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
+#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
 constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000;
@@ -79,6 +80,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     BlockawareEnterSleeping();
 #endif
+    FFRT_PERF_WORKER_IDLE(static_cast<int>(thread->GetQos()));
 #if !defined(IDLE_WORKER_DESTRUCT)
     constexpr int waiting_seconds = 10;
 #else
@@ -106,6 +108,8 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
             FFRT_LOGE("leave sleeping fail, err[%d]", err);
         }
 #endif
+        FFRT_PERF_WORKER_AWAKE(static_cast<int>(thread->GetQos()));
+        FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
 #if !defined(IDLE_WORKER_DESTRUCT)
@@ -146,6 +150,7 @@ void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
 
     auto& ctl = sleepCtl[qos()];
     ctl.cv.notify_one();
+    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
 }
 
 } // namespace ffrt

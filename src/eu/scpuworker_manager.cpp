@@ -101,7 +101,10 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #endif
         monitor->WakeupCount(thread->GetQos());
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        BlockawareLeaveSleeping();
+        int err = BlockawareLeaveSleeping();
+        if (err != 0) {
+            FFRT_LOGE("leave sleeping fail, err[%d]", err);
+        }
 #endif
         return WorkerAction::RETRY;
     } else {

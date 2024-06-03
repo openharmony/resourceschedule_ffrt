@@ -23,7 +23,7 @@ typedef enum {
 
 typedef void(*ffrt_task_timeout_cb)(uint64_t, const char *, uint32_t);
 
-FFRT_C_API int ffrt_dump(uffrt_dump_cmd_t cmd, char *buf, uint32_t len);
+FFRT_C_API int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len);
 FFRT_C_API ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void);
 FFRT_C_API void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb);
 FFRT_C_API uint32_t ffrt_task_timeout_get_threshold(void);

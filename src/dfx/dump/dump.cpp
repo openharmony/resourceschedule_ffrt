@@ -27,7 +27,7 @@ struct TimeoutCfg {
     }
 
     uint32_t timeout = DEFAULT_TIMEOUT_MS;
-    ffrt_Timeout_cb callback = nullptr;
+    ffrt_task_timeout_cb callback = nullptr;
 };
 }
 

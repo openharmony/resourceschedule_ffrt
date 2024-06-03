@@ -221,7 +221,7 @@ static inline bool seqlock_check(const uint32_t *seq_ptr, uint32_t seq_prev)
     return (*seq_ptr == seq_prev);
 }
 
-static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDoaminInfoArea *infoArea)
+static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *infoArea)
 {
     struct BlockawareKinfoPageS *kinfoPage = (struct BlockawareKinfoPageS *)key;
     uint32_t seq;

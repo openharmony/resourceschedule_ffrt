@@ -15,6 +15,7 @@
 #ifndef FFRT_API_C_FFRT_DUMP_H
 #define FFRT_API_C_FFRT_DUMP_H
 #include <stdint.h>
+#include <securec.h>
 #include "type_def_ext.h"
 
 typedef enum {

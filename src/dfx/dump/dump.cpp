@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include "c/ffrt_dump.h"
-#include "dfx\bbox\bbox.h"
+#include "dfx/bbox/bbox.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 

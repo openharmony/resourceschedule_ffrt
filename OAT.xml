@@ -22,7 +22,7 @@
         <licensefile></licensefile>
         <filefilterlist>
             <filefilter name="defaultFilter" desc="Files not to check">
-                <filteritem type="filepath" name="docs/images/*.png" desc="images in user guide"/>
+                <filteritem type="filepath" name="docs/images/.*.png" desc="images in user guide"/>
                 <filteritem type="filepath" name="benchmarks/base.csv" desc="benchmarks result xml file"/>
                 <filteritem type="filepath" name="benchmarks/speedup/base.csv" desc="benchmarks speedup result xml file"/>
                 <filteritem type="filepath" name="benchmarks/serial_sched_time/base.csv" desc="benchmarks serial_sched_time result xml file"/>

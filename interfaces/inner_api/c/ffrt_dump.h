@@ -15,14 +15,13 @@
 #ifndef FFRT_API_C_FFRT_DUMP_H
 #define FFRT_API_C_FFRT_DUMP_H
 #include <stdint.h>
-#include <securec.h>
 #include "type_def_ext.h"
 
 typedef enum {
     DUMP_INFO_ALL = 0,
 } ffrt_dump_cmd_t;
 
-typedef void(*ffrt_task_timeout_cb)(uint64_t gid, const char * msg, uint32_t size);
+typedef void(*ffrt_task_timeout_cb)(uint64_t gid, const *msg, uint32_t size);
 
 FFRT_C_API int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len);
 FFRT_C_API ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void);

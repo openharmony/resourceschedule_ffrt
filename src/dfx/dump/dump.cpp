@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <securec.h>
 #include "c/ffrt_dump.h"
 #include "dfx/bbox/bbox.h"
 #include "internal_inc/osal.h"

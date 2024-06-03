@@ -13,27 +13,95 @@
  * limitations under the License.
  */
 #include "c/ffrt_dump.h"
-#include "c/ffrt_watchdog.h"
+#include "dfx\bbox\bbox.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 
+namespace ffrt {
+constexpr uint32_t DEFAULT_TIMEOUT_MS = 30000;
+struct TimeoutCfg {
+    static inline TimeoutCfg* Instance()
+    {
+        static TimeoutCfg inst;
+        return &inst;
+    }
+
+    uint32_t timeout = DEFAULT_TIMEOUT_MS;
+    ffrt_Timeout_cb callback = nullptr;
+};
+}
+
 #ifdef __cplusplus
 extern "C" {
+#endif //__cplusplus
+
+API_ATTRIBUTE((visibility("default")))
+int dump_info_all(char *buf, uint32_t len)
+{
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    if (FFRTIsWork()) {
+        std::string dumpInfo;
+        dumpInfo += "|-> Launcher proc ffrt, pid:" + std::to_string(GetPid()) + "\n";
+        dumpInfo += SaveTaskCounterInfo();
+        dumpInfo += SaveWorkerStatusInfo();
+        dumpInfo += SaveReadyQueueStatusInfo();
+        dumpInfo += SaveTaskStatusInfo();
+        if (dumpInfo.length() > (len - 1)) {
+            FFRT_LOGW("dumpInfo exceeds the buffer length, length:%d", dumpInfo.length());
+        }
+        int printed_num = snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
+        if (printed_num == -1) {
+            return snprintf_s(buf, len, len - 1, "|-> watchdog fail to print dumpinfo, pid: %s\n",
+                std::to_string(GetPid()).c_str());
+        }
+        return printed_num;
+    } else {
+        return snprintf_s(buf, len, len - 1, "|-> FFRT has done all tasks, pid: %s\n",
+            std::to_string(GetPid()).c_str());
+    }
+#else
+    return -1;
 #endif
+}
+
 API_ATTRIBUTE((visibility("default")))
 int ffrt_dump(uint32_t cmd, char *buf, uint32_t len)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     switch (static_cast<ffrt_dump_cmd_t>(cmd)) {
         case ffrt_dump_cmd_t::DUMP_INFO_ALL: {
-            return ffrt_watchdog_dumpinfo(buf, len);
+            return dump_info_all(buf, len);
         }
         default: {
             FFRT_LOGE("ffr_dump unsupport cmd[%d]", cmd);
-            return -1;
         }
     }
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
+    return -1;
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void)
+{
+    return ffrt::TimeoutCfg::Instance()->callback;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb)
+{
+    ffrt::TimeoutCfg::Instance()->callback = cb;
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint32_t ffrt_task_timeout_get_threshold(void)
+{
+    return ffrt::TimeoutCfg::Instance()->timeout;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_timeout_set_threshold(uint32_t threshold_ms)
+{
+    ffrt::TimeoutCfg::Instance()->timeout = threshold_ms;
 }
 #ifdef __cplusplus
 }

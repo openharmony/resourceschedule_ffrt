@@ -16,7 +16,7 @@
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "sync/sync.h"
-#include "c/ffrt_watchdog.h"
+#include "c/ffrt_dump.h"
 
 namespace {
 constexpr uint32_t INVALID_TASK_ID = 0;
@@ -36,7 +36,7 @@ QueueMonitor::QueueMonitor()
 {
     queuesRunningInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
-    uint64_t timeout = ffrt_watchdog_get_timeout() * TIME_CONVERT_UNIT;
+    uint64_t timeout = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
     if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
         timeoutUs_ = 0;
         FFRT_LOGE("failed to setup watchdog because [%llu] us less than precision threshold", timeout);
@@ -169,7 +169,7 @@ void QueueMonitor::CheckQueuesStatus()
             }
             FFRT_LOGE("%s", ss.str().c_str());
 
-            ffrt_watchdog_cb func = ffrt_watchdog_get_cb();
+            ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
             if (func) {
                 func(taskId, ss.str().c_str(), ss.str().size());
             }

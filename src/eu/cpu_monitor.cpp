@@ -120,7 +120,7 @@ uint32_t CPUMonitor::GetMonitorTid() const
 }
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-void CPUMonitor::MonitorMain(CPUMonitor* monitor)
+void CPUMonitor::MonitorMain()
 {
     int ret = BlockawareInit(&keyPtr);
     if (ret != 0) {
@@ -130,7 +130,7 @@ void CPUMonitor::MonitorMain(CPUMonitor* monitor)
         blockAwareInit = true;
     }
     (void)pthread_setname_np(pthread_self(), CPU_MONITOR_NAME);
-    ret = syscall(SYS_gettid());
+    ret = syscall(SYS_gettid);
     if (ret == -1) {
         monitorTid = 0;
         FFRT_LOGE("syscall(SYS_gettid) failed");
@@ -275,7 +275,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
     }
 #endif
 
-    if (static_cast<uint32_t>workerCtrl.sleepingWorkerNum > 0) {
+    if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
         workerCtrl.lock.unlock();
         ops.WakeupWorkers(qos);
     } else if (runningNum < workerCtrl.maxConcurrency && (totalNum < workerCtrl.hardLimit)) {

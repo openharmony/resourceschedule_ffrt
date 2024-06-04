@@ -43,13 +43,13 @@ int SerialQueue::Push(QueueTask* task)
 
 QueueTask* SerialQueue::Pull()
 {
-    std::unique_lock lock(mutex_);
+    std::unique_lock<ffrt::mutex>* lock = new std::unique_lock(mutex_);
     // wait for delay task
     uint64_t now = GetNow();
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        cond_.wait_for(lock, std::chrono::microseconds(diff));
+        cond_.wait_for(*lock, std::chrono::microseconds(diff));
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
     }
@@ -57,13 +57,21 @@ QueueTask* SerialQueue::Pull()
     // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
         FFRT_LOGD("[queueId=%u] switch into inactive", queueId_);
+        delete lock;
         isActiveState_.store(false);
         return nullptr;
     }
-    FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
+
+    if (isExit_) {
+        FFRT_LOGE("cannot pull task, [queueId=%u] is exiting", queueId_);
+        delete lock;
+        return nullptr;
+    }
 
     // dequeue due tasks in batch
-    return dequeFunc_(queueId_, now, whenMap_, nullptr);
+    QueueTask* taskBatch = dequeFunc_(queueId_, now, whenMap_, nullptr);
+    delete lock;
+    return taskBatch;
 }
 
 std::unique_ptr<BaseQueue> CreateSerialQueue(uint32_t queueId, const ffrt_queue_attr_t* attr)

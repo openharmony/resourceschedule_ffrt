@@ -308,7 +308,6 @@ static const char* GetSigName(const siginfo_t* info)
         case SIGBUS: return "SIGBUS";
         case SIGFPE: return "SIGFPE";
         case SIGILL: return "SIGILL";
-        case SIGSEGV: return "SIGSEGV";
         case SIGSTKFLT: return "SIGSTKFLT";
         case SIGSTOP: return "SIGSTOP";
         case SIGSYS: return "SIGSYS";
@@ -350,7 +349,6 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGBUS);
     SignalReg(SIGFPE);
     SignalReg(SIGILL);
-    SignalReg(SIGSEGV);
     SignalReg(SIGSTKFLT);
     SignalReg(SIGSYS);
     SignalReg(SIGTRAP);
@@ -364,7 +362,6 @@ __attribute__((destructor)) static void BBoxDeInit()
     SignalUnReg(SIGBUS);
     SignalUnReg(SIGFPE);
     SignalUnReg(SIGILL);
-    SignalUnReg(SIGSEGV);
     SignalUnReg(SIGSTKFLT);
     SignalUnReg(SIGSYS);
     SignalUnReg(SIGTRAP);

@@ -24,7 +24,7 @@
 
 namespace {
 using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(uint32_t, const ffrt_queue_attr_t*);
-const std::map<int, CreateFunc> CREATE_FUNC_MAP = {
+const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_serial, ffrt::CreateSerialQueue },
     { ffrt_queue_concurrent, ffrt::CreateConcurrentQueue },
     { ffrt_queue_eventhandler_interactive, ffrt::CreateEventHandlerInteractiveQueue },
@@ -90,21 +90,6 @@ int BaseQueue::Remove(const QueueTask* task)
     return FAILED;
 }
 
-int BaseQueue::GetNextTimeout()
-{
-    std::unique_lock lock(mutex_);
-    if (whenMap_.empty()) {
-        return -1;
-    }
-    uint64_t now = GetNow();
-    if (now >= whenMap_.begin()->first) {
-        return 0;
-    }
-    uint64_t diff = whenMap_.begin()->first - now;
-    uint64_t timeout = (diff - 1) / 1000 + 1; // us->ms
-    return timeout > INT_MAX ? INT_MAX : static_cast<int>(timeout);
-}
-
 bool BaseQueue::HasTask(const char* name)
 {
     std::unique_lock lock(mutex_);
@@ -119,6 +104,7 @@ void BaseQueue::ClearWhenMap()
         if (it->second) {
             it->second->Notify();
             it->second->Destroy();
+            it->second = nullptr;
         }
     }
     whenMap_.clear();
@@ -128,9 +114,7 @@ void BaseQueue::ClearWhenMap()
 std::unique_ptr<BaseQueue> CreateQueue(int queueType, uint32_t queueId, const ffrt_queue_attr_t* attr)
 {
     const auto iter = CREATE_FUNC_MAP.find(queueType);
-    if (iter == CREATE_FUNC_MAP.end()) {
-        return nullptr;
-    }
+    FFRT_COND_DO_ERR((iter == CREATE_FUNC_MAP.end()), return nullptr, "invalid queue type");
 
     return iter->second(queueId, attr);
 }

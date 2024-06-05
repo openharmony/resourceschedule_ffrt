@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FFRT_INNER_API_C_QUEUE_H
-#define FFRT_INNER_API_C_QUEUE_H
+#ifndef FFRT_INNER_API_C_QUEUE_EXT_H
+#define FFRT_INNER_API_C_QUEUE_EXT_H
 
 #include <stdbool.h>
 #include "c/queue.h"
@@ -26,15 +26,15 @@ typedef enum {
 } ffrt_inner_queue_type_t;
 
 typedef enum {
-    /** highest priority, should be distributed until the tasks in the queue are completed */
+    /* highest priority, should be distributed until the tasks in the queue are completed */
     ffrt_inner_queue_priority_vip = 0,
-    /** should be distributed at once if possible, handle time equals to send time, prior to high level */
+    /* should be distributed at once if possible, handle time equals to send time, prior to high level */
     ffrt_inner_queue_priority_immediate,
-    /** high priority, sorted by handle time, prior to low level. */
+    /* high priority, sorted by handle time, prior to low level. */
     ffrt_inner_queue_priority_high,
-    /** low priority, sorted by handle time, prior to idle level. */
+    /* low priority, sorted by handle time, prior to idle level. */
     ffrt_inner_queue_priority_low,
-    /** lowest priority, sorted by handle time, only distribute when there is no other level inside queue. */
+    /* lowest priority, sorted by handle time, only distribute when there is no other level inside queue. */
     ffrt_inner_queue_priority_idle,
 } ffrt_inner_queue_priority_t;
 
@@ -83,7 +83,7 @@ FFRT_C_API void ffrt_queue_cancel_all(ffrt_queue_t queue);
  * @brief Cancels a task with the given name in the queue.
  *
  * @param queue Indicates a queue handle.
- * @param name Indicates name of the task to be canceled, regular expressions are supperted.
+ * @param name Indicates name of the task to be canceled, regular expressions are supported.
  * @return Returns <b>0</b> if the task is canceled;
            returns <b>1</b> otherwise.
  * @version 1.0
@@ -101,7 +101,7 @@ FFRT_C_API bool ffrt_queue_is_idle(ffrt_queue_t queue);
 
 /**
  * @brief Dumps queue information;
- *        including current execution, historical execution, and remaining unexecuted task information, etc.
+          including current execution, historical execution, and remaining unexecuted task information, etc.
  *
  * @param queue Indicates a queue handle.
  * @param tag Indicates tag prefix for dump information.

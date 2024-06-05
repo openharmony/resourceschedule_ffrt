@@ -28,6 +28,7 @@ constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 std::atomic_uint32_t queueId(0);
 }
+
 namespace ffrt {
 QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, const int type)
     : queueId_(queueId++)
@@ -105,12 +106,6 @@ QueueTask* QueueHandler::PickUpTask()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", queueId_);
     return queue_->Pull();
-}
-
-uint64_t QueueHandler::GetNextTimeout()
-{
-    FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "[queueId=%u] constructed failed", queueId_);
-    return queue_->GetNextTimeout();
 }
 
 void QueueHandler::Submit(QueueTask* task)

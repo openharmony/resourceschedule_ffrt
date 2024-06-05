@@ -349,23 +349,23 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
         break;
     }
     timerEmpty_.store(timerMap_.empty());
-   
+
+    timerMutex_.unlock();
     for (const auto& data : timerData) {
-        timerMutex_.unlock();
         if (data.cb) {
             data.cb(data.data);
         } else if (data.task != nullptr) {
             ProcessTimerDataCb(data.task);
         }
-        timerMutex_.lock();
+
         if (data.repeat) {
+            std::lock_guard lock(timerMutex_);
             executedHandle_.erase(data.handle);
             RegisterTimerImpl(data);
         } else {
             executedHandle_[data.handle] = TimerStatus::EXECUTED;
         }
     }
-    timerMutex_.unlock();
 }
 
 void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept

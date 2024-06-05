@@ -55,7 +55,6 @@ public:
         return false;
     }
 
-    int GetNextTimeout();
     inline uint64_t GetMapSize()
     {
         std::unique_lock lock(mutex_);

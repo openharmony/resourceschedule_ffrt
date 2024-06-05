@@ -20,8 +20,8 @@
 namespace ffrt {
 class ConcurrentQueue : public BaseQueue {
 public:
-    explicit ConcurrentQueue(const uint32_t queueId, const int maxConcurrency = 1) :
-        BaseQueue(queueId), maxConcurrency_(maxConcurrency)
+    explicit ConcurrentQueue(const uint32_t queueId, const int maxConcurrency = 1)
+        : BaseQueue(queueId), maxConcurrency_(maxConcurrency)
     {
         dequeFunc_ = QueueStrategy<QueueTask>::DequeSingleByPriority;
     }

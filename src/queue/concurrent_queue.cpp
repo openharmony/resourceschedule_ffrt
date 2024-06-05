@@ -34,6 +34,9 @@ int ConcurrentQueue::Push(QueueTask* task)
 {
     std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot push task, [queueId=%u] is exiting", queueId_);
+    if (task->GetPriority() > ffrt_queue_priority_idle) {
+        task->SetPriority(ffrt_queue_priority_low);
+    }
 
     if (loop_ != nullptr) {
         if (task->GetDelay() == 0) {

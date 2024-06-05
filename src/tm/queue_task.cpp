@@ -24,7 +24,11 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
 {
     type = ffrt_queue_task;
     if (handler) {
-        label = handler->GetName();
+        if (attr) {
+            label = handler->GetName() + "_" + attr->name_ + "_" + std::to_string(gid);
+        } else {
+            label = handler->GetName() + "_" + std::to_string(gid);
+        }
     }
 
     fq_we.task = reinterpret_cast<CPUEUTask*>(this);
@@ -36,9 +40,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         qos_ = attr->qos_;
         uptime_ += delay_;
         prio_ = attr->prio_;
-        label = label + "_" + attr->name_;
     }
-    label = label + "_" + std::to_string(gid);
 
     FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%llu, prio=%u", gid, delay_, type, prio_);
 }

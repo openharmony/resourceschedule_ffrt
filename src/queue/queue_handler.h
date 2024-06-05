@@ -46,7 +46,6 @@ public:
     bool ClearLoop();
 
     QueueTask* PickUpTask();
-    uint64_t GetNextTimeout();
 
     inline bool IsValidForLoop()
     {

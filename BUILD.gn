@@ -114,7 +114,6 @@ ohos_shared_library("libffrt") {
       "src/dfx/dump/dump.cpp",
       "src/dfx/log/ffrt_log.cpp",
       "src/dfx/trace/ffrt_trace.cpp",
-      "src/dfx/watchdog/watchdog.cpp",
       "src/dfx/watchdog/watchdog_util.cpp",
       "src/dm/dependence_manager.cpp",
       "src/dm/sdependence_manager.cpp",

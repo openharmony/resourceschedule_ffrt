@@ -108,7 +108,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
     int nfds = 0;
     if (!USE_COROUTINE || legacyMode) {
         std::unique_lock<std::mutex> lck(task->lock);
-        m_mapMutex.lock();
+        std::unique_lock lock(m_mapMutex);
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_LOGE("task has waited before");
             return -1;
@@ -122,13 +122,12 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
         }
-        m_mapMutex.unlock();
         reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.wait(lck);
         return nfds;
     }
 
     CoWait([&](CPUEUTask *task)->bool {
-        m_mapMutex.lock();
+        std::unique_lock lock(m_mapMutex);
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_LOGE("task has waited before");
             return false;
@@ -139,7 +138,6 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
         }
-        m_mapMutex.unlock();
         return true;
     });
     return nfds;

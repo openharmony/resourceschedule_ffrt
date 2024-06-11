@@ -22,7 +22,7 @@
 
 // default disabled for ffrt, enable it for debugging or playback
 #ifdef FFRT_PERF_ENABLE
-struct ffrt_eu {
+struct perf_eu {
     static constexpr size_t qos_max = 10;
     static inline std::atomic_int worker_num[qos_max] = {0};
     static inline const char* worker_num_tag[qos_max] = {
@@ -96,7 +96,7 @@ inline void FFRTPerfTaskNum(int qos, int taskn)
 }
 
 #define FFRT_PERF_WORKER_IDLE(qos) FFRTPerfWorkerIdle(qos)
-#define FFRT_PERF_WORKER_AWAKE(qos) FFRTPerfWorkerAWAKE(qos)
+#define FFRT_PERF_WORKER_AWAKE(qos) FFRTPerfWorkerAwake(qos)
 #define FFRT_PERF_WORKER_WAKE(qos) FFRTPerfWorkerWake(qos)
 #define FFRT_PERF_TASK_NUM(qos, taskn) FFRTPerfTaskNum(qos, taskn)
 #else

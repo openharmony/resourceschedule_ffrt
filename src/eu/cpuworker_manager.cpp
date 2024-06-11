@@ -54,7 +54,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
 #endif
     }));
     if (worker == nullptr || worker->Exited()) {
-        FFRT_LOGE("Inc CPUWorker: create worker\n");
+        FFRT_LOGE("IncWorker failed: worker is nullptr or has exited\n");
         return false;
     }
     worker->WorkerSetup(worker.get());

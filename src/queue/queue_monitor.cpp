@@ -34,6 +34,7 @@ inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayU
 namespace ffrt {
 QueueMonitor::QueueMonitor()
 {
+    FFRT_LOGI("queue monitor ctor enter");
     queuesRunningInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     uint64_t timeout = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
@@ -44,7 +45,7 @@ QueueMonitor::QueueMonitor()
     }
     timeoutUs_ = timeout;
     SendDelayedWorker(GetDelayedTimeStamp(timeoutUs_));
-    FFRT_LOGI("send delayedworker with %llu us", timeoutUs_);
+    FFRT_LOGI("queue monitor ctor leave, watchdog timeout %llu us", timeoutUs_);
 }
 
 QueueMonitor::~QueueMonitor()

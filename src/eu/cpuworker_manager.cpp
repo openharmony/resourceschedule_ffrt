@@ -47,7 +47,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::UpdateBlockingNum, this, std::placeholders::_1, std::placeholders::_2),
     }));
     if (worker == nullptr || worker->Exited()) {
-        FFRT_LOGE("Inc CPUWorker: create worker\n");
+        FFRT_LOGE("IncWorker failed: worker is nullptr or has exited\n");
         return false;
     }
     worker->WorkerSetup(worker.get());

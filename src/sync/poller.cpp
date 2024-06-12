@@ -108,9 +108,10 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
     int nfds = 0;
     if (!USE_COROUTINE || legacyMode) {
         std::unique_lock<std::mutex> lck(task->lock);
-        std::unique_lock lock(m_mapMutex);
+        m_mapMutex.lock();
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_LOGE("task has waited before");
+            m_mapMutex.unlock();
             return -1;
         }
         if (legacyMode) {
@@ -118,6 +119,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         }
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
+        m_mapMutex.unlock();
         if (timeout > -1) {
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
@@ -127,13 +129,15 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
     }
 
     CoWait([&](CPUEUTask *task)->bool {
-        std::unique_lock lock(m_mapMutex);
+        m_mapMutex.lock();
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_LOGE("task has waited before");
+            m_mapMutex.unlock();
             return false;
         }
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
+        m_mapMutex.unlock();
         if (timeout > -1) {
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);

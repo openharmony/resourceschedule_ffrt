@@ -43,9 +43,9 @@ DelayedWorker::DelayedWorker()
                 break;
             }
             if (ret == 0) {
-                cv.wait_util(lk, map.begin()->first);
+                cv.wait_until(lk, map.begin()->first);
             } else if (ret == 1) {
-                cv.wait_util(lk, std::chrono::steady_clock::now() + std::chrono::hours(1));
+                cv.wait_until(lk, std::chrono::steady_clock::now() + std::chrono::hours(1));
             }
         }
     });

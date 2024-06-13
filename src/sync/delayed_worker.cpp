@@ -87,11 +87,13 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     lock.lock();
 
     if (toExit) {
+        lock.unlock();
         return false;
     }
 
     time_point_t now = std::chrono::steady_clock::now();
     if (to <= now) {
+        lock.unlock();
         return false;
     }
 

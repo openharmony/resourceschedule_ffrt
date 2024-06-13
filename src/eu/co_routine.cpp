@@ -41,8 +41,6 @@
 
 using namespace ffrt;
 
-using namespace OHOS::HiviewDFX;
-
 extern pthread_key_t g_executeCtxTlsKey;
 namespace {
 pthread_key_t g_coThreadTlsKey = 0;

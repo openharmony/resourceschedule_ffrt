@@ -39,9 +39,6 @@
                 "hitrace",
 
                 "napi"
-            ],
-            "third_party": [
-                "bounds_checking_function"
             ]
         },
         "build": {

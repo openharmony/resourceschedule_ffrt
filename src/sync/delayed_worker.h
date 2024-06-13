@@ -31,10 +31,11 @@ struct DelayedWork {
 class DelayedWorker {
     std::multimap<time_point_t, DelayedWork> map;
     std::mutex lock;
-    std::atomic_int futex;
-    bool exited = false;
+    std::atomic_bool toExit = false;
+    std::condition_variable cv;
+    std::unique_ptr<std::thread> delayWorker = nullptr;
 
-    void HandleWork(struct timespec** p);
+    int HandleWork(void);
 
 public:
     DelayedWorker(DelayedWorker const&) = delete;

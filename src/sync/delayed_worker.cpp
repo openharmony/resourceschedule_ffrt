@@ -38,7 +38,6 @@ DelayedWorker::DelayedWorker()
                 break;
             }
             int ret = HandleWork();
-            // lock.unlock();
             if (toExit) {
                 break;
             }

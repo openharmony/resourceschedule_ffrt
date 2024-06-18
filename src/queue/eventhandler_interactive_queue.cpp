@@ -32,6 +32,7 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
     std::function<void()> func = [=]() {
         f->exec(f);
         f->destroy(f);
+        task->DecDeleteRef();
     };
 
     ffrt::TaskOptions taskOptions(

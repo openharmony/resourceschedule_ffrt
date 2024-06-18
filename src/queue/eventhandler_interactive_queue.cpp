@@ -35,8 +35,9 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
         task->DecDeleteRef();
     };
 
+    int msPerSecond = 1000;
     ffrt::TaskOptions taskOptions(
-        task->label, delayUs / 1000, static_cast<Priority>(prio), reinterpret_cast<uintptr_t>(task->gid));
+        task->label, delayUs / msPerSecond, static_cast<Priority>(prio), reinterpret_cast<uintptr_t>(task->gid));
     bool taskStatus = EventHandlerAdapter::Instance()->PostTask(eventHandler_, func, taskOptions);
     FFRT_COND_DO_ERR((taskStatus == false), return FAILED, "post task fail");
 

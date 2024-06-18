@@ -119,11 +119,11 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         }
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
-        m_mapMutex.unlock();
         if (timeout > -1) {
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
         }
+        m_mapMutex.unlock();
         reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.wait(lck);
         return nfds;
     }
@@ -137,11 +137,11 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         }
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
-        m_mapMutex.unlock();
         if (timeout > -1) {
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
         }
+        m_mapMutex.unlock();
         return true;
     });
     return nfds;

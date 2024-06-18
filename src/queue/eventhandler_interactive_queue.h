@@ -44,7 +44,7 @@ public:
 
     int Remove(const QueueTask* task) override
     {
-        uintptr_t taskId = reinterpret_cast<uintptr_t>(task);
+        uintptr_t taskId = static_cast<uintptr_t>(task->gid);
         int ret = EventHandlerAdapter::Instance()->RemoveTask(eventHandler_, taskId);
         return ret;
     }

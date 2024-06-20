@@ -32,7 +32,6 @@ enum class TaskNotifyType {
     TASK_PICKED = 0,
     TASK_ADDED,
     TASK_LOCAL,
-#endif
 };
 
 enum class SleepType {
@@ -65,3 +64,4 @@ struct CpuMonitorOps {
     std::function<int (const QoS& qos)> GetBlockingNum;
 };
 }
+#endif

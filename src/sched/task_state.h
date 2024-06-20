@@ -60,12 +60,10 @@ public:
         return curState;
     }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     void SetCurState(State state)
     {
         curState = state;
     }
-#endif
 
     State PreState() const
     {

@@ -37,11 +37,9 @@ void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
                 Poke(qos, taskCount, notifyType);
             }
             break;
-#ifdef FFRT_IO_TASK_SCHEDULER
         case TaskNotifyType::TASK_LOCAL:
                 Poke(qos, taskCount, notifyType);
             break;
-#endif
         default:
             break;
     }

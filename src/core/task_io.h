@@ -22,7 +22,6 @@
 #include "util/slab.h"
 #include "c/executor_task.h"
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 namespace ffrt {
 typedef struct {
     ffrt_coroutine_ptr_t exec;
@@ -42,5 +41,4 @@ struct ffrt_executor_io_task: public ffrt_executor_task {
     ExecTaskStatus status = ExecTaskStatus::ET_PENDING;
 };
 } /* namespace ffrt */
-#endif
 #endif

@@ -42,14 +42,12 @@ public:
         }
     }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     void NotifyLocalTaskAdded(const QoS& qos)
     {
         {
             wManager[static_cast<size_t>(DevType::CPU)]->NotifyLocalTaskAdded(qos);
         }
     }
-#endif
 
     std::mutex* GetSleepCtl(int qos)
     {

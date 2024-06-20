@@ -138,8 +138,6 @@ TEST_F(ffrtIoTest, IoPoller_Producer_N_Consumer_N)
     ffrt::wait();
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
-
 struct TestData {
     int fd;
     uint64_t expected;
@@ -470,4 +468,3 @@ TEST_F(ffrtIoTest, ffrt_timer_query_stop)
     EXPECT_EQ(-1, ffrt_timer_query(qos, handle));
     close(testFd);
 }
-#endif

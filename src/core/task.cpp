@@ -31,12 +31,9 @@
 #include "eu/func_manager.h"
 #include "util/ffrt_facade.h"
 #include "eu/sexecute_unit.h"
-
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "core/task_io.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#endif
 #include "tm/task_factory.h"
 #include "tm/queue_task.h"
 

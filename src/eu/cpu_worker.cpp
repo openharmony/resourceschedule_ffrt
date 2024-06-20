@@ -22,11 +22,8 @@
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
 #include "dfx/perf/ffrt_perf.h"
-
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#endif
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"
 
@@ -112,7 +109,6 @@ void* CPUWorker::WrapDispatch(void* worker)
     return nullptr;
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUTask* &lastTask)
 {
     auto ctx = ExecuteCtx::Cur();
@@ -281,72 +277,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_LOGD("ExecutionThread exited");
     worker->ops.WorkerRetired(worker);
 }
-
-#else // FFRT_IO_TASK_SCHEDULER
-void CPUWorker::Dispatch(CPUWorker* worker)
-{
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    if (worker->ops.IsBlockAwareInit()) {
-        int ret = BlockawareRegister(worker->GetDomainId());
-        if (ret != 0) {
-            FFRT_LOGE("blockaware register fail, ret[%d]", ret);
-        }
-    }
-#endif
-    auto ctx = ExecuteCtx::Cur();
-    CPUEUTask* lastTask = nullptr;
-
-    worker->ops.WorkerPrepare(worker);
-    FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
-    for (;;) {
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        if (!worker->ops.IsExceedRunningThreshold(worker)) {
-#endif
-        FFRT_LOGD("task picking");
-        CPUEUTask* task = worker->ops.PickUpTask(worker);
-        if (task) {
-            worker->ops.NotifyTaskPicked(worker);
-            BboxCheckAndFreeze();
-            worker->curTask = task;
-            switch (task->type) {
-                case ffrt_normal_task: {
-                    lastTask = task;
-                }
-                case ffrt_queue_task: {
-                    ctx->task = task;
-                    Run(task);
-                    ctx->task = nullptr;
-                    break;
-                }
-                default: {
-                    ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
-                    Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
-                    break;
-                }
-            }
-            worker->curTask = nullptr;
-            BboxCheckAndFreeze();
-            ctx->task = nullptr;
-            continue;
-        }
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        }
-#endif
-        FFRT_WORKER_IDLE_BEGIN_MARKER();
-        auto action = worker->ops.WaitForNewAction(worker);
-        FFRT_WORKER_IDLE_END_MARKER();
-        if (action == WorkerAction::RETRY) {
-            continue;
-        } else if (action == WorkerAction::RETIRE) {
-            break;
-        }
-    }
-
-    CoWorkerExit();
-    FFRT_LOGD("ExecutionThread exited");
-    worker->ops.WorkerRetired(worker);
-}
-#endif // FFRT_IO_TASK_SCHEDULER
 
 void CPUWorker::SetWorkerBlocked(bool var)
 {

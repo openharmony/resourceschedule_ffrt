@@ -39,7 +39,6 @@ config("ffrt_config") {
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",
     "-DUSE_OHOS_QOS",
-    "-DFFRT_IO_TASK_SCHEDULER",
     "-DFFRT_PTHREAD_ENABLE",
     "-DFFRT_OH_WATCHDOG_ENABLE",
   ]

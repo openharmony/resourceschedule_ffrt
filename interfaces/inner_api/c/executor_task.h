@@ -40,7 +40,6 @@ FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt
 FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos);
 
 // poller
-#ifdef FFRT_IO_TASK_SCHEDULER
 FFRT_C_API void ffrt_poller_wakeup(ffrt_qos_t qos);
 
 FFRT_C_API uint8_t ffrt_epoll_get_count(ffrt_qos_t qos);
@@ -105,5 +104,5 @@ FFRT_C_API void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local
  * @version 1.0
  */
 FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
-#endif
+
 #endif

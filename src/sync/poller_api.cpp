@@ -18,7 +18,6 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/ffrt_facade.h"
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
     if (ffrt::GetFuncQosMap() == nullptr) {
@@ -96,4 +95,3 @@ uint64_t ffrt_epoll_get_wait_time(void* taskHandle)
     auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
     return ffrt::PollerProxy::Instance()->GetPoller(task->qos).GetTaskWaitTime(task);
 }
-#endif

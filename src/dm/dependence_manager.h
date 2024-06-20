@@ -32,9 +32,7 @@
 #include "core/entity.h"
 #include "dfx/watchdog/watchdog_util.h"
 #include "tm/cpu_task.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
-#endif
 
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))

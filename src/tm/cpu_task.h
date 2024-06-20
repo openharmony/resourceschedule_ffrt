@@ -39,12 +39,10 @@
 namespace ffrt {
 struct VersionCtx;
 class SCPUEUTask;
-#ifdef FFRT_IO_TASK_SCHEDULER
 class UserDefinedTask : public TaskBase {
     ffrt_io_callable_t work;
     ExecTaskStatus status;
 };
-#endif
 
 #define TSD_SIZE 128
 

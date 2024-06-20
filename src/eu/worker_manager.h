@@ -51,9 +51,7 @@ public:
     virtual bool IncWorker(const QoS& qos) = 0;
     virtual bool DecWorker() = 0;
     virtual void NotifyTaskAdded(const QoS& qos) = 0;
-#ifdef FFRT_IO_TASK_SCHEDULER
     virtual void NotifyLocalTaskAdded(const QoS& qos) = 0;
-#endif
     virtual std::mutex* GetSleepCtl(int qos) = 0;
     virtual CPUMonitor* GetCPUMonitor() = 0;
 

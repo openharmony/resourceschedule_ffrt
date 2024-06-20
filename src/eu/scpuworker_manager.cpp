@@ -47,10 +47,8 @@ SCPUWorkerManager::~SCPUWorkerManager()
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
-#ifdef FFRT_IO_TASK_SCHEDULER
             pollersMtx[qos].unlock();
             PollerProxy::Instance()->GetPoller(QoS(qos)).WakeUp();
-#endif
             sleepCtl[qos].cv.notify_all();
             {
                 usleep(1000);
@@ -86,7 +84,6 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #else
     constexpr int waiting_seconds = 5;
 #endif
-#ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = GetTaskCount(thread->GetQos()) ||
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
@@ -95,12 +92,6 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
             (polling_[thread->GetQos()] == 0);
         return tearDown || taskExistence || needPoll;
         })) {
-#else
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
-        bool taskExistence = GetTaskCount(thread->GetQos());
-        return tearDown || taskExistence;
-        })) {
-#endif
         monitor->WakeupCount(thread->GetQos());
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         int err = BlockawareLeaveSleeping();
@@ -118,15 +109,13 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         if (monitor->IsExceedDeepSleepThreshold()) {
             ffrt::CoRoutineReleaseMem();
         }
-#ifdef FFRT_IO_TASK_SCHEDULER
+
         ctl.cv.wait(lk, [this, thread] {
             return tearDown || GetTaskCount(thread->GetQos()) ||
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
             reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
             });
-#else
-        ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
-#endif
+
         monitor->OutOfDeepSleep(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;

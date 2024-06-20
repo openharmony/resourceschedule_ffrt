@@ -41,12 +41,10 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         std::bind(&CPUWorkerManager::WorkerIdleAction, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerRetired, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerPrepare, this, std::placeholders::_1),
-#ifdef FFRT_IO_TASK_SCHEDULER
         std::bind(&CPUWorkerManager::TryPoll, this, std::placeholders::_1, std::placeholders::_2),
         std::bind(&CPUWorkerManager::StealTaskBatch, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::PickUpTaskBatch, this, std::placeholders::_1),
         std::bind(&CPUWorkerManager::TryMoveLocal2Global, this, std::placeholders::_1),
-#endif
         std::bind(&CPUWorkerManager::UpdateBlockingNum, this, std::placeholders::_1, std::placeholders::_2),
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         std::bind(&CPUWorkerManager::IsExceedRunningThreshold, this, std::placeholders::_1),
@@ -86,7 +84,6 @@ CPUEUTask* CPUWorkerManager::PickUpTask(WorkerThread* thread)
     return sched.PickNextTask();
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
@@ -202,7 +199,6 @@ void CPUWorkerManager::NotifyLocalTaskAdded(const QoS& qos)
         monitor->Notify(qos, TaskNotifyType::TASK_LOCAL);
     }
 }
-#endif
 
 void CPUWorkerManager::NotifyTaskPicked(const WorkerThread* thread)
 {

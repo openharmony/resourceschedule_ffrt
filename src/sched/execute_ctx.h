@@ -21,14 +21,12 @@
 #include <atomic>
 
 #include "util/linked_list.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "c/executor_task.h"
 #include "util/spmc_queue.h"
 #ifdef USE_OHOS_QOS
 #include "qos.h"
 #else
 #include "staging_qos/sched/qos.h"
-#endif
 #endif
 
 namespace ffrt {
@@ -88,16 +86,13 @@ struct ExecuteCtx {
     ExecuteCtx();
     virtual ~ExecuteCtx();
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     ffrt_executor_task_t* exec_task = nullptr;
     void** priority_task_ptr = nullptr;
     SpmcQueue* localFifo = nullptr;
     QoS qos;
-#endif
     CPUEUTask* task; // 当前正在执行的Task
     WaitUntilEntry wn;
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     inline bool PushTaskToPriorityStack(ffrt_executor_task_t* task)
     {
         if (priority_task_ptr == nullptr) {
@@ -109,7 +104,6 @@ struct ExecuteCtx {
         }
         return false;
     }
-#endif
 
     static ExecuteCtx* Cur();
 };

@@ -29,7 +29,6 @@ void FFRTScheduler::RegistInsCb(SingleInsCB<FFRTScheduler>::Instance &&cb)
     SingletonRegister<FFRTScheduler>::RegistInsCb(std::move(cb));
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 void FFRTScheduler::PushTask(CPUEUTask* task)
 {
     int level = task->qos();
@@ -39,7 +38,6 @@ void FFRTScheduler::PushTask(CPUEUTask* task)
     lock->unlock();
     ExecuteUnit::Instance().NotifyTaskAdded(QoS(level));
 }
-#endif
 
 bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
 {
@@ -65,12 +63,10 @@ bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
     fifoQue[static_cast<unsigned short>(level)]->WakeupNode(node);
     lock->unlock();
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     if (taskType == ffrt_io_task) {
         ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
         return true;
     }
-#endif
 
     ExecuteUnit::Instance().NotifyTaskAdded(qos);
     return true;

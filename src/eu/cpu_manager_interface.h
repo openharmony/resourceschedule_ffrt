@@ -18,9 +18,7 @@
 
 #include "eu/worker_thread.h"
 #include "qos.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
-#endif
 #include "tm/cpu_task.h"
 
 namespace ffrt {
@@ -33,9 +31,7 @@ enum class WorkerAction {
 enum class TaskNotifyType {
     TASK_PICKED = 0,
     TASK_ADDED,
-#ifdef FFRT_IO_TASK_SCHEDULER
     TASK_LOCAL,
-#endif
 };
 
 enum class SleepType {
@@ -49,12 +45,10 @@ struct CpuWorkerOps {
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;
     std::function<void (WorkerThread*)> WorkerRetired;
     std::function<void (WorkerThread*)> WorkerPrepare;
-#ifdef FFRT_IO_TASK_SCHEDULER
     std::function<PollerRet (const WorkerThread*, int timeout)> TryPoll;
     std::function<unsigned int (WorkerThread*)> StealTaskBatch;
     std::function<CPUEUTask* (WorkerThread*)> PickUpTaskBatch;
     std::function<void (WorkerThread*)> TryMoveLocal2Global;
-#endif
     std::function<void (const QoS& qos, bool var)> UpdateBlockingNum;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     std::function<bool (WorkerThread*)> IsExceedRunningThreshold;

@@ -19,7 +19,6 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/ffrt_facade.h"
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
     if (ffrt::GetFuncQosMap() == nullptr) {
@@ -72,4 +71,3 @@ ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, int handle)
     }
     return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetTimerStatus(handle);
 }
-#endif

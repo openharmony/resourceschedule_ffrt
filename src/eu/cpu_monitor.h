@@ -33,9 +33,7 @@ struct WorkerCtrl {
     size_t maxConcurrency = 0;
     int executionNum = 0;
     int sleepingWorkerNum = 0;
-#ifdef FFRT_IO_TASK_SCHEDULER
     bool pollWaitFlag = false;
-#endif
     int deepSleepingWorkerNum = 0;
     bool hasWorkDeepSleep = 0;
     std::mutex lock;
@@ -52,10 +50,8 @@ public:
     virtual void WakeupCount(const QoS& qos, bool isDeepSleepWork = false);
     void IntoDeepSleep(const QoS& qos);
     void OutOfDeepSleep(const QoS& qos);
-#ifdef FFRT_IO_TASK_SCHEDULER
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
-#endif
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool IsExceedRunningThreshold(const QoS& qos);
     bool IsBlockAwareInit(void);

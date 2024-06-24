@@ -70,9 +70,7 @@ public:
         return *fifoQue[static_cast<unsigned short>(qos)];
     }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     virtual void PushTask(CPUEUTask* task);
-#endif
 
     virtual bool InsertNode(LinkedList* node, const QoS qos);
 

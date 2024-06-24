@@ -20,10 +20,8 @@
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#endif
 #include "tm/cpu_task.h"
 
 namespace ffrt {
@@ -41,16 +39,13 @@ public:
     }
 
     void NotifyTaskAdded(const QoS& qos) override;
-#ifdef FFRT_IO_TASK_SCHEDULER
     void NotifyLocalTaskAdded(const QoS& qos) override;
-#endif
 
     std::mutex* GetSleepCtl(int qos) override
     {
         return &sleepCtl[qos].mutex;
     }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     void AddStealingWorker(const QoS& qos)
     {
         stealWorkers[qos].fetch_add(1);
@@ -71,7 +66,7 @@ public:
     {
         return stealWorkers[qos].load(std::memory_order_relaxed);
     }
-#endif
+
     CPUMonitor* GetCPUMonitor() override
     {
         return monitor;
@@ -103,10 +98,8 @@ protected:
     CPUMonitor* monitor = nullptr;
     bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::MaxNum()];
-#ifdef FFRT_IO_TASK_SCHEDULER
     uint8_t polling_[QoS::MaxNum()] = {};
     fast_mutex pollersMtx[QoS::MaxNum()];
-#endif
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool IsExceedRunningThreshold(const WorkerThread* thread);
     bool IsBlockAwareInit(void);
@@ -121,15 +114,12 @@ private:
     void NotifyTaskPicked(const WorkerThread* thread);
     virtual WorkerAction WorkerIdleAction(const WorkerThread* thread) = 0;
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
-
-#ifdef FFRT_IO_TASK_SCHEDULER
     void WorkerSetup(WorkerThread* thread);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);
     unsigned int StealTaskBatch(WorkerThread* thread);
     CPUEUTask* PickUpTaskBatch(WorkerThread* thread);
     void TryMoveLocal2Global(WorkerThread* thread);
     std::atomic_uint64_t stealWorkers[QoS::MaxNum()] = {0};
-#endif
     std::atomic_int blockingNum[QoS::MaxNum()] = {0};
 };
 } // namespace ffrt

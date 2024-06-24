@@ -97,7 +97,6 @@ typedef enum {
     DEV_DSS,
 } dev_type;
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 typedef enum {
     ffrt_coroutine_stackless,
     ffrt_coroutine_with_stack,
@@ -115,7 +114,6 @@ typedef struct {
     void* data;
     void(*cb)(void*, uint32_t);
 } ffrt_poller_t;
-#endif
 
 typedef enum {
     ffrt_timer_notfound = -1,

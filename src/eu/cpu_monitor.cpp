@@ -26,7 +26,6 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
 #include "util/name_manager.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
 namespace {
@@ -36,7 +35,6 @@ const size_t TIGGER_SUPPRESS_EXECUTION_NUM = 2;
 constexpr int JITTER_DELAY_MS = 5;
 #endif
 }
-#endif
 
 namespace ffrt {
 CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
@@ -219,7 +217,6 @@ void CPUMonitor::OutOfDeepSleep(const QoS& qos)
     workerCtrl.lock.unlock();
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 void CPUMonitor::IntoPollWait(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -235,7 +232,6 @@ void CPUMonitor::OutOfPollWait(const QoS& qos)
     workerCtrl.pollWaitFlag = false;
     workerCtrl.lock.unlock();
 }
-#endif
 
 bool CPUMonitor::IsExceedDeepSleepThreshold()
 {
@@ -266,14 +262,12 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         }
     }
 #endif
-#ifdef FFRT_IO_TASK_SCHEDULER
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) && (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM)
         && (taskCount < runningNum);
     if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }
-#endif
 
     if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
         workerCtrl.lock.unlock();
@@ -283,11 +277,9 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         workerCtrl.lock.unlock();
         ops.IncWorker(qos);
     }  else {
-#ifdef FFRT_IO_TASK_SCHEDULER
         if (workerCtrl.pollWaitFlag) {
             PollerProxy::Instance()->GetPoller(qos).WakeUp();
         }
-#endif
         workerCtrl.lock.unlock();
     }
 }

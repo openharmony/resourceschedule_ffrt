@@ -18,7 +18,6 @@ option(FFRT_BENCHMARKS "Enables ffrt Benchmarks" OFF)
 option(FFRT_TEST_ENABLE "Enables ffrt test" OFF)
 option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" OFF)
 option(FFRT_SANITIZE "enable address or thread sanitizer" OFF)
-option(FFRT_IO_TASK_SCHEDULER "enalbe io task scheduler" OFF)
 
 # set compiler clang or gcc, must before project(ffrt)
 if(FFRT_CLANG_COMPILE STREQUAL ON)
@@ -83,7 +82,6 @@ message(STATUS "FFRT_TEST_ENABLE: " ${FFRT_TEST_ENABLE})
 message(STATUS "FFRT_CLANG_COMPILE: " ${FFRT_CLANG_COMPILE})
 message(STATUS "FFRT_SANITIZE: " ${FFRT_SANITIZE})
 
-add_definitions("-DFFRT_IO_TASK_SCHEDULER")
 add_definitions("-DFFRT_PTHREAD_ENABLE")
 
 # ffrt qos
@@ -92,11 +90,6 @@ add_definitions(-DUSE_OHOS_QOS)
 # ffrt BBOX
 if(FFRT_BBOX_ENABLE STREQUAL ON)
   add_definitions("-DFFRT_BBOX_ENABLE")
-endif()
-
-#ffrt io task scheduler
-if(FFRT_IO_TASK_SCHEDULER STREQUAL ON)
-  add_definitions(-DFFRT_IO_TASK_SCHEDULER)
 endif()
 
 # libffrt.so

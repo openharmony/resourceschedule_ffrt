@@ -31,9 +31,7 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     // control construct sequences of singletons
     SimpleAllocator<CPUEUTask>::instance();
     SimpleAllocator<VersionCtx>::instance();
-#ifdef FFRT_IO_TASK_SCHEDULER
     PollerProxy::Instance();
-#endif
     FFRTScheduler::Instance();
     ExecuteUnit::Instance();
     TaskState::RegisterOps(TaskState::EXITED,

@@ -71,7 +71,6 @@ enum class TaskStatus {
     RELEASED, // 预留，暂不使用
 };
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 typedef enum {
     ET_PENDING, // executor_task 非入队状态
     ET_EXECUTING, // executor_task 执行状态
@@ -79,7 +78,6 @@ typedef enum {
     ET_READY, // executor_task 入队状态
     ET_FINISH, // executor_task 执行完成，准备执行回调+销毁
 } ExecTaskStatus;
-#endif
 
 enum class Denpence {
     DEPENCE_INIT,

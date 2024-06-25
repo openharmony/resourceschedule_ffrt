@@ -46,6 +46,7 @@ private:
     std::shared_mutex mutex_;
     std::vector<std::pair<uint64_t, time_point_t>> queuesRunningInfo_;
     std::vector<QueueHandler*> queuesStructInfo_;
+    std::stomic_bool exit_ { false };
 };
 } // namespace ffrt
 

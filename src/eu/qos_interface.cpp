@@ -59,7 +59,8 @@ static int TrivalOpenQosCtrlNode(void)
     char fileName[] = "/proc/thread-self/sched_qos_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGW("pid %d belong to user %d open qos node warn, fd:%d, eno:%d, %s\n", getpid(), getuid(), fd, errno, strerror(errno));
+        FFRT_LOGW("pid %d belong to user %d open qos node warn, fd:%d, eno:%d, %s\n",
+            getpid(), getuid(), fd, errno, strerror(errno));
     }
 
     return fd;

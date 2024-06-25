@@ -141,6 +141,26 @@ FFRT_C_API void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_q
 FFRT_C_API ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_task_attr_t* attr);
 
 /**
+ * @brief Sets the task stack size.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @param size Indicates the task stack size, unit is byte.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t size);
+
+/**
+ * @brief Obtains the task stack size.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @return Returns the task stack size, unit is byte.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
+
+/**
  * @brief Updates the QoS of this task.
  *
  * @param qos Indicates the new QoS.

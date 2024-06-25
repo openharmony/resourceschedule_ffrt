@@ -51,13 +51,8 @@ enum class BlockType {
     BLOCK_THREAD
 };
 
-#if defined(__aarch64__)
-    constexpr uint64_t STACK_SIZE = 1 << 20; // 至少3*PAGE_SIZE
-#elif defined(__arm__)
-    constexpr uint64_t STACK_SIZE = 1 << 20;
-#else
-    constexpr uint64_t STACK_SIZE = 1 << 20;
-#endif
+constexpr uint64_t STACK_SIZE = 1 << 20;
+constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
 
 using CoCtx = struct co2_context;
 
@@ -79,6 +74,7 @@ struct CoRoutine {
     ffrt::CPUEUTask* task;
     CoCtx ctx;
     bool legacyMode = false;
+    uint64_t allocatedSize;
     BlockType blockType = BlockType::BLOCK_COROUTINE;
     bool isTaskDone = false;
     StackMem stkMem;

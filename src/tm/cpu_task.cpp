@@ -90,6 +90,9 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         memset_s(tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));
         taskLocal = attr->taskLocal_;
     }
+    if (attr) {
+        stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
+    }
     FFRT_LOGD("create task name:%s gid=%lu taskLocal:%d", label.c_str(), gid, taskLocal);
 }
 

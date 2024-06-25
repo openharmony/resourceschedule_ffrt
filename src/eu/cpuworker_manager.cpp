@@ -61,10 +61,14 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
     lock.unlock();
 <<<<<<< HEAD
+<<<<<<< HEAD
     WorkMonitor::GetInstance().SubmitTask(); 
 =======
     WorkerMonitor::GetInstance().SubmitTask(); 
 >>>>>>> 644de9e (delayedWorker auto reduction)
+=======
+    WorkerMonitor::GetInstance().SubmitTask(); 
+>>>>>>> 414a159 (delayedWorker auto reduction)
     return true;
 }
 

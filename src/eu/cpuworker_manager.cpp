@@ -60,11 +60,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
     FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
     lock.unlock();
-<<<<<<< HEAD
-    WorkMonitor::GetInstance().SubmitTask(); 
-=======
     WorkerMonitor::GetInstance().SubmitTask(); 
->>>>>>> 644de9e (delayedWorker auto reduction)
     return true;
 }
 

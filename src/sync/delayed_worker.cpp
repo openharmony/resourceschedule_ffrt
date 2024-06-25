@@ -22,10 +22,9 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/name_manager.h"
 namespace {
-    const double FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 30;
+    const int FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 30;
 }
 namespace ffrt {
-
 void DelayedWorker::ThreadInit()
 {
     delayWorker = std::make_unique<std::thread>([this]() {
@@ -50,7 +49,7 @@ void DelayedWorker::ThreadInit()
             if (ret == 0) {
                 cv.wait_until(lk, map.begin()->first);
             } else if (ret == 1) {
-                if (++noTaskDelayCount > 1) {
+                if (++noTaskDelayCount_ > 1) {
                     exited_ = true;
                     break;
                 }
@@ -95,7 +94,7 @@ int DelayedWorker::HandleWork()
             } else {
                 return 0;
             }
-        } while (!map.empty())
+        } while (!map.empty());
     }
     return 1;
 }

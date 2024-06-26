@@ -57,7 +57,7 @@ WorkerMonitor::~WorkerMonitor()
     skipSampling_ = true;
 }
 
-WorkerMonitor& WorkerMonitor::GetInstance
+WorkerMonitor& WorkerMonitor::GetInstance()
 {
     static WorkerMonitor instance;
     return instance;

@@ -143,7 +143,7 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
     return fdCnt;
 }
 
-int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept;
+int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept
 {
     // should used in lock
     auto syncTaskIter = m_cachedTaskEvents.find(task);

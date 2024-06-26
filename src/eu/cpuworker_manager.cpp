@@ -60,7 +60,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
     FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
     lock.unlock();
-    WorkerMonitor::GetInstance().SubmitTask(); 
+    WorkerMonitor::GetInstance().SubmitTask();
     return true;
 }
 

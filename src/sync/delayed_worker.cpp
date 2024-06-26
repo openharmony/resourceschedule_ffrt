@@ -22,7 +22,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/name_manager.h"
 namespace {
-    const int FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 30;
+    const int FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 180;
 }
 namespace ffrt {
 void DelayedWorker::ThreadInit()

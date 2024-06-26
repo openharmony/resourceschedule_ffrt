@@ -143,7 +143,7 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
     return fdCnt;
 }
 
-int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
+int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept;
 {
     // should used in lock
     auto syncTaskIter = m_cachedTaskEvents.find(task);
@@ -285,9 +285,9 @@ int CopyEventsToConsumer(EventVec& cachedEventsVec, struct epoll_event* eventsVe
     return nfds;
 }
 
-int CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
+void CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
 {
-    epoll_event* eventsPtr = (epoll_event*)taskInfo.evnetsPtr;
+    epoll_event* eventsPtr = (epoll_event*)taskInfo.eventsPtr;
     int* nfdsPtr = taskInfo.nfdsPtr;
     if (eventsPtr == nullptr || nfdsPtr == nullptr) {
         FFRT_LOGE("usr ptr is nullptr");
@@ -299,12 +299,12 @@ int CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
 
 void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
 {
-    for (int i = 0; i< eventVec.size(); i++) {
+    for (int i = 0; i < eventVec.size(); i++) {
         int currFd = eventVec[i].data.fd;
         struct epoll_event maskEv;
         maskEv.events = 0;
         if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
-            // ENOENT indicate df is not in epfd, may be deleted
+            // ENOENT indicate fd is not in epfd, may be deleted
             FFRT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
         }
         FFRT_LOGD("fd[%d] event has no consumer, so cache it", currFd);
@@ -348,6 +348,7 @@ uint64_t Poller::GetTaskWaitTime(CPUEUTask* task) noexcept
     return std::chrono::duration_cast<std::chrono::seconds>(
         iter->second.waitTP.time_since_epoch()).count();
 }
+
 PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;
@@ -499,11 +500,12 @@ int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool r
     }
 
     std::lock_guard lock(timerMutex_);
-    timerHandle_ +=1;
+    timerHandle_ += 1;
 
     TimerDataWithCb timerMapValue(data, cb, ExecuteCtx::Cur()->task, repeat, timeout);
     timerMapValue.handle = timerHandle_;
     RegisterTimerImpl(timerMapValue);
+
     return timerHandle_;
 }
 

@@ -107,7 +107,6 @@ public:
 
     uint8_t GetPollCount() noexcept;
 
-    bool GetTaskWaitStatus(CPUEUTask* task) noexcept;
     uint64_t GetTaskWaitTime(CPUEUTask* task) noexcept;
 
     bool DetermineEmptyMap() noexcept;
@@ -121,6 +120,7 @@ private:
     void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
                           std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
     void ExecuteTimerCb(time_point_t timer) noexcept;
+
     void ProcessTimerDataCb(CPUEUTask* task) noexcept;
     void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
 

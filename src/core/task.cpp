@@ -231,6 +231,27 @@ ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_task_attr_t* 
     return static_cast<ffrt_queue_priority_t>((reinterpret_cast<ffrt::task_attr_private *>(p))->prio_);
 }
 
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_stack_size(ffrt_task_attr_t *attr, uint64_t size)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->stackSize_ = size;
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t *attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return 0;
+    }
+    ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
+    return (reinterpret_cast<ffrt::task_attr_private *>(p))->stackSize_;
+}
+
 // submit
 API_ATTRIBUTE((visibility("default")))
 void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)

@@ -142,6 +142,31 @@ public:
     {
         return ffrt_task_attr_get_queue_priority(this);
     }
+
+    /**
+     * @brief Sets the stack size for this task.
+     *
+     * @param size Indicates the task stack size, unit is byte.
+     * @since 12
+     * @version 1.0
+     */
+    inline task_attr& stack_size(uint64_t size)
+    {
+        ffrt_task_attr_set_stack_size(this, size);
+        return *this;
+    }
+
+    /**
+     * @brief Obtains the stack size of this task.
+     *
+     * @return Returns the task stack size, uint is byte.
+     * @since 12
+     * @version 1.0
+     */
+    inline uint64_t stack_size() const
+    {
+        return ffrt_task_attr_get_stack_size(this);
+    }
 };
 
 class task_handle {

@@ -47,6 +47,7 @@ public:
     bool wakeupTimeOut = false;
     WaitUntilEntry* wue = nullptr;
     CoRoutine* coRoutine = nullptr;
+    uint64_t stack_size = STACK_SIZE;
 };
 }
 #endif

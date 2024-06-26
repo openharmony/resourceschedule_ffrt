@@ -40,6 +40,7 @@ Poller::~Poller() noexcept
     executedHandle_.clear();
     flag_ = EpollStatus::TEARDOWN;
     m_waitTaskMap.clear();
+    m_cachedTaskEvents.clear();
 }
 
 PollerProxy* PollerProxy::Instance()
@@ -56,6 +57,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
         FFRT_LOGE("Construct WakeDataWithCb instance failed! or wakeData is nullptr");
         return -1;
     }
+    wakeData->monitorEvents = events;
 
     epoll_event ev = { .events = events, .data = { .ptr = ptr } };
     if (epoll_ctl(m_epFd, op, fd, &ev) != 0) {
@@ -69,7 +71,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
         fdEmpty_.store(false);
     } else if (op == EPOLL_CTL_MOD) {
         auto iter = m_wakeDataMap.find(fd);
-        if (iter->second.size() < 1) {
+        if (iter->second.size() != 1) {
             FFRT_LOGE("epoll_ctl mod fd wakedata num invalid");
             return -1;
         }
@@ -92,6 +94,68 @@ int Poller::DelFdEvent(int fd) noexcept
     return 0;
 }
 
+void Poller::ClearCachedEvents(CPUEUTask* task) noexcept
+{
+    std::unique_lock lock(m_mapMutex);
+    auto iter = m_cachedTaskEvents.find(task);
+    if (iter == m_cachedTaskEvents.end()) {
+        return;
+    }
+    m_cachedTaskEvents.erase(iter);
+}
+
+int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept
+{
+    std::unordered_map<int, int> seenFd;
+    int fdCnt = 0;
+    for (int i = 0; i < cachedEventsVec.size(); i++) {
+        auto eventInfo = cachedEventsVec[i];
+        int currFd = eventInfo.data.fd;
+        // check if seen
+        auto iter = seenFd.find(currFd);
+        if (iter == seenFd.end()) {
+            // if not seen, copy cached events and record idx
+            eventsVec[fdCnt].data.fd = currFd;
+            eventsVec[fdCnt].events = eventInfo.events;
+            seenFd[currFd] = fdCnt;
+            fdCnt++;
+        } else {
+            // if seen, update event to newest
+            eventsVec[iter->second].events = eventInfo.events;
+            FFRT_LOGD("fd[%d] has multiple cached events", currFd);
+            continue;
+        }
+
+        // Unmask to origin events
+        auto wakeDataIter = m_wakeDataMap.find(currFd);
+        if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() != 1) {
+            FFRT_LOGD("fd[%d] may be deleted");
+            continue;
+        }
+
+        auto& wakeData = wakeDataIter->second.back();
+        epoll_event ev = { .events = wakeData->monitorEvents, .data = { .ptr = static_cast<void*>(wakeData.get()) } };
+        if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &ev) != 0) {
+            FFRT_LOGE("fd[%d] epoll ctl mod fail");
+            continue;
+        }
+    }
+    return fdCnt;
+}
+
+int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
+{
+    // should used in lock
+    auto syncTaskIter = m_cachedTaskEvents.find(task);
+    if (syncTaskIter == m_cachedTaskEvents.end() || syncTaskIter->second.size() == 0) {
+        return 0;
+    }
+
+    int nfds = FetchCachedEventAndDoUnmask(syncTaskIter->second, eventsVec);
+    m_cachedTaskEvents.erase(syncTaskIter);
+    return nfds;
+}
+
 int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeout) noexcept
 {
     FFRT_COND_DO_ERR((eventsVec == nullptr), return -1, "eventsVec cannot be null");
@@ -109,10 +173,18 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
     if (!USE_COROUTINE || legacyMode) {
         std::unique_lock<std::mutex> lck(task->lock);
         m_mapMutex.lock();
+        int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
+        if (cachedNfds > 0) {
+            m_mapMutex.unlock();
+            FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
+                task->label.c_str(), task->gid, cachedNfds);
+            return cachedNfds;
+        }
+
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_LOGE("task has waited before");
             m_mapMutex.unlock();
-            return -1;
+            return 0;
         }
         if (legacyMode) {
             task->coRoutine->blockType = BlockType::BLOCK_THREAD;
@@ -125,11 +197,21 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         }
         m_mapMutex.unlock();
         reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.wait(lck);
+        FFRT_LOGD("task[%s] id[%d] has [%d] events", task->label.c_str(), task->gid, nfds);
         return nfds;
     }
 
     CoWait([&](CPUEUTask *task)->bool {
         m_mapMutex.lock();
+        int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
+        if (cachedNfds > 0) {
+            m_mapMutex.unlock();
+            FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
+                task->label.c_str(), task->gid, cachedNfds);
+            nfds = cachedNfds;
+            return false;
+        }
+
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_LOGE("task has waited before");
             m_mapMutex.unlock();
@@ -144,6 +226,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         m_mapMutex.unlock();
         return true;
     });
+    FFRT_LOGD("task[%s] id[%d] has [%d] events", task->label.c_str(), task->gid, nfds);
     return nfds;
 }
 
@@ -177,6 +260,60 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
     }
 }
 
+namespace {
+void WakeTask(CPUEUTask* task)
+{
+    bool blockThread = BlockThread(task);
+    if (!USE_COROUTINE || blockThread) {
+        std::unique_lock<std::mutex> lck(task->lock);
+        if (blockThread) {
+            task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        }
+        reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
+    } else {
+        CoWake(task, false);
+    }
+}
+
+int CopyEventsToConsumer(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept
+{
+    int nfds = cachedEventsVec.size();
+    for (int i = 0; i < nfds; i++) {
+        eventsVec[i].events = cachedEventsVec[i].events;
+        eventsVec[i].data.fd = cachedEventsVec[i].data.fd;
+    }
+    return nfds;
+}
+
+int CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
+{
+    epoll_event* eventsPtr = (epoll_event*)taskInfo.evnetsPtr;
+    int* nfdsPtr = taskInfo.nfdsPtr;
+    if (eventsPtr == nullptr || nfdsPtr == nullptr) {
+        FFRT_LOGE("usr ptr is nullptr");
+        return;
+    }
+    *nfdsPtr = CopyEventsToConsumer(cachedEventsVec,eventsPtr);
+}
+} // namespace
+
+void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
+{
+    for (int i = 0; i< eventVec.size(); i++) {
+        int currFd = eventVec[i].data.fd;
+        struct epoll_event maskEv;
+        maskEv.events = 0;
+        if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
+            // ENOENT indicate df is not in epfd, may be deleted
+            FFRT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
+        }
+        FFRT_LOGD("fd[%d] event has no consumer, so cache it", currFd);
+    }
+    auto& syncTaskEvents = m_cachedTaskEvents[task];
+    syncTaskEvents.insert(syncTaskEvents.end(),
+        std::make_move_iterator(eventVec.begin()), std::make_move_iterator(eventVec.end()));
+}
+
 void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept
 {
     if (syncTaskEvents.empty()) {
@@ -184,42 +321,18 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
     }
 
     m_mapMutex.lock();
-    for (auto syncFditer = m_waitTaskMap.begin(); syncFditer != m_waitTaskMap.end();) {
-        CPUEUTask* currTask = syncFditer->first;
-        auto iter = syncTaskEvents.find(currTask);
-        if (iter == syncTaskEvents.end()) {
-            FFRT_LOGE(" event not coming, task=%lu, syncTaskEvents num=%u, m_waitTaskMap "
-                      "num=%u", currTask->rank, syncTaskEvents.size(), m_waitTaskMap.size());
-            syncFditer++;
+    for (auto& taskEventPair : syncTaskEvents) {
+        CPUEUTask* currTask = taskEventPair.first;
+        auto iter = m_waitTaskMap.find(currTask);
+        if (iter == m_waitTaskMap.end()) {
+            CacheEventsAndDoMask(currTask, taskEventPair.second);
             continue;
         }
 
-        epoll_event* eventsPtr = (epoll_event*)syncFditer->second.eventsPtr;
-        if (eventsPtr != nullptr) {
-            int nfds = iter->second.size();
-            for (int i = 0; i < nfds; i++) {
-                eventsPtr[i].events = iter->second[i].events;
-                eventsPtr[i].data.fd = iter->second[i].data.fd;
-            }
+        CopyEventsInfoToConsumer(iter->second, taskEventPair.second);
+        m_waitTaskMap.erase(iter);
 
-            int* nfdsPtr = syncFditer->second.nfdsPtr;
-            if (nfdsPtr) {
-                *nfdsPtr = nfds;
-            }
-        }
-        m_waitTaskMap.erase(syncFditer++);
-
-        bool blockThread = BlockThread(currTask);
-        if (!USE_COROUTINE || blockThread) {
-            std::unique_lock<std::mutex> lck(currTask->lock);
-            if (blockThread) {
-                currTask->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
-            }
-            reinterpret_cast<SCPUEUTask*>(currTask)->childWaitCond_.notify_one();
-        } else {
-            CoWake(currTask, false);
-        }
-        syncTaskEvents.erase(iter);
+        WakeTask(currTask);
     }
     m_mapMutex.unlock();
 }
@@ -324,16 +437,7 @@ void Poller::ProcessTimerDataCb(CPUEUTask* task) noexcept
     m_mapMutex.lock();
     auto iter = m_waitTaskMap.find(task);
     if (iter != m_waitTaskMap.end()) {
-        bool blockThread = BlockThread(task);
-        if (!USE_COROUTINE || blockThread) {
-            std::unique_lock<std::mutex> lck(task->lock);
-            if (blockThread) {
-                task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
-            }
-            reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
-        } else {
-            CoWake(task, false);
-        }
+        WakeTask(task);
         m_waitTaskMap.erase(iter);
     }
     m_mapMutex.unlock();

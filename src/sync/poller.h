@@ -58,6 +58,7 @@ struct WakeDataWithCb {
     void* data = nullptr;
     std::function<void(void*, uint32_t)> cb = nullptr;
     CPUEUTask* task = nullptr;
+    uint32_t monitorEvents = 0;
 };
 
 struct TimerDataWithCb {
@@ -86,9 +87,9 @@ struct SyncData {
     time_point_t waitTP;
 };
 
+using EventVec = typename std::vector<epoll_event>;
 class Poller : private NonCopyable {
     using WakeDataList = typename std::list<std::unique_ptr<struct WakeDataWithCb>>;
-    using EventVec = typename std::vector<epoll_event>;
 public:
     Poller() noexcept;
     ~Poller() noexcept;
@@ -112,6 +113,8 @@ public:
     bool DetermineEmptyMap() noexcept;
     bool DeterminePollerReady() noexcept;
 
+    void ClearCachedEvents(CPUEUTask* task) noexcept;
+
 private:
     void ReleaseFdWakeData() noexcept;
     void WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept;
@@ -120,6 +123,10 @@ private:
     void ExecuteTimerCb(time_point_t timer) noexcept;
     void ProcessTimerDataCb(CPUEUTask* task) noexcept;
     void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
+
+    void CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept;
+    int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept;
+    int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
 
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
@@ -132,6 +139,7 @@ private:
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
     std::unordered_map<CPUEUTask*, SyncData> m_waitTaskMap;
+    std::unordered_map<CPUEUTask*, EventVec> m_cachedTaskEvents;
 
     std::unordered_map<int, TimerStatus> executedHandle_;
     std::multimap<time_point_t, TimerDataWithCb> timerMap_;

@@ -45,6 +45,7 @@ void CPUEUTask::SetQos(QoS& newQos)
 void CPUEUTask::FreeMem()
 {
     BboxCheckAndFreeze();
+    PollerProxy::Instance()->GetPoller(qos).ClearCachedEvents(this);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif

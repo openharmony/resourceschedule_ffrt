@@ -47,7 +47,7 @@ private:
     void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask,
         std::vector<std::pair<int, int>>& timeoutFunctions);
     void RecordSymbolAndBacktrace(int tid, int sampleTimes);
-    void RecordIpcInfo(const std::string& dumpInfo, std::string& ipcInfo);
+    void RecordIpcInfo(const std::string& dumpInfo);
 
 private:
     std::mutex mutex_;

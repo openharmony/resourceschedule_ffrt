@@ -190,14 +190,13 @@ void WorkerMonitor::RecordSymbolAndBacktrace(int tid, int sampleTimes)
     if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, tid, 0, false)) {
         FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
         if (sampleSeconds >= RECORD_IPC_INFO_TIME_THRESHOLD) {
-            std::string ipcInfo;
-            RecordIpcInfo(dumpInfo, ipcInfo);
+            RecordIpcInfo(dumpInfo);
         }
     }
 #endif
 }
 
-void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo, std::string& ipcInfo)
+void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo)
 {
     if (dumpInfo.find("libipc_core") == std::string::npos) {
         return;
@@ -206,14 +205,13 @@ void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo, std::string& ipcI
     std::ifstream transactionFile(TRANSACTION_PATH);
     FFRT_COND_DO_ERR(!transactionFile.is_open(), return, "open transaction_proc failed");
 
+    FFRT_LOGW("transaction_proc:");
     std::string line;
     while (getline(transactionFile, line)) {
-        if (std::regex_match(line, std::regex(".*to.*code"))) {
-            ipcInfo += line + "\n";
+        if (std::regex_match(line, std::regex(".*to.*code.*"))) {
+            FFRT_LOGW("%s", line.c_str());
         }
     }
-
-    FFRT_LOGW("transaction_proc:\n%s", ipcInfo.c_str());
 
     transactionFile.close();
 }

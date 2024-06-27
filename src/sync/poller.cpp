@@ -143,7 +143,7 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
     return fdCnt;
 }
 
-int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept
+int Poller::FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept
 {
     // should used in lock
     auto syncTaskIter = m_cachedTaskEvents.find(task);
@@ -293,7 +293,7 @@ void CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
         FFRT_LOGE("usr ptr is nullptr");
         return;
     }
-    *nfdsPtr = CopyEventsToConsumer(cachedEventsVec,eventsPtr);
+    *nfdsPtr = CopyEventsToConsumer(cachedEventsVec, eventsPtr);
 }
 } // namespace
 

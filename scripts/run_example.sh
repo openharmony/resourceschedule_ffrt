@@ -20,6 +20,7 @@ mkdir build && cd build
 
 cmake .. \
     -DFFRT_EXAMPLE=ON \
+
 make -j ffrt
 make -j
 

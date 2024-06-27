@@ -41,6 +41,15 @@
 
 using namespace ffrt;
 
+static inline void CoStackCheck(CoRoutine* co)
+{
+    if (co->stkMem.magic != STACK_MAGIC) {
+        FFRT_LOGE("sp offset:%lu.\n", (uint64_t)co->stkMem.stk +
+            co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
+        FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
+    }
+}
+
 extern pthread_key_t g_executeCtxTlsKey;
 namespace {
 pthread_key_t g_coThreadTlsKey = 0;
@@ -180,8 +189,10 @@ void TaskTsdRunDtors(ffrt::CPUEUTask* task)
     pthread_tsd_run_dtors();
     SwitchTsdAddrToThread(task);
 }
+#endif
 } // namespace
 
+#ifdef FFRT_TASK_LOCAL_ENABLE
 void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 {
     if (!IsTaskLocalEnable(task)) {
@@ -211,6 +222,7 @@ static inline void CoExit(CoRoutine* co, bool isNormalTask)
         SwitchTsdToThread(co->task);
     }
 #endif
+    CoStackCheck(co);
     CoSwitch(&co->ctx, &co->thEnv->schCtx);
 }
 
@@ -264,15 +276,18 @@ static void CoSetStackProt(CoRoutine* co, int prot)
     }
 }
 
-static inline CoRoutine* AllocNewCoRoutine(void)
+static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
 {
-    std::size_t stack_size = CoStackAttr::Instance()->size;
-    CoRoutine* co = ffrt::CoRoutineAllocMem(stack_size);
-    if (co == nullptr) {
-        abort();
+    std::size_t defaultStackSize = CoStackAttr::Instance()->size;
+    CoRoutine* co = nullptr;
+    if (likely(stackSize == defaultStackSize)) {
+        co = ffrt::CoRoutineAllocMem(stackSize);
+    } else {
+        co = static_cast<CoRoutine*>(malloc(stackSize));
     }
 
-    co->stkMem.size = static_cast<uint64_t>(CoStackAttr::Instance()->size - sizeof(CoRoutine) + 8);
+    co->allocatedSize = stackSize;
+    co->stkMem.size = static_cast<uint64_t>(stackSize - sizeof(CoRoutine) + 8);
     co->stkMem.magic = STACK_MAGIC;
     if (CoStackAttr::Instance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_READ);
@@ -286,7 +301,12 @@ static inline void CoMemFree(CoRoutine* co)
     if (CoStackAttr::Instance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
-    ffrt::CoRoutineFreeMem(co);
+    std::size_t defaultStackSize = CoStackAttr::Instance()->size;
+    if (likely(co->allocatedSize == defaultStackSize)) {
+        ffrt::CoRoutineFreeMem(co);
+    } else {
+        free(co);
+    }
 }
 
 void CoStackFree(void)
@@ -326,10 +346,14 @@ static inline int CoAlloc(ffrt::CPUEUTask* task)
         GetCoEnv()->runningCo = task->coRoutine;
     } else {
         if (!GetCoEnv()->runningCo) {
-            GetCoEnv()->runningCo = AllocNewCoRoutine();
+            GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
+        } else {
+            if (GetCoEnv()->runningCo->allocatedSize != task->stack_size) {
+                CoMemFree(GetCoEnv()->runningCo);
+                GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
+            }
         }
     }
-    BindNewCoRoutione(task);
     return 0;
 }
 
@@ -337,21 +361,12 @@ static inline int CoAlloc(ffrt::CPUEUTask* task)
 static inline int CoCreat(ffrt::CPUEUTask* task)
 {
     CoAlloc(task);
+    BindNewCoRoutione(task);
     auto co = task->coRoutine;
     if (co->status.load() == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
         co2_init_context(&co->ctx, CoStartEntry, static_cast<void*>(co), co->stkMem.stk, co->stkMem.size);
     }
     return 0;
-}
-
-static inline void CoStackCheck(CoRoutine* co)
-{
-    if (co->stkMem.magic != STACK_MAGIC) {
-        FFRT_LOGE("sp offset:%lu.\n", (uint64_t)co->stkMem.stk +
-            co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
-        FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
-        abort();
-    }
 }
 
 static inline void CoSwitchInTrace(ffrt::CPUEUTask* task)
@@ -458,6 +473,7 @@ void CoYield(void)
 #ifdef FFRT_TASK_LOCAL_ENABLE
     SwitchTsdToThread(co->task);
 #endif
+    CoStackCheck(co);
     CoSwitch(&co->ctx, &GetCoEnv()->schCtx);
     while (GetBboxEnableState() != 0) {
         if (GetBboxEnableState() != gettid()) {

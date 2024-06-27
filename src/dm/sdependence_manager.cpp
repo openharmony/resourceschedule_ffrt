@@ -19,7 +19,10 @@
 #ifdef ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
+
+#ifdef FFRT_HITRACE_ENABLE
 using namespace OHOS::HiviewDFX;
+#endif
 
 namespace ffrt {
 
@@ -38,7 +41,7 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 
 #ifdef FFRT_WORKER_MONITOR
-    static WorkerMonitor workerMonitor;
+    WorkerMonitor::GetInstance();
 #endif
 #ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace

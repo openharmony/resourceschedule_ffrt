@@ -40,6 +40,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         qos_ = attr->qos_;
         uptime_ += delay_;
         prio_ = attr->prio_;
+        stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
     }
 
     FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%llu, prio=%u", gid, delay_, type, prio_);

@@ -111,7 +111,11 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
     std::shared_lock lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,
         "UpdateQueueInfo queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
-    queuesRunningInfo_[queueId] = {taskId, std::chrono::steady_clock::now()};
+    time_point_t now = std::chrono::steady_clock::now();
+    queuesRunningInfo_[queueId] = {taskId, now};
+    if (exit_.exchange(false)) {
+        SendDelayedWorker(now + std::chrono::microseconds(timeoutUs_));
+    }
 }
 
 uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
@@ -145,6 +149,16 @@ void QueueMonitor::ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64
 
 void QueueMonitor::CheckQueuesStatus()
 {
+    {
+        std::unique_lock lock(mutex_);
+        auto iter = std::find_if(queuesRunningInfo_.cbegin(), queuesRunningInfo_.cend(),
+            [](const auto& pair) { return pair.first != INVALID_TASK_ID; });
+        if (iter == queuesRunningInfo_.cend()) {
+            exit_ = true;
+            return;
+        }
+    }
+
     time_point_t oldestStartedTime = std::chrono::steady_clock::now();
     time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
 

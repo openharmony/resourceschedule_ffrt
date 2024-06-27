@@ -42,6 +42,7 @@ public:
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
     bool taskLocal_ = false;
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    uint64_t stackSize_ = STACK_SIZE;
 };
 }
 #endif

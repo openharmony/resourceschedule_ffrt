@@ -53,6 +53,7 @@ void CPUEUTask::FreeMem()
 
 void CPUEUTask::Execute()
 {
+    FFRT_LOGD("Execute task[%lu], name[%s]", gid, label.c_str());
     UpdateState(TaskState::RUNNING);
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;

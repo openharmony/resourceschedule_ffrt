@@ -183,7 +183,7 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
 void WorkerMonitor::RecordSymbolAndBacktrace(int tid, int sampleTimes)
 {
     int sampleSeconds = (sampleTimes == 0) ? 1 : sampleTimes / SAMPLING_TIMES_PER_SEC;
-    FFRT_LOGW("Tid[%d] function in occupies worker for more than [%d]s.", tid, sampleSeconds);
+    FFRT_LOGW("Tid[%d] function occupies worker for more than [%d]s.", tid, sampleSeconds);
 
 #ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;

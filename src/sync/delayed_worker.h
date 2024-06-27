@@ -18,6 +18,7 @@
 
 #include <map>
 #include <functional>
+#include <thread>
 #include "cpp/sleep.h"
 #include "sched/execute_ctx.h"
 namespace ffrt {

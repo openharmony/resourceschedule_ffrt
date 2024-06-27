@@ -189,8 +189,10 @@ void TaskTsdRunDtors(ffrt::CPUEUTask* task)
     pthread_tsd_run_dtors();
     SwitchTsdAddrToThread(task);
 }
+#endif
 } // namespace
 
+#ifdef FFRT_TASK_LOCAL_ENABLE
 void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 {
     if (!IsTaskLocalEnable(task)) {

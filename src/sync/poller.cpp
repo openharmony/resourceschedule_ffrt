@@ -142,6 +142,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             RegisterTimer(timeout, nullptr, nullptr);
         }
         m_mapMutex.unlock();
+        // The ownership of the task belongs to m_waitTaskMap, and the task cannot be accessed any more.
         return true;
     });
     return nfds;

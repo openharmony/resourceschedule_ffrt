@@ -35,6 +35,7 @@ config("ffrt_config") {
     "-Wno-shadow",
     "-Wno-float-equal",
     "-Wno-unused-parameter",
+    "-fno-common",
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",

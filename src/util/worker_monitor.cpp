@@ -57,25 +57,6 @@ WorkerMonitor::~WorkerMonitor()
     skipSampling_ = true;
 }
 
-WorkerMonitor& WorkerMonitor::GetInstance()
-{
-    static WorkerMonitor instance;
-    return instance;
-}
-
-void WorkerMonitor::SubmitTask()
-{
-    if (skipSampling_) {
-        return;
-    }
-
-    std::lock_guard lock(submitTaskMutex_);
-    if (samplingTaskExit_) {
-        SubmitSamplingTask();
-        samplingTaskExit_ = false;
-    }
-}
-
 void WorkerMonitor::SubmitSamplingTask()
 {
     if (skipSampling_) {
@@ -97,22 +78,8 @@ void WorkerMonitor::CheckWorkerStatus()
     }
 
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
-    {
-        bool noWorkerThreads = true;
-        std::lock_guard lock(submitTaskMutex_);
-        for (int i = 0; i < QoS::MaxNum(); i++) {
-            std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-            if (!workerGroup[i].threads.empty()) {
-                noWorkerThreads = false;
-                break;
-            }
-        }
-        if (noWorkerThreads) {
-            samplingTaskExit_ = true;
-            return;
-        }
-    }
-    for (int i = 0; i < QoS::MaxNum(); i++) {
+    QoS _qos = QoS(static_cast<int>(qos_max));
+    for (int i = 0; i < _qos() + 1; i++) {
         auto& sched = FFRTScheduler::Instance()->GetScheduler(QoS(i));
         int taskCount = sched.RQSize();
         if (taskCount >= TASK_OVERRUN_THRESHOLD) {

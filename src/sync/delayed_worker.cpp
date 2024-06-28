@@ -21,11 +21,8 @@
 #include <thread>
 #include "dfx/log/ffrt_log_api.h"
 #include "util/name_manager.h"
-namespace {
-    const int FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 180;
-}
 namespace ffrt {
-void DelayedWorker::ThreadInit()
+DelayedWorker::DelayedWorker()
 {
     delayWorker = std::make_unique<std::thread>([this]() {
     struct sched_param param;
@@ -38,31 +35,19 @@ void DelayedWorker::ThreadInit()
         for (;;) {
             std::unique_lock lk(lock);
             if (toExit) {
-                exited_ = true;
                 break;
             }
             int ret = HandleWork();
             if (toExit) {
-                exited_ = true;
                 break;
             }
             if (ret == 0) {
                 cv.wait_until(lk, map.begin()->first);
             } else if (ret == 1) {
-                if (++noTaskDelayCount_ > 1) {
-                    exited_ = true;
-                    break;
-                }
-                cv.wait_until(lk, std::chrono::steady_clock::now() +
-                    std::chrono::seconds(FFRT_DELAY_WORKER_TIMEOUT_SECONDS));
+                cv.wait_until(lk, std::chrono::steady_clock::now() + std::chrono::hours(1));
             }
         }
     });
-}
-
-DelayedWorker::DelayedWorker()
-{
-    ThreadInit();
 }
 
 DelayedWorker::~DelayedWorker()
@@ -77,24 +62,21 @@ DelayedWorker::~DelayedWorker()
 
 int DelayedWorker::HandleWork()
 {
-    if (!map.empty()) {
-        noTaskDelayCount_ = 0;
-        do {
-            time_point_t now = std::chrono::steady_clock::now();
-            auto cur = map.begin();
-            if (cur->first <= now) {
-                DelayedWork w = cur->second;
-                map.erase(cur);
-                lock.unlock();
-                (*w.cb)(w.we);
-                lock.lock();
-                if (toExit) {
-                    return -1;
-                }
-            } else {
-                return 0;
+    while (!map.empty()) {
+        time_point_t now = std::chrono::steady_clock::now();
+        auto cur = map.begin();
+        if (cur->first <= now) {
+            DelayedWork w = cur->second;
+            map.erase(cur);
+            lock.unlock();
+            (*w.cb)(w.we);
+            lock.lock();
+            if (toExit) {
+                return -1;
             }
-        } while (!map.empty());
+        } else {
+            return 0;
+        }
     }
     return 1;
 }
@@ -113,11 +95,6 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     if (to <= now) {
         lock.unlock();
         return false;
-    }
-
-    if (exited_) {
-        ThreadInit();
-        exited_ = false;
     }
 
     if (map.empty() || to < map.begin()->first) {

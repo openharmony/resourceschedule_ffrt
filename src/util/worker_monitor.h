@@ -23,16 +23,10 @@
 namespace ffrt {
 class WorkerMonitor {
 public:
-    static WorkerMonitor &GetInstance();
-    void SubmitTask();
-
-private:
     WorkerMonitor();
     ~WorkerMonitor();
-    WorkerMonitor(const WorkerMonitor &) = delete;
-    WorkerMonitor(WorkerMonitor &&) = delete;
-    WorkerMonitor &operator=(const WorkerMonitor &) = delete;
-    WorkerMonitor &operator=(WorkerMonitor &&) = delete;
+
+private:
     void SubmitSamplingTask();
     void CheckWorkerStatus();
     void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask);
@@ -40,11 +34,9 @@ private:
 
 private:
     std::mutex mutex_;
-    std::mutex submitTaskMutex_;
-    volatile bool skipSampling_ = false;
+    bool skipSampling_ = false;
     WaitUntilEntry waitEntry_;
     std::map<WorkerThread*, std::pair<CPUEUTask*, int>> workerStatus_;
-    volatile bool samplingTaskExit_ = false;
 };
 }
 #endif

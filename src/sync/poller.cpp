@@ -267,7 +267,9 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
-        FFRT_LOGE("epoll_wait error.");
+        if (errno != EINTR) {
+            FFRT_LOGE("epoll_wait error, errorno= %d", m_epFd, errno);
+        }
         return PollerRet::RET_NULL;
     }
 

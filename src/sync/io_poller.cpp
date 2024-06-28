@@ -138,7 +138,9 @@ void IOPoller::PollOnce(int timeout) noexcept
 {
     int ndfs = epoll_wait(m_epFd, m_events.data(), m_events.size(), timeout);
     if (ndfs <= 0) {
-        FFRT_LOGE("epoll_wait error: efd = %d, errorno= %d", m_epFd, errno);
+        if (errno != EINTR) {
+            FFRT_LOGE("epoll_wait error: efd = %d, errorno= %d", m_epFd, errno);
+        }
         return;
     }
 

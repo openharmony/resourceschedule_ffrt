@@ -435,7 +435,8 @@ void CoStart(ffrt::CPUEUTask* task)
             return;
         }
         
-        // 2. couroutine task block, switch to thread, need suspend the coroutine task or continue to execute the coroutine task.
+        // 2. couroutine task block, switch to thread
+        // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = GetCoEnv()->pending;
         if (pending == nullptr) {
 #ifdef FFRT_BBOX_ENABLE
@@ -446,7 +447,8 @@ void CoStart(ffrt::CPUEUTask* task)
         GetCoEnv()->pending = nullptr;
         // Fast path: skip state transition
         if ((*pending)(task)) {
-            // The ownership of the task belongs to other host(cv/mutex/epoll etc), and the task cannot be accessed any more.
+            // The ownership of the task belongs to other host(cv/mutex/epoll etc)
+            // And the task cannot be accessed any more.
             FFRT_LOGD("Cowait task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();

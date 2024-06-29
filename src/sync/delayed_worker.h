@@ -35,11 +35,8 @@ class DelayedWorker {
     std::atomic_bool toExit = false;
     std::condition_variable cv;
     std::unique_ptr<std::thread> delayWorker = nullptr;
-    int noTaskDelayCount_{0};
-    volatile bool exited_ = false;
 
     int HandleWork(void);
-    void ThreadInit();
 
 public:
     DelayedWorker(DelayedWorker const&) = delete;

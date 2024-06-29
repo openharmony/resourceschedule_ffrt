@@ -21,11 +21,9 @@
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
-#include "qos.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
-#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)

@@ -262,8 +262,8 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         }
     }
 #endif
-    bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) && (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM)
-        && (taskCount < runningNum);
+    bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
+        (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
     if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;

@@ -62,7 +62,7 @@ static void spin()
 
 void fast_mutex::lock_contended()
 {
-    int v;
+    int v = 0;
     // lightly contended
     for (uint32_t n = static_cast<uint32_t>(1 + rand() % 4); n <= 64; n <<= 1) {
         for (uint32_t i = 0; i < n; ++i) {

@@ -199,15 +199,15 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
         uint64_t triggerTime{0};
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
-            triggerTime = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count();
+            triggerTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
         }
 
         f->exec(f);
 
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
-            uint64_t completeTime = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count();
+            uint64_t completeTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
         }
 
@@ -250,7 +250,7 @@ void QueueHandler::TransferTask(QueueTask* task)
 
 void QueueHandler::TransferInitTask()
 {
-    std::function<void()> initFunc = []{};
+    std::function<void()> initFunc = [] {};
     auto f = create_function_wrapper(initFunc, ffrt_function_kind_queue);
     QueueTask* initTask = GetQueueTaskByFuncStorageOffset(f);
     new (initTask)ffrt::QueueTask(this);

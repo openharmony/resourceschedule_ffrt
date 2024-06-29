@@ -39,7 +39,7 @@ public:
 class CoTask : public TaskBase, public TaskDeleter {
 public:
     CoTask() = default;
-    virtual ~CoTask() = default;
+    ~CoTask() override = default;
     virtual void Execute() = 0;
 
     std::string label;

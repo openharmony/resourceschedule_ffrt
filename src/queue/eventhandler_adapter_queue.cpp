@@ -48,7 +48,7 @@ void DumpHistoryTaskInfo(const char* tag, const std::vector<ffrt::HistoryTask>& 
             continue;
         }
 
-        oss << tag << " No. " << i + 1 << " : Event { ";
+        oss << tag << " No. " << (i + 1) << " : Event { ";
         oss << "send thread = " << historyTask.senderKernelThreadId_;
         oss << ", send time = " << ffrt::FormatDateString(historyTask.sendTime_);
         oss << ", handle time = " << ffrt::FormatDateString(historyTask.handleTime_);

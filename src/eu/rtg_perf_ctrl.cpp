@@ -16,16 +16,16 @@
 #include "rtg_perf_ctrl.h"
 #include "dfx/log/ffrt_log_api.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <errno.h>
+#include <cerrno>
 #include <securec.h>
 
 static int open_perf_ctrl(void)

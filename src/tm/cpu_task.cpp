@@ -45,7 +45,6 @@ void CPUEUTask::SetQos(QoS& newQos)
 void CPUEUTask::FreeMem()
 {
     BboxCheckAndFreeze();
-    PollerProxy::Instance()->GetPoller(qos).ClearCachedEvents(this);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif
@@ -129,8 +128,8 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
     }
 
     auto co = task->coRoutine;
-    uintptr_t stackBottom = (uintptr_t)((char*)co + sizeof(CoRoutine) - 8);
-    uintptr_t stackTop = (uintptr_t)(stackBottom + co->stkMem.size);
+    uintptr_t stackBottom = reinterpret_cast<uintptr_t>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - 8);
+    uintptr_t stackTop = static_cast<uintptr_t>(stackBottom + co->stkMem.size);
     auto unwinder = std::make_shared<Unwinder>();
     auto regs = DfxRegs::CreateFromUcontext(ctx);
     unwinder->SetRegs(regs);

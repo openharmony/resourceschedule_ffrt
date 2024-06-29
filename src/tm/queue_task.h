@@ -30,7 +30,7 @@ namespace ffrt {
 class QueueTask : public CoTask {
 public:
     explicit QueueTask(QueueHandler* handler, const task_attr_private* attr = nullptr, bool insertHead = false);
-    ~QueueTask();
+    ~QueueTask() override;
 
     void Destroy();
     void Wait();

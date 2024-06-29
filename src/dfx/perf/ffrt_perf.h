@@ -67,7 +67,7 @@ struct perf_eu {
 
 inline void FFRTPerfWorkerIdle(int qos)
 {
-    if (qos >= 0 && qos < perf_eu::qos_max) {
+    if (qos >= 0 && qos < static_cast<int>(perf_eu::qos_max)) {
         FFRT_TRACE_COUNT(perf_eu::worker_num_tag[qos],
             perf_eu::worker_num[qos].fetch_sub(1, std::memory_order_relaxed) - 1);
     }
@@ -75,7 +75,7 @@ inline void FFRTPerfWorkerIdle(int qos)
 
 inline void FFRTPerfWorkerAwake(int qos)
 {
-    if (qos >= 0 && qos < perf_eu::qos_max) {
+    if (qos >= 0 && qos < static_cast<int>(perf_eu::qos_max)) {
         FFRT_TRACE_COUNT(perf_eu::worker_num_tag[qos],
             perf_eu::worker_num[qos].fetch_add(1, std::memory_order_relaxed) + 1); 
     }
@@ -83,14 +83,14 @@ inline void FFRTPerfWorkerAwake(int qos)
 
 inline void FFRTPerfWorkerWake(int qos)
 {
-    if (qos >= 0 && qos < perf_eu::qos_max) {
+    if (qos >= 0 && qos < static_cast<int>(perf_eu::qos_max)) {
         FFRT_TRACE_COUNT(perf_eu::worker_wake_tag[qos], 0);
     }
 }
 
 inline void FFRTPerfTaskNum(int qos, int taskn)
 {
-    if (qos >= 0 && qos < perf_eu::qos_max) {
+    if (qos >= 0 && qos < static_cast<int>(perf_eu::qos_max)) {
         FFRT_TRACE_COUNT(perf_eu::task_num_tag[qos], taskn);
     }
 }

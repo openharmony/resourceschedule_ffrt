@@ -383,7 +383,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
         if (errno != EINTR) {
-            FFRT_LOGE("epoll_wait error, errorno= %d", m_epFd, errno);
+            FFRT_LOGE("epoll_wait error, errorno= %d", errno);
         }
         return PollerRet::RET_NULL;
     }

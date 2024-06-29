@@ -426,23 +426,31 @@ void CoStart(ffrt::CPUEUTask* task)
         SwitchTsdToTask(co->task);
 #endif
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
-        if (co->isTaskDone) {
-            task->UpdateState(ffrt::TaskState::EXITED);
-            co->isTaskDone = false;
-        }
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
         CoStackCheck(co);
+
+        // 1. coroutine task done, exit normally, need to exec next coroutine task
+        if (co->isTaskDone) {
+            task->UpdateState(ffrt::TaskState::EXITED);
+            co->isTaskDone = false;
+            return;
+        }
+        
+        // 2. couroutine task block, switch to thread
+        // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = GetCoEnv()->pending;
         if (pending == nullptr) {
 #ifdef FFRT_BBOX_ENABLE
             TaskFinishCounterInc();
 #endif
-            break;
+            return;
         }
         GetCoEnv()->pending = nullptr;
         // Fast path: skip state transition
         if ((*pending)(task)) {
+            // The ownership of the task belongs to other host(cv/mutex/epoll etc)
+            // And the task cannot be accessed any more.
             FFRT_LOGD("Cowait task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();

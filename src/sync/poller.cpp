@@ -224,6 +224,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             RegisterTimer(timeout, nullptr, nullptr);
         }
         m_mapMutex.unlock();
+        // The ownership of the task belongs to m_waitTaskMap, and the task cannot be accessed any more.
         return true;
     });
     FFRT_LOGD("task[%s] id[%d] has [%d] events", task->label.c_str(), task->gid, nfds);
@@ -381,7 +382,9 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
-        FFRT_LOGE("epoll_wait error.");
+        if (errno != EINTR) {
+            FFRT_LOGE("epoll_wait error, errorno= %d", m_epFd, errno);
+        }
         return PollerRet::RET_NULL;
     }
 

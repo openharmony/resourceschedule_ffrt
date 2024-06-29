@@ -237,6 +237,7 @@ void mutexPrivate::wait()
             }
             list.PushBack(task->fq_we.node);
             wlock.unlock();
+            // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
             return true;
         });
     }

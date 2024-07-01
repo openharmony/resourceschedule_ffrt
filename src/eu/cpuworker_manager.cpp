@@ -22,7 +22,9 @@
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
 #include "qos.h"
+#ifdef FFRT_WORKER_MONITOR
 #include "util/worker_monitor.h"
+#endif
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
@@ -60,7 +62,9 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     groupCtl[qos()].threads[worker.get()] = std::move(worker);
     FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
     lock.unlock();
+#ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance().SubmitTask();
+#endif
     return true;
 }
 

@@ -21,6 +21,15 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
+struct TaskTimeoutInfo {
+    CPUEUTask* task_ = nullptr;
+    int recordLevel_ = 0;
+    int sampledTimes_ = -2;
+
+    TaskTimeoutInfo() {}
+    explicit TaskTimeoutInfo(CPUEUTask* task) : task_(task) {}
+};
+
 class WorkerMonitor {
 public:
     static WorkerMonitor &GetInstance();
@@ -35,15 +44,17 @@ private:
     WorkerMonitor &operator=(WorkerMonitor &&) = delete;
     void SubmitSamplingTask();
     void CheckWorkerStatus();
-    void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask);
-    void RecordSymbolAndBacktrace(int tid);
+    void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask,
+        std::vector<std::pair<int, int>>& timeoutFunctions);
+    void RecordSymbolAndBacktrace(int tid, int sampleTimes);
+    void RecordIpcInfo(const std::string& dumpInfo);
 
 private:
     std::mutex mutex_;
     std::mutex submitTaskMutex_;
     bool skipSampling_ = false;
-    WaitUntilEntry waitEntry_;
-    std::map<WorkerThread*, std::pair<CPUEUTask*, int>> workerStatus_;
+    WaitUntilEntry watchdogWaitEntry_;
+    std::map<WorkerThread*, TaskTimeoutInfo> workerStatus_;
     bool samplingTaskExit_ = false;
 };
 }

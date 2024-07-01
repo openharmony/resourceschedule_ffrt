@@ -60,7 +60,7 @@ public:
     TaskState state;
 
 #ifdef FFRT_HITRACE_ENABLE
-    std::unique_ptr<OHOS::HiviewDFX::HiTraceId> traceId_{nullptr};
+    OHOS::HiviewDFX::HiTraceId traceId_;
 #endif
 
     /* The current number of child nodes does not represent the real number of child nodes,

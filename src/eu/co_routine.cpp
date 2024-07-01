@@ -408,9 +408,9 @@ void CoStart(ffrt::CPUEUTask* task)
 #ifdef FFRT_HITRACE_ENABLE
     using namespace OHOS::HiviewDFX;
     HiTraceId currentId = HiTraceChain::GetId();
-    if (task != nullptr && task->traceId_ != nullptr) {
-        HiTraceChain::SaveAndSet(*(task->traceId_));
-        HiTraceChain::Tracepoint(HITRACE_TP_SR, *(task->traceId_), "ffrt::CoStart");
+    if (task != nullptr) {
+        HiTraceChain::SaveAndSet(task->traceId_);
+        HiTraceChain::Tracepoint(HITRACE_TP_SR, task->traceId_, "ffrt::CoStart");
     }
 #endif
 

@@ -41,10 +41,16 @@ FFRT: Function Flow Runtime， 一种并发编程框架，提供以数据依赖�
 ## 编译构建
 
 ### Linux编译:
-快速编译执行example用例：
-```c
-    ./scripts/run_example.sh
-```
+  当前ffrt编译依赖三方安全库的功能，需要把三方安全库的代码一并下载到本地。
+  三方安全库代码仓：https://gitee.com/openharmony/third_party_bounds_checking_function
+  注意：在ffrt代码同目录新建文件夹third_party,再将安全库代码放到third_party下，文件夹命名要求为bounds_checking_function.
+  文件结构示意如下：
+
+  resourceschedule_ffrt
+  third_party
+    |-bounds_checking_function
+  
+  再进入到ffrt代码路径下，执行scripts下的sh脚本(sh scripts/run_example.sh)。
 ## LOG配置
 1. LOG输出函数可以查看头文件ffrt_log_api.h
 2. 提供4个日志级别: FFRT_LOG_ERROR = 0, FFRT_LOG_WARN = 1, FFRT_LOG_INFO = 2, FFRT_LOG_DEBUG = 3, 可通过静态编译宏FFRT_LOG_LEVEL来设置日志级别，默认为ERROR

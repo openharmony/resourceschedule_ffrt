@@ -32,10 +32,16 @@ struct TaskTimeoutInfo {
 
 class WorkerMonitor {
 public:
-    WorkerMonitor();
-    ~WorkerMonitor();
+    static WorkerMonitor &GetInstance();
+    void SubmitTask();
 
 private:
+    WorkerMonitor();
+    ~WorkerMonitor();
+    WorkerMonitor(const WorkerMonitor &) = delete;
+    WorkerMonitor(WorkerMonitor &&) = delete;
+    WorkerMonitor &operator=(const WorkerMonitor &) = delete;
+    WorkerMonitor &operator=(WorkerMonitor &&) = delete;
     void SubmitSamplingTask();
     void CheckWorkerStatus();
     void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask,
@@ -45,9 +51,11 @@ private:
 
 private:
     std::mutex mutex_;
+    std::mutex submitTaskMutex_;
     bool skipSampling_ = false;
     WaitUntilEntry watchdogWaitEntry_;
     std::map<WorkerThread*, TaskTimeoutInfo> workerStatus_;
+    bool samplingTaskExit_ = false;
 };
 }
 #endif

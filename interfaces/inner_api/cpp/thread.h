@@ -28,7 +28,7 @@ public:
         class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, thread>>>
     explicit thread(const char* name, qos qos_, Fn&& fn, Args&&... args)
     {
-        is_joinable = std::make_unique<void*>(nullptr);
+        is_joinable = std::make_unique<task_handle>();
         using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
         auto tup = new Target(std::forward<Fn>(fn), std::forward<Args>(args)...);
         *is_joinable = ffrt::submit_h([tup]() {
@@ -41,7 +41,7 @@ public:
         class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, thread>>>
     explicit thread(qos qos_, Fn&& fn, Args&&... args)
     {
-        is_joinable = std::make_unique<void*>(nullptr);
+        is_joinable = std::make_unique<task_handle>();
         using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
         auto tup = new Target(std::forward<Fn>(fn), std::forward<Args>(args)...);
         *is_joinable = ffrt::submit_h([tup]() {
@@ -56,7 +56,7 @@ public:
         class = std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<Fn>>, qos>>>
     explicit thread(Fn&& fn, Args&& ... args)
     {
-        is_joinable = std::make_unique<void*>(nullptr);
+        is_joinable = std::make_unique<task_handle>();
         using Target = std::tuple<std::decay_t<Fn>, std::decay_t<Args>...>;
         auto tup = new Target (std::forward<Fn>(fn), std::forward<Args>(args)...);
         *is_joinable = ffrt::submit_h([tup]() {
@@ -96,7 +96,7 @@ public:
     {
         if (joinable()) {
             ffrt::wait({*is_joinable});
-            *is_joinable = nullptr;
+            is_joinable = nullptr;
         }
     }
 
@@ -119,7 +119,7 @@ private:
     {
         is_joinable.swap(other.is_joinable);
     };
-    std::unique_ptr<void*> is_joinable = nullptr;
+    std::unique_ptr<task_handle> is_joinable;
 };
 } // namespace ffrt
 #endif

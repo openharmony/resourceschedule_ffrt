@@ -434,6 +434,7 @@ void CoStart(ffrt::CPUEUTask* task)
         if (co->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
             co->isTaskDone = false;
+            TaskFinishCounterInc();
             return;
         }
         

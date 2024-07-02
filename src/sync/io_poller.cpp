@@ -129,6 +129,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
             return true;
         }
+        // The ownership of the task belongs to epoll, and the task cannot be accessed any more.
         FFRT_LOGI("epoll_ctl add err:efd:=%d, fd=%d errorno = %d", m_epFd, fd, errno);
         return false;
     });
@@ -138,7 +139,9 @@ void IOPoller::PollOnce(int timeout) noexcept
 {
     int ndfs = epoll_wait(m_epFd, m_events.data(), m_events.size(), timeout);
     if (ndfs <= 0) {
-        FFRT_LOGE("epoll_wait error: efd = %d, errorno= %d", m_epFd, errno);
+        if (errno != EINTR) {
+            FFRT_LOGE("epoll_wait error: efd = %d, errorno= %d", m_epFd, errno);
+        }
         return;
     }
 

@@ -41,7 +41,7 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 
 #ifdef FFRT_WORKER_MONITOR
-    static WorkerMonitor workerMonitor;
+    WorkerMonitor::GetInstance();
 #endif
 #ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
@@ -95,8 +95,8 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 
 #ifdef FFRT_HITRACE_ENABLE
     if (HiTraceChain::GetId().IsValid() && task != nullptr) {
-        task->traceId_ = std::make_unique<HiTraceId>(HiTraceChain::CreateSpan());
-        HiTraceChain::Tracepoint(HITRACE_TP_CS, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
+        task->traceId_ = HiTraceChain::CreateSpan();
+        HiTraceChain::Tracepoint(HITRACE_TP_CS, task->traceId_, "ffrt::SDependenceManager::onSubmit");
     }
 #endif
 
@@ -149,8 +149,8 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             FFRT_BLOCK_TRACER(task->gid, dep);
 
 #ifdef FFRT_HITRACE_ENABLE
-            if (task != nullptr && task->traceId_ != nullptr) {
-                HiTraceChain::Tracepoint(HITRACE_TP_CR, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
+            if (task != nullptr) {
+                HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
             }
 #endif
             FFRT_TRACE_END();
@@ -159,8 +159,8 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     }
 
 #ifdef FFRT_HITRACE_ENABLE
-    if (task != nullptr && task->traceId_ != nullptr) {
-        HiTraceChain::Tracepoint(HITRACE_TP_CR, *(task->traceId_), "ffrt::SDependenceManager::onSubmit");
+    if (task != nullptr) {
+        HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
     }
 #endif
 

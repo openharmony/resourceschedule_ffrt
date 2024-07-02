@@ -43,7 +43,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
     }
 
-    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%llu, prio=%u", gid, delay_, type, prio_);
+    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d", gid, delay_, type, prio_);
 }
 
 QueueTask::~QueueTask()
@@ -72,6 +72,7 @@ void QueueTask::Notify()
 
 void QueueTask::Execute()
 {
+    FFRT_LOGD("Execute stask[%lu], name[%s]", gid, label.c_str());
     if (isFinished_.load()) {
         FFRT_LOGE("task [gid=%llu] is complete, no need to execute again", gid);
         return;

@@ -73,7 +73,7 @@ void SharedMutexPrivate::Unlock()
     mut.lock();
     if (state == writeEntered) {
         state = 0;
-        NotiryAll(wList1);
+        NotifyAll(wList1);
         mut.unlock();
         return;
     }
@@ -81,13 +81,13 @@ void SharedMutexPrivate::Unlock()
     --state;
     if (state & writeEntered) {
         if (state == writeEntered) {
-            NotiryOne(wList2);
+            NotifyOne(wList2);
         }
     } else {
         if (state == readersMax - 1) {
-            NotiryOne(wList1);
+            NotifyOne(wList1);
         } else if (!wList1.Empty()) {
-            NotiryAll(wList1);
+            NotifyAll(wList1);
         }
     }
     mut.unlock();
@@ -120,7 +120,7 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
     mut.lock();
 }
 
-void SharedMutexPrivate::NotiryOne(LinkedList& wList)
+void SharedMutexPrivate::NotifyOne(LinkedList& wList)
 {
     WaitEntry* we = wList.PopFront(&WaitEntry::node);
 
@@ -137,12 +137,12 @@ void SharedMutexPrivate::NotiryOne(LinkedList& wList)
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoWake(task, false);
+            CoRoutineFactory::CoWakeFunc(task, false);
         }
     }
 }
 
-void SharedMutexPrivate::NotiryAll(LinkedList& wList)
+void SharedMutexPrivate::NotifyAll(LinkedList& wList)
 {
     WaitEntry* we = wList.PopFront(&WaitEntry::node);
 
@@ -159,7 +159,7 @@ void SharedMutexPrivate::NotiryAll(LinkedList& wList)
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoWake(task, false);
+            CoRoutineFactory::CoWakeFunc(task, false);
         }
 
         if (we->wtType == SharedMutexWaitType::READ) {

@@ -45,8 +45,8 @@ private:
     static constexpr unsigned readersMax = ~writeEntered;
 
     void Wait(LinkedList& wList, SharedMutexWaitType wtType);
-    void NotiryOne(LinkedList& wList);
-    void NotiryAll(LinkedList& wList);
+    void NotifyOne(LinkedList& wList);
+    void NotifyAll(LinkedList& wList);
 };
 } // namespace ffrt
 #endif

@@ -18,6 +18,7 @@
 #include "c/type_def_ext.h"
 #include "cpp/task_ext.h"
 #include "qos.h"
+#include "eu/co_routine.h"
 
 namespace ffrt {
 class task_attr_private {

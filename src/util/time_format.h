@@ -33,7 +33,11 @@ std::string FormatDateString(const std::chrono::system_clock::time_point& timePo
     if (msString.length() < MaxMsLength) {
         msString = std::string(MaxMsLength - msString.length(), '0') + msString;
     }
-    struct tm curTime = {0};
+    struct tm curTime;
+    if (memset_s(&curTime, sizeof(curTime), 0, sizeof(curTime)) != EOK) {
+        FFRT_LOGE("Fail to memset");
+        return "";
+    }
     localtime_r(&tt, &curTime);
     char sysTime[DatetimeStringLength];
     std::strftime(sysTime, sizeof(char) * DatetimeStringLength, "%Y-%m-%d %I:%M:%S.", &curTime);

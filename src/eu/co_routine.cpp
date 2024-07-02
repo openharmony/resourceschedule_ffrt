@@ -285,7 +285,10 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
     } else {
         co = static_cast<CoRoutine*>(malloc(stackSize));
     }
-
+    if (!co) {
+        FFRT_LOGE("memory not enough");
+        return nullptr;
+    }
     co->allocatedSize = stackSize;
     co->stkMem.size = static_cast<uint64_t>(stackSize - sizeof(CoRoutine) + 8);
     co->stkMem.magic = STACK_MAGIC;

@@ -17,11 +17,8 @@
 #include <iostream>
 #include <thread>
 #include <unistd.h>
-#include <sys/prctl.h>
-#include <sys/syscall.h>
 #include <securec.h>
 #include "sched/scheduler.h"
-#include "eu/wgcm.h"
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"

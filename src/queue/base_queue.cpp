@@ -14,7 +14,6 @@
  */
 
 #include "base_queue.h"
-#include <climits>
 #include "dfx/log/ffrt_log_api.h"
 #include "tm/queue_task.h"
 #include "serial_queue.h"

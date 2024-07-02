@@ -15,13 +15,13 @@
 
 #include <cstring>
 #include <sys/stat.h>
+#include "qos.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
-#include "qos.h"
 #ifdef FFRT_WORKER_MONITOR
 #include "util/worker_monitor.h"
 #endif
@@ -93,6 +93,7 @@ CPUEUTask* CPUWorkerManager::PickUpTask(WorkerThread* thread)
 CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
+        FFRT_LOGE("CPU Worker Manager exit");
         return nullptr;
     }
 

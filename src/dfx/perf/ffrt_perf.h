@@ -15,9 +15,6 @@
 
 #ifndef __FFRT_PERF_H__
 #define __FFRT_PERF_H__
-#include <cstdlib>
-#include <unistd.h>
-#include <string>
 #include "ffrt_trace.h"
 
 // default disabled for ffrt, enable it for debugging or playback

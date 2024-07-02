@@ -16,7 +16,6 @@
 #ifndef _SHARED_MUTEX_PRIVATE_H_
 #define _SHARED_MUTEX_PRIVATE_H_
 
-#include "dfx/log/ffrt_log_api.h"
 #include "sched/execute_ctx.h"
 #include "sync.h"
 

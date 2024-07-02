@@ -19,6 +19,7 @@
 #include <string>
 #include <mutex>
 #include "dfx/log/ffrt_log_api.h"
+#include "c/type_def.h"
 
 namespace ffrt {
 #if (defined(__aarch64__) || defined(__x86_64__))

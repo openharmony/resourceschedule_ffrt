@@ -113,6 +113,7 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
     lock->lock();
     fifoQue[static_cast<unsigned short>(level)]->WakeupTask(task);
     lock->unlock();
+    // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
     FFRT_LOGD("qos[%d] task[%lu] entered q", level, gid);
     ExecuteUnit::Instance().NotifyTaskAdded(_qos);
     return true;

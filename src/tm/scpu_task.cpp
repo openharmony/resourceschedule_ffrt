@@ -56,7 +56,8 @@ void SCPUEUTask::DecDepRef()
 void SCPUEUTask::DecChildRef()
 {
     SCPUEUTask* parent = reinterpret_cast<SCPUEUTask*>(this->parent);
-    FFRT_LOGD("DecChildRef parent task:%s, childWaitRefCnt=%u", parent->label.c_str(), parent->childWaitRefCnt.load());
+    FFRT_LOGD("DecChildRef parent task:%s, childWaitRefCnt=%u, task[%lu], name[%s]",
+        parent->label.c_str(), parent->childWaitRefCnt.load(), gid, label.c_str());
     FFRT_TRACE_SCOPE(2, taskDecChildRef);
     std::unique_lock<decltype(parent->lock)> lck(parent->lock);
     parent->childWaitRefCnt--;

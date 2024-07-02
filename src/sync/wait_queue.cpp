@@ -89,6 +89,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
         push_back(task->wue);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
         wqlock.unlock();
+        // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
         return true;
     });
     delete task->wue;
@@ -98,15 +99,16 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 
 bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
 {
+    wq->wqlock.lock();
     int expected = we_status::INIT;
     if (!atomic_compare_exchange_strong_explicit(
         &wue->status, &expected, we_status::TIMEOUT, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
         // The critical point wue->status has been written, notify will no longer access wue, it can be deleted
         delete wue;
+        wq->wqlock.unlock();
         return false;
     }
 
-    wq->wqlock.lock();
     if (wue->status.load(std::memory_order_acquire) == we_status::TIMEOUT) {
         wq->remove(wue);
         delete wue;
@@ -146,6 +148,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         push_back(we);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
         wqlock.unlock();
+        // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
         if (DelayedWakeup(we->tp, we, we->cb)) {
             return true;
         } else {

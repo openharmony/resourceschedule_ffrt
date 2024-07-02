@@ -310,10 +310,10 @@ static const char* GetSigName(const siginfo_t* info)
 
 static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
 {
-    g_cur_task = ExecuteCtx::Cur()->task;
-    g_cur_tid = gettid();
-    g_cur_signame = GetSigName(info);
     if (FFRTIsWork()) {
+        g_cur_task = ExecuteCtx::Cur()->task;
+        g_cur_tid = gettid();
+        g_cur_signame = GetSigName(info);
         SaveTheBbox();
     }
     // we need to deregister our signal handler for that signal before continuing.

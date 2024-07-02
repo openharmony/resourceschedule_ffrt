@@ -434,6 +434,9 @@ void CoStart(ffrt::CPUEUTask* task)
         if (co->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
             co->isTaskDone = false;
+#ifdef FFRT_BBOX_ENABLE
+            TaskFinishCounterInc();
+#endif
             return;
         }
         

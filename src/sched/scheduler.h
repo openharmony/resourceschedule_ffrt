@@ -20,7 +20,6 @@
 #include <string>
 #include <map>
 #include <mutex>
-#include <atomic>
 #include <array>
 #include "internal_inc/types.h"
 #include "core/entity.h"

@@ -190,7 +190,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             task->coRoutine->blockType = BlockType::BLOCK_THREAD;
         }
         auto currTime = std::chrono::steady_clock::now();
-        m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
+        m_waitTaskMap[task] = {static_cast<void*>(eventsVec), maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);
@@ -218,7 +218,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             return false;
         }
         auto currTime = std::chrono::steady_clock::now();
-        m_waitTaskMap[task] = {(void*)eventsVec, maxevents, &nfds, currTime};
+        m_waitTaskMap[task] = {static_cast<void*>(eventsVec), maxevents, &nfds, currTime};
         if (timeout > -1) {
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             RegisterTimer(timeout, nullptr, nullptr);

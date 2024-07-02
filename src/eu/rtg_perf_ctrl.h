@@ -17,7 +17,6 @@
 #define SCHED_RTG_H
 
 #include <unistd.h>
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {

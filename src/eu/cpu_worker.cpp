@@ -205,7 +205,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     CPUEUTask* lastTask = nullptr;
 
     worker->ops.WorkerPrepare(worker);
-    FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
+    FFRT_LOGI("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
     for (;;) {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING

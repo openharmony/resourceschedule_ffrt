@@ -542,9 +542,9 @@ void* ffrt_get_cur_task()
 }
 
 API_ATTRIBUTE((visibility("default")))
-bool ffrt_get_current_coroutine_stack(void** stackAddr, size_t* size)
+bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
 {
-    if (stackAddr == nullptr || size == nullptr) {
+    if (stack_addr == nullptr || size == nullptr) {
         return false;
     }
 
@@ -556,7 +556,7 @@ bool ffrt_get_current_coroutine_stack(void** stackAddr, size_t* size)
         auto co = curTask->coRoutine;
         if (co) {
             *size = co->stkMem.size;
-            *stackAddr = (void*)((char*)co + sizeof(CoRoutine) - 8);
+            *stack_addr = static_cast<void*>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - 8);
             return true;
         }
     }

@@ -83,7 +83,7 @@ private:
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool blockAwareInit = false;
     bool stopMonitor = false;
-    unsigned long keyPtr;
+    unsigned long keyPtr = 0;
     int qosMonitorMaxNum = std::min(QoS::Max(), BLOCKAWARE_DOMAIN_ID_MAX + 1);
     BlockawareWakeupCond wakeupCond;
     BlockawareDomainInfoArea domainInfoMonitor;

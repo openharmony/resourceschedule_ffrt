@@ -58,7 +58,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 {
     // 1 Init eu and scheduler
     auto ctx = ExecuteCtx::Cur();
-    auto en = Entity::Instance();
 
     // 2 Get current task's parent
     auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();

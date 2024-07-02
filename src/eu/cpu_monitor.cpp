@@ -17,11 +17,8 @@
 #include <iostream>
 #include <thread>
 #include <unistd.h>
-#include <sys/prctl.h>
-#include <sys/syscall.h>
 #include <securec.h>
 #include "sched/scheduler.h"
-#include "eu/wgcm.h"
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
@@ -262,8 +259,8 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         }
     }
 #endif
-    bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) && (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM)
-        && (taskCount < runningNum);
+    bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
+        (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
     if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;

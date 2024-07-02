@@ -56,7 +56,7 @@ public:
     CPUEUTask* parent = nullptr;
     const uint64_t rank = 0x0;
     std::mutex lock; // used in coroute
-
+    std::vector<CPUEUTask*> in_handles;
     TaskState state;
 
 #ifdef FFRT_HITRACE_ENABLE

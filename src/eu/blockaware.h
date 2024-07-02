@@ -16,10 +16,10 @@
 #define BLOCKAWARE_H
 
 #include <securec.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <sys/prctl.h>
-#include <errno.h>
+#include <cerrno>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,10 +56,10 @@ struct BlockawareKinfoPageS {
     struct BlockawareDomainInfoArea infoArea;
 };
 
-static inline int BlockawareInit(unsigned long *key);
+static inline int BlockawareInit(unsigned long *keyPtr);
 static inline int BlockawareRegister(unsigned int domain);
 static inline int BlockawareUnregister(void);
-static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *domainInfo);
+static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *infoArea);
 static inline int BlockawareEnterSleeping(void);
 static inline int BlockawareLeaveSleeping(void);
 static inline int BlockawareWaitCond(struct BlockawareWakeupCond *cond);
@@ -87,7 +87,7 @@ static inline unsigned long *curr_thread_tls_blockaware_slot_of(void)
 {
     unsigned long tls = GetTlsPtr();
     unsigned long slot_addr = tls - sizeof (unsigned long) * (2UL + 5UL);
-    return (unsigned long *)slot_addr;
+    return reinterpret_cast<unsigned long *>(slot_addr);
 }
 
 static inline int BlockawareEnterSleeping(void)
@@ -183,14 +183,14 @@ static inline int BlockawareLeaveSleeping(void)
 
 static inline int BlockawareInit(unsigned long *keyPtr)
 {
-    int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_INIT, (unsigned long)keyPtr);
+    int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_INIT, reinterpret_cast<unsigned long>(keyPtr));
     return (rc == 0) ? 0 : errno;
 }
 
 static inline int BlockawareRegister(unsigned int domain)
 {
     /* Mention that it is kernel's responsibility to init tls slot to 0 */
-    int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_REG, (unsigned long)domain);
+    int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_REG, static_cast<unsigned long>(domain));
     return (rc == 0) ? 0 : errno;
 }
 
@@ -205,7 +205,7 @@ static inline uint32_t seqlock_start_read(const uint32_t *seq_ptr)
 {
     uint32_t seq;
     do {
-        seq = *(volatile uint32_t *)seq_ptr;
+        seq = *reinterpret_cast<const volatile uint32_t *>(seq_ptr);
         if ((seq & 1U) == 0U) {
             break;
         }
@@ -223,7 +223,7 @@ static inline bool seqlock_check(const uint32_t *seq_ptr, uint32_t seq_prev)
 
 static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *infoArea)
 {
-    struct BlockawareKinfoPageS *kinfoPage = (struct BlockawareKinfoPageS *)key;
+    struct BlockawareKinfoPageS *kinfoPage = reinterpret_cast<struct BlockawareKinfoPageS *>(key);
     uint32_t seq;
     do {
         seq = seqlock_start_read(&kinfoPage->seq);
@@ -234,7 +234,7 @@ static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDom
 
 static inline int BlockawareWaitCond(struct BlockawareWakeupCond *cond)
 {
-    int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_WAIT, (unsigned long)cond);
+    int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_WAIT, reinterpret_cast<unsigned long>(cond));
     return (rc == 0) ? 0 : errno;
 }
 

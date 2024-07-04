@@ -457,7 +457,6 @@ void CoStart(ffrt::CPUEUTask* task)
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-            FFRT_LOGD("Cowait task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();
 #endif

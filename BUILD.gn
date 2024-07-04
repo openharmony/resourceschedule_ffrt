@@ -78,7 +78,9 @@ config("ffrt_config") {
   }
 
   #defines += ffrt_release_defines
-  defines += [ "FFRT_HITRACE_ENABLE" ]
+  if (is_ohos) {
+    defines += [ "FFRT_HITRACE_ENABLE" ]
+  }
 }
 
 config("ffrt_inner_config") {

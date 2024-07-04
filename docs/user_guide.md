@@ -3551,19 +3551,19 @@ void fib_ffrt(int x, int* y)
 
 # 已知限制
 
-## 不支持thread_local变量
+## thread local使用约束
+* FFRT Task中使用thread local存在风险，说明如下：
+* thread local变量包括C/C++语言提供的thread_local定义的变量，使用pthread_key_create创建的变量
+* FFRT支持Task调度，Task调度到哪个线程是随机的，使用thread local是有风险的，这一点和所有支持Task并发调度的框架一样
+* FFRT的Task默认以协程的方式运行，Task执行过程中可能发生协程退出，恢复执行时，执行该任务的线程可能发生变更
 
-* Task内部创建或Task间传递的thread_local变量的行为都是不确定的
+## thread绑定类使用约束
+* FFRT支持Task调度，Task调度到哪个线程是随机的，thread_idx/线程优先级/线程亲和性等与thread绑定的行为禁止在task中使用
 
-* 原因在于FFRT在编程模型中已经没有thread的概念，只有task的概念
-* 在C++的语义下，thread_local可以被正常编译，但是使用该thread_local变量的task在哪一个线程上执行时不确定的
-* 对于使用了FFRT进程中的non-worker，thread_local的行为不受FFRT影响
-
-> 类似的，与thread绑定的thread_idx/pthread_specific/递归锁/线程优先级/线程亲和性/递归锁具有相似的问题
-
-`建议`
-
-* 避免使用这些特性，如必须使用，使用FFRT的task local来替代
+## recursive mutex使用约束
+* FFRT Task中使用标准库的recursive mutex可能发生死锁，需要更换为FFRT提供的recursive mutex，说明如下：
+* recursive mutex在lock()成功时记录调用者"执行栈"作为锁的owner，在后续lock()时会判断调用者是否为当前执行栈，如果是则返回成功，以支持在同一个执行栈中嵌套获取锁。在标准库的实现中，"执行栈"以线程标识表示。
+* 在FFRT Task中使用标准库的recursive mutex，如果在外层和内层lock()之间，发生Task（协程）退出，Task恢复执行时在不同于首次调用lock()的FFRT Worker上，则判断当前线程不是owner，lock()失败，FFRT Worker挂起，后面的unlock()不会被执行，从而出现死锁。
 
 ## 不支持用户在fork出的子进程内使用ffrt
 

@@ -283,7 +283,12 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
     if (likely(stackSize == defaultStackSize)) {
         co = ffrt::CoRoutineAllocMem(stackSize);
     } else {
-        co = static_cast<CoRoutine*>(malloc(stackSize));
+        co = static_cast<CoRoutine*>(mmap(nullptr, stackSize,
+            PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+        if (co == reinterpret_cast<CoRoutine*>(MAP_FAILED)) {
+            FFRT_LOGE("memory mmap failed, errno: %d", errno);
+            return nullptr;
+        }
     }
     if (!co) {
         FFRT_LOGE("memory not enough");
@@ -308,7 +313,10 @@ static inline void CoMemFree(CoRoutine* co)
     if (likely(co->allocatedSize == defaultStackSize)) {
         ffrt::CoRoutineFreeMem(co);
     } else {
-        free(co);
+        int ret = munmap(co, co->allocatedSize);
+        if (ret != 0) {
+            FFRT_LOGE("munmap failed with errno: %d", errno);
+        }
     }
 }
 

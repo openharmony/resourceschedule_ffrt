@@ -76,7 +76,7 @@ void WorkerMonitor::SubmitTask()
         return;
     }
 
-    std::lock_guard lock(submitTaskMutex_);
+    std::lock_guard submitTaskLock(submitTaskMutex_);
     if (samplingTaskExit_) {
         SubmitSamplingTask();
         samplingTaskExit_ = false;
@@ -106,7 +106,7 @@ void WorkerMonitor::CheckWorkerStatus()
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     {
         bool noWorkerThreads = true;
-        std::lock_guard lock(submitTaskMutex_);
+        std::lock_guard submitTaskLock(submitTaskMutex_);
         for (int i = 0; i < QoS::MaxNum(); i++) {
             std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
             if (!workerGroup[i].threads.empty()) {

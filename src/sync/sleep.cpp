@@ -41,14 +41,13 @@ CPUEUTask* ExecuteCtxTask()
 void sleep_until_impl(const time_point_t& to)
 {
     auto task = ExecuteCtxTask();
-    bool legacyMode = LegacyMode(task);
-    if (!USE_COROUTINE || task == nullptr || legacyMode) {
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+    if (ThreadWaitMode(task)) {
+        if FFRT_UNLIKELY(LegacyMode(task)) {
+            task->blockType = BlockType::BLOCK_THREAD;
         }
         std::this_thread::sleep_until(to);
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        if (BlockThread(task)) {
+            task->blockType = BlockType::BLOCK_COROUTINE;
         }
         return;
     }
@@ -68,14 +67,13 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_yield()
 {
     auto curTask = ffrt::this_task::ExecuteCtxTask();
-    bool legacyMode = LegacyMode(curTask);
-    if (!ffrt::USE_COROUTINE || curTask == nullptr || legacyMode) {
-        if (legacyMode) {
-            curTask->coRoutine->blockType = BlockType::BLOCK_THREAD;
+    if (ThreadWaitMode(curTask)) {
+        if FFRT_UNLIKELY(LegacyMode(curTask)) {
+            curTask->blockType = BlockType::BLOCK_THREAD;
         }
         std::this_thread::yield();
-        if (legacyMode) {
-            curTask->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        if (BlockThread(curTask)) {
+            curTask->blockType = BlockType::BLOCK_COROUTINE;
         }
         return;
     }

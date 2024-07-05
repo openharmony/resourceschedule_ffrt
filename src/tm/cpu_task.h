@@ -73,6 +73,9 @@ public:
     void** tsd = nullptr;
     bool taskLocal = false;
 
+    bool legacyMode { false };
+    BlockType blockType { BlockType::BLOCK_COROUTINE };
+
     QoS qos;
     void SetQos(QoS& newQos);
     uint64_t reserved[8];
@@ -83,10 +86,7 @@ public:
     virtual void RecycleTask() = 0;
     inline bool IsRoot()
     {
-        if (parent == nullptr) {
-            return true;
-        }
-        return false;
+        return parent == nullptr;
     }
 
     int UpdateState(TaskState::State taskState)
@@ -116,16 +116,50 @@ public:
 #endif
 };
 
+inline bool ExecutedOnWorker(CPUEUTask* task)
+{
+    return task && !task->IsRoot();
+}
+
 inline bool LegacyMode(CPUEUTask* task)
 {
-    bool legacyMode = (task && task->coRoutine) ? task->coRoutine->legacyMode : false;
-    return legacyMode;
+    return task && task->legacyMode;
 }
 
 inline bool BlockThread(CPUEUTask* task)
 {
-    bool blockThread = (task && task->coRoutine) ? task->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
-    return blockThread;
+    return task && task->blockType == BlockType::BLOCK_THREAD;
 }
+
+inline bool ThreadWaitMode(CPUEUTask* task)
+{
+    if constexpr(!USE_COROUTINE){
+        // static switch controlled by macro
+        return true;
+    }
+    if (!ExecutedOnWorker(task)){
+        // task is executed on user thread
+        return true;
+    }
+    if (LegacyMode(task)){
+        // set_legacy_mode controlled by user
+        return true;
+    }
+    return false;
+}
+
+inline bool ThreadNotifyMode(CPUEUTask* task)
+{
+    if constexpr(!USE_COROUTINE){
+        // static switch controlled by macro
+        return true;
+    }
+    if (BlockThread(task)){
+        // thread wait happended when task in legacy mode
+        return true;
+    }
+    return false;
+}
+
 } /* namespace ffrt */
 #endif

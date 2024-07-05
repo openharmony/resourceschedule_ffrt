@@ -43,7 +43,7 @@ SCPUEUTask::SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const u
 
 void SCPUEUTask::DecDepRef()
 {
-    if (--depRefCnt == 0) {
+    if (--dataRefCnt.submitDep == 0) {
         FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
         FFRT_WAKE_TRACER(this->gid);
         this->UpdateState(TaskState::READY);
@@ -56,12 +56,12 @@ void SCPUEUTask::DecDepRef()
 void SCPUEUTask::DecChildRef()
 {
     SCPUEUTask* parent = reinterpret_cast<SCPUEUTask*>(this->parent);
-    FFRT_LOGD("DecChildRef parent task:%s, childWaitRefCnt=%u, task[%lu], name[%s]",
-        parent->label.c_str(), parent->childWaitRefCnt.load(), gid, label.c_str());
+    FFRT_LOGD("DecChildRef parent task:%s, childRefCnt=%u, task[%lu], name[%s]",
+        parent->label.c_str(), parent->childRefCnt.load(), gid, label.c_str());
     FFRT_TRACE_SCOPE(2, taskDecChildRef);
     std::unique_lock<decltype(parent->lock)> lck(parent->lock);
-    parent->childWaitRefCnt--;
-    if (parent->childWaitRefCnt != 0) {
+    parent->childRefCnt--;
+    if (parent->childRefCnt != 0) {
         return;
     }
     if (FFRT_UNLIKELY(parent->IsRoot())) {
@@ -73,7 +73,7 @@ void SCPUEUTask::DecChildRef()
         }
     }
 
-    if (!parent->IsRoot() && parent->status == TaskStatus::RELEASED && parent->childWaitRefCnt == 0) {
+    if (!parent->IsRoot() && parent->status == TaskStatus::RELEASED && parent->childRefCnt == 0) {
         FFRT_LOGD("free CPUEUTask:%s gid=%lu", parent->label.c_str(), parent->gid);
         lck.unlock();
         parent->DecDeleteRef();
@@ -84,12 +84,11 @@ void SCPUEUTask::DecChildRef()
     }
     parent->denpenceStatus = Denpence::DEPENCE_INIT;
 
-    bool blockThread = parent->coRoutine ? parent->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
-    if (!USE_COROUTINE || parent->parent == nullptr || blockThread) {
-        if (blockThread) {
-            parent->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+    if (ThreadNotifyMode(parent) || parent->IsRoot()) {
+        if (BlockThread(parent)) {
+            parent->blockType = BlockType::BLOCK_COROUTINE;
         }
-        parent->childWaitCond_.notify_all();
+        parent->waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(parent->gid);
         parent->UpdateState(TaskState::READY);
@@ -101,8 +100,7 @@ void SCPUEUTask::DecWaitDataRef()
     FFRT_TRACE_SCOPE(2, taskDecWaitData);
     {
         std::lock_guard<decltype(lock)> lck(lock);
-        dataWaitRefCnt--;
-        if (dataWaitRefCnt != 0) {
+        if (--dataRefCnt.waitDep != 0) {
             return;
         }
         if (denpenceStatus != Denpence::DATA_DEPENCE) {
@@ -111,13 +109,11 @@ void SCPUEUTask::DecWaitDataRef()
         denpenceStatus = Denpence::DEPENCE_INIT;
     }
 
-    bool blockThread =
-        (parent && parent->coRoutine) ? parent->coRoutine->blockType == BlockType::BLOCK_THREAD : false;
-    if (!USE_COROUTINE || parent == nullptr || blockThread) {
-        if (blockThread) {
-            parent->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+    if (ThreadNotifyMode(this) || IsRoot()) {
+        if (BlockThread(this)) {
+            blockType = BlockType::BLOCK_COROUTINE;
         }
-        dataWaitCond_.notify_all();
+        waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);
         this->UpdateState(TaskState::READY);
@@ -130,7 +126,7 @@ void SCPUEUTask::DecWaitDataRef()
 void SCPUEUTask::RecycleTask()
 {
     std::unique_lock<decltype(lock)> lck(lock);
-    if (childWaitRefCnt == 0) {
+    if (childRefCnt == 0) {
         FFRT_LOGD("free SCPUEUTask:%s gid=%lu", label.c_str(), gid);
         lck.unlock();
         DecDeleteRef();

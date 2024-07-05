@@ -145,7 +145,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             }
         }
         task->in_handles.swap(in_handles);
-        if (task->depRefCnt != 0) {
+        if (task->dataRefCnt.submitDep != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
 
 #ifdef FFRT_HITRACE_ENABLE
@@ -177,22 +177,22 @@ void SDependenceManager::onWait()
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = ctx->task ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
-    bool legacyMode = LegacyMode(task);
-    if (!USE_COROUTINE || task->parent == nullptr || legacyMode) {
+
+    if (ThreadWaitMode(task)) {
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        if FFRT_UNLIKELY(LegacyMode(task)) {
+            task->blockType = BlockType::BLOCK_THREAD;
         }
-        task->childWaitCond_.wait(lck, [task] { return task->childWaitRefCnt == 0; });
+        task->waitCond_.wait(lck, [task] { return task->childRefCnt == 0; });
         return;
     }
 
     auto childDepFun = [&](ffrt::CPUEUTask* task) -> bool {
         auto sTask = static_cast<SCPUEUTask*>(task);
         std::unique_lock<std::mutex> lck(sTask->lock);
-        if (sTask->childWaitRefCnt == 0) {
+        if (sTask->childRefCnt == 0) {
             return false;
         }
         sTask->MultiDepenceAdd(Denpence::CALL_DEPENCE);
@@ -212,6 +212,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
+    task->dataRefCnt.waitDep = 0;
 
     auto dataDepFun = [&]() {
         std::vector<VersionCtx*> waitDatas;
@@ -243,16 +244,15 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         }
     };
 
-    bool legacyMode = LegacyMode(task);
-    if (!USE_COROUTINE || task->parent == nullptr || legacyMode) {
+    if (ThreadWaitMode(task)) {
         dataDepFun();
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        if FFRT_UNLIKELY(LegacyMode(task)) {
+            task->blockType = BlockType::BLOCK_THREAD;
         }
-        task->dataWaitCond_.wait(lck, [task] { return task->dataWaitRefCnt == 0; });
+        task->waitCond_.wait(lck, [task] { return task->dataRefCnt.waitDep == 0; });
         return;
     }
 
@@ -261,7 +261,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         dataDepFun();
         FFRT_LOGD("onWait name:%s gid=%lu", sTask->label.c_str(), sTask->gid);
         std::unique_lock<std::mutex> lck(sTask->lock);
-        if (sTask->dataWaitRefCnt == 0) {
+        if (sTask->dataRefCnt.waitDep == 0) {
             return false;
         }
         sTask->MultiDepenceAdd(Denpence::DATA_DEPENCE);

@@ -46,6 +46,9 @@ public:
     std::vector<std::string> traceTag;
     bool wakeupTimeOut = false;
     WaitUntilEntry* wue = nullptr;
+    // lifecycle connection between task and coroutine is shown as below:
+    // |*task pending*|*task ready*|*task executing*|*task done*|*task release*|
+    //                             |**********coroutine*********|
     CoRoutine* coRoutine = nullptr;
     uint64_t stack_size = STACK_SIZE;
 };

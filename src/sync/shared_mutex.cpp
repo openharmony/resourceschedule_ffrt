@@ -97,10 +97,9 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
 {
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
-    bool legacyMode = LegacyMode(task);
-    if (!USE_COROUTINE || task == nullptr || legacyMode) {
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+    if (ThreadWaitMode(task)) { // 2 is weType
+        if FFRT_UNLIKELY(LegacyMode(task))  {
+            task->blockType = BlockType::BLOCK_THREAD;
             ctx->wn.task = task;
         }
         ctx->wn.wtType = wtType;
@@ -126,10 +125,9 @@ void SharedMutexPrivate::NotifyOne(LinkedList& wList)
 
     if (we != nullptr) {
         CPUEUTask* task = we->task;
-        bool blockThread = BlockThread(task);
-        if (!USE_COROUTINE || we->weType == 2 || blockThread) { // 2 is weType
-            if (blockThread) {
-                task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        if (ThreadNotifyMode(task) || we->weType == 2) { // 2 is weType
+            if (BlockThread(task)) {
+                task->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;
             }
 
@@ -148,10 +146,9 @@ void SharedMutexPrivate::NotifyAll(LinkedList& wList)
 
     while (we != nullptr) {
         CPUEUTask* task = we->task;
-        bool blockThread = BlockThread(task);
-        if (!USE_COROUTINE || we->weType == 2 || blockThread) { // 2 is weType
-            if (blockThread) {
-                task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        if (ThreadNotifyMode(task) || we->weType == 2) { // 2 is weType
+            if (BlockThread(task)) {
+                task->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;
             }
 

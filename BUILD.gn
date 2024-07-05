@@ -45,6 +45,7 @@ config("ffrt_config") {
   ]
 
   cflags = ffrt_defaults_cflags
+  cflags_c += [ "-fno-common" ]
   cflags_cc = ffrt_defaults_cflags
   cflags_cc += [ "-std=c++17" ]
 

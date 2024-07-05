@@ -469,12 +469,11 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
             ProcessTimerDataCb(data.task);
         }
 
+        executedHandle_[data.handle] = TimerStatus::EXECUTED;
         if (data.repeat) {
             std::lock_guard lock(timerMutex_);
             executedHandle_.erase(data.handle);
             RegisterTimerImpl(data);
-        } else {
-            executedHandle_[data.handle] = TimerStatus::EXECUTED;
         }
     }
 }

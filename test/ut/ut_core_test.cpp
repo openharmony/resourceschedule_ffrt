@@ -27,6 +27,7 @@
 
 using namespace std;
 using namespace testing;
+using namespace testing::ext;
 using namespace ffrt;
 
 class CoreTest : public testing::Test {
@@ -53,7 +54,8 @@ HWTEST_F(CoreTest, core_test_success_01, TestSize.Level1)
     sync_io(0);
 }
 
-HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1){
+HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
+{
     auto func1 = ([]() {cout << endl << "push a task" << endl;});
     SCPUEUTask *task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
     auto func2 = ([]() {cout << endl << "push a task" << endl;});

@@ -133,15 +133,15 @@ inline bool BlockThread(CPUEUTask* task)
 
 inline bool ThreadWaitMode(CPUEUTask* task)
 {
-    if constexpr(!USE_COROUTINE){
+    if constexpr(!USE_COROUTINE) {
         // static switch controlled by macro
         return true;
     }
-    if (!ExecutedOnWorker(task)){
+    if (!ExecutedOnWorker(task)) {
         // task is executed on user thread
         return true;
     }
-    if (LegacyMode(task)){
+    if (LegacyMode(task)) {
         // set_legacy_mode controlled by user
         return true;
     }
@@ -150,11 +150,11 @@ inline bool ThreadWaitMode(CPUEUTask* task)
 
 inline bool ThreadNotifyMode(CPUEUTask* task)
 {
-    if constexpr(!USE_COROUTINE){
+    if constexpr(!USE_COROUTINE) {
         // static switch controlled by macro
         return true;
     }
-    if (BlockThread(task)){
+    if (BlockThread(task)) {
         // thread wait happended when task in legacy mode
         return true;
     }

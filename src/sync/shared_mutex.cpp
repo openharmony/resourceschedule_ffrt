@@ -109,6 +109,7 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
         mut.unlock();
         ctx->wn.cv.wait(lk);
     } else {
+        FFRT_BLOCK_TRACER(task->gid, smx);
         CoWait([&](CPUEUTask* task) -> bool {
             task->fq_we.wtType = wtType;
             wList.PushBack(task->fq_we.node);

@@ -168,9 +168,8 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 
     FFRT_COND_DO_ERR((maxevents < EPOLL_EVENT_SIZE), return -1, "maxEvents:%d cannot be less than 1024", maxevents);
 
-    bool legacyMode = LegacyMode(task);
     int nfds = 0;
-    if (!USE_COROUTINE || legacyMode) {
+    if (ThreadWaitMode(task)) {
         std::unique_lock<std::mutex> lck(task->lock);
         m_mapMutex.lock();
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
@@ -186,8 +185,8 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             m_mapMutex.unlock();
             return 0;
         }
-        if (legacyMode) {
-            task->coRoutine->blockType = BlockType::BLOCK_THREAD;
+        if FFRT_UNLIKELY(LegacyMode(task))  {
+            task->blockType = BlockType::BLOCK_THREAD;
         }
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {static_cast<void*>(eventsVec), maxevents, &nfds, currTime};
@@ -196,7 +195,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             RegisterTimer(timeout, nullptr, nullptr);
         }
         m_mapMutex.unlock();
-        reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.wait(lck);
+        reinterpret_cast<SCPUEUTask*>(task)->waitCond_.wait(lck);
         FFRT_LOGD("task[%s] id[%d] has [%d] events", task->label.c_str(), task->gid, nfds);
         return nfds;
     }
@@ -264,13 +263,12 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
 namespace {
 void WakeTask(CPUEUTask* task)
 {
-    bool blockThread = BlockThread(task);
-    if (!USE_COROUTINE || blockThread) {
+    if (ThreadNotifyMode(task)) {
         std::unique_lock<std::mutex> lck(task->lock);
-        if (blockThread) {
-            task->coRoutine->blockType = BlockType::BLOCK_COROUTINE;
+        if (BlockThread(task)) {
+            task->blockType = BlockType::BLOCK_COROUTINE;
         }
-        reinterpret_cast<SCPUEUTask*>(task)->childWaitCond_.notify_one();
+        reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
     } else {
         CoRoutineFactory::CoWakeFunc(task, false);
     }

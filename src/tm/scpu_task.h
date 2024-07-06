@@ -24,34 +24,32 @@ public:
     SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id, const QoS &qos = QoS());
     std::unordered_set<VersionCtx*> ins;
     std::unordered_set<VersionCtx*> outs;
-    std::vector<CPUEUTask*> in_handles;
 
     std::mutex denpenceStatusLock;
     Denpence denpenceStatus {Denpence::DEPENCE_INIT};
 
-    std::atomic_uint64_t depRefCnt {0};
-
-    std::atomic_uint64_t childWaitRefCnt {0};
-    std::condition_variable childWaitCond_;
-
-    uint64_t dataWaitRefCnt {0}; // waited data count called by ffrt_wait()
-    std::condition_variable dataWaitCond_; // wait data cond
+    union {
+        std::atomic_uint64_t submitDep; // dependency refcnt during task submit
+        std::atomic_uint64_t waitDep; // dependency refcnt during task execute when wait api called
+    } dataRefCnt {0};
+    std::atomic_uint64_t childRefCnt {0}; // unfinished children refcnt
+    std::condition_variable waitCond_; // cv for thread wait
 
     inline void IncDepRef()
     {
-        ++depRefCnt;
+        ++dataRefCnt.submitDep;
     }
     void DecDepRef();
 
     inline void IncChildRef()
     {
-        ++(static_cast<SCPUEUTask*>(parent)->childWaitRefCnt);
+        ++(static_cast<SCPUEUTask*>(parent)->childRefCnt);
     }
     void DecChildRef();
 
     inline void IncWaitDataRef()
     {
-        ++dataWaitRefCnt;
+        ++dataRefCnt.waitDep;
     }
     void DecWaitDataRef();
     void MultiDepenceAdd(Denpence depType);
@@ -78,7 +76,7 @@ public:
     ~RootTaskCtxWrapper()
     {
         std::unique_lock<decltype(root->lock) > lck(root->lock);
-        if (root->childWaitRefCnt == 0) {
+        if (root->childRefCnt == 0) {
             lck.unlock();
             delete root;
         } else {

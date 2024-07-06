@@ -73,9 +73,7 @@ struct CoRoutine {
     CoRoutineEnv* thEnv;
     ffrt::CPUEUTask* task;
     CoCtx ctx;
-    bool legacyMode = false;
     uint64_t allocatedSize;
-    BlockType blockType = BlockType::BLOCK_COROUTINE;
     bool isTaskDone = false;
     StackMem stkMem;
 };

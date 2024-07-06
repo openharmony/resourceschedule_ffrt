@@ -48,12 +48,12 @@ protected:
     }
 };
 
-Test_F(CoreTest, core_test_success_01)
+HWTEST_F(CoreTest, core_test_success_01, TestSize.Level1)
 {
     sync_io(0);
 }
 
-Test_F(CoreTest, task_ctx_success_01){
+HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1){
     auto func1 = ([]() {cout << endl << "push a task" << endl;});
     SCPUEUTask *task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
     auto func2 = ([]() {cout << endl << "push a task" << endl;});
@@ -65,7 +65,7 @@ Test_F(CoreTest, task_ctx_success_01){
     delete task2;
 }
 
-Test_F(CoreTest, ThreadWaitAndNotifyMode)
+HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
 {
     SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS());
 

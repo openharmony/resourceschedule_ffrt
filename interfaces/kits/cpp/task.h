@@ -270,9 +270,9 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func,
  * @since 10
  * @version 1.0
  */
-static inline void submit(std::function<void()>&& func)
+static inline void submit(std::function<void()>&& func, const task_attr& attr = {})
 {
-    return ffrt_submit_base(create_function_wrapper(std::move(func)), nullptr, nullptr, nullptr);
+    return ffrt_submit_base(create_function_wrapper(std::move(func)), nullptr, nullptr, &attr);
 }
 
 /**
@@ -492,9 +492,9 @@ static inline void submit(const std::function<void()>& func, const std::vector<d
  * @since 10
  * @version 1.0
  */
-static inline task_handle submit_h(std::function<void()>&& func)
+static inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
 {
-    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), nullptr, nullptr, nullptr);
+    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), nullptr, nullptr, &attr);
 }
 
 /**

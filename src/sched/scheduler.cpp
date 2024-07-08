@@ -36,7 +36,7 @@ void FFRTScheduler::PushTask(CPUEUTask* task)
     lock->lock();
     fifoQue[static_cast<unsigned short>(level)]->WakeupTask(task);
     lock->unlock();
-    ExecuteUnit::Instance().NotifyTaskAdded(QoS(level));
+    ExecuteUnit::Instance().NotifyTaskAdded(level);
 }
 
 bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
@@ -107,7 +107,7 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
             return false;
         }
     }
-    QoS _qos = QoS(qos_level);
+    QoS _qos = qos_level;
     int level = _qos();
     uint64_t gid = task->gid;
     FFRT_READY_MARKER(gid); // ffrt normal task ready to enque

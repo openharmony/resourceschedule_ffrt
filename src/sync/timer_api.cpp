@@ -25,7 +25,7 @@ static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
         FFRT_LOGE("FuncQosMap has not regist");
         return false;
     }
-    mappedQos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
+    mappedQos = ffrt::GetFuncQosMap()(qos);
     if (mappedQos == ffrt::qos_inherit) {
         mappedQos = ffrt::ExecuteCtx::Cur()->qos();
     }

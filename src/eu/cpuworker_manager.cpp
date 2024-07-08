@@ -134,7 +134,7 @@ bool InsertTask(void* task, int qos)
 {
     ffrt_executor_task_t* task_ = (ffrt_executor_task_t *)task;
     LinkedList* node = reinterpret_cast<LinkedList *>(&task_->wq);
-    return FFRTScheduler::Instance()->InsertNode(node, ffrt::QoS(qos));
+    return FFRTScheduler::Instance()->InsertNode(node, qos);
 }
 
 void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
@@ -227,7 +227,7 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
         if (ret != 1) {
             FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
-        WorkerLeaveTg(QoS(qos), pid);
+        WorkerLeaveTg(qos, pid);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         if (IsBlockAwareInit()) {
             ret = BlockawareUnregister();

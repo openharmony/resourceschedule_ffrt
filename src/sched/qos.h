@@ -36,7 +36,7 @@ int QoSMax(void);
 
 class QoS {
 public:
-    explicit QoS(int qos = qos_default)
+    QoS(int qos = qos_default)
     {
         if (qos < static_cast<int>(qos_inherit)) {
             qos = qos_inherit;
@@ -53,40 +53,6 @@ public:
     int operator()() const
     {
         return qos_;
-    }
-
-    QoS& operator=(int qos)
-    {
-        qos_ = qos;
-        return *this;
-    }
-
-    QoS& operator=(const QoS& qos)
-    {
-        if (this != &qos) {
-            qos_ = qos();
-        }
-        return *this;
-    }
-
-    bool operator==(int qos) const
-    {
-        return qos_ == qos;
-    }
-
-    bool operator==(const QoS& qos) const
-    {
-        return qos_ == qos();
-    }
-
-    bool operator!=(int qos) const
-    {
-        return !(*this == qos);
-    }
-
-    bool operator!=(const QoS& qos) const
-    {
-        return !(*this == qos);
     }
 
     operator int() const

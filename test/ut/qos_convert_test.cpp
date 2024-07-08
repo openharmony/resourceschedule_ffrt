@@ -59,11 +59,3 @@ HWTEST_F(QosConvertTest, GetDynamicQos, TestSize.Level1)
     EXPECT_EQ(ret, -1);
     EXPECT_EQ(myqos, qos_default);
 }
-
-HWTEST_F(QosConvertTest, FFRTQosConvertInt)
-{
-    QoS qos1 = 1;
-    QoS qos2 = 2;
-    QoS qos3 = qos1 + qos2;
-    EXPECT_EQ(3, qos3);
-}

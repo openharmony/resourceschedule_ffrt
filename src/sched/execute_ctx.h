@@ -46,9 +46,8 @@ enum class SharedMutexWaitType {
 
 namespace we_status {
 const int INIT = 0;
-const int NOTIFIED = 1;
-const int TIMEOUT = 2;
-const int HANDOVER = 3;
+const int NOTIFING = 1;
+const int TIMEOUT_DONE = 2;
 } // namespace we_status
 
 class CPUEUTask;

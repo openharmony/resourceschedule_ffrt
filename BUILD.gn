@@ -47,7 +47,6 @@ config("ffrt_config") {
   cflags = ffrt_defaults_cflags
   cflags_c = [ "-fno-common" ]
   cflags_cc = ffrt_defaults_cflags
-  cflags_cc += [ "-std=c++17" ]
 
   ffrt_debug_defines = [
     "FFRT_LOG_LEVEL=3",
@@ -98,6 +97,8 @@ config("ffrt_inner_config") {
       "-fsplit-lto-unit",
     ]
   }
+
+  cflags_cc = [ "-std=c++17" ]
 }
 
 ohos_shared_library("libffrt") {

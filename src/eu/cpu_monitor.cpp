@@ -59,7 +59,7 @@ void CPUMonitor::SetupMonitor()
 {
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT;
-        ctrlQueue[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(QoS(qos));
+        ctrlQueue[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(qos);
         setWorkerMaxNum[qos] = false;
     }
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -146,9 +146,9 @@ void CPUMonitor::MonitorMain()
             break;
         }
         for (int i = 0; i < qosMonitorMaxNum; i++) {
-            size_t taskCount = static_cast<size_t>(ops.GetTaskCount(QoS(i)));
+            size_t taskCount = static_cast<size_t>(ops.GetTaskCount(i));
             if (taskCount > 0 && domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
-                Poke(QoS(i), taskCount, TaskNotifyType::TASK_ADDED);
+                Poke(i, taskCount, TaskNotifyType::TASK_ADDED);
             }
             if (domainInfoMonitor.localinfo[i].nrRunning > wakeupCond.local[i].high) {
                 exceedUpperWaterLine[i] = true;

@@ -360,7 +360,7 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
         FFRT_LOGE("FuncQosMap has not regist");
         return -1;
     }
-    ffrt::QoS _qos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
+    ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     return ffrt::OSAttrManager::Instance()->UpdateSchedAttr(_qos, attr);
 }
 
@@ -371,7 +371,7 @@ void ffrt_restore_qos_config()
     for (auto qos = ffrt::QoS::Min(); qos < ffrt::QoS::Max(); ++qos) {
         std::unique_lock<std::shared_mutex> lck(wgCtl[qos].tgMutex);
         for (auto& thread : wgCtl[qos].threads) {
-            ffrt::SetThreadAttr(thread.first, ffrt::QoS(qos));
+            ffrt::SetThreadAttr(thread.first, qos);
         }
     }
 }
@@ -383,7 +383,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
         FFRT_LOGE("FuncQosMap has not regist");
         return -1;
     }
-    ffrt::QoS _qos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
+    ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     if (((qos != ffrt::qos_default) && (_qos() == ffrt::qos_default)) || (qos <= ffrt::qos_inherit)) {
         FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
@@ -425,7 +425,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
         FFRT_LOGE("FuncQosMap has not regist");
         return 1;
     }
-    ffrt::QoS _qos = ffrt::QoS(ffrt::GetFuncQosMap()(qos));
+    ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
         FFRT_LOGW("task is nullptr");
@@ -527,7 +527,7 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
         FFRT_LOGE("function handler should not be empty");
         return 0;
     }
-    ffrt::QoS _qos = ffrt::QoS(qos);
+    ffrt::QoS _qos = qos;
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
     ffrt::FFRTFacade::GetDMInstance();

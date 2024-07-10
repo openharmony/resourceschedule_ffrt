@@ -59,7 +59,7 @@ ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos)
         return nullptr;
     }
 
-    return new ffrt::qos_interval_private_t(deadline_us, ffrt::QoS(qos));
+    return new ffrt::qos_interval_private_t(deadline_us, qos);
 }
 
 API_ATTRIBUTE((visibility("default")))

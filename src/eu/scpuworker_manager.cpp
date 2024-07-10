@@ -48,7 +48,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
             pollersMtx[qos].unlock();
-            PollerProxy::Instance()->GetPoller(QoS(qos)).WakeUp();
+            PollerProxy::Instance()->GetPoller(qos).WakeUp();
             sleepCtl[qos].cv.notify_all();
             {
                 usleep(1000);

@@ -121,7 +121,7 @@ void WorkerMonitor::CheckWorkerStatus()
     }
     std::vector<std::pair<int, int>> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        auto& sched = FFRTScheduler::Instance()->GetScheduler(QoS(i));
+        auto& sched = FFRTScheduler::Instance()->GetScheduler(i);
         int taskCount = sched.RQSize();
         if (taskCount >= TASK_OVERRUN_THRESHOLD) {
             FFRT_LOGW("qos [%d], task count [%d] exceeds threshold.", i, taskCount);

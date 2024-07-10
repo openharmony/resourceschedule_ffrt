@@ -153,7 +153,7 @@ struct PollerProxy {
 public:
     static PollerProxy* Instance();
 
-    Poller& GetPoller(const QoS& qos = QoS(ffrt_qos_default))
+    Poller& GetPoller(const QoS& qos = ffrt_qos_default)
     {
         return qosPollers[static_cast<size_t>(qos())];
     }

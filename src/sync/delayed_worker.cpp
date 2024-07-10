@@ -80,6 +80,12 @@ DelayedWorker::~DelayedWorker()
     }
 }
 
+DelayedWorker& DelayedWorker::GetInstance()
+{
+    static DelayedWorker instance;
+    return instance;
+}
+
 int DelayedWorker::HandleWork()
 {
     if (!map.empty()) {
@@ -135,5 +141,20 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     }
 
     return true;
+}
+
+bool DelayedWorker::remove(const time_point_t& to, WaitEntry* we)
+{
+    std::lock_guard<decltype(lock)> l(lock);
+
+    auto range = map.equal_range(to);
+    for (auto it = range.first; it != range.second; ++it) {
+        if (it->second.we == we) {
+            map.erase(it);
+            return true;
+        }
+    }
+
+    return false;
 }
 } // namespace ffrt

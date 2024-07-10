@@ -42,14 +42,17 @@ class DelayedWorker {
     void ThreadInit();
 
 public:
+    static DelayedWorker &GetInstance();
     DelayedWorker(DelayedWorker const&) = delete;
     void operator=(DelayedWorker const&) = delete;
 
+    bool dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
+    bool remove(const time_point_t& to, WaitEntry* we);
+
+private:
     DelayedWorker();
 
     ~DelayedWorker();
-
-    bool dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
 };
 } // namespace ffrt
 #endif

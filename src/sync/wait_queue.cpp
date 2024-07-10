@@ -99,24 +99,22 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
 {
     wq->wqlock.lock();
-    int expected = we_status::INIT;
-    if (!atomic_compare_exchange_strong_explicit(
-        &wue->status, &expected, we_status::TIMEOUT, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
-        // The critical point wue->status has been written, notify will no longer access wue, it can be deleted
-        delete wue;
-        wq->wqlock.unlock();
-        return false;
-    }
+    bool toWake = true;
 
-    if (wue->status.load(std::memory_order_acquire) == we_status::TIMEOUT) {
+    // two kinds: 1) notify was not called, timeout grabbed the lock first
+    if (wue->status.load(std::memory_order_acquire) == we_status::INIT) {
+        // timeout processes wue first, cv will not be processed again, thmeout is reponsible for destorying wue
         wq->remove(wue);
         delete wue;
         wue = nullptr;
     } else {
-        wue->status.store(we_status::HANDOVER, std::memory_order_release);
+        // 2) notify enters the critical section, first writes the notify status, and then releases the lock
+        // notify is responsible for destorying wue;
+        wue->status.store(we_status::TIMEOUT_DONE, std::memory_order_release);
+        toWake = false;
     }
     wq->wqlock.unlock();
-    return true;
+    return toWake;
 }
 
 bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept
@@ -167,22 +165,22 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
 bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
 {
     if (!we->hasWaitTime) {
+        // For wait task without timeout, we will be deleted after the wait task wakes up
         return true;
     }
 
-    auto expected = we_status::INIT;
-    if (!atomic_compare_exchange_strong_explicit(
-        &we->status, &expected, we_status::NOTIFIED, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
-        // The critical point we->status has been written, notify will no longer access we, it can be deleted
-        we->status.store(we_status::NOTIFIED, std::memory_order_release);
+    WaitEntry *dwe = static_cast<WaitEntry*>(we);
+    if (!DelayedRemove(we->tp, dwe)) {
+        // Deletion of timer failed during the notify process, indicating that timer cb has been executed at this time
+        // waiting for cb execution to complete, adn marking notify as being processed.
+        we->status.store(we_status::NOTIFING, std::memory_order_release);
         wqlock.unlock();
-        while (we->status.load(std::memory_order_acquire) != we_status::HANDOVER) {
+        while (we->status.load(std::memory_order_acquire) != we_status::TIMEOUT_DONE) {
         }
-        delete we;
         wqlock.lock();
-        return false;
     }
 
+    delete we;
     return true;
 }
 

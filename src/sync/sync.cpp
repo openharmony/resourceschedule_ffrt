@@ -31,8 +31,12 @@
 namespace ffrt {
 bool DelayedWakeup(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
-    static DelayedWorker w;
-    return w.dispatch(to, we, wakeup);
+    return DelayedWorker::GetInstance().dispatch(to, we, wakeup);
+}
+
+bool DelayedRemove(const time_point_t& to, WaitEntry* we)
+{
+    return DelayedWorker::GetInstance().remove(to, we);
 }
 
 void spin_mutex::lock_contended()

@@ -53,30 +53,34 @@ SDependenceManager::~SDependenceManager()
 {
 }
 
-void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+void RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
+        std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup)
 {
-    // 1 Init eu and scheduler
-    auto ctx = ExecuteCtx::Cur();
-
-    // 2 Get current task's parent
-    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
-
-    std::vector<const void*> insNoDup;
-    std::vector<const void*> outsNoDup;
-    std::vector<CPUEUTask*> in_handles;
     // signature去重：1）outs去重
     if (outs) {
-        if (!outsDeDup(outsNoDup, outs)) {
-            FFRT_LOGE("onSubmit outsDeDup error");
-            return;
-        }
+        outsDeDup(outsNoDup, outs)
     }
 
     // signature去重：2）ins去重（不影响功能，skip）；3）ins不和outs重复（当前不支持weak signature）
     if (ins) {
         insDeDup(in_handles, insNoDup, outsNoDup, ins);
     }
+}
+
+void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+{
+    // 0 check outs handle
+    if (!CheckOutsHandle(outs)) {
+        FFRT_LOGE("outs contain handles error");
+        return;
+    }
+
+    // 1 Init eu and scheduler
+    auto ctx = ExecuteCtx::Cur();
+
+    // 2 Get current task's parent
+    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
 
     // 2.1 Create task ctx
     SCPUEUTask* task = nullptr;
@@ -103,6 +107,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 #ifdef FFRT_BBOX_ENABLE
     TaskSubmitCounterInc();
 #endif
+
+    std::vector<const void*> insNoDup;
+    std::vector<const void*> outsNoDup;
+    RemoveRepeatedDeps(task->in_handles, ins, outs, insNoDup, outsNoDup);
+
 #ifdef FFRT_OH_WATCHDOG_ENABLE
     if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_)) {
         task->isWatchdogEnable = true;
@@ -144,7 +153,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
                 o.first->AddProducer(task);
             }
         }
-        task->in_handles.swap(in_handles);
         if (task->dataRefCnt.submitDep != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
 

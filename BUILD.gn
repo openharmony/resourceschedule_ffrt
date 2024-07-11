@@ -42,6 +42,7 @@ config("ffrt_config") {
     "-DUSE_OHOS_QOS",
     "-DFFRT_PTHREAD_ENABLE",
     "-DFFRT_OH_WATCHDOG_ENABLE",
+    "-DQOS_WORKER_FRAME_RTG",
   ]
 
   cflags = ffrt_defaults_cflags

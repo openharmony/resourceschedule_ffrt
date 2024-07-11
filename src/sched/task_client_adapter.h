@@ -13,7 +13,7 @@
 * limitations under the License. 
 */
 
-#ifdef QOS_FRAME_RTG
+
 #ifndef __FFRT_TASKCLIENT_ADAPTER_H__
 #define __FFRT_TASKCLIENT_ADAPTER_H__
 
@@ -24,6 +24,8 @@
 #ifdef FFRT_OH_TRACE_ENABLE
 #include <dlfcn.h>
 #endif
+
+#ifdef QOS_WORKER_FRAME_RTG
 
 struct IntervalReply {
     int rtgId;
@@ -71,7 +73,7 @@ public:
         return &instance;
     }
 
-#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func = nullptr
+#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func##Func = nullptr
     REG_FUNC(AddThreadToRtg);
     REG_FUNC(BeginFrameFreq);
     REG_FUNC(EndFrameFreq);
@@ -103,13 +105,13 @@ private:
             return;
         }
 
-#define LOAD_FUNC(func) func = reinterpret_cast<func##Type>(dlsym(handle_1, #func));            \
-        if (func != nullptr)                                                                    \
+#define LOAD_FUNC(func) func##Func = reinterpret_cast<func##Type>(dlsym(handle_1, #func));            \
+        if (func##Func != nullptr)                                                                    \
         {                                                                                       \
             FFRT_LOGI("load func %s from %s success", #func, TRACE_LIB_PATH_1.c_str());         \
         } else {                                                                                \
-            func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                        \
-            if (func == nullptr)                                                                \
+            func##Func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                        \
+            if (func##Func == nullptr)                                                                \
             {                                                                                   \
                 FFRT_LOGE("load func %s from %s failed", #func, TRACE_LIB_PATH_2.c_str());      \
                 return;                                                                         \
@@ -146,7 +148,7 @@ private:
 
 static int EndFrameFreqAdapter(int stateParam)
 {
-    auto func = TaskClientAdapter::Instance()->EndFrameFreq;
+    auto func = TaskClientAdapter::Instance()->EndFrameFreqFunc;
     if (func != nullptr) {
         return func(stateParam);
     }
@@ -155,7 +157,7 @@ static int EndFrameFreqAdapter(int stateParam)
 
 static int BeginFrameFreqAdapter(int stateParam)
 {
-    auto func = TaskClientAdapter::Instance()->BeginFrameFreq;
+    auto func = TaskClientAdapter::Instance()->BeginFrameFreqFunc;
     if (func != nullptr) {
         return func(stateParam);
     }
@@ -164,7 +166,7 @@ static int BeginFrameFreqAdapter(int stateParam)
 
 static int DestroyRtgGrpAdapter(int grpId)
 {
-    auto func = TaskClientAdapter::Instance()->DestroyRtgGrp;
+    auto func = TaskClientAdapter::Instance()->DestroyRtgGrpFunc;
     if (func != nullptr) {
         return func(grpId);
     }
@@ -173,7 +175,7 @@ static int DestroyRtgGrpAdapter(int grpId)
 
 static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
 {
-    auto func = TaskClientAdapter::Instance()->AddThreadToRtg;
+    auto func = TaskClientAdapter::Instance()->AddThreadToRtgFunc;
     if (func != nullptr) {
         return func(tid, grpId, prioType);
     }
@@ -182,7 +184,7 @@ static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
 
 #define CTC_QUERY_INTERVAL(queryItem, queryRs)                             \
     do {                                                                   \
-        auto func = TaskClientAdapter::Instance()->CTC_QueryInterval;      \
+        auto func = TaskClientAdapter::Instance()->CTC_QueryIntervalFunc   \
         if (func != nullptr) {                                             \
             func(queryItem, queryRs);                                      \
         }                                                                  \

@@ -29,7 +29,7 @@ constexpr int RS_RTG_ID = 10;
 
 namespace ffrt {
 static int wgId = -1;
-static Workgroup rsWorkGroup = nullptr;
+static Workgroup *rsWorkGroup = nullptr;
 static int wgCount = 0;
 static std::mutex wgLock;
 

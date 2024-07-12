@@ -180,7 +180,10 @@ bool LeaveWG(int tid)
 
 struct Workgroup* WorkgroupCreate(uint64_t interval)
 {
+    int rtgId = -1;
     int uid = getuid();
+    int num = 0;
+    
     if (uid == RS_UID) {
         CreateRSWorkGroup(interval);
         return rsWorkGroup;

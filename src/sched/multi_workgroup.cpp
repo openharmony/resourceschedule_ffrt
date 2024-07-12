@@ -100,7 +100,7 @@ void CreateRSWorkGroup(uint64_t interval)
     }
 }
 
-void LeaveRSWorkGroup(int tid)
+bool LeaveRSWorkGroup(int tid)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
@@ -113,7 +113,7 @@ void LeaveRSWorkGroup(int tid)
     return true;
 }
 
-void JoinRSWorkGroup(int tid)
+bool JoinRSWorkGroup(int tid)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {

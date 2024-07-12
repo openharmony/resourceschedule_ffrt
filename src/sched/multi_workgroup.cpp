@@ -87,7 +87,7 @@ void CreateRSWorkGroup(uint64_t interval)
     {
         std::lock_guard<std::mutex> lck(wgLock);
         if (rsWorkGroup == nullptr) {
-            CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, td);
+            CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
             if (rs.rtgId > 0) {
                 rsWorkGroup = new struct Workgroup();
                 if (rsWorkGroup == nullptr) {

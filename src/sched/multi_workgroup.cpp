@@ -60,7 +60,8 @@ int FindThreadInWorkGroup(Workgroup *workGroup, int tid)
     return 1;
 }
 
-bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid){
+bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
+{
     if (workGroup != nullptr) {
         return -1;
     }
@@ -78,7 +79,8 @@ bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid){
     return true;
 }
 
-void CreateRSWorkGroup(uint64_t interval) {
+void CreateRSWorkGroup(uint64_t interval) 
+{
     IntervalReply rs;
     rs.rtgId = -1;
     rs.tid = -1;
@@ -98,7 +100,8 @@ void CreateRSWorkGroup(uint64_t interval) {
     }
 }
 
-void LeaveRSWorkGroup(int tid) {
+void LeaveRSWorkGroup(int tid) 
+{
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
         return false;
@@ -110,7 +113,8 @@ void LeaveRSWorkGroup(int tid) {
     return true;
 }
 
-void JoinRSWorkGroup(int tid) {
+void JoinRSWorkGroup(int tid) 
+{
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
         return false;
@@ -131,7 +135,8 @@ void JoinRSWorkGroup(int tid) {
     return true;
 }
 
-bool DestoryRSWorkGroup() {
+bool DestoryRSWorkGroup() 
+{
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup != nullptr) {
         delete rsWorkGroup;

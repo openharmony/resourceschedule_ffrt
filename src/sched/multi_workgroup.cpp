@@ -54,7 +54,7 @@ int FindThreadInWorkGroup(Workgroup *workGroup, int tid)
     }
     for (int i = 0;i < MAX_WG_THREADS; i++) {
         if (workGroup->tids[i] == tid) {
-           return i;
+            return i;
         }
     }
     return 1;
@@ -79,7 +79,7 @@ bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
     return true;
 }
 
-void CreateRSWorkGroup(uint64_t interval) 
+void CreateRSWorkGroup(uint64_t interval)
 {
     IntervalReply rs;
     rs.rtgId = -1;
@@ -100,7 +100,7 @@ void CreateRSWorkGroup(uint64_t interval)
     }
 }
 
-void LeaveRSWorkGroup(int tid) 
+void LeaveRSWorkGroup(int tid)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
@@ -113,7 +113,7 @@ void LeaveRSWorkGroup(int tid)
     return true;
 }
 
-void JoinRSWorkGroup(int tid) 
+void JoinRSWorkGroup(int tid)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
@@ -125,7 +125,7 @@ void JoinRSWorkGroup(int tid)
         rs.rtgId = -1;
         rs.tid = tid;
         CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, td);
-        if(rs.rtgId > 0) {
+        if (rs.rtgId > 0) {
             bool success = InsertThreadInWorkGroup(rsWorkGroup, tid);
             if (!success) {
                 return false;
@@ -135,7 +135,7 @@ void JoinRSWorkGroup(int tid)
     return true;
 }
 
-bool DestoryRSWorkGroup() 
+bool DestoryRSWorkGroup()
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup != nullptr) {
@@ -169,7 +169,8 @@ bool JoinWG(int tid)
     return true;
 }
 
-bool LeaveWG(int tid) {
+bool LeaveWG(int tid)
+{
     int uid = getuid();
     if (uid == RS_UID) {
         return LeaveRSWorkGroup(tid);

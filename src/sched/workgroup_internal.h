@@ -57,7 +57,7 @@ inline struct Workgroup* WorkgroupCreate(uint64_t interval __attribute__((unused
         return nullptr;
     }
     return wg;
-} 
+}
 
 inline int WorkgroupClear(struct Workgroup* wg)
 {

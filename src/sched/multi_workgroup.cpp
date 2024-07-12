@@ -147,8 +147,6 @@ bool DestoryRSWorkGroup()
     return false;
 }
 
-
-
 bool JoinWG(int tid)
 {
     if (wgId < 0) {

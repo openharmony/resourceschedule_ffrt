@@ -73,7 +73,7 @@ config("ffrt_config") {
     defines += [ "APP_USE_ARM" ]
   }
 
-  if (is_ohos) {
+  if (is_ohos && !ffrt_task_local_enable) {
     defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
   }
 

@@ -68,9 +68,9 @@ bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
     int targetIndex = -1;
     for (int i = 0;i < MAX_WG_THREADS; i++) {
         if (workGroup->tids[i] == -1) {
-           workGroup->tids[i] = tid;
-           targetIndex = i;
-           break;
+            workGroup->tids[i] = tid;
+            targetIndex = i;
+            break;
         }
     }
     if (targetIndex == -1) {

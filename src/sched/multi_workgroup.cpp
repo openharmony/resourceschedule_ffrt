@@ -298,3 +298,4 @@ void WorkgroupJoin(struct Workgroup* wg, int tid)
 }
 
 #endif /* QOS_FRAME_RTG */
+#endif

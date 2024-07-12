@@ -106,7 +106,7 @@ void LeaveRSWorkGroup(int tid)
     if (rsWorkGroup == nullptr) {
         return false;
     }
-    int exitIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
+    int existIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
     if (existIndex != -1) {
         workGroup->tids[i] = -1;
     }
@@ -119,7 +119,7 @@ void JoinRSWorkGroup(int tid)
     if (rsWorkGroup == nullptr) {
         return false;
     }
-    int exitIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
+    int existIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
     if (existIndex == -1) {
         IntervalReply rs;
         rs.rtgId = -1;

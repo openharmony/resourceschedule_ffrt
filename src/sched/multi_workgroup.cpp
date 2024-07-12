@@ -108,7 +108,7 @@ bool LeaveRSWorkGroup(int tid)
     }
     int existIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
     if (existIndex != -1) {
-        workGroup->tids[i] = -1;
+        rsWorkGroup->tids[existIndex] = -1;
     }
     return true;
 }
@@ -124,7 +124,7 @@ bool JoinRSWorkGroup(int tid)
         IntervalReply rs;
         rs.rtgId = -1;
         rs.tid = tid;
-        CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, td);
+        CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
         if (rs.rtgId > 0) {
             bool success = InsertThreadInWorkGroup(rsWorkGroup, tid);
             if (!success) {

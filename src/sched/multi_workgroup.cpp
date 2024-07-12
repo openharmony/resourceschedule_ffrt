@@ -15,8 +15,8 @@
 
 
 #include "workgroup_internal.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <mutex>
 #include "dfx/log/ffrt_log_api.h"

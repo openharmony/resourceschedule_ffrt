@@ -221,7 +221,6 @@ int WorkgroupClear(struct Workgroup* wg)
         return 0;
     }
     int ret = -1;
-    int uid = getuid();
     if (uid != RS_UID) {
         ret = DestroyRtgGrpAdapter(wg->rtgId);
         if (ret != 0) {

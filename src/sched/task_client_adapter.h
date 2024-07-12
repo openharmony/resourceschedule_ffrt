@@ -105,14 +105,12 @@ private:
             return;
         }
 
-#define LOAD_FUNC(func) func##Func = reinterpret_cast<func##Type>(dlsym(handle_1, #func));            \
-        if (func##Func != nullptr)                                                                    \
-        {                                                                                       \
+#define LOAD_FUNC(func) func##Func = reinterpret_cast<func##Type>(dlsym(handle_1, #func));      \
+        if (func##Func != nullptr) {                                                            \
             FFRT_LOGI("load func %s from %s success", #func, TRACE_LIB_PATH_1.c_str());         \
         } else {                                                                                \
-            func##Func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                        \
-            if (func##Func == nullptr)                                                                \
-            {                                                                                   \
+            func##Func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                  \
+            if (func##Func == nullptr) {                                                        \
                 FFRT_LOGE("load func %s from %s failed", #func, TRACE_LIB_PATH_2.c_str());      \
                 return;                                                                         \
             }                                                                                   \

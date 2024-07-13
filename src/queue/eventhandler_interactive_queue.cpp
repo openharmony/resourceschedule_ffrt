@@ -27,7 +27,7 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
     Priority prio = EventHandlerAdapter::Instance()->ConvertPriority(task->GetPriority());
     FFRT_COND_DO_ERR((prio > Priority::IDLE), return FAILED, "Priority invalid.");
 
-    int delayUs = task->GetDelay();
+    int delayUs = static_cast<int>(task->GetDelay());
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> func = [=]() {
         f->exec(f);

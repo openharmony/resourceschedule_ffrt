@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#include "cpp/thread.h"
 #include "c/thread.h"
+#include "cpp/thread.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 

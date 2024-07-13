@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FFRT_EVENT_HANDLER_ADAPTER_H
-#define FFRT_EVENT_HANDLER_ADAPTER_H
+#ifndef __FFRT_EVENT_HANDLER_ADAPTER_H__
+#define __FFRT_EVENT_HANDLER_ADAPTER_H__
 #include <dlfcn.h>
 #include <string>
 #include <mutex>
@@ -35,7 +35,7 @@ enum class Priority : uint32_t {
     IMMEDIATE,
     // High priority event, sorted by handle time, should be distributed before low priority event.
     HIGH,
-    // Normal event, sorted by handle time
+    // Normal event, sorted by handle time.
     LOW,
     // Event that should be distributed only if no other event right now.
     IDLE,
@@ -49,6 +49,7 @@ struct TaskOptions {
     TaskOptions(std::string dfxName, int64_t delayTime, Priority priority, uintptr_t taskId)
         : dfxName_(dfxName), delayTime_(delayTime), priority_(priority), taskId_(taskId) {}
 };
+
 void* GetMainEventHandlerForFFRT();
 void* GetCurrentEventHandlerForFFRT();
 bool PostTaskByFFRT(void* handler, const std::function<void()>& callback, const TaskOptions& task);
@@ -132,5 +133,5 @@ private:
     void* handle_ = nullptr;
     std::mutex mutex_;
 };
-} // namespace ffrt
-#endif // FFRT_EVENT_HANDLER_ADAPTER_H
+}  // namespace ffrt
+#endif // __FFRT_EVENT_HANDLER_ADAPTER_H__

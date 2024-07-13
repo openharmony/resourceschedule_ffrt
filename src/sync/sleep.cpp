@@ -42,7 +42,7 @@ void sleep_until_impl(const time_point_t& to)
 {
     auto task = ExecuteCtxTask();
     if (ThreadWaitMode(task)) {
-        if FFRT_UNLIKELY(LegacyMode(task)) {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
         std::this_thread::sleep_until(to);
@@ -68,7 +68,7 @@ void ffrt_yield()
 {
     auto curTask = ffrt::this_task::ExecuteCtxTask();
     if (ThreadWaitMode(curTask)) {
-        if FFRT_UNLIKELY(LegacyMode(curTask)) {
+        if (FFRT_UNLIKELY(LegacyMode(curTask))) {
             curTask->blockType = BlockType::BLOCK_THREAD;
         }
         std::this_thread::yield();

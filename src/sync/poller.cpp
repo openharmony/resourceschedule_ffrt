@@ -357,17 +357,17 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     if (!timerMap_.empty()) {
         auto cur = timerMap_.begin();
         timerHandle = cur->second.handle;
-
+        time_point_t now = std::chrono::steady_clock::now();
         realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-            cur->first - std::chrono::steady_clock::now()).count();
+            cur->first - now).count();
         if (realTimeout <= 0) {
-            ExecuteTimerCb(cur->first);
+            ExecuteTimerCb(now);
             return PollerRet::RET_TIMER;
         }
 
-        if (timeout != -1) {
+        if (timeout != -1 && realTimeout >= timeout) {
             timerHandle = -1;
-            realTimeout = timeout;
+            realTimeout = std::min(realTimeout, timeout);
         }
 
         flag_ = EpollStatus::WAIT;

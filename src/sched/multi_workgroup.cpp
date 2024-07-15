@@ -49,7 +49,8 @@ void WorkgroupInit(struct Workgroup* wg, uint64_t interval, int rtgId)
 
 int FindThreadInWorkGroup(Workgroup *workGroup, int tid)
 {
-    if (workGroup != nullptr) {
+    if (workGroup == nullptr) {
+        FFRT_LOGE("[RSWorkGroup] find thread %{public}d in workGroup failed, workGroup is null", tid);
         return -1;
     }
     for (int i = 0;i < MAX_WG_THREADS; i++) {
@@ -62,7 +63,8 @@ int FindThreadInWorkGroup(Workgroup *workGroup, int tid)
 
 bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
 {
-    if (workGroup != nullptr) {
+    if (workGroup == nullptr) {
+        FFRT_LOGE("[RSWorkGroup] join thread %{public}d into workGroup failed, workGroup is null", tid);
         return -1;
     }
     int targetIndex = -1;
@@ -74,6 +76,7 @@ bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
         }
     }
     if (targetIndex == -1) {
+        FFRT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed, max_thread_num: %{public}d", tid, MAX_WG_THREADS);
         return false;
     }
     return true;
@@ -91,6 +94,7 @@ void CreateRSWorkGroup(uint64_t interval)
             if (rs.rtgId > 0) {
                 rsWorkGroup = new struct Workgroup();
                 if (rsWorkGroup == nullptr) {
+                    FFRT_LOGE("[RSWorkGroup] rsWorkGroup malloc failed!");
                     return;
                 }
                 WorkgroupInit(rsWorkGroup, interval, rs.rtgId);
@@ -98,18 +102,21 @@ void CreateRSWorkGroup(uint64_t interval)
             }
         }
     }
+    FFRT_LOGI("[RSWorkGroup] query render_service %{public}d", rs.rtgId);
 }
 
 bool LeaveRSWorkGroup(int tid)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
+        FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup rsWorkGroup is null ,tid:%{public}d", tid);
         return false;
     }
     int existIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
     if (existIndex != -1) {
         rsWorkGroup->tids[existIndex] = -1;
     }
+    FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup ,tid:%{public}d,existIndex:%{public}d", tid, existIndex);
     return true;
 }
 
@@ -117,6 +124,7 @@ bool JoinRSWorkGroup(int tid)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
+        FFRT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed; Create RSWorkGroup first", tid);
         return false;
     }
     int existIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
@@ -132,6 +140,7 @@ bool JoinRSWorkGroup(int tid)
             }
         }
     }
+    FFRT_LOGI("[RSWorkGroup] update thread %{public}d success", tid);
     return true;
 }
 

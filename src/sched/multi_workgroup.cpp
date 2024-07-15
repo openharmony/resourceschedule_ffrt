@@ -72,7 +72,7 @@ bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
         if (workGroup->tids[i] == -1) {
             workGroup->tids[i] = tid;
             targetIndex = i;
-            break;
+            return true;
         }
     }
     if (targetIndex == -1) {

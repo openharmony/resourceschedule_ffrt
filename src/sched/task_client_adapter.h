@@ -32,6 +32,7 @@ struct IntervalReply {
     int tid;
     int paramA;
     int paramB;
+    std::string bundleName;
 };
 
 enum QueryIntervalItem {

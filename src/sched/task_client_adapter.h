@@ -25,7 +25,7 @@
 #include <dlfcn.h>
 #endif
 
-#ifdef QOS_WORKER_FRAME_RTG
+#if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
 
 struct IntervalReply {
     int rtgId;

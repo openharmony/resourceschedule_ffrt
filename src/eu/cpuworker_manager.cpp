@@ -38,19 +38,19 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     }
 
     auto worker = std::unique_ptr<WorkerThread>(new (std::nothrow) CPUWorker(qos, {
-        std::bind(&CPUWorkerManager::PickUpTask, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::NotifyTaskPicked, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::WorkerIdleAction, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::WorkerRetired, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::WorkerPrepare, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::TryPoll, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&CPUWorkerManager::StealTaskBatch, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::PickUpTaskBatch, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::TryMoveLocal2Global, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::UpdateBlockingNum, this, std::placeholders::_1, std::placeholders::_2),
+        [this] (WorkerThread* thread) { return this->PickUpTask(thread); },
+        [this] (const WorkerThread* thread) { this->NotifyTaskPicked(thread); },
+        [this] (const WorkerThread* thread) { return this->WorkerIdleAction(thread); },
+        [this] (WorkerThread* thread) { this->WorkerRetired(thread); },
+        [this] (WorkerThread* thread) { this->WorkerPrepare(thread); },
+        [this] (const WorkerThread* thread, int timeout) { return this->TryPoll(thread, timeout); },
+        [this] (WorkerThread* thread) { return this->StealTaskBatch(thread); },
+        [this] (WorkerThread* thread) { return this->PickUpTaskBatch(thread); },
+        [this] (WorkerThread* thread) { this->TryMoveLocal2Global(thread); },
+        [this] (const QoS& qos, bool var) { this->UpdateBlockingNum(qos, var); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        std::bind(&CPUWorkerManager::IsExceedRunningThreshold, this, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::IsBlockAwareInit, this),
+        [this] (const WorkerThread* thread) { return this->IsExceedRunningThreshold(thread); },
+        [this] () { return this->IsBlockAwareInit(); },
 #endif
     }));
     if (worker == nullptr || worker->Exited()) {

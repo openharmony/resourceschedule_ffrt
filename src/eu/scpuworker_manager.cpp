@@ -33,11 +33,11 @@ constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000;
 SCPUWorkerManager::SCPUWorkerManager()
 {
     monitor = new SCPUMonitor({
-        std::bind(&SCPUWorkerManager::IncWorker, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::WakeupWorkers, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetTaskCount, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetWorkerCount, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetBlockingNum, this, std::placeholders::_1)
+        [this] (const QoS& qos) { return this->IncWorker(qos); },
+        [this] (const QoS& qos) { this->WakeupWorkers(qos); },
+        [this] (const QoS& qos) { return this->GetTaskCount(qos); },
+        [this] (const QoS& qos) { return this->GetWorkerCount(qos); },
+        [this] (const QoS& qos) { return this->GetBlockingNum(qos); },
     });
 }
 

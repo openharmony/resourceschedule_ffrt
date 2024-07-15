@@ -43,11 +43,13 @@ struct Workgroup {
     WgType type;
 };
 
-#if defined(QOS_WORKER_FRAME_RTG)
+#if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
+
 struct Workgroup* WorkgroupCreate(uint64_t interval);
 int WorkgroupClear(struct Workgroup* wg);
 bool JoinWG(int tid);
 bool LeaveWG(int tid);
+
 #else
 
 inline struct Workgroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))

@@ -77,7 +77,7 @@ bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
     }
     if (targetIndex == -1) {
         FFRT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed, max_thread_num: %{public}d",
-                tid, MAX_WG_THREADS);
+        tid, MAX_WG_THREADS);
         return false;
     }
     return true;

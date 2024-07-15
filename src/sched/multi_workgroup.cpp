@@ -58,7 +58,7 @@ int FindThreadInWorkGroup(Workgroup *workGroup, int tid)
             return i;
         }
     }
-    return 1;
+    return -1;
 }
 
 bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)

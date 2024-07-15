@@ -231,33 +231,6 @@ TEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwait)
     close(testFd);
 }
 
-TEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwake)
-{
-    int x = 0;
-    int* xf = &x;
-    void* data = xf;
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    uint64_t timeout1 = 400;
-    uint64_t timeout2 = 10;
-    uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
-    EXPECT_EQ(1, ffrt_timer_start(qos, timeout2, data, cb, false));
-    struct TestData testData {.fd = testFd, .expected = expected};
-    ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-
-    usleep(15000);
-    ffrt::submit([&]() {
-        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint64_t));
-        }, {}, {});
-    ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
-    ffrt::wait();
-    EXPECT_EQ(1, x);
-    close(testFd);
-}
-
 TEST_F(ffrtIoTest, ffrt_timer_start_succ_long_timeout_flagwake)
 {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;

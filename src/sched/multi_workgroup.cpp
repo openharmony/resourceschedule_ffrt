@@ -33,7 +33,7 @@ static Workgroup *rsWorkGroup = nullptr;
 static int wgCount = 0;
 static std::mutex wgLock;
 
-#if defined(QOS_WORKER_FRAME_RTG)
+#if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
 
 void WorkgroupInit(struct Workgroup* wg, uint64_t interval, int rtgId)
 {

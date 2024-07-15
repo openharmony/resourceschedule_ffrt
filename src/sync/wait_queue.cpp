@@ -18,7 +18,6 @@
 #include "eu/co_routine.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
-#include "internal_inc/types.h"
 #include "sync/mutex_private.h"
 #include "tm/cpu_task.h"
 

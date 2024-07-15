@@ -43,6 +43,8 @@ private:
     SDependenceManager();
     ~SDependenceManager() override;
 
+    void RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
+        std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup);
     void MapSignature2Deps(SCPUEUTask* task, const std::vector<const void*>& inDeps,
         const std::vector<const void*>& outDeps, std::vector<std::pair<VersionCtx*, NestType>>& inVersions,
         std::vector<std::pair<VersionCtx*, NestType>>& outVersions);

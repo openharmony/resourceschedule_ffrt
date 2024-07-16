@@ -99,6 +99,10 @@ public:
     {
     }
     
+    virtual int onExecResults(const ffrt_deps_t* deps)
+    {
+    }
+    
     static inline CPUEUTask* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval

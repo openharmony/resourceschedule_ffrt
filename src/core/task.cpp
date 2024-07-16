@@ -343,16 +343,6 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
     ffrt_task_handle_dec_ref(handle);
 }
 
-API_ATTRIBUTE((visibility("default")))
-void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
-{
-    if (handle == nullptr) {
-        FFRT_LOGE("input task handle is invalid");
-        return;
-    }
-    static_cast<ffrt::CPUEUTask*>(handle)->DecDeleteRef();
-}
-
 // wait
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wait_deps(const ffrt_deps_t *deps)

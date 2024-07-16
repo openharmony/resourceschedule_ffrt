@@ -243,7 +243,7 @@ struct dependence : ffrt_dependence_t {
             type = other.type;
             ptr = other.ptr;
             if (type == ffrt_dependence_task) {
-                ffrt_task_handle_inc_ref(const_cast<ffrt_task_handle_t>(ptr));                
+                ffrt_task_handle_inc_ref(const_cast<ffrt_task_handle_t>(ptr));
             }
         }
         return *this;
@@ -262,7 +262,7 @@ struct dependence : ffrt_dependence_t {
     ~dependence()
     {
         if (type == ffrt_dependence_task && ptr) {
-            ffrt_task_handle_dec_ref(const_cast<ffrt_task_handle_t>(ptr));        
+            ffrt_task_handle_dec_ref(const_cast<ffrt_task_handle_t>(ptr));
         }
     }
 };

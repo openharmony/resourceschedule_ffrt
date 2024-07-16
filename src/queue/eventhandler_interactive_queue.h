@@ -32,7 +32,7 @@ public:
         return nullptr;
     }
 
-    bool GetActiveStatus() const override
+    bool GetActiveStatus() override
     {
         return false;
     }

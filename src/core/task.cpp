@@ -318,6 +318,32 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 }
 
 API_ATTRIBUTE((visibility("default")))
+void ffrt_task_handle_inc_ref(ffrt_task_handle_t handle)
+{
+    if (handle == nullptr) {
+        FFRT_LOGE("input task handle is invalid");
+        return;
+    }
+    static_cast<ffrt::CPUEUTask*>(handle)->IncDeleteRef();
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_handle_dec_ref(ffrt_task_handle_t handle)
+{
+    if (handle == nullptr) {
+        FFRT_LOGE("input task handle is invalid");
+        return;
+    }
+    static_cast<ffrt::CPUEUTask*>(handle)->DecDeleteRef();
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
+{
+    ffrt_task_handle_dec_ref(handle);
+}
+
+API_ATTRIBUTE((visibility("default")))
 void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
 {
     if (handle == nullptr) {

@@ -37,6 +37,8 @@ public:
     void onWait(const ffrt_deps_t* deps) override;
 #endif
 
+    int onExecResults(const ffrt_deps_t* deps) override;
+
     void onTaskDone(CPUEUTask* task) override;
 
 private:

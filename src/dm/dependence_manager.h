@@ -127,7 +127,9 @@ public:
     virtual void onTaskDone(CPUEUTask* task)
     {
     }
-
+    
+    virtual int onExecResults(const ffrt_deps_t* deps) = 0;
+    
     static inline CPUEUTask* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval

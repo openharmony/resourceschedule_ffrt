@@ -128,9 +128,7 @@ public:
     {
     }
     
-    virtual int onExecResults(const ffrt_deps_t* deps)
-    {
-    }
+    virtual int onExecResults(const ffrt_deps_t* deps) = 0;
     
     static inline CPUEUTask* Root()
     {

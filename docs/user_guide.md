@@ -9,8 +9,10 @@
 
 | 版本 | 编辑                                                         | 主要变更                                                     | 日期       |
 | ---- | ------------------------------------------------------------ | ------------------------------------------------------------ | ---------- |
-| V0.1 | linjiashu <br />zhangguowei <br />huangyouzhong  | 发布以下API：<br />1. task 管理，包括：submit，wait，task_attr, task_handle/submit_h<br />2. 同步原语，包括：mutex，condition_variable<br />3. Deadline 调度<br />4. 杂项：sleep，yield<br /> | 2022/09/26 |
-
+| V0.1 | linjiashu <br />zhangguowei <br />huangyouzhong  | 发布以下API：<br />1. task 管理，包括：submit，wait，task_attr, task_handle/submit_h<br />2. 同步原语，包括：mutex，shared_mutex, condition_variable<br />3. Deadline 调度<br />4. 杂项：sleep，yield<br /> | 2022/09/26 |
+| V0.1.1 | shengxia  | 部分描述更新 | 2023/08/24 |
+| V0.1.2 | wanghuachen  | 新增串行队列相关接口以及说明，增加规范以避免double free问题 | 2023/10/07 |
+| V0.1.3 | shengxia  | 优化串行队列内容描述 | 2024/01/12 |
 
 <br/>
 
@@ -116,6 +118,10 @@ task5(OUT A);
 <hr/>
 * 向调度器提交一个task
 * 该接口是异步的，即该接口不等到task完成即可返回，因此，通常与[wait](#wait) 配合使用
+
+* 建议FFRT任务上下文使用ffrt::mutex替代std::mutex
+  * API上，二者仅在命令空间上有差异，可平滑替换(ffrt::mutex可在非ffrt task中调用，效果与普通的锁一致)
+  * ffrt::mutex相对std::mutex开销更小，且不会阻塞FFRT的worker线程(提交到FFRT的任务中大量使用std::mutex有FFRT worker线程被耗尽而死锁的风险)
 
 #### 声明
 
@@ -672,6 +678,333 @@ return 1
 
 
 
+## 串行队列
+<hr />
+
+串行队列基于FFRT协程调度模型，实现了消息队列功能。串行任务执行在FFRT worker上，用户无需维护一个专用的线程，拥有更轻量级的调度开销。
+
+支持以下基本功能：
+
+* 支持创建队列，创建队列时可指定队列名称和优先级，每个队列在功能上相当于一个单独的线程，队列中的任务相对于用户线程异步执行。
+
+* 支持延时任务，向队列提交任务时支持设置 delay 属性，单位为微秒 us，提交给队列的延时任务，在提交时刻+delay时间后才会被调度执行。
+
+* 支持串行调度，同一个队列中的多个任务按照 uptime （提交时刻+delay时间）升序排列、串行执行，队列中一个任务完成后下一个任务才会开始。
+
+* 支持取消任务，支持根据任务句柄取消单个未执行的任务，如果这个任务已出队（开始执行或已执行完），取消接口返回异常值。
+
+* 支持同步等待，支持根据任务句柄等待指定任务完成，该任务完成，也代表同一队列中uptime在此任务之前的所有任务都已完成。
+
+### queue
+<hr/>
+
+#### 描述
+FFRT串行队列 C++ API，提供提交任务、取消任务、等待任务执行完成等功能
+
+#### 声明
+
+```{.cpp}
+namespace ffrt {
+class queue {
+public:
+    queue(queue const&) = delete;
+    void operator=(queue const&) = delete;
+
+    void submit(const std::function<void()>& func);
+    void submit(const std::function<void()>& func, const task_attr& attr);
+    void submit(std::function<void()>&& func);
+    void submit(std::function<void()>&& func, const task_attr& attr);
+
+    task_handle submit_h(const std::function<void()>& func);
+    task_handle submit_h(const std::function<void()>& func, const task_attr& attr);
+    task_handle submit_h(std::function<void()>&& func);
+    task_handle submit_h(std::function<void()>&& func, const task_attr& attr);
+
+    int cancel(const task_handle& handle);
+
+    void wait(const task_handle& handle);
+};
+}
+```
+
+#### 方法
+
+##### submit
+
+```{.cpp}
+namespace ffrt {
+void queue::submit(const std::function<void()>& func);
+void queue::submit(const std::function<void()>& func, const task_attr& attr);
+void queue::submit(std::function<void()>&& func);
+void queue::submit(std::function<void()>&& func, const task_attr& attr);
+}
+```
+
+* 描述：提交一个任务到队列中调度执行
+
+* 参数：
+
+  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至时函数对象
+
+  `attr`：该参数时可选的，用于描述task的属性，如qos、delay、timeout等，详见[task_attr](#task_attr)章节
+
+* 返回值：不涉及
+
+##### submit_h
+
+```{.cpp}
+namespace ffrt {
+task_handle queue::submit_h(const std::function<void()>& func);
+task_handle queue::submit_h(const std::function<void()>& func, const task_attr& attr);
+task_handle queue::submit_h(std::function<void()>&& func);
+task_handle queue::submit_h(std::function<void()>&& func, const task_attr& attr);
+}
+```
+
+* 描述：提交一个任务到队列中调度执行，并返回一个句柄
+
+* 参数：
+
+  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至时函数对象
+
+  `attr`：该参数时可选的，用于描述task的属性，如qos、delay、timeout等，详见[task_attr](#task_attr)章节
+
+* 返回值：
+
+  `task_handle`：task的句柄，该句柄可以用于建立task之间的依赖
+
+##### cancel
+
+```{.cpp}
+namespace ffrt {
+int queue::cancel(const task_handle& handle);
+}
+```
+
+* 描述：根据句柄取消对应的任务
+
+* 参数：
+
+  `handle`：任务的句柄
+
+* 返回值：
+
+  若成功返回0，否则返回其他非0值
+
+##### wait
+
+```{.cpp}
+namespace ffrt {
+void queue::wait(const task_handle& handle);
+}
+```
+
+* 描述：等待句柄对应的任务执行完成
+
+* 参数：
+
+  `handle`：任务的句柄
+
+* 返回值：不涉及
+
+
+#### 样例
+
+```{.cpp}
+#include "ffrt.h"
+
+int main(int narg, char** argv)
+{
+    // 创建队列，可设置队列优先级，默认为default等级
+    ffrt::queue q("test_queue", ffrt::queue_attr().qos(ffrt::qos_utility));
+
+    int x = 0;
+    // 提交串行任务
+    q.submit([&x] { x += 10; });
+
+    // 提交串行任务，并返回任务句柄
+    task_handle t1 = q.submit_h([&x] { x += 10; });
+
+    // 提交串行任务，设置延时时间1000us，并返回任务句柄
+    task_handle t2 = q.submit_h([&x] { x += 10; }, ffrt::task_attr().delay(1000));
+
+    // 等待指定任务执行完成
+    q.wait(t1);
+
+    // 取消句柄为t2的任务
+    q.cancel(t2);
+}
+```
+
+#### 使用约束
+
+* 队列销毁时，会等待正在执行的任务执行完成，队列中还没有开始执行的任务会被取消。
+
+* 任务粒度，串行队列支持任务执行超时检测（默认阈值30s，进程可配），因此队列中的单个任务不应该常驻（如循环任务），超过30s会向DFX上报超时。
+
+* 同步原语，任务中如果使用了 std::mutex/std::shared_mutex/std::condition_variable等std同步原语，会影响协程效率，需修改ffrt同步原语。
+
+  当前FFRT仅支持ffrt::mutex / ffrt::shared_mutex / ffrt::recursive_mutex / ffrt::condition_variable，用法和std相同，在ffrt的任务中使用未支持同步原语可能导致未定义的行为。
+
+* 生命周期，进程结束前需要释放FFRT资源。
+
+  例如SA业务，会在全局变量中管理串行队列。由于进程会先卸载libffrt.so再释放全局变量，如果进程结束时，SA未显式释放持有的队列，队列将随全局变量析构，析构时会访问已释放的ffrt资源，导致Fuzz用例出现use-after-free问题。
+
+* 不允许再串行任务中调用ffrt::submit和ffrt::wait，其行为是未定义的
+
+* 不允许使用ffrt::wait等待一个串行任务
+
+### queue_attr
+<hr/>
+
+#### 描述
+FFRT串行队列 C++ API，提供设置与获取串行队列优先级、设置与获取串行队列任务执行超时时间、设置与获取串行队列超时回调函数等功能
+
+#### 声明
+
+```{.cpp}
+namespace ffrt {
+class queue_attr {
+public: 
+    queue_attr(const queue_attr&) = delete;
+    queue_attr& operator=(const queue_attr&) = delete;
+
+    queue_attr& qos(qos qos_);
+    uint64_t timeout() const;
+
+    queue_attr& callback(const std::function<void()>& func);
+    ffrt_function_header_t* callback() const;
+};
+}
+```
+
+#### 方法
+
+##### set qos
+
+```{.cpp}
+namespace ffrt {
+queue_attr& queue_attr::qos(qos qos_);
+}
+```
+
+* 描述：设置队列属性的qos成员
+
+* 参数：
+
+  `qos_`：串行队列的优先级
+
+* 返回值：
+
+  `queue_attr`：串行队列的属性
+
+##### get qos
+
+```{.cpp}
+namespace ffrt {
+int queue_attr::qos() const;
+}
+```
+
+* 描述：获取队列的优先级
+
+* 参数：不涉及
+
+* 返回值：
+
+  `qos`：串行队列的优先级
+
+##### set timeout
+
+```{.cpp}
+namespace ffrt {
+queue_attr& queue_attr::timeout(uint64_t timeout_us);
+}
+```
+
+* 描述：设置串行队列任务执行超时时间
+
+* 参数：
+
+  `timeout_us`：串行队列任务执行超时时间，单位为us
+
+* 返回值：
+
+  `queue_attr`：串行队列的属性
+
+##### get timeout
+
+```{.cpp}
+namespace ffrt {
+uint64_t queue_attr::timeout() const;
+}
+```
+
+* 描述：获取所设的串行队列任务执行超时时间
+
+* 参数：不涉及
+
+* 返回值：
+
+  `timeout`：串行队列任务执行超时时间，单位为us
+
+##### set timeout callback
+
+```{.cpp}
+namespace ffrt {
+queue_attr& callback(std::function<void()>& func);
+}
+```
+
+* 描述：设置串行队列超时回调函数
+
+* 参数：
+
+  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至时函数对象
+
+* 返回值：
+
+  `queue_attr`：串行队列的属性
+
+##### get timeout callback
+
+```{.cpp}
+namespace ffrt {
+ffrt_function_header_t* callback() const;
+}
+```
+
+* 描述：获取所设的串行队列超时回调函数
+
+* 参数：不涉及
+
+* 返回值：
+
+  `ffrt_function_header_t`：任务执行器，描述了该CPU Task如何执行和销毁的函数指针
+
+#### 样例
+```{.cpp}
+#include <stdio.h>
+#include "ffrt.h"
+
+int main(int narg, char** argv)
+{
+    std::function<void()> callbackFunc = [&x]() {
+        ...
+    };
+
+    // 创建队列，可设置队列优先级，默认为default等级
+    ffrt::queue q1("test_queue", queue_attr().qos(qos_utility));
+
+    // 创建队列，可通过设置timeout打开队列任务超时监测，默认不设置（关闭）
+    // 超时会打印Error日志并执行用户设置的callback（可选）
+    ffrt::queue q2("test_queue", ffrt::queue_attr().timeout(1000).callback(callbackFunc));
+
+    return 0;
+}
+```
+
+
 ## 同步原语
 
 ### mutex
@@ -703,7 +1036,6 @@ public:
 * 不涉及
 
 #### 描述
-* 该接口只能在FFRT task 内部调用，在FFRT task 外部调用存在未定义的行为
 * 该功能能够避免传统的std::mutex 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
 
 #### 样例
@@ -744,6 +1076,85 @@ sum=45
 
 * 该例子为功能示例，实际中并不鼓励这样使用
 
+### shared_mutex
+<hr/>
+* FFRT提供的类似std::shared_mutex 的性能实现
+
+#### 声明
+
+```{.cpp}
+namespace ffrt {
+class shared_mutex {
+public:
+    shared_mutex(shared_mutex const &) = delete;
+    void operator =(shared_mutex const &) = delete;
+
+    void lock();
+    void unlock();
+    bool try_lock();
+
+    void lock_shared();
+    void unlock_shared();
+    bool try_lock_shared();
+};
+}
+```
+
+#### 参数
+
+* 不涉及
+
+#### 返回值
+
+* 不涉及
+
+#### 描述
+* 该功能能够避免传统的std::shared_mutex 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
+
+#### 样例
+
+```{.cpp}
+#include <iostream>
+#include "ffrt_inner.h"
+
+void ffrt_shared_mutex_task()
+{
+    int sum = 0;
+    ffrt::shared_mutex mtx;
+    for (int i = 0; i < 10; i++) {
+        ffrt::submit([&sum, i, &mtx] {
+             mtx.lock();
+             sum = sum + i;
+             mtx.unlock();
+        }, {}, {});
+        for (int j = 0; j < 5; j++) {
+            ffrt::submit([&sum, j, &mtx] {
+                mtx.lock_shared();
+                std::cout << "sum = " << sum << std::endl;
+                mtx.unlock_shared();
+            }, {}, {});
+        }
+    }
+    ffrt::wait();
+    std::cout << "sum = " << sum << std::endl;
+}
+
+int main(int narg, char** argv)
+{
+    int r;
+    ffrt::submit(ffrt_shared_mutex_task);
+    ffrt::wait();
+    return 0;
+}
+```
+
+预期输出为
+
+```
+sum=45
+```
+
+* 该例子为功能示例，实际中并不鼓励这样使用
 
 ### condition_variable
 <hr/>
@@ -1674,67 +2085,318 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos);
 
 ## 串行队列
 <hr />
-* FFRT提供queue来实现Andorid中类似WorkQueue能力，且在使用得当的情况下将有更好的性能
 
-### ffrt_queue_attr_t [稳定] [计划开源]
+基本功能与使用约束见 C++ API 中的串行队列部分
+
+### ffrt_queue_t 
+<hr/>
+
+#### 描述
+FFRT串行队列 C API，提供提交任务、取消任务、等待任务执行完成等功能
 
 #### 声明
-```{.c}
+
+```{.cpp}
+typedef enum { ffrt_queue_serial, ffrt_queue_max } ffrt_queue_type_t;
+typedef void* ffrt_queue_t;
+
+ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr);
+void ffrt_queue_destroy(ffrt_queue_t queue);
+
+void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+ffrt_task_handle_t ffrt_queue_submit_h(
+    ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+
+void ffrt_queue_wait(ffrt_task_handle_t handle);
+
+int ffrt_queue_cancel(ffrt_task_handle_t handle);
+```
+
+#### 方法
+
+##### ffrt_queue_create
+
+```{.cpp}
+ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr);
+```
+
+* 描述：创建串行队列
+
+* 参数：
+
+  `type`：用于描述创建的队列类型，串行队列对应 `type` 为 `ffrt_queue_serial`
+
+  `name`：用于描述创建的队列名称
+
+  `attr`：所创建的queue属性，若未设定则会使用默认值
+
+* 返回值：如果成功创建了队列，则返回一个非空的队列句柄；否则返回空指针
+
+##### ffrt_queue_destroy
+
+```{.cpp}
+void ffrt_queue_destroy(ffrt_queue_t queue);
+```
+
+* 描述：销毁串行队列
+
+* 参数：
+
+  `queue`：想要销毁的队列的句柄
+
+* 返回值：不涉及
+
+##### ffrt_queue_submit
+
+```{.cpp}
+void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+```
+
+* 描述：提交一个任务到队列中调度执行
+
+* 参数：
+
+  `queue`：串行队列的句柄
+
+  `f`：任务执行指针
+
+  `attr`：所创建的queue属性
+
+* 返回值：不涉及
+
+##### ffrt_queue_submit_h
+
+```{.cpp}
+ffrt_task_handle_t ffrt_queue_submit_h(
+    ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+```
+
+* 描述：提交一个任务到队列中调度执行，并返回任务句柄
+
+* 参数：
+
+  `queue`：串行队列的句柄
+
+  `f`：任务执行指针
+
+  `attr`：所创建的queue属性
+
+* 返回值：如果任务被提交，则返回一个非空的任务句柄；否则返回空指针
+
+##### ffrt_queue_wait
+
+```{.cpp}
+void ffrt_queue_wait(ffrt_task_handle_t handle);
+```
+
+* 描述：等待串行队列中一个任务执行完成
+
+* 参数：
+
+  `handle`：任务的句柄
+
+* 返回值：不涉及
+
+##### ffrt_queue_cancel
+
+```{.cpp}
+int ffrt_queue_cancel(ffrt_task_handle_t handle);
+```
+
+* 描述：取消队列中一个任务。必须使用submit_h后拿到的task_handle，否则会报异常；任务开始执行后则无法取消，仅能成功取消未开始执行的任务
+
+* 参数：
+
+  `handle`：任务的句柄
+
+* 返回值：若成功返回0，否则返回其他非0值
+
+#### 样例
+
+```{.cpp}
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    ffrt_queue_attr_t queue_attr;
+    // 1、初始化队列属性，必需
+    (void)ffrt_queue_attr_init(&queue_attr);
+
+    // 2、创建串行队列，并返回队列句柄queue_handle
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    int result = 0;
+    std::function<void()>&& basicFunc = [&result]() { result += 1; };
+
+    // 3、提交串行任务
+    ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+
+    // 4、提交出啊逆行任务，并返回任务句柄
+    ffrt_task_handle_t t1 = ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+    // 5、等待指定任务执行完成
+    ffrt_queue_wait(t1);
+
+    ffrt_task_handle_t t2 = ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+    // 6、取消句柄为t2的任务
+    int ret = ffrt_queue_cancel(t2);
+
+    // 7、销毁提交给串行队列任务的句柄t1和t2，必需
+    ffrt_task_handle_destroy(t1);
+    ffrt_task_handle_destroy(t2);
+    // 8、销毁队列属性，必需
+    ffrt_queue_attr_destroy(&queue_attr);
+    // 9、销毁队列句柄，必需
+    ffrt_queue_destroy(queue_handle);
+}
+```
+
+### ffrt_queue_attr_t
+<hr/>
+
+#### 描述
+FFRT串行队列 C API，提供设置与获取串行队列优先级、设置与获取串行队列任务执行超时时间、设置与获取串行队列超时回调函数等功能
+
+#### 声明
+
+```{.cpp}
 typedef struct {
     uint32_t storage[(ffrt_queue_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_queue_attr_t;
 
 int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
 void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
+
+void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
+ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
+
+void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
+uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
+
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* f);
+ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
 ```
 
-### 参数
+#### 方法
 
-`attr`
-* 该参数是指向未初始化的ffrt_queue_attr_t
-
-### 返回值
-* 若成功返回0，否则返回-1
-
-### 描述
-* ffrt_queue_attr_t用于创建ffrt_queue_t且不单独使用，因此必须在创建队列前先创建好队列属性
-* ffrt_queue_attr_t对象的置空和销毁由用户完成，对同一个ffrt_queue_t仅能调用一次`ffrt_queue_attr_destroy`，重复对同一个ffrt_queue_t调用`ffrt_queue_attr_destroy`，其行为是未定义的
-* 在`ffrt_queue_attr_destroy`之后再对ffrt_queue_t进行访问，其行为是未定义的
-
-### 样例
-将ffrt_queue_t章节的样例
-
-### ffrt_queue_t [稳定] [计划开源]
-
-#### 声明
-```{.c}
-typedef enum { ffrt_queue_serial, ffrt_queue_max } ffrt_queue_type_t;
-typedef void* ffrt_queue_t;
-
-ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr)
-void ffrt_queue_destroy(ffrt_queue_t queue)
+##### ffrt_queue_attr_init
+```{.cpp}
+int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
 ```
 
-### 参数
+* 描述：初始化串行队列的属性
 
-`type`
-* 该参数用于描述创建的队列类型
+* 参数：
 
-`name`
-* 该参数用于描述创建队列的名字
+  `attr`：已初始化的串行队列属性
 
-`attr`
-* 该参数用于描述queue的属性，详见ffrt_queue_attr_t章节
+* 返回值：若成功返回0，否则返回-1
 
-### 返回值
-* 若成功则返回新创建的队列，否则返回空指针
+##### ffrt_queue_attr_destroy
+```{.cpp}
+void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
+```
 
-### 描述
-* 提交至该队列的任务将按照顺序执行，如果某个提交的任务中发生阻塞，则无法保证该任务的执行顺序
-* ffrt_queue_t对象的置空和销毁由用户完成，对同一个ffrt_queue_t仅能调用一次`ffrt_queue_t`，重复对同一个ffrt_queue_t调用`ffrt_queue_destroy`，其行为是未定义的
-* 在`ffrt_queue_destroy`之后再对ffrt_queue_t进行访问，其行为是未定义的
+* 描述：销毁串行队列的属性
 
-### 样例
+  ffrt_queue_attr_t对象的置空和销毁由用户完成，对同一个ffrt_queue_t仅能调用一次 `ffrt_queue_attr_destroy` ，重复对同一个ffrt_queue_t调用 `ffrt_queue_attr_destroy` ，其行为是未定义的
+
+  在`ffrt_queue_attr_destroy`之后再对ffrt_queue_t进行访问，其行为是未定义的
+
+* 参数：
+
+  `attr`：所创建的串行队列属性
+
+* 返回值：不涉及
+
+##### ffrt_queue_attr_set_qos
+```{.cpp}
+void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
+```
+
+* 描述：设置串行队列qos属性，默认为default等级
+
+* 参数：
+
+  `attr`：所创建的串行队列属性
+
+  `qos`：串行队列优先级
+
+* 返回值：不涉及
+
+##### ffrt_queue_attr_get_qos
+```{.cpp}
+ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
+```
+
+* 描述：获取串行队列qos属性
+
+* 参数：
+
+  `attr`：所创建的串行队列属性
+
+* 返回值：所设置的串行队列的qos等级，默认为default等级
+
+##### ffrt_queue_attr_set_timeout
+```{.cpp}
+void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
+```
+
+* 描述：设置串行队列任务执行超时时间
+
+* 参数：
+
+  `attr`：所创建的串行队列属性
+
+  `timeout_us`：串行队列任务执行超时时间，单位为us
+
+* 返回值：不涉及
+
+##### ffrt_queue_attr_get_timeout
+```{.cpp}
+uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
+```
+
+* 描述：获取串行队列任务执行超时时间
+
+* 参数：
+
+  `attr`：所创建的串行队列属性
+
+* 返回值：串行队列任务执行超时时间，单位为us
+
+##### ffrt_queue_attr_set_callback
+```{.cpp}
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* f);
+```
+
+* 描述：设置串行队列超时回调函数
+
+* 参数：
+
+  `attr`：所创建的串行队列属性
+
+  `f`：串行队列超时回调函数
+
+* 返回值：不涉及
+
+##### ffrt_queue_attr_get_callback
+```{.cpp}
+ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
+```
+
+* 描述：获取串行队列超时回调函数
+
+* 参数：
+
+  `attr`：所创建的串行队列属性
+
+* 返回值：串行队列超时回调函数
+
+#### 样例
 ```
 #include <stdio.h>
 #include "ffrt.h"
@@ -1745,15 +2407,30 @@ using namespace std;
 int main(int narg, char** argv)
 {
     ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
-    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    // 1、初始化串行队列属性，必需
+    int result = ffrt_queue_attr_init(&queue_attr);
 
-    ffrt_queue_submit(queue_handle, ffrt::create_function_wrapper([]() {printf("Task done.\n");}, ffrt_function_kind_queue), nullptr);
+    int x = 0;
+    std::function<void()>&& basicFunc = [&x]() { x += 1; };
 
+    // 2、可设置队列优先级，默认为default等级
+    ffrt_queue_attr_set_qos(&queue_attr, static_cast<int>(ffrt_qos_utility));
+    int qos = ffrt_queue_attr_get_qos(&queue_attr);
+
+    // 3、可通过设置timeout打开队列任务超时监测，默认不设置（关闭）
+    ffrt_queue_attr_set_timeout(&queue_attr, 10000);
+    uint64_t time = ffrt_queue_attr_get_timeout(&queue_attr);
+
+    // 4、超时会打印Error日志并执行用户设置的callback（可选）
+    ffrt_queue_attr_set_callback(&queue_attr, ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue));
+    ffrt_function_header_t* func = ffrt_queue_attr_get_callback(&queue_attr);
+
+    // 5、销毁串行队列属性，必需
     ffrt_queue_attr_destroy(&queue_attr);
-    ffrt_queue_destroy(queue_handle);
 }
 ```
+
+
 ## 同步原语
 
 ### ffrt_mutex_t
@@ -1894,6 +2571,177 @@ int main(int narg, char** argv)
 {
     int r;
     ffrt_submit_c(ffrt_mutex_task, NULL, NULL, NULL, NULL, NULL);
+    ffrt_wait();
+    return 0;
+}
+```
+
+预期输出为
+
+```
+sum=10
+```
+
+* 该例子为功能示例，实际中并不鼓励这样使用
+
+### ffrt_rwlock_t
+<hr/>
+* FFRT提供的类似pthread rwlock 的性能实现
+
+#### 声明
+
+```{.cpp}
+typedef enum {
+    ffrt_error = -1,
+    ffrt_success = 0,
+    ffrt_error_nomem = ENOMEM,
+    ffrt_error_timedout = ETIMEDOUT,
+    ffrt_error_busy = EBUSY,
+    ffrt_error_inval = EINVAL
+} ffrt_error_t;
+
+struct ffrt_rwlock_t;
+
+int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* attr);
+int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_destroy(ffrt_rwlock_t* rwlock);
+```
+
+#### 参数
+
+`attr`
+
+* 当前FFRT只支持基础类型的rwlock，因此attr必须为空指针
+
+`rwlock`
+
+* 指向所操作的读写锁的指针
+
+#### 返回值
+
+* 若成功则为 ffrt_success ，否则发生错误
+
+#### 描述
+* 该接口只能在FFRT task 内部调用，在FFRT task 外部调用存在未定义的行为
+* 该功能能够避免pthread传统的pthread_rwlock_t 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
+* **注意：目前暂不支持递归和定时功能**
+* **注意：C API中的ffrt_rwlock_t需要用户调用`ffrt_rwlock_init`和`ffrt_rwlock_destroy`显式创建和销毁，而C++ API无需该操作**
+* **注意：C API中的ffrt_rwlock_t对象的置空和销毁由用户完成，对同一个ffrt_rwlock_t仅能调用一次`ffrt_rwlock_destroy`，重复对同一个ffrt_rwlock_t调用`ffrt_rwlock_destroy`，其行为是未定义的**
+* **注意：在`ffrt_rwlock_destroy`之后再对ffrt_rwlock_t进行访问，其行为是未定义的**
+
+#### 样例
+
+```{.c}
+#include <stdio.h>
+#include "ffrt_inner.h"
+
+typedef struct {
+    int* sum;
+    ffrt_rwlock_t* mtx;
+} tuple;
+
+void func1(void* arg)
+{
+    tuple* t = (tuple*)arg;
+
+    int ret = ffrt_rwlock_wrlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+    (*t->sum)++;
+    ret = ffrt_rwlock_unlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+}
+
+void func2(void* arg)
+{
+    tuple* t = (tuple*)arg;
+
+    int ret = ffrt_rwlock_rdlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+    printf("sum is %d\n", *t->sum);
+    ret = ffrt_rwlock_unlock(t->mtx);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+}
+
+typedef struct {
+    ffrt_function_header_t header;
+    ffrt_function_t func;
+    ffrt_function_t after_func;
+    void* arg;
+} c_function;
+
+static void ffrt_exec_function_wrapper(void* t)
+{
+    c_function* f = (c_function*)t;
+    if (f->func) {
+        f->func(f->arg);
+    }
+}
+
+static void ffrt_destroy_function_wrapper(void* t)
+{
+    c_function* f = (c_function*)t;
+    if (f->after_func) {
+        f->after_func(f->arg);
+    }
+}
+
+#define FFRT_STATIC_ASSERT(cond, msg) int x(int static_assertion_##msg[(cond) ? 1 : -1])
+static inline ffrt_function_header_t* ffrt_create_function_wrapper(const ffrt_function_t func,
+    const ffrt_function_t after_func, void* arg)
+{
+    FFRT_STATIC_ASSERT(sizeof(c_function) <= ffrt_auto_managed_function_storage_size,
+        size_of_function_must_be_less_than_ffrt_auto_managed_function_storage_size);
+    c_function* f = (c_function*)ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_general);
+    f->header.exec = ffrt_exec_function_wrapper;
+    f->header.destroy = ffrt_destroy_function_wrapper;
+    f->func = func;
+    f->after_func = after_func;
+    f->arg = arg;
+    return (ffrt_function_header_t*)f;
+}
+
+static inline void ffrt_submit_c(ffrt_function_t func, const ffrt_function_t after_func,
+    void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+{
+    ffrt_submit_base(ffrt_create_function_wrapper(func, after_func, arg), in_deps, out_deps, attr);
+}
+
+void ffrt_rwlock_task(void* arg)
+{
+    int sum = 0;
+    ffrt_rwlock_t mtx;
+    tuple t = {&sum, &mtx};
+    int ret = ffrt_rwlock_init(&mtx, NULL);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+    for (int i = 0; i < 10; i++) {
+        ffrt_submit_c(func1, NULL, &t, NULL, NULL, NULL);
+        for (int j = 0; j < 5; j++) {
+            ffrt_submit_c(func2, NULL, &t, NULL, NULL, NULL);
+        }
+    }
+    ffrt_rwlock_destroy(&mtx);
+    ffrt_wait();
+    printf("sum = %d", sum);
+}
+
+int main(int narg, char** argv)
+{
+    int r;
+    ffrt_submit_c(ffrt_rwlock_task, NULL, NULL, NULL, NULL, NULL);
     ffrt_wait();
     return 0;
 }
@@ -2110,6 +2958,7 @@ a=1
 ### ffrt_usleep
 
 <hr/>
+
 * FFRT提供的类似C11 sleep和linux usleep的性能实现
 
 #### 声明
@@ -2200,6 +3049,7 @@ int main(int narg, char** argv)
 
 ### ffrt_yield
 <hr/>
+
 * 当前task 主动让出CPU 执行资源，让其他可以被执行的task 先执行，如果没有其他可被执行的task，yield 无效
 
 #### 声明
@@ -2224,6 +3074,44 @@ void ffrt_yield();
 
 * 省略
 
+## 维测
+
+### 长耗时任务监测
+
+#### 描述
+* 长耗时任务打印机制  
+  当任务执行时间超过一秒时，会触发一次堆栈打印，后续该任务堆栈打印频率调整为一分钟。连续打印十次后，打印频率调整为十分钟。再触发十次打印后，打印频率固定为三十分钟。
+* 该机制的堆栈打印调用的是DFX的 `GetBacktraceStringByTid` 接口，该接口会向阻塞线程发送抓栈信号，触发中断并抓取调用栈返回。  
+
+#### 样例  
+在对应进程日志中搜索 `RecordSymbolAndBacktrace` 关键字，对应的日志示例如下：
+
+```
+W C01719/ffrt: 60500:RecordSymbolAndBacktrace:159 Tid[16579] function occupies worker for more than [1]s.
+W C01719/ffrt: 60501:RecordSymbolAndBacktrace:164 Backtrace:
+W C01719/ffrt: #00 pc 00000000000075f0 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #01 pc 0000000000008758 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #02 pc 0000000000012b98 /system/lib64/module/file/libhash.z.so
+W C01719/ffrt: #03 pc 000000000002aaa0 /system/lib64/platformsdk/libfilemgmt_libn.z.so
+W C01719/ffrt: #04 pc 0000000000054b2c /system/lib64/platformsdk/libace_napi.z.so
+W C01719/ffrt: #05 pc 00000000000133a8 /system/lib64/platformsdk/libuv.so
+W C01719/ffrt: #06 pc 00000000000461a0 /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #07 pc 0000000000046d44 /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #08 pc 0000000000046a6c /system/lib64/chipset-sdk/libffrt.so
+W C01719/ffrt: #09 pc 00000000000467b0 /system/lib64/chipset-sdk/libffrt.so
+```
+该维测会打印出worker上执行时间超过阈值的任务堆栈、worker线程号、执行时间，请自行根据堆栈找对应组件确认阻塞原因。
+
+
+#### 注意事项
+如果代码中存在 `sleep` 等会被中断唤醒的阻塞，用户需主动接收该阻塞的返回值，并重新调用。  
+示例如下：
+```
+unsigned int leftTime = sleep(10);
+while (leftTime != 0) {
+    leftTime = sleep(leftTime);
+}
+```
 
 # 部署
 
@@ -2663,19 +3551,19 @@ void fib_ffrt(int x, int* y)
 
 # 已知限制
 
-## 不支持thread_local变量
+## thread local使用约束
+* FFRT Task中使用thread local存在风险，说明如下：
+* thread local变量包括C/C++语言提供的thread_local定义的变量，使用pthread_key_create创建的变量
+* FFRT支持Task调度，Task调度到哪个线程是随机的，使用thread local是有风险的，这一点和所有支持Task并发调度的框架一样
+* FFRT的Task默认以协程的方式运行，Task执行过程中可能发生协程退出，恢复执行时，执行该任务的线程可能发生变更
 
-* Task内部创建或Task间传递的thread_local变量的行为都是不确定的
+## thread绑定类使用约束
+* FFRT支持Task调度，Task调度到哪个线程是随机的，thread_idx/线程优先级/线程亲和性等与thread绑定的行为禁止在task中使用
 
-* 原因在于FFRT在编程模型中已经没有thread的概念，只有task的概念
-* 在C++的语义下，thread_local可以被正常编译，但是使用该thread_local变量的task在哪一个线程上执行时不确定的
-* 对于使用了FFRT进程中的non-worker，thread_local的行为不受FFRT影响
-
-> 类似的，与thread绑定的thread_idx/pthread_specific/递归锁/线程优先级/线程亲和性/递归锁具有相似的问题
-
-`建议`
-
-* 避免使用这些特性，如必须使用，使用FFRT的task local来替代
+## recursive mutex使用约束
+* FFRT Task中使用标准库的recursive mutex可能发生死锁，需要更换为FFRT提供的recursive mutex，说明如下：
+* recursive mutex在lock()成功时记录调用者"执行栈"作为锁的owner，在后续lock()时会判断调用者是否为当前执行栈，如果是则返回成功，以支持在同一个执行栈中嵌套获取锁。在标准库的实现中，"执行栈"以线程标识表示。
+* 在FFRT Task中使用标准库的recursive mutex，如果在外层和内层lock()之间，发生Task（协程）退出，Task恢复执行时在不同于首次调用lock()的FFRT Worker上，则判断当前线程不是owner，lock()失败，FFRT Worker挂起，后面的unlock()不会被执行，从而出现死锁。
 
 ## 不支持用户在fork出的子进程内使用ffrt
 

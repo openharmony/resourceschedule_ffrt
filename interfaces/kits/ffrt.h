@@ -20,11 +20,13 @@
 #include "cpp/condition_variable.h"
 #include "cpp/sleep.h"
 #include "cpp/queue.h"
+#include "c/timer.h"
 #else
 #include "c/task.h"
 #include "c/mutex.h"
 #include "c/condition_variable.h"
 #include "c/sleep.h"
 #include "c/queue.h"
+#include "c/timer.h"
 #endif
 #endif

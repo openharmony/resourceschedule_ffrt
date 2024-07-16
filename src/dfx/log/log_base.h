@@ -18,27 +18,16 @@
 
 #include <stdio.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#define FFRT_LOG_ERROR (0)
-#define FFRT_LOG_WARN (1)
-#define FFRT_LOG_INFO (2)
-#define FFRT_LOG_DEBUG (3)
-#define FFRT_LOG_LEVEL_MAX (FFRT_LOG_DEBUG + 1)
-
 void LogErr(const char* format, ...);
 void LogWarn(const char* format, ...);
 void LogInfo(const char* format, ...);
 void LogDebug(const char* format, ...);
 
-int GetLogLevel(void);
-unsigned int GetLogId(void);
+int GetFFRTLogLevel(void);
 
 #define FFRT_LOG(level, format, ...) \
     do { \
-        if ((level) > GetLogLevel()) \
+        if ((level) > GetFFRTLogLevel()) \
             break; \
         if (level == FFRT_LOG_ERROR) { \
             LogErr("%u:%s:%d " format "\n", GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
@@ -53,10 +42,4 @@ unsigned int GetLogId(void);
         } \
     } while (0)
 
-// short log for more infomation
-#define FFRT_BBOX_LOG(format, ...) LogErr(format "\n", ##__VA_ARGS__)
-
-#ifdef __cplusplus
-}
-#endif
 #endif // __LOG_BASE_H__

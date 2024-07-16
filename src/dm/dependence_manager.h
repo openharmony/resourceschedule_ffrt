@@ -30,26 +30,33 @@
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"
 #include "core/entity.h"
+#include "dfx/watchdog/watchdog_util.h"
 #include "tm/cpu_task.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
-#endif
 
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
 
-inline bool outsDeDup(std::vector<const void *> &outsNoDup, const ffrt_deps_t *outs)
+inline bool CheckOutsHandle(const ffrt_deps_t* outs)
 {
+    if (outs == nullptr) {
+        return true;
+    }
     for (uint32_t i = 0; i < outs->len; i++) {
-        if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
-            if ((outs->items[i].type) == ffrt_dependence_task) {
-                FFRT_LOGE("handle can't be used as out dependence");
-                return false;
-            }
-            outsNoDup.push_back(outs->items[i].ptr);
+        if ((outs->items[i].type) == ffrt_dependence_task) {
+            FFRT_LOGE("handle can't be used as out dependence");
+            return false;
         }
     }
     return true;
+}
+inline void outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* outs)
+{
+    for (uint32_t i = 0; i < outs->len; i++) {
+        if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
+            outsNoDup.push_back(outs->items[i].ptr);
+        }
+    }
 }
 
 inline void insDeDup(std::vector<CPUEUTask*> &in_handles, std::vector<const void *> &insNoDup,
@@ -77,7 +84,29 @@ public:
     {
     }
 
-    virtual void onSubmitUV(ffrt_executor_task_t* task, const task_attr_private* attr)
+    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
+    {
+        FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
+        FFRT_TRACE_SCOPE(1, onSubmitUV);
+#ifdef FFRT_BBOX_ENABLE
+        TaskSubmitCounterInc();
+#endif
+        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+
+        LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
+        FFRTScheduler* sch = FFRTScheduler::Instance();
+        if (!sch->InsertNode(node, qos)) {
+            FFRT_LOGE("Submit UV task failed!");
+            return;
+        }
+
+#ifdef FFRT_BBOX_ENABLE
+    TaskEnQueuCounterInc();
+#endif
+    }
+
+    virtual void onSubmitDev(dev_type dev, bool has_handle, ffrt_task_handle_t &handle, void *data,
+        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
     {
     }
 
@@ -114,5 +143,6 @@ protected:
     DependenceManager() {}
     virtual ~DependenceManager() {}
 };
+
 } // namespace ffrt
 #endif

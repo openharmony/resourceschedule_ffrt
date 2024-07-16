@@ -39,7 +39,12 @@
 
 #include "type_def.h"
 
-typedef enum { ffrt_queue_serial, ffrt_queue_max } ffrt_queue_type_t;
+typedef enum {
+    ffrt_queue_serial,
+    ffrt_queue_concurrent,
+    ffrt_queue_max
+} ffrt_queue_type_t;
+
 typedef void* ffrt_queue_t;
 
 /**
@@ -123,6 +128,26 @@ FFRT_C_API void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_funct
 FFRT_C_API ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
 
 /**
+ * @brief Set the queue max concurrency.
+ *
+ * @param attr Queue Property Pointer.
+ * @param max_concurrency queue max_concurrency.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_concurrency);
+
+/**
+ * @brief Get the queue max concurrency.
+ *
+ * @param attr Queue Property Pointer.
+ * @return Returns the queue max concurrency.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr);
+
+/**
  * @brief Creates a queue.
  *
  * @param type Indicates the queue type.
@@ -188,5 +213,23 @@ FFRT_C_API void ffrt_queue_wait(ffrt_task_handle_t handle);
  * @version 1.0
  */
 FFRT_C_API int ffrt_queue_cancel(ffrt_task_handle_t handle);
+
+/**
+ * @brief Get application main thread queue.
+ *
+ * @return Returns application main thread queue.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API ffrt_queue_t ffrt_get_main_queue();
+
+/**
+ * @brief Get application worker(ArkTs) thread queue.
+ *
+ * @return Returns application worker(ArkTs) thread queue.
+ * @since 12
+ * @version 1.0
+ */
+FFRT_C_API ffrt_queue_t ffrt_get_current_queue();
 
 #endif // FFRT_API_C_QUEUE_H

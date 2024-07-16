@@ -17,7 +17,7 @@
 #include <memory>
 #include <optional>
 #include <chrono>
-#include "../../kits/cpp/condition_variable.h"
+#include "cpp/condition_variable.h"
 #include "thread.h"
 
 namespace ffrt {

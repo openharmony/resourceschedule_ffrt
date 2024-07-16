@@ -18,6 +18,7 @@
 
 #include <map>
 #include <functional>
+#include <thread>
 #include "cpp/sleep.h"
 #include "sched/execute_ctx.h"
 namespace ffrt {
@@ -31,20 +32,28 @@ struct DelayedWork {
 class DelayedWorker {
     std::multimap<time_point_t, DelayedWork> map;
     std::mutex lock;
-    std::atomic_int futex;
-    bool exited = false;
+    std::atomic_bool toExit = false;
+    std::condition_variable cv;
+    std::unique_ptr<std::thread> delayWorker = nullptr;
+    int noTaskDelayCount_{0};
+    bool exited_ = false;
 
-    void HandleWork(struct timespec** p);
+    int HandleWork(void);
+    void ThreadInit();
 
 public:
+    static DelayedWorker &GetInstance();
+
     DelayedWorker(DelayedWorker const&) = delete;
     void operator=(DelayedWorker const&) = delete;
 
+    bool dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
+    bool remove(const time_point_t& to, WaitEntry* we);
+
+private:
     DelayedWorker();
 
     ~DelayedWorker();
-
-    bool dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
 };
 } // namespace ffrt
 #endif

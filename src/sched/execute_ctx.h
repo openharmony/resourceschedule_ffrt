@@ -21,10 +21,12 @@
 #include <atomic>
 
 #include "util/linked_list.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "c/executor_task.h"
 #include "util/spmc_queue.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
 #endif
 
 namespace ffrt {
@@ -36,32 +38,39 @@ enum class TaskTimeoutState {
     TIMEOUT,
 };
 
+enum class SharedMutexWaitType {
+    NORMAL,
+    READ,
+    WRITE,
+};
+
 namespace we_status {
 const int INIT = 0;
-const int NOTIFIED = 1;
-const int TIMEOUT = 2;
-const int HANDOVER = 3;
+const int NOTIFING = 1;
+const int TIMEOUT_DONE = 2;
 } // namespace we_status
 
 class CPUEUTask;
 
 struct WaitEntry {
-    WaitEntry() : prev(this), next(this), task(nullptr), weType(0) {
+    WaitEntry() : prev(this), next(this), task(nullptr), weType(0), wtType(SharedMutexWaitType::NORMAL) {
     }
-    explicit WaitEntry(CPUEUTask *inTask) : prev(nullptr), next(nullptr), task(inTask), weType(0) {
+    explicit WaitEntry(CPUEUTask *task) : prev(nullptr), next(nullptr), task(task), weType(0),
+        wtType(SharedMutexWaitType::NORMAL) {
     }
     LinkedList node;
     WaitEntry* prev;
     WaitEntry* next;
     CPUEUTask* task;
     int weType;
+    SharedMutexWaitType wtType;
 };
 
 struct WaitUntilEntry : WaitEntry {
     WaitUntilEntry() : WaitEntry(), status(we_status::INIT), hasWaitTime(false)
     {
     }
-    explicit WaitUntilEntry(CPUEUTask* inTask) : WaitEntry(inTask), status(we_status::INIT), hasWaitTime(false)
+    explicit WaitUntilEntry(CPUEUTask* task) : WaitEntry(task), status(we_status::INIT), hasWaitTime(false)
     {
     }
     std::atomic_int32_t status;
@@ -75,16 +84,14 @@ struct WaitUntilEntry : WaitEntry {
 struct ExecuteCtx {
     ExecuteCtx();
     virtual ~ExecuteCtx();
-#ifdef FFRT_IO_TASK_SCHEDULER
+
     ffrt_executor_task_t* exec_task = nullptr;
     void** priority_task_ptr = nullptr;
     SpmcQueue* localFifo = nullptr;
     QoS qos;
-#endif
     CPUEUTask* task; // 当前正在执行的Task
     WaitUntilEntry wn;
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     inline bool PushTaskToPriorityStack(ffrt_executor_task_t* task)
     {
         if (priority_task_ptr == nullptr) {
@@ -96,7 +103,6 @@ struct ExecuteCtx {
         }
         return false;
     }
-#endif
 
     static ExecuteCtx* Cur();
 };

@@ -46,6 +46,21 @@
 #endif
 
 /**
+ * @brief Enumerates the task priority types.
+ *
+ */
+typedef enum {
+    /** should be distributed at once if possible, handle time equals to send time, prior to high level */
+    ffrt_queue_priority_immediate,
+    /** high priority, sorted by handle time, prior to low level. */
+    ffrt_queue_priority_high,
+    /** low priority, sorted by handle time, prior to idle level. */
+    ffrt_queue_priority_low,
+    /** lowest priority, sorted by handle time, only distribute when there is no other level inside queue. */
+    ffrt_queue_priority_idle,
+} ffrt_queue_priority_t;
+
+/**
  * @brief Enumerates the task QoS types.
  *
  */
@@ -104,9 +119,6 @@ typedef enum {
     ffrt_function_kind_general,
     /** Queue task. */
     ffrt_function_kind_queue,
-#ifdef FFRT_IO_TASK_SCHEDULER
-    ffrt_function_kind_io,
-#endif
 } ffrt_function_kind_t;
 
 /**
@@ -177,31 +189,12 @@ typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
 
-#ifdef FFRT_IO_TASK_SCHEDULER
-typedef enum {
-    ffrt_coroutine_stackless,
-    ffrt_coroutine_with_stack,
-} ffrt_coroutine_t;
+typedef void (*ffrt_poller_cb)(void* data, uint32_t event);
 
-typedef enum {
-    ffrt_coroutine_pending = 0,
-    ffrt_coroutine_ready = 1,
-} ffrt_coroutine_ret_t;
+typedef void (*ffrt_timer_cb)(void* data);
 
-typedef ffrt_coroutine_ret_t(*ffrt_coroutine_ptr_t)(void*);
+typedef int ffrt_timer_t;
 
-typedef struct {
-    int fd;
-    void* data;
-    void(*cb)(void*, uint32_t);
-} ffrt_poller_t;
-
-typedef enum {
-    ffrt_timer_notfound = -1,
-    ffrt_timer_not_executed = 0,
-    ffrt_timer_executed = 1,
-} ffrt_timer_query_t;
-#endif
 
 #ifdef __cplusplus
 namespace ffrt {
@@ -213,6 +206,7 @@ enum qos_default {
     qos_user_initiated = ffrt_qos_user_initiated,
 };
 using qos = int;
+
 }
 #endif
 #endif

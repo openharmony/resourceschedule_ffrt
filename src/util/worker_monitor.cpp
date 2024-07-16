@@ -14,7 +14,10 @@
  */
 
 #include "worker_monitor.h"
-#include <dlfcn.h>
+#include <cstring>
+#include <iostream>
+#include <fstream>
+#include <regex>
 #ifdef FFRT_OH_TRACE_ENABLE
 #include "backtrace_local.h"
 #endif
@@ -22,15 +25,20 @@
 #include "eu/execute_unit.h"
 #include "eu/worker_manager.h"
 #include "internal_inc/osal.h"
+#include "sched/scheduler.h"
 
 namespace {
-constexpr uint64_t PROCESS_NAME_BUFFER_LENGTH = 1024;
-constexpr uint64_t MONITOR_TIMEOUT_MAX_COUNT = 2;
-constexpr uint64_t MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
-constexpr uint64_t TIMEOUT_RECORD_CYCLE_US = 60 * 1000 * 1000;
-
-using UvFunc = void(*)(void*);
-constexpr unsigned int UV_FUNC_OFFSET = 2 *sizeof(uintptr_t);
+constexpr int TASK_OVERRUN_THRESHOLD = 1000;
+constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
+constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
+constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
+constexpr int RECORD_TIME_PER_LEVEL = 10;
+constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
+constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
+const std::vector<std::string> SKIP_SAMPLING_PROCESS = {"hdcd", "updater"};
+const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
+    1000 * 1000, 60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
+};
 }
 
 namespace ffrt {
@@ -40,12 +48,39 @@ WorkerMonitor::WorkerMonitor()
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     // hdc在调用hdc shell的时候会长期占用worker，过滤该进程以防止一直打印超时信息
     // 另外，对hdc进程进行监控会概率性导致hdc断连，原因未知，暂时规避
-    skipSampling_ = (strstr(processName, "hdcd") != nullptr);
+    for (const auto& skipProcess : SKIP_SAMPLING_PROCESS) {
+        if (strstr(processName, skipProcess.c_str()) != nullptr) {
+            skipSampling_ = true;
+            break;
+        }
+    }
+
+    SubmitSamplingTask();
 }
 
 WorkerMonitor::~WorkerMonitor()
 {
+    std::lock_guard lock(mutex_);
     skipSampling_ = true;
+}
+
+WorkerMonitor& WorkerMonitor::GetInstance()
+{
+    static WorkerMonitor instance;
+    return instance;
+}
+
+void WorkerMonitor::SubmitTask()
+{
+    if (skipSampling_) {
+        return;
+    }
+
+    std::lock_guard submitTaskLock(submitTaskMutex_);
+    if (samplingTaskExit_) {
+        SubmitSamplingTask();
+        samplingTaskExit_ = false;
+    }
 }
 
 void WorkerMonitor::SubmitSamplingTask()
@@ -54,78 +89,129 @@ void WorkerMonitor::SubmitSamplingTask()
         return;
     }
 
-    waitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
-    waitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
-    if (!DelayedWakeup(waitEntry_.tp, &waitEntry_, waitEntry_.cb)) {
+    watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
+    watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
+    if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
 }
 
 void WorkerMonitor::CheckWorkerStatus()
 {
+    std::lock_guard lock(mutex_);
+    if (skipSampling_) {
+        return;
+    }
+
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
-    QoS _qos = QoS(static_cast<int>(qos_max));
-    for (int i = 0; i < _qos() + 1; i++) {
+    {
+        bool noWorkerThreads = true;
+        std::lock_guard submitTaskLock(submitTaskMutex_);
+        for (int i = 0; i < QoS::MaxNum(); i++) {
+            std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
+            if (!workerGroup[i].threads.empty()) {
+                noWorkerThreads = false;
+                break;
+            }
+        }
+        if (noWorkerThreads) {
+            samplingTaskExit_ = true;
+            return;
+        }
+    }
+    std::vector<std::pair<int, int>> timeoutFunctions;
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        auto& sched = FFRTScheduler::Instance()->GetScheduler(i);
+        int taskCount = sched.RQSize();
+        if (taskCount >= TASK_OVERRUN_THRESHOLD) {
+            FFRT_LOGW("qos [%d], task count [%d] exceeds threshold.", i, taskCount);
+        }
+
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             WorkerThread* worker = thread.first;
             CPUEUTask* workerTask = worker->curTask;
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
+                worker->SetWorkerBlocked(false);
                 continue;
             }
 
-            // only support uv task
-            if (!(workerTask->type != ffrt_normal_task && workerTask->type != ffrt_io_task)) {
-                continue;
-            }
-
-            RecordTimeoutFunctionInfo(worker, workerTask);
+            RecordTimeoutFunctionInfo(worker, workerTask, timeoutFunctions);
         }
+    }
+
+    for (const auto& timeoutFunction : timeoutFunctions) {
+        RecordSymbolAndBacktrace(timeoutFunction.first, timeoutFunction.second);
     }
 
     SubmitSamplingTask();
 }
 
-void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask)
+void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask,
+    std::vector<std::pair<int, int>>& timeoutFunctions)
 {
     auto workerIter = workerStatus_.find(worker);
     if (workerIter == workerStatus_.end()) {
-        workerStatus_[worker] = { workerTask, 0 };
+        workerStatus_[worker] = TaskTimeoutInfo(workerTask);
         return;
     }
 
-    if (workerIter->second.first == workerTask) {
-        if (++workerIter->second.second >= MONITOR_TIMEOUT_MAX_COUNT) {
-            RecordSymbolAndBacktrace(workerTask, worker->Id());
-            workerIter->second.second =
-                -static_cast<int>(TIMEOUT_RECORD_CYCLE_US / MONITOR_SAMPLING_CYCLE_US - MONITOR_TIMEOUT_MAX_COUNT);
+    TaskTimeoutInfo& taskInfo = workerIter->second;
+    if (taskInfo.task_ == workerTask) {
+        int taskExecutionTime = ++taskInfo.sampledTimes_ * MONITOR_SAMPLING_CYCLE_US;
+        if (taskExecutionTime % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
+            worker->SetWorkerBlocked(true);
+            timeoutFunctions.emplace_back(std::make_pair(worker->Id(), taskInfo.sampledTimes_));
+            if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1 &&
+                taskInfo.sampledTimes_ % RECORD_TIME_PER_LEVEL == 0) {
+                taskInfo.recordLevel_++;
+            }
         }
         return;
     }
 
-    workerIter->second = { workerTask, 0 };
+    worker->SetWorkerBlocked(false);
+    if (taskInfo.sampledTimes_ > 0) {
+        FFRT_LOGI("Tid[%d] function is executed, which occupies worker for [%d]s.",
+            worker->Id(), taskInfo.sampledTimes_ / SAMPLING_TIMES_PER_SEC + 1);
+    }
+    workerIter->second = TaskTimeoutInfo(workerTask);
 }
 
-void WorkerMonitor::RecordSymbolAndBacktrace(CPUEUTask* task, int tid)
+void WorkerMonitor::RecordSymbolAndBacktrace(int tid, int sampleTimes)
 {
-    void* func = nullptr;
-    if (task->type != 0) {
-        UvFunc* funcAddr = reinterpret_cast<UvFunc*>(reinterpret_cast<char*>(task) - UV_FUNC_OFFSET);
-        func = reinterpret_cast<void*>(*funcAddr);
-    }
+    int sampleSeconds = (sampleTimes == 0) ? 1 : sampleTimes / SAMPLING_TIMES_PER_SEC;
+    FFRT_LOGW("Tid[%d] function occupies worker for more than [%d]s.", tid, sampleSeconds);
 
-    Dl_info info;
-    if (dladdr(func, &info)) {
-        FFRT_LOGW("Function [%s] in [%s] occupies worker for more than 1s.",
-            (info.dli_sname ? info.dli_sname : "unknown"), (info.dli_fname ? info.dli_fname : "unknown"));
-
-#ifdef FFRT_OF_TRACE_ENABLE
-        std::string dumpInfo;
-        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, tid, 0, false)) {
-            FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
+#ifdef FFRT_OH_TRACE_ENABLE
+    std::string dumpInfo;
+    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, tid, 0, false)) {
+        FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
+        if (sampleSeconds >= RECORD_IPC_INFO_TIME_THRESHOLD) {
+            RecordIpcInfo(dumpInfo);
         }
-#endif
     }
+#endif
+}
+
+void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo)
+{
+    if (dumpInfo.find("libipc_core") == std::string::npos) {
+        return;
+    }
+
+    std::ifstream transactionFile(TRANSACTION_PATH);
+    FFRT_COND_DO_ERR(!transactionFile.is_open(), return, "open transaction_proc failed");
+
+    FFRT_LOGW("transaction_proc:");
+    std::string line;
+    while (getline(transactionFile, line)) {
+        if (std::regex_match(line, std::regex(".*to.*code.*"))) {
+            FFRT_LOGW("%s", line.c_str());
+        }
+    }
+
+    transactionFile.close();
 }
 }

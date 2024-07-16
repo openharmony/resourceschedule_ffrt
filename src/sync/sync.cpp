@@ -31,8 +31,12 @@
 namespace ffrt {
 bool DelayedWakeup(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
-    static DelayedWorker w;
-    return w.dispatch(to, we, wakeup);
+    return DelayedWorker::GetInstance().dispatch(to, we, wakeup);
+}
+
+bool DelayedRemove(const time_point_t& to, WaitEntry* we)
+{
+    return DelayedWorker::GetInstance().remove(to, we);
 }
 
 void spin_mutex::lock_contended()
@@ -54,12 +58,15 @@ static void spin()
     asm volatile("isb sy");
 #elif defined(__arm__)
     asm volatile("yield");
+#elif defined(__riscv)
+    // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/riscv/include/asm/vdso/processor.h?h=v6.6#n25
+    asm volatile(".4byte 0x100000F");
 #endif
 }
 
 void fast_mutex::lock_contended()
 {
-    int v;
+    int v = 0;
     // lightly contended
     for (uint32_t n = static_cast<uint32_t>(1 + rand() % 4); n <= 64; n <<= 1) {
         for (uint32_t i = 0; i < n; ++i) {

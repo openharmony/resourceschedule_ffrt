@@ -26,8 +26,8 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_this_task_set_legacy_mode(bool mode)
 {
     auto task = ffrt::ExecuteCtx::Cur()->task;
-    if (task && task->coRoutine) {
-        task->coRoutine->legacyMode = mode;
+    if (task) {
+        task->legacyMode = mode;
     }
 }
 

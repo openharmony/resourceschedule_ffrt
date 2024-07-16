@@ -15,30 +15,35 @@
 #ifndef TASK_ATTR_PRIVATE_H
 #define TASK_ATTR_PRIVATE_H
 #include <string>
-#include "c/type_def.h"
-#include "cpp/task.h"
+#include "c/type_def_ext.h"
+#include "cpp/task_ext.h"
 #include "qos.h"
+#include "eu/co_routine.h"
 
 namespace ffrt {
 class task_attr_private {
 public:
     task_attr_private()
-        : qos_map(static_cast<int>(qos_default))
+        : qos_(qos_default)
     {
     }
 
     explicit task_attr_private(const task_attr attr)
-        : qos_map(attr.qos()),
+        : qos_(attr.qos()),
           name_(attr.name()),
-          delay_(attr.delay())
+          delay_(attr.delay()),
+          prio_(attr.priority())
     {
     }
 
-    QoSMap qos_map;
+    int qos_;
     std::string name_;
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
+    ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
+    bool taskLocal_ = false;
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    uint64_t stackSize_ = STACK_SIZE;
 };
 }
 #endif

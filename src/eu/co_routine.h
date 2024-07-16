@@ -25,6 +25,8 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 constexpr size_t STACK_MAGIC = 0x7BCDABCD;
 #elif defined(__x86_64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
+#elif defined(__riscv) && __riscv_xlen == 64
+constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #endif
 
 namespace ffrt {
@@ -49,13 +51,8 @@ enum class BlockType {
     BLOCK_THREAD
 };
 
-#if defined(__aarch64__)
-    constexpr uint64_t STACK_SIZE = 1 << 20; // 至少3*PAGE_SIZE
-#elif defined(__arm__)
-    constexpr uint64_t STACK_SIZE = 1 << 15;
-#else
-    constexpr uint64_t STACK_SIZE = 1 << 20;
-#endif
+constexpr uint64_t STACK_SIZE = 1 << 20;
+constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
 
 using CoCtx = struct co2_context;
 
@@ -76,8 +73,8 @@ struct CoRoutine {
     CoRoutineEnv* thEnv;
     ffrt::CPUEUTask* task;
     CoCtx ctx;
-    bool legacyMode = false;
-    BlockType blockType = BlockType::BLOCK_COROUTINE;
+    uint64_t allocatedSize;
+    bool isTaskDone = false;
     StackMem stkMem;
 };
 
@@ -101,6 +98,25 @@ public:
     }
 };
 
+class CoRoutineFactory {
+public:
+    using CowakeCB = std::function<void (ffrt::CPUEUTask*, bool)>;
+
+    static CoRoutineFactory &Instance();
+
+    static void CoWakeFunc(ffrt::CPUEUTask* task, bool timeOut)
+    {
+        return Instance().cowake_(task, timeOut);
+    }
+
+    static void RegistCb(const CowakeCB &cowake)
+    {
+        Instance().cowake_ = cowake;
+    }
+private:
+    CowakeCB cowake_;
+};
+
 void CoStackFree(void);
 void CoWorkerExit(void);
 
@@ -109,4 +125,9 @@ void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
 void CoWake(ffrt::CPUEUTask* task, bool timeOut);
+
+#ifdef FFRT_TASK_LOCAL_ENABLE
+void TaskTsdDeconstruct(ffrt::CPUEUTask* task);
+#endif
+
 #endif

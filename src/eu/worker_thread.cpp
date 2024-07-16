@@ -22,6 +22,10 @@
 #include "eu/qos_interface.h"
 #include "qos.h"
 #include "util/name_manager.h"
+#include "util/sched_ext.h"
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+#include "eu/blockaware.h"
+#endif
 
 namespace ffrt {
 WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
@@ -33,17 +37,21 @@ WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1)
         pthread_attr_setstacksize(&attr_, stackSize);
     }
 #endif
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    domain_id = (qos() <= BLOCKAWARE_DOMAIN_ID_MAX) ? qos() : BLOCKAWARE_DOMAIN_ID_MAX + 1;
+#endif
 }
 
 void WorkerThread::NativeConfig()
 {
     pid_t pid = syscall(SYS_gettid);
     this->tid = pid;
+    SetThreadAttr(this, qos);
 }
 
 void WorkerThread::WorkerSetup(WorkerThread* wthread)
 {
-    static int threadIndex[QoS::Max()] = {0};
+    static int threadIndex[QoS::MaxNum()] = {0};
     std::string qosStr = std::to_string(qos());
     std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
         std::string(WORKER_THREAD_SYMBOL) + std::to_string(threadIndex[qos()]++);
@@ -51,7 +59,34 @@ void WorkerThread::WorkerSetup(WorkerThread* wthread)
         FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
     }
     pthread_setname_np(wthread->GetThread(), threadName.c_str());
-    SetThreadAttr(wthread, qos);
+}
+
+int SetCpuAffinity(unsigned long affinity, int tid)
+{
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    for (unsigned long i = 0; i < sizeof(affinity) * 8; i++) {
+        if ((affinity & (static_cast<unsigned long>(1) << i)) != 0) {
+            CPU_SET(i, &mask);
+        }
+    }
+    int ret = syscall(__NR_sched_setaffinity, tid, sizeof(mask), &mask);
+    if (ret < 0) {
+        FFRT_LOGE("set qos affinity failed for tid %d\n", tid);
+    }
+    return ret;
+}
+
+int SetMinUtilZero(void)
+{
+    sched_attr attr = {0};
+
+    attr.size = sizeof(attr);
+    attr.sched_policy = -1;
+    attr.sched_flags = SCHED_FLAG_UTIL_CLAMP_MIN | SCHED_FLAG_RESET_ON_FORK;
+    attr.sched_util_min = 0; // -1 for reset
+
+    return syscall(SYS_sched_setattr, 0, &attr, 0);
 }
 
 void SetThreadAttr(WorkerThread* thread, const QoS& qos)

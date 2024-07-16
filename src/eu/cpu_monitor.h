@@ -23,18 +23,19 @@
 #include "qos.h"
 #include "cpp/mutex.h"
 #include "eu/cpu_manager_interface.h"
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+#include "eu/blockaware.h"
+#endif
 
 namespace ffrt {
 struct WorkerCtrl {
     size_t hardLimit = 0;
     size_t maxConcurrency = 0;
-    size_t workerManagerID = 0;
     int executionNum = 0;
     int sleepingWorkerNum = 0;
-#ifdef FFRT_IO_TASK_SCHEDULER
     bool pollWaitFlag = false;
-#endif
     int deepSleepingWorkerNum = 0;
+    bool hasWorkDeepSleep = 0;
     std::mutex lock;
 };
 
@@ -45,32 +46,28 @@ public:
     CPUMonitor& operator=(const CPUMonitor&) = delete;
     virtual ~CPUMonitor();
     uint32_t GetMonitorTid() const;
-    void HandleBlocked(const QoS& qos);
-    void DecExeNumRef(const QoS& qos);
-    void IncSleepingRef(const QoS& qos);
-    void DecSleepingRef(const QoS& qos);
     virtual SleepType IntoSleep(const QoS& qos) = 0;
-    void WakeupCount(const QoS& qos);
+    virtual void WakeupCount(const QoS& qos, bool isDeepSleepWork = false);
     void IntoDeepSleep(const QoS& qos);
     void OutOfDeepSleep(const QoS& qos);
-#ifdef FFRT_IO_TASK_SCHEDULER
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    bool IsExceedRunningThreshold(const QoS& qos);
+    bool IsBlockAwareInit(void);
+    void MonitorMain();
 #endif
     void TimeoutCount(const QoS& qos);
-    void RegWorker(const QoS& qos);
-    void UnRegWorker();
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
     int SetWorkerMaxNum(const QoS& qos, int num);
     bool IsExceedDeepSleepThreshold();
-#ifdef FFRT_IO_TASK_SCHEDULER
     int WakedWorkerNum(const QoS& qos);
-#endif
+    bool IsExceedMaxConcurrency(const QoS& qos);
 
     uint32_t monitorTid = 0;
 protected:
-    WorkerCtrl ctrlQueue[QoS::Max()];
-    void Poke(const QoS& qos);
+    WorkerCtrl ctrlQueue[QoS::MaxNum()];
+    void Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
     CpuMonitorOps& GetOps()
     {
         return ops;
@@ -82,6 +79,17 @@ private:
 
     std::thread* monitorThread;
     CpuMonitorOps ops;
+    std::atomic<bool> setWorkerMaxNum[QoS::MaxNum()];
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    bool blockAwareInit = false;
+    bool stopMonitor = false;
+    unsigned long keyPtr = 0;
+    int qosMonitorMaxNum = std::min(QoS::Max(), BLOCKAWARE_DOMAIN_ID_MAX + 1);
+    BlockawareWakeupCond wakeupCond;
+    BlockawareDomainInfoArea domainInfoMonitor;
+    BlockawareDomainInfoArea domainInfoNotify;
+    std::atomic<bool> exceedUpperWaterLine[QoS::MaxNum()];
+#endif
 };
 }
 #endif /* CPU_MONITOR_H */

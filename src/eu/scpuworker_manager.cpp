@@ -23,16 +23,22 @@
 #include "sched/workgroup_internal.h"
 #include "eu/co_routine_factory.h"
 #include "eu/scpuworker_manager.h"
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+#include "eu/blockaware.h"
+#endif
+#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
-constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000000;
+constexpr int MANAGER_DESTRUCT_TIMESOUT = 1000;
 SCPUWorkerManager::SCPUWorkerManager()
 {
     monitor = new SCPUMonitor({
-        std::bind(&SCPUWorkerManager::IncWorker, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::WakeupWorkers, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetTaskCount, this, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetWorkerCount, this, std::placeholders::_1)});
+        [this] (const QoS& qos) { return this->IncWorker(qos); },
+        [this] (const QoS& qos) { this->WakeupWorkers(qos); },
+        [this] (const QoS& qos) { return this->GetTaskCount(qos); },
+        [this] (const QoS& qos) { return this->GetWorkerCount(qos); },
+        [this] (const QoS& qos) { return this->GetBlockingNum(qos); },
+    });
 }
 
 SCPUWorkerManager::~SCPUWorkerManager()
@@ -41,13 +47,11 @@ SCPUWorkerManager::~SCPUWorkerManager()
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
-#ifdef FFRT_IO_TASK_SCHEDULER
             pollersMtx[qos].unlock();
             PollerProxy::Instance()->GetPoller(qos).WakeUp();
-#endif
             sleepCtl[qos].cv.notify_all();
             {
-                usleep(1);
+                usleep(1000);
                 std::shared_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
                 if (groupCtl[qos].threads.empty()) {
                     break;
@@ -71,24 +75,31 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     auto& ctl = sleepCtl[thread->GetQos()];
     std::unique_lock lk(ctl.mutex);
     (void)monitor->IntoSleep(thread->GetQos());
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    BlockawareEnterSleeping();
+#endif
+    FFRT_PERF_WORKER_IDLE(static_cast<int>(thread->GetQos()));
 #if !defined(IDLE_WORKER_DESTRUCT)
     constexpr int waiting_seconds = 10;
 #else
     constexpr int waiting_seconds = 5;
 #endif
-#ifdef FFRT_IO_TASK_SCHEDULER
     if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = GetTaskCount(thread->GetQos()) ||
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
             reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
-        bool needPoll = !PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap() && !polling_;
+        bool needPoll = !PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap() &&
+            (polling_[thread->GetQos()] == 0);
         return tearDown || taskExistence || needPoll;
         })) {
-#else
-    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds),
-        [this, thread] {return tearDown || GetTaskCount(thread->GetQos());})) {
-#endif
         monitor->WakeupCount(thread->GetQos());
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        int err = BlockawareLeaveSleeping();
+        if (err != 0) {
+            FFRT_LOGE("leave sleeping fail, err[%d]", err);
+        }
+#endif
+        FFRT_PERF_WORKER_AWAKE(static_cast<int>(thread->GetQos()));
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
     } else {
@@ -98,15 +109,13 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         if (monitor->IsExceedDeepSleepThreshold()) {
             ffrt::CoRoutineReleaseMem();
         }
-#ifdef FFRT_IO_TASK_SCHEDULER
+
         ctl.cv.wait(lk, [this, thread] {
             return tearDown || GetTaskCount(thread->GetQos()) ||
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
             reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
             });
-#else
-        ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
-#endif
+
         monitor->OutOfDeepSleep(thread->GetQos());
         FFRT_LOGD("worker awake");
         return WorkerAction::RETRY;
@@ -120,5 +129,17 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 
 void SCPUWorkerManager::WorkerPrepare(WorkerThread* thread)
 {
+    WorkerJoinTg(thread->GetQos(), thread->Id());
 }
+void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
+{
+    if (tearDown) {
+        return;
+    }
+
+    auto& ctl = sleepCtl[qos()];
+    ctl.cv.notify_one();
+    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
+}
+
 } // namespace ffrt

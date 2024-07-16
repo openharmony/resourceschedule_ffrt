@@ -159,7 +159,7 @@ enum QosCtrlCmdid {
 
 struct RtgEnableData {
     int enable;
-    int len;
+    size_t len;
     char *data;
 };
 

@@ -11,18 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
-import("//foundation/resourceschedule/ffrt/ffrt_io_task_scheuduler.gni")
+import("ffrt.gni")
 
 defines = []
-
-if (ffrt_io_task_scheuduler) {
-  defines += [ "FFRT_IO_TASK_SCHEDULER" ]
-}
 
 config("ffrt_config") {
   visibility = [ ":*" ]
   include_dirs = [
-    "interfaces",
     "interfaces/kits",
     "interfaces/inner_api",
   ]
@@ -36,21 +31,22 @@ config("ffrt_config") {
     "-Wno-unused-function",
     "-Wno-unused-value",
     "-Wno-unused-private-field",
+    "-Wno-tautological-constant-out-of-range-compare",
     "-Wno-shadow",
     "-Wno-float-equal",
     "-Wno-unused-parameter",
+    "-fno-common",
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",
-    "-DOHOS_THREAD_STACK_DUMP",
     "-DUSE_OHOS_QOS",
-    "-DFFRT_IO_TASK_SCHEDULER",
     "-DFFRT_PTHREAD_ENABLE",
+    "-DFFRT_OH_WATCHDOG_ENABLE",
   ]
 
   cflags = ffrt_defaults_cflags
+  cflags_c = [ "-fno-common" ]
   cflags_cc = ffrt_defaults_cflags
-  cflags_cc += [ "-std=c++17" ]
 
   ffrt_debug_defines = [
     "FFRT_LOG_LEVEL=3",
@@ -59,6 +55,7 @@ config("ffrt_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
+    "QOS_FRAME_RTG",
   ]
 
   #ffrt_release_defines = [
@@ -68,15 +65,18 @@ config("ffrt_config") {
 
   defines += ffrt_debug_defines
 
-  if (is_asan) {
-    defines += [ "ASAN_MODE" ]
-  }
-
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
   }
 
+  if (is_ohos && !ffrt_task_local_enable) {
+    defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
+  }
+
   #defines += ffrt_release_defines
+  if (is_ohos) {
+    defines += [ "FFRT_HITRACE_ENABLE" ]
+  }
 }
 
 config("ffrt_inner_config") {
@@ -85,8 +85,6 @@ config("ffrt_inner_config") {
     "src/dfx/log",
     "src/dfx/trace",
     "src/sched",
-    "//third_party/jsoncpp/include",
-    "//third_party/libunwind/include",
   ]
 
   if (is_ohos && is_clang && (target_cpu == "arm" || target_cpu == "arm64")) {
@@ -95,185 +93,133 @@ config("ffrt_inner_config") {
       "-fsplit-lto-unit",
     ]
   }
+
+  cflags_cc = [ "-std=c++17" ]
 }
 
 ohos_shared_library("libffrt") {
-  public_configs = [ ":ffrt_config" ]
-  configs = [ ":ffrt_inner_config" ]
+  if (ffrt_support_enable) {
+    public_configs = [ ":ffrt_config" ]
+    configs = [ ":ffrt_inner_config" ]
+    ldflags = [ "-Wl,-z,nodelete" ]
 
-  sources = [
-    "src/core/entity.cpp",
-    "src/core/task.cpp",
-    "src/core/task_io.cpp",
-    "src/core/version_ctx.cpp",
-    "src/dfx/bbox/bbox.cpp",
-    "src/dfx/log/ffrt_log.cpp",
-    "src/dfx/log/hmos/log_base.cpp",
-    "src/dfx/trace/ffrt_trace.cpp",
-    "src/dfx/watchdog/watchdog.cpp",
-    "src/dm/dependence_manager.cpp",
-    "src/dm/sdependence_manager.cpp",
-    "src/eu/co2_context.c",
-    "src/eu/co_routine.cpp",
-    "src/eu/co_routine_factory.cpp",
-    "src/eu/cpu_monitor.cpp",
-    "src/eu/cpu_worker.cpp",
-    "src/eu/cpuworker_manager.cpp",
-    "src/eu/execute_unit.cpp",
-    "src/eu/osattr_manager.cpp",
-    "src/eu/qos_convert.cpp",
-    "src/eu/qos_interface.cpp",
-    "src/eu/rtg_ioctl.cpp",
-    "src/eu/rtg_perf_ctrl.c",
-    "src/eu/scpu_monitor.cpp",
-    "src/eu/scpuworker_manager.cpp",
-    "src/eu/sexecute_unit.cpp",
-    "src/eu/worker_manager.cpp",
-    "src/eu/worker_thread.cpp",
-    "src/ipc/ipc.cpp",
-    "src/queue/queue_monitor.cpp",
-    "src/queue/serial_handler.cpp",
-    "src/queue/serial_looper.cpp",
-    "src/queue/serial_queue.cpp",
-    "src/queue/serial_queue_api.cpp",
-    "src/queue/serial_task.cpp",
-    "src/sched/deadline.cpp",
-    "src/sched/execute_ctx.cpp",
-    "src/sched/frame_interval.cpp",
-    "src/sched/interval.cpp",
-    "src/sched/load_tracking.cpp",
-    "src/sched/multi_workgroup.cpp",
-    "src/sched/sched_deadline.cpp",
-    "src/sched/scheduler.cpp",
-    "src/sched/task_manager.cpp",
-    "src/sched/task_state.cpp",
-    "src/sync/condition_variable.cpp",
-    "src/sync/delayed_worker.cpp",
-    "src/sync/io_poller.cpp",
-    "src/sync/mutex.cpp",
-    "src/sync/perf_counter.cpp",
-    "src/sync/poller.cpp",
-    "src/sync/sleep.cpp",
-    "src/sync/sync.cpp",
-    "src/sync/thread.cpp",
-    "src/sync/wait_queue.cpp",
-    "src/tm/cpu_task.cpp",
-    "src/tm/scpu_task.cpp",
-    "src/tm/task_factory.cpp",
-    "src/util/graph_check.cpp",
-    "src/util/init.cpp",
-    "src/util/spmc_queue.cpp",
-    "src/util/worker_monitor.cpp",
-  ]
+    sources = [
+      "src/core/entity.cpp",
+      "src/core/task.cpp",
+      "src/core/task_io.cpp",
+      "src/core/version_ctx.cpp",
+      "src/dfx/bbox/bbox.cpp",
+      "src/dfx/bbox/fault_logger_fd_manager.cpp",
+      "src/dfx/dump/dump.cpp",
+      "src/dfx/log/ffrt_log.cpp",
+      "src/dfx/trace/ffrt_trace.cpp",
+      "src/dfx/watchdog/watchdog_util.cpp",
+      "src/dm/dependence_manager.cpp",
+      "src/dm/sdependence_manager.cpp",
+      "src/eu/co2_context.c",
+      "src/eu/co_routine.cpp",
+      "src/eu/co_routine_factory.cpp",
+      "src/eu/cpu_monitor.cpp",
+      "src/eu/cpu_worker.cpp",
+      "src/eu/cpuworker_manager.cpp",
+      "src/eu/execute_unit.cpp",
+      "src/eu/loop.cpp",
+      "src/eu/loop_api.cpp",
+      "src/eu/osattr_manager.cpp",
+      "src/eu/qos_convert.cpp",
+      "src/eu/qos_interface.cpp",
+      "src/eu/rtg_ioctl.cpp",
+      "src/eu/rtg_perf_ctrl.cpp",
+      "src/eu/scpu_monitor.cpp",
+      "src/eu/scpuworker_manager.cpp",
+      "src/eu/sexecute_unit.cpp",
+      "src/eu/worker_manager.cpp",
+      "src/eu/worker_thread.cpp",
+      "src/ipc/ipc.cpp",
+      "src/queue/base_queue.cpp",
+      "src/queue/concurrent_queue.cpp",
+      "src/queue/eventhandler_adapter_queue.cpp",
+      "src/queue/eventhandler_interactive_queue.cpp",
+      "src/queue/queue_api.cpp",
+      "src/queue/queue_handler.cpp",
+      "src/queue/queue_monitor.cpp",
+      "src/queue/serial_queue.cpp",
+      "src/sched/deadline.cpp",
+      "src/sched/execute_ctx.cpp",
+      "src/sched/frame_interval.cpp",
+      "src/sched/interval.cpp",
+      "src/sched/load_tracking.cpp",
+      "src/sched/multi_workgroup.cpp",
+      "src/sched/qos.cpp",
+      "src/sched/sched_deadline.cpp",
+      "src/sched/scheduler.cpp",
+      "src/sched/task_manager.cpp",
+      "src/sched/task_state.cpp",
+      "src/sync/condition_variable.cpp",
+      "src/sync/delayed_worker.cpp",
+      "src/sync/io_poller.cpp",
+      "src/sync/mutex.cpp",
+      "src/sync/perf_counter.cpp",
+      "src/sync/poller.cpp",
+      "src/sync/poller_api.cpp",
+      "src/sync/shared_mutex.cpp",
+      "src/sync/sleep.cpp",
+      "src/sync/sync.cpp",
+      "src/sync/thread.cpp",
+      "src/sync/timer_api.cpp",
+      "src/sync/wait_queue.cpp",
+      "src/tm/cpu_task.cpp",
+      "src/tm/queue_task.cpp",
+      "src/tm/scpu_task.cpp",
+      "src/tm/task_factory.cpp",
+      "src/util/graph_check.cpp",
+      "src/util/init.cpp",
+      "src/util/spmc_queue.cpp",
+      "src/util/worker_monitor.cpp",
+    ]
 
-  external_deps = [
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-  ]
+    external_deps = [
+      "bounds_checking_function:libsec_shared",
+      "c_utils:utils",
+      "faultloggerd:libbacktrace_local",
+      "faultloggerd:libdfx_dumpcatcher",
+      "faultloggerd:libfaultloggerd",
+      "faultloggerd:libunwinder",
+      "hilog:libhilog",
+      "hisysevent:libhisysevent",
+      "hitrace:libhitracechain",
+    ]
 
-  deps = [
-    "//third_party/bounds_checking_function:libsec_shared",
-    "//third_party/libunwind:libunwind",
-  ]
+    defines = []
+    if (ffrt_profiler_enable && !is_emulator) {
+      external_deps += [
+        "hiprofiler:libffrt_profiler",
+        "init:libbegetutil",
+      ]
+      defines += [ "FFRT_PROFILER" ]
+    }
 
-  output_extension = "so"
-  part_name = "ffrt"
-  install_images = [
-    "system",
-    "updater",
-  ]
-  innerapi_tags = [
-    "chipsetsdk",
-    "sasdk",
-  ]
+    if (ffrt_async_stack_enable) {
+      defines += [ "ASYNC_STACKTRACE" ]
+      sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
+    }
+
+    output_extension = "so"
+    symlink_target_name = [ "libffrt.z.so" ]
+    part_name = "ffrt"
+    subsystem_name = "resourceschedule"
+    install_images = [
+      "system",
+      "updater",
+    ]
+    innerapi_tags = [
+      "chipsetsdk",
+      "ndk",
+      "sasdk",
+    ]
+  }
 }
 
-ohos_shared_library("ffrt_ndk") {
-  output_name = "ffrt"
-  configs = [
-    ":ffrt_config",
-    ":ffrt_inner_config",
-  ]
-
-  sources = [
-    "src/core/entity.cpp",
-    "src/core/task.cpp",
-    "src/core/task_io.cpp",
-    "src/core/version_ctx.cpp",
-    "src/dfx/bbox/bbox.cpp",
-    "src/dfx/log/ffrt_log.cpp",
-    "src/dfx/log/hmos/log_base.cpp",
-    "src/dfx/trace/ffrt_trace.cpp",
-    "src/dfx/watchdog/watchdog.cpp",
-    "src/dm/dependence_manager.cpp",
-    "src/dm/sdependence_manager.cpp",
-    "src/eu/co2_context.c",
-    "src/eu/co_routine.cpp",
-    "src/eu/co_routine_factory.cpp",
-    "src/eu/cpu_monitor.cpp",
-    "src/eu/cpu_worker.cpp",
-    "src/eu/cpuworker_manager.cpp",
-    "src/eu/execute_unit.cpp",
-    "src/eu/osattr_manager.cpp",
-    "src/eu/qos_convert.cpp",
-    "src/eu/qos_interface.cpp",
-    "src/eu/rtg_ioctl.cpp",
-    "src/eu/rtg_perf_ctrl.c",
-    "src/eu/scpu_monitor.cpp",
-    "src/eu/scpuworker_manager.cpp",
-    "src/eu/sexecute_unit.cpp",
-    "src/eu/worker_manager.cpp",
-    "src/eu/worker_thread.cpp",
-    "src/queue/queue_monitor.cpp",
-    "src/queue/serial_handler.cpp",
-    "src/queue/serial_looper.cpp",
-    "src/queue/serial_queue.cpp",
-    "src/queue/serial_queue_api.cpp",
-    "src/queue/serial_task.cpp",
-    "src/sched/deadline.cpp",
-    "src/sched/execute_ctx.cpp",
-    "src/sched/frame_interval.cpp",
-    "src/sched/interval.cpp",
-    "src/sched/load_tracking.cpp",
-    "src/sched/multi_workgroup.cpp",
-    "src/sched/sched_deadline.cpp",
-    "src/sched/scheduler.cpp",
-    "src/sched/task_manager.cpp",
-    "src/sched/task_state.cpp",
-    "src/sync/condition_variable.cpp",
-    "src/sync/delayed_worker.cpp",
-    "src/sync/io_poller.cpp",
-    "src/sync/mutex.cpp",
-    "src/sync/perf_counter.cpp",
-    "src/sync/poller.cpp",
-    "src/sync/sleep.cpp",
-    "src/sync/sync.cpp",
-    "src/sync/thread.cpp",
-    "src/sync/wait_queue.cpp",
-    "src/tm/cpu_task.cpp",
-    "src/tm/scpu_task.cpp",
-    "src/tm/task_factory.cpp",
-    "src/util/graph_check.cpp",
-    "src/util/init.cpp",
-    "src/util/spmc_queue.cpp",
-    "src/util/worker_monitor.cpp",
-  ]
-
-  external_deps = [
-    "faultloggerd:libbacktrace_local",
-    "faultloggerd:libdfx_dumpcatcher",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-  ]
-
-  deps = [
-    "//third_party/bounds_checking_function:libsec_shared",
-    "//third_party/libunwind:libunwind",
-  ]
-
-  part_name = "ffrt"
-  subsystem_name = "resourceschedule"
-  innerapi_tags = [ "ndk" ]
+group("ffrt_ndk") {
+  deps = [ ":libffrt" ]
 }

@@ -19,100 +19,142 @@
 #include <sys/syscall.h>
 #include <sys/prctl.h>
 #include <thread>
-#include <linux/futex.h>
 #include "dfx/log/ffrt_log_api.h"
 #include "util/name_manager.h"
+namespace {
+    const int FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 180;
+}
 namespace ffrt {
-DelayedWorker::DelayedWorker() : futex(0)
+void DelayedWorker::ThreadInit()
 {
+    if (delayWorker != nullptr && delayWorker->joinable()) {
+        delayWorker->join();
+    }
+    delayWorker = std::make_unique<std::thread>([this]() {
     struct sched_param param;
     param.sched_priority = 1;
     int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
     if (ret != 0) {
         FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
     }
-    std::thread t([this]() {
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         for (;;) {
-            lock.lock();
-            if (futex < 0) {
-                lock.unlock();
-                exited = true;
+            std::unique_lock lk(lock);
+            if (toExit) {
+                exited_ = true;
                 break;
             }
-            struct timespec ts;
-            struct timespec *p = &ts;
-            HandleWork(&p);
-            lock.unlock();
-            syscall(SYS_futex, &futex, FUTEX_WAIT_BITSET, 0, p, 0, -1);
+            int ret = HandleWork();
+            if (toExit) {
+                exited_ = true;
+                break;
+            }
+            if (ret == 0) {
+                cv.wait_until(lk, map.begin()->first);
+            } else if (ret == 1) {
+                if (++noTaskDelayCount_ > 1) {
+                    exited_ = true;
+                    break;
+                }
+                cv.wait_until(lk, std::chrono::steady_clock::now() +
+                    std::chrono::seconds(FFRT_DELAY_WORKER_TIMEOUT_SECONDS));
+            }
         }
     });
-    t.detach();
+}
+
+DelayedWorker::DelayedWorker()
+{
+    ThreadInit();
 }
 
 DelayedWorker::~DelayedWorker()
 {
     lock.lock();
-    futex = -1;
+    toExit = true;
     lock.unlock();
 
-    while (!exited) {
-        syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
+    cv.notify_one();
+    if (delayWorker != nullptr && delayWorker->joinable()) {
+        delayWorker->join();
     }
 }
 
-void DelayedWorker::HandleWork(struct timespec** p)
+DelayedWorker& DelayedWorker::GetInstance()
 {
-    const int NS_PER_SEC = 1000000000;
+    static DelayedWorker instance;
+    return instance;
+}
 
-    while (!map.empty()) {
-        time_point_t now = std::chrono::steady_clock::now();
-        auto cur = map.begin();
-        if (cur->first <= now) {
-            DelayedWork w = cur->second;
-            map.erase(cur);
-            lock.unlock();
-            (*w.cb)(w.we);
-            lock.lock();
-            if (futex < 0) {
-                return;
+int DelayedWorker::HandleWork()
+{
+    if (!map.empty()) {
+        noTaskDelayCount_ = 0;
+        do {
+            time_point_t now = std::chrono::steady_clock::now();
+            auto cur = map.begin();
+            if (cur->first <= now) {
+                DelayedWork w = cur->second;
+                map.erase(cur);
+                lock.unlock();
+                (*w.cb)(w.we);
+                lock.lock();
+                if (toExit) {
+                    return -1;
+                }
+            } else {
+                return 0;
             }
-        } else {
-            std::chrono::nanoseconds ns = cur->first.time_since_epoch();
-            (*p)->tv_sec = ns.count() / NS_PER_SEC;
-            (*p)->tv_nsec = ns.count() % NS_PER_SEC;
-            futex = 0;
-            return;
-        }
+        } while (!map.empty());
     }
-
-    *p = nullptr;
-    futex = 0;
+    return 1;
 }
 
 bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;
-    std::lock_guard<decltype(lock)> l(lock);
+    lock.lock();
 
-    if (futex < 0) {
+    if (toExit) {
+        lock.unlock();
         return false;
     }
 
     time_point_t now = std::chrono::steady_clock::now();
     if (to <= now) {
+        lock.unlock();
         return false;
+    }
+
+    if (exited_) {
+        ThreadInit();
+        exited_ = false;
     }
 
     if (map.empty() || to < map.begin()->first) {
         w = true;
     }
     map.emplace(to, DelayedWork {we, &wakeup});
+    lock.unlock();
     if (w) {
-        futex = 1;
-        syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
+        cv.notify_one();
     }
 
     return true;
+}
+
+bool DelayedWorker::remove(const time_point_t& to, WaitEntry* we)
+{
+    std::lock_guard<decltype(lock)> l(lock);
+
+    auto range = map.equal_range(to);
+    for (auto it = range.first; it != range.second; ++it) {
+        if (it->second.we == we) {
+            map.erase(it);
+            return true;
+        }
+    }
+
+    return false;
 }
 } // namespace ffrt

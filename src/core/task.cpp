@@ -18,7 +18,6 @@
 #include <climits>
 
 #include "ffrt_inner.h"
-
 #include "internal_inc/osal.h"
 #include "sync/io_poller.h"
 #include "qos.h"
@@ -26,19 +25,17 @@
 #include "task_attr_private.h"
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
-
 #include "eu/worker_thread.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "queue/serial_task.h"
+#include "dfx/watchdog/watchdog_util.h"
 #include "eu/func_manager.h"
-#include "eu/sexecute_unit.h"
 #include "util/ffrt_facade.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
+#include "eu/sexecute_unit.h"
 #include "core/task_io.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#endif
 #include "tm/task_factory.h"
+#include "tm/queue_task.h"
 
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
@@ -83,7 +80,7 @@ void create_delay_deps(
     uint64_t delayUs = p->delay_;
     std::function<void()> &&func = [delayUs]() {
         this_task::sleep_for(std::chrono::microseconds(delayUs));
-        FFRT_LOGI("submit task delay time [%d us] has ended.", delayUs);
+        FFRT_LOGD("submit task delay time [%d us] has ended.", delayUs);
     };
     ffrt_function_header_t *delay_func = create_function_wrapper(std::move(func));
     submit_impl(true, handle, delay_func, nullptr, nullptr, reinterpret_cast<task_attr_private *>(p));
@@ -146,7 +143,11 @@ void ffrt_task_attr_set_qos(ffrt_task_attr_t *attr, ffrt_qos_t qos)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_map = ffrt::QoSMap(qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->qos_ = ffrt::GetFuncQosMap()(qos);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -157,7 +158,7 @@ ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t *attr)
         return static_cast<int>(ffrt_qos_default);
     }
     ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
-    return (reinterpret_cast<ffrt::task_attr_private *>(p))->qos_map.m_qos;
+    return (reinterpret_cast<ffrt::task_attr_private *>(p))->qos_;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -181,6 +182,76 @@ uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t *attr)
     return (reinterpret_cast<ffrt::task_attr_private *>(p))->delay_;
 }
 
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_ms)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_ms;
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t *attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return 0;
+    }
+    ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
+    return (reinterpret_cast<ffrt::task_attr_private *>(p))->timeout_;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priority_t priority)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+
+    // eventhandler inner priority is one more than the kits priority
+    if (priority < ffrt_queue_priority_immediate || priority > ffrt_queue_priority_idle + 1) {
+        FFRT_LOGE("priority should be a valid priority");
+        return;
+    }
+
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->prio_ = priority;
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_task_attr_t* attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return ffrt_queue_priority_immediate;
+    }
+    ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
+    return static_cast<ffrt_queue_priority_t>((reinterpret_cast<ffrt::task_attr_private *>(p))->prio_);
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_stack_size(ffrt_task_attr_t *attr, uint64_t size)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->stackSize_ = size;
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t *attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return 0;
+    }
+    ffrt_task_attr_t *p = const_cast<ffrt_task_attr_t *>(attr);
+    return (reinterpret_cast<ffrt::task_attr_private *>(p))->stackSize_;
+}
+
 // submit
 API_ATTRIBUTE((visibility("default")))
 void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
@@ -188,7 +259,7 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
     if (kind == ffrt_function_kind_general) {
         return ffrt::TaskFactory::Alloc()->func_storage;
     }
-    return ffrt::SimpleAllocator<ffrt::SerialTask>::allocMem()->func_storage;
+    return ffrt::SimpleAllocator<ffrt::QueueTask>::allocMem()->func_storage;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -208,7 +279,10 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
 
     // task after delay
     ffrt_task_handle_t delay_handle;
+    uint64_t timeout = p->timeout_;
+    p->timeout_ = 0;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+    p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl(false, handle, f, &delay_deps, nullptr, p);
@@ -232,7 +306,10 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 
     // task after delay
     ffrt_task_handle_t delay_handle = nullptr;
+    uint64_t timeout = p->timeout_;
+    p->timeout_ = 0;
     ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+    p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl(true, handle, f, &delay_deps, nullptr, p);
@@ -243,7 +320,7 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
 {
-    if (!handle) {
+    if (handle == nullptr) {
         FFRT_LOGE("input task handle is invalid");
         return;
     }
@@ -279,14 +356,34 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
         FFRT_LOGE("attr should not be empty");
         return -1;
     }
-    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return -1;
+    }
+    ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     return ffrt::OSAttrManager::Instance()->UpdateSchedAttr(_qos, attr);
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_restore_qos_config()
+{
+    ffrt::WorkerGroupCtl *wgCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
+    for (auto qos = ffrt::QoS::Min(); qos < ffrt::QoS::Max(); ++qos) {
+        std::unique_lock<std::shared_mutex> lck(wgCtl[qos].tgMutex);
+        for (auto& thread : wgCtl[qos].threads) {
+            ffrt::SetThreadAttr(thread.first, qos);
+        }
+    }
 }
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
-    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return -1;
+    }
+    ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     if (((qos != ffrt::qos_default) && (_qos() == ffrt::qos_default)) || (qos <= ffrt::qos_inherit)) {
         FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
@@ -303,29 +400,40 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
         return ffrt_error_inval;
     }
 
-    ffrt::WorkerGroupCtl* groupCtl = ffrt::ExecuteUnit::Instance().GetGroupCtl();
+    ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
     if (!groupCtl[qos].threads.empty()) {
         FFRT_LOGE("Stack size can be set only when there is no worker.");
         return ffrt_error;
     }
 
-    size_t pageSize = getpagesize();
-    groupCtl[qos].workerStackSize = (stack_size - 1 + pageSize) & -pageSize;
+    int pageSize = getpagesize();
+    if (pageSize < 0) {
+        FFRT_LOGE("Invalid pagesize : %d", pageSize);
+        return ffrt_error;
+    }
+
+    groupCtl[qos].workerStackSize = (stack_size - 1 + static_cast<size_t>(pageSize)) &
+        -(static_cast<size_t>(pageSize));
+
     return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_this_task_update_qos(ffrt_qos_t qos)
 {
-    ffrt::QoS _qos = ffrt::QoS(ffrt::QoSMap(qos).m_qos);
+    if (ffrt::GetFuncQosMap() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return 1;
+    }
+    ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
         FFRT_LOGW("task is nullptr");
         return 1;
     }
-
+    FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 1, "update qos task type invalid");
     if (_qos() == curTask->qos) {
-        FFRT_LOGW("the target qos is euqal to current qos, no need update");
+        FFRT_LOGW("the target qos is equal to current qos, no need update");
         return 0;
     }
 
@@ -336,6 +444,16 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
 }
 
 API_ATTRIBUTE((visibility("default")))
+ffrt_qos_t ffrt_this_task_get_qos()
+{
+    if (ffrt::ExecuteCtx::Cur()->task == nullptr) {
+        FFRT_LOGW("task is nullptr");
+        return static_cast<int>(ffrt_qos_default);
+    }
+    return ffrt::ExecuteCtx::Cur()->qos();
+}
+
+API_ATTRIBUTE((visibility("default")))
 uint64_t ffrt_this_task_get_id()
 {
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
@@ -343,7 +461,24 @@ uint64_t ffrt_this_task_get_id()
         return 0;
     }
 
-    return curTask->gid;
+    if (curTask->type == ffrt_normal_task || curTask->type == ffrt_queue_task) {
+        return curTask->gid;
+    }
+
+    return 0;
+}
+
+API_ATTRIBUTE((visibility("default")))
+int64_t ffrt_this_queue_get_id()
+{
+    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+    if (curTask == nullptr || curTask->type != ffrt_queue_task) {
+        // not serial queue task
+        return -1;
+    }
+
+    ffrt::QueueTask* task = reinterpret_cast<ffrt::QueueTask*>(curTask);
+    return task->GetQueueId();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -363,66 +498,14 @@ int ffrt_skip(ffrt_task_handle_t handle)
     return 1;
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 API_ATTRIBUTE((visibility("default")))
-int ffrt_poller_register(int fd, uint32_t events, void* data, ffrt_poller_cb cb)
-{
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    int ret = ffrt::PollerProxy::Instance()->GetPoller(qos).AddFdEvent(events, fd, data, cb);
-    if (ret == 0) {
-        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
-    }
-    return ret;
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_poller_deregister(int fd)
-{
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    return ffrt::PollerProxy::Instance()->GetPoller(qos).DelFdEvent(fd);
-}
-
-API_ATTRIBUTE((visibility("default")))
-void ffrt_poller_wakeup()
-{
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    ffrt::PollerProxy::Instance()->GetPoller(qos).WakeUp();
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_timer_start(uint64_t timeout, void* data, ffrt_timer_cb cb)
-{
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    int handle = ffrt::PollerProxy::Instance()->GetPoller(qos).RegisterTimer(timeout, data, cb);
-    if (handle >= 0) {
-        ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
-    }
-    return handle;
-}
-
-API_ATTRIBUTE((visibility("default")))
-void ffrt_timer_stop(int handle)
-{
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    ffrt::PollerProxy::Instance()->GetPoller(qos).DeregisterTimer(handle);
-}
-
-API_ATTRIBUTE((visibility("default")))
-ffrt_timer_query_t ffrt_timer_query(int handle)
-{
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    return ffrt::PollerProxy::Instance()->GetPoller(qos).GetTimerStatus(handle);
-}
-#endif
-
-API_ATTRIBUTE((visibility("default")))
-void ffrt_executor_task_submit(ffrt_executor_task_t *task, const ffrt_task_attr_t *attr)
+void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr)
 {
     if (task == nullptr) {
         FFRT_LOGE("function handler should not be empty");
         return;
     }
-    ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
+    ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
         ffrt::FFRTFacade::GetDMInstance().onSubmitUV(task, p);
         return;
@@ -438,17 +521,66 @@ void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executo
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_executor_task_cancel(ffrt_executor_task_t *task, const ffrt_qos_t qos)
+int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 {
     if (task == nullptr) {
         FFRT_LOGE("function handler should not be empty");
         return 0;
     }
-    ffrt::QoS _qos = ffrt::QoS(qos);
+    ffrt::QoS _qos = qos;
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
+    ffrt::FFRTFacade::GetDMInstance();
     ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
     return static_cast<int>(sch->RemoveNode(node, _qos));
+}
+
+API_ATTRIBUTE((visibility("default")))
+void* ffrt_get_cur_task()
+{
+    return ffrt::ExecuteCtx::Cur()->task;
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
+{
+    if (stack_addr == nullptr || size == nullptr) {
+        return false;
+    }
+
+    if (!ffrt::USE_COROUTINE) {
+        return false;
+    }
+    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+    if (curTask != nullptr) {
+        auto co = curTask->coRoutine;
+        if (co) {
+            *size = co->stkMem.size;
+            *stack_addr = static_cast<void*>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - 8);
+            return true;
+        }
+    }
+    return false;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_ = task_local;
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return false;
+    }
+    return (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_;
 }
 #ifdef __cplusplus
 }

@@ -26,7 +26,7 @@
 #include <chrono>
 #include <mutex>
 #include "mutex.h"
-#include "../c/condition_variable.h"
+#include "c/condition_variable.h"
 
 namespace ffrt {
 enum class cv_status { no_timeout, timeout };

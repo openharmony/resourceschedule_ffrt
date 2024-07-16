@@ -15,38 +15,32 @@
 #ifndef FFRT_SERIAL_QUEUE_H
 #define FFRT_SERIAL_QUEUE_H
 
-#include <list>
-#include <map>
-#include <string>
-#include "cpp/condition_variable.h"
-#include "internal_inc/non_copyable.h"
-#include "itask.h"
+#include "base_queue.h"
 
 namespace ffrt {
-class SerialQueue : public NonCopyable {
+class SerialQueue : public BaseQueue {
 public:
-    SerialQueue(const uint32_t qid, const std::string& name) : qid_(qid), name_(name) {}
-    ~SerialQueue();
-
-    inline uint32_t GetMapSize() const
+    explicit SerialQueue(uint32_t queueId) : BaseQueue(queueId)
     {
-        return mapSize_.load();
+        dequeFunc_ = QueueStrategy<QueueTask>::DequeBatch;
+    }
+    ~SerialQueue() override;
+
+    int Push(QueueTask* task) override;
+    QueueTask* Pull() override;
+
+    bool GetActiveStatus() const override
+    {
+        return isActiveState_.load();
     }
 
-    ITask* Next();
-    int PushTask(ITask* task, uint64_t upTime);
-    int RemoveTask(const ITask* task);
-    void Quit();
-
-private:
-    ffrt::mutex mutex_;
-    ffrt::condition_variable cond_;
-    bool isExit_ = false;
-    const uint32_t qid_;
-    std::string name_;
-    std::atomic_uint32_t mapSize_ = {0};
-    std::map<uint64_t, std::list<ITask*>> whenMap_;
+    int GetQueueType() const override
+    {
+        return ffrt_queue_serial;
+    }
 };
+
+std::unique_ptr<BaseQueue> CreateSerialQueue(uint32_t queueId, const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 
 #endif // FFRT_SERIAL_QUEUE_H

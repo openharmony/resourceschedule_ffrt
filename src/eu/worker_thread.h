@@ -49,7 +49,7 @@ public:
                     out.push_back(s);
                 }
                 for (auto const& line: out) {
-                    FFRT_LOGE("ffrt callstack %{public}s", line.c_str());
+                    FFRT_LOGE("ffrt callstack %s", line.c_str());
                 }
             }
 #endif
@@ -88,10 +88,21 @@ public:
     {
         return qos;
     }
+
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    unsigned int GetDomainId() const
+    {
+        return domain_id;
+    }
+#endif
+
 #ifdef FFRT_PTHREAD_ENABLE
     void Start(void*(*ThreadFunc)(void*), void* args)
     {
-        pthread_create(&thread_, &attr_, ThreadFunc, args);
+        int ret = pthread_create(&thread_, &attr_, ThreadFunc, args);
+        if (ret != 0) {
+            exited = true;
+        }
         pthread_attr_destroy(&attr_);
     }
 
@@ -108,7 +119,7 @@ public:
         if (tid > 0) {
             pthread_detach(thread_);
         } else {
-            FFRT_LOGI("qos %d thread not joinable.", qos());
+            FFRT_LOGD("qos %d thread not joinable.", qos());
         }
         tid = -1;
     }
@@ -141,7 +152,7 @@ public:
         if (thread.joinable()) {
             thread.detach();
         } else {
-            FFRT_LOGI("qos %d thread not joinable\n", qos());
+            FFRT_LOGD("qos %d thread not joinable\n", qos());
         }
         tid = -1;
     }
@@ -151,6 +162,10 @@ public:
         return this->thread.native_handle();
     }
 #endif
+
+    virtual void SetWorkerBlocked(bool var)
+    {
+    }
 
     void WorkerSetup(WorkerThread* wthread);
     void NativeConfig();
@@ -163,10 +178,13 @@ private:
 
     QoS qos;
 #ifdef FFRT_PTHREAD_ENABLE
-    pthread_t thread_;
+    pthread_t thread_{0};
     pthread_attr_t attr_;
 #else
     std::thread thread;
+#endif
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    unsigned int domain_id;
 #endif
 };
 void SetThreadAttr(WorkerThread* thread, const QoS& qos);

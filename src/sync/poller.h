@@ -19,13 +19,15 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #endif
-#include "qos.h"
-#include "sync/sync.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include <list>
 #include <unordered_map>
 #include <array>
+#include "qos.h"
+#include "sync/sync.h"
 #include "internal_inc/non_copyable.h"
+#include "c/executor_task.h"
+#include "c/timer.h"
+#include "eu/worker_thread.h"
 namespace ffrt {
 enum class PollerRet {
     RET_NULL,
@@ -44,45 +46,90 @@ enum class TimerStatus {
     EXECUTED,
 };
 
+constexpr int EPOLL_EVENT_SIZE = 1024;
+
 struct WakeDataWithCb {
     WakeDataWithCb() {}
-    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t, uint8_t)> cbVal)
-        : fd(fdVal), data(dataVal), cb(cbVal) {}
+    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal, CPUEUTask *taskVal)
+        : fd(fdVal), data(dataVal), cb(cbVal), task(taskVal)
+    {}
 
     int fd = 0;
-    void *data = nullptr;
-    std::function<void(void *, uint32_t, uint8_t)> cb = nullptr;
+    void* data = nullptr;
+    std::function<void(void*, uint32_t)> cb = nullptr;
+    CPUEUTask* task = nullptr;
+    uint32_t monitorEvents = 0;
 };
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void* dataVal, void(*cbVal)(void*)) : data(dataVal), cb(cbVal) {}
+    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CPUEUTask *taskVal, bool repeat, uint64_t timeout)
+        : data(dataVal), cb(cbVal), task(taskVal), repeat(repeat), timeout(timeout)
+    {}
 
     void* data = nullptr;
     void(*cb)(void*) = nullptr;
     int handle = -1;
+    CPUEUTask* task = nullptr;
+    bool repeat = false;
+    uint64_t timeout = 0;
 };
 
+struct SyncData {
+    SyncData() {}
+    SyncData(void *eventsPtr, int maxEvents, int *nfdsPtr, time_point_t waitTP)
+        : eventsPtr(eventsPtr), maxEvents(maxEvents), nfdsPtr(nfdsPtr), waitTP(waitTP)
+    {}
+
+    void* eventsPtr = nullptr;
+    int maxEvents = 0;
+    int* nfdsPtr = nullptr;
+    time_point_t waitTP;
+};
+
+using EventVec = typename std::vector<epoll_event>;
 class Poller : private NonCopyable {
     using WakeDataList = typename std::list<std::unique_ptr<struct WakeDataWithCb>>;
 public:
     Poller() noexcept;
     ~Poller() noexcept;
 
-    int AddFdEvent(uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept;
+    int AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept;
     int DelFdEvent(int fd) noexcept;
+    int WaitFdEvent(struct epoll_event *eventsVec, int maxevents, int timeout) noexcept;
 
     PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
 
-    int RegisterTimer(uint64_t timeout, void* data, void(*cb)(void*)) noexcept;
-    void DeregisterTimer(int handle) noexcept;
-    bool DetermineEmptyMap() noexcept;
+    int RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat = false) noexcept;
+    int UnregisterTimer(int handle) noexcept;
     ffrt_timer_query_t GetTimerStatus(int handle) noexcept;
+
+    uint8_t GetPollCount() noexcept;
+
+    uint64_t GetTaskWaitTime(CPUEUTask* task) noexcept;
+
+    bool DetermineEmptyMap() noexcept;
+    bool DeterminePollerReady() noexcept;
+
+    void ClearCachedEvents(CPUEUTask* task) noexcept;
 
 private:
     void ReleaseFdWakeData() noexcept;
-    void ExecuteTimerCb(std::multimap<time_point_t, TimerDataWithCb>::iterator& timer) noexcept;
+    void WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept;
+    void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
+                          std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
+    void ExecuteTimerCb(time_point_t timer) noexcept;
+
+    void ProcessTimerDataCb(CPUEUTask* task) noexcept;
+    void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
+
+    void CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept;
+    int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept;
+    int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
+
+    bool IsFdExist() noexcept;
+    bool IsTimerReady() noexcept;
 
     int m_epFd;
     uint8_t pollerCount_ = 0;
@@ -91,33 +138,28 @@ private:
     struct WakeDataWithCb m_wakeData;
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
+    std::unordered_map<CPUEUTask*, SyncData> m_waitTaskMap;
+    std::unordered_map<CPUEUTask*, EventVec> m_cachedTaskEvents;
+
     std::unordered_map<int, TimerStatus> executedHandle_;
     std::multimap<time_point_t, TimerDataWithCb> timerMap_;
     std::atomic_bool fdEmpty_ {true};
     std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;
     mutable spin_mutex timerMutex_;
-#ifndef _MSC_VER
-    std::vector<epoll_event> m_events;
-#endif
 };
 
 struct PollerProxy {
 public:
-    static inline PollerProxy* Instance()
-    {
-        static PollerProxy pollerInstance;
-        return &pollerInstance;
-    }
+    static PollerProxy* Instance();
 
     Poller& GetPoller(const QoS& qos = ffrt_qos_default)
     {
-        return qosPollers[static_cast<size_t>(qos)];
+        return qosPollers[static_cast<size_t>(qos())];
     }
 
 private:
-    std::array<Poller, QoS::Max()> qosPollers;
+    std::array<Poller, QoS::MaxNum()> qosPollers;
 };
 } // namespace ffrt
-#endif
 #endif

@@ -21,14 +21,17 @@
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
+#include "dfx/perf/ffrt_perf.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#endif
 #include "tm/cpu_task.h"
+#include "tm/queue_task.h"
 
+#ifdef ASYNC_STACKTRACE
+#include "dfx/async_stack/ffrt_async_stack.h"
+#endif
 namespace ffrt {
-const int PLACE_HOLDER = 0;
+int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
 }
 
@@ -36,19 +39,34 @@ namespace ffrt {
 void CPUWorker::Run(CPUEUTask* task)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL2, Run);
+
     if constexpr(USE_COROUTINE) {
         CoStart(task);
-    } else {
-        auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-        auto exp = ffrt::SkipStatus::SUBMITTED;
-        if (likely(__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
-            __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-            FFRT_TASK_BEGIN(task->label, task->gid);
-            f->exec(f);
-            FFRT_TASK_END();
+        return;
+    }
+
+    switch (task->type) {
+        case ffrt_normal_task: {
+#ifdef ASYNC_STACKTRACE
+            FFRTSetStackId(task->stackId);
+#endif
+            task->Execute();
+            break;
         }
-        f->destroy(f);
-        task->UpdateState(ffrt::TaskState::EXITED);
+        case ffrt_queue_task: {
+            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
+#ifdef ASYNC_STACKTRACE
+            FFRTSetStackId(sTask->stackId);
+#endif
+            sTask->IncDeleteRef();
+            sTask->Execute();
+            sTask->DecDeleteRef();
+            break;
+        }
+        default: {
+            FFRT_LOGE("run unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->label.c_str());
+            break;
+        }
     }
 }
 
@@ -57,7 +75,10 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #ifdef FFRT_BBOX_ENABLE
     TaskRunCounterInc();
 #endif
-
+    if (task == nullptr) {
+        FFRT_LOGE("task is nullptr");
+        return;
+    }
     ffrt_executor_task_func func = nullptr;
     ffrt_executor_task_type_t type = static_cast<ffrt_executor_task_type_t>(task->type);
     if (type == ffrt_io_task) {
@@ -81,35 +102,36 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 #endif
 }
 
-void* CPUWorker::WarpDispatch(void* worker)
+void* CPUWorker::WrapDispatch(void* worker)
 {
     reinterpret_cast<CPUWorker*>(worker)->NativeConfig();
     Dispatch(reinterpret_cast<CPUWorker*>(worker));
     return nullptr;
 }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
 void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUTask* &lastTask)
 {
     auto ctx = ExecuteCtx::Cur();
     CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
-    if (curtask->type != 0) {
-        ctx->exec_task = curtask;
-        worker->curTask = task;
-        Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
-        worker->curTask = nullptr;
-        ctx->exec_task = nullptr;
-    } else {
-        FFRT_LOGD("EU pick task[%lu]", task->gid);
-        task->UpdateState(TaskState::RUNNING);
-
-        lastTask = task;
-        ctx->task = task;
-        worker->curTask = task;
-        Run(task);
-        worker->curTask = nullptr;
-        ctx->task = nullptr;
+    worker->curTask = task;
+    switch (curtask->type) {
+        case ffrt_normal_task: {
+            lastTask = task;
+        }
+        case ffrt_queue_task: {
+            ctx->task = task;
+            Run(task);
+            ctx->task = nullptr;
+            break;
+        }
+        default: {
+            ctx->exec_task = curtask;
+            Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
+            ctx->exec_task = nullptr;
+            break;
+        }
     }
+    worker->curTask = nullptr;
 }
 
 void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEUTask* &lastTask)
@@ -121,7 +143,7 @@ void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEU
         lifoCount++;
         ffrt_executor_task_t* priorityTask = reinterpret_cast<ffrt_executor_task_t*>(worker->priority_task);
         // set a placeholder to prevent the task from being placed in the priority again
-        worker->priority_task = (lifoCount > worker->budget) ? const_cast<int*>(&PLACE_HOLDER) : nullptr;
+        worker->priority_task = (lifoCount > worker->budget) ? &PLACE_HOLDER : nullptr;
 
         RunTask(priorityTask, worker, lastTask);
     }
@@ -163,19 +185,32 @@ PollerRet CPUWorker::TryPoll(CPUWorker* worker, int timeout)
 
 bool CPUWorker::LocalEmpty(CPUWorker* worker)
 {
-    return (worker->priority_task == nullptr) && (worker->localFifo.GetLength() == 0);
+    return ((worker->priority_task == nullptr) && (worker->localFifo.GetLength() == 0));
 }
 
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    if (worker->ops.IsBlockAwareInit()) {
+        int ret = BlockawareRegister(worker->GetDomainId());
+        if (ret != 0) {
+            FFRT_LOGE("blockaware register fail, ret[%d]", ret);
+        }
+    }
+#endif
     auto ctx = ExecuteCtx::Cur();
     ctx->localFifo = &(worker->localFifo);
     ctx->priority_task_ptr = &(worker->priority_task);
     ctx->qos = worker->GetQos();
     CPUEUTask* lastTask = nullptr;
 
-    FFRT_LOGD("qos[%d] thread start succ", (int)worker->GetQos());
+    worker->ops.WorkerPrepare(worker);
+    FFRT_LOGI("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
+    FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
     for (;;) {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (!worker->ops.IsExceedRunningThreshold(worker)) {
+#endif
         FFRT_LOGD("task picking");
         // get task in the order of priority -> local queue -> global queue
         void* local_task = GetTask(worker);
@@ -212,6 +247,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         if (worker->localFifo.GetLength() == 0) {
             worker->ops.StealTaskBatch(worker);
         }
+
         if (!LocalEmpty(worker)) {
             worker->tick = 1;
             continue;
@@ -223,7 +259,9 @@ void CPUWorker::Dispatch(CPUWorker* worker)
         if (ret != PollerRet::RET_NULL) {
             continue;
         }
-
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        }
+#endif
         FFRT_WORKER_IDLE_BEGIN_MARKER();
         auto action = worker->ops.WaitForNewAction(worker);
         FFRT_WORKER_IDLE_END_MARKER();
@@ -237,56 +275,16 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 
     CoWorkerExit();
     FFRT_LOGD("ExecutionThread exited");
-    free(worker->steal_buffer);
     worker->ops.WorkerRetired(worker);
 }
-#else
-void CPUWorker::Dispatch(CPUWorker* worker)
+
+void CPUWorker::SetWorkerBlocked(bool var)
 {
-    auto ctx = ExecuteCtx::Cur();
-    CPUEUTask* lastTask = nullptr;
-
-    worker->ops.WorkerPrepare(worker);
-    FFRT_LOGD("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
-    for (;;) {
-        FFRT_LOGD("task picking");
-        CPUEUTask* task = worker->ops.PickUpTask(worker);
-        if (task) {
-            worker->ops.NotifyTaskPicked(worker);
-        } else {
-            FFRT_WORKER_IDLE_BEGIN_MARKER();
-            auto action = worker->ops.WaitForNewAction(worker);
-            FFRT_WORKER_IDLE_END_MARKER();
-            if (action == WorkerAction::RETRY) {
-                continue;
-            } else if (action == WorkerAction::RETIRE) {
-                break;
-            }
-        }
-
-        BboxCheckAndFreeze();
-
-        if (task->type != 0) {
-            worker->curTask = task;
-            ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
-            Run(work, static_cast<ffrt_qos_t>(worker->GetQos()));
-        } else {
-            FFRT_LOGD("EU pick task[%lu]", task->gid);
-            task->UpdateState(TaskState::RUNNING);
-
-            lastTask = task;
-            ctx->task = task;
-            worker->curTask = task;
-            Run(task);
-        }
-        BboxCheckAndFreeze();
-        worker->curTask = nullptr;
-        ctx->task = nullptr;
+    if (blocked != var) {
+        blocked = var;
+        FFRT_LOGW("QoS %ld worker %ld block %s", this->GetQos()(), this->Id(), var ? "true" : "false");
+        this->ops.UpdateBlockingNum(this->GetQos(), var);
     }
-
-    CoWorkerExit();
-    FFRT_LOGD("ExecutionThread exited");
-    worker->ops.WorkerRetired(worker);
 }
-#endif
+
 } // namespace ffrt

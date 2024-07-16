@@ -29,6 +29,7 @@ class CPUEUTask;
 class TaskState {
 public:
     enum State { PENDING, READY, RUNNING, BLOCKED, EXITED, MAX };
+
     using Op = typename std::function<bool(CPUEUTask*)>;
 
     TaskState() = default;
@@ -59,12 +60,10 @@ public:
         return curState;
     }
 
-#ifdef FFRT_IO_TASK_SCHEDULER
     void SetCurState(State state)
     {
         curState = state;
     }
-#endif
 
     State PreState() const
     {

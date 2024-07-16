@@ -19,10 +19,8 @@
 #include "eu/worker_thread.h"
 #include "eu/cpu_manager_interface.h"
 #include "c/executor_task.h"
-#ifdef FFRT_IO_TASK_SCHEDULER
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#endif
 #include "tm/cpu_task.h"
 
 namespace ffrt {
@@ -32,39 +30,33 @@ class CPUWorker : public WorkerThread {
 public:
     CPUWorker(const QoS& qos, CpuWorkerOps&& ops) : WorkerThread(qos), ops(ops)
     {
-#ifdef FFRT_IO_TASK_SCHEDULER
         localFifo.Init(LOCAL_QUEUE_SIZE);
-        steal_buffer = (void**)malloc(sizeof(void *) * STEAL_BUFFER_SIZE);
-#endif
 #ifdef FFRT_PTHREAD_ENABLE
-        Start(CPUWorker::WarpDispatch, this);
+        Start(CPUWorker::WrapDispatch, this);
 #else
         Start(CPUWorker::Dispatch, this);
 #endif
     }
 
     CpuWorkerOps ops;
-#ifdef FFRT_IO_TASK_SCHEDULER
     SpmcQueue localFifo;
     void* priority_task = nullptr;
     unsigned int tick = 0;
     unsigned int global_interval = 60;
     unsigned int budget = 10;
-    void** steal_buffer;
-#endif
 
 private:
-    static void* WarpDispatch(void* worker);
+    bool blocked = false;
+    static void* WrapDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
     static void Run(CPUEUTask* task);
     static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
-#ifdef FFRT_IO_TASK_SCHEDULER
     static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUTask* &lastTask);
     static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEUTask* &lastTask);
     static void* GetTask(CPUWorker* worker);
     static PollerRet TryPoll(CPUWorker* worker, int timeout);
     static bool LocalEmpty(CPUWorker* worker);
-#endif
+    void SetWorkerBlocked(bool var) override;
 };
 } // namespace ffrt
 #endif

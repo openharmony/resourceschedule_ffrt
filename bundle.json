@@ -13,7 +13,12 @@
     "component": {
         "name": "ffrt",
         "subsystem": "resourceschedule",
-        "syscap": [],
+        "syscap": [
+            "SystemCapability.Resourceschedule.Ffrt.Core"
+        ],
+        "features": [
+            "ffrt_support_enable"
+        ],
         "adapted_system_type": [
             "standard"
         ],
@@ -24,14 +29,16 @@
         "ram": "",
         "deps": {
             "components": [
+                "bounds_checking_function",
+                "c_utils",
                 "hilog",
                 "hisysevent",
-                "napi",
-                "faultloggerd"
-            ],
-            "third_party": [
-                "bounds_checking_function",
-                "libunwind"
+                "faultloggerd",
+                "hiprofiler",
+                "init",
+                "hitrace",
+
+                "napi"
             ]
         },
         "build": {

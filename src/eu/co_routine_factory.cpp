@@ -24,7 +24,7 @@ CoRoutine *CoRoutineAllocMem(std::size_t stack_size)
 
 void CoRoutineFreeMem(CoRoutine *co)
 {
-    ffrt::QSimpleAllocator<CoRoutine>::freeMem(co);
+    ffrt::QSimpleAllocator<CoRoutine>::FreeMem(co);
 }
 
 void CoRoutineReleaseMem()
@@ -36,4 +36,5 @@ void CoRoutineInstance(std::size_t size)
 {
     QSimpleAllocator<CoRoutine>::instance(size);
 }
+
 }

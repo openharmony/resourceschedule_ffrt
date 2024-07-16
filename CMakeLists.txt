@@ -16,9 +16,8 @@ option(FFRT_BBOX_ENABLE "Enables ffrt black box" ON)
 option(FFRT_EXAMPLE "Enables ffrt examples compile" ON)
 option(FFRT_BENCHMARKS "Enables ffrt Benchmarks" OFF)
 option(FFRT_TEST_ENABLE "Enables ffrt test" OFF)
-option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" ON)
+option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" OFF)
 option(FFRT_SANITIZE "enable address or thread sanitizer" OFF)
-option(FFRT_IO_TASK_SCHEDULER "enalbe io task scheduler" OFF)
 
 # set compiler clang or gcc, must before project(ffrt)
 if(FFRT_CLANG_COMPILE STREQUAL ON)
@@ -44,9 +43,15 @@ set(FFRT_CODE_PATH ${PROJECT_SOURCE_DIR}/src)
 set(FFRT_INNER_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/inner_api)
 set(FFRT_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/kits)
 set(FFRT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
-set(ROOT_PATH ${PROJECT_SOURCE_DIR}/../../../../)
+set(ROOT_PATH ${PROJECT_SOURCE_DIR}/../)
+set(SECUREC_PATH ${ROOT_PATH}/third_party/bounds_checking_function)
 set(TRACE_PATH ${FFRT_CODE_PATH}/dfx/trace)
 set(QOS_PATH ${FFRT_CODE_PATH}/sched/)
+set(securec_includes ${SECUREC_PATH}/include)
+aux_source_directory(${SECUREC_PATH}/src securec_srcs)
+add_library(securec SHARED ${securec_srcs})
+target_include_directories(securec PRIVATE ${securec_includes})
+include_directories(${securec_includes})
 
 #compiler flags
 if(FFRT_SANITIZE STREQUAL address)
@@ -77,7 +82,6 @@ message(STATUS "FFRT_TEST_ENABLE: " ${FFRT_TEST_ENABLE})
 message(STATUS "FFRT_CLANG_COMPILE: " ${FFRT_CLANG_COMPILE})
 message(STATUS "FFRT_SANITIZE: " ${FFRT_SANITIZE})
 
-add_definitions("-DFFRT_IO_TASK_SCHEDULER")
 add_definitions("-DFFRT_PTHREAD_ENABLE")
 
 # ffrt qos
@@ -86,11 +90,6 @@ add_definitions(-DUSE_OHOS_QOS)
 # ffrt BBOX
 if(FFRT_BBOX_ENABLE STREQUAL ON)
   add_definitions("-DFFRT_BBOX_ENABLE")
-endif()
-
-#ffrt io task scheduler
-if(FFRT_IO_TASK_SCHEDULER STREQUAL ON)
-  add_definitions(-DFFRT_IO_TASK_SCHEDULER)
 endif()
 
 # libffrt.so

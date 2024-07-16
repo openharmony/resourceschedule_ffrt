@@ -52,7 +52,7 @@ public:
     * @param elementNum 取出元素数量。
     * @retval 返回被推入队列尾部的元素数量。
     */
-    int PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum);
+    unsigned int PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum);
 
     /**
     * @brief 从队列首部批量取出元素后将元素批量推入全局队列尾部。

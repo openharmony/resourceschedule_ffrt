@@ -55,5 +55,5 @@ protected:
 HWTEST_F(CpuworkerManagerTest, NotifyTaskAdded, TestSize.Level1)
 {
     auto *it = new SCPUWorkerManager();
-    it->NotifyTaskAdded(qos(5));
+    it->NotifyTaskAdded(QoS(qos(5)));
 }

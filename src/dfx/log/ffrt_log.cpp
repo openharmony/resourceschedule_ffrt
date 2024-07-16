@@ -13,12 +13,15 @@
  * limitations under the License.
  */
 
+#ifdef OHOS_STANDARD_SYSTEM
+#include "faultloggerd_client.h"
+#endif
 #include <string>
 #include <atomic>
 #include "ffrt_log_api.h"
 #include "internal_inc/osal.h"
 
-static int g_ffrtLogLevel = FFRT_LOG_ERROR;
+static int g_ffrtLogLevel = FFRT_LOG_DEBUG;
 static std::atomic<unsigned int> g_ffrtLogId(0);
 
 unsigned int GetLogId(void)
@@ -26,7 +29,7 @@ unsigned int GetLogId(void)
     return ++g_ffrtLogId;
 }
 
-int GetLogLevel(void)
+int GetFFRTLogLevel(void)
 {
     return g_ffrtLogLevel;
 }

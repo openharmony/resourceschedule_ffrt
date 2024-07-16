@@ -24,10 +24,15 @@
 #ifndef FFRT_API_CPP_QUEUE_H
 #define FFRT_API_CPP_QUEUE_H
 
-#include "../c/queue.h"
+#include "c/queue.h"
 #include "task.h"
 
 namespace ffrt {
+enum queue_type {
+    queue_serial = ffrt_queue_serial,
+    queue_concurrent = ffrt_queue_concurrent,
+    queue_max = ffrt_queue_max,
+};
 class queue_attr : public ffrt_queue_attr_t {
 public:
     queue_attr()
@@ -76,7 +81,7 @@ public:
     }
 
     // set timeout callback
-    inline queue_attr& callback(std::function<void()>& func)
+    inline queue_attr& callback(const std::function<void()>& func)
     {
         ffrt_queue_attr_set_callback(this, create_function_wrapper(func, ffrt_function_kind_queue));
         return *this;
@@ -87,10 +92,28 @@ public:
     {
         return ffrt_queue_attr_get_callback(this);
     }
+
+    // set max concurrency of queue
+    inline queue_attr& max_concurrency(const int max_concurrency)
+    {
+        ffrt_queue_attr_set_max_concurrency(this, max_concurrency);
+        return *this;
+    }
+
+    // get max concurrency of queue
+    inline int max_concurrency() const
+    {
+        return ffrt_queue_attr_get_max_concurrency(this);
+    }
 };
 
 class queue {
 public:
+    queue(const queue_type type, const char* name, const queue_attr& attr = {})
+    {
+        queue_handle = ffrt_queue_create(ffrt_queue_type_t(type), name, &attr);
+    }
+
     queue(const char* name, const queue_attr& attr = {})
     {
         queue_handle = ffrt_queue_create(ffrt_queue_serial, name, &attr);
@@ -111,7 +134,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void submit(std::function<void()>& func)
+    inline void submit(const std::function<void()>& func)
     {
         ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
     }
@@ -124,7 +147,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void submit(std::function<void()>& func, const task_attr& attr)
+    inline void submit(const std::function<void()>& func, const task_attr& attr)
     {
         ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
     }
@@ -163,7 +186,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline task_handle submit_h(std::function<void()>& func)
+    inline task_handle submit_h(const std::function<void()>& func)
     {
         return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
     }
@@ -178,7 +201,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline task_handle submit_h(std::function<void()>& func, const task_attr& attr)
+    inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr)
     {
         return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
     }
@@ -223,7 +246,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline int cancel(task_handle& handle)
+    inline int cancel(const task_handle& handle)
     {
         return ffrt_queue_cancel(handle);
     }
@@ -235,7 +258,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void wait(task_handle& handle)
+    inline void wait(const task_handle& handle)
     {
         return ffrt_queue_wait(handle);
     }

@@ -20,6 +20,7 @@
 #include "eu/cpu_monitor.h"
 
 namespace ffrt {
+
 class SCPUMonitor : public CPUMonitor {
 public:
     SCPUMonitor(CpuMonitorOps&& ops) : CPUMonitor(std::move(ops)) {};

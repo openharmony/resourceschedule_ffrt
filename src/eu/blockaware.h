@@ -25,13 +25,13 @@
 extern "C" {
 #endif
 
-#define BLOCKAWARE_DOMAIN_ID_MAX 15
-#define HM_PR_SILK_BLOCKAWARE_OPS 0x534b4241
-#define BLOCKAWARE_SUBOPS_INIT 0x1
-#define BLOCKAWARE_SUBOPS_REG 0x2
-#define BLOCKAWARE_SUBOPS_UNREG 0x3
-#define BLOCKAWARE_SUBOPS_WAIT 0x4
-#define BLOCKAWARE_SUBOPS_WAKE 0x5
+#define BLOCKAWARE_DOMAIN_ID_MAX    15
+#define HM_PR_SILK_BLOCKAWARE_OPS    0x534b4241
+#define BLOCKAWARE_SUBOPS_INIT        0x1
+#define BLOCKAWARE_SUBOPS_REG        0x2
+#define BLOCKAWARE_SUBOPS_UNREG        0x3
+#define BLOCKAWARE_SUBOPS_WAIT        0x4
+#define BLOCKAWARE_SUBOPS_WAKE		0x5
 
 struct BlockawareDomainInfo {
     unsigned int nrRunning;
@@ -101,7 +101,7 @@ static inline int BlockawareLeaveSleeping(void)
 {
     unsigned long *slot_ptr = curr_thread_tls_blockaware_slot_of();
     int err = 0;
-
+ 
     if (*slot_ptr == 0) {
         err = -EINVAL;
     } else {
@@ -125,7 +125,7 @@ static inline void SmpRmb(void)
 static inline unsigned long GetTlsPtr(void)
 {
     unsigned long tpid = 0;
-    asm volatile ("mrc p15, 0, %0, c13, c0, 3" : "=r"(tpid));
+    asm volatile("mrc p15, 0, %0, c13, c0, 3" : "=r"(tpid));
     return tpid;
 }
 
@@ -147,7 +147,7 @@ static inline int BlockawareLeaveSleeping(void)
 {
     unsigned long *slot_ptr = curr_thread_tls_blockaware_slot_of();
     int err = 0;
-
+ 
     if (*slot_ptr == 0) {
         err = -EINVAL;
     } else {

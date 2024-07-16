@@ -38,6 +38,7 @@ public:
     {
         if (!exited) {
 #ifdef OHOS_THREAD_STACK_DUMP
+            FFRT_LOGW("WorkerThread enter destruction but not exited");
             OHOS::HiviewDFX::DfxDumpCatcher dumplog;
             std::string msg = "";
             bool result = dumplog.DumpCatch(getpid(), gettid(), msg);
@@ -54,6 +55,7 @@ public:
             }
 #endif
         }
+        FFRT_LOGW("WorkerThread enter destruction");
         Detach();
     }
 
@@ -88,7 +90,6 @@ public:
     {
         return qos;
     }
-
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     unsigned int GetDomainId() const
     {
@@ -162,10 +163,6 @@ public:
         return this->thread.native_handle();
     }
 #endif
-
-    virtual void SetWorkerBlocked(bool var)
-    {
-    }
 
     void WorkerSetup(WorkerThread* wthread);
     void NativeConfig();

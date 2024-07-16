@@ -61,7 +61,7 @@ struct CpuMonitorOps {
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
     std::function<int (const QoS& qos)> GetWorkerCount;
-    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotify;
+    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotity;
 };
 
 class CPUMonitor;
@@ -69,6 +69,6 @@ class CPUManagerStrategy {
 public:
     static WorkerThread* CreateCPUWorker(const QoS& qos, void* manager);
     static CPUMonitor* CreateCPUMonitor(void* manager);
-}
+};
 }
 #endif

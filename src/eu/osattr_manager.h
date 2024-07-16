@@ -28,11 +28,16 @@ const std::string cpuctlGroupIvePath = "/dev/cpuctl/cam2stage";
 const std::string cpusetGroupIvePath = "/dev/cpuset/cam2stage";
 const std::string cpuThreadNode = "/tasks";
 const std::string cpuSharesNode = "/cpu.shares";
-const std::string cpuLatencyniceNode = "/cpu.latency.nice";
+const std::string cpuMapNode = "/cpus";
+#ifdef OHOS_STANDARD_SYSTEM
+const std::string cpuUclampminNode = "/load.min";
+const std::string cpuUclampmaxNode = "/load.max";
+#else
 const std::string cpuUclampminNode = "/cpu.uclamp.min";
 const std::string cpuUclampmaxNode = "/cpu.uclamp.max";
+const std::string cpuLatencyniceNode = "/cpu.latency.nice";
 const std::string cpuvipprioNode = "/cpu.vip_prio";
-const std::string cpuMapNode = "/cpus";
+#endif
 const int PATH_MAX_LENS = 4096;
 const int CGROUP_SHARES_MIN = 2;
 const int CGROUP_SHARES_MAX = 262144;

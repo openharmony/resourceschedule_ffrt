@@ -45,10 +45,10 @@ using namespace ffrt;
 
 static inline void CoStackCheck(CoRoutine* co)
 {
-    if (co->stkMem.magic != STACK_MAGIC) {
+    if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
         FFRT_LOGE("sp offset:%p.\n", co->stkMem.stk +
             co->stkMem.size - co->ctx.regs[REG_SP]);
-        FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
+        FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_task_attr_set_stack_size'.\n");
     }
 }
 
@@ -207,7 +207,7 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
         task->tsd = nullptr;
         task->taskLocal = false;
     }
-    FFRT_LOGD("task tsd deconstruct done, task[%lu], name[%s]", task->gid, task->label.c_str());
+    FFRT_LOGD("tsd deconstruct done, task[%lu], name[%s]", task->gid, task->label.c_str());
 }
 #endif
 
@@ -285,9 +285,9 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
         co = ffrt::CoRoutineAllocMem(stackSize);
     } else {
         co = static_cast<CoRoutine*>(mmap(nullptr, stackSize,
-            PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+            PROT_READ | PROT_WRITE,  MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
         if (co == reinterpret_cast<CoRoutine*>(MAP_FAILED)) {
-            FFRT_LOGE("memory mmap failed, errno: %d", errno);
+            FFRT_LOGE("memory mmap failed.");
             return nullptr;
         }
     }
@@ -441,7 +441,7 @@ void CoStart(ffrt::CPUEUTask* task)
 #endif
             return;
         }
-        
+
         // 2. couroutine task block, switch to thread
         // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = GetCoEnv()->pending;

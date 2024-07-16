@@ -18,14 +18,15 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include "dfx/log/ffrt_log_api.h"
-#include "eu/execute_unit.h"
-#include "eu/qos_interface.h"
-#include "qos.h"
-#include "util/name_manager.h"
-#include "util/sched_ext.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
+#include "eu/execute_unit.h"
+#include "eu/osattr_manager.h"
+#include "eu/qos_interface.h"
+#include "qos.h"
+#include "util/name_manager.h"
+#include "../src_ext/staging_qos/sched/qos_register_impl.h"
 
 namespace ffrt {
 WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
@@ -77,23 +78,30 @@ int SetCpuAffinity(unsigned long affinity, int tid)
     return ret;
 }
 
-int SetMinUtilZero(void)
-{
-    sched_attr attr = {0};
-
-    attr.size = sizeof(attr);
-    attr.sched_policy = -1;
-    attr.sched_flags = SCHED_FLAG_UTIL_CLAMP_MIN | SCHED_FLAG_RESET_ON_FORK;
-    attr.sched_util_min = 0; // -1 for reset
-
-    return syscall(SYS_sched_setattr, 0, &attr, 0);
-}
-
 void SetThreadAttr(WorkerThread* thread, const QoS& qos)
 {
     if (qos() <= qos_max) {
         FFRTQosApplyForOther(qos(), thread->Id());
-        FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
+    } else if (qos() > qos_max && qos() < GetFuncQosMax()() - 1) {
+        // custom register qos
+        unsigned long affinity = QosRegister::Instance()->GetAffinity(qos());
+        FFRT_LOGD("customQos %d affinity 0x%x", qos(), affinity);
+        int ret = 0;
+        if (affinity != 0) {
+            ret = SetCpuAffinity(affinity, thread->Id());
+        }
+        if (ret != 0) {
+            FFRT_LOGE("set affinity failed, ret %d", ret);
+        }
+        
+        int expectQos = QosRegister::Instance()->GetExpectQos(qos());
+        FFRT_LOGD("expectQos: %d", expectQos);
+        FFRTQosApplyForOther(expectQos, thread->Id());
+    } else if (qos() == GetFuncQosMax()() - 1) {
+        OSAttrManager::Instance()->SetTidToCGroup(thread->Id());
+    } else {
+        FFRT_LOGE("qos:%d is invalid\n", qos());
     }
+    FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
 }
 }; // namespace ffrt

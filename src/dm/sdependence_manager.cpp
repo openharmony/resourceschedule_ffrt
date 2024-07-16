@@ -257,6 +257,11 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     CoWait(pendDataDepFun);
 }
 
+int SDependenceManager::onExecResults(const ffrt_deps_t* deps)
+{
+    return 0;
+}
+
 void SDependenceManager::onTaskDone(CPUEUTask* task)
 {
     auto sTask = static_cast<SCPUEUTask*>(task);

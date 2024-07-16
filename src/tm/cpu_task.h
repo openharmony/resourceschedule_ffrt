@@ -27,14 +27,11 @@
 #include <memory>
 #include "task_base.h"
 #include "sched/interval.h"
+#include "sched/task_state.h"
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"
 #include "core/task_io.h"
 #include "util/task_deleter.h"
-
-#ifdef FFRT_HITRACE_ENABLE
-#include "hitrace/trace.h"
-#endif
 
 namespace ffrt {
 struct VersionCtx;
@@ -43,8 +40,6 @@ class UserDefinedTask : public TaskBase {
     ffrt_io_callable_t work;
     ExecTaskStatus status;
 };
-
-#define TSD_SIZE 128
 
 class CPUEUTask : public CoTask {
 public:
@@ -59,15 +54,12 @@ public:
     std::vector<CPUEUTask*> in_handles;
     TaskState state;
 
-#ifdef FFRT_HITRACE_ENABLE
-    OHOS::HiviewDFX::HiTraceId traceId_;
-#endif
-
     /* The current number of child nodes does not represent the real number of child nodes,
      * because the dynamic graph child nodes will grow to assist in the generation of id
      */
     std::atomic<uint64_t> childNum {0};
     bool isWatchdogEnable = false;
+    bool notifyWorker_ = true;
 
     void** threadTsd = nullptr;
     void** tsd = nullptr;
@@ -84,6 +76,7 @@ public:
     void Execute() override;
 
     virtual void RecycleTask() = 0;
+
     inline bool IsRoot()
     {
         return parent == nullptr;
@@ -110,6 +103,10 @@ public:
             traceTag.pop_back();
         }
     }
+
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    static void DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag = 0); /* 0:hilog others:hiview */
+#endif
 };
 
 inline bool ExecutedOnWorker(CPUEUTask* task)
@@ -156,6 +153,5 @@ inline bool ThreadNotifyMode(CPUEUTask* task)
     }
     return false;
 }
-
 } /* namespace ffrt */
 #endif

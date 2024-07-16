@@ -13,12 +13,26 @@
  * limitations under the License.
  */
 
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+#include <dlfcn.h>
+#include <sstream>
+#include "unwinder.h"
+#include "backtrace_local.h"
+#endif
 #include <securec.h>
 #include "dm/dependence_manager.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
 #include "tm/task_factory.h"
 #include "tm/cpu_task.h"
+
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+using namespace OHOS::HiviewDFX
+#endif
+
+namespace {
+const int TSD_SIZE = 128;    
+}
 
 namespace ffrt {
 void CPUEUTask::SetQos(QoS& newQos)
@@ -54,7 +68,11 @@ void CPUEUTask::Execute()
     }
     f->destroy(f);
     FFRT_TASKDONE_MARKER(gid);
-    this->coRoutine->isTaskDone = true;
+    if (!USE_COROUTINE) {
+        this->UpdateState(ffrt::TaskState::EXITED);
+    } else {
+        this->coRoutine->isTaskDone = true;
+    }
 }
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
@@ -87,4 +105,64 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
     }
     FFRT_LOGD("create task name:%s gid=%lu taskLocal:%d", label.c_str(), gid, taskLocal);
 }
+
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackeInfo, uint8_t flag)
+{
+    ucontext_t ctx;
+
+    if (ExecuteCtx::Cur()->task == task || task == nullptr) {
+        if (flag == 0) {
+            OHOS::HiviewDFX::PrintTrace(-1);
+        } else {
+            OHOS::HiviewDFX::GetBacktrace(stackInfo, false);
+        }
+        return;
+    } else {
+        memset_s(&ctx, sizeof(ctx), 0, sizeof(ctx));
+#if defined(__aarch64__)
+        ctx.uc_mcontext.regs[REG_AARCH64_X29] = task->coRoutine->ctx.regs[10];
+        ctx.uc_mcontext.sp = task->coRoutine->ctx.regs[13];
+        ctx.uc_mcontext.pc = task->coRoutine->ctx.regs[11];
+#if defined(__x86_64__)
+        ctx.uc_mcontext.gregs[REG_RBX] = task->coRoutine->ctx.regs[0];
+        ctx.uc_mcontext.gregs[REG_RBP] = task->coRoutine->ctx.regs[1];
+        ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.regs[6];
+        ctx.uc_mcontext.gregs[REG_RIP] = *(reinterpret_cast<greg_t *>(ctx.uc_mcontext.gregs[REG_RSP] - 8));
+#if defined(__arm__)
+        ctx.uc_mcontext.arm_sp = task->coRoutine->ctx.regs[0];
+        ctx.uc_mcontext.arm_pc = task->coRoutine->ctx.regs[1];
+        ctx.uc_mcontext.arm_lr = task->coRoutine->ctx.regs[1];
+        ctx.uc_mcontext.arm_fp = task->coRoutine->ctx.regs[10];
+#endif        
+    }
+
+    auto co = task->coRoutine;
+    uintptr_t stackBottom = reinterpret_cast<uintptr_t>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - 8);
+    uintptr_t stackTop = static_cast<uintptr_t>(stackBottom + co->stkMem.size);
+    auto unwinder = std::make_shared<Unwinder>();
+    auto regs = DfxRegs::CreateFromUcontext(ctx);
+    unwinder->SetRegs(regs);
+    UnwindContext context;
+    context.pid = UNWIND_TYPE_LOCAL;
+    context.regs = regs;
+    context.maps = unwinder->GetMaps();
+    context.stackCheck = false;
+    context.stackBottom = stackBottom;
+    context.stackTop = stackTop;
+    bool resFlag = unwinder->Unwind(&context);
+    if (!resFlag) {
+        FFRT_LOGE("Call Unwind failed");
+        return;
+    }
+    std::ostringstream ss;
+    auto frames = unwinder->GetFrames();
+    if (flag != 0) {
+        ss << Unwinder->GetFramesStr(frames);
+        ss << std::endl;
+        stackInfo = ss.str();
+        return;
+    }
+    FFRT_LOGE("%s", Unwinder::GetFramesStr(frames).c_str())
+#endif
 } /* namespace ffrt */

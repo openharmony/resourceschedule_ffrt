@@ -19,52 +19,49 @@
 #include <sys/syscall.h>
 #include <sys/prctl.h>
 #include <thread>
-#include <linux/futex.h>
 #include "dfx/log/ffrt_log_api.h"
 #include "util/name_manager.h"
 namespace ffrt {
-DelayedWorker::DelayedWorker() : futex(0)
+DelayedWorker::DelayedWorker()
 {
+    delayWorker = std::make_unique<std::thread>([this]() {
     struct sched_param param;
     param.sched_priority = 1;
     int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
     if (ret != 0) {
         FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
     }
-    std::thread t([this]() {
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         for (;;) {
-            lock.lock();
-            if (futex < 0) {
-                lock.unlock();
-                exited = true;
+            std::unique_lock lk(lock);
+            if (toExit) {
                 break;
             }
-            struct timespec ts;
-            struct timespec *p = &ts;
-            HandleWork(&p);
-            lock.unlock();
-            syscall(SYS_futex, &futex, FUTEX_WAIT_BITSET, 0, p, 0, -1);
+            int ret = HandleWork();
+            if (toExit) {
+                break;
+            }
+            if (ret == 0) {
+                cv.wait_until(lk, map.begin()->first);
+            } else if (ret == 1) {
+                cv.wait_until(lk, std::chrono::steady_clock::now() + std::chrono::hours(1));
+            }
         }
     });
-    t.detach();
 }
 
 DelayedWorker::~DelayedWorker()
 {
     lock.lock();
-    futex = -1;
+    toExit = true;
     lock.unlock();
 
-    while (!exited) {
-        syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
-    }
+    cv.notify_one();
+    delayWorker->join();
 }
 
-void DelayedWorker::HandleWork(struct timespec** p)
+int DelayedWorker::HandleWork()
 {
-    const int NS_PER_SEC = 1000000000;
-
     while (!map.empty()) {
         time_point_t now = std::chrono::steady_clock::now();
         auto cur = map.begin();
@@ -74,33 +71,29 @@ void DelayedWorker::HandleWork(struct timespec** p)
             lock.unlock();
             (*w.cb)(w.we);
             lock.lock();
-            if (futex < 0) {
-                return;
+            if (toExit) {
+                return -1;
             }
         } else {
-            std::chrono::nanoseconds ns = cur->first.time_since_epoch();
-            (*p)->tv_sec = ns.count() / NS_PER_SEC;
-            (*p)->tv_nsec = ns.count() % NS_PER_SEC;
-            futex = 0;
-            return;
+            return 0;
         }
     }
-
-    *p = nullptr;
-    futex = 0;
+    return 1;
 }
 
 bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;
-    std::lock_guard<decltype(lock)> l(lock);
+    lock.lock();
 
-    if (futex < 0) {
+    if (toExit) {
+        lock.unlock();
         return false;
     }
 
     time_point_t now = std::chrono::steady_clock::now();
     if (to <= now) {
+        lock.unlock();
         return false;
     }
 
@@ -108,9 +101,9 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
         w = true;
     }
     map.emplace(to, DelayedWork {we, &wakeup});
+    lock.unlock();
     if (w) {
-        futex = 1;
-        syscall(SYS_futex, &futex, FUTEX_WAKE, 1);
+        cv.notify_one();
     }
 
     return true;

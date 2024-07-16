@@ -43,7 +43,7 @@ public:
 
     virtual int Push(QueueTask* task) = 0;
     virtual QueueTask* Pull() = 0;
-    virtual bool GetActiveStatus() const = 0;
+    virtual bool GetActiveStatus() = 0;
     virtual int GetQueueType() const = 0;
     virtual void Remove();
     virtual int Remove(const char* name);

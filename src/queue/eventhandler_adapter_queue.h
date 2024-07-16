@@ -52,8 +52,9 @@ public:
     int Push(QueueTask* task) override;
     QueueTask* Pull() override;
 
-    bool GetActiveStatus() const override
+    bool GetActiveStatus() override
     {
+        std::unique_lock lock(mutex_);
         return isActiveState_.load();
     }
 

@@ -19,7 +19,6 @@
 #include <cstring>
 #include <string>
 #include <sys/mman.h>
-#include <unordered_map>
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
@@ -35,8 +34,11 @@
 #ifdef FFRT_TASK_LOCAL_ENABLE
 #include "pthread_ffrt.h"
 #endif
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
+#ifdef FFRT_TASK_LOCAL_ENABLE
+#include "pthread_ffrt.h"
+#endif
 #endif
 
 using namespace ffrt;
@@ -44,8 +46,8 @@ using namespace ffrt;
 static inline void CoStackCheck(CoRoutine* co)
 {
     if (co->stkMem.magic != STACK_MAGIC) {
-        FFRT_LOGE("sp offset:%lu.\n", (uint64_t)co->stkMem.stk +
-            co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
+        FFRT_LOGE("sp offset:%p.\n", co->stkMem.stk +
+            co->stkMem.size - co->ctx.regs[REG_SP]);
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
     }
 }
@@ -77,13 +79,15 @@ CoRoutineEnv* GetCoEnv()
     if (curTls != nullptr) {
         coEnv = reinterpret_cast<CoRoutineEnv *>(curTls);
     } else {
-        coEnv = new (std::nothrow) CoRoutineEnv();
+        coEnv = new CoRoutineEnv();
         pthread_setspecific(g_coThreadTlsKey, coEnv);
     }
     return coEnv;
 }
+} // namespace
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
+namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
     if ((task->type != ffrt_normal_task) || (!task->taskLocal)) {
@@ -189,10 +193,8 @@ void TaskTsdRunDtors(ffrt::CPUEUTask* task)
     pthread_tsd_run_dtors();
     SwitchTsdAddrToThread(task);
 }
-#endif
 } // namespace
 
-#ifdef FFRT_TASK_LOCAL_ENABLE
 void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 {
     if (!IsTaskLocalEnable(task)) {
@@ -201,7 +203,6 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 
     TaskTsdRunDtors(task);
     if (task->tsd != nullptr) {
-        FFRT_LOGI("clear task tsd[%llx]", (uint64_t)(task->tsd));
         free(task->tsd);
         task->tsd = nullptr;
         task->taskLocal = false;
@@ -350,17 +351,17 @@ static inline void UnbindCoRoutione(ffrt::CPUEUTask* task)
 
 static inline int CoAlloc(ffrt::CPUEUTask* task)
 {
-    if (task->coRoutine) {
-        if (GetCoEnv()->runningCo) {
+    if (task->coRoutine) { // use allocated coroutine stack
+        if (GetCoEnv()->runningCo) { // free cached stack if it exist
             CoMemFree(GetCoEnv()->runningCo);
         }
         GetCoEnv()->runningCo = task->coRoutine;
     } else {
-        if (!GetCoEnv()->runningCo) {
+        if (!GetCoEnv()->runningCo) { // if no cached stack, alloc one
             GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
-        } else {
-            if (GetCoEnv()->runningCo->allocatedSize != task->stack_size) {
-                CoMemFree(GetCoEnv()->runningCo);
+        } else { // exist cached stack
+            if (GetCoEnv()->runningCo->allocatedSize != task->stack_size) { // stack size not match, alloc one
+                CoMemFree(GetCoEnv()->runningCo); // free cached stack
                 GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
             }
         }
@@ -416,19 +417,9 @@ void CoStart(ffrt::CPUEUTask* task)
     TaskRunCounterInc();
 #endif
 
-#ifdef FFRT_HITRACE_ENABLE
-    using namespace OHOS::HiviewDFX;
-    HiTraceId currentId = HiTraceChain::GetId();
-    if (task != nullptr) {
-        HiTraceChain::SaveAndSet(task->traceId_);
-        HiTraceChain::Tracepoint(HITRACE_TP_SR, task->traceId_, "ffrt::CoStart");
-    }
-#endif
-
     for (;;) {
-        FFRT_LOGD("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
@@ -468,19 +459,11 @@ void CoStart(ffrt::CPUEUTask* task)
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();
 #endif
-#ifdef FFRT_HITRACE_ENABLE
-        HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
-        HiTraceChain::Restore(currentId);
-#endif
             return;
         }
         FFRT_WAKE_TRACER(task->gid); // fast path wk
         GetCoEnv()->runningCo = co;
     }
-#ifdef FFRT_HITRACE_ENABLE
-    HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
-    HiTraceChain::Restore(currentId);
-#endif
 }
 
 // called by thread work

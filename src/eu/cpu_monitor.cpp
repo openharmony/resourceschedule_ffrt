@@ -129,6 +129,8 @@ void CPUMonitor::MonitorMain()
     if (ret == -1) {
         monitorTid = 0;
         FFRT_LOGE("syscall(SYS_gettid) failed");
+    } else {
+        monitorTid = static_cast<uint32_t>(ret);
     }
     while (true) {
         if (stopMonitor) {
@@ -259,13 +261,14 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         }
     }
 #endif
+
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
         (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
+
     if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }
-
     if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
         workerCtrl.lock.unlock();
         ops.WakeupWorkers(qos);
@@ -281,16 +284,87 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
     }
 }
 
-bool CPUMonitor::IsExceedMaxConcurrency(const QoS& qos)
+void CPUMonitor::NotifyWorkers(const QoS& qos, int number)
 {
-    bool ret = false;
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-    if (static_cast<uint32_t>(workerCtrl.executionNum - ops.GetBlockingNum(qos)) > workerCtrl.maxConcurrency) {
-        ret = true;
+
+    int increasableNumber = static_cast<int>(workerCtrl.maxConcurrency) - 
+        (workerCtrl.executionNum + workerCtrl.sleepingWorkerNum);
+    int wakeupNumber = std::min(number, workerCtrl.sleepingWorkerNum);
+    for (int idx = 0; idx < wakeupNumber; idx++) {
+        ops.WakeupWorkers(qos);
     }
+
+    int incNumber = std::min(number - wakeupNumber, increasableNumber);
+    for (int idx = 0; idx < incNumber; idx++) {
+        workerCtrl.executionNum++;
+        ops.IncWorker(qos);
+    }
+
     workerCtrl.lock.unlock();
-    return ret;
+    FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber);
 }
 
+// default strategy which is kind of radical for poking workers
+void CPUMonitor::HandleTaskNotifyDefault(const Qos& qos, void* p, TaskNotifyType notifyType)
+{
+    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
+    int taskCount = static_cast<size_t>(monitor->GetOps().GetTaskCount(qos));
+    switch (notifyType) {
+        case TaskNotifyType::TASK_ADDED:
+        case TaskNotifyType::TASK_PICKED:
+            if (taskCount > 0) {
+                monitor->Poke(qos, taskCount, notifyType);
+            }
+            break;
+        case TaskNotifyType::TASK_LOCAL:
+            monitor->Poke(qos, taskCount, notifyType);
+            break;    
+        default:
+            break;
+    }
+}
+
+// conservative strategy for poking workers
+void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotifyType notifyType)
+{
+    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
+    int taskCount = monitor->ops.GetTaskCount(qos);
+    if (taskCount == 0) {
+        // no available task in global queue, skip
+        return;
+    }
+    constexpr double thresholdTaskPick = 1.0;
+    WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+
+    if (notifyType == TaskNotifyType::TASK_PICKED) {
+        int wakeWorkerCount = workerCtrl.executionNum;
+        double remainingLoadRatio = (wakeWorkerCount == 0) ? static_cast<double>(workerCtrl.maxConcurrency):
+            static_cast<double>(taskCount) / static_cast<double>(wakeWorkerCount);
+        if (remainingLoadRatio <= thresholdTaskPick) {
+            // for task pick, wake woker when load ratio > 1
+            workerCtrl.lock.unlock();
+            return;
+        }
+    }
+    
+    if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.maxConcurrency) {
+        if (workerCtrl.sleepingWorkerNum == 0) {
+            FFRT_LOGI("begin to create worker, notifyType[%d]"
+                "execnum[%d], maxconcur[%d], slpnum[%d], dslpnum[%d]",
+                notifyType, workerCtrl.executionNum, workerCtrl.maxConcurrency,
+                workerCtrl.sleepingWorkerNum, workerCtrl.deepSleepingWorkerNum);
+            workerCtrl.executionNum++;
+            workerCtrl.lock.unlock();
+            monitor->ops.WakeupWorkers(qos);
+        } else {
+            workerCtrl.lock.unlock();
+            monitor->ops.WakeupWorkers(qos);
+        }
+    } else {
+        workerCtrl.lock.unlock();
+    }
+}
 }

@@ -15,13 +15,10 @@
 
 #include "sdependence_manager.h"
 #include "util/worker_monitor.h"
+#include "util/ffrt_facade.h"
 
 #ifdef ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
-#endif
-
-#ifdef FFRT_HITRACE_ENABLE
-using namespace OHOS::HiviewDFX;
 #endif
 
 namespace ffrt {
@@ -53,34 +50,30 @@ SDependenceManager::~SDependenceManager()
 {
 }
 
-void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
-        std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup)
+void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
-    // signature去重：1）outs去重
+    // 1 Init eu and scheduler
+    auto ctx = ExecuteCtx::Cur();
+
+    // 2 Get current task's parent
+    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
+
+    std::vector<const void*> insNoDup;
+    std::vector<const void*> outsNoDup;
+    std::vector<CPUEUTask*> in_handles;
+    // signature去重：1) outs去重
     if (outs) {
-        outsDeDup(outsNoDup, outs);
+        if (!outsDeDup(outsNoDup, outs)) {
+            FFRT_LOGE("onSubmit outsDeDup error");
+            return;
+        }
     }
 
     // signature去重：2）ins去重（不影响功能，skip）；3）ins不和outs重复（当前不支持weak signature）
     if (ins) {
         insDeDup(in_handles, insNoDup, outsNoDup, ins);
     }
-}
-
-void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
-{
-    // 0 check outs handle
-    if (!CheckOutsHandle(outs)) {
-        FFRT_LOGE("outs contain handles error");
-        return;
-    }
-
-    // 1 Init eu and scheduler
-    auto ctx = ExecuteCtx::Cur();
-
-    // 2 Get current task's parent
-    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
 
     // 2.1 Create task ctx
     SCPUEUTask* task = nullptr;
@@ -91,27 +84,14 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     }
     FFRT_TRACE_BEGIN(("submit|" + std::to_string(task->gid)).c_str());
     FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
     {
         task->stackId = FFRTCollectAsyncStack();
     }
 #endif
-
-#ifdef FFRT_HITRACE_ENABLE
-    if (HiTraceChain::GetId().IsValid() && task != nullptr) {
-        task->traceId_ = HiTraceChain::CreateSpan();
-        HiTraceChain::Tracepoint(HITRACE_TP_CS, task->traceId_, "ffrt::SDependenceManager::onSubmit");
-    }
-#endif
-
 #ifdef FFRT_BBOX_ENABLE
     TaskSubmitCounterInc();
 #endif
-
-    std::vector<const void*> insNoDup;
-    std::vector<const void*> outsNoDup;
-    RemoveRepeatedDeps(task->in_handles, ins, outs, insNoDup, outsNoDup);
-
 #ifdef FFRT_OH_WATCHDOG_ENABLE
     if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_)) {
         task->isWatchdogEnable = true;
@@ -153,24 +133,17 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
                 o.first->AddProducer(task);
             }
         }
+        task->in_handles.swap(in_handles);
         if (task->dataRefCnt.submitDep != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
-
-#ifdef FFRT_HITRACE_ENABLE
-            if (task != nullptr) {
-                HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
-            }
-#endif
             FFRT_TRACE_END();
             return;
         }
     }
 
-#ifdef FFRT_HITRACE_ENABLE
-    if (task != nullptr) {
-        HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
+    if (attr != nullptr) {
+        task->notifyWorker_ = attr->notifyWorker_;
     }
-#endif
 
     FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);
@@ -180,10 +153,31 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     FFRT_TRACE_END();
 }
 
-void SDependenceManager::onWait()
+void SDependenceManager::onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+{
+    if (runTask->dev_type != FFRT_DEV_CPU) {
+        FFRT_LOGE("task exec is nullptr");
+        return;
+    }
+    ffrt_callable_t call = runTask->run;
+    if (call.exec == nullptr) {
+        FFRT_LOGE("task exec is nullptr");
+        return;
+    }
+    std::function<void()>&& func = [=]() {
+        call.exec(call.args);
+        if (call.destroy) {
+            call.destroy(call.args);
+        }
+    };
+    onSubmit(hasHandle, handle, create_function_wrapper(std::move(func)), ins, outs, attr);
+}
+
+int SDependenceManager::onWait()
 {
     auto ctx = ExecuteCtx::Cur();
-    auto baseTask = ctx->task ? ctx->task : DependenceManager::Root();
+    auto baseTask = ctx->task && ctx->task->type == ffrt_normal_task ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
 
     if (ThreadWaitMode(task)) {
@@ -194,7 +188,7 @@ void SDependenceManager::onWait()
             task->blockType = BlockType::BLOCK_THREAD;
         }
         task->waitCond_.wait(lck, [task] { return task->childRefCnt == 0; });
-        return;
+        return 0;
     }
 
     auto childDepFun = [&](ffrt::CPUEUTask* task) -> bool {
@@ -209,12 +203,13 @@ void SDependenceManager::onWait()
     };
     FFRT_BLOCK_TRACER(task->gid, chd);
     CoWait(childDepFun);
+    return 0;
 }
 
 #ifdef QOS_DEPENDENCY
-void SDependenceManager::onWait(const ffrt_deps_t* deps, int64_t deadline = -1)
+int SDependenceManager::onWait(const ffrt_deps_t* deps, int64_t deadline = -1)
 #else
-void SDependenceManager::onWait(const ffrt_deps_t* deps)
+int SDependenceManager::onWait(const ffrt_deps_t* deps)
 #endif
 {
     auto ctx = ExecuteCtx::Cur();
@@ -278,6 +273,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     };
     FFRT_BLOCK_TRACER(task->gid, dat);
     CoWait(pendDataDepFun);
+    return 0;
 }
 
 void SDependenceManager::onTaskDone(CPUEUTask* task)

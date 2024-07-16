@@ -29,12 +29,16 @@ public:
 
     void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f, const ffrt_deps_t *ins,
         const ffrt_deps_t *outs, const task_attr_private *attr) override;
-    void onWait() override;
+
+    void onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) override;
+
+    int onWait() override;
 
 #ifdef QOS_DEPENDENCY
-    void onWait(const ffrt_deps_t* deps, int64_t deadline = -1) override;
+    int onWait(const ffrt_deps_t* deps, int64_t deadline = -1) override;
 #else
-    void onWait(const ffrt_deps_t* deps) override;
+    int onWait(const ffrt_deps_t* deps) override;
 #endif
 
     void onTaskDone(CPUEUTask* task) override;
@@ -43,8 +47,6 @@ private:
     SDependenceManager();
     ~SDependenceManager() override;
 
-    void RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
-        std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup);
     void MapSignature2Deps(SCPUEUTask* task, const std::vector<const void*>& inDeps,
         const std::vector<const void*>& outDeps, std::vector<std::pair<VersionCtx*, NestType>>& inVersions,
         std::vector<std::pair<VersionCtx*, NestType>>& outVersions);

@@ -128,15 +128,15 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
 
         // Unmask to origin events
         auto wakeDataIter = m_wakeDataMap.find(currFd);
-        if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() != 1) {
-            FFRT_LOGD("fd[%d] may be deleted");
+        if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 1) {
+            FFRT_LOGD("fd[%d] may be deleted", currFd);
             continue;
         }
 
         auto& wakeData = wakeDataIter->second.back();
         epoll_event ev = { .events = wakeData->monitorEvents, .data = { .ptr = static_cast<void*>(wakeData.get()) } };
         if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &ev) != 0) {
-            FFRT_LOGE("fd[%d] epoll ctl mod fail");
+            FFRT_LOGE("fd[%d] epoll ctl mod fail, errorno=%d", currFd, errno);
             continue;
         }
     }
@@ -185,7 +185,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             m_mapMutex.unlock();
             return 0;
         }
-        if FFRT_UNLIKELY(LegacyMode(task))  {
+        if (FFRT_UNLIKELY(LegacyMode(task)))  {
             task->blockType = BlockType::BLOCK_THREAD;
         }
         auto currTime = std::chrono::steady_clock::now();
@@ -270,7 +270,7 @@ void WakeTask(CPUEUTask* task)
         }
         reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
     } else {
-        CoRoutineFactory::CoWakeFunc(task, false);
+        CoWake(task, false);
     }
 }
 

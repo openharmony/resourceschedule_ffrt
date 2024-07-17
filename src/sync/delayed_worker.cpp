@@ -31,12 +31,12 @@ void DelayedWorker::ThreadInit()
         delayWorker->join();
     }
     delayWorker = std::make_unique<std::thread>([this]() {
-    struct sched_param param;
-    param.sched_priority = 1;
-    int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
-    if (ret != 0) {
-        FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
-    }
+        struct sched_param param;
+        param.sched_priority = 1;
+        int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
+        if (ret != 0) {
+            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
+        }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         for (;;) {
             std::unique_lock lk(lock);
@@ -44,14 +44,14 @@ void DelayedWorker::ThreadInit()
                 exited_ = true;
                 break;
             }
-            int ret = HandleWork();
+            int result = HandleWork();
             if (toExit) {
                 exited_ = true;
                 break;
             }
-            if (ret == 0) {
+            if (result == 0) {
                 cv.wait_until(lk, map.begin()->first);
-            } else if (ret == 1) {
+            } else if (result == 1) {
                 if (++noTaskDelayCount_ > 1) {
                     exited_ = true;
                     break;
@@ -73,7 +73,6 @@ DelayedWorker::~DelayedWorker()
     lock.lock();
     toExit = true;
     lock.unlock();
-
     cv.notify_one();
     if (delayWorker != nullptr && delayWorker->joinable()) {
         delayWorker->join();
@@ -99,9 +98,7 @@ int DelayedWorker::HandleWork()
                 lock.unlock();
                 (*w.cb)(w.we);
                 lock.lock();
-                if (toExit) {
-                    return -1;
-                }
+                FFRT_COND_DO_ERR(toExit, return -1, "HandleWork exit, map size:%d", map.size());
             } else {
                 return 0;
             }
@@ -114,15 +111,9 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
 {
     bool w = false;
     lock.lock();
-
     if (toExit) {
         lock.unlock();
-        return false;
-    }
-
-    time_point_t now = std::chrono::steady_clock::now();
-    if (to <= now) {
-        lock.unlock();
+        FFRT_LOGE("DelayedWorker destory, dispatch failed\n");
         return false;
     }
 

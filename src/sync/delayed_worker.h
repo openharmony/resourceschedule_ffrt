@@ -43,7 +43,6 @@ class DelayedWorker {
 
 public:
     static DelayedWorker &GetInstance();
-
     DelayedWorker(DelayedWorker const&) = delete;
     void operator=(DelayedWorker const&) = delete;
 

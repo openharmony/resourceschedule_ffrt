@@ -62,6 +62,7 @@ class WaitQueue {
 public:
     spin_mutex wqlock;
     WaitUntilEntry* whead;
+    std::atomic_bool delayedTaskDone { false };
     using TimePoint = std::chrono::steady_clock::time_point;
     void SuspendAndWait(mutexPrivate* lk);
     bool SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept;
@@ -82,20 +83,29 @@ public:
     ~WaitQueue()
     {
         wqlock.lock();
-        while (!empty()) {
-            WaitUntilEntry *wue = pop_front();
-            (void)WeNotifyProc(wue);
-        }
-        wqlock.unlock();
+        ReleaseAll();
         delete whead;
+        whead = nullptr;
+        wqlock.unlock();
     }
 
 private:
     inline bool empty() const
     {
+        if (whead == nullptr) {
+            return true;
+        }
         return (whead->next == whead);
     }
 
+    void ReleaseAll()
+    {
+        while (!empty()) {
+            FFRT_LOGE("There aee still tasks in cv that have not been awaken");
+            WaitUntilEntry *wue = pop_front();
+            (void)WeNotifyProc(wue);
+        }
+    }
     inline void push_back(WaitUntilEntry* we)
     {
         if ((we == nullptr) || (whead->prev == nullptr)) {

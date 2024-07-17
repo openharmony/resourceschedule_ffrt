@@ -17,7 +17,6 @@
 #define FFRT_TASK_IO_H
 
 #include "internal_inc/types.h"
-#include "sched/task_state.h"
 #include "sched/interval.h"
 #include "util/slab.h"
 #include "c/executor_task.h"

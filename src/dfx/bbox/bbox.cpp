@@ -24,9 +24,13 @@
 #include <vector>
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
+#include "tm/queue_task.h"
+#include "queue/queue_monitor.h"
 #include "tm/task_factory.h"
 #include "eu/cpuworker_manager.h"
-#include "dfx/dump/dump.h"
+#ifdef OHOS_STANDARD_SYSTEM
+#include "dfx/bbox/fault_logger_fd_manager.h"
+#endif
 
 using namespace ffrt;
 
@@ -55,6 +59,7 @@ void TaskWakeCounterInc(void)
 {
     ++g_taskWakeCounter;
 }
+
 
 void TaskDoneCounterInc(void)
 {
@@ -86,12 +91,13 @@ void TaskPendingCounterInc(void)
     ++g_taskPendingCounter;
 }
 
+
 static inline void SaveCurrent()
 {
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
     auto t = g_cur_task;
     if (t) {
-        if (t->type == 0) {
+        if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
             FFRT_BBOX_LOG("signal %s triggered: source tid %d, task id %lu, qos %d, name %s",
                 g_cur_signame, g_cur_tid, t->gid, t->qos(), t->label.c_str());
         }
@@ -118,7 +124,7 @@ static inline void SaveWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    ffrt::QoS _qos = static_cast<int>(qos_max);
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
@@ -127,7 +133,7 @@ static inline void SaveWorkerStatus()
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());
                 continue;
             }
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running task id %lu name %s", i, thread.first->Id(),
                     t->gid, t->label.c_str());
             }
@@ -138,20 +144,20 @@ static inline void SaveWorkerStatus()
 static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    ffrt::QoS _qos = static_cast<int>(qos_max);
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
-        int nt = FFRTScheduler::Instance()->GetScheduler(i).RQSize();
+        int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;
         }
 
         for (int j = 0; j < nt; j++) {
-            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(i).PickNextTask();
+            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i, j, nt);
                 continue;
             }
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> id %lu name %s",
                     i, j, nt, t->gid, t->label.c_str());
             }
@@ -159,7 +165,7 @@ static inline void SaveReadyQueueStatus()
     }
 }
 
-static inline void SaveTaskStatus()
+static inline void SaveNormalTaskStatus()
 {
     auto unfree = TaskFactory::GetUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
@@ -176,7 +182,7 @@ static inline void SaveTaskStatus()
         }
         size_t idx = 1;
         for (auto t : tmp) {
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task) {
                 FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
                     tmp.size(), t->gid, t->qos(), t->label.c_str());
                 idx++;
@@ -200,6 +206,41 @@ static inline void SaveTaskStatus()
     });
 }
 
+static inline void SaveQueueTaskStatus()
+{
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreeMem();
+    auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
+        std::vector<QueueTask*> tmp;
+        for (auto task : unfreeQueueTask) {
+            auto t = reinterpret_cast<QueueTask*>(task);
+            if (filter(t)) {
+                tmp.emplace_back(t);
+            }
+        }
+
+        if (tmp.size() > 0) {
+            FFRT_BBOX_LOG("<<<=== %s ===>>>", tag);
+        }
+        size_t idx = 1;
+        for (auto t : tmp) {
+            if (t->type == ffrt_queue_task) {
+                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx, 
+                    tmp.size(), t->gid, t->GetQos(), t->label.c_str());
+                idx++;
+            }
+
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+                CoStart(reinterpret_cast<CPUEUTask*>(t));
+            }
+        }
+    };
+
+    applyqueue("queue task blocked by synchronization primitive(mutex etc)", [](QueueTask* t){
+        return (t->GetFinishStatus() == false) && t->coRoutine &&
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
+    });
+}
+
 static std::atomic_uint g_bbox_tid_is_dealing {0};
 static std::atomic_uint g_bbox_called_times {0};
 static std::condition_variable g_bbox_cv;
@@ -215,7 +256,7 @@ void backtrace(int ignoreDepth)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::string dumpInfo;
-    DumpTask(nullptr, dumpInfo, 1);
+    CPUEUTask::DumpTask(nullptr, dumpInfo, 1);
     if (!dumpInfo.empty()) {
         FFRT_BBOX_LOG("%s", dumpInfo.c_str());
     }
@@ -254,7 +295,8 @@ void SaveTheBbox()
             SaveTaskCounter();
             SaveWorkerStatus();
             SaveReadyQueueStatus();
-            SaveTaskStatus();
+            SaveNormalTaskStatus();
+            SaveQueueTaskStatus();
             FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
 #ifdef OHOS_STANDARD_SYSTEM
             FaultLoggerFdManager::Instance().CloseFd();
@@ -388,7 +430,7 @@ std::string SaveWorkerStatusInfo(void)
     WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
     oss << "    |-> worker count" << std::endl;
     ss << "    |-> worker status" << std::endl;
-    ffrt::QoS _qos = static_cast<int>(qos_max);
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
         std::vector<int> tidArr;
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
@@ -400,8 +442,7 @@ std::string SaveWorkerStatusInfo(void)
                    << " is running nothing" << std::endl;
                 continue;
             }
-
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 ss << "        qos " << i << ": worker tid " << thread.first->Id()
                 << " is running, task id " << t->gid << " name " << t->label.c_str() << std::endl;
             }
@@ -427,35 +468,35 @@ std::string SaveReadyQueueStatusInfo()
 {
     std::ostringstream ss;
     ss << "    |-> ready queue status" << std::endl;
-    ffrt::QoS _qos = static_cast<int>(qos_max);
+    ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(i));
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(QoS(i));
         std::lock_guard lg(*lock);
 
-        int nt = FFRTScheduler::Instance()->GetScheduler(i).RQSize();
+        int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
         if (!nt) {
             continue;
         }
 
         for (int j = 1; j <= nt; j++) {
-            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(i).PickNextTask();
+            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(QoS(i)).PickNextTask();
             if (t == nullptr) {
                 ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << ">"
                    << " null" << std::endl;
                 continue;
             }
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << "> task id "
                 << t->gid << " name " << t->label.c_str() << std::endl;
             }
 
-            FFRTScheduler::Instance()->GetScheduler(i).WakeupTask(t);
+            FFRTScheduler::Instance()->GetScheduler(QoS(i)).WakeupTask(t);
         }
     }
     return ss.str();
 }
 
-std::string SaveTaskStatusInfo(void)
+std::string SaveNormalTaskStatusInfo(void)
 {
     std::string ffrtStackInfo;
     std::ostringstream ss;
@@ -476,14 +517,14 @@ std::string SaveTaskStatusInfo(void)
         size_t idx = 1;
         for (auto t : tmp) {
             ss.str("");
-            if (t->type == 0) {
-                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id" << t->gid << "qos"
+            if (t->type == ffrt_normal_task) {
+                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id " << t->gid << ",qos"
                 << t->qos() << ",name " << t->label.c_str() << std::endl;
             }
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
                 std::string dumpInfo;
-                DumpTask(t, dumpInfo, 1);
+                CPUEUTask::DumpTask(t, dumpInfo, 1);
                 ffrtStackInfo += dumpInfo;
             }
         }
@@ -502,5 +543,49 @@ std::string SaveTaskStatusInfo(void)
 
     return ffrtStackInfo;
 }
+
+std::string SaveQueueTaskStatusInfo()
+{
+    std::string ffrtStackInfo;
+    std::osstringstream ss;
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreeMem();
+    auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
+        std::vector<QueueTask*> tmp;
+        for (auto task : unfreeQueueTask) {
+            auto t = reinterpret_cast<QueueTask*>(task);
+            if (filter(t)) {
+                tmp.emplace_back(t);
+            }
+        }
+
+        if (tmp.size() > 0) {
+            ss << "<<<=== " << tag " ===>>>" std::endl;
+            ffrtStackInfo += ss.str();
+        }
+        size_t idx = 1;
+        for (auto t : tmp) {
+            ss.str("");
+            if (t->type == ffrt_queue_task) {
+                ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
+                << t->GetQos() << "name" << t->label.c_str() << std::endl;
+            }
+
+            ffrtStackInfo += ss.str();
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+                std::string dumpInfo;
+                CPUEUTask::DumpTask(reinterpret_cast<CPUEUTask*>(t), dumpInfo, 1);
+                ffrtStackInfo += dumpInfo;
+            }
+        }
+    };
+
+    applyqueue("queue task blocked by synchronization primitive(mutex etc)", [](QueueTask* t){
+        return (t->GetFinishStatus() == false) && t->coRoutine &&
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
+    });
+
+    return ffrtStackInfo;
+}
+
 #endif
 #endif /* FFRT_BBOX_ENABLE */

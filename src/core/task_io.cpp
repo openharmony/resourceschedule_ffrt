@@ -45,6 +45,7 @@ static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qo
 {
     ffrt_executor_io_task* task = static_cast<ffrt_executor_io_task*>(data);
     task->status = ExecTaskStatus::ET_EXECUTING;
+    (void)qos;
     ffrt_coroutine_ptr_t coroutine = task->work.exec;
     ffrt_coroutine_ret_t ret = coroutine(task->work.data);
     if (ret == ffrt_coroutine_ready) {
@@ -81,6 +82,8 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
 
+    (void)in_deps;
+    (void)out_deps;
     ffrt::ffrt_executor_io_task* task = new ffrt::ffrt_executor_io_task(qos);
     task->work.exec = exec;
     task->work.destroy = destroy;
@@ -136,3 +139,4 @@ void ffrt_wake_coroutine(void* task)
 #ifdef __cplusplus
 }
 #endif
+

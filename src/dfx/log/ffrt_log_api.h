@@ -129,6 +129,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #define FFRT_LOGW(format, ...)
 #endif
 
+
 #define FFRT_LOGE(format, ...) FFRT_LOG(FFRT_LOG_ERROR, format, ##__VA_ARGS__)
 #endif
 

@@ -32,7 +32,12 @@ struct perf_eu {
         "qos6_wrk",
         "qos7_wrk",
         "qos8_wrk",
-        "qos9_wrk"
+        "qos9_wrk",
+        "qos10_wrk",
+        "qos11_wrk",
+        "qos12_wrk",
+        "qos13_wrk",
+        "qos14_wrk"
     };
 
     static inline const char* task_num_tag[qos_max] = {
@@ -45,7 +50,12 @@ struct perf_eu {
         "qos6_tsk",
         "qos7_tsk",
         "qos8_tsk",
-        "qos9_tsk"
+        "qos9_tsk",
+        "qos10_wrk",
+        "qos11_wrk",
+        "qos12_wrk",
+        "qos13_wrk",
+        "qos14_wrk"
     };
 
     static inline const char* worker_wake_tag[qos_max] = {
@@ -58,7 +68,12 @@ struct perf_eu {
         "qos6_wake",
         "qos7_wake",
         "qos8_wake",
-        "qos9_wake"
+        "qos9_wake",
+        "qos10_wrk",
+        "qos11_wrk",
+        "qos12_wrk",
+        "qos13_wrk",
+        "qos14_wrk"
     };
 };
 
@@ -74,7 +89,7 @@ inline void FFRTPerfWorkerAwake(int qos)
 {
     if (qos >= 0 && qos < static_cast<int>(perf_eu::qos_max)) {
         FFRT_TRACE_COUNT(perf_eu::worker_num_tag[qos],
-            perf_eu::worker_num[qos].fetch_add(1, std::memory_order_relaxed) + 1); 
+            perf_eu::worker_num[qos].fetch_add(1, std::memory_order_relaxed) + 1);
     }
 }
 

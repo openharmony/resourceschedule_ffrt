@@ -582,6 +582,18 @@ bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr)
     }
     return (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_;
 }
+
+API_ATTRIBUTE((visibility("default")))
+pthread_t ffrt_task_get_tid(void* taskHandle)
+{
+    if (taskHandle == nullptr) {
+        FFRT_LOGE("invalid task handle");
+        return 0;
+    }
+
+    auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
+    return task->runningTid.load();
+}
 #ifdef __cplusplus
 }
 #endif

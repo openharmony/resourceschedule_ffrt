@@ -54,7 +54,7 @@ public:
     * @param func       元素入队操作。
     * @retval 返回被推入队列尾部的元素数量。
     */
-    using PushFunc = void(*)v(void*, int);
+    using PushFunc = void(*)(void*, int);
     unsigned int PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum, int qos, PushFunc func);
 
 private:

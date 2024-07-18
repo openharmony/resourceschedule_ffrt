@@ -37,7 +37,7 @@
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
 
-inline bool outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* outs)
+inline bool outsDeDup(std::vector<const void *> &outsNoDup, const ffrt_deps_t *outs)
 {
     for (uint32_t i = 0; i < outs->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
@@ -91,7 +91,7 @@ public:
         }
 
 #ifdef FFRT_BBOX_ENABLE
-    TaskEnQueuCounterInc();
+        TaskEnQueuCounterInc();
 #endif
     }
 

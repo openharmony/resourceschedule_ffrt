@@ -24,16 +24,18 @@
 
 #include "eu/execute_unit.h"
 #include "eu/worker_manager.h"
+#include "eu/co_routine_factory.h"
 #include "internal_inc/osal.h"
 #include "sched/scheduler.h"
 
 namespace {
-constexpr int TASK_OVERRUN_THRESHOLD = 1000;
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr int RECORD_TIME_PER_LEVEL = 10;
+constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
+constexpr char IPC_STACK_NAME[] = "libipc_core";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 const std::vector<std::string> SKIP_SAMPLING_PROCESS = {"hdcd", "updater"};
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
@@ -56,6 +58,7 @@ WorkerMonitor::WorkerMonitor()
     }
 
     SubmitSamplingTask();
+    SubmitMemReleaseTask();
 }
 
 WorkerMonitor::~WorkerMonitor()
@@ -81,6 +84,10 @@ void WorkerMonitor::SubmitTask()
         SubmitSamplingTask();
         samplingTaskExit_ = false;
     }
+    if (memReleaseTaskExit_) {
+        SubmitMemReleaseTask();
+        memReleaseTaskExit_ = false;
+    }
 }
 
 void WorkerMonitor::SubmitSamplingTask()
@@ -92,6 +99,44 @@ void WorkerMonitor::SubmitSamplingTask()
     watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
     watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
     if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {
+        FFRT_LOGW("Set delayed worker failed.");
+    }
+}
+
+void WorkerMonitor::SubmitMemReleaseTask()
+{
+    if (skipSampling_) {
+        return;
+    }
+    memReleaseWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
+    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
+        std::lock_guard lock(mutex_);
+        if (skipSampling_) {
+            return;
+        }
+
+        WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+        {
+            bool noWorkerThreads = true;
+            std::lock_guard submitTaskLock(submitTaskMutex_);
+            for (int i = 0; i < QoS::MaxNum(); i++) {
+                std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
+                if (!workerGroup[i].threads.empty()) {
+                    noWorkerThreads = false;
+                    break;
+                }
+            }
+            if (noWorkerThreads) {
+                CoRoutineReleaseMem();
+                samplingTaskExit_ = true;
+                return;
+            }
+        }
+
+        CoRoutineReleaseMem();
+        SubmitMemReleaseTask();
+    });
+    if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
 }
@@ -121,19 +166,12 @@ void WorkerMonitor::CheckWorkerStatus()
     }
     std::vector<std::pair<int, int>> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        auto& sched = FFRTScheduler::Instance()->GetScheduler(i);
-        int taskCount = sched.RQSize();
-        if (taskCount >= TASK_OVERRUN_THRESHOLD) {
-            FFRT_LOGW("qos [%d], task count [%d] exceeds threshold.", i, taskCount);
-        }
-
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             WorkerThread* worker = thread.first;
             CPUEUTask* workerTask = worker->curTask;
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
-                worker->SetWorkerBlocked(false);
                 continue;
             }
 
@@ -161,7 +199,6 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
     if (taskInfo.task_ == workerTask) {
         int taskExecutionTime = ++taskInfo.sampledTimes_ * MONITOR_SAMPLING_CYCLE_US;
         if (taskExecutionTime % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
-            worker->SetWorkerBlocked(true);
             timeoutFunctions.emplace_back(std::make_pair(worker->Id(), taskInfo.sampledTimes_));
             if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1 &&
                 taskInfo.sampledTimes_ % RECORD_TIME_PER_LEVEL == 0) {
@@ -171,7 +208,6 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
         return;
     }
 
-    worker->SetWorkerBlocked(false);
     if (taskInfo.sampledTimes_ > 0) {
         FFRT_LOGI("Tid[%d] function is executed, which occupies worker for [%d]s.",
             worker->Id(), taskInfo.sampledTimes_ / SAMPLING_TIMES_PER_SEC + 1);
@@ -197,7 +233,7 @@ void WorkerMonitor::RecordSymbolAndBacktrace(int tid, int sampleTimes)
 
 void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo)
 {
-    if (dumpInfo.find("libipc_core") == std::string::npos) {
+    if (dumpInfo.find(IPC_STACK_NAME) == std::string::npos) {
         return;
     }
 

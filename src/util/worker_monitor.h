@@ -43,6 +43,7 @@ private:
     WorkerMonitor &operator=(const WorkerMonitor &) = delete;
     WorkerMonitor &operator=(WorkerMonitor &&) = delete;
     void SubmitSamplingTask();
+    void SubmitMemReleaseTask();
     void CheckWorkerStatus();
     void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask,
         std::vector<std::pair<int, int>>& timeoutFunctions);
@@ -54,8 +55,10 @@ private:
     std::mutex submitTaskMutex_;
     bool skipSampling_ = false;
     WaitUntilEntry watchdogWaitEntry_;
+    WaitUntilEntry memReleaseWaitEntry_;
     std::map<WorkerThread*, TaskTimeoutInfo> workerStatus_;
     bool samplingTaskExit_ = false;
+    bool memReleaseTaskExit_ = false;
 };
 }
 #endif

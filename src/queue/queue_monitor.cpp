@@ -141,7 +141,7 @@ void QueueMonitor::SendDelayedWorker(time_point_t delay)
     while (!result) {
         FFRT_LOGW("failed to set delayedworker because the given timestamp has passed");
         we_->tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
-        result = DelayedWakeup(we_->tp, we_->, we_->cb);
+        result = DelayedWakeup(we_->tp, we_, we_->cb);
     }
 }
 

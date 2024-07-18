@@ -31,8 +31,8 @@ public:
     TaskBase(): gid(++s_gid) {}
     virtual ~TaskBase() = default;
     const uint64_t gid; // global unique id in this process
-#ifdef ASYNC_STACKTRACE
-    uint64_t stackId;
+#ifdef FFRT_ASYNC_STACKTRACE
+    uint64_t stackId = 0;
 #endif
 };
 

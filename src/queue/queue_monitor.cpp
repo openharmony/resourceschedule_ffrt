@@ -134,7 +134,7 @@ void QueueMonitor::SendDelayedWorker(time_point_t delay)
 
     we_ = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
     we_->tp = delay;
-    we_->cb = ([this](WaitEntry* we_) { CheckQueueStatus(); });
+    we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
 
     bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     // insurance mechanism, generally does not fail

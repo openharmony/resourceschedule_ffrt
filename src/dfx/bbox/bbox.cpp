@@ -208,7 +208,7 @@ static inline void SaveNormalTaskStatus()
 
 static inline void SaveQueueTaskStatus()
 {
-    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreeMem();
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
     auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
         std::vector<QueueTask*> tmp;
         for (auto task : unfreeQueueTask) {
@@ -470,7 +470,7 @@ std::string SaveReadyQueueStatusInfo()
     ss << "    |-> ready queue status" << std::endl;
     ffrt::QoS _qos = ffrt::QoS(static_cast<int>(qos_max));
     for (int i = 0; i < _qos() + 1; i++) {
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(QoS(i));
+        auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(QoS(i)));
         std::lock_guard lg(*lock);
 
         int nt = FFRTScheduler::Instance()->GetScheduler(QoS(i)).RQSize();
@@ -518,7 +518,7 @@ std::string SaveNormalTaskStatusInfo(void)
         for (auto t : tmp) {
             ss.str("");
             if (t->type == ffrt_normal_task) {
-                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id " << t->gid << ",qos"
+                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id " << t->gid << ",qos "
                 << t->qos() << ",name " << t->label.c_str() << std::endl;
             }
             ffrtStackInfo += ss.str();
@@ -547,8 +547,8 @@ std::string SaveNormalTaskStatusInfo(void)
 std::string SaveQueueTaskStatusInfo()
 {
     std::string ffrtStackInfo;
-    std::osstringstream ss;
-    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreeMem();
+    std::ostringstream ss;
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
     auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
         std::vector<QueueTask*> tmp;
         for (auto task : unfreeQueueTask) {
@@ -559,7 +559,7 @@ std::string SaveQueueTaskStatusInfo()
         }
 
         if (tmp.size() > 0) {
-            ss << "<<<=== " << tag " ===>>>" std::endl;
+            ss << "<<<=== " << tag << " ===>>>" << std::endl;
             ffrtStackInfo += ss.str();
         }
         size_t idx = 1;

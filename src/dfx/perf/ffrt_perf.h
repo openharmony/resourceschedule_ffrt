@@ -20,7 +20,7 @@
 // default disabled for ffrt, enable it for debugging or playback
 #ifdef FFRT_PERF_ENABLE
 struct perf_eu {
-    static constexpr size_t qos_max = 10;
+    static constexpr size_t qos_max = 15;
     static inline std::atomic_int worker_num[qos_max] = {0};
     static inline const char* worker_num_tag[qos_max] = {
         "qos0_wrk",
@@ -51,11 +51,11 @@ struct perf_eu {
         "qos7_tsk",
         "qos8_tsk",
         "qos9_tsk",
-        "qos10_wrk",
-        "qos11_wrk",
-        "qos12_wrk",
-        "qos13_wrk",
-        "qos14_wrk"
+        "qos10_tsk",
+        "qos11_tsk",
+        "qos12_tsk",
+        "qos13_tsk",
+        "qos14_tsk"
     };
 
     static inline const char* worker_wake_tag[qos_max] = {
@@ -69,11 +69,11 @@ struct perf_eu {
         "qos7_wake",
         "qos8_wake",
         "qos9_wake",
-        "qos10_wrk",
-        "qos11_wrk",
-        "qos12_wrk",
-        "qos13_wrk",
-        "qos14_wrk"
+        "qos10_wake",
+        "qos11_wake",
+        "qos12_wake",
+        "qos13_wake",
+        "qos14_wake"
     };
 };
 

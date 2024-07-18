@@ -262,7 +262,7 @@ uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr)
         FFRT_LOGE("attr should be a valid address");
         return 0;
     }
-    return (reinterpret_cast<ffrt::task_attr_private *>(attr))->stackSize_;
+    return (reinterpret_cast<const ffrt::task_attr_private *>(attr))->stackSize_;
 }
 
 // submit

@@ -51,9 +51,9 @@ int dump_info_all(char *buf, uint32_t len)
         if (dumpInfo.length() > (len - 1)) {
             FFRT_LOGW("dumpInfo exceeds the buffer length, length:%d", dumpInfo.length());
         }
-        return snprintf_s(buf, len, len - 1, "|-> watchdog fail to print dumpinfo, pid: %s\n", dumpInfo.c_str());
+        return snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
     } else {
-        return snprintf_s(buf, len, len - 1, "|-> FFRT has done all tasks, pid: %u\n",GetPid());
+        return snprintf_s(buf, len, len - 1, "|-> FFRT has done all tasks, pid: %u \n",GetPid());
     }
 #else
     return -1;

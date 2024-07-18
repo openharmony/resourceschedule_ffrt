@@ -94,7 +94,7 @@ public:
         TaskEnQueuCounterInc();
 #endif
     }
-
+    
     virtual void onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
         const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
@@ -109,7 +109,7 @@ public:
     static inline CPUEUTask* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval
-        thread_local static RootTaskCtxWrapper root_wrapper;
+        thread_local static RootTaskCtxWrapper root_wraper;
         return root_wraper.Root();
     }
 

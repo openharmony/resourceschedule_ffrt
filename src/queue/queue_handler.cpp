@@ -156,7 +156,8 @@ void QueueHandler::Cancel()
 
 int QueueHandler::Cancel(const char* name)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
+    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
+        "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     int ret = queue_->Remove(name);
     if (ret != SUCC) {
         FFRT_LOGD("cancel task %s failed, task may have been executed", name);
@@ -167,7 +168,8 @@ int QueueHandler::Cancel(const char* name)
 
 int QueueHandler::Cancel(QueueTask* task)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
+    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,  
+        "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((task == nullptr), return INACTIVE, "input invalid, serial task is nullptr");
 
     int ret = queue_->Remove(task);

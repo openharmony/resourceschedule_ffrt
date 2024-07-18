@@ -99,7 +99,7 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
             task->gid, task->type, task->label.c_str());
         return false;
     }
-    QoS _qos = Qos(qos_level);
+    QoS _qos = qos_level;
     int level = _qos();
     uint64_t gid = task->gid;
     bool notifyWorker = task->notifyWorker_;

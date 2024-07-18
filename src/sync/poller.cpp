@@ -122,13 +122,13 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
         } else {
             // if seen, update event to newest
             eventsVec[iter->second].events = eventInfo.events;
-            FFRT_LOGD("fd[%d] has multiple cached events", currFd);
+            FFRT_LOGD("fd[%d] has mutilple cached events", currFd);
             continue;
         }
 
         // Unmask to origin events
         auto wakeDataIter = m_wakeDataMap.find(currFd);
-        if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 1) {
+        if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 0) {
             FFRT_LOGD("fd[%d] may be deleted", currFd);
             continue;
         }
@@ -365,9 +365,9 @@ PollerRet Poller::PollOnce(int timeout) noexcept
             return PollerRet::RET_TIMER;
         }
 
-        if (timeout != -1 && realTimeout >= timeout) {
+        if (timeout != -1 && realTimeout > timeout) {
             timerHandle = -1;
-            realTimeout = std::min(realTimeout, timeout);
+            realTimeout = timeout;
         }
 
         flag_ = EpollStatus::WAIT;
@@ -376,12 +376,12 @@ PollerRet Poller::PollOnce(int timeout) noexcept
 
     pollerCount_++;
 
-    std::array<epoll_event, EPOLL_EVENT_SIZE> waitedEvents;
+    std::array<epoll_event, 1024> waitedEvents;
     int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
         if (errno != EINTR) {
-            FFRT_LOGE("epoll_wait error, errorno= %d", errno);
+            FFRT_LOGE("epoll_wait error, errorno= %d.", errno);
         }
         return PollerRet::RET_NULL;
     }

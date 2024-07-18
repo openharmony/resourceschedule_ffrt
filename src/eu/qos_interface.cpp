@@ -16,7 +16,6 @@
 #ifndef GNU_SOURCE
 #define GNU_SOURCE
 #endif
-#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>

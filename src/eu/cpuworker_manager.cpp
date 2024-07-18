@@ -53,7 +53,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         [this] (WorkerThread* thread) { return this->StealTaskBatch(thread); },
         [this] (WorkerThread* thread) { return this->PickUpTaskBatch(thread); },
         [this] (WorkerThread* thread) { this->TryMoveLocal2Global(thread); },
-        [this] (const QoS& qos, bool var) { this->UpdateBlockingNum(localQos, var); },
+        [this, localQos] (const QoS& qos, bool var) { this->UpdateBlockingNum(localQos, var); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         [this] (const WorkerThread* thread) { return this->IsExceedRunningThreshold(thread); },
         [this] () { return this->IsBlockAwareInit(); },

@@ -29,6 +29,7 @@ const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_eventhandler_interactive, ffrt::CreateEventHandlerInteractiveQueue },
     { ffrt_queue_eventhandler_adapter, ffrt::CreateEventHandlerAdapterQueue },
 };
+std::atomic_uint32_t queueId(0);
 }
 
 namespace ffrt {
@@ -110,11 +111,11 @@ void BaseQueue::ClearWhenMap()
     cond_.notify_one();
 }
 
-std::unique_ptr<BaseQueue> CreateQueue(int queueType, uint32_t queueId, const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr)
 {
     const auto iter = CREATE_FUNC_MAP.find(queueType);
     FFRT_COND_DO_ERR((iter == CREATE_FUNC_MAP.end()), return nullptr, "invalid queue type");
 
-    return iter->second(queueId, attr);
+    return iter->second(queueId.fetch_add(1, std::memory_order_relaxed), attr);
 }
 } // namespace ffrt

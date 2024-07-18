@@ -61,6 +61,11 @@ public:
         return whenMap_.size();
     }
 
+    inline uint32_t GetQueueId() const
+    {
+        return queueId_;
+    }
+
     bool HasTask(const char* name);
 
 protected:
@@ -82,7 +87,7 @@ protected:
     ffrt::condition_variable cond_;
 };
 
-std::unique_ptr<BaseQueue> CreateQueue(int queueType, uint32_t queueId, const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 
 #endif // FFRT_BASE_QUEUE_H

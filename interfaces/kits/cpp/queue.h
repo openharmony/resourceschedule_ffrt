@@ -33,6 +33,7 @@ enum queue_type {
     queue_concurrent = ffrt_queue_concurrent,
     queue_max = ffrt_queue_max,
 };
+
 class queue_attr : public ffrt_queue_attr_t {
 public:
     queue_attr()
@@ -128,18 +129,6 @@ public:
     void operator=(queue const&) = delete;
 
     /**
-     * @brief Submits a task to this queue.
-     *
-     * @param func Indicates a task executor function closure.
-     * @since 10
-     * @version 1.0
-     */
-    inline void submit(const std::function<void()>& func)
-    {
-        ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
-    }
-
-    /**
      * @brief Submits a task with a specified attribute to this queue.
      *
      * @param func Indicates a task executor function closure.
@@ -147,24 +136,12 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void submit(const std::function<void()>& func, const task_attr& attr)
+    inline void submit(const std::function<void()>& func, const task_attr& attr = {})
     {
         ffrt_queue_submit(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
     }
 
     /**
-     * @brief Submits a task to this queue.
-     *
-     * @param func Indicates a task executor function closure.
-     * @since 10
-     * @version 1.0
-     */
-    inline void submit(std::function<void()>&& func)
-    {
-        ffrt_queue_submit(queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), nullptr);
-    }
-
-    /**
      * @brief Submits a task with a specified attribute to this queue.
      *
      * @param func Indicates a task executor function closure.
@@ -172,26 +149,12 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline void submit(std::function<void()>&& func, const task_attr& attr)
+    inline void submit(std::function<void()>&& func, const task_attr& attr = {})
     {
         ffrt_queue_submit(queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), &attr);
     }
 
     /**
-     * @brief Submits a task to this queue, and obtains a task handle.
-     *
-     * @param func Indicates a task executor function closure.
-     * @return Returns a non-null task handle if the task is submitted;
-               returns a null pointer otherwise.
-     * @since 10
-     * @version 1.0
-     */
-    inline task_handle submit_h(const std::function<void()>& func)
-    {
-        return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), nullptr);
-    }
-
-    /**
      * @brief Submits a task with a specified attribute to this queue, and obtains a task handle.
      *
      * @param func Indicates a task executor function closure.
@@ -201,27 +164,12 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr)
+    inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {})
     {
         return ffrt_queue_submit_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
     }
 
     /**
-     * @brief Submits a task to this queue, and obtains a task handle.
-     *
-     * @param func Indicates a task executor function closure.
-     * @return Returns a non-null task handle if the task is submitted;
-               returns a null pointer otherwise.
-     * @since 10
-     * @version 1.0
-     */
-    inline task_handle submit_h(std::function<void()>&& func)
-    {
-        return ffrt_queue_submit_h(
-            queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), nullptr);
-    }
-
-    /**
      * @brief Submits a task with a specified attribute to this queue, and obtains a task handle.
      *
      * @param func Indicates a task executor function closure.
@@ -231,7 +179,7 @@ public:
      * @since 10
      * @version 1.0
      */
-    inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr)
+    inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
     {
         return ffrt_queue_submit_h(
             queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), &attr);

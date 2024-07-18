@@ -32,12 +32,18 @@
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
 {
-    std::unique_lock<std::shared_mutex> lock(groupCtl[qos()].tgMutex);
+    QoS localQos = qos;
+    int workerQos = localQos();
+    if (workerQos < 0 || workerQos >= QoS::MaxNum()) {
+        FFRT_LOGE("IncWorker qos:%d is invaild", workerQos);
+        return false;
+    }
+    std::unique_lock<std::shared_mutex> lock(groupCtl[workerQos].tgMutex);
     if (tearDown) {
         return false;
     }
 
-    auto worker = std::unique_ptr<WorkerThread>(new (std::nothrow) CPUWorker(qos, {
+    auto worker = new (std::nothrow) CPUWorker(localQos, {
         [this] (WorkerThread* thread) { return this->PickUpTask(thread); },
         [this] (const WorkerThread* thread) { this->NotifyTaskPicked(thread); },
         [this] (const WorkerThread* thread) { return this->WorkerIdleAction(thread); },
@@ -47,19 +53,24 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         [this] (WorkerThread* thread) { return this->StealTaskBatch(thread); },
         [this] (WorkerThread* thread) { return this->PickUpTaskBatch(thread); },
         [this] (WorkerThread* thread) { this->TryMoveLocal2Global(thread); },
-        [this] (const QoS& qos, bool var) { this->UpdateBlockingNum(qos, var); },
+        [this] (const QoS& qos, bool var) { this->UpdateBlockingNum(localQos, var); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         [this] (const WorkerThread* thread) { return this->IsExceedRunningThreshold(thread); },
         [this] () { return this->IsBlockAwareInit(); },
 #endif
-    }));
-    if (worker == nullptr || worker->Exited()) {
+    });
+    auto uniqueWorker = std::unique_ptr<WorkerThread>(worker);
+    if (uniqueWorker == nullptr || uniqueWorker->Exited()) {
         FFRT_LOGE("IncWorker failed: worker is nullptr or has exited\n");
         return false;
     }
-    worker->WorkerSetup(worker.get());
-    groupCtl[qos()].threads[worker.get()] = std::move(worker);
-    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
+    uniqueWorker->WorkerSetup(worker);
+    auto result = groupCtl[workerQos].threads.emplace(worker, std::move(uniqueWorker));
+    if (!result.second) {
+        FFRT_LOGE("qos:%d worker insert fail:%d", workerQos, result.second);
+        return false;
+    }
+    FFRT_PERF_WORKER_WAKE(workerQos);
     lock.unlock();
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance().SubmitTask();
@@ -75,6 +86,7 @@ int CPUWorkerManager::GetTaskCount(const QoS& qos)
 
 int CPUWorkerManager::GetWorkerCount(const QoS& qos)
 {
+    std::shared_lock<std::shared_mutex> lck(groupCtl[qos()].tgMutex);
     return groupCtl[qos()].threads.size();
 }
 

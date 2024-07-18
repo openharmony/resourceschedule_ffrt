@@ -17,7 +17,7 @@
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
@@ -157,7 +157,7 @@ void SDependenceManager::onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHan
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
     if (runTask->dev_type != FFRT_DEV_CPU) {
-        FFRT_LOGE("task exec is nullptr");
+        FFRT_LOGE("Submit dev task failed, not cpu task");
         return;
     }
     ffrt_callable_t call = runTask->run;
@@ -177,14 +177,14 @@ void SDependenceManager::onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHan
 int SDependenceManager::onWait()
 {
     auto ctx = ExecuteCtx::Cur();
-    auto baseTask = ctx->task && ctx->task->type == ffrt_normal_task ? ctx->task : DependenceManager::Root();
+    auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
 
     if (ThreadWaitMode(task)) {
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
-        if FFRT_UNLIKELY(LegacyMode(task)) {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
         task->waitCond_.wait(lck, [task] { return task->childRefCnt == 0; });
@@ -256,7 +256,7 @@ int SDependenceManager::onWait(const ffrt_deps_t* deps)
             task->blockType = BlockType::BLOCK_THREAD;
         }
         task->waitCond_.wait(lck, [task] { return task->dataRefCnt.waitDep == 0; });
-        return;
+        return 0;
     }
 
     auto pendDataDepFun = [&](ffrt::CPUEUTask* task) -> bool {

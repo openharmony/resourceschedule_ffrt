@@ -27,7 +27,7 @@
 #include "tm/cpu_task.h"
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-using namespace OHOS::HiviewDFX
+using namespace OHOS::HiviewDFX;
 #endif
 
 namespace {
@@ -107,7 +107,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
 }
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackeInfo, uint8_t flag)
+void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
 {
     ucontext_t ctx;
 
@@ -124,12 +124,12 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackeInfo, uint8_t flag)
         ctx.uc_mcontext.regs[REG_AARCH64_X29] = task->coRoutine->ctx.regs[10];
         ctx.uc_mcontext.sp = task->coRoutine->ctx.regs[13];
         ctx.uc_mcontext.pc = task->coRoutine->ctx.regs[11];
-#if defined(__x86_64__)
+#elif defined(__x86_64__)
         ctx.uc_mcontext.gregs[REG_RBX] = task->coRoutine->ctx.regs[0];
         ctx.uc_mcontext.gregs[REG_RBP] = task->coRoutine->ctx.regs[1];
         ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.regs[6];
         ctx.uc_mcontext.gregs[REG_RIP] = *(reinterpret_cast<greg_t *>(ctx.uc_mcontext.gregs[REG_RSP] - 8));
-#if defined(__arm__)
+#elif defined(__arm__)
         ctx.uc_mcontext.arm_sp = task->coRoutine->ctx.regs[0];
         ctx.uc_mcontext.arm_pc = task->coRoutine->ctx.regs[1];
         ctx.uc_mcontext.arm_lr = task->coRoutine->ctx.regs[1];
@@ -158,11 +158,12 @@ void CPUEUTask::DumpTask(CPUEUTask* task, std::string& stackeInfo, uint8_t flag)
     std::ostringstream ss;
     auto frames = unwinder->GetFrames();
     if (flag != 0) {
-        ss << Unwinder->GetFramesStr(frames);
+        ss << Unwinder::GetFramesStr(frames);
         ss << std::endl;
         stackInfo = ss.str();
         return;
     }
-    FFRT_LOGE("%s", Unwinder::GetFramesStr(frames).c_str())
+    FFRT_LOGE("%s", Unwinder::GetFramesStr(frames).c_str());
+}
 #endif
 } /* namespace ffrt */

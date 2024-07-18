@@ -32,8 +32,8 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
     }
 
     fq_we.task = reinterpret_cast<CPUEUTask*>(this);
-    uptime_ = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
+    uptime_ = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
 
     if (attr) {
         delay_ = attr->delay_;

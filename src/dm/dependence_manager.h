@@ -20,7 +20,7 @@
 #include <string>
 #include <mutex>
 #include <shared_mutex>
-#include "internal_inc/types.h"
+#include "c/ffrt_types.h"
 #include "internal_inc/osal.h"
 #include "core/version_ctx.h"
 #include "sched/execute_ctx.h"
@@ -42,7 +42,7 @@ inline bool outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* o
     for (uint32_t i = 0; i < outs->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
             if ((outs->items[i].type) == ffrt_dependence_task) {
-                FRT_LOGE("handle can't be used as out dependence");
+                FFRT_LOGE("handle can't be used as out dependence");
                 return false;
             }
             outsNoDup.push_back(outs->items[i].ptr);
@@ -110,7 +110,7 @@ public:
     {
         // Within an ffrt process, different threads may have different QoS interval
         thread_local static RootTaskCtxWrapper root_wrapper;
-        return root_wrapper.Root();
+        return root_wraper.Root();
     }
 
 protected:

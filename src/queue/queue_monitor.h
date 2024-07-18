@@ -29,6 +29,7 @@ public:
     void ResetQueueStruct(uint32_t queueId);
     void UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId);
     uint64_t QueryQueueStatus(uint32_t queueId);
+    bool HasQueueActive();
 
 private:
     QueueMonitor();

@@ -34,6 +34,7 @@ inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayU
 namespace ffrt {
 QueueMonitor::QueueMonitor()
 {
+    std::unique_lock lock(mutex_);
     FFRT_LOGI("queue monitor ctor enter");
     queuesRunningInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
@@ -121,6 +122,8 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
 uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
 {
     std::shared_lock lock(mutex_);
+    FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return INVALID_TASK_ID,
+        "QueryQueueStatus queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
     return queuesRunningInfo_[queueId].first;
 }
 
@@ -161,10 +164,14 @@ void QueueMonitor::CheckQueuesStatus()
 
     time_point_t oldestStartedTime = std::chrono::steady_clock::now();
     time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
-
     uint64_t taskId = 0;
+    uint32_t queueRunningInfoSize = 0;
     time_point_t taskTimestamp = oldestStartedTime;
-    for (uint32_t i = 0; i < queuesRunningInfo_.size(); ++i) {
+    {
+        std::shared_lock lock(mutex_);
+        queueRunningInfoSize = queuesRunningInfo_.size();
+    }
+    for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
         {
             std::unique_lock lock(mutex_);
             taskId = queuesRunningInfo_[i].first;
@@ -198,8 +205,18 @@ void QueueMonitor::CheckQueuesStatus()
         }
     }
 
-    time_point_t nextCheckTime = oldestStartedTime + std::chrono::microseconds(timeoutUs_);
-    SendDelayedWorker(nextCheckTime);
+    SendDelayedWorker(oldestStartedTime + std::chrono::microseconds(timeoutUs_);
     FFRT_LOGD("global watchdog completed queue status check and scheduled the next");
+}
+
+bool QueueMonitor::HasQueueActive()
+{
+    std::unique_lock lock(mutex_);
+    for (uint32_t i = 0; i < queuesRunningInfo_.size(); ++i) {
+        if (queuesRunningInfo_[i].first != INVALID_TASK_ID) {
+            return true;
+        }
+    }
+    return false;
 }
 } // namespace ffrt

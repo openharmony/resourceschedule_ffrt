@@ -69,8 +69,6 @@ public:
         return *fifoQue[static_cast<unsigned short>(qos)];
     }
 
-    virtual void PushTask(CPUEUTask* task);
-
     virtual bool InsertNode(LinkedList* node, const QoS qos);
 
     virtual bool RemoveNode(LinkedList* node, const QoS qos);

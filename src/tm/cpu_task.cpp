@@ -31,7 +31,7 @@ using namespace OHOS::HiviewDFX;
 #endif
 
 namespace {
-const int TSD_SIZE = 128;    
+const int TSD_SIZE = 128;
 }
 
 namespace ffrt {

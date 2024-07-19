@@ -37,18 +37,27 @@
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
 
-inline bool outsDeDup(std::vector<const void *> &outsNoDup, const ffrt_deps_t *outs)
+inline bool CheckOutsHandle(const ffrt_deps_t *outs)
 {
+    if (outs == nullptr){
+        return true
+    }
     for (uint32_t i = 0; i < outs->len; i++) {
-        if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
-            if ((outs->items[i].type) == ffrt_dependence_task) {
-                FFRT_LOGE("handle can't be used as out dependence");
-                return false;
-            }
-            outsNoDup.push_back(outs->items[i].ptr);
+        if ((outs->items[i].type) == ffrt_dependence_task) {
+            FFRT_LOGE("handle can't be used as out dependence");
+            return false;
         }
     }
     return true;
+}
+inline void outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* outs)
+{
+    for (uint32_t i = 0; i < outs->len; i++) {
+        if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
+            outsNoDup.push_back(outs->items[i].ptr);
+        }
+    }
+    
 }
 
 inline void insDeDup(std::vector<CPUEUTask*> &in_handles, std::vector<const void *> &insNoDup,
@@ -98,12 +107,15 @@ public:
     virtual void onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
         const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
-    virtual int onWait() = 0;
+    virtual void onWait() = 0;
 #ifdef QOS_DEPENDENCY
-    virtual int onWait(const ffrt_deps_t* deps, int64_t deadline = -1) = 0;
+    virtual void onWait(const ffrt_deps_t* deps, int64_t deadline = -1) = 0;
 #else
-    virtual int onWait(const ffrt_deps_t* deps) = 0;
+    virtual void onWait(const ffrt_deps_t* deps) = 0;
 #endif
+
+    virtual int onExecResults(const ffrt_deps_t *deps) = 0;
+
     virtual void onTaskDone(CPUEUTask* task) = 0;
 
     static inline CPUEUTask* Root()

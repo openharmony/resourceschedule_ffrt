@@ -48,6 +48,9 @@ public:
     uint32_t GetMonitorTid() const;
     virtual SleepType IntoSleep(const QoS& qos) = 0;
     virtual void WakeupCount(const QoS& qos, bool isDeepSleepWork = false);
+    virtual void RollbackDestroy(const QoS& qos, bool isDeepSleepWork = false);
+    virtual void TryDestroy(const QoS& qos, bool isDeepSleepWork = false);
+    virtual void DoDestroy(const QoS& qos, bool isDeepSleepWork = false);
     void IntoDeepSleep(const QoS& qos);
     void OutOfDeepSleep(const QoS& qos);
     void IntoPollWait(const QoS& qos);

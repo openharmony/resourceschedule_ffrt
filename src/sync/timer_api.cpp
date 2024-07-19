@@ -41,7 +41,7 @@ ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt
     }
 
     if (cb == nullptr) {
-        FFRT_LOGE("cb cannot be null");
+        FFRT_LOGE("[Poller] cb cannot be null");
         return -1;
     }
 

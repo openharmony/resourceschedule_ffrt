@@ -147,8 +147,8 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
             wqlock.unlock();
             return true;
         } else {
+            wqlock.unlock();
             if (!WeTimeoutProc(this, we)) {
-                wqlock.unlock();
                 return true;
             }
             task->wakeupTimeOut = true;

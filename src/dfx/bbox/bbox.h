@@ -45,7 +45,8 @@ bool FFRTIsWork(void);
 std::string SaveTaskCounterInfo(void);
 std::string SaveWorkerStatusInfo(void);
 std::string SaveReadyQueueStatusInfo(void);
-std::string SaveTaskStatusInfo(void);
+std::string SaveNormalTaskStatusInfo(void);
+std::string SaveQueueTaskStatusInfo(void);
 #endif
 #else
 static inline void BboxCheckAndFreeze(void)

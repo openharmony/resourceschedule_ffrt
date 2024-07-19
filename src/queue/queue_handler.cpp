@@ -156,7 +156,7 @@ void QueueHandler::Cancel()
 
 int QueueHandler::Cancel(const char* name)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
+    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,  
         "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     int ret = queue_->Remove(name);
     if (ret != SUCC) {

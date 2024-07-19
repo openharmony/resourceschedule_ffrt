@@ -233,7 +233,7 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
         if (strstr(processName, notifyFunc.first.c_str())) {
             ops.HandleTaskNotity = notifyFunc.second;
             break;
-        }    
+        }
     }
 #endif
 

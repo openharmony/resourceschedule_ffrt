@@ -40,7 +40,7 @@ namespace ffrt {
 inline bool CheckOutsHandle(const ffrt_deps_t *outs)
 {
     if (outs == nullptr){
-        return true
+        return true;
     }
     for (uint32_t i = 0; i < outs->len; i++) {
         if ((outs->items[i].type) == ffrt_dependence_task) {

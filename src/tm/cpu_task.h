@@ -103,10 +103,6 @@ public:
             traceTag.pop_back();
         }
     }
-
-#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-    static void DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag = 0); /* 0:hilog others:hiview */
-#endif
 };
 
 inline bool ExecutedOnWorker(CPUEUTask* task)

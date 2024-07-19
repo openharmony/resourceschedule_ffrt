@@ -50,31 +50,35 @@ SDependenceManager::~SDependenceManager()
 {
 }
 
-void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+void SDependemceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
+    std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup)
 {
-    // 1 Init eu and scheduler
-    auto ctx = ExecuteCtx::Cur();
-
-    // 2 Get current task's parent
-    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
-
-    std::vector<const void*> insNoDup;
-    std::vector<const void*> outsNoDup;
-    std::vector<CPUEUTask*> in_handles;
-    // signature去重：1) outs去重
+    // signature去重：1）outs去重
     if (outs) {
-        if (!outsDeDup(outsNoDup, outs)) {
-            FFRT_LOGE("onSubmit outsDeDup error");
-            return;
-        }
+        outsDeDup(outsNoDup, outs);
     }
 
     // signature去重：2）ins去重（不影响功能，skip）；3）ins不和outs重复（当前不支持weak signature）
     if (ins) {
         insDeDup(in_handles, insNoDup, outsNoDup, ins);
     }
+}
 
+void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+{
+    //o check outs handle
+    if (!CheckOutsHandle(outs)) {
+        FFRT_LOGE("outs contain handles error");
+        return;
+    }
+    
+    // 1 Init eu and scheduler
+    auto ctx = ExecuteCtx::Cur();
+
+    // 2 Get current task's parent
+    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
+    
     // 2.1 Create task ctx
     SCPUEUTask* task = nullptr;
     {
@@ -92,6 +96,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 #ifdef FFRT_BBOX_ENABLE
     TaskSubmitCounterInc();
 #endif
+
+    std::vector<const void*> insNoDup;
+    std::vector<const void*> outsNoDup;
+    RemoveRepeatedDeps(task->in_handles, ins, outs, insNoDup, outsNoDup);
+
 #ifdef FFRT_OH_WATCHDOG_ENABLE
     if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_)) {
         task->isWatchdogEnable = true;
@@ -133,7 +142,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
                 o.first->AddProducer(task);
             }
         }
-        task->in_handles.swap(in_handles);
         if (task->dataRefCnt.submitDep != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
             FFRT_TRACE_END();
@@ -174,7 +182,7 @@ void SDependenceManager::onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHan
     onSubmit(hasHandle, handle, create_function_wrapper(std::move(func)), ins, outs, attr);
 }
 
-int SDependenceManager::onWait()
+void SDependenceManager::onWait()
 {
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
@@ -188,7 +196,7 @@ int SDependenceManager::onWait()
             task->blockType = BlockType::BLOCK_THREAD;
         }
         task->waitCond_.wait(lck, [task] { return task->childRefCnt == 0; });
-        return 0;
+        return;
     }
 
     auto childDepFun = [&](ffrt::CPUEUTask* task) -> bool {
@@ -203,13 +211,12 @@ int SDependenceManager::onWait()
     };
     FFRT_BLOCK_TRACER(task->gid, chd);
     CoWait(childDepFun);
-    return 0;
 }
 
 #ifdef QOS_DEPENDENCY
-int SDependenceManager::onWait(const ffrt_deps_t* deps, int64_t deadline = -1)
+void SDependenceManager::onWait(const ffrt_deps_t* deps, int64_t deadline = -1)
 #else
-int SDependenceManager::onWait(const ffrt_deps_t* deps)
+void SDependenceManager::onWait(const ffrt_deps_t* deps)
 #endif
 {
     auto ctx = ExecuteCtx::Cur();
@@ -252,11 +259,11 @@ int SDependenceManager::onWait(const ffrt_deps_t* deps)
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
-        if FFRT_UNLIKELY(LegacyMode(task)) {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
         task->waitCond_.wait(lck, [task] { return task->dataRefCnt.waitDep == 0; });
-        return 0;
+        return;
     }
 
     auto pendDataDepFun = [&](ffrt::CPUEUTask* task) -> bool {
@@ -273,6 +280,10 @@ int SDependenceManager::onWait(const ffrt_deps_t* deps)
     };
     FFRT_BLOCK_TRACER(task->gid, dat);
     CoWait(pendDataDepFun);
+}
+
+int SDependenceManager::onExecResults(const ffrt_deps_t *deps)
+{
     return 0;
 }
 

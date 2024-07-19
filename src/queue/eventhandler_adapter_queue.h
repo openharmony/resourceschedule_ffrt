@@ -54,7 +54,7 @@ public:
 
     bool GetActiveStatus() override
     {
-        std::unique_lock lock(mutex_)
+        std::unique_lock lock(mutex_);
         return isActiveState_.load();
     }
 

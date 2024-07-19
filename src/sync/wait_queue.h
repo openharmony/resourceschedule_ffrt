@@ -101,7 +101,7 @@ private:
     void ReleaseAll()
     {
         while (!empty()) {
-            FFRT_LOGE("There aee still tasks in cv that have not been awaken");
+            FFRT_LOGE("There are still tasks in cv that have not been awakened");
             WaitUntilEntry *wue = pop_front();
             (void)WeNotifyProc(wue);
         }

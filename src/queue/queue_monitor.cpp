@@ -205,7 +205,7 @@ void QueueMonitor::CheckQueuesStatus()
         }
     }
 
-    SendDelayedWorker(oldestStartedTime + std::chrono::microseconds(timeoutUs_);
+    SendDelayedWorker(oldestStartedTime + std::chrono::microseconds(timeoutUs_));
     FFRT_LOGD("global watchdog completed queue status check and scheduled the next");
 }
 

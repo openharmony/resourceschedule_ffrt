@@ -57,7 +57,7 @@ inline void outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* o
             outsNoDup.push_back(outs->items[i].ptr);
         }
     }
-    
+
 }
 
 inline void insDeDup(std::vector<CPUEUTask*> &in_handles, std::vector<const void *> &insNoDup,

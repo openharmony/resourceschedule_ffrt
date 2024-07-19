@@ -50,7 +50,7 @@ SDependenceManager::~SDependenceManager()
 {
 }
 
-void SDependemceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
+void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
     std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup)
 {
     // signature去重：1）outs去重
@@ -67,18 +67,18 @@ void SDependemceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles,
 void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
-    //o check outs handle
+    // 0 check outs handle
     if (!CheckOutsHandle(outs)) {
         FFRT_LOGE("outs contain handles error");
         return;
     }
-    
+
     // 1 Init eu and scheduler
     auto ctx = ExecuteCtx::Cur();
 
     // 2 Get current task's parent
     auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
-    
+
     // 2.1 Create task ctx
     SCPUEUTask* task = nullptr;
     {

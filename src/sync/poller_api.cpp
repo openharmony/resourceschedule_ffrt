@@ -89,7 +89,7 @@ uint64_t ffrt_epoll_get_wait_time(void* taskHandle)
 {
     if (taskHandle == nullptr) {
         FFRT_LOGE("invalid task handle");
-        return false;
+        return 0;
     }
 
     auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);

@@ -185,17 +185,17 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
     // default strategy of worker ops
     CpuWorkerOps ops {
         CPUWorker::WorkerLooperDefault,
-        [pIns](WorkerThread* thread) { return pIns->PickUpTaskFromGlobalQueue(thread); },
-        [pIns](const WorkerThread* thread) { pIns->NotifyTaskPicked(thread); },
-        [pIns](const WorkerThread* thread) { return pIns->WorkerIdleAction(thread); },
-        [pIns](WorkerThread* thread) { pIns->WorkerRetired(thread); },
-        [pIns](WorkerThread* thread) { pIns->WorkerPrepare(thread); },
-        [pIns](const WorkerThread* thread, int timeout) { return pIns->TryPoll(thread, timeout); },
-        [pIns](WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
-        [pIns](WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
+        [pIns] (WorkerThread* thread) { return pIns->PickUpTaskFromGlobalQueue(thread); },
+        [pIns] (const WorkerThread* thread) { pIns->NotifyTaskPicked(thread); },
+        [pIns] (const WorkerThread* thread) { return pIns->WorkerIdleAction(thread); },
+        [pIns] (WorkerThread* thread) { pIns->WorkerRetired(thread); },
+        [pIns] (WorkerThread* thread) { pIns->WorkerPrepare(thread); },
+        [pIns] (const WorkerThread* thread, int timeout) { return pIns->TryPoll(thread, timeout); },
+        [pIns] (WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
+        [pIns] (WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        [pIns](const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
-        [pIns]() { return pIns->IsBlockAwareInit(); },
+        [pIns] (const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
+        [pIns] () { return pIns->IsBlockAwareInit(); },
 #endif
     };
 
@@ -203,7 +203,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
     if (strstr(processName, "CameraDaemon")) {
         // CameraDaemon customized strategy
         ops.WorkerLooper = CPUWorker::WorkerLooperStandard;
-        ops.WaitForNewAction = [pIns](const const WorkerThread* thread) { return pIns->WorkerIdleActionSimplified(thread); };
+        ops.WaitForNewAction = [pIns] (const WorkerThread* thread) { return pIns->WorkerIdleActionSimplified(thread); };
     }
 #endif
 
@@ -221,10 +221,10 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
     SCPUWorkerManager* pIns = reinterpret_cast<SCPUWorkerManager*>(manager);
     // default strategy of monitor ops
     CpuMonitorOps ops {
-        [pIns](const QoS& qos) { return pIns->IncWorker(qos); },
-        [pIns](const QoS& qos) { pIns->WakeupWorkers(qos); },
-        [pIns](const QoS& qos) { return pIns->GetTaskCount(qos); },
-        [pIns](const QoS& qos) { return pIns->GetWorkerCount(qos); },
+        [pIns] (const QoS& qos) { return pIns->IncWorker(qos); },
+        [pIns] (const QoS& qos) { pIns->WakeupWorkers(qos); },
+        [pIns] (const QoS& qos) { return pIns->GetTaskCount(qos); },
+        [pIns] (const QoS& qos) { return pIns->GetWorkerCount(qos); },
         CPUMonitor::HandleTaskNotifyDefault,
     };
 

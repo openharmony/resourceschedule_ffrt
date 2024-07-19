@@ -29,7 +29,7 @@ public:
 
     int Push(QueueTask* task) override;
     QueueTask* Pull() override;
-    bool GetActiveStatus() const override
+    bool GetActiveStatus() override
     {
         return concurrency_.load();
     }

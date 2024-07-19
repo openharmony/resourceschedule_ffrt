@@ -34,7 +34,6 @@ inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayU
 namespace ffrt {
 QueueMonitor::QueueMonitor()
 {
-    std::unique_lock lock(mutex_);
     FFRT_LOGI("queue monitor ctor enter");
     queuesRunningInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
@@ -51,6 +50,7 @@ QueueMonitor::QueueMonitor()
 
 QueueMonitor::~QueueMonitor()
 {
+    std::unique_lock lock(mutex_);
     FFRT_LOGW("destruction of QueueMonitor enter");
     for (uint32_t id = 0; id < queuesRunningInfo_.size(); ++id) {
         if (queuesRunningInfo_[id].first != INVALID_TASK_ID) {

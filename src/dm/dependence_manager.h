@@ -50,7 +50,7 @@ inline bool CheckOutsHandle(const ffrt_deps_t *outs)
     }
     return true;
 }
-inline void outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* outs)
+inline void outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t *outs)
 {
     for (uint32_t i = 0; i < outs->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {

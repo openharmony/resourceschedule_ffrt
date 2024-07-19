@@ -17,6 +17,7 @@
 
 #include <chrono>
 #include <string>
+#include <securec.h>
 
 namespace ffrt {
 std::string FormatDateString(const std::chrono::system_clock::time_point& timePoint)

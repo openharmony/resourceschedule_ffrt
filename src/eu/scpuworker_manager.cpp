@@ -34,6 +34,11 @@ constexpr int waiting_seconds = 10;
 #else
 constexpr int waiting_seconds = 5;
 #endif
+
+const std::map<std::string, void(*)(const ffrt::QoS&, void*, ffrt::TaskNotifyType)> NOTIFY_FUNCTION_FACTORY = {
+    { "CameraDaemon", ffrt::CPUMonitor::HandleTaskNotifyConservative },
+    { "bluetooth", ffrt::CPUMonitor::HandleTaskNotifyUltraConservative },
+};
 }
 
 namespace ffrt {
@@ -50,7 +55,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
             pollersMtx[qos].unlock();
-            PollerProxy::Instance()->GetPoller(QoS(qos)).WakeUp();
+            PollerProxy::Instance()->GetPoller(qos).WakeUp();
             sleepCtl[qos].cv.notify_all();
             {
                 usleep(1000);
@@ -180,17 +185,17 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
     // default strategy of worker ops
     CpuWorkerOps ops {
         CPUWorker::WorkerLooperDefault,
-        std::bind(&CPUWorkerManager::PickUpTaskFromGlobalQueue, pIns, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::NotifyTaskPicked, pIns, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::WorkerIdleAction, pIns, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::WorkerRetired, pIns, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::WorkerPrepare, pIns, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::TryPoll, pIns, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&CPUWorkerManager::StealTaskBatch, pIns, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::PickUpTaskBatch, pIns, std::placeholders::_1),
+        [pIns](WorkerThread* thread) { return pIns->PickUpTaskFromGlobalQueue(thread); },
+        [pIns](const WorkerThread* thread) { pIns->NotifyTaskPicked(thread); },
+        [pIns](const WorkerThread* thread) { return pIns->WorkerIdleAction(thread); },
+        [pIns](WorkerThread* thread) { pIns->WorkerRetired(thread); },
+        [pIns](WorkerThread* thread) { pIns->WorkerPrepare(thread); },
+        [pIns](const WorkerThread* thread, int timeout) { return pIns->TryPoll(thread, timeout); },
+        [pIns](WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
+        [pIns](WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        std::bind(&CPUWorkerManager::IsExceedRunningThreshold, pIns, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::IsBlockAwareInit, pIns),
+        [pIns](const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
+        [pIns]() { return pIns->IsBlockAwareInit(); },
 #endif
     };
 
@@ -198,7 +203,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
     if (strstr(processName, "CameraDaemon")) {
         // CameraDaemon customized strategy
         ops.WorkerLooper = CPUWorker::WorkerLooperStandard;
-        ops.WaitForNewAction = std::bind(&CPUWorkerManager::WorkerIdleActionSimplified, pIns, std::placeholders::_1);
+        ops.WaitForNewAction = [pIns](const const WorkerThread* thread) { return pIns->WorkerIdleActionSimplified(thread); };
     }
 #endif
 
@@ -216,17 +221,19 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
     SCPUWorkerManager* pIns = reinterpret_cast<SCPUWorkerManager*>(manager);
     // default strategy of monitor ops
     CpuMonitorOps ops {
-        std::bind(&SCPUWorkerManager::IncWorker, pIns, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::WakeupWorkers, pIns, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetTaskCount, pIns, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::GetWorkerCount, pIns, std::placeholders::_1),
+        [pIns](const QoS& qos) { return pIns->IncWorker(qos); },
+        [pIns](const QoS& qos) { pIns->WakeupWorkers(qos); },
+        [pIns](const QoS& qos) { return pIns->GetTaskCount(qos); },
+        [pIns](const QoS& qos) { return pIns->GetWorkerCount(qos); },
         CPUMonitor::HandleTaskNotifyDefault,
     };
 
 #ifdef OHOS_STANDARD_SYSTEM
-    if (strstr(processName, "CameraDaemon")) {
-        // CameraDaemon customized strategy
-        ops.HandleTaskNotity = CPUMonitor::HandleTaskNotifyConservative;
+    for (const auto& notifyFunc : NOTIFY_FUNCTION_FACTORY) {
+        if (strstr(processName, notifyFunc.first.c_str())) {
+            ops.HandleTaskNotity = notifyFunc.second;
+            break;
+        }    
     }
 #endif
 

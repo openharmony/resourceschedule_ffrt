@@ -194,9 +194,9 @@ void CPUMonitor::RollbackDestroy(const QoS& qos, bool isDeepSleepWork)
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
     workerCtrl.executionNum++;
-	if (isDeepSleepWork) {
-		workerCtrl.hasWorkDeepSleep = false;
-	}
+    if (isDeepSleepWork) {
+        workerCtrl.hasWorkDeepSleep = false;
+    }
     workerCtrl.lock.unlock();
 }
 
@@ -205,9 +205,9 @@ void CPUMonitor::TryDestroy(const QoS& qos, bool isDeepSleepWork)
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
     workerCtrl.sleepingWorkerNum--;
-	if (isDeepSleepWork) {
-		workerCtrl.hasWorkDeepSleep = false;
-	}
+    if (isDeepSleepWork) {
+        workerCtrl.hasWorkDeepSleep = false;
+    }
     workerCtrl.lock.unlock();
 }
 
@@ -216,9 +216,9 @@ void CPUMonitor::DoDestroy(const QoS& qos, bool isDeepSleepWork)
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
     workerCtrl.sleepingWorkerNum--;
-	if (isDeepSleepWork) {
-		workerCtrl.hasWorkDeepSleep = false;
-	}
+    if (isDeepSleepWork) {
+        workerCtrl.hasWorkDeepSleep = false;
+    }
     workerCtrl.lock.unlock();
 }
 

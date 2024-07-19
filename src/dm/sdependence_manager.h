@@ -33,19 +33,24 @@ public:
     void onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) override;
 
-    int onWait() override;
+    void onWait() override;
 
 #ifdef QOS_DEPENDENCY
-    int onWait(const ffrt_deps_t* deps, int64_t deadline = -1) override;
+    void onWait(const ffrt_deps_t* deps, int64_t deadline = -1) override;
 #else
-    int onWait(const ffrt_deps_t* deps) override;
+    void onWait(const ffrt_deps_t* deps) override;
 #endif
+
+    int onExecResults(const ffrt_deps_t *deps) override;
 
     void onTaskDone(CPUEUTask* task) override;
 
 private:
     SDependenceManager();
     ~SDependenceManager() override;
+
+    void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
+        std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup);
 
     void MapSignature2Deps(SCPUEUTask* task, const std::vector<const void*>& inDeps,
         const std::vector<const void*>& outDeps, std::vector<std::pair<VersionCtx*, NestType>>& inVersions,

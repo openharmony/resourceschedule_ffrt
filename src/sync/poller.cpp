@@ -270,7 +270,7 @@ void WakeTask(CPUEUTask* task)
         }
         reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
     } else {
-        CoWake(task, false);
+        CoRoutineFactory::CoWakeFunc(task, false);
     }
 }
 
@@ -376,12 +376,12 @@ PollerRet Poller::PollOnce(int timeout) noexcept
 
     pollerCount_++;
 
-    std::array<epoll_event, EPOLL_EVENT_SIZE> waitedEvents;
+    std::array<epoll_event, 1024> waitedEvents;
     int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
         if (errno != EINTR) {
-            FFRT_LOGE("epoll_wait error, errorno= %d", errno);
+            FFRT_LOGE("epoll_wait error, errorno= %d ", errno);
         }
         return PollerRet::RET_NULL;
     }

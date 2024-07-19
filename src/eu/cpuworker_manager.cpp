@@ -35,7 +35,7 @@ void InsertTask(void* task, int qos)
 {
     ffrt_executor_task_t* executorTask = reinterpret_cast<ffrt_executor_task_t*>(task);
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList*>(&executorTask->wq);
-    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, ffrt::QoS(qos))) {
+    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, qos)) {
         FFRT_LOGE("Insert task failed.");
     }
 }
@@ -218,7 +218,7 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
         if (ret != 1) {
             FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
-        WorkerLeaveTg(QoS(qos), pid);
+        WorkerLeaveTg(qos, pid);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         if (IsBlockAwareInit()) {
             ret = BlockawareUnregister();

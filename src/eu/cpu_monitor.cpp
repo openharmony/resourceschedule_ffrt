@@ -215,7 +215,6 @@ void CPUMonitor::DoDestroy(const QoS& qos, bool isDeepSleepWork)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-    workerCtrl.sleepingWorkerNum--;
     if (isDeepSleepWork) {
         workerCtrl.hasWorkDeepSleep = false;
     }

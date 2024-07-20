@@ -44,7 +44,7 @@ namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
     // 从配置文件读取黑名单
-    std::string filename = "/etc/ffrt/blacklist.conf";
+    std::string filename = "/etc/ffrt/worker_monitor.conf";
     std::ifstream file(filename);
     std::string skipProcess;
     

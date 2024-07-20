@@ -222,16 +222,16 @@ ohos_shared_library("libffrt") {
 
 ohos_prebuilt_etc("blacklist_cfg") {
   relative_install_dir = "ffrt"
-  source = "blacklist.conf"
+  source = "worker_monitor.conf"
   part_name = "ffrt"
   subsystem_name = "resourceschedule"
   install_enable = true
-  install_images = [
-    "system"
-  ]
+  install_images = [ "system" ]
 }
 
 group("ffrt_ndk") {
-  deps = [ ":libffrt",
-           ":blacklist_cfg" ]
+  deps = [
+    ":libffrt",
+    ":blacklist_cfg",
+  ]
 }

@@ -32,6 +32,9 @@ const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
 }
 
 namespace ffrt {
+
+std::atomic_uint32_t BaseQueue::queueId(0);
+
 void BaseQueue::Stop()
 {
     std::unique_lock lock(mutex_);

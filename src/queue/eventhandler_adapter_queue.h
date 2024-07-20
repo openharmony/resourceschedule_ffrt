@@ -88,7 +88,7 @@ private:
     std::vector<int> pulledTaskCount_;
 };
 
-std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(uint32_t queueId, const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 
 #endif // FFRT_EVENTHANDLER_ADAPTER_QUEUE_H

@@ -59,7 +59,7 @@ WorkerMonitor::WorkerMonitor()
             }
         }
     } else {
-        FFRT_LOGW("blacklist.conf does not exist or file permission denied");
+        FFRT_LOGW("worker_monitor.conf does not exist or file permission denied");
     }
 
     SubmitSamplingTask();

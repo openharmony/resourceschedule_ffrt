@@ -231,7 +231,7 @@ ohos_prebuilt_etc("blacklist_cfg") {
 
 group("ffrt_ndk") {
   deps = [
-    ":libffrt",
     ":blacklist_cfg",
+    ":libffrt",
   ]
 }

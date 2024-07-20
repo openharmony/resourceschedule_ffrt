@@ -22,14 +22,13 @@
 #include "eventhandler_interactive_queue.h"
 
 namespace {
-using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(uint32_t, const ffrt_queue_attr_t*);
+using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(const ffrt_queue_attr_t*);
 const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_serial, ffrt::CreateSerialQueue },
     { ffrt_queue_concurrent, ffrt::CreateConcurrentQueue },
     { ffrt_queue_eventhandler_interactive, ffrt::CreateEventHandlerInteractiveQueue },
     { ffrt_queue_eventhandler_adapter, ffrt::CreateEventHandlerAdapterQueue },
 };
-std::atomic_uint32_t queueId(0);
 }
 
 namespace ffrt {
@@ -116,6 +115,6 @@ std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* a
     const auto iter = CREATE_FUNC_MAP.find(queueType);
     FFRT_COND_DO_ERR((iter == CREATE_FUNC_MAP.end()), return nullptr, "invalid queue type");
 
-    return iter->second(queueId.fetch_add(1, std::memory_order_relaxed), attr);
+    return iter->second(attr);
 }
 } // namespace ffrt

@@ -46,7 +46,7 @@ struct HistoryTask {
 
 class EventHandlerAdapterQueue : public EventHandlerInteractiveQueue {
 public:
-    explicit EventHandlerAdapterQueue(uint32_t queueId);
+    explicit EventHandlerAdapterQueue();
     ~EventHandlerAdapterQueue() override;
 
     int Push(QueueTask* task) override;

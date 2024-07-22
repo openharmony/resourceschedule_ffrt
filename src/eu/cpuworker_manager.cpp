@@ -44,21 +44,31 @@ void InsertTask(void* task, int qos)
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
 {
-    std::unique_lock<std::shared_mutex> lock(groupCtl[qos()].tgMutex);
+    QoS localQos = qos;
+    int workerQos = localQos();
+    if (workerQos < 0 || workerQos >= QoS::MaxNum()) {
+        FFRT_LOGE("IncWorker qos:%d is invaild", workerQos);
+        return false;
+    }
+    std::unique_lock<std::shared_mutex> lock(groupCtl[workerQos].tgMutex);
     if (tearDown) {
         FFRT_LOGE("CPU Worker Manager exit");
         return false;
     }
 
-    auto worker = std::unique_ptr<WorkerThread>(
-        CPUManagerStrategy::CreateCPUWorker(qos, this));
-    if (worker == nullptr || worker->Exited()) {
+    auto worker = CPUManagerStrategy::CreateCPUWorker(localQos, this);
+    auto uniqueWorker = std::unique_ptr<WorkerThread>(worker);
+    if (uniqueWorker == nullptr || uniqueWorker->Exited()) {
         FFRT_LOGE("IncWorker failed: worker is nullptr or has exited\n");
         return false;
     }
-    worker->WorkerSetup(worker.get());
-    groupCtl[qos()].threads[worker.get()] = std::move(worker);
-    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
+    uniqueWorker->WorkerSetup(worker);
+    auto result = groupCtl[workerQos].threads.emplace(worker, std::move(uniqueWorker));
+    if (!result.second) {
+        FFRT_LOGE("qos:%d worker insert fail:%d", workerQos, result.second);
+        return false;
+    }
+    FFRT_PERF_WORKER_WAKE(workerQos);
     lock.unlock();
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance().SubmitTask();
@@ -74,6 +84,7 @@ int CPUWorkerManager::GetTaskCount(const QoS& qos)
 
 int CPUWorkerManager::GetWorkerCount(const QoS& qos)
 {
+    std::shared_lock<std::shared_mutex> lck(groupCtl[qos()].tgMutex);
     return groupCtl[qos()].threads.size();
 }
 

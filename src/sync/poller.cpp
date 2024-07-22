@@ -185,7 +185,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             m_mapMutex.unlock();
             return 0;
         }
-        if (FFRT_UNLIKELY(LegacyMode(task)))  {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
         auto currTime = std::chrono::steady_clock::now();
@@ -381,7 +381,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
         if (errno != EINTR) {
-            FFRT_LOGE("epoll_wait error, errorno= %d ", errno);
+            FFRT_LOGE("epoll_wait error, errorno= %d.", errno);
         }
         return PollerRet::RET_NULL;
     }

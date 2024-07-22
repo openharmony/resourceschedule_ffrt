@@ -31,7 +31,7 @@ public:
         const ffrt_deps_t *outs, const task_attr_private *attr) override;
 
     void onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
-    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) override;
+        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) override;
 
     void onWait() override;
 
@@ -51,7 +51,6 @@ private:
 
     void RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
         std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup);
-
     void MapSignature2Deps(SCPUEUTask* task, const std::vector<const void*>& inDeps,
         const std::vector<const void*>& outDeps, std::vector<std::pair<VersionCtx*, NestType>>& inVersions,
         std::vector<std::pair<VersionCtx*, NestType>>& outVersions);

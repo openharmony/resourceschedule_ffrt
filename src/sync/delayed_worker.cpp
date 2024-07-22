@@ -50,7 +50,8 @@ void DelayedWorker::ThreadInit()
                 break;
             }
             if (result == 0) {
-                cv.wait_until(lk, map.begin()->first);
+                auto time_out = map.begin()->first;
+                cv.wait_until(lk, time_out);
             } else if (result == 1) {
                 if (++noTaskDelayCount_ > 1) {
                     exited_ = true;

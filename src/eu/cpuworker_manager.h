@@ -83,8 +83,10 @@ protected:
     CPUMonitor* monitor = nullptr;
     bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::MaxNum()];
+    void WorkerLeaveTg(const QoS& qos, pid_t pid);
     uint8_t polling_[QoS::MaxNum()] = {0};
     fast_mutex pollersMtx[QoS::MaxNum()];
+    void WorkerRetired(WorkerThread* thread);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool IsExceedRunningThreshold(const WorkerThread* thread);
     bool IsBlockAwareInit(void);
@@ -94,8 +96,7 @@ private:
     bool WorkerTearDown();
     bool DecWorker() override
     {return false;}
-    void WorkerRetired(WorkerThread* thread);
-    void WorkerLeaveTg(const QoS& qos, pid_t pid);
+    virtual void WorkerRetiredSimplified(WorkerThread* thread) = 0;
     void NotifyTaskPicked(const WorkerThread* thread);
     /* strategy options for task pick up */
     CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread);

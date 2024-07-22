@@ -83,7 +83,7 @@ void CPUMonitor::SetupMonitor()
 void CPUMonitor::StartMonitor()
 {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    monitorThread = new std::thread([this]{ this->MonitorMain(); });
+    monitorThread = new std::thread([this] { this->MonitorMain(); });
 #else
     monitorThread = nullptr;
 #endif

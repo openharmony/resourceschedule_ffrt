@@ -106,10 +106,11 @@ private:
             (void)WeNotifyProc(wue);
         }
     }
+
     inline void push_back(WaitUntilEntry* we)
     {
-        if ((we == nullptr) || (whead->prev == nullptr)) {
-            FFRT_LOGE("we or whead->prev is nullptr");
+        if ((we == nullptr) || (whead == nullptr) || (whead->prev == nullptr)) {
+            FFRT_LOGE("we or whead or whead->prev is nullptr");
             return;
         }
         we->next = whead;

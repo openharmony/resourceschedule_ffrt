@@ -95,45 +95,6 @@ private:
     RunQueue *que;
 };
 
-class SFIFOScheduler : public TaskScheduler {
-private:
-    CPUEUTask* PickNextTaskImpl() override
-    {
-        CPUEUTask* task = que.DeQueue();
-        return task;
-    }
-
-    bool WakeupNodeImpl(LinkedList* node) override
-    {
-        que.EnQueueNode(node);
-        return true;
-    }
-
-    bool RemoveNodeImpl(LinkedList* node) override
-    {
-        que.RmQueueNode(node);
-        return true;
-    }
-
-    bool WakeupTaskImpl(CPUEUTask* task) override
-    {
-        que.EnQueue(task);
-        return true;
-    }
-
-    bool RQEmptyImpl() override
-    {
-        return que.Empty();
-    }
-
-    int RQSizeImpl() override
-    {
-        return que.Size();
-    }
-
-    FIFOQueue que;
-};
-
 class SchedulerFactory {
 public:
     using AllocCB = std::function<TaskScheduler *()>;

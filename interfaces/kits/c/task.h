@@ -229,6 +229,20 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, cons
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 /**
+ * @brief increase reference count of task handle.
+ *
+ * @param handle Indicates a task handle.
+ */
+FFRT_C_API void ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
+
+/**
+ * @brief decrease reference count of task handle.
+ *
+ * @param handle Indicates a task handle.
+ */
+FFRT_C_API void ffrt_task_handle_dec_ref(ffrt_task_handle_t handle);
+
+/**
  * @brief Destroys a task handle.
  *
  * @param handle Indicates a task handle.

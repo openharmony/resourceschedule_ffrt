@@ -110,6 +110,7 @@ int DelayedWorker::HandleWork()
     return 1;
 }
 
+// There is no requirement that to be less than now
 bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;
@@ -117,6 +118,7 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
 
     if (toExit) {
         lock.unlock();
+        FFRT_LOGE("DelayedWorker destroy, dispatch failed\n");
         return false;
     }
 

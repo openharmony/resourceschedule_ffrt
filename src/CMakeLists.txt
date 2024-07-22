@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # ffrt code
 # -----------------------------------------------------------------------------
-set(FFRT_LOG_PLAT_PATH "${FFRT_CODE_PATH}/dfx/log/linux")
+set(FFRT_LOG_PLAT "linux")
 
 file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/core/*.cpp"

@@ -21,6 +21,7 @@ namespace {
 constexpr int TASK_OVERRUN_THRESHOLD = 1000;
 constexpr int TASK_OVERRUN_ALARM_FREQ = 500;
 }
+
 namespace ffrt {
 
 FFRTScheduler* FFRTScheduler::Instance()
@@ -99,6 +100,7 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
             task->gid, task->type, task->label.c_str());
         return false;
     }
+
     QoS _qos = qos_level;
     int level = _qos();
     uint64_t gid = task->gid;

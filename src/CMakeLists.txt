@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # ffrt code
 # -----------------------------------------------------------------------------
-set(FFRT_LOG_PLAT "linux")
+set(FFRT_LOG_PLAT_PATH "${FFRT_CODE_PATH}/dfx/log/linux")
 
 file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/core/*.cpp"
@@ -19,8 +19,13 @@ file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/dfx/log/${FFRT_LOG_PLAT}/log_base.cpp"
 	"${FFRT_CODE_PATH}/dfx/dump/dump.cpp"
 	"${FFRT_CODE_PATH}/dfx/watchdog/watchdog_util.cpp"
+        "${FFRT_CODE_EXT_PATH}/staging_qos/sched/qos_register_impl.cpp"
+	"${FFRT_CODE_EXT_PATH}/core/*.cpp"
 )
 
+if(FFRT_UT_ENABLE STREQUAL ON)
+	list(APPEND FFRT_SRC_LIST "${FFRT_CODE_PATH}/dfx/bbox/fault_logger_fd_manager.cpp")
+endif()
 set_property(GLOBAL APPEND PROPERTY FFRT_SRC_LIST ${FFRT_SRC_LIST})
 
 add_library(${PROJECT_NAME} SHARED ${FFRT_SRC_LIST})

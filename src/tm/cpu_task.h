@@ -65,8 +65,8 @@ public:
     void** tsd = nullptr;
     bool taskLocal = false;
 
-    bool legacyMode { false };
-    BlockType blockType { BlockType::BLOCK_COROUTINE };
+    bool legacyMode { false }; // dynamic switch controlled by set_legacy_mode api
+    BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 
     QoS qos;
     void SetQos(QoS& newQos);

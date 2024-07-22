@@ -108,6 +108,7 @@ int DelayedWorker::HandleWork()
     return 1;
 }
 
+// There is no requirement that to be less than now
 bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;

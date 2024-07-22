@@ -373,6 +373,7 @@ void CPUMonitor::HandleTaskNotifyUltraConservative(const QoS& qos, void* p, Task
     CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
     int taskCount = monitor->ops.GetTaskCount(qos);
     if (taskCount == 0) {
+        // no available task in global queue, skip
         return;
     }
 
@@ -390,7 +391,6 @@ void CPUMonitor::HandleTaskNotifyUltraConservative(const QoS& qos, void* p, Task
         } else {
             monitor->ops.WakeupWorkers(qos);
         }
-        
     }
 }
 }

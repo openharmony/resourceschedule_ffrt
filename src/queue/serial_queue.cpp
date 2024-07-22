@@ -60,7 +60,6 @@ QueueTask* SerialQueue::Pull()
         isActiveState_.store(false);
         return nullptr;
     }
-
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue due tasks in batch

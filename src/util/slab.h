@@ -241,8 +241,8 @@ class QSimpleAllocator {
         T* p = nullptr;
         lock.lock();
         FFRT_LOGD("coroutine release with waterline %d, cur occupied %d, cached size %d",
-              maxAllocated, curAllocated, cache.size());
-        size_t reservedCnt = maxAllocated - curAllocated + 1;
+            maxAllocated, curAllocated, cache.size());
+        size_t reservedCnt = maxAllocated - curAllocated + 1; // reserve additional one for robustness
         maxAllocated = curAllocated;
         while (cache.size() > reservedCnt) {
             p = cache.back();

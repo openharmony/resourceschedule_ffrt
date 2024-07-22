@@ -85,7 +85,7 @@ public:
         return que->Size();
     }
 
-    void SetQos(Qos &qos)
+    void SetQos(QoS &qos)
     {
         que->SetQos(qos);
     }

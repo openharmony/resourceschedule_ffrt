@@ -83,5 +83,5 @@ void SetThreadAttr(WorkerThread* thread, const QoS& qos)
         FFRTQosApplyForOther(qos(), thread->Id());
 		FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
 	}
-}   
+}
 }; // namespace ffrt

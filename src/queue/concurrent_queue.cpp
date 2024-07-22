@@ -142,9 +142,9 @@ int ConcurrentQueue::PushDelayTaskToTimer(QueueTask* task)
     return SUCC;
 }
 
-std::unique_ptr<BaseQueue> CreateConcurrentQueue(uint32_t queueId, const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
 {
     int maxConcurrency = ffrt_queue_attr_get_max_concurrency(attr) <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
-    return std::make_unique<ConcurrentQueue>(queueId, maxConcurrency);
+    return std::make_unique<ConcurrentQueue>(maxConcurrency);
 }
 } // namespace ffrt

@@ -20,8 +20,8 @@
 namespace ffrt {
 class ConcurrentQueue : public BaseQueue {
 public:
-    explicit ConcurrentQueue(const uint32_t queueId, const int maxConcurrency = 1)
-        : BaseQueue(queueId), maxConcurrency_(maxConcurrency)
+    explicit ConcurrentQueue(const int maxConcurrency = 1)
+        : maxConcurrency_(maxConcurrency)
     {
         dequeFunc_ = QueueStrategy<QueueTask>::DequeSingleByPriority;
     }
@@ -67,6 +67,6 @@ private:
     std::atomic_int concurrency_ {0};
 };
 
-std::unique_ptr<BaseQueue> CreateConcurrentQueue(uint32_t queueId, const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 #endif // FFRT_CONCURRENT_QUEUE_H

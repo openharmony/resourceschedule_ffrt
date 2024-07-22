@@ -59,12 +59,12 @@ public:
 
     inline uint32_t GetQueueId()
     {
-        return queue_->GetQueueId();
+        return queueId_;
     }
 
     inline bool HasTask(const char* name)
     {
-        FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
+        FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", queueId_);
         return queue_->HasTask(name);
     }
 
@@ -84,6 +84,7 @@ private:
     // queue info
     std::string name_;
     int qos_ = qos_default;
+    const uint32_t queueId_;
     std::unique_ptr<BaseQueue> queue_ = nullptr;
     std::atomic_bool isUsed_ = false;
 

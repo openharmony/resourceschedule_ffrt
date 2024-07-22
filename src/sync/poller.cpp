@@ -451,7 +451,9 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
     for (auto iter = timerMap_.begin(); iter != timerMap_.end();) {
         if (iter->first <= timer) {
             timerData.emplace_back(iter->second);
-            executedHandle_[iter->second.handle] = TimerStatus::EXECUTING;
+            if (iter->second.cb != nullptr) {
+                executedHandle_[iter->second.handle] = TimerStatus::EXECUTING;
+            }
             iter = timerMap_.erase(iter);
             continue;
         }
@@ -467,7 +469,9 @@ void Poller::ExecuteTimerCb(time_point_t timer) noexcept
             ProcessTimerDataCb(data.task);
         }
 
-        executedHandle_[data.handle] = TimerStatus::EXECUTED;
+        if (data.cb != nullptr) {
+            executedHandle_[data.handle] = TimerStatus::EXECUTED;
+        }
         if (data.repeat) {
             std::lock_guard lock(timerMutex_);
             executedHandle_.erase(data.handle);

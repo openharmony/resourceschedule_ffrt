@@ -103,7 +103,7 @@ void DumpUnexecutedTaskInfo(const char* tag,
 }
 
 namespace ffrt {
-EventHandlerAdapterQueue::EventHandlerAdapterQueue() : EventHandlerInteractiveQueue()
+EventHandlerAdapterQueue::EventHandlerAdapterQueue(uint32_t queueId) : EventHandlerInteractiveQueue(queueId)
 {
     dequeFunc_ = QueueStrategy<QueueTask>::DequeSingleAgainstStarvation;
     historyTasks_ = std::vector<HistoryTask>(HISTORY_TASK_NUM_POWER);
@@ -210,9 +210,9 @@ void EventHandlerAdapterQueue::PushHistoryTask(QueueTask* task, uint64_t trigger
     historyTasks_[historyTaskIndex_.fetch_add(1) & (HISTORY_TASK_NUM_POWER - 1)] = historyTask;
 }
 
-std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(uint32_t queueId, const ffrt_queue_attr_t* attr)
 {
     (void)attr;
-    return std::make_unique<EventHandlerAdapterQueue>();
+    return std::make_unique<EventHandlerAdapterQueue>(queueId);
 }
 } // namespace ffrt

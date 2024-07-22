@@ -20,7 +20,7 @@
 namespace ffrt {
 class SerialQueue : public BaseQueue {
 public:
-    explicit SerialQueue()
+    explicit SerialQueue(uint32_t queueId) : BaseQueue(queueId)
     {
         dequeFunc_ = QueueStrategy<QueueTask>::DequeBatch;
     }
@@ -41,7 +41,7 @@ public:
     }
 };
 
-std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateSerialQueue(uint32_t queueId, const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 
 #endif // FFRT_SERIAL_QUEUE_H

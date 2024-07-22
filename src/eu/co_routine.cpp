@@ -135,6 +135,8 @@ void SwitchTsdToTask(ffrt::CPUEUTask* task)
     InitWorkerTsdValueToTask(task->tsd);
 
     SwitchTsdAddrToTask(task);
+
+    task->runningTid.store(pthread_self());
     FFRT_LOGD("switch tsd to task Success");
 }
 
@@ -184,6 +186,8 @@ void SwitchTsdToThread(ffrt::CPUEUTask* task)
     }
 
     UpdateWorkerTsdValueToThread(task->tsd);
+    
+    task->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
 }
 

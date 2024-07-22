@@ -105,4 +105,5 @@ FFRT_C_API void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local
  */
 FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
 
+FFRT_C_API pthread_t ffrt_task_get_tid(void* taskHandle);
 #endif

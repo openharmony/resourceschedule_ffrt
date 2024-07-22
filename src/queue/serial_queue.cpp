@@ -66,9 +66,9 @@ QueueTask* SerialQueue::Pull()
     return dequeFunc_(queueId_, now, whenMap_, nullptr);
 }
 
-std::unique_ptr<BaseQueue> CreateSerialQueue(uint32_t queueId, const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr)
 {
     (void)attr;
-    return std::make_unique<SerialQueue>(queueId);
+    return std::make_unique<SerialQueue>();
 }
 } // namespace ffrt

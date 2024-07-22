@@ -30,7 +30,7 @@ public:
     virtual void RmQueueNode(LinkedList* node) = 0;
     virtual bool Empty() = 0;
     virtual int Size() = 0;
-    virtual void SetQos(Qos &newQos) = 0;
+    virtual void SetQos(QoS &newQos) = 0;
 
 protected:
     LinkedList list;
@@ -92,7 +92,7 @@ public:
     {
         return size;
     }
-    void SetQos(Qos &newQos) override {}
+    void SetQos(QoS &newQos) override {}
 };
 } // namespace ffrt
 

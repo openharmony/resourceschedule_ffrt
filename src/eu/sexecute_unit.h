@@ -27,6 +27,7 @@ public:
         return ins;
     }
 private:
+    std::unique_ptr<WorkerManager> InitManager() override;
     SExecuteUnit();
 };
 } // namespace ffrt

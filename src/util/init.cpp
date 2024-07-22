@@ -37,7 +37,7 @@ __attribute__((constructor)) static void ffrt_init()
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
     });
     ffrt::SchedulerFactory::RegistCb(
-        [] () -> ffrt::TaskScheduler* { return new ffrt::SFIFOScheduler; },
+        [] () -> ffrt::TaskScheduler* { return new ffrt::TaskScheduler{new ffrt::FIFOQueue()}; },
         [] (ffrt::TaskScheduler* schd) { delete schd; });
     CoRoutineFactory::RegistCb(
         [] (ffrt::CPUEUTask* task, bool timeOut) -> void {CoWake(task, timeOut);});

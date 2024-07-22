@@ -64,6 +64,10 @@ public:
         return wManager[static_cast<size_t>(DevType::CPU)]->GetCPUMonitor();
     }
 
+    virtual std::unique_ptr<WorkerManager> InitManager() = 0;
+    
+    void CreateWorkerManager();
+
 protected:
     ExecuteUnit();
     virtual ~ExecuteUnit() = default;

@@ -18,6 +18,7 @@
 #include "internal_inc/config.h"
 #include "eu/cpuworker_manager.h"
 #include "util/singleton_register.h"
+#include "eu/co_routine_factory.h"
 
 namespace ffrt {
 ExecuteUnit::ExecuteUnit()
@@ -47,5 +48,31 @@ void ExecuteUnit::BindWG(const DevType dev, QoS& qos)
 void ExecuteUnit::UnbindTG(const DevType dev, QoS& qos)
 {
     wManager[static_cast<size_t>(dev)]->LeaveTG(qos);
+}
+
+void ExecuteUnit::CreateWorkerManager()
+{
+    ffrt::CoRoutineInstance(CoStackAttr::Instance()->size);
+    auto create = [&](const DevType dev) {
+        std::unique_ptr<WorkerManager> manager;
+        switch (dev) {
+            case DevType::CPU:
+                manager = InitManager();
+                break;
+            default:
+                break;
+        }
+
+        if (!manager) {
+            FFRT_LOGE("create workerManager fail, devType %d", static_cast<size_t>(dev));
+            return;
+        }
+
+        wManager[static_cast<size_t>(dev)] = std::move(manager);
+    };
+
+    for (size_t dev = 0; dev < static_cast<size_t>(DevType::DEVMAX); ++dev) {
+        create(static_cast<DevType>(dev));
+    }
 }
 } // namespace ffrt

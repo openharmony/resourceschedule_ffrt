@@ -310,8 +310,7 @@ void WorkgroupJoin(struct Workgroup* wg, int tid)
         FFRT_LOGE("[WorkGroup] join fail with %{public}d threads for %{public}d", addRet, tid);
     }
 }
-
+#endif /* QOS_FRAME_RTG */
 }
 
-#endif /* QOS_FRAME_RTG */
 #endif

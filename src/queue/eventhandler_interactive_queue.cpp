@@ -27,7 +27,7 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
     Priority prio = EventHandlerAdapter::Instance()->ConvertPriority(task->GetPriority());
     FFRT_COND_DO_ERR((prio > Priority::IDLE), return FAILED, "Priority invalid.");
 
-    int delayUs = task->GetDelay();
+    int delayUs = static_cast<int>(task->GetDelay());
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> func = [=]() {
         f->exec(f);
@@ -44,9 +44,9 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
     return SUCC;
 }
 
-std::unique_ptr<BaseQueue> CreateEventHandlerInteractiveQueue(uint32_t queueId, const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateEventHandlerInteractiveQueue(const ffrt_queue_attr_t* attr)
 {
     (void)attr;
-    return std::make_unique<EventHandlerInteractiveQueue>(queueId);
+    return std::make_unique<EventHandlerInteractiveQueue>();
 }
 } // namespace ffrt

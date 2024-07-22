@@ -26,6 +26,7 @@
 #include "sched/scheduler.h"
 #include "tm/task_factory.h"
 #include "eu/cpuworker_manager.h"
+#include "dfx/dump/dump.h"
 
 using namespace ffrt;
 
@@ -214,7 +215,7 @@ void backtrace(int ignoreDepth)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     std::string dumpInfo;
-    CPUEUTask::DumpTask(nullptr, dumpInfo, 1);
+    DumpTask(nullptr, dumpInfo, 1);
     if (!dumpInfo.empty()) {
         FFRT_BBOX_LOG("%s", dumpInfo.c_str());
     }
@@ -482,7 +483,7 @@ std::string SaveTaskStatusInfo(void)
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
                 std::string dumpInfo;
-                CPUEUTask::DumpTask(t, dumpInfo, 1);
+                DumpTask(t, dumpInfo, 1);
                 ffrtStackInfo += dumpInfo;
             }
         }

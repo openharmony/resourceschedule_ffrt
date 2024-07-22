@@ -38,12 +38,12 @@ enum QueueAction {
 
 class BaseQueue : public NonCopyable {
 public:
-    explicit BaseQueue(const uint32_t queueId) : queueId_(queueId) {}
+    explicit BaseQueue() : queueId_(queueId++) {}
     virtual ~BaseQueue() = default;
 
     virtual int Push(QueueTask* task) = 0;
     virtual QueueTask* Pull() = 0;
-    virtual bool GetActiveStatus() const = 0;
+    virtual bool GetActiveStatus() = 0;
     virtual int GetQueueType() const = 0;
     virtual void Remove();
     virtual int Remove(const char* name);
@@ -59,6 +59,11 @@ public:
     {
         std::unique_lock lock(mutex_);
         return whenMap_.size();
+    }
+
+    inline uint32_t GetQueueId() const
+    {
+        return queueId_;
     }
 
     bool HasTask(const char* name);
@@ -80,9 +85,12 @@ protected:
 
     ffrt::mutex mutex_;
     ffrt::condition_variable cond_;
+
+private:
+    static std::atomic_uint32_t queueId;
 };
 
-std::unique_ptr<BaseQueue> CreateQueue(int queueType, uint32_t queueId, const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 
 #endif // FFRT_BASE_QUEUE_H

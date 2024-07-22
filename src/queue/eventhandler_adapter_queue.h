@@ -46,14 +46,15 @@ struct HistoryTask {
 
 class EventHandlerAdapterQueue : public EventHandlerInteractiveQueue {
 public:
-    explicit EventHandlerAdapterQueue(uint32_t queueId);
+    explicit EventHandlerAdapterQueue();
     ~EventHandlerAdapterQueue() override;
 
     int Push(QueueTask* task) override;
     QueueTask* Pull() override;
 
-    bool GetActiveStatus() const override
+    bool GetActiveStatus() override
     {
+        std::unique_lock lock(mutex_);
         return isActiveState_.load();
     }
 
@@ -87,7 +88,7 @@ private:
     std::vector<int> pulledTaskCount_;
 };
 
-std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(uint32_t queueId, const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 
 #endif // FFRT_EVENTHANDLER_ADAPTER_QUEUE_H

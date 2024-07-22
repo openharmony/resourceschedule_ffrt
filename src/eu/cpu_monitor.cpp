@@ -83,7 +83,7 @@ void CPUMonitor::SetupMonitor()
 void CPUMonitor::StartMonitor()
 {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    monitorThread = new std::thread(&CPUMonitor::MonitorMain, this);
+    monitorThread = new std::thread([this] { this->MonitorMain(); });
 #else
     monitorThread = nullptr;
 #endif
@@ -186,6 +186,38 @@ void CPUMonitor::WakeupCount(const QoS& qos, bool isDeepSleepWork)
     workerCtrl.lock.lock();
     workerCtrl.sleepingWorkerNum--;
     workerCtrl.executionNum++;
+    workerCtrl.lock.unlock();
+}
+
+void CPUMonitor::RollbackDestroy(const QoS& qos, bool isDeepSleepWork)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+    workerCtrl.executionNum++;
+    if (isDeepSleepWork) {
+        workerCtrl.hasWorkDeepSleep = false;
+    }
+    workerCtrl.lock.unlock();
+}
+
+void CPUMonitor::TryDestroy(const QoS& qos, bool isDeepSleepWork)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+    workerCtrl.sleepingWorkerNum--;
+    if (isDeepSleepWork) {
+        workerCtrl.hasWorkDeepSleep = false;
+    }
+    workerCtrl.lock.unlock();
+}
+
+void CPUMonitor::DoDestroy(const QoS& qos, bool isDeepSleepWork)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+    if (isDeepSleepWork) {
+        workerCtrl.hasWorkDeepSleep = false;
+    }
     workerCtrl.lock.unlock();
 }
 

@@ -318,13 +318,29 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
+void ffrt_task_handle_inc_ref(ffrt_task_handle_t handle)
+{
+    if (handle == nullptr) {
+        FFRT_LOGE("input task handle is invalid");
+        return;
+    }
+    static_cast<ffrt::CPUEUTask*>(handle)->IncDeleteRef();
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_handle_dec_ref(ffrt_task_handle_t handle)
 {
     if (handle == nullptr) {
         FFRT_LOGE("input task handle is invalid");
         return;
     }
     static_cast<ffrt::CPUEUTask*>(handle)->DecDeleteRef();
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
+{
+    ffrt_task_handle_dec_ref(handle);
 }
 
 // wait
@@ -401,6 +417,7 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
     }
 
     ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
+    std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
     if (!groupCtl[qos].threads.empty()) {
         FFRT_LOGE("Stack size can be set only when there is no worker.");
         return ffrt_error;
@@ -581,6 +598,18 @@ bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr)
         return false;
     }
     return (reinterpret_cast<ffrt::task_attr_private *>(attr))->taskLocal_;
+}
+
+API_ATTRIBUTE((visibility("default")))
+pthread_t ffrt_task_get_tid(void* taskHandle)
+{
+    if (taskHandle == nullptr) {
+        FFRT_LOGE("invalid task handle");
+        return 0;
+    }
+
+    auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
+    return task->runningTid.load();
 }
 #ifdef __cplusplus
 }

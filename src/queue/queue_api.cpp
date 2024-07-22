@@ -265,7 +265,7 @@ void* ffrt_get_current_queue_eventhandler()
     }
 
     QueueHandler* handler = reinterpret_cast<QueueTask*>(curTask)->GetHandler();
-    FFRT_COND_DO_ERR(unlikely(handler == nullptr), return nullptr, "task handler is nullptr");
+    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "task handler is nullptr");
     return handler->GetEventHandler();
 }
 

@@ -14,6 +14,7 @@ declare_args() {
   ffrt_support_enable = true
   ffrt_profiler_enable = true
   ffrt_async_stack_enable = true
+  ffrt_task_local_enable = false
 
   if (!defined(global_parts_info.developtools_hiprofiler)) {
     ffrt_profiler_enable = false

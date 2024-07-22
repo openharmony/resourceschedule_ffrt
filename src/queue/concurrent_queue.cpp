@@ -90,8 +90,8 @@ QueueTask* ConcurrentQueue::Pull()
     // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
         uint32_t queueId = queueId_;
-        uint8_t oldValue = concurrency_.fetch_sub(1); // 取不到后继的task，当前这个task正式退出
-        FFRT_LOGD("concurrency[%u] - 1 [queueId=%u] switch into inactive", oldValue, queueId);
+        int oldValue = concurrency_.fetch_sub(1); // 取不到后继的task，当前这个task正式退出
+        FFRT_LOGD("concurrency[%d] - 1 [queueId=%u] switch into inactive", oldValue, queueId);
         return nullptr;
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
@@ -142,9 +142,9 @@ int ConcurrentQueue::PushDelayTaskToTimer(QueueTask* task)
     return SUCC;
 }
 
-std::unique_ptr<BaseQueue> CreateConcurrentQueue(uint32_t queueId, const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
 {
     int maxConcurrency = ffrt_queue_attr_get_max_concurrency(attr) <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
-    return std::make_unique<ConcurrentQueue>(queueId, maxConcurrency);
+    return std::make_unique<ConcurrentQueue>(maxConcurrency);
 }
 } // namespace ffrt

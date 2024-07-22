@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef UTIL_TIMER_FORMAT_H
-#define UTIL_TIMER_FORMAT_H
+#ifndef UTIL_TIME_FORMAT_H
+#define UTIL_TIME_FORMAT_H
 
 #include <chrono>
 #include <string>
@@ -53,4 +53,4 @@ std::string FormatDateString(uint64_t steadyClockTimeStamp)
 }
 }
 
-#endif // UTIL_TIMER_FORMAT_H
+#endif // UTIL_TIME_FORMAT_H

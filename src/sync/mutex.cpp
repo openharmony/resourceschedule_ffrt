@@ -225,7 +225,7 @@ void mutexPrivate::wait()
         }
         list.PushBack(ctx->wn.node);
         std::unique_lock<std::mutex> lk(ctx->wn.wl);
-        if FFRT_UNLIKELY(LegacyMode(task)) {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
             ctx->wn.task = task;
         }

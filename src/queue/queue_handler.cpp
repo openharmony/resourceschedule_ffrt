@@ -26,12 +26,10 @@
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
-std::atomic_uint32_t queueId(0);
 }
 
 namespace ffrt {
 QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, const int type)
-    : queueId_(queueId++)
 {
     // parse queue attribute
     if (attr) {
@@ -46,30 +44,30 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
         cbTask->IncDeleteRef();
     }
 
-    queue_ = CreateQueue(type, queueId_, attr);
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
+    queue_ = CreateQueue(type, attr);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queue_->GetQueueId());
 
     if (name != nullptr && std::string(name).size() <= STRING_SIZE_MAX) {
-        name_ = "sq_" + std::string(name) + "_" + std::to_string(queueId_);
+        name_ = "sq_" + std::string(name) + "_" + std::to_string(queue_->GetQueueId());
     } else {
-        name_ += "sq_unnamed_" + std::to_string(queueId_);
-        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", queueId_);
+        name_ += "sq_unnamed_" + std::to_string(GetQueueId());
+        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", queue_->GetQueueId());
     }
 
-    QueueMonitor::GetInstance().RegisterQueueId(queueId_, this);
+    QueueMonitor::GetInstance().RegisterQueueId(queue_->GetQueueId(), this);
     FFRT_LOGI("construct %s succ", name_.c_str());
 }
 
 QueueHandler::~QueueHandler()
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot destruct, [queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot destruct, [queueId=%u] constructed failed", GetQueueId());
     FFRT_LOGI("destruct %s enter", name_.c_str());
     // clear tasks in queue
     queue_->Stop();
-    while (QueueMonitor::GetInstance().QueryQueueStatus(queueId_) || queue_->GetActiveStatus()) {
+    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
-    QueueMonitor::GetInstance().ResetQueueStruct(queueId_);
+    QueueMonitor::GetInstance().ResetQueueStruct(GetQueueId());
 
     // release callback resource
     if (timeout_ > 0) {
@@ -88,29 +86,29 @@ QueueHandler::~QueueHandler()
 
 bool QueueHandler::SetLoop(Loop* loop)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_concurrent),
-        return false, "[queueId=%u] type invalid", queueId_);
+        return false, "[queueId=%u] type invalid", GetQueueId());
     return reinterpret_cast<ConcurrentQueue*>(queue_.get())->SetLoop(loop);
 }
 
 bool QueueHandler::ClearLoop()
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_concurrent),
-        return false, "[queueId=%u] type invalid", queueId_);
+        return false, "[queueId=%u] type invalid", GetQueueId());
     return reinterpret_cast<ConcurrentQueue*>(queue_.get())->ClearLoop();
 }
 
 QueueTask* QueueHandler::PickUpTask()
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", GetQueueId());
     return queue_->Pull();
 }
 
 void QueueHandler::Submit(QueueTask* task)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
     // if qos not specified, qos of the queue is inherited by task
@@ -119,7 +117,7 @@ void QueueHandler::Submit(QueueTask* task)
     }
 
     uint64_t gid = task->gid;
-    FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(queueId_, gid);
+    FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(GetQueueId(), gid);
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
         task->SetSenderKernelThreadId(syscall(SYS_gettid));
     }
@@ -152,13 +150,14 @@ void QueueHandler::Submit(QueueTask* task)
 
 void QueueHandler::Cancel()
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancel, [queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     queue_->Remove();
 }
 
 int QueueHandler::Cancel(const char* name)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
+         "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     int ret = queue_->Remove(name);
     if (ret != SUCC) {
         FFRT_LOGD("cancel task %s failed, task may have been executed", name);
@@ -169,7 +168,8 @@ int QueueHandler::Cancel(const char* name)
 
 int QueueHandler::Cancel(QueueTask* task)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE, "cannot cancel, [queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
+         "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((task == nullptr), return INACTIVE, "input invalid, serial task is nullptr");
 
     int ret = queue_->Remove(task);
@@ -190,10 +190,10 @@ void QueueHandler::Dispatch(QueueTask* inTask)
     for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
         // dfx watchdog
         SetTimeoutMonitor(task);
-        QueueMonitor::GetInstance().UpdateQueueInfo(queueId_, task->gid);
+        QueueMonitor::GetInstance().UpdateQueueInfo(GetQueueId(), task->gid);
 
         // run user task
-        FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, queueId_);
+        FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(task->gid);
 
@@ -217,7 +217,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         // run task batch
         nextTask = task->GetNextTask();
         if (nextTask == nullptr) {
-            QueueMonitor::GetInstance().ResetQueueInfo(queueId_);
+            QueueMonitor::GetInstance().ResetQueueInfo(GetQueueId());
             if (!queue_->IsOnLoop()) {
                 Deliver();
             }
@@ -243,7 +243,7 @@ void QueueHandler::TransferTask(QueueTask* task)
     FFRTScheduler* sch = FFRTScheduler::Instance();
     FFRT_READY_MARKER(task->gid); // ffrt queue task ready to enque
     if (!sch->InsertNode(&entry->node, task->GetQos())) {
-        FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, queueId_, name_.c_str());
+        FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, GetQueueId(), name_.c_str());
         return;
     }
 }
@@ -296,7 +296,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
 void QueueHandler::RunTimeOutCallback(QueueTask* task)
 {
     std::stringstream ss;
-    ss << "serial queue [" << name_ << "] queueId=" << queueId_ << ", serial task gid=" << task->gid <<
+    ss << "serial queue [" << name_ << "] queueId=" << GetQueueId() << ", serial task gid=" << task->gid <<
         " execution time exceeds " << timeout_ << " us";
     std::string msg = ss.str();
     std::string eventName = "SERIAL_TASK_TIMEOUT";
@@ -327,48 +327,48 @@ std::string QueueHandler::GetDfxInfo() const
 
 bool QueueHandler::IsIdle()
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_eventhandler_adapter),
-        return false, "[queueId=%u] type invalid", queueId_);
+        return false, "[queueId=%u] type invalid", GetQueueId());
 
     return reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->IsIdle();
 }
 
 void QueueHandler::SetEventHandler(void* eventHandler)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", GetQueueId());
 
     bool typeInvalid = (queue_->GetQueueType() != ffrt_queue_eventhandler_interactive) &&
         (queue_->GetQueueType() != ffrt_queue_eventhandler_adapter);
-    FFRT_COND_DO_ERR(typeInvalid, return, "[queueId=%u] type invalid", queueId_);
+    FFRT_COND_DO_ERR(typeInvalid, return, "[queueId=%u] type invalid", GetQueueId());
 
     reinterpret_cast<EventHandlerInteractiveQueue*>(queue_.get())->SetEventHandler(eventHandler);
 }
 
 void* QueueHandler::GetEventHandler()
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", GetQueueId());
 
     bool typeInvalid = (queue_->GetQueueType() != ffrt_queue_eventhandler_interactive) &&
         (queue_->GetQueueType() != ffrt_queue_eventhandler_adapter);
-    FFRT_COND_DO_ERR(typeInvalid, return nullptr, "[queueId=%u] type invalid", queueId_);
+    FFRT_COND_DO_ERR(typeInvalid, return nullptr, "[queueId=%u] type invalid", GetQueueId());
 
     return reinterpret_cast<EventHandlerInteractiveQueue*>(queue_.get())->GetEventHandler();
 }
 
 int QueueHandler::Dump(const char* tag, char* buf, uint32_t len, bool historyInfo)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return -1, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return -1, "[queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_eventhandler_adapter),
-        return -1, "[queueId=%u] type invalid", queueId_);
+        return -1, "[queueId=%u] type invalid", GetQueueId());
     return reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->Dump(tag, buf, len, historyInfo);
 }
 
 int QueueHandler::DumpSize(ffrt_inner_queue_priority_t priority)
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return -1, "[queueId=%u] constructed failed", queueId_);
+    FFRT_COND_DO_ERR((queue_ == nullptr), return -1, "[queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_eventhandler_adapter),
-        return -1, "[queueId=%u] type invalid", queueId_);
+        return -1, "[queueId=%u] type invalid", GetQueueId());
     return reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->DumpSize(priority);
 }
 } // namespace ffrt

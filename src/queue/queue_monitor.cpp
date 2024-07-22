@@ -16,6 +16,7 @@
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "sync/sync.h"
+#include "util/slab.h"
 #include "c/ffrt_dump.h"
 
 namespace {
@@ -50,14 +51,14 @@ QueueMonitor::QueueMonitor()
 
 QueueMonitor::~QueueMonitor()
 {
-    FFRT_LOGW("destruction of QueueMonitor enter");
-    for (uint32_t id = 0; id < queuesRunningInfo_.size(); ++id) {
-        if (queuesRunningInfo_[id].first != INVALID_TASK_ID) {
-            usleep(MIN_TIMEOUT_THRESHOLD_US);
-            break;
-        }
+    exit_.store(true);
+    FFRT_LOGI("destruction of QueueMonitor enter");
+    // 取消定时器成功，或者中断了发送定时器，则释放we完成析构
+    while (!DelayedRemove(we_->tp, we_) && !abortSendTimer_.load()) {
+        std::this_thread::yield();
     }
-    FFRT_LOGW("destruction of QueueMonitor leave");
+    SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
+    FFRT_LOGI("destruction of QueueMonitor leave");
 }
 
 QueueMonitor& QueueMonitor::GetInstance()
@@ -124,18 +125,25 @@ uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
     return queuesRunningInfo_[queueId].first;
 }
 
+// 此方法在构造函数时调用，仅会有一个线程访问
+// 此方法不能多次调用。we_使用了new方法，但析构时只释放一个,若多次调用，会造成内存泄漏问题
 void QueueMonitor::SendDelayedWorker(time_point_t delay)
 {
-    static WaitUntilEntry we;
-    we.tp = delay;
-    we.cb = ([this](WaitEntry* we) { CheckQueuesStatus(); });
+    if (exit_.load()) {
+        abortSendTimer_.store(true);
+        return;
+    }
 
-    bool result = DelayedWakeup(we.tp, &we, we.cb);
+    we_ = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
+    we_->tp = delay;
+    we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
+
+    bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     // insurance mechanism, generally does not fail
     while (!result) {
         FFRT_LOGW("failed to set delayedworker because the given timestamp has passed");
-        we.tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
-        result = DelayedWakeup(we.tp, &we, we.cb);
+        we_->tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
+        result = DelayedWakeup(we_->tp, we_, we_->cb);
     }
 }
 

@@ -425,6 +425,7 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
     }
 
     ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
+    std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
     if (!groupCtl[qos].threads.empty()) {
         FFRT_LOGE("Stack size can be set only when there is no worker.");
         return ffrt_error;

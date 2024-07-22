@@ -24,6 +24,8 @@
 #include <vector>
 #include "dfx/log/ffrt_log_api.h"
 #include "sched/scheduler.h"
+#include "tm/queue_task.h"
+#include "queue/queue_monitor.h"
 #include "tm/task_factory.h"
 #include "eu/cpuworker_manager.h"
 #include "dfx/dump/dump.h"
@@ -91,7 +93,7 @@ static inline void SaveCurrent()
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
     auto t = g_cur_task;
     if (t) {
-        if (t->type == 0) {
+        if (t->type == ffrt_normal_task) {
             FFRT_BBOX_LOG("signal %s triggered: source tid %d, task id %lu, qos %d, name %s",
                 g_cur_signame, g_cur_tid, t->gid, t->qos(), t->label.c_str());
         }
@@ -127,7 +129,7 @@ static inline void SaveWorkerStatus()
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());
                 continue;
             }
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running task id %lu name %s", i, thread.first->Id(),
                     t->gid, t->label.c_str());
             }
@@ -151,7 +153,7 @@ static inline void SaveReadyQueueStatus()
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i, j, nt);
                 continue;
             }
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> id %lu name %s",
                     i, j, nt, t->gid, t->label.c_str());
             }
@@ -159,7 +161,7 @@ static inline void SaveReadyQueueStatus()
     }
 }
 
-static inline void SaveTaskStatus()
+static inline void SaveNormalTaskStatus()
 {
     auto unfree = TaskFactory::GetUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
@@ -176,7 +178,7 @@ static inline void SaveTaskStatus()
         }
         size_t idx = 1;
         for (auto t : tmp) {
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task) {
                 FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
                     tmp.size(), t->gid, t->qos(), t->label.c_str());
                 idx++;
@@ -197,6 +199,41 @@ static inline void SaveTaskStatus()
     });
     apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
+    });
+}
+
+static inline void SaveQueueTaskStatus()
+{
+    std::lock_guard lk(SimpleAllocator<QueueTask>::instance()->lock);
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnSafeUnfreedMem();
+    auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
+        std::vector<QueueTask*> tmp;
+        for (auto task : unfreeQueueTask) {
+            auto t = reinterpret_cast<QueueTask*>(task);
+            if (filter(t)) {
+                tmp.emplace_back(t);
+            }
+        }
+
+        if (tmp.size() > 0) {
+            FFRT_BBOX_LOG("<<<=== %s ===>>>", tag);
+        }
+        size_t idx = 1;
+        for (auto t : tmp) {
+            if (t->type == ffrt_queue_task) {
+                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
+                    tmp.size(), t->gid, t->GetQos(), t->label.c_str());
+                idx++;
+            }
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+                CoStart(reinterpret_cast<CPUEUTask*>(t));
+            }
+        }
+    };
+
+    applyqueue("queue task blocked by synchronization primitive(mutex etc)", [](QueueTask* t) {
+        return (t->GetFinishStatus() == false) && t->coRoutine &&
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
     });
 }
 
@@ -254,7 +291,8 @@ void SaveTheBbox()
             SaveTaskCounter();
             SaveWorkerStatus();
             SaveReadyQueueStatus();
-            SaveTaskStatus();
+            SaveNormalTaskStatus();
+            SaveQueueTaskStatus();
             FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
 #ifdef OHOS_STANDARD_SYSTEM
             FaultLoggerFdManager::Instance().CloseFd();
@@ -401,7 +439,7 @@ std::string SaveWorkerStatusInfo(void)
                 continue;
             }
 
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task) {
                 ss << "        qos " << i << ": worker tid " << thread.first->Id()
                 << " is running, task id " << t->gid << " name " << t->label.c_str() << std::endl;
             }
@@ -444,7 +482,7 @@ std::string SaveReadyQueueStatusInfo()
                    << " null" << std::endl;
                 continue;
             }
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task) {
                 ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << "> task id "
                 << t->gid << " name " << t->label.c_str() << std::endl;
             }
@@ -455,7 +493,7 @@ std::string SaveReadyQueueStatusInfo()
     return ss.str();
 }
 
-std::string SaveTaskStatusInfo(void)
+std::string SaveNormalTaskStatusInfo(void)
 {
     std::string ffrtStackInfo;
     std::ostringstream ss;
@@ -476,7 +514,7 @@ std::string SaveTaskStatusInfo(void)
         size_t idx = 1;
         for (auto t : tmp) {
             ss.str("");
-            if (t->type == 0) {
+            if (t->type == ffrt_normal_task) {
                 ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id" << t->gid << "qos"
                 << t->qos() << ",name " << t->label.c_str() << std::endl;
             }
@@ -498,6 +536,48 @@ std::string SaveTaskStatusInfo(void)
     });
     apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
+    });
+
+    return ffrtStackInfo;
+}
+
+std::string SaveQueueTaskStatusInfo()
+{
+    std::string ffrtStackInfo;
+    std::ostringstream ss;
+    std::lock_guard lk(SimpleAllocator<QueueTask>::instance()->lock);
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnSafeUnfreedMem();
+    auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
+        std::vector<QueueTask*> tmp;
+        for (auto task : unfreeQueueTask) {
+            auto t = reinterpret_cast<QueueTask*>(task);
+            if (filter(t)) {
+                tmp.emplace_back(t);
+            }
+        }
+
+        if (tmp.size() > 0) {
+            ss << "    |-> " << tag << std::endl;
+            ffrtStackInfo += ss.str();
+        }
+        size_t idx = 1;
+        for (auto t : tmp) {
+            if (t->type == ffrt_queue_task) {
+                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id" << t->gid << "qos"
+                << t->GetQos() << ",name " << t->label.c_str() << std::endl;
+            }
+            ffrtStackInfo += ss.str();
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+                std::string dumpInfo;
+                DumpTask(reinterpret_cast<CPUEUTask*>(t), dumpInfo, 1);
+                ffrtStackInfo += dumpInfo;
+            }
+        }
+    };
+
+    applyqueue("queue task blocked by synchronization primitive(mutex etc)", [](QueueTask* t) {
+        return (t->GetFinishStatus() == false) && t->coRoutine &&
+            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
     });
 
     return ffrtStackInfo;

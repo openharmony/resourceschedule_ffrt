@@ -20,7 +20,7 @@
 #include <string>
 #include <mutex>
 #include <shared_mutex>
-#include "c/ffrt_types.h"
+#include "internal_inc/types.h"
 #include "internal_inc/osal.h"
 #include "core/version_ctx.h"
 #include "sched/execute_ctx.h"

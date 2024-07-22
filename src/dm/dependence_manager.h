@@ -102,9 +102,6 @@ public:
         TaskEnQueuCounterInc();
 #endif
     }
-    
-    virtual void onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
-        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
     virtual void onWait() = 0;
 #ifdef QOS_DEPENDENCY

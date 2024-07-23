@@ -115,7 +115,13 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     lock.lock();
     if (toExit) {
         lock.unlock();
-        FFRT_LOGE("DelayedWorker destory, dispatch failed\n");
+        FFRT_LOGE("DelayedWorker destroy, dispatch failed\n");
+        return false;
+    }
+
+    time_point_t now = std::chrono::steady_clock::now();
+    if (to <= now) {
+        lock.unlock();
         return false;
     }
 

@@ -80,8 +80,6 @@ public:
     void SetQos(QoS& newQos);
     uint64_t reserved[8];
 
-    std::atomic<pthread_t> runningTid = 0;
-
     void FreeMem() override;
     void Execute() override;
 

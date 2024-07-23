@@ -142,11 +142,12 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         wqlock.lock();
         push_back(we);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
-        wqlock.unlock();
         // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
         if (DelayedWakeup(we->tp, we, we->cb)) {
+            wqlock.unlock();
             return true;
         } else {
+            wqlock.unlock();
             if (!WeTimeoutProc(this, we)) {
                 return true;
             }

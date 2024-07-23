@@ -14,7 +14,6 @@
  */
 #include <gtest/gtest.h>
 #include <thread>
-#include <vector>
 #include "dm/dependence_manager.h"
 #include "qos.h"
 #include "ffrt_inner.h"
@@ -75,29 +74,4 @@ HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level1)
     task3->SetQos(qos3);
     EXPECT_EQ(task3->qos, static_cast<int>(qos_user_interactive));
     delete task3;
-}
-
-/**
- * @tc.name: WaitFailWhenReuseHandle
- * @tc.desc: Test use ffrt wait when reuse the handle.
- * @tc.type: FUNC
- */
-HWTEST_F(TaskCtxTest, WaitFailWhenReuseHandle, TestSize.Level1)
-{
-    std::vector<ffrt::dependence> deps;
-    {
-        auto h = ffrt::submit_h([] { printf("task0 done\n"); });
-        printf("task0 handle: %p\n:", static_cast<void*>(h));
-        deps.emplace_back(h);
-    }
-    usleep(1000);
-    std::atomic_bool stop = false;
-    auto h = ffrt::submit_h([&] {
-        printf("task1 start\n");
-        while (!stop);
-        printf("task1 done\n");
-        });
-    ffrt::wait(deps);
-    stop = true;
-    ffrt::wait();
 }

@@ -24,60 +24,29 @@ namespace ffrt {
 class RunQueue {
 public:
     virtual ~RunQueue() = default;
-
-    void EnQueue(CPUEUTask* task)
-    {
-        EnQueueImpl(task);
-    }
-
-    CPUEUTask* DeQueue()
-    {
-        return DeQueueImpl();
-    }
-
-    void EnQueueNode(LinkedList* node)
-    {
-        EnQueueNodeImpl(node);
-    }
-
-    void RmQueueNode(LinkedList* node)
-    {
-        RmQueueNodeImpl(node);
-    }
-
-    bool Empty()
-    {
-        return EmptyImpl();
-    }
-
-    int Size()
-    {
-        return SizeImpl();
-    }
+    virtual void EnQueue(CPUEUTask* task) = 0;
+    virtual CPUEUTask* DeQueue() = 0;
+    virtual void EnQueueNode(LinkedList* node) = 0;
+    virtual void RmQueueNode(LinkedList* node) = 0;
+    virtual bool Empty() = 0;
+    virtual int Size() = 0;
+    virtual void SetQos(QoS &newQos) = 0;
 
 protected:
     LinkedList list;
     int size = 0;
-
-private:
-    virtual void EnQueueImpl(CPUEUTask* task) = 0;
-    virtual CPUEUTask* DeQueueImpl() = 0;
-    virtual void EnQueueNodeImpl(LinkedList* node) = 0;
-    virtual void RmQueueNodeImpl(LinkedList* node) = 0;
-    virtual bool EmptyImpl() = 0;
-    virtual int SizeImpl() = 0;
 };
 
 class FIFOQueue : public RunQueue {
-private:
-    void EnQueueImpl(CPUEUTask* task) override
+public:
+    void EnQueue(CPUEUTask* task) override
     {
         auto entry = &task->fq_we;
         list.PushBack(entry->node);
         size++;
     }
 
-    CPUEUTask* DeQueueImpl() override
+    CPUEUTask* DeQueue() override
     {
         if (list.Empty()) {
             return nullptr;
@@ -102,27 +71,28 @@ private:
         return tsk;
     }
 
-    void EnQueueNodeImpl(LinkedList* node) override
+    void EnQueueNode(LinkedList* node) override
     {
         list.PushBack(*node);
         size++;
     }
 
-    void RmQueueNodeImpl(LinkedList* node) override
+    void RmQueueNode(LinkedList* node) override
     {
         list.Delete(*node);
         size--;
     }
 
-    bool EmptyImpl() override
+    bool Empty() override
     {
         return list.Empty();
     }
 
-    int SizeImpl() override
+    int Size() override
     {
         return size;
     }
+    void SetQos(QoS &newQos) override {}
 };
 } // namespace ffrt
 

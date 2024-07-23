@@ -21,29 +21,12 @@
 #include "eu/co_routine_factory.h"
 
 namespace ffrt {
+std::unique_ptr<WorkerManager> SExecuteUnit::InitManager()
+{
+    return std::unique_ptr<WorkerManager>(new (std::nothrow) SCPUWorkerManager());
+}
 SExecuteUnit::SExecuteUnit()
 {
-    ffrt::CoRoutineInstance(CoStackAttr::Instance()->size);
-    auto create = [&](const DevType dev) {
-        std::unique_ptr<WorkerManager> manager;
-        switch (dev) {
-            case DevType::CPU:
-                manager = std::unique_ptr<WorkerManager>(new (std::nothrow) SCPUWorkerManager());
-                break;
-            default:
-                break;
-        }
-
-        if (!manager) {
-            FFRT_LOGE("create workerManager fail, devType %d", static_cast<size_t>(dev));
-            return;
-        }
-
-        wManager[static_cast<size_t>(dev)] = std::move(manager);
-    };
-
-    for (size_t dev = 0; dev < static_cast<size_t>(DevType::DEVMAX); ++dev) {
-        create(static_cast<DevType>(dev));
-    }
+    ExecuteUnit::CreateWorkerManager();
 }
 } // namespace ffrt

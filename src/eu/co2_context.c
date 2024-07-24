@@ -115,7 +115,7 @@ asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     "mov %rdx, %rsp\n"
     "jmp *56(%rdi)\n"
     ".size co2_restore_context, . - co2_restore_context\n");
-	#elif defined(__riscv) && __riscv_xlen == 64
+#elif defined(__riscv) && __riscv_xlen == 64
 asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     "ld a0, 0(sp)\n"
     "ld a1, 8(sp)\n"

@@ -193,7 +193,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 
 #else
 #define FFRT_UNLIKELY_COND_DO_ABORT(cond, fmt, ...) \
-    do{ \
+    do { \
         if (unlikely(cond)) { \
             FFRT_LOGE(fmt, ##__VA_ARGS__); \
         } \

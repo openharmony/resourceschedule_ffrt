@@ -122,3 +122,57 @@ HWTEST_F(CpuMonitorTest, Notify, TestSize.Level1)
 
     cpu.Notify(QoS(5), TaskNotifyType(1));
 }
+
+/**
+ * @tc.name: IntoDeepSleep
+ * @tc.desc: Test whether the IntoDeepSleep interface are normal.
+ * @tc.type: FUNC
+ *
+ *
+ */
+HWTEST_F(CpuMonitorTest, IntoDeepSleep, TestSize.Level1)
+{
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
+        std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
+
+    cpu.IntoDeepSleep(QoS(5));
+}
+
+/**
+ * @tc.name: OutOfDeepSleep
+ * @tc.desc: Test whether the OutOfDeepSleep interface are normal.
+ * @tc.type: FUNC
+ *
+ *
+ */
+HWTEST_F(CpuMonitorTest, OutOfDeepSleep, TestSize.Level1)
+{
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
+        std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
+
+    cpu.OutOfDeepSleep(QoS(5));
+}
+
+/**
+ * @tc.name: IsExceedDeepSleepThreshold
+ * @tc.desc: Test whether the IsExceedDeepSleepThreshold interface are normal.
+ * @tc.type: FUNC
+ *
+ *
+ */
+HWTEST_F(CpuMonitorTest, IsExceedDeepSleepThreshold, TestSize.Level1)
+{
+    CPUWorkerManager *it = new SCPUWorkerManager();
+    SCPUMonitor cpu({
+        std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
+
+    bool ret = cpu.IsExceedDeepSleepThreshold();
+}

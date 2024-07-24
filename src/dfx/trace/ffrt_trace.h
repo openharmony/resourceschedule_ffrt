@@ -201,7 +201,7 @@ static bool _IsTagEnabled(uint64_t label)
     } while (false)
 #else
 #define FFRT_PROFILER_WITH_TRACE(trace_type, lable, cookie)
-#endif	
+#endif
 
 #define _TraceCount(label, tag, value) \
     do { \

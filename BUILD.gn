@@ -73,7 +73,8 @@ config("ffrt_config") {
     defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
   }
 
-  if (TARGET_BUILD_VARIANT == "root") {
+  #build_variant is root/user, default user
+  if (build_variant == "root") {
     defines += [ "FFRT_ENG_DEBUG" ]
   }
 

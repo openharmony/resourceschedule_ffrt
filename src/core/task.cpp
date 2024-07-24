@@ -536,7 +536,7 @@ int ffrt_skip(ffrt_task_handle_t handle)
         __ATOMIC_RELAXED)) {
         return 0;
     }
-    FFRT_LOGE("skip task [%lu] faild", task->gid);
+    FFRT_LOGW("skip task [%lu] faild, because the task is doing now or has finished.", task->gid);
     return 1;
 }
 
@@ -626,14 +626,14 @@ bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr)
 }
 
 API_ATTRIBUTE((visibility("default")))
-pthread_t ffrt_task_get_tid(void* taskHandle)
+pthread_t ffrt_task_get_tid(void* task_handle)
 {
-    if (taskHandle == nullptr) {
+    if (task_handle == nullptr) {
         FFRT_LOGE("invalid task handle");
         return 0;
     }
 
-    auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
+    auto task = reinterpret_cast<ffrt::CPUEUTask*>(task_handle);
     return task->runningTid.load();
 }
 #ifdef __cplusplus

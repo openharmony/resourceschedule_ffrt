@@ -42,12 +42,13 @@
 #endif
 
 using namespace ffrt;
+using namespace OHOS::HiviewDFX;
 
 static inline void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
         FFRT_LOGE("sp offset:%p.\n", co->stkMem.stk +
-            co->stkMem.size - co->ctx.regs[REG_SP]);
+            co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_task_attr_set_stack_size'.\n");
     }
 }
@@ -421,6 +422,15 @@ void CoStart(ffrt::CPUEUTask* task)
     TaskRunCounterInc();
 #endif
 
+#ifdef FFRT_HITRACE_ENABLE
+    using namespace OHOS::HiviewDFX;
+    HiTraceId currentId = HiTraceChain::GetId();
+    if (task != nullptr) {
+        HiTraceChain::SaveAndSet(task->traceId_);
+        HiTraceChain::Tracepoint(HITRACE_TP_SR, task->traceId_, "ffrt::CoStart");
+    }
+#endif
+
     for (;;) {
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -463,11 +473,19 @@ void CoStart(ffrt::CPUEUTask* task)
 #ifdef FFRT_BBOX_ENABLE
             TaskSwitchCounterInc();
 #endif
+#ifdef FFRT_HITRACE_ENABLE
+        HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
+        HiTraceChain::Restore(currentId);
+#endif
             return;
         }
         FFRT_WAKE_TRACER(task->gid); // fast path wk
         GetCoEnv()->runningCo = co;
     }
+#ifdef FFRT_HITRACE_ENABLE
+    HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
+    HiTraceChain::Restore(currentId);
+#endif
 }
 
 // called by thread work

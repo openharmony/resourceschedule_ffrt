@@ -209,7 +209,8 @@ static inline void SaveNormalTaskStatus()
 
 static inline void SaveQueueTaskStatus()
 {
-    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
+    std::lock_guard lk(SimpleAllocator<QueueTask>::instance()->lock);
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnSafeUnfreedMem();
     auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
         std::vector<QueueTask*> tmp;
         for (auto task : unfreeQueueTask) {
@@ -549,7 +550,8 @@ std::string SaveQueueTaskStatusInfo()
 {
     std::string ffrtStackInfo;
     std::ostringstream ss;
-    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
+    std::lock_guard lk(SimpleAllocator<QueueTask>::instance()->lock);
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnSafeUnfreedMem();
     auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
         std::vector<QueueTask*> tmp;
         for (auto task : unfreeQueueTask) {

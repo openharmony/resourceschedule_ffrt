@@ -51,6 +51,7 @@ public:
     //                             |**********coroutine*********|
     CoRoutine* coRoutine = nullptr;
     uint64_t stack_size = STACK_SIZE;
+    std::atomic<pthread_t> runningTid = 0;
 };
 }
 #endif

@@ -19,8 +19,6 @@ file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/dfx/log/${FFRT_LOG_PLAT}/log_base.cpp"
 	"${FFRT_CODE_PATH}/dfx/dump/dump.cpp"
 	"${FFRT_CODE_PATH}/dfx/watchdog/watchdog_util.cpp"
-        "${FFRT_CODE_EXT_PATH}/staging_qos/sched/qos_register_impl.cpp"
-	"${FFRT_CODE_EXT_PATH}/core/*.cpp"
 )
 
 if(FFRT_UT_ENABLE STREQUAL ON)

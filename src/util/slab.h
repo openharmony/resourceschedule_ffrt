@@ -39,6 +39,7 @@ public:
     SimpleAllocator(SimpleAllocator&&) = delete;
     SimpleAllocator& operator=(const SimpleAllocator&) = delete;
     SimpleAllocator& operator=(SimpleAllocator&&) = delete;
+    fast_mutex lock;
 
     static SimpleAllocator<T>* instance(std::size_t size = sizeof(T))
     {
@@ -66,8 +67,12 @@ public:
     {
         return instance()->getUnfreed();
     }
+
+    static std::vector<void *> getUnSafeUnfreedMem()
+    {
+        return instance()->getUnSafeUnfreed();
+    }
 private:
-    fast_mutex lock;
     std::vector<T*> primaryCache;
 #ifdef FFRT_BBOX_ENABLE
     std::unordered_set<T*> secondaryCache;
@@ -79,6 +84,13 @@ private:
     std::vector<void *> getUnfreed()
     {
         lock.lock();
+        std::vector<void *> ret = getUnSafeUnfreed();
+        lock.unlock();
+        return ret;
+    }
+
+    std::vector<void *> getUnSafeUnfreed()
+    {
         std::vector<void *> ret;
 #ifdef FFRT_BBOX_ENABLE
         ret.reserve(MmapSz / TSize + secondaryCache.size());
@@ -94,7 +106,6 @@ private:
             ret.push_back(reinterpret_cast<void *>(*ite));
         }
 #endif
-        lock.unlock();
         return ret;
     }
 
@@ -178,6 +189,7 @@ private:
         }
 #endif
         ::operator delete(basePtr);
+        FFRT_LOGI("destruct SimpleAllocator");
     }
 };
 

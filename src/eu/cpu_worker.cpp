@@ -204,7 +204,9 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     ctx->qos = worker->GetQos();
 
     worker->ops.WorkerPrepare(worker);
+#ifndef OHOS_STANDARD_SYSTEM
     FFRT_LOGI("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
+#endif
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
     worker->ops.WorkerLooper(worker);
     CoWorkerExit();

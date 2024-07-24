@@ -25,6 +25,8 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 constexpr size_t STACK_MAGIC = 0x7BCDABCD;
 #elif defined(__x86_64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
+#elif defined(__riscv) && __riscv_xlen == 64
+constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #endif
 
 namespace ffrt {

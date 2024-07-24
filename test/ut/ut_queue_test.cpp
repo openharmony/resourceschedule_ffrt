@@ -17,10 +17,12 @@
 #include <chrono>
 #include <gtest/gtest.h>
 #include "ffrt_inner.h"
+#include "c/queue_ext.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+using namespace testing::ext;
 
 class QueueTest : public testing::Test {
 protected:
@@ -83,7 +85,7 @@ void FibonacciTest(void* data, int fibnum)
  *             2、提交延时串行队列任务并执行
  * 预期结果    ：执行成功
  */
-TEST_F(QueueTest, serial_queue_submit_cancel_succ)
+HWTEST_F(QueueTest, serial_queue_submit_cancel_succ, TestSize.Level1)
 {
     // 创建队列
     ffrt_queue_attr_t queue_attr;
@@ -102,7 +104,7 @@ TEST_F(QueueTest, serial_queue_submit_cancel_succ)
 
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
-    ffrt_task_attr_set_delay(&task_attr, 100); // 设置任务0.1ms后才执行，非必须
+    ffrt_task_attr_set_delay(&task_attr, 1000); // 设置任务1ms后才执行，非必须
     ffrt_task_handle_t task2 =
         ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
     int cancel = ffrt_queue_cancel(task2);
@@ -124,7 +126,7 @@ TEST_F(QueueTest, serial_queue_submit_cancel_succ)
  *             3、调用串行队列创建接口创建队列，type为串行队列，但name为nullptr
  * 预期结果    ：1创建失败，2、3创建成功
  */
-TEST_F(QueueTest, serial_queue_create_fail)
+HWTEST_F(QueueTest, serial_queue_create_fail, TestSize.Level1)
 {
     // input invalid
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_max, nullptr, nullptr);
@@ -151,7 +153,7 @@ TEST_F(QueueTest, serial_queue_create_fail)
  *             2、使用ffrt_task_attr_get_delay查询时间
  * 预期结果    ：查询结果与设定相同，初始值为0
  */
-TEST_F(QueueTest, ffrt_task_attr_set_get_delay)
+HWTEST_F(QueueTest, ffrt_task_attr_set_get_delay, TestSize.Level1)
 {
     // succ free
     ffrt_task_attr_t task_attr;
@@ -176,7 +178,7 @@ TEST_F(QueueTest, ffrt_task_attr_set_get_delay)
  *             3、调用串行队列创建接口创建队列并提交任务，随后销毁任务
  * 预期结果    ：2提交失败并返回nullptr，3提交成功
  */
-TEST_F(QueueTest, serial_queue_task_create_destroy_fail)
+HWTEST_F(QueueTest, serial_queue_task_create_destroy_fail, TestSize.Level1)
 {
     // input invalid
     ffrt_task_handle_t task = ffrt_queue_submit_h(nullptr, nullptr, nullptr);
@@ -204,7 +206,7 @@ TEST_F(QueueTest, serial_queue_task_create_destroy_fail)
  *             2、循环提交延时任务20次，取消10次
  * 预期结果    ：总共应执行100+取消前已执行的次数
  */
-TEST_F(QueueTest, serial_multi_submit_succ)
+HWTEST_F(QueueTest, serial_multi_submit_succ, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -245,7 +247,7 @@ TEST_F(QueueTest, serial_multi_submit_succ)
  *             2、至少取消1个
  * 预期结果    ：取消成功
  */
-TEST_F(QueueTest, serial_early_quit_succ)
+HWTEST_F(QueueTest, serial_early_quit_succ, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -253,7 +255,10 @@ TEST_F(QueueTest, serial_early_quit_succ)
     int fibnum = 10;
     int result = 0;
     int expect = fibonacci(fibnum);
-    std::function<void()>&& basicFunc = [&result, fibnum]() { FibonacciTest(static_cast<void*>(&result), fibnum); };
+    std::function<void()>&& basicFunc = [&result, fibnum]() {
+        FibonacciTest(static_cast<void*>(&result), fibnum);
+        usleep(10);
+    };
     for (int i = 0; i < 10000; ++i) {
         ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
     }
@@ -270,7 +275,7 @@ TEST_F(QueueTest, serial_early_quit_succ)
  *             2、调用两次ffrt_queue_cancel取消同一任务
  * 预期结果    ：首次取消成功，第二次取消失败
  */
-TEST_F(QueueTest, serial_double_cancel_failed)
+HWTEST_F(QueueTest, serial_double_cancel_failed, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -300,7 +305,7 @@ TEST_F(QueueTest, serial_double_cancel_failed)
  *             2、调用ffrt_queue_attr_destroy接口销毁队列创建的attr
  * 预期结果    ：设置与销毁成功
  */
-TEST_F(QueueTest, ffrt_queue_attr_des)
+HWTEST_F(QueueTest, ffrt_queue_attr_des, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -317,7 +322,7 @@ TEST_F(QueueTest, ffrt_queue_attr_des)
  *             2、设置延时并提交任务
  * 预期结果    ：超时执行回调
  */
-TEST_F(QueueTest, ffrt_queue_delay_timeout)
+HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
 {
     int x = 0;
     std::function<void()>&& basicFunc1 = [&]() {
@@ -353,7 +358,7 @@ TEST_F(QueueTest, ffrt_queue_delay_timeout)
     ffrt_queue_destroy(queue_handle);
 }
 
-TEST_F(QueueTest, ffrt_queue_dfx_api_0001)
+HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level1)
 {
     // ffrt_queue_attr_set_timeout接口attr为异常值
     ffrt_queue_attr_t queue_attr;
@@ -369,7 +374,7 @@ TEST_F(QueueTest, ffrt_queue_dfx_api_0001)
     ffrt_queue_destroy(queue_handle);
 }
 
-TEST_F(QueueTest, ffrt_queue_dfx_api_0002)
+HWTEST_F(QueueTest, ffrt_queue_dfx_api_0002, TestSize.Level1)
 {
     // ffrt_queue_attr_get_timeout接口attr为异常值
     ffrt_queue_attr_t queue_attr;
@@ -387,7 +392,7 @@ TEST_F(QueueTest, ffrt_queue_dfx_api_0002)
     ffrt_queue_destroy(queue_handle);
 }
 
-TEST_F(QueueTest, ffrt_queue_dfx_api_0003)
+HWTEST_F(QueueTest, ffrt_queue_dfx_api_0003, TestSize.Level1)
 {
     // ffrt_queue_attr_set_timeoutCb接口attr为异常值
     std::function<void()> cbOne = []() { printf("first set callback\n"); };
@@ -403,7 +408,7 @@ TEST_F(QueueTest, ffrt_queue_dfx_api_0003)
     ffrt_queue_destroy(queue_handle);
 }
 
-TEST_F(QueueTest, ffrt_queue_dfx_api_0004)
+HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level1)
 {
     // ffrt_queue_attr_get_timeoutCb接口attr为异常值
     std::function<void()> cbOne = []() { printf("first set callback\n"); };
@@ -430,7 +435,7 @@ TEST_F(QueueTest, ffrt_queue_dfx_api_0004)
  *             2、使用ffrt_task_attr_get_queue_priority查询优先级
  * 预期结果    ：查询结果与设定相同，值为3
  */
-TEST_F(QueueTest, ffrt_task_attr_set_queue_priority)
+HWTEST_F(QueueTest, ffrt_task_attr_set_queue_priority, TestSize.Level1)
 {
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr);
@@ -451,7 +456,7 @@ TEST_F(QueueTest, ffrt_task_attr_set_queue_priority)
  *             2、使用ffrt_queue_attr_get_max_concurrency查询并行度
  * 预期结果    ：查询结果与设定相同，值为4
  */
-TEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency)
+HWTEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -468,13 +473,216 @@ TEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency)
     (void)ffrt_queue_attr_init(&queue_attr1);
     concurrency = 0;
     ffrt_queue_attr_set_max_concurrency(&queue_attr1, concurrency);
-    concurrency = ffrt_queue_attr_get_max_concurrency(queue_attr1);
+    concurrency = ffrt_queue_attr_get_max_concurrency(&queue_attr1);
     EXPECT_EQ(concurrency, 1);
     ffrt_queue_attr_destroy(&queue_attr1);
 }
 
+HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::mutex lock;
+    lock.lock();
+    std::function<void()> basicFunc = [&]() { lock.lock(); };
+    std::function<void()> emptyFunc = []() {};
+
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_name(&task_attr, "basic_function");
+    ffrt_task_handle_t handle = ffrt_queue_submit_h(queue_handle,
+        create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+
+    for (int i = 0; i < 10; i++) {
+        std::string name = "empty_function_" + std::to_string(i);
+        ffrt_task_attr_set_name(&task_attr, name.c_str());
+        ffrt_queue_submit(queue_handle, create_function_wrapper(emptyFunc, ffrt_function_kind_queue), &task_attr);
+    }
+
+    for (int i = 0; i < 10; i++) {
+        std::string name = "empty_function_" + std::to_string(i);
+        bool hasEmptyTask = ffrt_queue_has_task(queue_handle, name.c_str());
+        EXPECT_EQ(hasEmptyTask, true);
+    }
+
+    bool hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_.*");
+    EXPECT_EQ(hasEmptyTask, true);
+
+    hasEmptyTask = ffrt_queue_has_task(queue_handle, "random_function");
+    EXPECT_EQ(hasEmptyTask, false);
+
+    lock.unlock();
+    ffrt_queue_wait(handle);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
+
+    std::mutex lock;
+    lock.lock();
+    std::function<void()> basicFunc = [&]() { lock.lock(); };
+    std::function<void()> emptyFunc = []() {};
+
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_name(&task_attr, "basic_function");
+    ffrt_task_handle_t handle = ffrt_queue_submit_h(queue_handle,
+        create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+
+    for (int i = 0; i < 10; i++) {
+        std::string name = "empty_function_" + std::to_string(i);
+        ffrt_task_attr_set_name(&task_attr, name.c_str());
+        ffrt_queue_submit(queue_handle, create_function_wrapper(emptyFunc, ffrt_function_kind_queue), &task_attr);
+    }
+
+    bool hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_3");
+    EXPECT_EQ(hasEmptyTask, true);
+
+    ffrt_queue_cancel_by_name(queue_handle, "empty_function_3");
+
+    hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_3");
+    EXPECT_EQ(hasEmptyTask, false);
+
+    hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_.*");
+    EXPECT_EQ(hasEmptyTask, true);
+
+    bool isIdle = ffrt_queue_is_idle(queue_handle);
+    EXPECT_EQ(isIdle, false);
+
+    ffrt_queue_cancel_all(queue_handle);
+
+    hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_.*");
+    EXPECT_EQ(hasEmptyTask, false);
+
+    lock.unlock();
+    ffrt_queue_wait(handle);
+
+    isIdle = ffrt_queue_is_idle(queue_handle);
+    EXPECT_EQ(isIdle, true);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
+
+    std::mutex lock;
+    lock.lock();
+    std::function<void()> basicFunc = [&]() { lock.lock(); };
+    std::vector<std::function<void()>> priorityFuncs(5, nullptr);
+    std::vector<int> priorityCount(5, 0);
+    for (int idx = 0; idx < 5; idx++) {
+        priorityFuncs[idx] = [idx, &priorityCount]() {
+            if (idx < 4 && priorityCount[idx + 1] == 0) {
+                priorityCount[idx]++;
+            }
+
+            if (idx == 4 && priorityCount[idx] == 0) {
+                for (int prevIdx = 0; prevIdx < 3; prevIdx++) {
+                    if (priorityCount[prevIdx] != 5) {
+                        priorityCount[4] = -1;
+                        return;
+                    }
+                }
+                priorityCount[4] = 1;
+            }
+        };
+    }
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_idle);
+    ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+
+    ffrt_task_handle_t handle;
+    for (int prio = 0; prio < 5; prio++) {
+        ffrt_task_attr_set_queue_priority(&task_attr, static_cast<ffrt_queue_priority_t>(prio));
+        for (int i = 0; i < 10; i++) {
+            handle = ffrt_queue_submit_h(queue_handle,
+                create_function_wrapper(priorityFuncs[prio], ffrt_function_kind_queue), &task_attr);
+        }
+    }
+
+    lock.unlock();
+    ffrt_queue_wait(handle);
+
+    for (int idx = 0; idx < 3; idx++) {
+        EXPECT_EQ(priorityCount[idx], 5);
+    }
+    EXPECT_EQ(priorityCount[3], 10);
+    EXPECT_EQ(priorityCount[4], 1);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
+
+    int result = 0;
+    std::mutex lock;
+    lock.lock();
+    std::function<void()> basicFunc = [&]() { lock.lock(); };
+    std::vector<std::function<void()>> assignFuncs(8, nullptr);
+    std::vector<int> results;
+    std::vector<int> expectResults {6, 2, 1, 4, 3, 5, 8, 7};
+    for (int idx = 0; idx < 8; idx++) {
+        assignFuncs[idx] = [idx, &results]() {
+            results.push_back(idx + 1);
+        };
+    }
+
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_immediate);
+    ffrt_task_attr_set_name(&task_attr, "basic_function");
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[0], ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[1], ffrt_function_kind_queue), &task_attr);
+
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_high);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[2], ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[3], ffrt_function_kind_queue), &task_attr);
+
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_low);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[4], ffrt_function_kind_queue), &task_attr);
+
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_immediate);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[5], ffrt_function_kind_queue), &task_attr);
+
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_idle);
+    ffrt_task_handle_t handle = ffrt_queue_submit_head_h(queue_handle,
+        create_function_wrapper(assignFuncs[6], ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[7], ffrt_function_kind_queue), &task_attr);
+
+    lock.unlock();
+    ffrt_queue_wait(handle);
+    EXPECT_EQ(results, expectResults);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
 #ifdef OHOS_STANDARD_SYSTEM
-TEST_F(QueueTest, ffrt_get_main_queue)
+HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
 {
  // ffrt test case begin
     ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
@@ -502,7 +710,7 @@ TEST_F(QueueTest, ffrt_get_main_queue)
     EXPECT_EQ(result, 1);
 }
 
-TEST_F(QueueTest, ffrt_get_current_queue)
+HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
 {
  // ffrt test case begin
     ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});

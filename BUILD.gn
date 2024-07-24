@@ -74,6 +74,11 @@ config("ffrt_config") {
     defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
   }
 
+  #build_variant is root/user, default user
+  if (build_variant == "root") {
+    defines += [ "FFRT_ENG_DEBUG" ]
+  }
+
   #defines += ffrt_release_defines
   if (is_ohos) {
     defines += [ "FFRT_HITRACE_ENABLE" ]

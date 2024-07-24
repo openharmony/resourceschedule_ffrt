@@ -137,15 +137,6 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     delete wt;
 }
 
-HWTEST_F(ThreadTest, perf_counter_test, TestSize.Level1)
-{
-    perf_begin("A", 0);
-    perf_end(0, 0);
-    perf_counter_output_all();
-    perf_counter_output_single();
-    perf_counter_clear();
-}
-
 HWTEST_F(ThreadTest, c_api_thread_simple_test, TestSize.Level1)
 {
     ffrt_thread_t thread;

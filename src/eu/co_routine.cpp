@@ -103,11 +103,7 @@ void InitWorkerTsdValueToTask(void** taskTsd)
     const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
-        if (key <= 0) {
-            FFRT_LOGE("key[%d] invalid", key);
-            abort();
-        }
-
+        FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "key[%d] invalid", key);
         auto addr = threadTsd[key];
         if (addr) {
             taskTsd[key] = addr;
@@ -151,21 +147,15 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
     const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
-        if (key <= 0) {
-            FFRT_LOGE("key[%d] invalid", key);
-            abort();
-        }
-
+        FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "key[%d] invalid", key);
         auto threadVal = threadTsd[key];
         auto taskVal = taskTsd[key];
         if (!threadVal && taskVal) {
             threadTsd[key] = taskVal;
-        } else if (threadVal && taskVal && (threadVal != taskVal)) {
-            FFRT_LOGE("mismatch key=[%d]", key);
-            abort();
-        } else if (threadVal && !taskVal) {
-            FFRT_LOGE("unexpected: thread exists but task not exists");
-            abort();
+        } else {
+            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)), "mismatch key = [%d]", key);
+            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal),
+                "unexpected: thread exist but task not exist, key = [%d]", key);
         }
         taskTsd[key] = nullptr;
     }
@@ -265,19 +255,13 @@ static void CoSetStackProt(CoRoutine* co, int prot)
      * and 1~2 page table space will be wasted
      */
     size_t p_size = getpagesize();
-    if (co->stkMem.size < p_size * 3) {
-        abort();
-    }
-
     uint64_t mp = reinterpret_cast<uint64_t>(co->stkMem.stk);
     mp = (mp + p_size - 1) / p_size * p_size;
     int ret = mprotect(reinterpret_cast<void *>(static_cast<uintptr_t>(mp)), p_size, prot);
-    if (ret < 0) {
-        printf("coroutine size:%lu, mp:0x%lx, page_size:%zu,result:%d,prot:%d, err:%d,%s.\n",
-            static_cast<unsigned long>(sizeof(struct CoRoutine)), static_cast<unsigned long>(mp),
-            p_size, ret, prot, errno, strerror(errno));
-        abort();
-    }
+    FFRT_UNLIKELY_COND_DO_ABORT(ret < 0,
+        "coroutine size:%lu, mp:0x%lx, page_size:%zu, result:%d, prot:%d, err:%d, %s",
+        static_cast<unsigned long>(sizeof(struct CoRoutine)), static_cast<unsigned long>(mp),
+        p_size, ret, prot, errno, strerror(errno));
 }
 
 static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)

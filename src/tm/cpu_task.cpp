@@ -79,6 +79,10 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
     tsd = nullptr;
     if (attr && attr->taskLocal_) {
         tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
+        if (unlikely(tsd == nullptr)) {
+            FFRT_LOGE("task local malloc tsd failed");
+            return;
+        }
         memset_s(tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));
         taskLocal = attr->taskLocal_;
     }

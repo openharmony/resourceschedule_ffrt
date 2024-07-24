@@ -19,7 +19,6 @@
 #include "sched/task_runqueue.h"
 #include "eu/worker_thread.h"
 #include "sync/sync.h"
-#include "sync/semaphore.h"
 #include "ffrt_trace.h"
 #include "tm/cpu_task.h"
 #include "dfx/perf/ffrt_perf.h"

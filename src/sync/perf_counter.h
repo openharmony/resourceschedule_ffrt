@@ -60,10 +60,4 @@ struct perf_stat_t {
 #define STALL_FRONTEND 0x23
 #define STALL_BACKEND 0x24
 
-unsigned long perf_begin(const char* name, int id);
-void perf_end(int id, unsigned long rd);
-
-void perf_counter_output_all(void);
-void perf_counter_output_single(void);
-void perf_counter_clear(void);
 #endif

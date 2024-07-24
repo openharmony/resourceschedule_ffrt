@@ -18,12 +18,12 @@
 #include "unwinder.h"
 #include "backtrace_local.h"
 #endif
-#include "dump.h"
 #include <securec.h>
 #include "c/ffrt_dump.h"
 #include "dfx/bbox/bbox.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dump.h"
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 using namespace OHOS::HiviewDFX;

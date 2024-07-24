@@ -57,9 +57,9 @@ constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
 using CoCtx = struct co2_context;
 
 struct CoRoutineEnv {
-    CoRoutine* runningCo;
+    CoRoutine* runningCo = nullptr;
     CoCtx schCtx;
-    const std::function<bool(ffrt::CPUEUTask*)>* pending;
+    const std::function<bool(ffrt::CPUEUTask*)>* pending = nullptr;
 };
 
 struct StackMem {

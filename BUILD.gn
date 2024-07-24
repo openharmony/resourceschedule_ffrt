@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
+import("//vendor/hisi/ap/build/build_args.gni")
 import("ffrt.gni")
 
 defines = []
@@ -71,6 +72,10 @@ config("ffrt_config") {
 
   if (is_ohos && !ffrt_task_local_enable) {
     defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
+  }
+
+  if (TARGET_BUILD_VARIANT =="eng") {
+    defines += [ "FFRT_ENG_DEBUG" ]
   }
 
   #defines += ffrt_release_defines

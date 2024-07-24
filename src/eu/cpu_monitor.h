@@ -64,8 +64,6 @@ public:
     int SetWorkerMaxNum(const QoS& qos, int num);
     /* strategy options for handling task notify events */
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
-    static void HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotifyType notifyType);
-    static void HandleTaskNotifyUltraConservative(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
     void NotifyWorkers(const QoS& qos, int number);
 

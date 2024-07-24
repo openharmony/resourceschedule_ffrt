@@ -154,7 +154,7 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
             threadTsd[key] = taskVal;
         } else {
             FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)), "mismatch key = [%d]", key);
-            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal),
+            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && !taskVal),
                 "unexpected: thread exist but task not exist, key = [%d]", key);
         }
         taskTsd[key] = nullptr;

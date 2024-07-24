@@ -19,16 +19,13 @@
 #include <stdlib.h>
 #include <cstring>
 #include <mutex>
-#include "rtg_interface.h"
-#include "concurrent_task_client.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "task_client_adapter.h"
 
 constexpr int HWC_UID = 3039;
 constexpr int ROOT_UID = 0;
-constexpr int SYSTEM_UID = 1000;
+constexpr int RS_UID = 1003;
 constexpr int RS_RTG_ID = 10;
-
-using namespace OHOS::ConcurrentTask;
 
 namespace ffrt {
 static int wgId = -1;
@@ -43,11 +40,25 @@ bool JoinWG(int tid)
         }
         return false;
     }
-    int addRet = OHOS::RME::AddThreadToRtg(tid, wgId);
+
+    IntervalReply rs;
+    rs.rtgId = -1;
+    rs.tid = tid;
+    int uid = getuid();
+    if (uid == RS_UID) {
+        CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
+        if (rs.rtgId > 0) {
+            FFRT_LOGI("[WorkGroup] update thread %{public}d success", tid);
+        } else {
+            FFRT_LOGE("[WorkGroup] update thread %{public}d failed", tid);
+        }
+        return true;
+    }
+    int addRet = AddThreadToRtgAdapter(tid, wgId, 0);
     if (addRet == 0) {
-        FFRT_LOGI("[WorkGroup] update thread %d success", tid);
+        FFRT_LOGI("[WorkGroup] update thread %{public}d success", tid);
     } else {
-        FFRT_LOGE("[WorkGroup] update thread %d failed, return %d", tid, addRet);
+        FFRT_LOGE("[WorkGroup] update thread %{public}d failed, return %{public}d", tid, addRet);
     }
     return true;
 }
@@ -64,7 +75,7 @@ void WorkgroupStartInterval(struct Workgroup* wg)
         return;
     }
 
-    if (OHOS::RME::BeginFrameFreq(wg->rtgId, 0) == 0) {
+    if (BeginFrameFreqAdapter(0) == 0) {
         wg->started = true;
     } else {
         FFRT_LOGE("[WorkGroup] start rtg(%d) work interval failed", wg->rtgId);
@@ -83,7 +94,7 @@ void WorkgroupStopInterval(struct Workgroup* wg)
         return;
     }
 
-    int ret = OHOS::RME::EndFrameFreq(wg->rtgId);
+    int ret = EndFrameFreqAdapter(0);
     if (ret == 0) {
         wg->started = false;
     } else {
@@ -107,25 +118,22 @@ struct Workgroup* WorkgroupCreate(uint64_t interval)
 {
     IntervalReply rs;
     rs.rtgId = -1;
+    rs.tid = -1;
     int rtgId = -1;
     int uid = getuid();
     int num = 0;
 
-    if (uid == SYSTEM_UID || uid == HWC_UID) {
-        ConcurrentTaskClient::GetInstance().QueryInterval(QUERY_RENDER_SERVICE, rs);
+    if (uid == RS_UID) {
+        CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
         rtgId = rs.rtgId;
-    } else if (uid == ROOT_UID) {
-        rtgId = OHOS::RME::CreateNewRtgGrp(num);
-    } else {
-        ConcurrentTaskClient::GetInstance().QueryInterval(QUERY_UI, rs);
-        rtgId = rs.rtgId;
+        FFRT_LOGI("[WorkGroup] query render_service %{public}d, %{public}d", rtgId, uid);
     }
 
     if (rtgId < 0) {
         FFRT_LOGE("[WorkGroup] create rtg group %d failed", rtgId);
         return nullptr;
     }
-    FFRT_LOGI("[WorkGroup] create rtg group %d success", rtgId);
+    FFRT_LOGI("[WorkGroup] create rtg group %{public}d success", rtgId);
 
     Workgroup* wg = nullptr;
     wg = new struct Workgroup();
@@ -147,10 +155,20 @@ void WorkgroupJoin(struct Workgroup* wg, int tid)
         FFRT_LOGE("[WorkGroup] input workgroup is null");
         return;
     }
-    FFRT_LOGI("[WorkGroup] %s uid = %d rtgid = %d", __func__, (int)getuid(), wg->rtgId);
-    int addRet = OHOS::RME::AddThreadToRtg(tid, wg->rtgId);
-    if (addRet != 0) {
-        FFRT_LOGE("[WorkGroup] join fail with %d threads for %d", addRet, tid);
+    int uid = getuid();
+    FFRT_LOGI("[WorkGroup] %s uid = %d rtgid = %d", __func__, uid, wg->rtgId);
+    if (uid == RS_UID) {
+        IntervalReply rs;
+        rs.tid = tid;
+        CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
+        FFRT_LOGI("[WorkGroup] join thread %{public}ld", tid);
+        return;
+    }
+    int addRet = AddThreadToRtgAdapter(tid, wg->rtgId, 0);
+    if (addRet == 0) {
+        FFRT_LOGI("[WorkGroup] join thread %{public}ld success", tid);
+    } else {
+        FFRT_LOGE("[WorkGroup] join fail with %{public}d threads for %{public}d", addRet, tid);
     }
 }
 
@@ -162,15 +180,13 @@ int WorkgroupClear(struct Workgroup* wg)
     }
     int ret = -1;
     int uid = getuid();
-    if (uid != SYSTEM_UID && uid != HWC_UID) {
-        ret = OHOS::RME::DestroyRtgGrp(wg->rtgId);
+    if (uid != RS_UID) {
+        ret = DestroyRtgGrpAdapter(wg->rtgId);
         if (ret != 0) {
             FFRT_LOGE("[WorkGroup] destroy rtg group failed");
         } else {
-            {
-                std::lock_guard<std::mutex> lck(wgLock);
-                wgCount--;
-            }
+            std::lock_guard<std::mutex> lck(wgLock);
+            wgCount--;
         }
     }
     delete wg;

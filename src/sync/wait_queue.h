@@ -84,7 +84,6 @@ public:
     {
         wqlock.lock();
         ReleaseAll();
-        wqlock.unlock();
         delete whead;
         whead = nullptr;
         wqlock.unlock();

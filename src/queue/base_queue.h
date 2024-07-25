@@ -38,7 +38,7 @@ enum QueueAction {
 
 class BaseQueue : public NonCopyable {
 public:
-    explicit BaseQueue(const uint32_t queueId) : queueId_(queueId) {}
+    explicit BaseQueue() : queueId_(queueId++) {}
     virtual ~BaseQueue() = default;
 
     virtual int Push(QueueTask* task) = 0;
@@ -82,7 +82,7 @@ protected:
     ffrt::condition_variable cond_;
 };
 
-std::unique_ptr<BaseQueue> CreateQueue(int queueType, uint32_t queueId, const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr);
 } // namespace ffrt
 
 #endif // FFRT_BASE_QUEUE_H

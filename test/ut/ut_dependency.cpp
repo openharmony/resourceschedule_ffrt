@@ -68,7 +68,6 @@ HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level1)
     ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
     ffrt::submit([] {
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
-        printf("id is  %llu\n", ffrt::this_task::get_id());
     });
     ffrt_this_task_get_id();
     ffrt::wait();

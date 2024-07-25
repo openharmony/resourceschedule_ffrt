@@ -135,7 +135,6 @@ HWTEST_F(ffrtIoTest, IoPoller_Producer_N_Consumer_N, TestSize.Level1)
             EXPECT_EQ(n, sizeof(uint64_t));
             }, {}, {});
     }
-    printf("max eventfd:%llu.\n", evN);
     ffrt::wait();
 }
 

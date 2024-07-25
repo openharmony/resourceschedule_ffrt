@@ -42,6 +42,7 @@ config("ffrt_config") {
     "-DUSE_OHOS_QOS",
     "-DFFRT_PTHREAD_ENABLE",
     "-DFFRT_OH_WATCHDOG_ENABLE",
+    "-DQOS_WORKER_FRAME_RTG",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -71,6 +72,11 @@ config("ffrt_config") {
 
   if (is_ohos && !ffrt_task_local_enable) {
     defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
+  }
+
+  #build_variant is root/user, default user
+  if (build_variant == "root") {
+    defines += [ "FFRT_ENG_DEBUG" ]
   }
 
   #defines += ffrt_release_defines

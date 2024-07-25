@@ -180,4 +180,21 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
         (void)(expr); \
     } while (0)
 
+#ifdef FFRT_ENG_DEBUG
+#define FFRT_UNLIKELY_COND_DO_ABORT(cond, fmt, ...) \
+    do { \
+        if (unlikely(cond)) { \
+            FFRT_LOGE(fmt, ##__VA_ARGS__); \
+            abort(); \
+        } \
+    } while (0)
+
+#else
+#define FFRT_UNLIKELY_COND_DO_ABORT(cond, fmt, ...) \
+    do { \
+        if (unlikely(cond)) { \
+            FFRT_LOGE(fmt, ##__VA_ARGS__); \
+        } \
+    } while (0)
+#endif // FFRT_ENG_DEBUG
 #endif // __FFRT_LOG_API_H__

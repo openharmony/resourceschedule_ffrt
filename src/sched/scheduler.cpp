@@ -36,14 +36,10 @@ void FFRTScheduler::RegistInsCb(SingleInsCB<FFRTScheduler>::Instance &&cb)
 
 bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
 {
-    if (node == nullptr) {
-        return false;
-    }
+    FFRT_COND_DO_ERR((node == nullptr), return false, "Node is NULL");
 
     int level = qos();
-    if (level == qos_inherit) {
-        return false;
-    }
+    FFRT_COND_DO_ERR((level == qos_inherit), return false, "Level incorrect");
 
     ffrt_executor_task_t* task = reinterpret_cast<ffrt_executor_task_t*>(reinterpret_cast<char*>(node) -
         offsetof(ffrt_executor_task_t, wq));
@@ -68,14 +64,11 @@ bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
 
 bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
 {
-    if (node == nullptr) {
-        return false;
-    }
+    FFRT_COND_DO_ERR((node == nullptr), return false, "Node is NULL");
 
     int level = qos();
-    if (level == qos_inherit) {
-        return false;
-    }
+    FFRT_COND_DO_ERR((level == qos_inherit), return false, "Level incorrect");
+    
     auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
     lock->lock();
     if (!node->InList()) {

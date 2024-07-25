@@ -13,20 +13,13 @@
  * limitations under the License.
  */
 
-#include "eu/execute_unit.h"
-#include "eu/sexecute_unit.h"
+#ifndef _FUNC_POOL_H_
+#define _FUNC_POOL_H_
 
-#include "internal_inc/config.h"
-#include "eu/scpuworker_manager.h"
-#include "eu/co_routine_factory.h"
+void NestedFib(int num, int& val);
 
-namespace ffrt {
-std::unique_ptr<WorkerManager> SExecuteUnit::InitManager()
-{
-    return std::unique_ptr<WorkerManager>(new (std::nothrow) SCPUWorkerManager());
-}
-SExecuteUnit::SExecuteUnit()
-{
-    ExecuteUnit::CreateWorkerManager();
-}
-} // namespace ffrt
+void NestedAddOne(int deepth, int& val);
+
+void NestedWhile(uint64_t count);
+
+#endif

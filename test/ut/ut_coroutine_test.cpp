@@ -13,14 +13,23 @@
  * limitations under the License.
  */
 
-#include<thread>
-#include<chrono>
-#include<gtest/gtest.h>
-#include"ffrt_inner.h"
+#include <thread>
+#include <chrono>
+#include <gtest/gtest.h>
+#include <sys/eventfd.h>
+#include <sys/epoll.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstdint>
+#include "c/executor_task.h"
+#include "ffrt_inner.h"
+#include "eu/cpu_monitor.h"
+#include "sched/scheduler.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+using namespace testing::ext;
 
 class CoroutineTest : public testing::Test {
 protected:
@@ -36,12 +45,12 @@ protected:
     {
     }
 
-    virtual void TeadDown()
+    virtual void TearDown()
     {
     }
 };
 
-const int BLOCKED_COUNT = 3;
+constexpr int BLOCKED_COUNT = 3;
 
 typedef struct {
     int count;
@@ -76,23 +85,23 @@ void destroy_stackless_coroutine(void *co)
 {
 }
 
-TEST_F(CoroutineTest, coroutine_submit_succ)
+HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
 {
     StacklessCoroutine1 co1 = {0};
     StacklessCoroutine1 co2 = {0};
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
-    ffrt_submit_coroutine((void *)co1, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
-    ffrt_submit_coroutine((void *)co2, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
+    ffrt_submit_coroutine((void *)&co1, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
+    ffrt_submit_coroutine((void *)&co2, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
     ffrt_poller_wakeup(ffrt_qos_default);
     usleep(100000);
     EXPECT_EQ(co1.count, 4);
     EXPECT_EQ(co2.count, 4);
 }
 
-TEST_F(CoroutineTest, coroutine_submit_fail)
+HWTEST_F(CoroutineTest, coroutine_submit_fail, TestSize.Level1)
 {
-    EXPECT_SQ(ffrt_get_current_task(), nullptr);
+    EXPECT_EQ(ffrt_get_current_task(), nullptr);
 
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
@@ -115,15 +124,15 @@ static void testCallBack(void* token, uint32_t event)
     EXPECT_EQ(value, testData->expected);
 }
 
-TEST_F(CoroutineTest, ffrt_epoll_ctl_add_del)
+HWTEST_F(CoroutineTest, ffrt_epoll_ctl_add_del, TestSize.Level1)
 {
     uint64_t expected = 0xabacadae;
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint64_t));
-    }, {}, {})
+        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+    }, {}, {});
 
     struct TestData testData {.fd = testFd, .expected = expected};
     ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);

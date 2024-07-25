@@ -21,6 +21,9 @@ file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/dfx/watchdog/watchdog_util.cpp"
 )
 
+if(FFRT_UT_ENABLE STREQUAL ON)
+	list(APPEND FFRT_SRC_LIST "${FFRT_CODE_PATH}/dfx/bbox/fault_logger_fd_manager.cpp")
+endif()
 set_property(GLOBAL APPEND PROPERTY FFRT_SRC_LIST ${FFRT_SRC_LIST})
 
 add_library(${PROJECT_NAME} SHARED ${FFRT_SRC_LIST})

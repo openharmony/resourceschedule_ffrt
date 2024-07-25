@@ -15,14 +15,12 @@
 
 #include "sdependence_manager.h"
 #include "util/worker_monitor.h"
+#include "util/ffrt_facade.h"
 
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
-
-#ifdef FFRT_HITRACE_ENABLE
 using namespace OHOS::HiviewDFX;
-#endif
 
 namespace ffrt {
 
@@ -54,7 +52,7 @@ SDependenceManager::~SDependenceManager()
 }
 
 void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,
-        std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup)
+    std::vector<const void *>& insNoDup, std::vector<const void *>& outsNoDup)
 {
     // signature去重：1）outs去重
     if (outs) {
@@ -91,7 +89,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     }
     FFRT_TRACE_BEGIN(("submit|" + std::to_string(task->gid)).c_str());
     FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
     {
         task->stackId = FFRTCollectAsyncStack();
     }
@@ -155,22 +153,24 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         }
         if (task->dataRefCnt.submitDep != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
+            FFRT_TRACE_END();
+            return;
+        }
 
 #ifdef FFRT_HITRACE_ENABLE
             if (task != nullptr) {
                 HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
             }
 #endif
-            FFRT_TRACE_END();
-            return;
-        }
     }
-
 #ifdef FFRT_HITRACE_ENABLE
     if (task != nullptr) {
         HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
     }
 #endif
+    if (attr != nullptr) {
+        task->notifyWorker_ = attr->notifyWorker_;
+    }
 
     FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);
@@ -183,14 +183,14 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 void SDependenceManager::onWait()
 {
     auto ctx = ExecuteCtx::Cur();
-    auto baseTask = ctx->task ? ctx->task : DependenceManager::Root();
+    auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
 
     if (ThreadWaitMode(task)) {
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
-        if FFRT_UNLIKELY(LegacyMode(task)) {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
         task->waitCond_.wait(lck, [task] { return task->childRefCnt == 0; });
@@ -257,7 +257,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         std::unique_lock<std::mutex> lck(task->lock);
         task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
-        if FFRT_UNLIKELY(LegacyMode(task)) {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
         task->waitCond_.wait(lck, [task] { return task->dataRefCnt.waitDep == 0; });
@@ -280,7 +280,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     CoWait(pendDataDepFun);
 }
 
-int SDependenceManager::onExecResults(const ffrt_deps_t* deps)
+int SDependenceManager::onExecResults(const ffrt_deps_t *deps)
 {
     return 0;
 }

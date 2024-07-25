@@ -28,6 +28,9 @@
 #include "queue/queue_monitor.h"
 #include "tm/task_factory.h"
 #include "eu/cpuworker_manager.h"
+#ifdef OHOS_STANDARD_SYSTEM
+#include "dfx/bbox/fault_logger_fd_manager.h"
+#endif
 #include "dfx/dump/dump.h"
 
 using namespace ffrt;
@@ -57,6 +60,7 @@ void TaskWakeCounterInc(void)
 {
     ++g_taskWakeCounter;
 }
+
 
 void TaskDoneCounterInc(void)
 {
@@ -88,12 +92,13 @@ void TaskPendingCounterInc(void)
     ++g_taskPendingCounter;
 }
 
+
 static inline void SaveCurrent()
 {
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
     auto t = g_cur_task;
     if (t) {
-        if (t->type == ffrt_normal_task) {
+        if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
             FFRT_BBOX_LOG("signal %s triggered: source tid %d, task id %lu, qos %d, name %s",
                 g_cur_signame, g_cur_tid, t->gid, t->qos(), t->label.c_str());
         }
@@ -225,6 +230,7 @@ static inline void SaveQueueTaskStatus()
                     tmp.size(), t->gid, t->GetQos(), t->label.c_str());
                 idx++;
             }
+
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
                 CoStart(reinterpret_cast<CPUEUTask*>(t));
             }
@@ -438,8 +444,7 @@ std::string SaveWorkerStatusInfo(void)
                    << " is running nothing" << std::endl;
                 continue;
             }
-
-            if (t->type == ffrt_normal_task) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 ss << "        qos " << i << ": worker tid " << thread.first->Id()
                 << " is running, task id " << t->gid << " name " << t->label.c_str() << std::endl;
             }
@@ -482,7 +487,7 @@ std::string SaveReadyQueueStatusInfo()
                    << " null" << std::endl;
                 continue;
             }
-            if (t->type == ffrt_normal_task) {
+            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << "> task id "
                 << t->gid << " name " << t->label.c_str() << std::endl;
             }
@@ -515,7 +520,7 @@ std::string SaveNormalTaskStatusInfo(void)
         for (auto t : tmp) {
             ss.str("");
             if (t->type == ffrt_normal_task) {
-                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id" << t->gid << "qos"
+                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id " << t->gid << ",qos "
                 << t->qos() << ",name " << t->label.c_str() << std::endl;
             }
             ffrtStackInfo += ss.str();
@@ -557,14 +562,15 @@ std::string SaveQueueTaskStatusInfo()
         }
 
         if (tmp.size() > 0) {
-            ss << "    |-> " << tag << std::endl;
+            ss << "<<<=== " << tag << "===>>>" << std::endl;
             ffrtStackInfo += ss.str();
         }
         size_t idx = 1;
         for (auto t : tmp) {
+            ss.str("");
             if (t->type == ffrt_queue_task) {
-                ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id" << t->gid << "qos"
-                << t->GetQos() << ",name " << t->label.c_str() << std::endl;
+                ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
+                << t->GetQos() << "name" << t->label.c_str() << std::endl;
             }
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {

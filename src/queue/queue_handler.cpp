@@ -173,7 +173,6 @@ int QueueHandler::Cancel(QueueTask* task)
     FFRT_COND_DO_ERR((task == nullptr), return INACTIVE, "input invalid, serial task is nullptr");
 
     int ret = queue_->Remove(task);
-
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
         task->Notify();
@@ -371,4 +370,5 @@ int QueueHandler::DumpSize(ffrt_inner_queue_priority_t priority)
         return -1, "[queueId=%u] type invalid", GetQueueId());
     return reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->DumpSize(priority);
 }
+
 } // namespace ffrt

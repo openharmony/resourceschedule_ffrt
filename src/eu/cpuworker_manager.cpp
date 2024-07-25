@@ -16,6 +16,7 @@
 #include <cstring>
 #include <sys/stat.h>
 #include "qos.h"
+#include "dfx/perf/ffrt_perf.h"
 #include "eu/cpu_monitor.h"
 #include "eu/cpu_manager_interface.h"
 #include "sched/scheduler.h"
@@ -29,6 +30,17 @@
 #include "eu/blockaware.h"
 #endif
 
+namespace {
+void InsertTask(void* task, int qos)
+{
+    ffrt_executor_task_t* executorTask = reinterpret_cast<ffrt_executor_task_t*>(task);
+    ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList*>(&executorTask->wq);
+    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, qos)) {
+        FFRT_LOGE("Insert task failed.");
+    }
+}
+}
+
 namespace ffrt {
 bool CPUWorkerManager::IncWorker(const QoS& qos)
 {
@@ -40,25 +52,11 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     }
     std::unique_lock<std::shared_mutex> lock(groupCtl[workerQos].tgMutex);
     if (tearDown) {
+        FFRT_LOGE("CPU Worker Manager exit");
         return false;
     }
 
-    auto worker = new (std::nothrow) CPUWorker(localQos, {
-        [this] (WorkerThread* thread) { return this->PickUpTask(thread); },
-        [this] (const WorkerThread* thread) { this->NotifyTaskPicked(thread); },
-        [this] (const WorkerThread* thread) { return this->WorkerIdleAction(thread); },
-        [this] (WorkerThread* thread) { this->WorkerRetired(thread); },
-        [this] (WorkerThread* thread) { this->WorkerPrepare(thread); },
-        [this] (const WorkerThread* thread, int timeout) { return this->TryPoll(thread, timeout); },
-        [this] (WorkerThread* thread) { return this->StealTaskBatch(thread); },
-        [this] (WorkerThread* thread) { return this->PickUpTaskBatch(thread); },
-        [this] (WorkerThread* thread) { this->TryMoveLocal2Global(thread); },
-        [this] (const QoS& qos, bool var) { this->UpdateBlockingNum(qos, var); },
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        [this] (const WorkerThread* thread) { return this->IsExceedRunningThreshold(thread); },
-        [this] () { return this->IsBlockAwareInit(); },
-#endif
-    });
+    auto worker = CPUManagerStrategy::CreateCPUWorker(localQos, this);
     auto uniqueWorker = std::unique_ptr<WorkerThread>(worker);
     if (uniqueWorker == nullptr || uniqueWorker->Exited()) {
         FFRT_LOGE("IncWorker failed: worker is nullptr or has exited\n");
@@ -90,9 +88,10 @@ int CPUWorkerManager::GetWorkerCount(const QoS& qos)
     return groupCtl[qos()].threads.size();
 }
 
-CPUEUTask* CPUWorkerManager::PickUpTask(WorkerThread* thread)
+// pick task from global queue (per qos)
+CPUEUTask* CPUWorkerManager::PickUpTaskFromGlobalQueue(WorkerThread* thread)
 {
-    if (tearDown || monitor->IsExceedMaxConcurrency(thread->GetQos())) {
+    if (tearDown) {
         return nullptr;
     }
 
@@ -102,10 +101,21 @@ CPUEUTask* CPUWorkerManager::PickUpTask(WorkerThread* thread)
     return sched.PickNextTask();
 }
 
+// pick task from local queue (per worker)
+CPUEUTask* CPUWorkerManager::PickUpTaskFromLocalQueue(WorkerThread* thread)
+{
+    if (tearDown) {
+        return nullptr;
+    }
+
+    CPUWorker* worker = reinterpret_cast<CPUWorker*>(thread);
+    void* task = worker->localFifo.PopHead();
+    return reinterpret_cast<CPUEUTask*>(task);
+}
+
 CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
-        FFRT_LOGE("CPU Worker Manager exit");
         return nullptr;
     }
 
@@ -142,25 +152,6 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     return task;
 }
 
-bool InsertTask(void* task, int qos)
-{
-    ffrt_executor_task_t* task_ = (ffrt_executor_task_t *)task;
-    LinkedList* node = reinterpret_cast<LinkedList *>(&task_->wq);
-    return FFRTScheduler::Instance()->InsertNode(node, qos);
-}
-
-void CPUWorkerManager::TryMoveLocal2Global(WorkerThread* thread)
-{
-    if (tearDown) {
-        return;
-    }
-
-    SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(thread)->localFifo);
-    if (queue->GetLength() == queue->GetCapacity()) {
-        queue->PopHeadToGlobalQueue(queue->GetLength() / 2, thread->GetQos(), InsertTask);
-    }
-}
-
 unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
@@ -180,7 +171,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         unsigned int queueLen = queue->GetLength();
         if (iter->first != thread && queueLen > 0) {
             unsigned int popLen = queue->PopHeadToAnotherQueue(
-                reinterpret_cast<CPUWorker*>(thread)->localFifo, (queueLen + 1) / 2);
+                reinterpret_cast<CPUWorker*>(thread)->localFifo, (queueLen + 1) / 2, thread->GetQos(), InsertTask);
             SubStealingWorker(thread->GetQos());
             return popLen;
         }
@@ -231,7 +222,6 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
 
     {
         std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
-        thread->SetWorkerBlocked(false);
         thread->SetExited(true);
         thread->Detach();
         auto worker = std::move(groupCtl[qos].threads[thread]);
@@ -257,6 +247,11 @@ void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
     monitor->Notify(qos, TaskNotifyType::TASK_ADDED);
 }
 
+void CPUWorkerManager::NotifyWorkers(const QoS& qos, int number)
+{
+    monitor->NotifyWorkers(qos, number);
+}
+
 CPUWorkerManager::CPUWorkerManager()
 {
     groupCtl[qos_deadline_request].tg = std::make_unique<ThreadGroup>();
@@ -265,7 +260,7 @@ CPUWorkerManager::CPUWorkerManager()
 void CPUWorkerManager::WorkerJoinTg(const QoS& qos, pid_t pid)
 {
     std::shared_lock<std::shared_mutex> lock(groupCtl[qos()].tgMutex);
-    if (qos == qos_user_interactive || qos == qos_deadline_request) {
+    if (qos == qos_user_interactive) {
         (void)JoinWG(pid);
         return;
     }

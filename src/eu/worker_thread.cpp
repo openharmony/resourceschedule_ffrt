@@ -18,14 +18,14 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include "dfx/log/ffrt_log_api.h"
-#include "eu/execute_unit.h"
-#include "eu/qos_interface.h"
-#include "qos.h"
-#include "util/name_manager.h"
-#include "util/sched_ext.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
+#include "eu/execute_unit.h"
+#include "eu/osattr_manager.h"
+#include "eu/qos_interface.h"
+#include "qos.h"
+#include "util/name_manager.h"
 
 namespace ffrt {
 WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
@@ -75,18 +75,6 @@ int SetCpuAffinity(unsigned long affinity, int tid)
         FFRT_LOGE("set qos affinity failed for tid %d\n", tid);
     }
     return ret;
-}
-
-int SetMinUtilZero(void)
-{
-    sched_attr attr = {0};
-
-    attr.size = sizeof(attr);
-    attr.sched_policy = -1;
-    attr.sched_flags = SCHED_FLAG_UTIL_CLAMP_MIN | SCHED_FLAG_RESET_ON_FORK;
-    attr.sched_util_min = 0; // -1 for reset
-
-    return syscall(SYS_sched_setattr, 0, &attr, 0);
 }
 
 void SetThreadAttr(WorkerThread* thread, const QoS& qos)

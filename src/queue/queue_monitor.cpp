@@ -16,7 +16,6 @@
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "sync/sync.h"
-#include "util/slab.h"
 #include "c/ffrt_dump.h"
 
 namespace {
@@ -51,14 +50,15 @@ QueueMonitor::QueueMonitor()
 
 QueueMonitor::~QueueMonitor()
 {
-    exit_.store(true);
-    FFRT_LOGI("destruction of QueueMonitor enter");
-    // 取消定时器成功，或者中断了发送定时器，则释放we完成析构
-    while (!DelayedRemove(we_->tp, we_) && !abortSendTimer_.load()) {
-        std::this_thread::yield();
+    std::unique_lock lock(mutex_);
+    FFRT_LOGW("destruction of QueueMonitor enter");
+    for (uint32_t id = 0; id < queuesRunningInfo_.size(); ++id) {
+        if (queuesRunningInfo_[id].first != INVALID_TASK_ID) {
+            usleep(MIN_TIMEOUT_THRESHOLD_US);
+            break;
+        }
     }
-    SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
-    FFRT_LOGI("destruction of QueueMonitor leave");
+    FFRT_LOGW("destruction of QueueMonitor leave");
 }
 
 QueueMonitor& QueueMonitor::GetInstance()
@@ -122,28 +122,23 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
 uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
 {
     std::shared_lock lock(mutex_);
+    FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return INVALID_TASK_ID,
+        "QueryQueueStatus queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
     return queuesRunningInfo_[queueId].first;
 }
 
-// 此方法在构造函数时调用，仅会有一个线程访问
-// 此方法不能多次调用。we_使用了new方法，但析构时只释放一个,若多次调用，会造成内存泄漏问题
 void QueueMonitor::SendDelayedWorker(time_point_t delay)
 {
-    if (exit_.load()) {
-        abortSendTimer_.store(true);
-        return;
-    }
+    static WaitUntilEntry we;
+    we.tp = delay;
+    we.cb = ([this](WaitEntry* we) { CheckQueuesStatus(); });
 
-    we_ = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
-    we_->tp = delay;
-    we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
-
-    bool result = DelayedWakeup(we_->tp, we_, we_->cb);
+    bool result = DelayedWakeup(we.tp, &we, we.cb);
     // insurance mechanism, generally does not fail
     while (!result) {
         FFRT_LOGW("failed to set delayedworker because the given timestamp has passed");
-        we_->tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
-        result = DelayedWakeup(we_->tp, we_, we_->cb);
+        we.tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
+        result = DelayedWakeup(we.tp, &we, we.cb);
     }
 }
 
@@ -169,10 +164,14 @@ void QueueMonitor::CheckQueuesStatus()
 
     time_point_t oldestStartedTime = std::chrono::steady_clock::now();
     time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
-
     uint64_t taskId = 0;
+    uint32_t queueRunningInfoSize = 0;
     time_point_t taskTimestamp = oldestStartedTime;
-    for (uint32_t i = 0; i < queuesRunningInfo_.size(); ++i) {
+    {
+        std::shared_lock lock(mutex_);
+        queueRunningInfoSize = queuesRunningInfo_.size();
+    }
+    for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
         {
             std::unique_lock lock(mutex_);
             taskId = queuesRunningInfo_[i].first;
@@ -206,8 +205,18 @@ void QueueMonitor::CheckQueuesStatus()
         }
     }
 
-    time_point_t nextCheckTime = oldestStartedTime + std::chrono::microseconds(timeoutUs_);
-    SendDelayedWorker(nextCheckTime);
+    SendDelayedWorker(oldestStartedTime + std::chrono::microseconds(timeoutUs_));
     FFRT_LOGD("global watchdog completed queue status check and scheduled the next");
+}
+
+bool QueueMonitor::HasQueueActive()
+{
+    std::unique_lock lock(mutex_);
+    for (uint32_t i = 0; i < queuesRunningInfo_.size(); ++i) {
+        if (queuesRunningInfo_[i].first != INVALID_TASK_ID) {
+            return true;
+        }
+    }
+    return false;
 }
 } // namespace ffrt

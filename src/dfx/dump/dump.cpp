@@ -123,15 +123,9 @@ int dump_info_all(char *buf, uint32_t len)
         if (dumpInfo.length() > (len - 1)) {
             FFRT_LOGW("dumpInfo exceeds the buffer length, length:%d", dumpInfo.length());
         }
-        int printed_num = snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
-        if (printed_num == -1) {
-            return snprintf_s(buf, len, len - 1, "|-> watchdog fail to print dumpinfo, pid: %s\n",
-                std::to_string(GetPid()).c_str());
-        }
-        return printed_num;
+        return snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
     } else {
-        return snprintf_s(buf, len, len - 1, "|-> FFRT has done all tasks, pid: %s\n",
-            std::to_string(GetPid()).c_str());
+        return snprintf_s(buf, len, len - 1, "|-> FFRT has done all tasks, pid: %u \n", GetPid());
     }
 #else
     return -1;
@@ -142,7 +136,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len)
 {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-    switch (static_cast<ffrt_dump_cmd_t>(cmd)) {
+    switch (cmd) {
         case ffrt_dump_cmd_t::DUMP_INFO_ALL: {
             return dump_info_all(buf, len);
         }

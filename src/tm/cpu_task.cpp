@@ -20,6 +20,10 @@
 #include "tm/task_factory.h"
 #include "tm/cpu_task.h"
 
+namespace {
+const int TSD_SIZE = 128;
+}
+
 namespace ffrt {
 void CPUEUTask::SetQos(QoS& newQos)
 {
@@ -54,7 +58,11 @@ void CPUEUTask::Execute()
     }
     f->destroy(f);
     FFRT_TASKDONE_MARKER(gid);
-    this->coRoutine->isTaskDone = true;
+    if (!USE_COROUTINE) {
+        this->UpdateState(ffrt::TaskState::EXITED);
+    } else {
+        this->coRoutine->isTaskDone = true;
+    }
 }
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,

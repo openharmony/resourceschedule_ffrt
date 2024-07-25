@@ -129,6 +129,8 @@ void CPUMonitor::MonitorMain()
     if (ret == -1) {
         monitorTid = 0;
         FFRT_LOGE("syscall(SYS_gettid) failed");
+    } else {
+        monitorTid = static_cast<uint32_t>(ret);
     }
     while (true) {
         if (stopMonitor) {
@@ -186,38 +188,6 @@ void CPUMonitor::WakeupCount(const QoS& qos, bool isDeepSleepWork)
     workerCtrl.lock.lock();
     workerCtrl.sleepingWorkerNum--;
     workerCtrl.executionNum++;
-    workerCtrl.lock.unlock();
-}
-
-void CPUMonitor::RollbackDestroy(const QoS& qos, bool isDeepSleepWork)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    workerCtrl.executionNum++;
-    if (isDeepSleepWork) {
-        workerCtrl.hasWorkDeepSleep = false;
-    }
-    workerCtrl.lock.unlock();
-}
-
-void CPUMonitor::TryDestroy(const QoS& qos, bool isDeepSleepWork)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    workerCtrl.sleepingWorkerNum--;
-    if (isDeepSleepWork) {
-        workerCtrl.hasWorkDeepSleep = false;
-    }
-    workerCtrl.lock.unlock();
-}
-
-void CPUMonitor::DoDestroy(const QoS& qos, bool isDeepSleepWork)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    if (isDeepSleepWork) {
-        workerCtrl.hasWorkDeepSleep = false;
-    }
     workerCtrl.lock.unlock();
 }
 
@@ -291,21 +261,22 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         }
     }
 #endif
+
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
         (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
+
     if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }
-
     if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
         workerCtrl.lock.unlock();
         ops.WakeupWorkers(qos);
-    } else if (runningNum < workerCtrl.maxConcurrency && (totalNum < workerCtrl.hardLimit)) {
+    } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
         workerCtrl.executionNum++;
         workerCtrl.lock.unlock();
         ops.IncWorker(qos);
-    }  else {
+    } else {
         if (workerCtrl.pollWaitFlag) {
             PollerProxy::Instance()->GetPoller(qos).WakeUp();
         }
@@ -313,16 +284,45 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
     }
 }
 
-bool CPUMonitor::IsExceedMaxConcurrency(const QoS& qos)
+void CPUMonitor::NotifyWorkers(const QoS& qos, int number)
 {
-    bool ret = false;
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-    if (static_cast<uint32_t>(workerCtrl.executionNum - ops.GetBlockingNum(qos)) > workerCtrl.maxConcurrency) {
-        ret = true;
+
+    int increasableNumber = static_cast<int>(workerCtrl.maxConcurrency) -
+        (workerCtrl.executionNum + workerCtrl.sleepingWorkerNum);
+    int wakeupNumber = std::min(number, workerCtrl.sleepingWorkerNum);
+    for (int idx = 0; idx < wakeupNumber; idx++) {
+        ops.WakeupWorkers(qos);
     }
+
+    int incNumber = std::min(number - wakeupNumber, increasableNumber);
+    for (int idx = 0; idx < incNumber; idx++) {
+        workerCtrl.executionNum++;
+        ops.IncWorker(qos);
+    }
+
     workerCtrl.lock.unlock();
-    return ret;
+    FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 
+// default strategy which is kind of radical for poking workers
+void CPUMonitor::HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType)
+{
+    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
+    size_t taskCount = static_cast<size_t>(monitor->GetOps().GetTaskCount(qos));
+    switch (notifyType) {
+        case TaskNotifyType::TASK_ADDED:
+        case TaskNotifyType::TASK_PICKED:
+            if (taskCount > 0) {
+                monitor->Poke(qos, taskCount, notifyType);
+            }
+            break;
+        case TaskNotifyType::TASK_LOCAL:
+                monitor->Poke(qos, taskCount, notifyType);
+            break;
+        default:
+            break;
+    }
+}
 }

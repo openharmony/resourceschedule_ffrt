@@ -45,18 +45,20 @@ public:
     unsigned int global_interval = 60;
     unsigned int budget = 10;
 
+public:
+    /* strategy options for worklooper function */
+    static void WorkerLooperDefault(WorkerThread* p);
+
 private:
-    bool blocked = false;
     static void* WrapDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
     static void Run(CPUEUTask* task);
     static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
-    static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, CPUEUTask* &lastTask);
-    static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker, CPUEUTask* &lastTask);
+    static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker);
+    static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker);
     static void* GetTask(CPUWorker* worker);
     static PollerRet TryPoll(CPUWorker* worker, int timeout);
     static bool LocalEmpty(CPUWorker* worker);
-    void SetWorkerBlocked(bool var) override;
 };
 } // namespace ffrt
 #endif

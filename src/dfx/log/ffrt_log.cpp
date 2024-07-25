@@ -20,7 +20,6 @@
 #include <atomic>
 #include "ffrt_log_api.h"
 #include "internal_inc/osal.h"
-
 static int g_ffrtLogLevel = FFRT_LOG_DEBUG;
 static std::atomic<unsigned int> g_ffrtLogId(0);
 

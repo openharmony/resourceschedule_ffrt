@@ -36,6 +36,7 @@ struct WorkerCtrl {
     bool pollWaitFlag = false;
     int deepSleepingWorkerNum = 0;
     bool hasWorkDeepSleep = 0;
+    bool retryBeforeDeepSleep = true;
     std::mutex lock;
 };
 
@@ -48,11 +49,10 @@ public:
     uint32_t GetMonitorTid() const;
     virtual SleepType IntoSleep(const QoS& qos) = 0;
     virtual void WakeupCount(const QoS& qos, bool isDeepSleepWork = false);
-    virtual void RollbackDestroy(const QoS& qos, bool isDeepSleepWork = false);
-    virtual void TryDestroy(const QoS& qos, bool isDeepSleepWork = false);
-    virtual void DoDestroy(const QoS& qos, bool isDeepSleepWork = false);
     void IntoDeepSleep(const QoS& qos);
     void OutOfDeepSleep(const QoS& qos);
+    void TimeoutCount(const QoS& qos);
+    bool IsExceedDeepSleepThreshold();
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -60,12 +60,12 @@ public:
     bool IsBlockAwareInit(void);
     void MonitorMain();
 #endif
-    void TimeoutCount(const QoS& qos);
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
     int SetWorkerMaxNum(const QoS& qos, int num);
-    bool IsExceedDeepSleepThreshold();
+    /* strategy options for handling task notify events */
+    static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
-    bool IsExceedMaxConcurrency(const QoS& qos);
+    void NotifyWorkers(const QoS& qos, int number);
 
     uint32_t monitorTid = 0;
 protected:
@@ -76,7 +76,6 @@ protected:
         return ops;
     }
 private:
-    size_t CountBlockedNum(const QoS& qos);
     void SetupMonitor();
     void StartMonitor();
 

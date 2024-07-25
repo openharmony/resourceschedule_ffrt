@@ -19,7 +19,6 @@
 #include <cstring>
 #include <string>
 #include <sys/mman.h>
-#include <unordered_map>
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
@@ -35,18 +34,22 @@
 #ifdef FFRT_TASK_LOCAL_ENABLE
 #include "pthread_ffrt.h"
 #endif
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
+#ifdef FFRT_TASK_LOCAL_ENABLE
+#include "pthread_ffrt.h"
+#endif
 #endif
 
 using namespace ffrt;
+using namespace OHOS::HiviewDFX;
 
 static inline void CoStackCheck(CoRoutine* co)
 {
-    if (co->stkMem.magic != STACK_MAGIC) {
-        FFRT_LOGE("sp offset:%lu.\n", (uint64_t)co->stkMem.stk +
+    if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
+        FFRT_LOGE("sp offset:%p.\n", co->stkMem.stk +
             co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
-        FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_set_co_stack_attribute'.\n");
+        FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_task_attr_set_stack_size'.\n");
     }
 }
 
@@ -77,13 +80,15 @@ CoRoutineEnv* GetCoEnv()
     if (curTls != nullptr) {
         coEnv = reinterpret_cast<CoRoutineEnv *>(curTls);
     } else {
-        coEnv = new (std::nothrow) CoRoutineEnv();
+        coEnv = new CoRoutineEnv();
         pthread_setspecific(g_coThreadTlsKey, coEnv);
     }
     return coEnv;
 }
+} // namespace
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
+namespace {
 bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
 {
     if ((task->type != ffrt_normal_task) || (!task->taskLocal)) {
@@ -183,10 +188,8 @@ void TaskTsdRunDtors(ffrt::CPUEUTask* task)
     pthread_tsd_run_dtors();
     SwitchTsdAddrToThread(task);
 }
-#endif
 } // namespace
 
-#ifdef FFRT_TASK_LOCAL_ENABLE
 void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 {
     if (!IsTaskLocalEnable(task)) {
@@ -195,12 +198,11 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 
     TaskTsdRunDtors(task);
     if (task->tsd != nullptr) {
-        FFRT_LOGI("clear task tsd[%llx]", (uint64_t)(task->tsd));
         free(task->tsd);
         task->tsd = nullptr;
         task->taskLocal = false;
     }
-    FFRT_LOGD("task tsd deconstruct done, task[%lu], name[%s]", task->gid, task->label.c_str());
+    FFRT_LOGD("tsd deconstruct done, task[%lu], name[%s]", task->gid, task->label.c_str());
 }
 #endif
 
@@ -272,9 +274,9 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
         co = ffrt::CoRoutineAllocMem(stackSize);
     } else {
         co = static_cast<CoRoutine*>(mmap(nullptr, stackSize,
-            PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
+            PROT_READ | PROT_WRITE,  MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
         if (co == reinterpret_cast<CoRoutine*>(MAP_FAILED)) {
-            FFRT_LOGE("memory mmap failed, errno: %d", errno);
+            FFRT_LOGE("memory mmap failed.");
             return nullptr;
         }
     }
@@ -338,17 +340,17 @@ static inline void UnbindCoRoutione(ffrt::CPUEUTask* task)
 
 static inline int CoAlloc(ffrt::CPUEUTask* task)
 {
-    if (task->coRoutine) {
-        if (GetCoEnv()->runningCo) {
+    if (task->coRoutine) { // use allocated coroutine stack
+        if (GetCoEnv()->runningCo) { // free cached stack if it exist
             CoMemFree(GetCoEnv()->runningCo);
         }
         GetCoEnv()->runningCo = task->coRoutine;
     } else {
-        if (!GetCoEnv()->runningCo) {
+        if (!GetCoEnv()->runningCo) { // if no cached stack, alloc one
             GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
-        } else {
-            if (GetCoEnv()->runningCo->allocatedSize != task->stack_size) {
-                CoMemFree(GetCoEnv()->runningCo);
+        } else { // exist cached stack
+            if (GetCoEnv()->runningCo->allocatedSize != task->stack_size) { // stack size not match, alloc one
+                CoMemFree(GetCoEnv()->runningCo); // free cached stack
                 GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
             }
         }
@@ -414,9 +416,8 @@ void CoStart(ffrt::CPUEUTask* task)
 #endif
 
     for (;;) {
-        FFRT_LOGD("Costart task[%lu], name[%s]", task->gid, task->label.c_str());
         ffrt::TaskLoadTracking::Begin(task);
-#ifdef ASYNC_STACKTRACE
+#ifdef FFRT_ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
@@ -438,7 +439,7 @@ void CoStart(ffrt::CPUEUTask* task)
 #endif
             return;
         }
-        
+
         // 2. couroutine task block, switch to thread
         // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = GetCoEnv()->pending;

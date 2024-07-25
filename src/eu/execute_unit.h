@@ -42,6 +42,13 @@ public:
         }
     }
 
+    void NotifyWorkers(const QoS& qos, int number)
+    {
+        if (likely(wManager[static_cast<size_t>(DevType::CPU)])) {
+            wManager[static_cast<size_t>(DevType::CPU)]->NotifyWorkers(qos, number);
+        }
+    }
+
     void NotifyLocalTaskAdded(const QoS& qos)
     {
         {

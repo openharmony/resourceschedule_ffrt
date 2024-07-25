@@ -62,6 +62,7 @@ class WaitQueue {
 public:
     spin_mutex wqlock;
     WaitUntilEntry* whead;
+    std::atomic_bool delayedTaskDone { false };
     using TimePoint = std::chrono::steady_clock::time_point;
     void SuspendAndWait(mutexPrivate* lk);
     bool SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept;
@@ -83,13 +84,17 @@ public:
     {
         wqlock.lock();
         ReleaseAll();
-        wqlock.unlock();
         delete whead;
+        whead = nullptr;
+        wqlock.unlock();
     }
 
 private:
     inline bool empty() const
     {
+        if (whead == nullptr) {
+            return true;
+        }
         return (whead->next == whead);
     }
 

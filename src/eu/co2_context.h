@@ -44,6 +44,7 @@ extern "C" {
 #endif
 #define FFRT_REG_LR 0
 #define FFRT_REG_SP 13
+
 #else
 #error "Unsupported architecture"
 #endif

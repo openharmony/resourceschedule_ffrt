@@ -191,13 +191,6 @@ static bool _IsTagEnabled(uint64_t label)
             func(label, tag, tid); \
         } \
     } while (0)
-#define _TraceCount(label, tag, value) \
-    do { \
-        auto func = GET_TRACE_FUNC(CountTrace); \
-        if (func != nullptr) { \
-            func(label, tag, value); \
-        } \
-    } while (0)
 
 #ifdef FFRT_PROFILER
 #define FFRT_PROFILER_WITH_TRACE(trace_type, lable, cookie) \
@@ -209,6 +202,14 @@ static bool _IsTagEnabled(uint64_t label)
 #else
 #define FFRT_PROFILER_WITH_TRACE(trace_type, lable, cookie)
 #endif
+
+#define _TraceCount(label, tag, value) \
+    do { \
+        auto func = GET_TRACE_FUNC(CountTrace); \
+        if (func != nullptr) { \
+            func(label, tag, value); \
+        } \
+    } while (0)
 
 #define FFRT_TRACE_BEGIN(tag) \
     do { \

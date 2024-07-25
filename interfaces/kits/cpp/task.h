@@ -23,6 +23,7 @@
  */
 #ifndef FFRT_API_CPP_TASK_H
 #define FFRT_API_CPP_TASK_H
+#include <string>
 #include <vector>
 #include <functional>
 #include "c/task.h"
@@ -30,10 +31,18 @@
 namespace ffrt {
 class task_attr : public ffrt_task_attr_t {
 public:
+#if __has_builtin(__builtin_FUNCTION)
+    task_attr(const char* func = __builtin_FUNCTION())
+    {
+        ffrt_task_attr_init(this);
+        ffrt_task_attr_set_name(this, func);
+    }
+#else
     task_attr()
     {
         ffrt_task_attr_init(this);
     }
+#endif
 
     ~task_attr()
     {
@@ -159,7 +168,7 @@ public:
     /**
      * @brief Obtains the stack size of this task.
      *
-     * @return Returns the task stack size, uint is byte.
+     * @return Returns task stack size, unit is byte.
      * @since 12
      * @version 1.0
      */
@@ -307,6 +316,7 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func,
  * @brief Submits a task without input and output dependencies.
  *
  * @param func Indicates a task executor function closure.
+ * @param attr Indicates a task attribute.
  * @since 10
  * @version 1.0
  */
@@ -320,34 +330,19 @@ static inline void submit(std::function<void()>&& func, const task_attr& attr = 
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @since 10
- * @version 1.0
- */
-static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @since 10
  * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
-    return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
+    return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies.
+ * @brief Submits a task with input and output dependencies.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -357,7 +352,7 @@ static inline void submit(std::function<void()>&& func, std::initializer_list<de
  * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps, const task_attr& attr)
+    std::initializer_list<dependence> out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
@@ -369,34 +364,19 @@ static inline void submit(std::function<void()>&& func, std::initializer_list<de
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @since 10
- * @version 1.0
- */
-static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @since 10
  * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
-    return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
+    return ffrt_submit_base(create_function_wrapper(std::move(func)), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies.
+ * @brief Submits a task with input and output dependencies.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -406,7 +386,7 @@ static inline void submit(std::function<void()>&& func, const std::vector<depend
  * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps, const task_attr& attr)
+    const std::vector<dependence>& out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
@@ -417,12 +397,13 @@ static inline void submit(std::function<void()>&& func, const std::vector<depend
  * @brief Submits a task without input and output dependencies.
  *
  * @param func Indicates a task executor function closure.
+ * @param attr Indicates a task attribute.
  * @since 10
  * @version 1.0
  */
-static inline void submit(const std::function<void()>& func)
+static inline void submit(const std::function<void()>& func, const task_attr& attr = {})
 {
-    return ffrt_submit_base(create_function_wrapper(func), nullptr, nullptr, nullptr);
+    return ffrt_submit_base(create_function_wrapper(func), nullptr, nullptr, &attr);
 }
 
 /**
@@ -430,34 +411,19 @@ static inline void submit(const std::function<void()>& func)
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @since 10
- * @version 1.0
- */
-static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    return ffrt_submit_base(create_function_wrapper(func), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @since 10
  * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
-    return ffrt_submit_base(create_function_wrapper(func), &in, &out, nullptr);
+    return ffrt_submit_base(create_function_wrapper(func), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies.
+ * @brief Submits a task with input and output dependencies.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -467,7 +433,7 @@ static inline void submit(const std::function<void()>& func, std::initializer_li
  * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps, const task_attr& attr)
+    std::initializer_list<dependence> out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
@@ -479,34 +445,19 @@ static inline void submit(const std::function<void()>& func, std::initializer_li
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @since 10
- * @version 1.0
- */
-static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    return ffrt_submit_base(create_function_wrapper(func), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @since 10
  * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
-    return ffrt_submit_base(create_function_wrapper(func), &in, &out, nullptr);
+    return ffrt_submit_base(create_function_wrapper(func), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies.
+ * @brief Submits a task with input and output dependencies.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -516,7 +467,7 @@ static inline void submit(const std::function<void()>& func, const std::vector<d
  * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps, const task_attr& attr)
+    const std::vector<dependence>& out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
@@ -527,6 +478,7 @@ static inline void submit(const std::function<void()>& func, const std::vector<d
  * @brief Submits a task without input and output dependencies, and obtains a task handle.
  *
  * @param func Indicates a task executor function closure.
+ * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
@@ -542,38 +494,21 @@ static inline task_handle submit_h(std::function<void()>&& func, const task_attr
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
- * @since 10
- * @version 1.0
- */
-static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies, and obtains a task handle.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
  * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
-    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
+    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies, and obtains a task handle.
+ * @brief Submits a task with input and output dependencies, and obtains a task handle.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -585,7 +520,7 @@ static inline task_handle submit_h(std::function<void()>&& func, std::initialize
  * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps, const task_attr& attr)
+    std::initializer_list<dependence> out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
@@ -597,38 +532,21 @@ static inline task_handle submit_h(std::function<void()>&& func, std::initialize
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
- * @since 10
- * @version 1.0
- */
-static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies, and obtains a task handle.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
  * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
-    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, &out, nullptr);
+    return ffrt_submit_h_base(create_function_wrapper(std::move(func)), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies, and obtains a task handle.
+ * @brief Submits a task with input and output dependencies, and obtains a task handle.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -640,7 +558,7 @@ static inline task_handle submit_h(std::function<void()>&& func, const std::vect
  * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps, const task_attr& attr)
+    const std::vector<dependence>& out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
@@ -651,14 +569,15 @@ static inline task_handle submit_h(std::function<void()>&& func, const std::vect
  * @brief Submits a task without input and output dependencies, and obtains a task handle.
  *
  * @param func Indicates a task executor function closure.
+ * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
  * @version 1.0
  */
-static inline task_handle submit_h(const std::function<void()>& func)
+static inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {})
 {
-    return ffrt_submit_h_base(create_function_wrapper(func), nullptr, nullptr, nullptr);
+    return ffrt_submit_h_base(create_function_wrapper(func), nullptr, nullptr, &attr);
 }
 
 /**
@@ -666,38 +585,21 @@ static inline task_handle submit_h(const std::function<void()>& func)
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
- * @since 10
- * @version 1.0
- */
-static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    return ffrt_submit_h_base(create_function_wrapper(func), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies, and obtains a task handle.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
  * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
-    return ffrt_submit_h_base(create_function_wrapper(func), &in, &out, nullptr);
+    return ffrt_submit_h_base(create_function_wrapper(func), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies, and obtains a task handle.
+ * @brief Submits a task with input and output dependencies, and obtains a task handle.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -709,7 +611,7 @@ static inline task_handle submit_h(const std::function<void()>& func, std::initi
  * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
-    std::initializer_list<dependence> out_deps,  const task_attr& attr)
+    std::initializer_list<dependence> out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.begin()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.begin()};
@@ -721,38 +623,21 @@ static inline task_handle submit_h(const std::function<void()>& func, std::initi
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
- * @since 10
- * @version 1.0
- */
-static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps)
-{
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    return ffrt_submit_h_base(create_function_wrapper(func), &in, nullptr, nullptr);
-}
-
-/**
- * @brief Submits a task with input and output dependencies, and obtains a task handle.
- *
- * @param func Indicates a task executor function closure.
- * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
  * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps)
+    const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};
-    return ffrt_submit_h_base(create_function_wrapper(func), &in, &out, nullptr);
+    return ffrt_submit_h_base(create_function_wrapper(func), &in, nullptr, &attr);
 }
 
 /**
- * @brief Submits a task with a specified attribute and input and output dependencies, and obtains a task handle.
+ * @brief Submits a task with input and output dependencies, and obtains a task handle.
  *
  * @param func Indicates a task executor function closure.
  * @param in_deps Indicates a pointer to the input dependencies.
@@ -764,7 +649,7 @@ static inline task_handle submit_h(const std::function<void()>& func, const std:
  * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
-    const std::vector<dependence>& out_deps, const task_attr& attr)
+    const std::vector<dependence>& out_deps, const task_attr& attr = {})
 {
     ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
     ffrt_deps_t out{static_cast<uint32_t>(out_deps.size()), out_deps.data()};

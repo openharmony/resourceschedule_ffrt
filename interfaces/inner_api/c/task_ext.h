@@ -16,6 +16,7 @@
 #ifndef FFRT_INNER_API_C_TASK_H
 #define FFRT_INNER_API_C_TASK_H
 #include <stdint.h>
+#include <stdbool.h>
 #include "type_def_ext.h"
 
 /**
@@ -51,6 +52,24 @@ FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t time
  * @version 1.0
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
+
+/**
+ * @brief Sets whether the task notifies worker, only support for normal task.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @param notify Indicates whether the task notifies worker.
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_task_attr_set_notify_worker(ffrt_task_attr_t* attr, bool notify);
+
+/**
+ * @brief Notifies a specified number of workers at a specified QoS level.
+ *
+ * @param qos Indicates the QoS.
+ * @param number Indicates the number of workers to be notified.
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_notify_workers(ffrt_qos_t qos, int number);
 
 /**
  * @brief Obtains the ID of this queue.

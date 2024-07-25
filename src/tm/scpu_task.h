@@ -75,7 +75,7 @@ public:
     }
     ~RootTaskCtxWrapper()
     {
-        std::unique_lock<decltype(root->lock) > lck(root->lock);
+        std::unique_lock<decltype(root->lock)> lck(root->lock);
         if (root->childRefCnt == 0) {
             lck.unlock();
             delete root;

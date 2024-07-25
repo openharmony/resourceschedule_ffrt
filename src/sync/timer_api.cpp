@@ -41,7 +41,7 @@ ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt
     }
 
     if (cb == nullptr) {
-        FFRT_LOGE("cb cannot be null");
+        FFRT_LOGE("[Poller] cb cannot be null");
         return -1;
     }
 
@@ -59,6 +59,7 @@ int ffrt_timer_stop(ffrt_qos_t qos, int handle)
     if (!QosConvert(qos, pollerQos)) {
         return -1;
     }
+
     return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).UnregisterTimer(handle);
 }
 
@@ -69,5 +70,6 @@ ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, int handle)
     if (!QosConvert(qos, pollerQos)) {
         return ffrt_timer_notfound;
     }
+
     return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetTimerStatus(handle);
 }

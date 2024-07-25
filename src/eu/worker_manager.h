@@ -52,6 +52,7 @@ public:
     virtual bool DecWorker() = 0;
     virtual void NotifyTaskAdded(const QoS& qos) = 0;
     virtual void NotifyLocalTaskAdded(const QoS& qos) = 0;
+    virtual void NotifyWorkers(const QoS& qos, int number) = 0;
     virtual std::mutex* GetSleepCtl(int qos) = 0;
     virtual CPUMonitor* GetCPUMonitor() = 0;
 

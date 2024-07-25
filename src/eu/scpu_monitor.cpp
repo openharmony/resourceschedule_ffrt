@@ -29,19 +29,6 @@ SleepType SCPUMonitor::IntoSleep(const QoS& qos)
 
 void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
-    size_t taskCount = GetOps().GetTaskCount(qos);
-    switch (notifyType) {
-        case TaskNotifyType::TASK_ADDED:
-        case TaskNotifyType::TASK_PICKED:
-            if (taskCount > 0) {
-                Poke(qos, taskCount, notifyType);
-            }
-            break;
-        case TaskNotifyType::TASK_LOCAL:
-                Poke(qos, taskCount, notifyType);
-            break;
-        default:
-            break;
-    }
+    GetOps().HandleTaskNotity(qos, this, notifyType);
 }
 }

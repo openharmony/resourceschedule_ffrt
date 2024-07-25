@@ -119,8 +119,8 @@ private:
     void WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept;
     void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
                           std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
-    void ExecuteTimerCb(time_point_t timer) noexcept;
 
+    void ExecuteTimerCb(time_point_t timer) noexcept;
     void ProcessTimerDataCb(CPUEUTask* task) noexcept;
     void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
 
@@ -153,7 +153,7 @@ struct PollerProxy {
 public:
     static PollerProxy* Instance();
 
-    Poller& GetPoller(const QoS& qos = ffrt_qos_default)
+    Poller& GetPoller(const QoS& qos = QoS(ffrt_qos_default))
     {
         return qosPollers[static_cast<size_t>(qos())];
     }

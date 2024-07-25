@@ -27,7 +27,7 @@
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
-const std::size_t BatchAllocSize = 128 * 1024;
+const std::size_t BatchAllocSize = 32 * 1024;
 #ifdef FFRT_BBOX_ENABLE
 constexpr uint32_t ALLOCATOR_DESTRUCT_TIMESOUT = 1000;
 #endif
@@ -189,13 +189,15 @@ private:
         }
 #endif
         ::operator delete(basePtr);
+        FFRT_LOGI("destruct SimpleAllocator");
     }
 };
 
-constexpr uint32_t RESERVED_COROUTINE_COUNT = 0;
-template <typename T, std::size_t MmapSz = 16 * 1024 * 1024>
+template <typename T, std::size_t MmapSz = 8 * 1024 * 1024>
 class QSimpleAllocator {
     std::size_t TSize;
+    std::size_t curAllocated;
+    std::size_t maxAllocated;
     std::mutex lock;
     std::vector<T*> cache;
     uint32_t flags = MAP_ANONYMOUS | MAP_PRIVATE;
@@ -231,6 +233,8 @@ class QSimpleAllocator {
             }
         }
         p = cache.back();
+        ++curAllocated;
+        maxAllocated = std::max(curAllocated, maxAllocated);
         cache.pop_back();
         lock.unlock();
         return p;
@@ -239,6 +243,7 @@ class QSimpleAllocator {
     void free(T* p)
     {
         lock.lock();
+        --curAllocated;
         cache.push_back(p);
         lock.unlock();
     }
@@ -247,7 +252,11 @@ class QSimpleAllocator {
     {
         T* p = nullptr;
         lock.lock();
-        while (cache.size() > RESERVED_COROUTINE_COUNT) {
+        FFRT_LOGD("coroutine release with waterline %d, cur occupied %d, cached size %d",
+            maxAllocated, curAllocated, cache.size());
+        size_t reservedCnt = maxAllocated - curAllocated + 1; // reserve additional one for robustness
+        maxAllocated = curAllocated;
+        while (cache.size() > reservedCnt) {
             p = cache.back();
             cache.pop_back();
             int ret = munmap(p, TSize);
@@ -263,7 +272,7 @@ class QSimpleAllocator {
     }
 
 public:
-    explicit QSimpleAllocator(std::size_t size = sizeof(T))
+    explicit QSimpleAllocator(std::size_t size = sizeof(T)) : curAllocated(0), maxAllocated(0)
     {
         std::size_t p_size = static_cast<std::size_t>(getpagesize());
         // manually align the size to the page size

@@ -80,9 +80,7 @@ public:
     static void RegistInsCb(SingleInsCB<DependenceManager>::Instance &&cb);
 
     virtual void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
-    {
-    }
+        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
     void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
     {
@@ -101,40 +99,26 @@ public:
         }
 
 #ifdef FFRT_BBOX_ENABLE
-    TaskEnQueuCounterInc();
+        TaskEnQueuCounterInc();
 #endif
     }
 
-    virtual void onSubmitDev(dev_type dev, bool has_handle, ffrt_task_handle_t &handle, void *data,
-        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
-    {
-    }
-
-    virtual void onWait()
-    {
-    }
-
+    virtual void onWait() = 0;
 #ifdef QOS_DEPENDENCY
-    virtual void onWait(const ffrt_deps_t* deps, int64_t deadline = -1)
-    {
-    }
+    virtual void onWait(const ffrt_deps_t* deps, int64_t deadline = -1) = 0;
 #else
-    virtual void onWait(const ffrt_deps_t* deps)
-    {
-    }
+    virtual void onWait(const ffrt_deps_t* deps) = 0;
 #endif
 
-    virtual void onTaskDone(CPUEUTask* task)
-    {
-    }
-    
-    virtual int onExecResults(const ffrt_deps_t* deps) = 0;
-    
+    virtual int onExecResults(const ffrt_deps_t *deps) = 0;
+
+    virtual void onTaskDone(CPUEUTask* task) = 0;
+
     static inline CPUEUTask* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval
-        thread_local static RootTaskCtxWrapper root_wrapper;
-        return root_wrapper.Root();
+        thread_local static RootTaskCtxWrapper root_wraper;
+        return root_wraper.Root();
     }
 
 protected:

@@ -50,18 +50,12 @@ public:
     * @brief 从队列首部批量取出元素后将元素批量推入目标队列尾部。
     * @param dstQueue 目标队列。
     * @param elementNum 取出元素数量。
+    * @param qos        全局队列qos等级。
+    * @param func       元素入队操作。
     * @retval 返回被推入队列尾部的元素数量。
     */
-    unsigned int PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum);
-
-    /**
-    * @brief 从队列首部批量取出元素后将元素批量推入全局队列尾部。
-    * @param elementNum 取出元素数量。
-    * @param qos 全局队列qos等级。
-    * @param func 元素入队操作。
-    */
-    using PushFunc = bool(*)(void*, int);
-    void PopHeadToGlobalQueue(unsigned int elementNum, int qos, PushFunc func);
+    using PushFunc = void(*)(void*, int);
+    unsigned int PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum, int qos, PushFunc func);
 
 private:
     void** buf_ = nullptr;

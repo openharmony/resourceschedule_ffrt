@@ -89,7 +89,7 @@ int SpmcQueue::PushTail(void* object)
     return -1;
 }
 
-unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum)
+unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum, int qos, PushFunc func)
 {
     if (elementNum == 0) {
         return 0;
@@ -104,7 +104,7 @@ unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int 
 
         int ret = dstQueue.PushTail(element);
         if (ret != 0) {
-            PushTail(element);
+            func(element, qos);
             return pushCount;
         }
 
@@ -114,22 +114,5 @@ unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int 
     }
 
     return pushCount;
-}
-
-void SpmcQueue::PopHeadToGlobalQueue(unsigned int elementNum, int qos, PushFunc func)
-{
-    if (elementNum == 0) {
-        return;
-    }
-
-    unsigned int pushCount = 0;
-    while ((head_ != tail_) && pushCount <= elementNum) {
-        void* element = PopHead();
-        if (!func(element, qos)) {
-            FFRT_LOGE("Submit IO task failed.");
-            return;
-        }
-        pushCount++;
-    }
 }
 }

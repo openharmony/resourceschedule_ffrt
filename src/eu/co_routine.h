@@ -73,7 +73,7 @@ struct CoRoutine {
     CoRoutineEnv* thEnv;
     ffrt::CPUEUTask* task;
     CoCtx ctx;
-    uint64_t allocatedSize;
+    uint64_t allocatedSize; // CoRoutine allocated size
     bool isTaskDone = false;
     StackMem stkMem;
 };

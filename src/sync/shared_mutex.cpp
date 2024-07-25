@@ -98,7 +98,7 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
     if (ThreadWaitMode(task)) {
-        if (FFRT_UNLIKELY(LegacyMode(task)))  {
+        if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
             ctx->wn.task = task;
         }

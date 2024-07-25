@@ -29,6 +29,7 @@ public:
     void ResetQueueStruct(uint32_t queueId);
     void UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId);
     uint64_t QueryQueueStatus(uint32_t queueId);
+    bool HasQueueActive();
 
 private:
     QueueMonitor();
@@ -42,13 +43,11 @@ private:
     void CheckQueuesStatus();
     void ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64_t &taskId);
 
-    WaitUntilEntry* we_ = nullptr;
     uint64_t timeoutUs_ = 0;
     std::shared_mutex mutex_;
     std::vector<std::pair<uint64_t, time_point_t>> queuesRunningInfo_;
     std::vector<QueueHandler*> queuesStructInfo_;
     std::atomic_bool exit_ { false };
-    std::atomic_bool abortSendTimer_ { false };
 };
 } // namespace ffrt
 

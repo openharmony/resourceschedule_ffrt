@@ -12,12 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef UTIL_TIME_FORMAT_H
 #define UTIL_TIME_FORMAT_H
 
 #include <chrono>
 #include <string>
+#include <securec.h>
 
 namespace ffrt {
 std::string FormatDateString(const std::chrono::system_clock::time_point& timePoint)
@@ -53,4 +53,4 @@ std::string FormatDateString(uint64_t steadyClockTimeStamp)
 }
 }
 
-#endif // UTIL_TIME_FORMAT_H
+#endif // UTIL_TIME_FORAMT_H

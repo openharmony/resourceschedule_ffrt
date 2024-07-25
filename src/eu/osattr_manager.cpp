@@ -30,7 +30,47 @@ bool OSAttrManager::CheckSchedAttrPara(const std::string &name, int min, int max
 
 int OSAttrManager::UpdateSchedAttr(const QoS& qos, ffrt_os_sched_attr *attr)
 {
-    return -1;
+    FFRT_LOGI("OSAttrManager::UpdateSchedAttr start qos[%d] attr.lat_nice[%d] attr.cpumap[0x%s] attr.u_min[%d]\
+        attr.shares[%d]", qos(), attr->latency_nice, attr->cpumap, attr->uclamp_min, attr->shares);
+    if (GetFuncQosMax() == nullptr) {
+        FFRT_LOGE("FuncQosMap has not regist");
+        return -1;
+    }
+    if (qos() != GetFuncQosMax()() - 1) {
+        FFRT_LOGE("qos[%d] attr update is not supported.\n", qos());
+        return -1;
+    }
+
+    struct SchedParaCheckInfo {
+        std::string paraName;
+        int min;
+        int max;
+        int paraValue;
+    };
+
+    std::vector<SchedParaCheckInfo> checkInfo {
+        { "share",        CGROUP_SHARES_MIN,    CGROUP_SHARES_MAX,     attr->shares},
+        { "latencynice",  CGROUP_LAT_NICE_MIN,  CGROUP_LAT_NICE_MAX,   attr->latency_nice},
+        { "uclampmin",    CGROUP_UCLAMP_MIN,    CGROUP_UCLAMP_MAX,     attr->uclamp_min},
+        { "uclampmax",    CGROUP_UCLAMP_MIN,    CGROUP_UCLAMP_MAX,     attr->uclamp_max},
+        { "vipprio",      CGROUP_VIPPRIO_MIN,   CGROUP_VIPPRIO_MAX,    attr->vip_prio},
+    };
+
+    for (const auto &tmpPara : checkInfo) {
+        if (!CheckSchedAttrPara(tmpPara.paraName, tmpPara.min, tmpPara.max, tmpPara.paraValue)) {
+            return -1;
+        }
+    }
+
+    SetCGroupCtlPara(cpuSharesNode, attr->shares);
+    SetCGroupCtlPara(cpuUclampminNode, attr->uclamp_min);
+    SetCGroupCtlPara(cpuUclampmaxNode, attr->uclamp_max);
+#ifndef OHOS_STANDARD_SYSTEM
+    SetCGroupCtlPara(cpuLatencyniceNode, attr->latency_nice);
+    SetCGroupCtlPara(cpuvipprioNode, attr->vip_prio);
+#endif
+    SetCGroupSetPara(cpuMapNode, static_cast<std::string>(attr->cpumap));
+    return 0;
 }
 
 void OSAttrManager::SetCGroupCtlPara(const std::string &name, int32_t value)

@@ -18,9 +18,9 @@
 #include <string>
 #include <securec.h>
 #include <iostream>
-#include "dfx/bbox/fault_logger_fd_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "faultloggerd_client.h"
+#include "dfx/bbox/fault_logger_fd_manager.h"
 
 static const int g_logBufferSize = 2048;
 
@@ -64,7 +64,7 @@ void FaultLoggerFdManager::WriteFaultLogger(const char* format, ...)
         return;
     }
 
-    char errLog[g_logBufferSize];
+    char errLog[g_logBufferSize] = {0};
     va_list args;
     va_start(args, format);
     std::string formatStr(format);
@@ -78,7 +78,7 @@ void FaultLoggerFdManager::WriteFaultLogger(const char* format, ...)
     std::string msg = errLog;
     int n = write(fd, msg.data(), msg.size());
     if (n < 0) {
-        FFRT_LOGW("fail to write faultLogger msg:%s, fd:%d, errno:%d", msg.data(), fd, errno);
+        FFRT_LOGW("fail to write faultLogger msg:%s fd:%d, errno:%d", msg.data(), fd, errno);
         CloseFd();
     }
 }

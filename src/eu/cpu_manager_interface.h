@@ -37,9 +37,11 @@ enum class TaskNotifyType {
 enum class SleepType {
     SLEEP_UNTIL_WAKEUP = 0,
     SLEEP_UNTIL_INTERRUPT,
+    SLEEP_BREAK,
 };
 
 struct CpuWorkerOps {
+    std::function<void (WorkerThread*)> WorkerLooper;
     std::function<CPUEUTask* (WorkerThread*)> PickUpTask;
     std::function<void (const WorkerThread*)> NotifyTaskPicked;
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;
@@ -48,8 +50,6 @@ struct CpuWorkerOps {
     std::function<PollerRet (const WorkerThread*, int timeout)> TryPoll;
     std::function<unsigned int (WorkerThread*)> StealTaskBatch;
     std::function<CPUEUTask* (WorkerThread*)> PickUpTaskBatch;
-    std::function<void (WorkerThread*)> TryMoveLocal2Global;
-    std::function<void (const QoS& qos, bool var)> UpdateBlockingNum;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     std::function<bool (WorkerThread*)> IsExceedRunningThreshold;
     std::function<bool (void)> IsBlockAwareInit;
@@ -61,7 +61,14 @@ struct CpuMonitorOps {
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
     std::function<int (const QoS& qos)> GetWorkerCount;
-    std::function<int (const QoS& qos)> GetBlockingNum;
+    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotity;
+};
+
+class CPUMonitor;
+class CPUManagerStrategy {
+public:
+    static WorkerThread* CreateCPUWorker(const QoS& qos, void* manager);
+    static CPUMonitor* CreateCPUMonitor(void* manager);
 };
 }
 #endif

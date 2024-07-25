@@ -27,6 +27,7 @@
 #include <memory>
 #include "task_base.h"
 #include "sched/interval.h"
+#include "sched/task_state.h"
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"
 #include "core/task_io.h"
@@ -43,8 +44,6 @@ class UserDefinedTask : public TaskBase {
     ffrt_io_callable_t work;
     ExecTaskStatus status;
 };
-
-#define TSD_SIZE 128
 
 class CPUEUTask : public CoTask {
 public:
@@ -68,13 +67,14 @@ public:
      */
     std::atomic<uint64_t> childNum {0};
     bool isWatchdogEnable = false;
+    bool notifyWorker_ = true;
 
     void** threadTsd = nullptr;
     void** tsd = nullptr;
     bool taskLocal = false;
 
-    bool legacyMode { false };
-    BlockType blockType { BlockType::BLOCK_COROUTINE };
+    bool legacyMode { false }; // dynamic switch controlled by set_legacy_mode api
+    BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 
     QoS qos;
     void SetQos(QoS& newQos);
@@ -84,6 +84,7 @@ public:
     void Execute() override;
 
     virtual void RecycleTask() = 0;
+
     inline bool IsRoot()
     {
         return parent == nullptr;
@@ -156,6 +157,5 @@ inline bool ThreadNotifyMode(CPUEUTask* task)
     }
     return false;
 }
-
 } /* namespace ffrt */
 #endif

@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef __FAULT_LOGGER_FD_MANAGER_h__
-#define __FAULT_LOGGER_FD_MANAGER_h__
+#ifndef __FAULT_LOGGER_FD_MANAGER_H__
+#define __FAULT_LOGGER_FD_MANAGER_H__
 
 class FaultLoggerFdManager {
 public:
@@ -33,4 +33,4 @@ private:
 
     FaultLoggerFdManager();
 };
-#endif /* __FAULT_LOGGER_FD_MANAGER_h__ */
+#endif /* __FAULT_LOGGER_FD_MANAGER_H__ */

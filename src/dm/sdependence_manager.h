@@ -29,6 +29,7 @@ public:
 
     void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f, const ffrt_deps_t *ins,
         const ffrt_deps_t *outs, const task_attr_private *attr) override;
+
     void onWait() override;
 
 #ifdef QOS_DEPENDENCY
@@ -37,7 +38,7 @@ public:
     void onWait(const ffrt_deps_t* deps) override;
 #endif
 
-    int onExecResults(const ffrt_deps_t* deps) override;
+    int onExecResults(const ffrt_deps_t *deps) override;
 
     void onTaskDone(CPUEUTask* task) override;
 

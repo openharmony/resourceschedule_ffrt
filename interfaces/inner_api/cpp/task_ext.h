@@ -64,6 +64,18 @@ static inline int set_cpu_worker_max_num(qos qos_, uint32_t num)
 }
 
 /**
+ * @brief Notifies a specified number of workers at a specified QoS level.
+ *
+ * @param qos_ Indicates the QoS.
+ * @param number Indicates the number of workers to be notified.
+ * @version 1.0
+ */
+static inline void notify_workers(qos qos_, int number)
+{
+    return ffrt_notify_workers(qos_, number);
+}
+
+/**
  * @brief Obtains the ID of this queue.
  *
  * @return Returns the queue ID.

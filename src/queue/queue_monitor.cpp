@@ -25,6 +25,7 @@ constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 constexpr uint64_t QUEUE_INFO_INITIAL_CAPACITY = 64;
 constexpr uint64_t ALLOW_TIME_ACC_ERROR_US = 500;
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000;
+constexpr uint64_t DESTRUCT_TRY_COUNT = 100;
 
 inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayUs)
 {
@@ -53,9 +54,13 @@ QueueMonitor::~QueueMonitor()
 {
     exit_.store(true);
     FFRT_LOGI("destruction of QueueMonitor enter");
+    int tryCnt = DESTRUCT_TRY_COUNT;
     // 取消定时器成功，或者中断了发送定时器，则释放we完成析构
     while (!DelayedRemove(we_->tp, we_) && !abortSendTimer_.load()) {
-        std::this_thread::yield();
+        if (--tryCnt < 0) {
+            break;
+        }
+        usleep(MIN_TIMEOUT_THRESHOLD_US);
     }
     SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
     FFRT_LOGI("destruction of QueueMonitor leave");

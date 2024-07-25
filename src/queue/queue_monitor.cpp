@@ -51,15 +51,6 @@ QueueMonitor::QueueMonitor()
 
 QueueMonitor::~QueueMonitor()
 {
-<<<<<<< HEAD
-    std::unique_lock lock(mutex_);
-    FFRT_LOGW("destruction of QueueMonitor enter");
-    for (uint32_t id = 0; id < queuesRunningInfo_.size(); ++id) {
-        if (queuesRunningInfo_[id].first != INVALID_TASK_ID) {
-            usleep(MIN_TIMEOUT_THRESHOLD_US);
-            break;
-        }
-=======
     exit_.store(true);
     FFRT_LOGI("destruction of QueueMonitor enter");
     int tryCnt = DESTRUCT_TRY_COUNT;
@@ -69,7 +60,6 @@ QueueMonitor::~QueueMonitor()
             break;
         }
         usleep(MIN_TIMEOUT_THRESHOLD_US);
->>>>>>> pr_302
     }
     FFRT_LOGW("destruction of QueueMonitor leave");
 }

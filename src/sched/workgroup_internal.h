@@ -24,7 +24,8 @@
 #include <fcntl.h>
 #include <string>
 
-#define MAX_WG_THREADS 32
+constexpr int RS_UID = 1003;
+constexpr int MAX_WG_THREADS = 32;
 #define MAX_FRAME_BUFFER 6
 #define gettid() syscall(SYS_gettid)
 namespace ffrt {
@@ -42,13 +43,51 @@ struct Workgroup {
     WgType type;
 };
 
-#if defined(QOS_FRAME_RTG)
+#if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
+
 struct Workgroup* WorkgroupCreate(uint64_t interval);
+int WorkgroupClear(struct Workgroup* wg);
+bool JoinWG(int tid);
+bool LeaveWG(int tid);
+
+#else
+
+inline struct Workgroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
+{
+    struct Workgroup* wg = new (std::nothrow) struct Workgroup();
+    if (wg == nullptr) {
+        return nullptr;
+    }
+    return wg;
+}
+
+inline int WorkgroupClear(struct Workgroup* wg)
+{
+    delete wg;
+    wg = nullptr;
+    return 0;
+}
+
+inline bool JoinWG(int tid)
+{
+    (void)tid;
+    return true;
+}
+
+inline bool LeaveWG(int tid)
+{
+    (void)tid;
+    return true;
+}
+
+#endif
+
+#if defined(QOS_FRAME_RTG)
+
 void WorkgroupStartInterval(struct Workgroup* wg);
 void WorkgroupStopInterval(struct Workgroup* wg);
 void WorkgroupJoin(struct Workgroup* wg, int tid);
-int WorkgroupClear(struct Workgroup* wg);
-bool JoinWG(int tid);
+
 #else /* !QOS_FRAME_RTG */
 
 inline void WorkgroupStartInterval(struct Workgroup* wg)
@@ -67,32 +106,10 @@ inline void WorkgroupStopInterval(struct Workgroup* wg)
     wg->started = false;
 }
 
-inline struct Workgroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
-{
-    struct Workgroup* wg = new (std::nothrow) struct Workgroup();
-    if (wg == nullptr) {
-        return nullptr;
-    }
-    return wg;
-}
-
 inline void WorkgroupJoin(struct Workgroup* wg, int tid)
 {
     (void)wg;
     (void)tid;
-}
-
-inline int WorkgroupClear(struct Workgroup* wg)
-{
-    delete wg;
-    wg = nullptr;
-    return 0;
-}
-
-inline bool JoinWG(int tid)
-{
-    (void)tid;
-    return true;
 }
 
 #endif /* QOS_FRAME_RTG */

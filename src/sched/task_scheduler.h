@@ -19,7 +19,6 @@
 #include "sched/task_runqueue.h"
 #include "eu/worker_thread.h"
 #include "sync/sync.h"
-#include "sync/semaphore.h"
 #include "ffrt_trace.h"
 #include "tm/cpu_task.h"
 #include "dfx/perf/ffrt_perf.h"
@@ -27,20 +26,27 @@
 namespace ffrt {
 class TaskScheduler {
 public:
-    virtual ~TaskScheduler() = default;
+    TaskScheduler(RunQueue* q) : que(q) {}
+    ~TaskScheduler()
+    {
+        if (que != nullptr) {
+            delete que;
+        }
+    }
 
     CPUEUTask* PickNextTask()
     {
-        auto ret = PickNextTaskImpl();
+        CPUEUTask* task = que->DeQueue();
         FFRT_PERF_TASK_NUM(qos, RQSize());
-        return ret;
+        return task;
     }
 
     bool WakeupTask(CPUEUTask* task)
     {
         bool ret = false;
         {
-            ret = WakeupTaskImpl(task);
+            que->EnQueue(task);
+            ret = true;
         }
         FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
@@ -50,7 +56,8 @@ public:
     {
         bool ret = false;
         {
-            ret = WakeupNodeImpl(node);
+            que->EnQueueNode(node);
+            ret = true;
         }
         FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
@@ -60,7 +67,8 @@ public:
     {
         bool ret = false;
         {
-            ret = RemoveNodeImpl(node);
+            que->RmQueueNode(node);
+            ret = true;
         }
         FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
@@ -68,64 +76,22 @@ public:
 
     bool RQEmpty()
     {
-        return RQEmptyImpl();
+        return que->Empty();
     }
 
     int RQSize()
     {
-        return RQSizeImpl();
+        return que->Size();
+    }
+
+    void SetQos(QoS &qos)
+    {
+        que->SetQos(qos);
     }
 
     int qos {0};
 private:
-    virtual CPUEUTask* PickNextTaskImpl() = 0;
-    virtual bool WakeupNodeImpl(LinkedList* node) = 0;
-    virtual bool RemoveNodeImpl(LinkedList* node) = 0;
-    virtual bool WakeupTaskImpl(CPUEUTask* task) = 0;
-    virtual bool RQEmptyImpl() = 0;
-    virtual int RQSizeImpl() = 0;
-
-    fast_mutex mutex;
-    semaphore sem;
-};
-
-class SFIFOScheduler : public TaskScheduler {
-private:
-    CPUEUTask* PickNextTaskImpl() override
-    {
-        CPUEUTask* task = que.DeQueue();
-        return task;
-    }
-
-    bool WakeupNodeImpl(LinkedList* node) override
-    {
-        que.EnQueueNode(node);
-        return true;
-    }
-
-    bool RemoveNodeImpl(LinkedList* node) override
-    {
-        que.RmQueueNode(node);
-        return true;
-    }
-
-    bool WakeupTaskImpl(CPUEUTask* task) override
-    {
-        que.EnQueue(task);
-        return true;
-    }
-
-    bool RQEmptyImpl() override
-    {
-        return que.Empty();
-    }
-
-    int RQSizeImpl() override
-    {
-        return que.Size();
-    }
-
-    FIFOQueue que;
+    RunQueue *que;
 };
 
 class SchedulerFactory {

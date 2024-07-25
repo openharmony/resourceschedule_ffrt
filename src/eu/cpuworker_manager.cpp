@@ -279,6 +279,7 @@ void CPUWorkerManager::WorkerJoinTg(const QoS& qos, pid_t pid)
 void CPUWorkerManager::WorkerLeaveTg(const QoS& qos, pid_t pid)
 {
     if (qos == qos_user_interactive) {
+        (void)LeaveWG(pid);
         return;
     }
     auto& tgwrap = groupCtl[qos()];

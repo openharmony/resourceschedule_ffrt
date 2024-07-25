@@ -15,7 +15,7 @@
 
 #include <gtest/gtest.h>
 #include <thread>
-#include "cpp/deadline.h"
+#include "c/deadline.h"
 #include "internal_inc/osal.h"
 #include "sched/interval.h"
 #include "dm/dependence_manager.h"
@@ -58,7 +58,7 @@ HWTEST_F(DeadlineTest, qos_interval_create_test, TestSize.Level1)
     interval qi = qos_interval_create(deadline_us, qos);
     EXPECT_NE(&qi, nullptr);
 
-    qos = qos_user_interactive;
+    qos = qos_max + 1;
     interval qi1 = qos_interval_create(deadline_us, qos);
     EXPECT_NE(&qi1, nullptr);
 }
@@ -74,7 +74,7 @@ HWTEST_F(DeadlineTest, qos_interval_destroy_test, TestSize.Level1)
     qos_interval_destroy(*qi);
 
     uint64_t deadline_us = 50000;
-    qos qos = qos_user_interactive;
+    qos qos = qos_max + 1;
 
     interval qi1 = qos_interval_create(deadline_us, qos);
     qos_interval_destroy(qi1);
@@ -91,7 +91,7 @@ HWTEST_F(DeadlineTest, qos_interval_begin_test, TestSize.Level1)
     qos_interval_begin(*qi);
 
     uint64_t deadline_us = 50000;
-    qos qos = qos_user_interactive;
+    qos qos = qos_max + 1;
 
     interval qi1 = qos_interval_create(deadline_us, qos);
     qos_interval_begin(qi1);
@@ -105,7 +105,7 @@ HWTEST_F(DeadlineTest, qos_interval_begin_test, TestSize.Level1)
 HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level1)
 {
     uint64_t deadline_us = 50000;
-    qos qos = qos_user_interactive;
+    qos qos = qos_max + 1;
     uint64_t new_deadline_us = 40000;
     interval* qi = new interval();
     qos_interval_update(*qi, new_deadline_us);
@@ -122,7 +122,7 @@ HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level1)
 HWTEST_F(DeadlineTest, qos_interval_end_test, TestSize.Level1)
 {
     uint64_t deadline_us = 50000;
-    qos qos = qos_user_interactive;
+    qos qos = qos_max + 1;
     interval* qi = new interval();
     qos_interval_end(*qi);
 
@@ -142,7 +142,7 @@ HWTEST_F(DeadlineTest, qos_interval_join_test, TestSize.Level1)
     interval ret = qos_interval_create(deadline_us, qos);
     qos_interval_join(ret);
 
-    qos = qos_user_interactive;
+    qos = qos_max + 1;
     interval ret1 = qos_interval_create(deadline_us, qos);
     qos_interval_join(ret1);
 }
@@ -159,7 +159,7 @@ HWTEST_F(DeadlineTest, qos_interval_leave_test, TestSize.Level1)
     interval ret = qos_interval_create(deadline_us, qos);
     qos_interval_leave(ret);
 
-    qos = qos_user_interactive;
+    qos = qos_max + 1;
     interval ret1 = qos_interval_create(deadline_us, qos);
     qos_interval_leave(ret1);
 }

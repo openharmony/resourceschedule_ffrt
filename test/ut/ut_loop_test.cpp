@@ -22,6 +22,7 @@
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+using namespace testing::ext;
 
 class LoopTest : public testing::Test {
 protected:
@@ -57,7 +58,7 @@ void* ThreadFunc(void* p)
  *
  * 预期结果    ：创建失败
  */
-TEST_F(LoopTest, loop_null_queue_create_fail)
+HWTEST_F(LoopTest, loop_null_queue_create_fail, TestSize.Level1)
 {
     auto loop = ffrt_loop_create(nullptr);
     EXPECT_EQ(loop, nullptr);
@@ -71,7 +72,7 @@ TEST_F(LoopTest, loop_null_queue_create_fail)
  *
  * 预期结果    ：创建失败
  */
-TEST_F(LoopTest, loop_serial_queue_create_succ)
+HWTEST_F(LoopTest, loop_serial_queue_create_succ, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -92,7 +93,7 @@ TEST_F(LoopTest, loop_serial_queue_create_succ)
  *
  * 预期结果    ：执行成功
  */
-TEST_F(LoopTest, loop_concurrent_queue_create_succ)
+HWTEST_F(LoopTest, loop_concurrent_queue_create_succ, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -117,7 +118,7 @@ TEST_F(LoopTest, loop_concurrent_queue_create_succ)
  *
  * 预期结果    ：创建失败
  */
-TEST_F(LoopTest, loop_concurrent_queue_create_fail)
+HWTEST_F(LoopTest, loop_concurrent_queue_create_fail, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -141,7 +142,7 @@ TEST_F(LoopTest, loop_concurrent_queue_create_fail)
  *
  * 预期结果    ：执行失败
  */
-TEST_F(LoopTest, loop_run_fail)
+HWTEST_F(LoopTest, loop_run_fail, TestSize.Level1)
 {
     int ret = ffrt_loop_run(nullptr);
     EXPECT_NE(ret, 0);
@@ -154,7 +155,7 @@ TEST_F(LoopTest, loop_run_fail)
  *
  * 预期结果    ：执行失败
  */
-TEST_F(LoopTest, loop_destroy_fail)
+HWTEST_F(LoopTest, loop_destroy_fail, TestSize.Level1)
 {
     int ret = ffrt_loop_destroy(nullptr);
     EXPECT_NE(ret, 0);
@@ -169,7 +170,7 @@ TEST_F(LoopTest, loop_destroy_fail)
  *            2、销毁loop成功
  * 预期结果    ：执行成功
  */
-TEST_F(LoopTest, loop_run_destroy_success)
+HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);

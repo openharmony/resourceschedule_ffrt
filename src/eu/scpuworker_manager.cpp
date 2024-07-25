@@ -209,15 +209,6 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
         CPUMonitor::HandleTaskNotifyDefault,
     };
 
-#ifdef OHOS_STANDARD_SYSTEM
-    for (const auto& notifyFunc : NOTIFY_FUNCTION_FACTORY) {
-        if (strstr(processName, notifyFunc.first.c_str())) {
-            ops.HandleTaskNotity = notifyFunc.second;
-            break;
-        }
-    }
-#endif
-
     return new SCPUMonitor(std::move(ops));
 }
 } // namespace ffrt

@@ -281,39 +281,71 @@ void mutexPrivate::wake()
 extern "C" {
 #endif
 API_ATTRIBUTE((visibility("default")))
+int ffrt_mutexattr_init(ffrt_mutexattr_t* attr)
+{
+    if (attr == nullptr) {
+        FFRT_LOGE("attr should not be empty");
+        return ffrt_error_inval;
+    }
+    attr->storage = static_cast<long>(ffrt_mutex_dafault);
+    return ffrt_success;
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type)
+{
+    if (attr == nullptr) {
+        FFRT_LOGE("attr should not be empty");
+        return ffrt_error_inval;
+    }
+    if (type != ffrt_mutex_normal && type != ffrt_mutex_recursive && type != ffrt_mutex_default) {
+        FFRT_LOGE("mutex type is invaild");
+        return ffrt_error_inval;
+    }
+    attr->storage = static_cast<long>(type);
+    return ffrt_success;
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_mutexattr_gettype(ffrt_mutexattr_t* attr, int* type)
+{
+    if (attr == nullptr || type == nullptr) {
+        FFRT_LOGE("attr or type should not be empty");
+        return ffrt_error_inval;
+    }
+    *type = static_cast<int>(attr->storage);
+    return ffrt_success;
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr)
+{
+    if (attr == nullptr) {
+        FFRT_LOGE("attr should not be empty");
+        return ffrt_error_inval;
+    }
+    return ffrt_success;
+}
+
+API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
 {
     if (!mutex) {
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    if (attr != nullptr) {
-        FFRT_LOGE("only support normal mutex");
-        return ffrt_error;
-    }
-    static_assert(sizeof(ffrt::mutexPrivate) <= ffrt_mutex_storage_size,
+    if (attr == nullptr || attr->storage == static_cast<long>(ffrt_mutex_normal)) {
+        static_assert(sizeof(ffrt::mutexPrivate) <= ffrt_mutex_storage_size,
         "size must be less than ffrt_mutex_storage_size");
-
-    new (mutex)ffrt::mutexPrivate();
-    return ffrt_success;
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_recursive_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
-{
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
-        return ffrt_error_inval;
-    }
-    if (attr != nullptr) {
-        FFRT_LOGE("only support normal mutex");
-        return ffrt_error;
-    }
-    static_assert(sizeof(ffrt::RecursiveMutexPrivate) <= ffrt_mutex_storage_size,
+        new (mutex)ffrt::mutexPrivate();
+        return ffrt_success;
+    } else if (attr->storage == static_cast<long>(ffrt_mutex_recursive)) {
+        static_assert(sizeof(ffrt::RecursiveMutexPrivate) <= ffrt_mutex_storage_size,
         "size must be less than ffrt_mutex_storage_size");
-
-    new (mutex)ffrt::RecursiveMutexPrivate();
-    return ffrt_success;
+        new (mutex)ffrt::RecursiveMutexPrivate();
+        return ffrt_success;
+    }
+    return ffrt_error_inval;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -323,19 +355,7 @@ int ffrt_mutex_lock(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
-    p->lock();
-    return ffrt_success;
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_recursive_mutex_lock(ffrt_mutex_t* mutex)
-{
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
-        return ffrt_error_inval;
-    }
-    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
     p->lock();
     return ffrt_success;
 }
@@ -347,19 +367,7 @@ int ffrt_mutex_unlock(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
-    p->unlock();
-    return ffrt_success;
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_recursive_mutex_unlock(ffrt_mutex_t* mutex)
-{
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
-        return ffrt_error_inval;
-    }
-    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
     p->unlock();
     return ffrt_success;
 }
@@ -371,18 +379,7 @@ int ffrt_mutex_trylock(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
-    return p->try_lock() ? ffrt_success : ffrt_error_busy;
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_recursive_mutex_trylock(ffrt_mutex_t* mutex)
-{
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
-        return ffrt_error_inval;
-    }
-    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
     return p->try_lock() ? ffrt_success : ffrt_error_busy;
 }
 
@@ -393,20 +390,8 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex)
         FFRT_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<ffrt::mutexPrivate*>(mutex);
+    auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
     p->~mutexPrivate();
-    return ffrt_success;
-}
-
-API_ATTRIBUTE((visibility("default")))
-int ffrt_recursive_mutex_destroy(ffrt_mutex_t* mutex)
-{
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
-        return ffrt_error_inval;
-    }
-    auto p = reinterpret_cast<ffrt::RecursiveMutexPrivate*>(mutex);
-    p->~RecursiveMutexPrivate();
     return ffrt_success;
 }
 

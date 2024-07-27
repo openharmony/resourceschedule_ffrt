@@ -61,11 +61,14 @@ class recursive_mutex : public ffrt_mutex_t {
 public:
     recursive_mutex()
     {
-        ffrt_recursive_mutex_init(this, nullptr);
+        ffrt_mutexattr_init(&attr);
+        ffrt_mutexattr_settype(&attr, ffrt_mutex_recursive);
+        ffrt_recursive_mutex_init(this, &attr);
     }
 
     ~recursive_mutex()
     {
+        ffrt_mutexattr_destroy(&attr);
         ffrt_recursive_mutex_destroy(this);
     }
 
@@ -74,18 +77,20 @@ public:
 
     inline bool try_lock()
     {
-        return ffrt_recursive_mutex_trylock(this) == ffrt_success ? true : false;
+        return ffrt_mutex_trylock(this) == ffrt_success ? true : false;
     }
 
     inline void lock()
     {
-        ffrt_recursive_mutex_lock(this);
+        ffrt_mutex_lock(this);
     }
 
     inline void unlock()
     {
-        ffrt_recursive_mutex_unlock(this);
+        ffrt_mutex_unlock(this);
     }
+private:
+    ffrt_mutexattr_t attr;
 };
 } // namespace ffrt
 #endif

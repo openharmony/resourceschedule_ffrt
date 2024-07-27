@@ -63,13 +63,13 @@ public:
     {
         ffrt_mutexattr_init(&attr);
         ffrt_mutexattr_settype(&attr, ffrt_mutex_recursive);
-        ffrt_recursive_mutex_init(this, &attr);
+        ffrt_mutex_init(this, &attr);
     }
 
     ~recursive_mutex()
     {
         ffrt_mutexattr_destroy(&attr);
-        ffrt_recursive_mutex_destroy(this);
+        ffrt_mutex_destroy(this);
     }
 
     recursive_mutex(recursive_mutex const&) = delete;

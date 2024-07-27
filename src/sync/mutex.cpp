@@ -391,7 +391,7 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex)
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
-    p->~mutexPrivate();
+    p->~mutexBase();
     return ffrt_success;
 }
 

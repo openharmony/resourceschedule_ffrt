@@ -283,7 +283,7 @@ ohos_unittest("qos_convert_test") {
   part_name = "ffrt"
 }
 
-ohos_unittest("ut_coroutine_test") {
+ohos_unittest("ut_coroutine") {
   module_out_path = module_output_path
 
   configs = [ ":ffrt_test_config" ]
@@ -297,7 +297,7 @@ ohos_unittest("ut_coroutine_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_coroutine_test.cpp" ]
+  sources = [ "testcase/ut_coroutine.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -323,7 +323,7 @@ ohos_unittest("ut_core_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_core_test.cpp" ]
+  sources = [ "testcase/ut_core_test.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -375,7 +375,7 @@ ohos_unittest("inherit_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "inherit_test.cpp" ]
+  sources = [ "testcase/inherit_test.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -427,7 +427,7 @@ ohos_unittest("ut_condition") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_condition.cpp" ]
+  sources = [ "testcase/ut_condition.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -453,7 +453,7 @@ ohos_unittest("ut_core") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_core.cpp" ]
+  sources = [ "testcase/ut_core.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -479,7 +479,7 @@ ohos_unittest("ut_csync") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_csync.cpp" ]
+  sources = [ "testcase/ut_csync.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -505,7 +505,7 @@ ohos_unittest("ut_deadline") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_deadline.cpp" ]
+  sources = [ "testcase/ut_deadline.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -531,7 +531,7 @@ ohos_unittest("ut_dependency") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_dependency.cpp" ]
+  sources = [ "testcase/ut_dependency.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -557,7 +557,7 @@ ohos_unittest("ut_execute_unit") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_execute_unit.cpp" ]
+  sources = [ "testcase/ut_execute_unit.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -569,7 +569,7 @@ ohos_unittest("ut_execute_unit") {
   part_name = "ffrt"
 }
 
-ohos_unittest("ut_ffrt_io_test") {
+ohos_unittest("ut_ffrt_io") {
   module_out_path = module_output_path
 
   configs = [ ":ffrt_test_config" ]
@@ -583,7 +583,7 @@ ohos_unittest("ut_ffrt_io_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_ffrt_io_test.cpp" ]
+  sources = [ "testcase/ut_ffrt_io.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -609,7 +609,7 @@ ohos_unittest("ut_graphCheck") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_graphCheck.cpp" ]
+  sources = [ "testcase/ut_graphCheck.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -635,7 +635,7 @@ ohos_unittest("ut_interval") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_interval.cpp" ]
+  sources = [ "testcase/ut_interval.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -647,7 +647,7 @@ ohos_unittest("ut_interval") {
   part_name = "ffrt"
 }
 
-ohos_unittest("ut_loop_test") {
+ohos_unittest("ut_loop") {
   module_out_path = module_output_path
 
   configs = [ ":ffrt_test_config" ]
@@ -661,7 +661,7 @@ ohos_unittest("ut_loop_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_loop_test.cpp" ]
+  sources = [ "testcase/ut_loop.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -673,7 +673,7 @@ ohos_unittest("ut_loop_test") {
   part_name = "ffrt"
 }
 
-ohos_unittest("ut_queue_test") {
+ohos_unittest("ut_queue") {
   module_out_path = module_output_path
 
   configs = [ ":ffrt_test_config" ]
@@ -687,7 +687,7 @@ ohos_unittest("ut_queue_test") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_queue_test.cpp" ]
+  sources = [ "testcase/ut_queue.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -713,7 +713,7 @@ ohos_unittest("ut_rtg") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_rtg.cpp" ]
+  sources = [ "testcase/ut_rtg.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -739,7 +739,7 @@ ohos_unittest("ut_scheduler") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_scheduler.cpp" ]
+  sources = [ "testcase/ut_scheduler.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -765,7 +765,7 @@ ohos_unittest("ut_thread") {
     "-DFFRT_PERF_EVENT_ENABLE",
   ]
 
-  sources = [ "ut_thread.cpp" ]
+  sources = [ "testcase/ut_thread.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -794,7 +794,7 @@ ohos_unittest("ut_mem") {
   sources = [
     "../testfunc/func_pool.cpp",
     "../testfunc/util.cpp",
-    "ut_mem.cpp",
+    "testcase/ut_mem.cpp",
   ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
@@ -852,17 +852,17 @@ group("ffrt_unittest_ffrt") {
       ":ut_condition",
       ":ut_core",
       ":ut_core_test",
-      ":ut_coroutine_test",
+      ":ut_coroutine",
       ":ut_csync",
       ":ut_deadline",
       ":ut_dependency",
       ":ut_execute_unit",
-      ":ut_ffrt_io_test",
+      ":ut_ffrt_io",
       ":ut_graphCheck",
       ":ut_interval",
-      ":ut_loop_test",
+      ":ut_loop",
       ":ut_mem",
-      ":ut_queue_test",
+      ":ut_queue",
       ":ut_rtg",
       ":ut_scheduler",
       ":ut_thread",

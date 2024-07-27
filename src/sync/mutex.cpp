@@ -287,7 +287,7 @@ int ffrt_mutexattr_init(ffrt_mutexattr_t* attr)
         FFRT_LOGE("attr should not be empty");
         return ffrt_error_inval;
     }
-    attr->storage = static_cast<long>(ffrt_mutex_dafault);
+    attr->storage = static_cast<long>(ffrt_mutex_default);
     return ffrt_success;
 }
 

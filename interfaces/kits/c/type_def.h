@@ -37,6 +37,7 @@
  */
 #ifndef FFRT_API_C_TYPE_DEF_H
 #define FFRT_API_C_TYPE_DEF_H
+#include <pthread.h>
 #include <stdint.h>
 #include <errno.h>
 
@@ -182,6 +183,12 @@ typedef struct {
 typedef struct {
     long storage;
 } ffrt_mutexattr_t;
+
+typedef enum {
+    ffrt_mutex_normal = PTHREAD_MUTEX_NORMAL,
+    ffrt_mutex_recursive = PTHREAD_MUTEX_RECURSIVE,
+    ffrt_mutex_default = ffrt_mutex_normal
+} ffrt_mutex_type;
 
 typedef struct {
     uint32_t storage[(ffrt_mutex_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];

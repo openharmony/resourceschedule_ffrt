@@ -2451,6 +2451,18 @@ typedef enum {
 
 struct ffrt_mutex_t;
 
+struct ffrt_mutexattr_t;
+
+typedef enum {
+    ffrt_mutex_normal = PTHREAD_MUTEX_NORMAL,
+    ffrt_mutex_recursive = PTHREAD_MUTEX_RECURSIVE,
+    ffrt_mutex_default = ffrt_mutex_normal
+} ffrt_mutex_type;
+
+int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
+int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type);
+int ffrt_mutexattr_gettype(ffrt_mutexattr_t* attr, int* type);
+int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr);
 int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr);
 int ffrt_mutex_lock(ffrt_mutex_t* mutex);
 int ffrt_mutex_unlock(ffrt_mutex_t* mutex);
@@ -2459,14 +2471,17 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 ```
 
 #### 参数
+`type`
+
+* FFRT锁类型，当前仅支持互斥锁ffrt_mutex_normal和递归锁ffrt_mutex_recursive
 
 `attr`
 
-* 当前FFRT只支持基础类型的mutex，因此attr必须为空指针
+* FFRT锁属性，attr如果为空指针代表互斥锁mutex
 
 `mutex`
 
-* 指向所操作的互斥锁的指针
+* 指向所操作的锁指针
 
 #### 返回值
 
@@ -2475,9 +2490,12 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 #### 描述
 * 该接口只能在FFRT task 内部调用，在FFRT task 外部调用存在未定义的行为
 * 该功能能够避免pthread传统的pthread_mutex_t 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
-* **注意：目前暂不支持递归和定时功能**
+* **注意：目前暂不支持定时功能**
+* **注意：C API中的ffrt_mutexattr_t需要用户调用`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`显示创建和销毁，而C++ API无需该操作**
 * **注意：C API中的ffrt_mutex_t需要用户调用`ffrt_mutex_init`和`ffrt_mutex_destroy`显式创建和销毁，而C++ API无需该操作**
 * **注意：C API中的ffrt_mutex_t对象的置空和销毁由用户完成，对同一个ffrt_mutex_t仅能调用一次`ffrt_mutex_destroy`，重复对同一个ffrt_mutex_t调用`ffrt_mutex_destroy`，其行为是未定义的**
+* **注意：C API中的同一个ffrt_mutexattr_t只能调用一次`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`，重复调用其行为是未定义的**
+* **注意：用户需要在调用`ffrt_mutex_init`之后和调用`ffrt_mutex_destroy`之前显示调用`ffrt_mutexattr_destroy`**
 * **注意：在`ffrt_mutex_destroy`之后再对ffrt_mutex_t进行访问，其行为是未定义的**
 
 #### 样例
@@ -2567,10 +2585,42 @@ void ffrt_mutex_task()
     printf("sum = %d", sum);
 }
 
+void ffrt_recursive_mutex_task()
+{
+    int sum = 0;
+    int ret = 0;
+    ffrt_mutexattr_t attr;
+    ffrt_mutex_t mtx;
+    ret = ffrt_mutexattr_init(&attr);
+    if (ret != ffrt_success) {
+        printf("mutexattr init error\n");
+    }
+    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_recursive);
+    if (ret != ffrt_success) {
+        printf("mutexattr settype error\n");
+    }
+    tuple t = {&sum, &mtx};
+    int ret = ffrt_mutex_init(&mtx, &attr);
+    if (ret != ffrt_success) {
+        printf("error\n");
+    }
+    for (int i = 0; i < 10; i++) {
+        ffrt_submit_c(func, NULL, &t, NULL, NULL, NULL);
+    }
+    ffrt_mutexattr_destory(&attr);
+    ffrt_mutex_destroy(&mtx);
+    ffrt_wait();
+    printf("sum = %d", sum);
+}
+
 int main(int narg, char** argv)
 {
     int r;
+    /* mutex */
     ffrt_submit_c(ffrt_mutex_task, NULL, NULL, NULL, NULL, NULL);
+    ffrt_wait();
+    /* recursive mutex */
+    ffrt_submit_c(ffrt_recursive_mutex_task, NULL, NULL, NULL, NULL, NULL);
     ffrt_wait();
     return 0;
 }

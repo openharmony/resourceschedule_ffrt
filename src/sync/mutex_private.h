@@ -100,7 +100,16 @@ public:
 };
 #endif
 
-class mutexPrivate {
+class mutexBase {
+public:
+    mutexBase() = default;
+    virtual ~mutexBase() = default;
+    virtual void lock() {}
+    virtual void unlock() {}
+    virtual bool try_lock() {return false;}
+};
+
+class mutexPrivate : public mutexBase {
     std::atomic<int> l;
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
     std::atomic<uintptr_t> owner;
@@ -120,16 +129,16 @@ public:
     mutexPrivate(mutexPrivate const &) = delete;
     void operator = (mutexPrivate const &) = delete;
 
-    bool try_lock();
-    void lock();
-    void unlock();
+    bool try_lock() override;
+    void lock() override;
+    void unlock() override;
 };
 
-class RecursiveMutexPrivate {
+class RecursiveMutexPrivate : public mutexBase {
 public:
-    void lock();
-    void unlock();
-    bool try_lock();
+    void lock() override;
+    void unlock() override;
+    bool try_lock() override;
 
     RecursiveMutexPrivate() = default;
     ~RecursiveMutexPrivate() = default;

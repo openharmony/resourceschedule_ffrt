@@ -23,6 +23,10 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "c/thread.h"
 
+extern "C" int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
+extern "C" int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type);
+extern "C" int ffrt_mutexattr_gettype(ffrt_mutexattr_t* attr, int* type);
+extern "C" int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr);
 extern "C" int ffrt_mutex_init(ffrt_mutex_t *mutex, const ffrt_mutexattr_t* attr);
 extern "C" int ffrt_mutex_lock(ffrt_mutex_t *mutex);
 extern "C" int ffrt_mutex_unlock(ffrt_mutex_t *mutex);
@@ -51,6 +55,18 @@ protected:
     }
 };
 
+HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level1)
+{
+    int ret = ffrt_mutexattr_init(nullptr);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_mutexattr_settype(nullptr, 0);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_mutexattr_gettype(nullptr, nullptr);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_mutexattr_destroy(nullptr);
+    EXPECT_EQ(ret, ffrt_error_inval);
+}
+
 HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level1)
 {
     int ret = ffrt_mutex_init(nullptr, nullptr);
@@ -62,6 +78,20 @@ HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level1)
     ret = ffrt_mutex_trylock(nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
     ffrt_mutex_destroy(nullptr);
+}
+
+HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level1)
+{
+    int val = -1;
+    ffrt::recursive_mutex lock;
+    lock.lock();
+    val = lock.try_lock();
+    EXPECT_EQ(val, 1);
+    lock.unlock();
+    val = lock.try_lock();
+    EXPECT_EQ(val, 1);
+    lock.unlock();
+    lock.unlock();
 }
 
 HWTEST_F(SyncTest, class_data_align, TestSize.Level1)

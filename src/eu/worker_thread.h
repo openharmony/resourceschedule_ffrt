@@ -29,6 +29,13 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
+constexpr int PTHREAD_CREATE_NO_MEM_CODE = 11;
+constexpr int FFRT_RETRY_MAX_COUNT = 12;
+const std::vector<uint64_t> FFRT_RETRY_CYCLE_LIST = {
+    10 * 1000, 50 * 1000, 100 * 1000, 200 * 1000, 500 * 1000, 1000 * 1000, 2 * 1000 * 1000,
+    5 * 1000 * 1000, 10 * 1000 * 1000, 50 * 1000 * 1000, 100 * 1000 * 1000, 500 * 1000 * 1000
+};
+
 class WorkerThread {
 public:
     CPUEUTask* curTask = nullptr;
@@ -101,6 +108,15 @@ public:
     void Start(void*(*ThreadFunc)(void*), void* args)
     {
         int ret = pthread_create(&thread_, &attr_, ThreadFunc, args);
+        if (ret == PTHREAD_CREATE_NO_MEM_CODE) {
+            int count = 0;
+            while (ret == PTHREAD_CREATE_NO_MEM_CODE && count < FFRT_RETRY_MAX_COUNT) {
+                usleep(FFRT_RETRY_CYCLE_LIST[count]);
+                count++;
+                FFRT_LOGW("pthread_create failed due to shortage of system memory, FFRT retry %d times...", count);
+                ret = pthread_create(&thread_, &attr_, ThreadFunc, args);
+            }
+        }
         if (ret != 0) {
             exited = true;
         }

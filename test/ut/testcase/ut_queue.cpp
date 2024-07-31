@@ -687,7 +687,7 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
  * 操作步骤    ：初始化一个eventhandler_interactive_queue类型队列
  * 预期结果    ：能够正常初始化eventhandler_interactive_queue类型队列
  */
-HWTEST_F(QueueTest, ffrt_queue_eventhandler_interactive_queue) {
+HWTEST_F(QueueTest, ffrt_queue_eventhandler_interactive_queue, TestSize.Level1) {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); //初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(

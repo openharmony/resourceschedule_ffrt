@@ -681,6 +681,17 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
+HWTEST_F(QueueTest, ffrt_queue_eventhandler_intractive_queue) {
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); //初始化属性，必须
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_intractive), "test queue", &queue_attr);
+    EXPECT_TRUE(queue_handle != nullptr);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
 #ifdef OHOS_STANDARD_SYSTEM
 HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
 {

@@ -35,6 +35,7 @@ constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr int RECORD_TIME_PER_LEVEL = 10;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
+constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
     1000 * 1000, 60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
 };
@@ -43,19 +44,18 @@ const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
 namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
-    // 从配置文件读取黑名单
-    std::string filename = "/etc/ffrt/worker_monitor.conf";
-    std::ifstream file(filename);
-    std::string skipProcess;
-    
+    // 获取当前进程名称
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-    
+
+    // 从配置文件读取黑名单
+    std::string skipProcess;
+    std::ifstream file(CONF_FILEPATH);
     if (file.is_open()) {
         while (std::getline(file, skipProcess)) {
             if (strstr(processName, skipProcess.c_str()) != nullptr) {
                 skipSampling_ = true;
-                break;
+                return;
             }
         }
     } else {
@@ -92,10 +92,6 @@ void WorkerMonitor::SubmitTask()
 
 void WorkerMonitor::SubmitSamplingTask()
 {
-    if (skipSampling_) {
-        return;
-    }
-
     watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
     watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
     if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {

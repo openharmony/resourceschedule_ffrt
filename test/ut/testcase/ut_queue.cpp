@@ -681,11 +681,17 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_eventhandler_intractive_queue) {
+/*
+ * 测试用例名称：ffrt_queue_eventhandler_interactive_queue
+ * 测试用例描述：eventhandler_interactive_queue的创建
+ * 操作步骤    ：初始化一个eventhandler_interactive_queue类型队列
+ * 预期结果    ：能够正常初始化eventhandler_interactive_queue类型队列
+ */
+HWTEST_F(QueueTest, ffrt_queue_eventhandler_interactive_queue) {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); //初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(
-        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_intractive), "test queue", &queue_attr);
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test queue", &queue_attr);
     EXPECT_TRUE(queue_handle != nullptr);
 
     ffrt_queue_attr_destroy(&queue_attr);

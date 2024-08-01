@@ -45,16 +45,16 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
     }
 
     queue_ = CreateQueue(type, attr);
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", queue_->GetQueueId());
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", GetQueueId());
 
     if (name != nullptr && std::string(name).size() <= STRING_SIZE_MAX) {
-        name_ = "sq_" + std::string(name) + "_" + std::to_string(queue_->GetQueueId());
+        name_ = "sq_" + std::string(name) + "_" + std::to_string(GetQueueId());
     } else {
         name_ += "sq_unnamed_" + std::to_string(GetQueueId());
-        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", queue_->GetQueueId());
+        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", GetQueueId());
     }
 
-    QueueMonitor::GetInstance().RegisterQueueId(queue_->GetQueueId(), this);
+    QueueMonitor::GetInstance().RegisterQueueId(GetQueueId(), this);
     FFRT_LOGI("construct %s succ", name_.c_str());
 }
 

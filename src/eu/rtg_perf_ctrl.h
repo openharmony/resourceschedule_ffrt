@@ -40,7 +40,7 @@ struct rtg_group_task {
     bool pmu_sample_enabled;
 };
 
-struct rtg_load_mode {
+struct RtgLoadMode {
     unsigned int grpId;
     unsigned int freqEnabled;
     unsigned int utilEnabled;
@@ -61,7 +61,7 @@ struct task_config {
 #define PERF_CTRL_SET_TASK_RTG _IOWR(PERF_CTRL_MAGIC, SET_TASK_RTG, struct rtg_group_task)
 #define PERF_CTRL_SET_FRAME_STATUS _IOWR(PERF_CTRL_MAGIC, SET_FRAME_STATUS, unsigned long long)
 #define PERF_CTRL_SET_FRAME_RATE _IOWR(PERF_CTRL_MAGIC, SET_FRAME_RATE, int)
-#define PERF_CTRL_SET_RTG_LOAD_MODE _IOW(PERF_CTRL_MAGIC, SET_RTG_LOAD_MODE, struct rtg_load_mode)
+#define PERF_CTRL_SET_RTG_LOAD_MODE _IOW(PERF_CTRL_MAGIC, SET_RTG_LOAD_MODE, struct RtgLoadMode)
 #define PERF_CTRL_SET_TASK_MIN_UTIL _IOW(PERF_CTRL_MAGIC, SET_TASK_MIN_UTIL, struct task_config)
 
 #ifdef __cplusplus

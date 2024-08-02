@@ -29,7 +29,7 @@ extern "C" {
 void SetTaskRtg(pid_t tid, unsigned int grpId);
 void SetRtgStatus(unsigned long long status);
 void SetRtgQos(int qos);
-void set_rtg_load_mode(unsigned int grpId, bool util_enabled, bool freq_enabled);
+void SetRtgLoadMode(unsigned int grpId, bool utilEnabled, bool freqEnabled);
 void set_task_min_util(pid_t tid, unsigned int util);
 
 /* inner use */
@@ -42,8 +42,8 @@ struct rtg_group_task {
 
 struct rtg_load_mode {
     unsigned int grpId;
-    unsigned int freq_enabled;
-    unsigned int util_enabled;
+    unsigned int freqEnabled;
+    unsigned int utilEnabled;
 };
 
 struct task_config {

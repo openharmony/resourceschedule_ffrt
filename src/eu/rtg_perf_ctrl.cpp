@@ -91,14 +91,14 @@ void SetRtgQos(int qos) // MHZ
     close(fd);
 }
 
-void set_rtg_load_mode(unsigned int grpId, bool util_enabled, bool freq_enabled)
+void SetRtgLoadMode(unsigned int grpId, bool utilEnabled, bool freqEnabled)
 {
     struct rtg_load_mode load_mode;
 
     memset_s(&load_mode, sizeof(struct rtg_load_mode), 0, sizeof(struct rtg_load_mode));
     load_mode.grpId = grpId;
-    load_mode.util_enabled = !!util_enabled;
-    load_mode.freq_enabled = !!freq_enabled;
+    load_mode.utilEnabled = !!utilEnabled;
+    load_mode.freqEnabled = !!freqEnabled;
 
     int fd = OpenPerfCtrl();
     if (fd < 0) {
@@ -106,8 +106,8 @@ void set_rtg_load_mode(unsigned int grpId, bool util_enabled, bool freq_enabled)
     }
 
     if (ioctl(fd, PERF_CTRL_SET_RTG_LOAD_MODE, &load_mode)) {
-        FFRT_LOGW("Error set rtg load_mode %d:%d/%d. %s", load_mode.grpId, load_mode.util_enabled,
-            load_mode.freq_enabled, strerror(errno));
+        FFRT_LOGW("Error set rtg load_mode %d:%d/%d. %s", load_mode.grpId, load_mode.utilEnabled,
+            load_mode.freqEnabled, strerror(errno));
         close(fd);
         return;
     }

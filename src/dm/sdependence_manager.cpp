@@ -56,12 +56,12 @@ void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles,
 {
     // signature去重：1）outs去重
     if (outs) {
-        outsDeDup(outsNoDup, outs);
+        OutsDedup(outsNoDup, outs);
     }
 
     // signature去重：2）ins去重（不影响功能，skip）；3）ins不和outs重复（当前不支持weak signature）
     if (ins) {
-        insDeDup(in_handles, insNoDup, outsNoDup, ins);
+        InsDedup(in_handles, insNoDup, outsNoDup, ins);
     }
 }
 

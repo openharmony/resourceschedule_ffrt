@@ -91,7 +91,7 @@ int DelayedWorker::HandleWork()
     if (!map.empty()) {
         noTaskDelayCount_ = 0;
         do {
-            time_point_t now = std::chrono::steady_clock::now();
+            TimePoint now = std::chrono::steady_clock::now();
             auto cur = map.begin();
             if (cur->first <= now) {
                 DelayedWork w = cur->second;
@@ -109,7 +109,7 @@ int DelayedWorker::HandleWork()
 }
 
 // There is no requirement that to be less than now
-bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
+bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;
     lock.lock();
@@ -119,7 +119,7 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
         return false;
     }
 
-    time_point_t now = std::chrono::steady_clock::now();
+    TimePoint now = std::chrono::steady_clock::now();
     if (to <= now) {
         lock.unlock();
         return false;
@@ -142,7 +142,7 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     return true;
 }
 
-bool DelayedWorker::remove(const time_point_t& to, WaitEntry* we)
+bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 {
     std::lock_guard<decltype(lock)> l(lock);
 

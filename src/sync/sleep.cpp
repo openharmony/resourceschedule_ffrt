@@ -38,7 +38,7 @@ CPUEUTask* ExecuteCtxTask()
     return ctx->task;
 }
 
-void sleep_until_impl(const time_point_t& to)
+void sleep_until_impl(const TimePoint& to)
 {
     auto task = ExecuteCtxTask();
     if (ThreadWaitMode(task)) {

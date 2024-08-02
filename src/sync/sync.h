@@ -92,7 +92,7 @@ public:
     }
 };
 
-bool DelayedWakeup(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
-bool DelayedRemove(const time_point_t& to, WaitEntry* we);
+bool DelayedWakeup(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
+bool DelayedRemove(const TimePoint& to, WaitEntry* we);
 } // namespace ffrt
 #endif

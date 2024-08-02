@@ -30,7 +30,7 @@
 #endif
 
 namespace ffrt {
-using time_point_t = std::chrono::steady_clock::time_point;
+using TimePoint = std::chrono::steady_clock::time_point;
 
 enum class TaskTimeoutState {
     INIT,
@@ -75,7 +75,7 @@ struct WaitUntilEntry : WaitEntry {
     }
     std::atomic_int32_t status;
     bool hasWaitTime;
-    time_point_t tp;
+    TimePoint tp;
     std::function<void(WaitEntry*)> cb;
     std::mutex wl;
     std::condition_variable cv;

@@ -34,7 +34,7 @@ void set_task_min_util(pid_t tid, unsigned int util);
 
 /* inner use */
 
-struct rtg_group_task {
+struct RtgGroupTask {
     pid_t pid;
     unsigned int grpId;
     bool pmu_sample_enabled;
@@ -46,7 +46,7 @@ struct RtgLoadMode {
     unsigned int utilEnabled;
 };
 
-struct task_config {
+struct TaskConfig {
     pid_t pid;
     unsigned int value;
 };
@@ -58,11 +58,11 @@ struct task_config {
 #define SET_TASK_MIN_UTIL 28
 
 #define PERF_CTRL_MAGIC 'x'
-#define PERF_CTRL_SET_TASK_RTG _IOWR(PERF_CTRL_MAGIC, SET_TASK_RTG, struct rtg_group_task)
+#define PERF_CTRL_SET_TASK_RTG _IOWR(PERF_CTRL_MAGIC, SET_TASK_RTG, struct RtgGroupTask)
 #define PERF_CTRL_SET_FRAME_STATUS _IOWR(PERF_CTRL_MAGIC, SET_FRAME_STATUS, unsigned long long)
 #define PERF_CTRL_SET_FRAME_RATE _IOWR(PERF_CTRL_MAGIC, SET_FRAME_RATE, int)
 #define PERF_CTRL_SET_RTG_LOAD_MODE _IOW(PERF_CTRL_MAGIC, SET_RTG_LOAD_MODE, struct RtgLoadMode)
-#define PERF_CTRL_SET_TASK_MIN_UTIL _IOW(PERF_CTRL_MAGIC, SET_TASK_MIN_UTIL, struct task_config)
+#define PERF_CTRL_SET_TASK_MIN_UTIL _IOW(PERF_CTRL_MAGIC, SET_TASK_MIN_UTIL, struct TaskConfig)
 
 #ifdef __cplusplus
 }

@@ -22,10 +22,10 @@
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
-class QosIntervalPrivate_t {
+class QosIntervalPrivate {
 public:
     template <typename... Args>
-    QosIntervalPrivate_t(uint64_t deadlineUs, const QoS& qos)
+    QosIntervalPrivate(uint64_t deadlineUs, const QoS& qos)
     {
         if (qos == qos_user_interactive) {
             it = std::make_unique<FrameInterval>(deadlineUs, qos);
@@ -59,7 +59,7 @@ ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos)
         return nullptr;
     }
 
-    return new ffrt::QosIntervalPrivate_t(deadline_us, qos);
+    return new ffrt::QosIntervalPrivate(deadline_us, qos);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -70,7 +70,7 @@ int ffrt_interval_update(ffrt_interval_t it, uint64_t new_deadline_us)
         return ffrt_error;
     }
 
-    auto _it = static_cast<ffrt::QosIntervalPrivate_t *>(it);
+    auto _it = static_cast<ffrt::QosIntervalPrivate *>(it);
 
     (*_it)->Update(new_deadline_us);
     return ffrt_success;
@@ -84,7 +84,7 @@ int ffrt_interval_begin(ffrt_interval_t it)
         return ffrt_error;
     }
 
-    auto _it = static_cast<ffrt::QosIntervalPrivate_t *>(it);
+    auto _it = static_cast<ffrt::QosIntervalPrivate *>(it);
 
     return (*_it)->Begin();
 }
@@ -97,7 +97,7 @@ int ffrt_interval_end(ffrt_interval_t it)
         return ffrt_error;
     }
 
-    auto _it = static_cast<ffrt::QosIntervalPrivate_t *>(it);
+    auto _it = static_cast<ffrt::QosIntervalPrivate *>(it);
 
     (*_it)->End();
     return ffrt_success;
@@ -111,7 +111,7 @@ void ffrt_interval_destroy(ffrt_interval_t it)
         return;
     }
 
-    delete static_cast<ffrt::QosIntervalPrivate_t *>(it);
+    delete static_cast<ffrt::QosIntervalPrivate *>(it);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -122,7 +122,7 @@ int ffrt_interval_join(ffrt_interval_t it)
         return ffrt_error;
     }
 
-    auto _it = static_cast<ffrt::QosIntervalPrivate_t *>(it);
+    auto _it = static_cast<ffrt::QosIntervalPrivate *>(it);
 
     (*_it)->Join();
     return ffrt_success;
@@ -136,7 +136,7 @@ int ffrt_interval_leave(ffrt_interval_t it)
         return ffrt_error;
     }
 
-    auto _it = static_cast<ffrt::QosIntervalPrivate_t *>(it);
+    auto _it = static_cast<ffrt::QosIntervalPrivate *>(it);
 
     (*_it)->Leave();
     return ffrt_success;

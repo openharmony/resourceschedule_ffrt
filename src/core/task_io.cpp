@@ -41,7 +41,7 @@ static void work_finish_callable(IOTaskExecutor* task)
     delete task;
 }
 
-static void ExecuteIOTask_func(ffrt_executor_task_t* data, ffrt_qos_t qos)
+static void ExecuteIOTask(ffrt_executor_task_t* data, ffrt_qos_t qos)
 {
     IOTaskExecutor* task = static_cast<IOTaskExecutor*>(data);
     task->status = ExecTaskStatus::ET_EXECUTING;
@@ -65,7 +65,7 @@ static pthread_once_t once = PTHREAD_ONCE_INIT;
 
 static void InitIOTaskExecutor()
 {
-    ffrt_executor_task_register_func(ExecuteIOTask_func, ffrt_io_task);
+    ffrt_executor_task_register_func(ExecuteIOTask, ffrt_io_task);
 }
 } /* namespace ffrt */
 

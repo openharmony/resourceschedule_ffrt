@@ -47,7 +47,7 @@ static int OpenPerfCtrl(void)
 
 void SetTaskRtg(pid_t tid, unsigned int grpId)
 {
-    struct rtg_group_task data = {tid, grpId, 0};
+    struct RtgGroupTask data = {tid, grpId, 0};
     int fd = OpenPerfCtrl();
     if (fd < 0) {
         return;
@@ -116,7 +116,7 @@ void SetRtgLoadMode(unsigned int grpId, bool utilEnabled, bool freqEnabled)
 
 void set_task_min_util(pid_t tid, unsigned int util)
 {
-    struct task_config cfg = {tid, util};
+    struct TaskConfig cfg = {tid, util};
     int fd = OpenPerfCtrl();
     if (fd < 0) {
         return;

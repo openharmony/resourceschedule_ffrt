@@ -30,7 +30,7 @@ public:
         if (qos == qos_user_interactive) {
             it = std::make_unique<FrameInterval>(deadlineUs, qos);
         } else {
-            it = std::make_unique<DefaultInterval>(deadline, qos);
+            it = std::make_unique<DefaultInterval>(deadlineUs, qos);
         }
     }
 

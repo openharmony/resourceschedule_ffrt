@@ -26,22 +26,22 @@ extern "C" {
 #define FRAME_START (1 << 0)
 #define FRAME_END (1 << 1)
 
-void SetTaskRtg(pid_t tid, unsigned int grp_id);
+void SetTaskRtg(pid_t tid, unsigned int grpId);
 void SetRtgStatus(unsigned long long status);
 void SetRtgQos(int qos);
-void set_rtg_load_mode(unsigned int grp_id, bool util_enabled, bool freq_enabled);
+void set_rtg_load_mode(unsigned int grpId, bool util_enabled, bool freq_enabled);
 void set_task_min_util(pid_t tid, unsigned int util);
 
 /* inner use */
 
 struct rtg_group_task {
     pid_t pid;
-    unsigned int grp_id;
+    unsigned int grpId;
     bool pmu_sample_enabled;
 };
 
 struct rtg_load_mode {
-    unsigned int grp_id;
+    unsigned int grpId;
     unsigned int freq_enabled;
     unsigned int util_enabled;
 };

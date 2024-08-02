@@ -27,7 +27,7 @@
 #include <cerrno>
 #include <securec.h>
 
-static int open_perf_ctrl(void)
+static int OpenPerfCtrl(void)
 {
     static bool perf_ctrl_available = true;
     int fd = -1;
@@ -45,10 +45,10 @@ static int open_perf_ctrl(void)
     return fd;
 }
 
-void set_task_rtg(pid_t tid, unsigned int grp_id)
+void SetTaskRtg(pid_t tid, unsigned int grp_id)
 {
     struct rtg_group_task data = {tid, grp_id, 0};
-    int fd = open_perf_ctrl();
+    int fd = OpenPerfCtrl();
     if (fd < 0) {
         return;
     }
@@ -61,9 +61,9 @@ void set_task_rtg(pid_t tid, unsigned int grp_id)
     close(fd);
 }
 
-void set_rtg_status(unsigned long long status)
+void SetRtgStatus(unsigned long long status)
 {
-    int fd = open_perf_ctrl();
+    int fd = OpenPerfCtrl();
     if (fd < 0) {
         return;
     }
@@ -76,9 +76,9 @@ void set_rtg_status(unsigned long long status)
     close(fd);
 }
 
-void set_rtg_qos(int qos) // MHZ
+void SetRtgQos(int qos) // MHZ
 {
-    int fd = open_perf_ctrl();
+    int fd = OpenPerfCtrl();
     if (fd < 0) {
         return;
     }
@@ -100,7 +100,7 @@ void set_rtg_load_mode(unsigned int grp_id, bool util_enabled, bool freq_enabled
     load_mode.util_enabled = !!util_enabled;
     load_mode.freq_enabled = !!freq_enabled;
 
-    int fd = open_perf_ctrl();
+    int fd = OpenPerfCtrl();
     if (fd < 0) {
         return;
     }
@@ -117,7 +117,7 @@ void set_rtg_load_mode(unsigned int grp_id, bool util_enabled, bool freq_enabled
 void set_task_min_util(pid_t tid, unsigned int util)
 {
     struct task_config cfg = {tid, util};
-    int fd = open_perf_ctrl();
+    int fd = OpenPerfCtrl();
     if (fd < 0) {
         return;
     }

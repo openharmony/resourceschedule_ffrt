@@ -141,7 +141,7 @@ void QueueMonitor::SendDelayedWorker(TimePoint delay)
         return;
     }
 
-    we_ = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
+    we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     we_->tp = delay;
     we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
 

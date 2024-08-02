@@ -19,7 +19,7 @@ namespace ffrt {
 
 CoRoutine *CoRoutineAllocMem(std::size_t stack_size)
 {
-    return ffrt::QSimpleAllocator<CoRoutine>::allocMem(stack_size);
+    return ffrt::QSimpleAllocator<CoRoutine>::AllocMem(stack_size);
 }
 
 void CoRoutineFreeMem(CoRoutine *co)
@@ -34,7 +34,7 @@ void CoRoutineReleaseMem()
 
 void CoRoutineInstance(std::size_t size)
 {
-    QSimpleAllocator<CoRoutine>::instance(size);
+    QSimpleAllocator<CoRoutine>::Instance(size);
 }
 
 }

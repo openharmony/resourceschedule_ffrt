@@ -28,9 +28,9 @@ public:
     QosIntervalPrivate_t(uint64_t deadlineUs, const QoS& qos)
     {
         if (qos == qos_user_interactive) {
-            it = std::unique_ptr<Interval>(new (std::nothrow) FrameInterval(deadlineUs, qos));
+            it = std::make_unique<FrameInterval>(deadlineUs, qos);
         } else {
-            it = std::unique_ptr<Interval>(new (std::nothrow) DefaultInterval(deadlineUs, qos));
+            it = std::make_unique<DefaultInterval>(deadline, qos);
         }
     }
 

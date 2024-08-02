@@ -30,8 +30,8 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     TraceAdapter::Instance();
 #endif
     // control construct sequences of singletons
-    SimpleAllocator<CPUEUTask>::instance();
-    SimpleAllocator<VersionCtx>::instance();
+    SimpleAllocator<CPUEUTask>::Instance();
+    SimpleAllocator<VersionCtx>::Instance();
     PollerProxy::Instance();
     FFRTScheduler::Instance();
     ExecuteUnit::Instance();

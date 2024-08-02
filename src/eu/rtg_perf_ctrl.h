@@ -26,9 +26,9 @@ extern "C" {
 #define FRAME_START (1 << 0)
 #define FRAME_END (1 << 1)
 
-void set_task_rtg(pid_t tid, unsigned int grp_id);
-void set_rtg_status(unsigned long long status);
-void set_rtg_qos(int qos);
+void SetTaskRtg(pid_t tid, unsigned int grp_id);
+void SetRtgStatus(unsigned long long status);
+void SetRtgQos(int qos);
 void set_rtg_load_mode(unsigned int grp_id, bool util_enabled, bool freq_enabled);
 void set_task_min_util(pid_t tid, unsigned int util);
 

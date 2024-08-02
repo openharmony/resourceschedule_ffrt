@@ -35,7 +35,7 @@ enum WgType {
     TYPE_MAX
 };
 
-struct Workgroup {
+struct WorkGroup {
     bool started;
     int rtgId;
     int tids[MAX_WG_THREADS];
@@ -45,23 +45,23 @@ struct Workgroup {
 
 #if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
 
-struct Workgroup* WorkgroupCreate(uint64_t interval);
-int WorkgroupClear(struct Workgroup* wg);
+struct WorkGroup* WorkgroupCreate(uint64_t interval);
+int WorkgroupClear(struct WorkGroup* wg);
 bool JoinWG(int tid);
 bool LeaveWG(int tid);
 
 #else
 
-inline struct Workgroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
+inline struct WorkGroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
 {
-    struct Workgroup* wg = new (std::nothrow) struct Workgroup();
+    struct WorkGroup* wg = new (std::nothrow) struct WorkGroup();
     if (wg == nullptr) {
         return nullptr;
     }
     return wg;
 }
 
-inline int WorkgroupClear(struct Workgroup* wg)
+inline int WorkgroupClear(struct WorkGroup* wg)
 {
     delete wg;
     wg = nullptr;
@@ -84,13 +84,13 @@ inline bool LeaveWG(int tid)
 
 #if defined(QOS_FRAME_RTG)
 
-void WorkgroupStartInterval(struct Workgroup* wg);
-void WorkgroupStopInterval(struct Workgroup* wg);
-void WorkgroupJoin(struct Workgroup* wg, int tid);
+void WorkgroupStartInterval(struct WorkGroup* wg);
+void WorkgroupStopInterval(struct WorkGroup* wg);
+void WorkgroupJoin(struct WorkGroup* wg, int tid);
 
 #else /* !QOS_FRAME_RTG */
 
-inline void WorkgroupStartInterval(struct Workgroup* wg)
+inline void WorkgroupStartInterval(struct WorkGroup* wg)
 {
     if (wg->started) {
         return;
@@ -98,7 +98,7 @@ inline void WorkgroupStartInterval(struct Workgroup* wg)
     wg->started = true;
 }
 
-inline void WorkgroupStopInterval(struct Workgroup* wg)
+inline void WorkgroupStopInterval(struct WorkGroup* wg)
 {
     if (!wg->started) {
         return;
@@ -106,7 +106,7 @@ inline void WorkgroupStopInterval(struct Workgroup* wg)
     wg->started = false;
 }
 
-inline void WorkgroupJoin(struct Workgroup* wg, int tid)
+inline void WorkgroupJoin(struct WorkGroup* wg, int tid)
 {
     (void)wg;
     (void)tid;

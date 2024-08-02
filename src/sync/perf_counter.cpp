@@ -31,7 +31,7 @@ static int __perf_write = 0;
 static std::atomic<int> __perf_init = 0;
 
 static pthread_mutex_t __g_stat_mutex = PTHREAD_MUTEX_INITIALIZER;
-static std::vector<struct PerfStat*> __g_perfstat;
+static std::vector<struct PerfStat*>g_perfstat;
 
 static int n_event = 5;
 static int even_type = PERF_TYPE_SOFTWARE;

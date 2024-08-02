@@ -264,7 +264,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     }
 
     task->IncDeleteRef();
-    WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
+    WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     // set delayed worker callback
     we->cb = ([this, task](WaitEntry* we) {
         if (!task->GetFinishStatus()) {

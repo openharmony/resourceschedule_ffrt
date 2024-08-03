@@ -42,7 +42,9 @@
 #endif
 
 using namespace ffrt;
+#ifdef FFRT_HITRACE_ENABLE
 using namespace OHOS::HiviewDFX;
+#endif
 
 static inline void CoStackCheck(CoRoutine* co)
 {

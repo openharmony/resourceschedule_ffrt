@@ -20,7 +20,9 @@
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
+#ifdef FFRT_HITRACE_ENABLE
 using namespace OHOS::HiviewDFX;
+#endif
 
 namespace ffrt {
 

@@ -31,7 +31,7 @@ __attribute__((constructor)) static void ffrt_init()
 {
     ffrt::TaskFactory::RegistCb(
         [] () -> ffrt::CPUEUTask* {
-            return static_cast<ffrt::CPUEUTask*>(ffrt::SimpleAllocator<ffrt::SCPUEUTask>::allocMem());
+            return static_cast<ffrt::CPUEUTask*>(ffrt::SimpleAllocator<ffrt::SCPUEUTask>::AllocMem());
         },
         [] (ffrt::CPUEUTask* task) {
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));

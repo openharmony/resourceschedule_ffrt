@@ -41,16 +41,16 @@ public:
     SimpleAllocator& operator=(SimpleAllocator&&) = delete;
     fast_mutex lock;
 
-    static SimpleAllocator<T>* instance(std::size_t size = sizeof(T))
+    static SimpleAllocator<T>* Instance(std::size_t size = sizeof(T))
     {
         static SimpleAllocator<T> ins(size);
         return &ins;
     }
 
-    // NOTE: call constructor after allocMem
-    static T* allocMem()
+    // NOTE: call constructor after AllocMem
+    static T* AllocMem()
     {
-        return instance()->alloc();
+        return Instance()->Alloc();
     }
 
     // NOTE: call destructor before FreeMem
@@ -59,18 +59,18 @@ public:
         t->~T();
         // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
         // return之前的lck析构不产生UAF问题，因为return之前随着root析构，锁的内存被释放
-        instance()->free(t);
+        Instance()->free(t);
     }
 
     // only used for BBOX
     static std::vector<void *> getUnfreedMem()
     {
-        return instance()->getUnfreed();
+        return Instance()->getUnfreed();
     }
 
     static std::vector<void *> getUnSafeUnfreedMem()
     {
-        return instance()->getUnSafeUnfreed();
+        return Instance()->getUnSafeUnfreed();
     }
 private:
     std::vector<T*> primaryCache;
@@ -120,7 +120,7 @@ private:
         basePtr = reinterpret_cast<T*>(p);
     }
 
-    T* alloc()
+    T* Alloc()
     {
         lock.lock();
         T* t = nullptr;
@@ -222,7 +222,7 @@ class QSimpleAllocator {
         return true;
     }
 
-    T* alloc()
+    T* Alloc()
     {
         T* p = nullptr;
         lock.lock();
@@ -284,25 +284,25 @@ public:
     QSimpleAllocator(QSimpleAllocator const&) = delete;
     void operator=(QSimpleAllocator const&) = delete;
 
-    static QSimpleAllocator<T, MmapSz>* instance(std::size_t size)
+    static QSimpleAllocator<T, MmapSz>* Instance(std::size_t size)
     {
         static QSimpleAllocator<T, MmapSz> ins(size);
         return &ins;
     }
 
-    static T* allocMem(std::size_t size = sizeof(T))
+    static T* AllocMem(std::size_t size = sizeof(T))
     {
-        return instance(size)->alloc();
+        return Instance(size)->Alloc();
     }
 
     static void FreeMem(T* p, std::size_t size = sizeof(T))
     {
-        instance(size)->free(p);
+        Instance(size)->free(p);
     }
 
     static void releaseMem(std::size_t size = sizeof(T))
     {
-        instance(size)->release();
+        Instance(size)->release();
     }
 };
 } // namespace ffrt

@@ -357,7 +357,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     if (!timerMap_.empty()) {
         auto cur = timerMap_.begin();
         timerHandle = cur->second.handle;
-        time_point_t now = std::chrono::steady_clock::now();
+        TimePoint now = std::chrono::steady_clock::now();
         realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
             cur->first - now).count();
         if (realTimeout <= 0) {
@@ -445,7 +445,7 @@ void Poller::ProcessTimerDataCb(CPUEUTask* task) noexcept
     m_mapMutex.unlock();
 }
 
-void Poller::ExecuteTimerCb(time_point_t timer) noexcept
+void Poller::ExecuteTimerCb(TimePoint timer) noexcept
 {
     std::vector<TimerDataWithCb> timerData;
     for (auto iter = timerMap_.begin(); iter != timerMap_.end();) {
@@ -486,7 +486,7 @@ void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept
         return;
     }
 
-    time_point_t absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data.timeout);
+    TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data.timeout);
     bool wake = timerMap_.empty() || (absoluteTime < timerMap_.begin()->first && flag_ == EpollStatus::WAIT);
 
     timerMap_.emplace(absoluteTime, data);
@@ -567,7 +567,7 @@ bool Poller::IsFdExist() noexcept
 
 bool Poller::IsTimerReady() noexcept
 {
-    time_point_t now = std::chrono::steady_clock::now();
+    TimePoint now = std::chrono::steady_clock::now();
     std::lock_guard lock(timerMutex_);
     if (timerMap_.empty()) {
         return false;

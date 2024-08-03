@@ -117,7 +117,7 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
     std::shared_lock lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,
         "UpdateQueueInfo queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
-    time_point_t now = std::chrono::steady_clock::now();
+    TimePoint now = std::chrono::steady_clock::now();
     queuesRunningInfo_[queueId] = {taskId, now};
     if (exit_.exchange(false)) {
         SendDelayedWorker(now + std::chrono::microseconds(timeoutUs_));
@@ -134,14 +134,14 @@ uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
 
 // 此方法在构造函数时调用，仅会有一个线程访问
 // 此方法不能多次调用。we_使用了new方法，但析构时只释放一个,若多次调用，会造成内存泄漏问题
-void QueueMonitor::SendDelayedWorker(time_point_t delay)
+void QueueMonitor::SendDelayedWorker(TimePoint delay)
 {
     if (exit_.load()) {
         abortSendTimer_.store(true);
         return;
     }
 
-    we_ = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
+    we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     we_->tp = delay;
     we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
 
@@ -174,11 +174,11 @@ void QueueMonitor::CheckQueuesStatus()
         }
     }
 
-    time_point_t oldestStartedTime = std::chrono::steady_clock::now();
-    time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
+    TimePoint oldestStartedTime = std::chrono::steady_clock::now();
+    TimePoint startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
     uint64_t taskId = 0;
     uint32_t queueRunningInfoSize = 0;
-    time_point_t taskTimestamp = oldestStartedTime;
+    TimePoint taskTimestamp = oldestStartedTime;
     {
         std::shared_lock lock(mutex_);
         queueRunningInfoSize = queuesRunningInfo_.size();

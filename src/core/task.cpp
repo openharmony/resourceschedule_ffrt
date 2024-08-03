@@ -69,7 +69,7 @@ void clear_trace_tag()
     }
 }
 
-void create_delay_deps(
+void CreateDelayDeps(
     ffrt_task_handle_t &handle, const ffrt_deps_t *in_deps, const ffrt_deps_t *out_deps, task_attr_private *p)
 {
     // setting dependences is not supportted for delayed task
@@ -272,7 +272,7 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
     if (kind == ffrt_function_kind_general) {
         return ffrt::TaskFactory::Alloc()->func_storage;
     }
-    return ffrt::SimpleAllocator<ffrt::QueueTask>::allocMem()->func_storage;
+    return ffrt::SimpleAllocator<ffrt::QueueTask>::AllocMem()->func_storage;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -294,7 +294,7 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     ffrt_task_handle_t delay_handle;
     uint64_t timeout = p->timeout_;
     p->timeout_ = 0;
-    ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+    ffrt::CreateDelayDeps(delay_handle, in_deps, out_deps, p);
     p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
@@ -321,7 +321,7 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
     ffrt_task_handle_t delay_handle = nullptr;
     uint64_t timeout = p->timeout_;
     p->timeout_ = 0;
-    ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+    ffrt::CreateDelayDeps(delay_handle, in_deps, out_deps, p);
     p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};

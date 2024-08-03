@@ -29,13 +29,13 @@ constexpr int RS_RTG_ID = 10;
 
 namespace ffrt {
 static int wgId = -1;
-static Workgroup *rsWorkGroup = nullptr;
+static WorkGroup *rsWorkGroup = nullptr;
 static int wgCount = 0;
 static std::mutex wgLock;
 
 #if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
 
-void WorkgroupInit(struct Workgroup* wg, uint64_t interval, int rtgId)
+void WorkgroupInit(struct WorkGroup* wg, uint64_t interval, int rtgId)
 {
     wg->started = false;
     wg->interval = interval;
@@ -47,7 +47,7 @@ void WorkgroupInit(struct Workgroup* wg, uint64_t interval, int rtgId)
     }
 }
 
-int FindThreadInWorkGroup(Workgroup *workGroup, int tid)
+int FindThreadInWorkGroup(WorkGroup *workGroup, int tid)
 {
     if (workGroup == nullptr) {
         FFRT_LOGE("[RSWorkGroup] find thread %{public}d in workGroup failed, workGroup is null", tid);
@@ -61,7 +61,7 @@ int FindThreadInWorkGroup(Workgroup *workGroup, int tid)
     return -1;
 }
 
-bool InsertThreadInWorkGroup(Workgroup *workGroup, int tid)
+bool InsertThreadInWorkGroup(WorkGroup *workGroup, int tid)
 {
     if (workGroup == nullptr) {
         FFRT_LOGE("[RSWorkGroup] join thread %{public}d into workGroup failed, workGroup is null", tid);
@@ -93,7 +93,7 @@ void CreateRSWorkGroup(uint64_t interval)
         if (rsWorkGroup == nullptr) {
             CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
             if (rs.rtgId > 0) {
-                rsWorkGroup = new struct Workgroup();
+                rsWorkGroup = new struct WorkGroup();
                 if (rsWorkGroup == nullptr) {
                     FFRT_LOGE("[RSWorkGroup] rsWorkGroup malloc failed!");
                     return;
@@ -188,7 +188,7 @@ bool LeaveWG(int tid)
     return false;
 }
 
-struct Workgroup* WorkgroupCreate(uint64_t interval)
+struct WorkGroup* WorkgroupCreate(uint64_t interval)
 {
     int rtgId = -1;
     int uid = getuid();
@@ -205,8 +205,8 @@ struct Workgroup* WorkgroupCreate(uint64_t interval)
     }
     FFRT_LOGI("[WorkGroup] create rtg group %{public}d success", rtgId);
 
-    Workgroup* wg = nullptr;
-    wg = new struct Workgroup();
+    WorkGroup* wg = nullptr;
+    wg = new struct WorkGroup();
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup] workgroup malloc failed!");
         return nullptr;
@@ -219,7 +219,7 @@ struct Workgroup* WorkgroupCreate(uint64_t interval)
     return wg;
 }
 
-int WorkgroupClear(struct Workgroup* wg)
+int WorkgroupClear(struct WorkGroup* wg)
 {
     int uid = getuid();
     if (uid == RS_UID) {
@@ -249,7 +249,7 @@ int WorkgroupClear(struct Workgroup* wg)
 
 #if defined(QOS_FRAME_RTG)
 
-void WorkgroupStartInterval(struct Workgroup* wg)
+void WorkgroupStartInterval(struct WorkGroup* wg)
 {
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup] input workgroup is null");
@@ -268,7 +268,7 @@ void WorkgroupStartInterval(struct Workgroup* wg)
     }
 }
 
-void WorkgroupStopInterval(struct Workgroup* wg)
+void WorkgroupStopInterval(struct WorkGroup* wg)
 {
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup] input workgroup is null");
@@ -288,7 +288,7 @@ void WorkgroupStopInterval(struct Workgroup* wg)
     }
 }
 
-void WorkgroupJoin(struct Workgroup* wg, int tid)
+void WorkgroupJoin(struct WorkGroup* wg, int tid)
 {
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup] input workgroup is null");

@@ -138,7 +138,7 @@ public:
         return tg ? tg->Leave() : false;
     }
 
-    void clear()
+    void Clear()
     {
         predUtil = 0;
         curUtil = 0;

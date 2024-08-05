@@ -133,8 +133,6 @@ uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
     return queuesRunningInfo_[queueId].first;
 }
 
-// 此方法在构造函数时调用，仅会有一个线程访问
-// 此方法不能多次调用。we_使用了new方法，但析构时只释放一个,若多次调用，会造成内存泄漏问题
 void QueueMonitor::SendDelayedWorker(TimePoint delay)
 {
     FFRT_COND_DO_ERR(exit_.load(), abortSendTimer_.store(true);

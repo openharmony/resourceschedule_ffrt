@@ -39,6 +39,7 @@ QueueMonitor::QueueMonitor()
     FFRT_LOGI("queue monitor ctor enter");
     queuesRunningInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
+    we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     uint64_t timeout = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
     if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
         timeoutUs_ = 0;
@@ -132,16 +133,12 @@ uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
     return queuesRunningInfo_[queueId].first;
 }
 
-// 此方法在构造函数时调用，仅会有一个线程访问
-// 此方法不能多次调用。we_使用了new方法，但析构时只释放一个,若多次调用，会造成内存泄漏问题
 void QueueMonitor::SendDelayedWorker(TimePoint delay)
 {
-    if (exit_.load()) {
-        abortSendTimer_.store(true);
-        return;
-    }
+    FFRT_COND_DO_ERR(exit_.load(), abortSendTimer_.store(true);
+        return;,
+        "exit_.load() is true");
 
-    we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     we_->tp = delay;
     we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
 

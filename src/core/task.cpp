@@ -74,7 +74,7 @@ void CreateDelayDeps(
 {
     // setting dependences is not supportted for delayed task
     if (unlikely(((in_deps != nullptr) && (in_deps->len != 0)) || ((out_deps != nullptr) && (out_deps->len != 0)))) {
-        FFRT_LOGE("delayed task not support dependence, in_deps/out_deps ignored.");
+        FFRT_LOGE("delayed task do not support dependence, in_deps/out_deps ignored.");
     }
 
     // delay task
@@ -120,7 +120,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_task_attr_set_name(ffrt_task_attr_t *attr, const char *name)
 {
     if (unlikely(!attr || !name)) {
-        FFRT_LOGE("attr or name not valid");
+        FFRT_LOGE("invalid attr or name");
         return;
     }
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->name_ = name;
@@ -536,7 +536,7 @@ int ffrt_skip(ffrt_task_handle_t handle)
         __ATOMIC_RELAXED)) {
         return 0;
     }
-    FFRT_LOGW("skip task [%lu] faild, because the task is doing now or has finished.", task->gid);
+    FFRT_LOGW("skip task [%lu] failed, because the task is executing now or has finished.", task->gid);
     return 1;
 }
 
@@ -552,7 +552,7 @@ void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_
         ffrt::FFRTFacade::GetDMInstance().onSubmitUV(task, p);
         return;
     }
-    FFRT_LOGE("uv function not supports delay");
+    FFRT_LOGE("uv function does not support delay");
 }
 
 API_ATTRIBUTE((visibility("default")))

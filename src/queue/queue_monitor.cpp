@@ -39,6 +39,7 @@ QueueMonitor::QueueMonitor()
     FFRT_LOGI("queue monitor ctor enter");
     queuesRunningInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
+    we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     uint64_t timeout = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
     if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
         timeoutUs_ = 0;
@@ -139,7 +140,6 @@ void QueueMonitor::SendDelayedWorker(TimePoint delay)
     FFRT_COND_DO_ERR(exit_.load(), abortSendTimer_.store(true); return;,
         "exit_.load() is true");
 
-    we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     we_->tp = delay;
     we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
 

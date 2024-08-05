@@ -133,7 +133,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         if (!WeTimeoutProc(this, wue)) {
             return;
         }
-        FFRT_LOGD("task(%d) timeout out", task->gid);
+        FFRT_LOGD("task(%d) time is up", task->gid);
         CoRoutineFactory::CoWakeFunc(task, true);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);

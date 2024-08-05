@@ -136,10 +136,8 @@ uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
 // 此方法不能多次调用。we_使用了new方法，但析构时只释放一个,若多次调用，会造成内存泄漏问题
 void QueueMonitor::SendDelayedWorker(TimePoint delay)
 {
-    if (exit_.load()) {
-        abortSendTimer_.store(true);
-        return;
-    }
+    FFRT_COND_DO_ERR(exit_.load(), abortSendTimer_.store(true); return;,
+        "exit_.load() is true");
 
     we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     we_->tp = delay;

@@ -67,12 +67,12 @@ public:
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
     void NotifyWorkers(const QoS& qos, int number);
-    bool HasDeepSleepWork(const Qos& qos);
+    bool HasDeepSleepWork(const QoS& qos);
     uint32_t monitorTid = 0;
 protected:
     WorkerCtrl ctrlQueue[QoS::MaxNum()];
-    void PokeAdd(const Qos& qos);
-    void PokePick(const Qos& qos);
+    void PokeAdd(const QoS& qos);
+    void PokePick(const QoS& qos);
     void Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
     CpuMonitorOps& GetOps()
     {

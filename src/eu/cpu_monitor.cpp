@@ -198,7 +198,7 @@ int CPUMonitor::WakedWorkerNum(const QoS& qos)
     return workerCtrl.executionNum;
 }
 
-bool CPUMonitor::HasDeepSleepWork(const Qos& qos)
+bool CPUMonitor::HasDeepSleepWork(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     std::lock_guard lock(workerCtrl.lock);
@@ -334,14 +334,14 @@ void CPUMonitor::HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType
 }
 
 
-void CPUMonitor::PokeAdd(const Qos& qos)
+void CPUMonitor::PokeAdd(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtr.lock.lock();
-    if (static_cast<uint32_t>(workerCtrl.sleepinWorkerNum) > 0){
+    if (static_cast<uint32_t>(workerCtrl.sleepinWorkerNum) > 0) {
         workerCtrl.lock.unlock();
         return;
-    }else{
+    } else {
         size_t runningNum = workerCtrl.executionNum;
         size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -355,7 +355,7 @@ void CPUMonitor::PokeAdd(const Qos& qos)
             workerCtrl.executionNum++;
             workerCtrl.lock.unlock();
             ops.IncWorker(qos);
-        }else{
+        } else {
             if (workerCtrl.pollWaitFlag) {
                 PollerProxy::Instance() ->GetPoller(qos).WakeUp();
             }
@@ -364,7 +364,7 @@ void CPUMonitor::PokeAdd(const Qos& qos)
     }
 }
 
-void CPUMonitor::PokePick(const Qos& qos)
+void CPUMonitor::PokePick(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();

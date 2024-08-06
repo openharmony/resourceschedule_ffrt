@@ -636,6 +636,17 @@ pthread_t ffrt_task_get_tid(void* task_handle)
     auto task = reinterpret_cast<ffrt::CPUEUTask*>(task_handle);
     return task->runningTid.load();
 }
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_get_cur_cached_task_id()
+{
+    uint64_t gid = ffrt_this_task_get_id();
+    if (gid == 0) {
+        return ffrt::ExecuteCtx::Cur()->lastGid_;
+    }
+
+    return gid;
+}
 #ifdef __cplusplus
 }
 #endif

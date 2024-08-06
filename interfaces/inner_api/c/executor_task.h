@@ -113,4 +113,12 @@ FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
  * @version 1.0
  */
 FFRT_C_API pthread_t ffrt_task_get_tid(void* task_handle);
+
+/**
+ * @brief Obtains the task id cached by the current thread.
+ *
+ * @return Returns the task id.
+ * @version 1.0
+ */
+FFRT_C_API uint64_t ffrt_get_cur_cached_task_id();
 #endif

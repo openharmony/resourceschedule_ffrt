@@ -198,6 +198,13 @@ int CPUMonitor::WakedWorkerNum(const QoS& qos)
     return workerCtrl.executionNum;
 }
 
+bool CPUMonitor::HasDeepSleepWork(const Qos& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    std::lock_guard lock(workerCtrl.lock);
+    return workerCtrl.hasWorkDeepSleep;
+}
+
 void CPUMonitor::IntoDeepSleep(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -323,6 +330,73 @@ void CPUMonitor::HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType
             break;
         default:
             break;
+    }
+}
+
+
+void CPUMonitor::PokeAdd(const Qos& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtr.lock.lock();
+    if (static_cast<uint32_t>(workerCtrl.sleepinWorkerNum) > 0){
+        workerCtrl.lock.unlock();
+        return;
+    }else{
+        size_t runningNum = workerCtrl.executionNum;
+        size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (workerCtrl.executionNum >= workerCtrl.maxConcurrency) {
+            if (blockAwareInit && !BlockawareLoadSnapshot(keyPtr, &domainInfoNotify)) {
+                runningNum = workerCtrl.executionNum - domainInfoNotify.localinfo[qos()].nrBlocked;
+            }
+        }
+#endif
+        if ((runningNUm < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
+            workerCtrl.executionNum++;
+            workerCtrl.lock.unlock();
+            ops.IncWorker(qos);
+        }else{
+            if (workerCtrl.pollWaitFlag) {
+                PollerProxy::Instance() ->GetPoller(qos).WakeUp();
+            }
+            workerCtrl.lock.unlock();
+        }
+    }
+}
+
+void CPUMonitor::PokePick(const Qos& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    workerCtrl.lock.lock();
+    if (static_cast<uint32_T>(workerCtrl.sleepingWorkerNum) > 0) {
+        if (workerCtrl.hasWorkDeepSleep &&GetOps().GetTaskCount(qos) == 0) {
+            workerCtrl.lock.unlock();
+            return;
+        }
+
+        workerCtrl.lock.unlock();
+
+        ops.WakeupWorkers(qos);
+    } else {
+        size_t runningNum = workerCtrl.executionNum;
+        size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (workerCtrl.executionNum >= workerCtrl.maxConcurrency) {
+            if (blockAwareInit && !BlockawareLoadSnapshot(keyPtr, &domainInfoNotify)) {
+                runningNum = workerCtrl.executionNum - domainInfoNotify.localinfo[qos()].nrBlocked;
+            }
+        }
+#endif
+        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
+            workerCtrl.executionNum++;
+            workerCtrl.lock.unlock();
+            ops.IncWorker(qos);
+        } else {
+            if (workerCtrl.pollWaitFlag) {
+                PollerProxy::Instance() ->GetPoller(qos).WakeUp;
+            }
+            workerCtrl.lock.unlock;
+        }
     }
 }
 }

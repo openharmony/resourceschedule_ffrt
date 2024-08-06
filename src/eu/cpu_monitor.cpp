@@ -338,7 +338,7 @@ void CPUMonitor::PokeAdd(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-    if (static_cast<uint32_t>(workerCtrl.sleepinWorkerNum) > 0) {
+    if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
         workerCtrl.lock.unlock();
         return;
     } else {
@@ -351,7 +351,7 @@ void CPUMonitor::PokeAdd(const QoS& qos)
             }
         }
 #endif
-        if ((runningNUm < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
+        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
             workerCtrl.executionNum++;
             workerCtrl.lock.unlock();
             ops.IncWorker(qos);

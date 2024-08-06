@@ -395,7 +395,7 @@ void CPUMonitor::PokePick(const QoS& qos)
             if (workerCtrl.pollWaitFlag) {
                 PollerProxy::Instance() ->GetPoller(qos).WakeUp();
             }
-            workerCtrl.lock.unlock;
+            workerCtrl.lock.unlock();
         }
     }
 }

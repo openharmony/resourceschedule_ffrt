@@ -337,7 +337,7 @@ void CPUMonitor::HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType
 void CPUMonitor::PokeAdd(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtr.lock.lock();
+    workerCtrl.lock.lock();
     if (static_cast<uint32_t>(workerCtrl.sleepinWorkerNum) > 0) {
         workerCtrl.lock.unlock();
         return;

@@ -23,6 +23,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/bbox/bbox.h"
 #include "tm/cpu_task.h"
+#include "tm/scpu_task.h"
 
 using namespace std;
 using namespace testing;
@@ -96,4 +97,22 @@ HWTEST_F(CoreTest, ffrt_submit_wait_success_01, TestSize.Level1)
     ffrt_task_attr_destroy(attr);
     free(attr);
     attr = nullptr;
+}
+
+/*
+* 测试用例名称：ffrt_get_cur_cached_task_id_test
+* 测试用例描述：测试ffrt_get_cur_cached_task_id接口
+* 预置条件    ：设置ExecuteCtx::Cur->lastGid_为自定义值
+* 操作步骤    ：调用ffrt_get_cur_cached_task_id接口
+* 预期结果    ：ffrt_get_cur_cached_task_id返回值与自定义值相同
+*/
+HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level1)
+{
+    auto ctx = ffrt::ExecuteCtx::Cur();
+    ctx->lastGid_ = 15;
+    EXPECT_EQ(ffrt_get_cur_cached_task_id(), 15);
+
+    ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 20, ffrt::QoS(2));
+    ctx->task = task;
+    EXPECT_EQ(ffrt_get_cur_cached_task_id(), 1);
 }

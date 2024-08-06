@@ -115,6 +115,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
         case ffrt_normal_task:
         case ffrt_queue_task: {
             ctx->task = task;
+            ctx->lastGid_ = task->gid;
             Run(task);
             ctx->task = nullptr;
             break;

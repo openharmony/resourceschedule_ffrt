@@ -32,7 +32,8 @@ const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
 }
 
 namespace ffrt {
-std::atomic_uint32_t BaseQueue::queueId(0);
+//0预留为非法值
+std::atomic_uint32_t BaseQueue::queueId(1);
 void BaseQueue::Stop()
 {
     std::unique_lock lock(mutex_);

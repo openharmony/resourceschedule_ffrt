@@ -368,7 +368,7 @@ void CPUMonitor::PokePick(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-    if (static_cast<uint32_T>(workerCtrl.sleepingWorkerNum) > 0) {
+    if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
         if (workerCtrl.hasWorkDeepSleep &&GetOps().GetTaskCount(qos) == 0) {
             workerCtrl.lock.unlock();
             return;
@@ -393,7 +393,7 @@ void CPUMonitor::PokePick(const QoS& qos)
             ops.IncWorker(qos);
         } else {
             if (workerCtrl.pollWaitFlag) {
-                PollerProxy::Instance() ->GetPoller(qos).WakeUp;
+                PollerProxy::Instance() ->GetPoller(qos).WakeUp();
             }
             workerCtrl.lock.unlock;
         }

@@ -42,11 +42,9 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode
         lk->unlock();
         wn->cv.wait(nl);
     }
-    wqlock.lock();
-    remove(wn);
-    wqlock.unlock();
     lk->lock();
 }
+
 bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
     const TimePoint& tp, bool legacyMode, CPUEUTask* task)
 {
@@ -65,9 +63,11 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
             ret = true;
         }
     }
-    wqlock.lock();
-    remove(wn);
-    wqlock.unlock();
+    if (ret) { // only timeout scenarios need to remove wn
+        wqlock.lock();
+        remove(wn);
+        wqlock.unlock();
+    }
     lk->lock();
     return ret;
 }

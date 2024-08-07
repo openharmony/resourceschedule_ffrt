@@ -32,14 +32,13 @@ namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
-constexpr int RECORD_TIME_PER_LEVEL = 10;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
 constexpr char IPC_STACK_NAME[] = "libipc_core";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
-    1000 * 1000, 60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
+    1000 * 1000, 10 * 1000 * 1000, 30 * 1000 * 1000, 60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
 };
 }
 
@@ -203,8 +202,7 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
         int taskExecutionTime = ++taskInfo.sampledTimes_ * MONITOR_SAMPLING_CYCLE_US;
         if (taskExecutionTime % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
             timeoutFunctions.emplace_back(std::make_pair(worker->Id(), taskInfo.sampledTimes_));
-            if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1 &&
-                taskInfo.sampledTimes_ % RECORD_TIME_PER_LEVEL == 0) {
+            if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1) {
                 taskInfo.recordLevel_++;
             }
         }

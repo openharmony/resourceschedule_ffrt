@@ -28,6 +28,7 @@
 #endif
 
 namespace ffrt {
+
 struct WorkerCtrl {
     size_t hardLimit = 0;
     size_t maxConcurrency = 0;
@@ -35,7 +36,7 @@ struct WorkerCtrl {
     int sleepingWorkerNum = 0;
     bool pollWaitFlag = false;
     int deepSleepingWorkerNum = 0;
-    bool hasWorkDeepSleep = 0;
+    bool hasWorkDeepSleep = false;
     bool retryBeforeDeepSleep = true;
     std::mutex lock;
 };
@@ -66,10 +67,12 @@ public:
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
     void NotifyWorkers(const QoS& qos, int number);
-
+    bool HasDeepSleepWork(const QoS& qos);
     uint32_t monitorTid = 0;
 protected:
     WorkerCtrl ctrlQueue[QoS::MaxNum()];
+    void PokeAdd(const QoS& qos);
+    void PokePick(const QoS& qos);
     void Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
     CpuMonitorOps& GetOps()
     {

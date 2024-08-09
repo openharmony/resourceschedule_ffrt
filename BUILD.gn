@@ -197,13 +197,6 @@ ohos_shared_library("libffrt") {
     ]
 
     defines = []
-    if (ffrt_profiler_enable && !is_emulator) {
-      external_deps += [
-        "hiprofiler:libffrt_profiler",
-        "init:libbegetutil",
-      ]
-      defines += [ "FFRT_PROFILER" ]
-    }
 
     if (ffrt_async_stack_enable) {
       defines += [ "ASYNC_STACKTRACE" ]

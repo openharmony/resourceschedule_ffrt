@@ -93,7 +93,7 @@ int DelayedWorker::HandleWork()
         do {
             TimePoint now = std::chrono::steady_clock::now();
             auto cur = map.begin();
-            if (cur->first <= now) {
+            if (!toExit && cur != nullptr && cur->first <= now) {
                 DelayedWork w = cur->second;
                 map.erase(cur);
                 lock.unlock();

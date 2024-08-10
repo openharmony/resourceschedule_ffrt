@@ -93,13 +93,13 @@ struct ExecuteCtx {
     WaitUntilEntry wn;
     uint64_t lastGid_ = 0;
 
-    inline bool PushTaskToPriorityStack(ffrt_executor_task_t* task)
+    inline bool PushTaskToPriorityStack(ffrt_executor_task_t* executorTask)
     {
         if (priority_task_ptr == nullptr) {
             return false;
         }
         if (*priority_task_ptr == nullptr) {
-            *priority_task_ptr = task;
+            *priority_task_ptr = executorTask;
             return true;
         }
         return false;

@@ -21,6 +21,7 @@
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "internal_inc/config.h"
 #include "util/name_manager.h"
 #include "sync/poller.h"
@@ -281,6 +282,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         ops.WakeupWorkers(qos);
     } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
         workerCtrl.executionNum++;
+        FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
         workerCtrl.lock.unlock();
         ops.IncWorker(qos);
     } else {

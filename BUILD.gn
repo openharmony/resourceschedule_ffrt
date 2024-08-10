@@ -57,6 +57,7 @@ config("ffrt_config") {
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
     "QOS_FRAME_RTG",
+    "FFRT_TRACE_RECORD_LEVEL=1",
   ]
 
   #ffrt_release_defines = [
@@ -90,6 +91,7 @@ config("ffrt_inner_config") {
     "src",
     "src/dfx/log",
     "src/dfx/trace",
+    "src/dfx/trace_record",
     "src/sched",
   ]
 
@@ -119,6 +121,7 @@ ohos_shared_library("libffrt") {
       "src/dfx/dump/dump.cpp",
       "src/dfx/log/ffrt_log.cpp",
       "src/dfx/trace/ffrt_trace.cpp",
+      "src/dfx/trace_record/ffrt_trace_record.cpp",
       "src/dfx/watchdog/watchdog_util.cpp",
       "src/dm/dependence_manager.cpp",
       "src/dm/sdependence_manager.cpp",

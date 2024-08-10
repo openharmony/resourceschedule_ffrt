@@ -92,6 +92,9 @@ if(FFRT_BBOX_ENABLE STREQUAL ON)
   add_definitions("-DFFRT_BBOX_ENABLE")
 endif()
 
+# ffrt trace record level
+add_definitions("-DFFRT_TRACE_RECORD_LEVEL=1")
+
 # libffrt.so
 add_subdirectory(src)
 LINK_DIRECTORIES(${FFRT_BUILD_PATH}/src)

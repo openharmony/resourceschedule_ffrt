@@ -18,12 +18,6 @@
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <string>
 #endif
-extern void TaskSubmitCounterInc(void);
-extern void TaskDoneCounterInc(void);
-extern void TaskEnQueuCounterInc(void);
-extern void TaskRunCounterInc(void);
-extern void TaskSwitchCounterInc(void);
-extern void TaskFinishCounterInc(void);
 extern void TaskWakeCounterInc(void);
 extern void TaskPendingCounterInc(void);
 extern unsigned int GetBboxEnableState(void);
@@ -42,7 +36,9 @@ static inline void BboxCheckAndFreeze(void)
 bool FFRTIsWork(void);
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
 std::string SaveTaskCounterInfo(void);
+#endif
 std::string SaveWorkerStatusInfo(void);
 std::string SaveReadyQueueStatusInfo(void);
 std::string SaveNormalTaskStatusInfo(void);

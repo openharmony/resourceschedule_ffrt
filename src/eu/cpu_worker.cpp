@@ -69,9 +69,6 @@ void CPUWorker::Run(CPUEUTask* task)
 
 void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 {
-#ifdef FFRT_BBOX_ENABLE
-    TaskRunCounterInc();
-#endif
     if (task == nullptr) {
         FFRT_LOGE("task is nullptr");
         return;
@@ -87,16 +84,14 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
         FFRT_LOGE("Static func is nullptr");
         return;
     }
-
+    FFRTTraceRecord::TaskExecute<ffrt_uv_task>(qos);
     FFRT_EXECUTOR_TASK_BEGIN(task);
     func(task, qos);
     FFRT_EXECUTOR_TASK_END();
     if (type != ffrt_io_task) {
         FFRT_EXECUTOR_TASK_FINISH_MARKER(task); // task finish marker for uv task
     }
-#ifdef FFRT_BBOX_ENABLE
-    TaskFinishCounterInc();
-#endif
+    FFRTTraceRecord::TaskDone<ffrt_uv_task>(qos);
 }
 
 void* CPUWorker::WrapDispatch(void* worker)

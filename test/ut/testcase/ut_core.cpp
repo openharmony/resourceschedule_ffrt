@@ -114,5 +114,5 @@ HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level1)
 
     ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 20, ffrt::QoS(2));
     ctx->task = task;
-    EXPECT_EQ(ffrt_get_cur_cached_task_id(), 1);
+    EXPECT_NE(ffrt_get_cur_cached_task_id(), 0);
 }

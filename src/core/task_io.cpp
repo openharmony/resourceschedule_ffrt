@@ -33,11 +33,6 @@ static void work_finish_callable(IOTaskExecutor* task)
 {
     task->status = ExecTaskStatus::ET_FINISH;
     task->work.destroy(task->work.data);
-
-#ifdef FFRT_BBOX_ENABLE
-    TaskDoneCounterInc();
-#endif
-
     delete task;
 }
 

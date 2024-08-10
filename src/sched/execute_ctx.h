@@ -92,6 +92,7 @@ struct ExecuteCtx {
     CPUEUTask* task; // 当前正在执行的Task
     WaitUntilEntry wn;
     uint64_t lastGid_ = 0;
+    pid_t tid;
 
     inline bool PushTaskToPriorityStack(ffrt_executor_task_t* task)
     {

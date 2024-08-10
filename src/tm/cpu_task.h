@@ -74,6 +74,12 @@ public:
     bool taskLocal = false;
 
     QoS qos;
+
+    int GetQos() const override
+    {
+        return qos;
+    }
+
     void SetQos(QoS& newQos);
     uint64_t reserved[8];
 

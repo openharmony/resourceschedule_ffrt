@@ -18,6 +18,7 @@
 #include <atomic>
 #include <vector>
 #include "eu/co_routine.h"
+#include "qos.h"
 #include "sched/execute_ctx.h"
 #include "util/task_deleter.h"
 
@@ -34,6 +35,17 @@ public:
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
 #endif
+
+    virtual int GetQos() const
+    {
+        return qos_default;
+    }
+
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
+    uint64_t createTime;
+    uint64_t executeTime;
+#endif
+    int32_t fromTid;
 };
 
 class CoTask : public TaskBase, public TaskDeleter {

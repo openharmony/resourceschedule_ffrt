@@ -108,7 +108,7 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
 {
     std::unordered_map<int, int> seenFd;
     int fdCnt = 0;
-    for (int i = 0; i < cachedEventsVec.size(); i++) {
+    for (size_t i = 0; i < cachedEventsVec.size(); i++) {
         auto eventInfo = cachedEventsVec[i];
         int currFd = eventInfo.data.fd;
         // check if seen
@@ -298,7 +298,7 @@ void CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
 
 void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
 {
-    for (int i = 0; i < eventVec.size(); i++) {
+    for (size_t i = 0; i < eventVec.size(); i++) {
         int currFd = eventVec[i].data.fd;
         struct epoll_event maskEv;
         maskEv.events = 0;

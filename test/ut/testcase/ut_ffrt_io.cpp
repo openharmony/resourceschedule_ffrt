@@ -48,6 +48,8 @@ protected:
 
     virtual void SetUp()
     {
+    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
+    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     }
 
     virtual void TearDown()
@@ -56,6 +58,7 @@ protected:
     ffrt::PollerProxy::Instance()->GetPoller(qos).timerHandle_ = -1;
     ffrt::PollerProxy::Instance()->GetPoller(qos).timerMap_.clear();
     ffrt::PollerProxy::Instance()->GetPoller(qos).executedHandle_.clear();
+    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
     }
 };
 

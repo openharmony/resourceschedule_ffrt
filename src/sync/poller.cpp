@@ -474,8 +474,11 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
         }
         if (data.repeat) {
             std::lock_guard lock(timerMutex_);
-            executedHandle_.erase(data.handle);
-            RegisterTimerImpl(data);
+            auto iter = executedHandle_.find(data.handle);
+            if (iter != executedHandle_.end()) {
+                executedHandle_.erase(data.handle);
+                RegisterTimerImpl(data);
+            }
         }
     }
 }

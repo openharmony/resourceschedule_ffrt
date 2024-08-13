@@ -56,7 +56,7 @@ static void Testfun(void* data)
 static void (*g_cb)(void*) = Testfun;
 
 HWTEST_F(PollerTest, unregister_timer_001)
-{   
+{
     Poller poller;
     // 1、组装timeMap_
     static int result0 = 0;

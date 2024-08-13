@@ -2454,8 +2454,8 @@ struct ffrt_mutex_t;
 struct ffrt_mutexattr_t;
 
 typedef enum {
-    ffrt_mutex_normal = PTHREAD_MUTEX_NORMAL,
-    ffrt_mutex_recursive = PTHREAD_MUTEX_RECURSIVE,
+    ffrt_mutex_normal = 0,
+    ffrt_mutex_recursive = 2,
     ffrt_mutex_default = ffrt_mutex_normal
 } ffrt_mutex_type;
 

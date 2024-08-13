@@ -71,11 +71,11 @@ HWTEST_F(PollerTest, unregister_timer_001)
     {
         int timerHandle = poller.RegisterTimer(timeout, data, g_cb, true);
         EXPECT_FALSE(poller.timerMap_.empty());
-        auto bound_pollonce = std::bind(&Poller::PollOnce, &poller, para);
-        auto bound_unregister = std::bind(&Poller::UnregisterTimer, &poller, timerHandle);
+        auto boundPollonce = std::bind(&Poller::PollOnce, &poller, para);
+        auto boundUnregister = std::bind(&Poller::UnregisterTimer, &poller, timerHandle);
         usleep(sleepTime);
-        std::thread thread1(bound_pollonce);
-        std::thread thread2(bound_unregister);
+        std::thread thread1(boundPollonce);
+        std::thread thread2(boundUnregister);
         thread1.join();
         thread2.join();
         EXPECT_TRUE(poller.timerMap_.empty());

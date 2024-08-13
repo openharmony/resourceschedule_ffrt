@@ -186,7 +186,7 @@ typedef struct {
 
 /**
  * @brief ffrt mutex type enum
- * 
+ *
  * Describes the mutex type, ffrt_mutex_normal is normal mutex;
  * ffrt_mutex_recursive is recursive mutex, ffrt_mutex_default is normal mutex.
  * 

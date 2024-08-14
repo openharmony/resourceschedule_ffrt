@@ -823,10 +823,10 @@ int main(int narg, char** argv)
     q.submit([&x] { x += 10; });
 
     // 提交串行任务，并返回任务句柄
-    task_handle t1 = q.submit_h([&x] { x += 10; });
+    ffrt::task_handle t1 = q.submit_h([&x] { x += 10; });
 
     // 提交串行任务，设置延时时间1000us，并返回任务句柄
-    task_handle t2 = q.submit_h([&x] { x += 10; }, ffrt::task_attr().delay(1000));
+    ffrt::task_handle t2 = q.submit_h([&x] { x += 10; }, ffrt::task_attr().delay(1000));
 
     // 等待指定任务执行完成
     q.wait(t1);
@@ -989,8 +989,9 @@ ffrt_function_header_t* callback() const;
 
 int main(int narg, char** argv)
 {
+    int x = 0;
     std::function<void()> callbackFunc = [&x]() {
-        ...
+        x++;
     };
 
     // 创建队列，可设置队列优先级，默认为default等级
@@ -1618,9 +1619,6 @@ static inline void ffrt_submit_c(ffrt_function_t func, const ffrt_function_t aft
     ffrt_submit_base(ffrt_create_function_wrapper(func, after_func, arg), in_deps, out_deps, attr);
 }
 
-#define ffrt_deps_define(name, dep1, ...) const void* __v_##name[] = {dep1, ##__VA_ARGS__}; \
-    ffrt_deps_t name = {sizeof(__v_##name) / sizeof(void*), __v_##name}
-
 void fib_ffrt(void* arg)
 {
     fib_ffrt_s* p = (fib_ffrt_s*)arg;
@@ -1633,10 +1631,14 @@ void fib_ffrt(void* arg)
         int y1, y2;
         fib_ffrt_s s1 = {x - 1, &y1};
         fib_ffrt_s s2 = {x - 2, &y2};
-        ffrt_deps_define(dx, &x);
-        ffrt_deps_define(dy1, &y1);
-        ffrt_deps_define(dy2, &y2);
-        ffrt_deps_define(dy12, &y1, &y2);
+        const std::vector<ffrt_dependence_t> dx_deps = {{ffrt_dependence_data, &x}};
+        ffrt_deps_t dx{static_cast<uint32_t>(dx_deps.size()), dx_deps.data()};
+        const std::vector<ffrt_dependence_t> dy1_deps = {{ffrt_dependence_data, &y1}};
+        ffrt_deps_t dy1{static_cast<uint32_t>(dy1_deps.size()), dy1_deps.data()};
+        const std::vector<ffrt_dependence_t> dy2_deps = {{ffrt_dependence_data, &y2}};
+        ffrt_deps_t dy2{static_cast<uint32_t>(dy2_deps.size()), dy2_deps.data()};
+        const std::vector<ffrt_dependence_t> dy12_deps = {{ffrt_dependence_data, &y1}, {ffrt_dependence_data, &y2}};
+        ffrt_deps_t dy12{static_cast<uint32_t>(dy12_deps.size()), dy12_deps.data()};
         ffrt_submit_c(fib_ffrt, NULL, &s1, &dx, &dy1, NULL);
         ffrt_submit_c(fib_ffrt, NULL, &s2, &dx, &dy2, NULL);
         ffrt_wait_deps(&dy12);
@@ -1648,7 +1650,8 @@ int main(int narg, char** argv)
 {
     int r;
     fib_ffrt_s s = {10, &r};
-    ffrt_deps_define(dr, &r);
+    const std::vector<ffrt_dependence_t> dr_deps = {{ffrt_dependence_data, &r}};
+    ffrt_deps_t dr{static_cast<uint32_t>(dr_deps.size()), dr_deps.data()};
     ffrt_submit_c(fib_ffrt, NULL, &s, NULL, &dr, NULL);
     ffrt_wait_deps(&dr);
     printf("fibonacci 10: %d\n", r);
@@ -1677,7 +1680,7 @@ int main(int narg, char** argv)
 ```{.cpp}
 typedef struct {
     uint32_t len;
-    const void* const * items;
+    const ffrt_dependence_t* items;
 } ffrt_deps_t;
 ```
 
@@ -1711,8 +1714,8 @@ int main(int narg, char** argv)
     int x1 = 1;
     int x2 = 2;
     
-    void *t[] = {&x1, &x2};
-    ffrt_deps_t deps = {2, (const void* const *)&t};
+    const std::vector<ffrt_dependence_t> t_deps = {{ffrt_dependence_data, &x1}, {ffrt_dependence_data, &x2}};
+    ffrt_deps_t deps{static_cast<uint32_t>(t_deps.size()), t_deps.data()};
     // some code use deps
     return 0;
 }
@@ -1729,13 +1732,12 @@ int main(int narg, char** argv)
     int x1 = 1;
     int x2 = 2;
     
-    void** t = (void**)malloc(sizeof(void*) * 2);
-    t[0]= &x1;
-    t[1]= &x2;
+    ffrt_dependence_t* t = new ffrt_dependence_t[2];
+    t[0]= {ffrt_dependence_data, &x1};
+    t[1]= {ffrt_dependence_data, &x2};
     ffrt_deps_t deps = {2, t};
     
     // some code use deps
-    free(t);
     return 0;
 }
 ```
@@ -1985,23 +1987,23 @@ static inline void ffrt_submit_c(ffrt_function_t func, const ffrt_function_t aft
     ffrt_submit_base(ffrt_create_function_wrapper(func, after_func, arg), in_deps, out_deps, attr);
 }
 
-#define ffrt_deps_define(name, dep1, ...) const void* __v_##name[] = {dep1, ##__VA_ARGS__}; \
-    ffrt_deps_t name = {sizeof(__v_##name) / sizeof(void*), __v_##name}
-
 int main(int narg, char** argv)
 {  
     // handle work with submit
     ffrt_task_handle_t h = ffrt_submit_h_c(func0, NULL, NULL, NULL, NULL, NULL); // not need some data in this task
     int x = 1;
-    ffrt_deps_define(d1, &x);
-    ffrt_deps_define(d2, &x, h);
+    const std::vector<ffrt_dependence_t> d1_deps = {{ffrt_dependence_data, &x}};
+    ffrt_deps_t d1{static_cast<uint32_t>(d1_deps.size()), d1_deps.data()};
+    const std::vector<ffrt_dependence_t> d2_deps = {{ffrt_dependence_data, &x}, {ffrt_dependence_data, h}};
+    ffrt_deps_t d2{static_cast<uint32_t>(d2_deps.size()), d2_deps.data()};
     ffrt_submit_c(func1, NULL, &x, NULL, &d1, NULL);
     ffrt_submit_c(func2, NULL, &x, &d2, NULL, NULL); // this task depend x and h
     ffrt_task_handle_destroy(h);
     
     // handle work with wait
     ffrt_task_handle_t h2 = ffrt_submit_h_c(func3, NULL, &x, NULL, NULL, NULL);
-    ffrt_deps_define(d3, h2);
+    const std::vector<ffrt_dependence_t> d3_deps = {{ffrt_dependence_data, h2}};
+    ffrt_deps_t d3{static_cast<uint32_t>(d3_deps.size()), d3_deps.data()};
     ffrt_wait_deps(&d3);
     ffrt_task_handle_destroy(h2);
     printf("x = %d", x);
@@ -2568,7 +2570,7 @@ static inline void ffrt_submit_c(ffrt_function_t func, const ffrt_function_t aft
     ffrt_submit_base(ffrt_create_function_wrapper(func, after_func, arg), in_deps, out_deps, attr);
 }
 
-void ffrt_mutex_task()
+void ffrt_mutex_task(void *)
 {
     int sum = 0;
     ffrt_mutex_t mtx;
@@ -2585,30 +2587,21 @@ void ffrt_mutex_task()
     printf("sum = %d", sum);
 }
 
-void ffrt_recursive_mutex_task()
+void ffrt_recursive_mutex_task(void *)
 {
     int sum = 0;
     int ret = 0;
     ffrt_mutexattr_t attr;
     ffrt_mutex_t mtx;
-    ret = ffrt_mutexattr_init(&attr);
-    if (ret != ffrt_success) {
-        printf("mutexattr init error\n");
-    }
-    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_recursive);
-    if (ret != ffrt_success) {
-        printf("mutexattr settype error\n");
-    }
     tuple t = {&sum, &mtx};
-    int ret = ffrt_mutex_init(&mtx, &attr);
+    ret = ffrt_recursive_mutex_init(&mtx, &attr);
     if (ret != ffrt_success) {
         printf("error\n");
     }
     for (int i = 0; i < 10; i++) {
         ffrt_submit_c(func, NULL, &t, NULL, NULL, NULL);
     }
-    ffrt_mutexattr_destory(&attr);
-    ffrt_mutex_destroy(&mtx);
+    ffrt_recursive_mutex_destroy(&mtx);
     ffrt_wait();
     printf("sum = %d", sum);
 }
@@ -2800,7 +2793,18 @@ int main(int narg, char** argv)
 预期输出为
 
 ```
-sum=10
+sum is 1
+sum is 2
+sum is 3
+sum is 4
+sum is 5
+sum is 6
+sum is 7
+sum is 8
+sum is 9
+sum is 10
+每种各5次
+
 ```
 
 * 该例子为功能示例，实际中并不鼓励这样使用
@@ -2966,7 +2970,7 @@ static inline void ffrt_submit_c(ffrt_function_t func, const ffrt_function_t aft
     ffrt_submit_base(ffrt_create_function_wrapper(func, after_func, arg), in_deps, out_deps, attr);
 }
 
-void ffrt_cv_task()
+void ffrt_cv_task(void*)
 {
     ffrt_cond_t cond;
     int ret = ffrt_cond_init(&cond, NULL);
@@ -3034,15 +3038,16 @@ int ffrt_usleep(uint64_t usec);
 #### 样例
 
 ```{.c}
-#include <time.h>
 #include <stdio.h>
 #include "ffrt.h"
 
 void func(void* arg)
 {
-    printf("Time: %s", ctime(&(time_t){time(NULL)}));
+    time_t current_time = time(NULL);
+    printf("Time: %s", ctime(&current_time));
     ffrt_usleep(2000000); // 睡眠 2 秒
-    printf("Time: %s", ctime(&(time_t){time(NULL)}));
+    current_time = time(NULL);
+    printf("Time: %s", ctime(&current_time));
 }
 
 typedef struct {
@@ -3095,6 +3100,13 @@ int main(int narg, char** argv)
     ffrt_wait();
     return 0;
 }
+```
+
+预期输出为
+
+```
+Time: Tue Aug 13 11:34:40 2024
+Time: Tue Aug 13 11:34:42 2024
 ```
 
 ### ffrt_yield

@@ -22,6 +22,8 @@
 #include "ffrt_inner.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/thread.h"
+#include "c/ffrt_ipc.h"
+#include "tm/cpu_task.h"
 
 extern "C" int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
 extern "C" int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type);
@@ -92,6 +94,38 @@ HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level1)
     EXPECT_EQ(val, 1);
     lock.unlock();
     lock.unlock();
+}
+HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
+{
+    int x = 0;
+    ffrt::submit([&]() {
+        ffrt_this_task_set_legacy_mode(true);
+        ffrt_this_task_set_legacy_mode(true);
+        ffrt::CPUEUTask* ctx = ffrt::ExecuteCtx::Cur()->task;
+        bool result = ffrt::LegacyMode(ctx);
+        EXPECT_EQ(result, 1);
+        ffrt::submit([&]() {
+            ffrt_this_task_set_legacy_mode(true);
+            ffrt::CPUEUTask* ctx = ffrt::ExecuteCtx::Cur()->task;
+            bool result = ffrt::LegacyMode(ctx);
+            EXPECT_EQ(result, 1);
+            x++;
+            EXPECT_EQ(x, 1);
+            ffrt_this_task_set_legacy_mode(false);
+            ffrt_this_task_set_legacy_mode(false);
+            ctx = ffrt::ExecuteCtx::Cur()->task;
+            int legacycount = ctx->legacyCountNum;
+            EXPECT_EQ(legacycount, -1);
+            }, {}, {});
+        ffrt::wait();
+        ffrt_this_task_set_legacy_mode(false);
+        ffrt_this_task_set_legacy_mode(false);
+        ctx = ffrt::ExecuteCtx::Cur()->task;
+        int legacycount = ctx->legacyCountNum;
+        EXPECT_EQ(legacycount, 0);
+        }, {}, {});
+    ffrt::wait();
+    EXPECT_EQ(x, 1);
 }
 
 HWTEST_F(SyncTest, class_data_align, TestSize.Level1)

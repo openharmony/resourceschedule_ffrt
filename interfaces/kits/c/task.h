@@ -232,15 +232,21 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, cons
  * @brief increase reference count of task handle.
  *
  * @param handle Indicates a task handle.
+ * @return return the task handle original reference count.
+ * @since 12
+ * @version 1.0
  */
-FFRT_C_API void ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
+FFRT_C_API uint32_t ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
 
 /**
  * @brief decrease reference count of task handle.
  *
  * @param handle Indicates a task handle.
+ * @return return the task handle original reference count.
+ * @since 12
+ * @version 1.0
  */
-FFRT_C_API void ffrt_task_handle_dec_ref(ffrt_task_handle_t handle);
+FFRT_C_API uint32_t ffrt_task_handle_dec_ref(ffrt_task_handle_t handle);
 
 /**
  * @brief Destroys a task handle.

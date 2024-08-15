@@ -52,7 +52,7 @@ public:
     CoRoutine* coRoutine = nullptr;
     uint64_t stack_size = STACK_SIZE;
     std::atomic<pthread_t> runningTid = 0;
-    bool legacyMode { false }; // dynamic switch controlled by set_legacy_mode api
+    int legacyCountNum = 0; // dynamic switch controlled by set_legacy_mode api
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
     std::mutex mutex_; // used in coroute
     std::condition_variable waitCond_; // cv for thread wait

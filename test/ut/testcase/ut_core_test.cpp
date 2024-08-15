@@ -80,11 +80,11 @@ HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
     //when executing task in legacy mode
     SCPUEUTask* parent = new SCPUEUTask(nullptr, nullptr, 0, QoS());
     task->parent = parent;
-    task->legacyMode = true;
+    task->legacyCountNum = 1;
     EXPECT_EQ(ThreadWaitMode(task), true);
 
     // when task is valid and not legacy mode
-    task->legacyMode = false;
+    task->legacyCountNum = 0;
     EXPECT_EQ(ThreadWaitMode(task), false);
 
     // when block thread is false

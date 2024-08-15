@@ -189,7 +189,7 @@ void SDependenceManager::onWait()
     auto task = static_cast<SCPUEUTask*>(baseTask);
 
     if (ThreadWaitMode(task)) {
-        std::unique_lock<std::mutex> lck(task->lock);
+        std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
         if (FFRT_UNLIKELY(LegacyMode(task))) {
@@ -201,7 +201,7 @@ void SDependenceManager::onWait()
 
     auto childDepFun = [&](ffrt::CPUEUTask* task) -> bool {
         auto sTask = static_cast<SCPUEUTask*>(task);
-        std::unique_lock<std::mutex> lck(sTask->lock);
+        std::unique_lock<std::mutex> lck(sTask->mutex_);
         if (sTask->childRefCnt == 0) {
             return false;
         }
@@ -256,7 +256,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
 
     if (ThreadWaitMode(task)) {
         dataDepFun();
-        std::unique_lock<std::mutex> lck(task->lock);
+        std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
         if (FFRT_UNLIKELY(LegacyMode(task))) {
@@ -270,7 +270,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         auto sTask = static_cast<SCPUEUTask*>(task);
         dataDepFun();
         FFRT_LOGD("onWait name:%s gid=%lu", sTask->label.c_str(), sTask->gid);
-        std::unique_lock<std::mutex> lck(sTask->lock);
+        std::unique_lock<std::mutex> lck(sTask->mutex_);
         if (sTask->dataRefCnt.waitDep == 0) {
             return false;
         }

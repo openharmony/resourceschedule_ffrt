@@ -29,17 +29,19 @@ public:
     virtual ~TaskDeleter() {}
     virtual void FreeMem() = 0;
 
-    inline void IncDeleteRef()
+    inline uint32_t IncDeleteRef()
     {
-        rc.fetch_add(1);
+        auto v = rc.fetch_add(1);
+        return v;
     }
 
-    inline void DecDeleteRef()
+    inline uint32_t DecDeleteRef()
     {
         auto v = rc.fetch_sub(1);
         if (v == 1) {
             FreeMem();
         }
+        return v;
     }
     std::atomic_uint32_t rc = 1;
 };

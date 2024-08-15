@@ -124,9 +124,6 @@ private:
     std::atomic_bool isFinished_ = {false};
     bool onWait_ = {false};
 
-    std::mutex mutex_;
-    std::condition_variable cond_;
-
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
     uint64_t senderKernelThreadId_{0};
 };

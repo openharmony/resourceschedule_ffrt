@@ -54,6 +54,20 @@ public:
     std::atomic<pthread_t> runningTid = 0;
     bool legacyMode { false }; // dynamic switch controlled by set_legacy_mode api
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
+    std::mutex mutex_; // used in coroute
+    std::condition_variable waitCond_; // cv for thread wait
+
+    void SetTraceTag(const char* name)
+    {
+        traceTag.emplace_back(name);
+    }
+
+    void ClearTraceTag()
+    {
+        if (!traceTag.empty()) {
+            traceTag.pop_back();
+        }
+    }
 };
 }
 #endif

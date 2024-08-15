@@ -170,7 +170,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 
     int nfds = 0;
     if (ThreadWaitMode(task)) {
-        std::unique_lock<std::mutex> lck(task->lock);
+        std::unique_lock<std::mutex> lck(task->mutex_);
         m_mapMutex.lock();
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
@@ -264,7 +264,7 @@ namespace {
 void WakeTask(CPUEUTask* task)
 {
     if (ThreadNotifyMode(task)) {
-        std::unique_lock<std::mutex> lck(task->lock);
+        std::unique_lock<std::mutex> lck(task->mutex_);
         if (BlockThread(task)) {
             task->blockType = BlockType::BLOCK_COROUTINE;
         }

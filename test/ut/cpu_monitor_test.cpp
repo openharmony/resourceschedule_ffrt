@@ -118,7 +118,9 @@ HWTEST_F(CpuMonitorTest, Notify, TestSize.Level1)
     SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
+        std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::GetWorkerCount, it, std::placeholders::_1),
+        CPUMonitor::HandleTaskNotifyDefault});
 
     cpu.Notify(QoS(5), TaskNotifyType(1));
 }

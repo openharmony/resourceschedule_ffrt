@@ -16,6 +16,7 @@
 #include <sys/syscall.h>
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "queue_monitor.h"
 #include "util/event_handler_adapter.h"
 #include "tm/queue_task.h"
@@ -118,10 +119,12 @@ void QueueHandler::Submit(QueueTask* task)
 
     uint64_t gid = task->gid;
     FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(GetQueueId(), gid);
+    FFRTTraceRecord::TaskSubmit(&(task->createTime), &(task->fromTid));
+#if (FFRT_TRACE_RECORD_LEVEL < FFRT_TRACE_RECORD_LEVEL_1)
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
-        task->SetSenderKernelThreadId(syscall(SYS_gettid));
+        task->fromTid = ExecuteCtx::Cur()->tid;
     }
-
+#endif
     int ret = queue_->Push(task);
     if (ret == SUCC) {
         FFRT_LOGD("submit task[%lu] into %s", gid, name_.c_str());
@@ -195,7 +198,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(task->gid);
-
+        FFRTTraceRecord::TaskExecute(&(task->executeTime));
         uint64_t triggerTime{0};
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
             triggerTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -203,7 +206,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         }
 
         f->exec(f);
-
+        FFRTTraceRecord::TaskDone<ffrt_queue_task>(task->GetQos(), task);
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
             uint64_t completeTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());

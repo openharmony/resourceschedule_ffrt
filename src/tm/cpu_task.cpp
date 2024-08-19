@@ -12,13 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#include "tm/cpu_task.h"
 #include <securec.h>
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "dm/dependence_manager.h"
-#include "util/slab.h"
+
 #include "internal_inc/osal.h"
 #include "tm/task_factory.h"
-#include "tm/cpu_task.h"
+#include "util/slab.h"
 
 namespace {
 const int TSD_SIZE = 128;
@@ -49,6 +50,7 @@ void CPUEUTask::FreeMem()
 void CPUEUTask::Execute()
 {
     FFRT_LOGD("Execute task[%lu], name[%s]", gid, label.c_str());
+    FFRTTraceRecord::TaskExecute(&(this->executeTime));
     UpdateState(TaskState::RUNNING);
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;

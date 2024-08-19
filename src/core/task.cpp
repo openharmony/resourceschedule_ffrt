@@ -26,6 +26,7 @@
 #include "eu/osattr_manager.h"
 #include "eu/worker_thread.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/watchdog/watchdog_util.h"
 #include "eu/func_manager.h"
 #include "util/ffrt_facade.h"
@@ -574,7 +575,11 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
     ffrt::FFRTFacade::GetDMInstance();
     ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
-    return static_cast<int>(sch->RemoveNode(node, _qos));
+    bool ret = sch->RemoveNode(node, _qos);
+    if (ret) {
+        ffrt::FFRTTraceRecord::TaskCancel<ffrt_uv_task>(qos);
+    }
+    return static_cast<int>(ret);
 }
 
 API_ATTRIBUTE((visibility("default")))

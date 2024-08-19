@@ -30,6 +30,7 @@
 #include "sync/perf_counter.h"
 #include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "co_routine_factory.h"
 #ifdef FFRT_TASK_LOCAL_ENABLE
 #include "pthread_ffrt.h"
@@ -404,9 +405,7 @@ void CoStart(ffrt::CPUEUTask* task)
     CoCreat(task);
     auto co = task->coRoutine;
 
-#ifdef FFRT_BBOX_ENABLE
-    TaskRunCounterInc();
-#endif
+    FFRTTraceRecord::TaskRun(task->GetQos(), task);
 
 #ifdef FFRT_HITRACE_ENABLE
     using namespace OHOS::HiviewDFX;
@@ -436,9 +435,6 @@ void CoStart(ffrt::CPUEUTask* task)
         if (co->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
             co->isTaskDone = false;
-#ifdef FFRT_BBOX_ENABLE
-            TaskFinishCounterInc();
-#endif
             return;
         }
 
@@ -446,9 +442,6 @@ void CoStart(ffrt::CPUEUTask* task)
         // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = GetCoEnv()->pending;
         if (pending == nullptr) {
-#ifdef FFRT_BBOX_ENABLE
-            TaskFinishCounterInc();
-#endif
             return;
         }
         GetCoEnv()->pending = nullptr;
@@ -456,9 +449,7 @@ void CoStart(ffrt::CPUEUTask* task)
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-#ifdef FFRT_BBOX_ENABLE
-            TaskSwitchCounterInc();
-#endif
+            FFRTTraceRecord::TaskCoSwitchOut(task->GetQos(), task);
 #ifdef FFRT_HITRACE_ENABLE
         HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
         HiTraceChain::Restore(currentId);

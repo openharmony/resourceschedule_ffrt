@@ -23,11 +23,13 @@
 #include <sstream>
 #include <vector>
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "sched/scheduler.h"
 #include "tm/queue_task.h"
 #include "queue/queue_monitor.h"
 #include "tm/task_factory.h"
 #include "eu/cpuworker_manager.h"
+#include "util/time_format.h"
 #ifdef OHOS_STANDARD_SYSTEM
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #endif
@@ -35,12 +37,6 @@
 
 using namespace ffrt;
 
-static std::atomic<unsigned int> g_taskSubmitCounter(0);
-static std::atomic<unsigned int> g_taskDoneCounter(0);
-static std::atomic<unsigned int> g_taskEnQueueCounter(0);
-static std::atomic<unsigned int> g_taskRunCounter(0);
-static std::atomic<unsigned int> g_taskSwitchCounter(0);
-static std::atomic<unsigned int> g_taskFinishCounter(0);
 static std::atomic<unsigned int> g_taskPendingCounter(0);
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 static CPUEUTask* g_cur_task;
@@ -51,47 +47,15 @@ std::condition_variable bbox_handle_end;
 
 static struct sigaction s_oldSa[SIGSYS + 1]; // SIGSYS = 31
 
-void TaskSubmitCounterInc(void)
-{
-    ++g_taskSubmitCounter;
-}
-
 void TaskWakeCounterInc(void)
 {
     ++g_taskWakeCounter;
-}
-
-
-void TaskDoneCounterInc(void)
-{
-    ++g_taskDoneCounter;
-}
-
-void TaskEnQueuCounterInc(void)
-{
-    ++g_taskEnQueueCounter;
-}
-
-void TaskRunCounterInc(void)
-{
-    ++g_taskRunCounter;
-}
-
-void TaskSwitchCounterInc(void)
-{
-    ++g_taskSwitchCounter;
-}
-
-void TaskFinishCounterInc(void)
-{
-    ++g_taskFinishCounter;
 }
 
 void TaskPendingCounterInc(void)
 {
     ++g_taskPendingCounter;
 }
-
 
 static inline void SaveCurrent()
 {
@@ -105,21 +69,23 @@ static inline void SaveCurrent()
     }
 }
 
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
 static inline void SaveTaskCounter()
 {
     FFRT_BBOX_LOG("<<<=== task counter ===>>>");
     FFRT_BBOX_LOG("FFRT BBOX TaskSubmitCounter:%u TaskEnQueueCounter:%u TaskDoneCounter:%u",
-        g_taskSubmitCounter.load(), g_taskEnQueueCounter.load(), g_taskDoneCounter.load());
-    FFRT_BBOX_LOG("FFRT BBOX TaskRunCounter:%u TaskSwitchCounter:%u TaskFinishCounter:%u", g_taskRunCounter.load(),
-        g_taskSwitchCounter.load(), g_taskFinishCounter.load());
+        FFRTTraceRecord::GetSubmitCount(), FFRTTraceRecord::GetEnqueueCount(), FFRTTraceRecord::GetDoneCount());
+    FFRT_BBOX_LOG("FFRT BBOX TaskRunCounter:%u TaskSwitchCounter:%u TaskFinishCounter:%u",
+        FFRTTraceRecord::GetRunCount(), FFRTTraceRecord::GetCoSwitchCount(), FFRTTraceRecord::GetFinishCount());
     FFRT_BBOX_LOG("FFRT BBOX TaskWakeCounterInc:%u, TaskPendingCounter:%u",
         g_taskWakeCounter.load(), g_taskPendingCounter.load());
-    if (g_taskSwitchCounter.load() + g_taskFinishCounter.load() == g_taskRunCounter.load()) {
+    if (FFRTTraceRecord::GetCoSwitchCount() + FFRTTraceRecord::GetFinishCount() == FFRTTraceRecord::GetRunCount()) {
         FFRT_BBOX_LOG("TaskRunCounter equals TaskSwitchCounter + TaskFinishCounter");
     } else {
         FFRT_BBOX_LOG("TaskRunCounter is not equal to TaskSwitchCounter + TaskFinishCounter");
     }
 }
+#endif
 
 static inline void SaveWorkerStatus()
 {
@@ -272,13 +238,7 @@ unsigned int GetBboxEnableState(void)
 
 bool FFRTIsWork()
 {
-    if (g_taskSubmitCounter.load() == 0) {
-        return false;
-    } else if (g_taskSubmitCounter.load() == g_taskDoneCounter.load()) {
-        return false;
-    }
-
-    return true;
+    return FFRTTraceRecord::FfrtBeUsed();
 }
 
 void SaveTheBbox()
@@ -294,7 +254,9 @@ void SaveTheBbox()
 #endif
             FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
             SaveCurrent();
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
             SaveTaskCounter();
+#endif
             SaveWorkerStatus();
             SaveReadyQueueStatus();
             SaveNormalTaskStatus();
@@ -407,22 +369,49 @@ __attribute__((destructor)) static void BBoxDeInit()
 }
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
 std::string SaveTaskCounterInfo(void)
 {
     std::ostringstream ss;
     ss << "    |-> task counter" << std::endl;
-    ss << "        FFRT BBOX TaskSubmitCounter:" << g_taskSubmitCounter.load() << " TaskEnQueueCounter:"
-       << g_taskEnQueueCounter.load() << " TaskDoneCounter:" << g_taskDoneCounter.load() << std::endl;
+    ss << "        TaskSubmitCounter:" << FFRTTraceRecord::GetSubmitCount() << " TaskEnQueueCounter:"
+       << FFRTTraceRecord::GetEnqueueCount() << " TaskDoneCounter:" << FFRTTraceRecord::GetDoneCount() << std::endl;
 
-    ss << "        FFRT BBOX TaskRunCounter:" << g_taskRunCounter.load() << " TaskSwitchCounter:"
-       << g_taskSwitchCounter.load() << " TaskFinishCounter:" << g_taskFinishCounter.load() << std::endl;
+    ss << "        TaskRunCounter:" << FFRTTraceRecord::GetRunCount() << " TaskSwitchCounter:"
+       << FFRTTraceRecord::GetCoSwitchCount() << " TaskFinishCounter:" << FFRTTraceRecord::GetFinishCount()
+       << std::endl;
 
-    if (g_taskSwitchCounter.load() + g_taskFinishCounter.load() == g_taskRunCounter.load()) {
+    if (FFRTTraceRecord::GetCoSwitchCount() + FFRTTraceRecord::GetFinishCount() == FFRTTraceRecord::GetRunCount()) {
         ss << "        TaskRunCounter equals TaskSwitchCounter + TaskFinishCounter" << std::endl;
     } else {
         ss << "        TaskRunCounter is not equal to TaskSwitchCounter + TaskFinishCounter" << std::endl;
     }
     return ss.str();
+}
+#endif // FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2
+
+static inline std::string FormatDateString(uint64_t timeStamp)
+{
+#if defined(__aarch64__)
+    return FormatDateString4CntCt(timeStamp, microsecond);
+#else
+    return FormatDateString4SteadyClock(timeStamp, microsecond);
+#endif
+}
+
+void AppendTaskInfo(std::ostringstream& oss, TaskBase* task)
+{
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
+    if (task->fromTid) {
+        oss << " fromTid " << task->fromTid;
+    }
+    if (task->createTime) {
+        oss << " createTime " << FormatDateString(task->createTime);
+    }
+    if (task->executeTime) {
+        oss << " executeTime " << FormatDateString(task->executeTime);
+    }
+#endif
 }
 
 std::string SaveWorkerStatusInfo(void)
@@ -446,13 +435,15 @@ std::string SaveWorkerStatusInfo(void)
             }
             if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 ss << "        qos " << i << ": worker tid " << thread.first->Id()
-                << " is running, task id " << t->gid << " name " << t->label.c_str() << std::endl;
+                    << " is running, task id " << t->gid << " name " << t->label.c_str();
+                AppendTaskInfo(ss, t);
+                ss << std::endl;
             }
         }
         if (tidArr.size() == 0) {
             continue;
         }
-        oss << "        qos " << i << ": worker num:" << tidArr.size() << "tid:";
+        oss << "        qos " << i << ": worker num:" << tidArr.size() << " tid:";
         std::for_each(tidArr.begin(), tidArr.end(), [&](const int &t) {
             if (&t == &tidArr.back()) {
                 oss << t;
@@ -489,7 +480,9 @@ std::string SaveReadyQueueStatusInfo()
             }
             if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
                 ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << "> task id "
-                << t->gid << " name " << t->label.c_str() << std::endl;
+                    << t->gid << " name " << t->label.c_str();
+                AppendTaskInfo(ss, t);
+                ss << std::endl;
             }
 
             FFRTScheduler::Instance()->GetScheduler(i).WakeupTask(t);
@@ -521,7 +514,9 @@ std::string SaveNormalTaskStatusInfo(void)
             ss.str("");
             if (t->type == ffrt_normal_task) {
                 ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id " << t->gid << ",qos "
-                << t->qos() << ",name " << t->label.c_str() << std::endl;
+                    << t->qos() << ",name " << t->label.c_str();
+                AppendTaskInfo(ss, t);
+                ss << std::endl;
             }
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
@@ -570,7 +565,9 @@ std::string SaveQueueTaskStatusInfo()
             ss.str("");
             if (t->type == ffrt_queue_task) {
                 ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
-                << t->GetQos() << "name" << t->label.c_str() << std::endl;
+                    << t->GetQos() << "name" << t->label.c_str();
+                AppendTaskInfo(ss, t);
+                ss << std::endl;
             }
             ffrtStackInfo += ss.str();
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {

@@ -17,6 +17,7 @@
 #include <sstream>
 #include "backtrace_local.h"
 #endif
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "dm/dependence_manager.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
@@ -47,9 +48,7 @@ void SCPUEUTask::DecDepRef()
         FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
         FFRT_WAKE_TRACER(this->gid);
         this->UpdateState(TaskState::READY);
-#ifdef FFRT_BBOX_ENABLE
-        TaskEnQueuCounterInc();
-#endif
+        FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
     }
 }
 
@@ -117,9 +116,7 @@ void SCPUEUTask::DecWaitDataRef()
     } else {
         FFRT_WAKE_TRACER(this->gid);
         this->UpdateState(TaskState::READY);
-#ifdef FFRT_BBOX_ENABLE
-        TaskEnQueuCounterInc();
-#endif
+        FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
     }
 }
 

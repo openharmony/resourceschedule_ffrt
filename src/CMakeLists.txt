@@ -15,6 +15,7 @@ file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/tm/*.cpp"
 	"${FFRT_CODE_PATH}/dm/*.cpp"
 	"${FFRT_CODE_PATH}/dfx/bbox/bbox.cpp"
+	"${FFRT_CODE_PATH}/dfx/trace_record/ffrt_trace_record.cpp"
 	"${FFRT_CODE_PATH}/dfx/log/ffrt_log.cpp"
 	"${FFRT_CODE_PATH}/dfx/log/${FFRT_LOG_PLAT}/log_base.cpp"
 	"${FFRT_CODE_PATH}/dfx/dump/dump.cpp"

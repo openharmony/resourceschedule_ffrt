@@ -39,7 +39,7 @@ public:
 
     uint32_t GetQueueId() const;
 
-    inline int GetQos() const
+    inline int GetQos() const override
     {
         return qos_;
     }
@@ -100,16 +100,6 @@ public:
         return insertHead_;
     }
 
-    inline uint64_t GetSenderKernelThreadId()
-    {
-        return senderKernelThreadId_;
-    }
-
-    inline void SetSenderKernelThreadId(uint64_t senderKernelThreadId)
-    {
-        senderKernelThreadId_ = senderKernelThreadId;
-    }
-
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 
 private:
@@ -125,7 +115,6 @@ private:
     bool onWait_ = {false};
 
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
-    uint64_t senderKernelThreadId_{0};
 };
 } // namespace ffrt
 

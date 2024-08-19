@@ -77,9 +77,6 @@ bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
     }
     fifoQue[static_cast<unsigned short>(level)]->RemoveNode(node);
     lock->unlock();
-#ifdef FFRT_BBOX_ENABLE
-    TaskFinishCounterInc();
-#endif
     return true;
 }
 

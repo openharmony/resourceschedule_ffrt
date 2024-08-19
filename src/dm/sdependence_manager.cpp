@@ -14,6 +14,7 @@
  */
 
 #include "sdependence_manager.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 
@@ -104,9 +105,8 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     }
 #endif
 
-#ifdef FFRT_BBOX_ENABLE
-    TaskSubmitCounterInc();
-#endif
+    QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+    FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos, &(task->createTime), &(task->fromTid));
 
     std::vector<const void*> insNoDup;
     std::vector<const void*> outsNoDup;
@@ -124,7 +124,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         handle = static_cast<ffrt_task_handle_t>(task);
         outsNoDup.push_back(handle); // handle作为任务的输出signature
     }
-    QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
     task->SetQos(qos);
     /* The parent's number of subtasks to be completed increases by one,
         * and decreases by one after the subtask is completed
@@ -176,9 +175,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 
     FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);
-#ifdef FFRT_BBOX_ENABLE
-    TaskEnQueuCounterInc();
-#endif
+    FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     FFRT_TRACE_END();
 }
 
@@ -290,9 +287,8 @@ int SDependenceManager::onExecResults(const ffrt_deps_t *deps)
 void SDependenceManager::onTaskDone(CPUEUTask* task)
 {
     auto sTask = static_cast<SCPUEUTask*>(task);
-#ifdef FFRT_BBOX_ENABLE
-    TaskDoneCounterInc();
-#endif
+    FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos());
+    FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos(),  task);
     FFRT_TRACE_SCOPE(1, ontaskDone);
     sTask->DecChildRef();
     if (!(sTask->ins.empty() && sTask->outs.empty())) {

@@ -228,7 +228,10 @@ ohos_prebuilt_etc("blacklist_cfg") {
   part_name = "ffrt"
   subsystem_name = "resourceschedule"
   install_enable = true
-  install_images = [ "system" ]
+  install_images = [
+    "system",
+    "updater",
+  ]
 }
 
 group("ffrt_ndk") {

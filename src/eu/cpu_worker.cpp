@@ -106,13 +106,18 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
     auto ctx = ExecuteCtx::Cur();
     CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
     worker->curTask = task;
+    worker->curTaskType_ = task->type;
     switch (curtask->type) {
         case ffrt_normal_task:
         case ffrt_queue_task: {
+            worker->curTaskLabel_ = task->label;
+            worker->curTaskGid_ = task->gid;
             ctx->task = task;
             ctx->lastGid_ = task->gid;
             Run(task);
             ctx->task = nullptr;
+            worker->curTaskLabel_ = "";
+            worker->curTaskGid_ = UINT64_MAX;
             break;
         }
         default: {
@@ -123,6 +128,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
         }
     }
     worker->curTask = nullptr;
+    worker->curTaskType_ = ffrt_invalid_task;
 }
 
 void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker)

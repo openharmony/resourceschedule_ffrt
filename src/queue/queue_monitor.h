@@ -50,6 +50,7 @@ private:
     std::vector<QueueHandler*> queuesStructInfo_;
     std::atomic_bool exit_ { false };
     std::atomic_bool abortSendTimer_ { false };
+    std::vector<uint64_t> lastReportedTask_;
 };
 } // namespace ffrt
 

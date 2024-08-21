@@ -58,6 +58,7 @@ config("ffrt_config") {
     "FFRT_TRACE_LEVEL=1",
     "QOS_FRAME_RTG",
     "FFRT_TRACE_RECORD_LEVEL=1",
+    "FFRT_SEND_EVENT",
   ]
 
   #ffrt_release_defines = [
@@ -120,6 +121,7 @@ ohos_shared_library("libffrt") {
       "src/dfx/bbox/fault_logger_fd_manager.cpp",
       "src/dfx/dump/dump.cpp",
       "src/dfx/log/ffrt_log.cpp",
+      "src/dfx/sysevent/sysevent.cpp",
       "src/dfx/trace/ffrt_trace.cpp",
       "src/dfx/trace_record/ffrt_trace_record.cpp",
       "src/dfx/watchdog/watchdog_util.cpp",

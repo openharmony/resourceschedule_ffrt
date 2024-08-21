@@ -19,6 +19,7 @@ file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/dfx/log/ffrt_log.cpp"
 	"${FFRT_CODE_PATH}/dfx/log/${FFRT_LOG_PLAT}/log_base.cpp"
 	"${FFRT_CODE_PATH}/dfx/dump/dump.cpp"
+	"${FFRT_CODE_PATH}/dfx/sysevent/sysevent.cpp"
 	"${FFRT_CODE_PATH}/dfx/watchdog/watchdog_util.cpp"
 )
 

@@ -39,6 +39,10 @@ const std::vector<uint64_t> FFRT_RETRY_CYCLE_LIST = {
 class WorkerThread {
 public:
     CPUEUTask* curTask = nullptr;
+
+    uintptr_t curTaskType_ = ffrt_invalid_task;
+    std::string curTaskLabel_ = "";
+    uint64_t curTaskGid_ = UINT64_MAX; //仅当TaskType为normal task或者queue task时，label和gid才能正常读取
     explicit WorkerThread(const QoS& qos);
 
     virtual ~WorkerThread()

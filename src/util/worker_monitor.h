@@ -30,6 +30,29 @@ struct TaskTimeoutInfo {
     explicit TaskTimeoutInfo(CPUEUTask* task) : task_(task) {}
 };
 
+struct TimeoutFunctionInfo {
+    size_t qosLevel_;
+    int coWorkerCount_;
+    int tid_;
+    int sampledTimes_;
+    uintptr_t type_;
+    uint64_t gid_;
+    std::string label_;
+
+    TimeoutFunctionInfo(size_t qosLevel, int coWorkerCount, int workerId, int sampledTimes,
+        uintptr_t workerTaskType, uint64_t taskId, std::string workerTaskLabel)
+        : qosLevel_(qosLevel), coWorkerCount_(coWorkerCount), tid_(workerId), sampledTimes_(sampledTimes),
+        type_(workerTaskType) {
+            if (type_ == ffrt_normal_task || type_ == ffrt_queue_task) {
+                gid_ = taskId;
+                label_ = workerTaskLabel;
+            } else {
+                gid_ = UINT64_MAX; //该task type 没有 gid
+                label_ = "Unsupport_Task_type"; //该task type 没有 label
+            }
+        }
+};
+
 class WorkerMonitor {
 public:
     static WorkerMonitor &GetInstance();
@@ -45,9 +68,9 @@ private:
     void SubmitSamplingTask();
     void SubmitMemReleaseTask();
     void CheckWorkerStatus();
-    void RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask,
-        std::vector<std::pair<int, int>>& timeoutFunctions);
-    void RecordSymbolAndBacktrace(int tid, int sampleTimes);
+    void RecordTimeoutFunctionInfo(size_t coWorkerCount, WorkerThread* worker,
+        CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
+    void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
     void RecordIpcInfo(const std::string& dumpInfo);
 
 private:

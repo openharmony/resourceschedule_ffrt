@@ -25,6 +25,7 @@
 #include "sched/scheduler.h"
 
 namespace {
+constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 }
@@ -298,20 +299,16 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
 void QueueHandler::RunTimeOutCallback(QueueTask* task)
 {
     std::stringstream ss;
-    ss << "serial queue [" << name_ << "] queueId=" << GetQueueId() << ", serial task gid=" << task->gid <<
-        " execution time exceeds " << timeout_ << " us";
-    std::string msg = ss.str();
-    std::string eventName = "SERIAL_TASK_TIMEOUT";
-
-#ifdef FFRT_SEND_EVENT
-    time_t cur_time = time(nullptr);
-    std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
-    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
-        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "PID", getpid(), "TGID", getgid(), "UID", getuid(),
-        "MODULE_NAME", "ffrt", "PROCESS_NAME", "ffrt", "MSG", sendMsg);
-#endif
-
-    FFRT_LOGE("[%s], %s", eventName.c_str(), msg.c_str());
+    static std::once_flag flag;
+    static char processName[PROCESS_NAME_BUFFER_LENGTH];
+    std::call_once(flag, []() {
+        GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
+    });
+    std::string processNameStr = std::string(processName);
+    ss << "[Serial_Queue_Timeout_Callback] process name:[" << processNameStr << "], serial queue:[" <<
+        name_ << "], queueId:[" << GetQueueId() << "], serial task gid:[" << task->gid << "], task name:["
+        << task->label << "], execution time exceeds[" << timeout_ << "] us";
+    FFRT_LOGE("%s", ss.str().c_str());
     if (timeoutCb_ != nullptr) {
         timeoutCb_->exec(timeoutCb_);
     }

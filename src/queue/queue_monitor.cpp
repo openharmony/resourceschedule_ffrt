@@ -202,7 +202,7 @@ void QueueMonitor::CheckQueuesStatus()
             std::stringstream ss;
             char processName[PROCESS_NAME_BUFFER_LENGTH];
             GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-            ss << "Serial_Queue_Timeout, process name:[" << processNameStr << "], serial queue qid:[" << i
+            ss << "Serial_Queue_Timeout, process name:[" << processName << "], serial queue qid:[" << i
                 << "], serial task gid:[" << taskId << "], execution:[" << timeoutUs_ << "] us.";
             if (queuesStructInfo_[i] != nullptr) {
                 ss << queuesStructInfo_[i]->GetDfxInfo();

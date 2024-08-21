@@ -212,7 +212,8 @@ void QueueMonitor::CheckQueuesStatus()
             if (lastReportedTask_[i] != taskId) {
                 lastReportedTask_[i] = taskId;
                 std::string processNameStr = std::string(processName);
-                TaskTimeoutReport(ss, processNameStr, "Serial_Queue_Timeout");
+                std::string senarioName = "Serial_Queue_Timeout";
+                TaskTimeoutReport(ss, processNameStr, senarioName);
             }
 #endif          
             ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();

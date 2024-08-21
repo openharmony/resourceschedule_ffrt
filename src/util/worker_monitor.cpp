@@ -17,11 +17,13 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <regex>
 #ifdef FFRT_OH_TRACE_ENABLE
 #include "backtrace_local.h"
 #endif
 
+#include "dfx/sysevent/sysevent.h"
 #include "eu/execute_unit.h"
 #include "eu/worker_manager.h"
 #include "eu/co_routine_factory.h"
@@ -29,6 +31,7 @@
 #include "sched/scheduler.h"
 
 namespace {
+constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
@@ -166,9 +169,10 @@ void WorkerMonitor::CheckWorkerStatus()
             return;
         }
     }
-    std::vector<std::pair<int, int>> timeoutFunctions;
+    std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
+        size_t coWorkerCount = workerGroup[i].threads.size();
         for (auto& thread : workerGroup[i].threads) {
             WorkerThread* worker = thread.first;
             CPUEUTask* workerTask = worker->curTask;
@@ -177,19 +181,19 @@ void WorkerMonitor::CheckWorkerStatus()
                 continue;
             }
 
-            RecordTimeoutFunctionInfo(worker, workerTask, timeoutFunctions);
+            RecordTimeoutFunctionInfo(coWorkerCount, worker, workerTask, timeoutFunctions);
         }
     }
 
     for (const auto& timeoutFunction : timeoutFunctions) {
-        RecordSymbolAndBacktrace(timeoutFunction.first, timeoutFunction.second);
+        RecordSymbolAndBacktrace(timeoutFunction);
     }
 
     SubmitSamplingTask();
 }
 
-void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* workerTask,
-    std::vector<std::pair<int, int>>& timeoutFunctions)
+void WorkerMonitor::RecordTimeoutFunctionInfo(size_t coWorkerCount, WorkerThread* worker, CPUEUTask* workerTask,
+    std::vector<TimeoutFunctionInfo>& timeoutFunctions)
 {
     auto workerIter = workerStatus_.find(worker);
     if (workerIter == workerStatus_.end()) {
@@ -201,7 +205,8 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
     if (taskInfo.task_ == workerTask) {
         int taskExecutionTime = ++taskInfo.sampledTimes_ * MONITOR_SAMPLING_CYCLE_US;
         if (taskExecutionTime % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
-            timeoutFunctions.emplace_back(std::make_pair(worker->Id(), taskInfo.sampledTimes_));
+            timeoutFunctions.emplace_back(static_cast<int>(worker->GetQos()), coWorkerCount, worker->Id(),
+                taskInfo.sampledTimes_, worker->curTaskType_, worker->curTaskGid_, worker->curTaskLabel_);
             if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1) {
                 taskInfo.recordLevel_++;
             }
@@ -216,18 +221,36 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(WorkerThread* worker, CPUEUTask* w
     workerIter->second = TaskTimeoutInfo(workerTask);
 }
 
-void WorkerMonitor::RecordSymbolAndBacktrace(int tid, int sampleTimes)
+void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction)
 {
-    int sampleSeconds = (sampleTimes == 0) ? 1 : sampleTimes / SAMPLING_TIMES_PER_SEC;
-    FFRT_LOGW("Tid[%d] function occupies worker for more than [%d]s.", tid, sampleSeconds);
+    int sampleSeconds = (timeoutFunction.sampledTimes_ == 0) ? 1 : timeoutFunction.sampledTimes_ /
+        SAMPLING_TIMES_PER_SEC;
+    std::stringstream ss;
+    char processName[PROCESS_NAME_BUFFER_LENGTH];
+    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
+    ss << "Task_Sch_Timeout: process name:[" << processName << "], Tid:[" << timeoutFunction.tid_ <<
+        "], Worker QoS Level:[" << timeoutFunction.qosLevel_ << "], Concurrent Worker Count:[" <<
+        timeoutFunction.coWorkerCount_ << "], Task Type:[" << timeoutFunction.type_ << "], ";
+    if (timeoutFunction.type_ == ffrt_normal_task || timeoutFunction.type_ == ffrt_queue_task) {
+        ss << "Task Name:[" << timeoutFunction.label_ << "], Task Id:[" << timeoutFunction.gid_ << "], ";
+    }
+    ss << "occupies worker for more than [" << sampleSeconds << "]s";
+    FFRT_LOGW("%s", ss.str().c_str());
 
 #ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;
-    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, tid, 0, false)) {
+    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.tid_, 0, false)) {
         FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
         if (sampleSeconds >= RECORD_IPC_INFO_TIME_THRESHOLD) {
             RecordIpcInfo(dumpInfo);
         }
+    }
+#endif
+#ifdef FFRT_SEND_EVENT
+    if (sampleSeconds == HISYSEVENT_TIMEOUT_SEC) {
+        std::string processNameStr = std::string(processName);
+        std::string senarioName = "Task_Sch_Timeout";
+        TaskTimeoutReport(ss, processNameStr, senarioName);
     }
 #endif
 }

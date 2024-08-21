@@ -23,7 +23,7 @@
 #include "cpp/task_ext.h"
 #include "cpp/deadline.h"
 #include "cpp/qos_convert.h"
-#include "cpp/shared_mutex.h"
+include "cpp/shared_mutex.h"
 #else
 #include "c/task_ext.h"
 #include "c/queue_ext.h"

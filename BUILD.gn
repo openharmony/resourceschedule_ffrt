@@ -229,13 +229,8 @@ ohos_prebuilt_etc("blacklist_cfg") {
   subsystem_name = "resourceschedule"
   install_enable = true
   install_images = [
-<<<<<<< HEAD
     "system",
     "updater",
-=======
-      "system",
-      "updater",
->>>>>>> 498bf25cc6ccd877d4cab920b0f38a93b87864b3
   ]
 }
 

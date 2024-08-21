@@ -16,14 +16,12 @@
 #define FFRT_API_FFRT_INNER_H
 #include "ffrt.h"
 #ifdef __cplusplus
-#include "c/ffrt_dump.h"
 #include "c/queue_ext.h"
 #include "cpp/thread.h"
 #include "cpp/future.h"
 #include "cpp/task_ext.h"
 #include "cpp/deadline.h"
 #include "cpp/qos_convert.h"
-#include "cpp/shared_mutex.h"
 #else
 #include "c/task_ext.h"
 #include "c/queue_ext.h"

@@ -53,8 +53,8 @@ extern "C" {
     void CTC_QueryInterval(int queryItem, IntervalReply& queryRs);
 }
 
-static const std::string TRACE_LIB_PATH_1 = "/system/lib64/libconcurrentsvc.z.so"; 
-static const std::string TRACE_LIB_PATH_2 = "/system/lib64/libconcurrent_task_client.z.so";
+static const std::string TRACE_LIB_PATH_1 = "libconcurrentsvc.z.so"; 
+static const std::string TRACE_LIB_PATH_2 = "libconcurrent_task_client.z.so";
 
 class TaskClientAdapter {
 public:

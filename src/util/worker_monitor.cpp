@@ -231,9 +231,9 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
     ss << "Task_Sch_Timeout: process name:[" << processName << "], Tid:[" << timeoutFunction.tid_ <<
         "], Worker QoS Level:[" << timeoutFunction.qosLevel_ << "], Concurrent Worker Count:[" <<
         timeoutFunction.coWorkerCount_ << "], Task Type:[" << timeoutFunction.type_ << "], ";
-    if (timeoutFunction.type_ == ffrt_normal_task || timeoutFunction.type_ == ffrt_queue_task) {   
+    if (timeoutFunction.type_ == ffrt_normal_task || timeoutFunction.type_ == ffrt_queue_task) {
         ss << "Task Name:[" << timeoutFunction.label_ << "], Task Id:[" << timeoutFunction.gid_ << "], ";
-    }  
+    }
     ss << "occupies worker for more than [" << sampleSeconds << "]s";
     FFRT_LOGW("%s", ss.str().c_str());
 
@@ -249,7 +249,7 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
 #ifdef FFRT_SEND_EVENT
     if (sampleSeconds == HISYSEVENT_TIMEOUT_SEC) {
         std::string processNameStr = std::string(processName);
-         std::string senarioName = "Task_Sch_Timeout";
+        std::string senarioName = "Task_Sch_Timeout";
         TaskTimeoutReport(ss, processNameStr, senarioName);
     }
 #endif

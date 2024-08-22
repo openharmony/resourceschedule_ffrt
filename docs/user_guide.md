@@ -744,9 +744,9 @@ void queue::submit(std::function<void()>&& func, const task_attr& attr);
 
 * 参数：
 
-  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至时函数对象
+  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至是函数对象
 
-  `attr`：该参数时可选的，用于描述task的属性，如qos、delay、timeout等，详见[task_attr](#task_attr)章节
+  `attr`：该参数是可选的，用于描述task的属性，如qos、delay、timeout等，详见[task_attr](#task_attr)章节
 
 * 返回值：不涉及
 
@@ -765,7 +765,7 @@ task_handle queue::submit_h(std::function<void()>&& func, const task_attr& attr)
 
 * 参数：
 
-  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至时函数对象
+  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至是函数对象
 
   `attr`：该参数时可选的，用于描述task的属性，如qos、delay、timeout等，详见[task_attr](#task_attr)章节
 
@@ -848,9 +848,9 @@ int main(int narg, char** argv)
 
 * 生命周期，进程结束前需要释放FFRT资源。
 
-  例如SA业务，会在全局变量中管理串行队列。由于进程会先卸载libffrt.so再释放全局变量，如果进程结束时，SA未显式释放持有的队列，队列将随全局变量析构，析构时会访问已释放的ffrt资源，导致Fuzz用例出现use-after-free问题。
+  例如SA业务，会在全局变量中管理串行队列。由于进程会先卸载libffrt.so再释放全局变量，如果进程结束时，SA未显示释放持有的串行队列，队列将随全局变量析构，析构时会访问已释放的ffrt资源，导致Fuzz用例出现use-after-free问题。
 
-* 不允许再串行任务中调用ffrt::submit和ffrt::wait，其行为是未定义的
+* 不允许在串行任务中调用ffrt::submit和ffrt::wait，其行为是未定义的
 
 * 不允许使用ffrt::wait等待一个串行任务
 
@@ -960,7 +960,7 @@ queue_attr& callback(std::function<void()>& func);
 
 * 参数：
 
-  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至时函数对象
+  `func`：可被std::function接收的一切CPU可执行体，可以为C++定义的Lambda函数闭包，函数指针，甚至是函数对象
 
 * 返回值：
 
@@ -2237,7 +2237,7 @@ int main(int narg, char** argv)
     // 3、提交串行任务
     ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
 
-    // 4、提交出啊逆行任务，并返回任务句柄
+    // 4、提交串行任务，并返回任务句柄
     ffrt_task_handle_t t1 = ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
     // 5、等待指定任务执行完成
     ffrt_queue_wait(t1);
@@ -2278,7 +2278,7 @@ ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
 void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
 uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
 
-void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* f);
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f);
 ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
 ```
 
@@ -2362,7 +2362,7 @@ void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
 uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
 ```
 
-* 描述：获取串行队列任务执行超时时间
+* 描述：获取所设置的串行队列任务执行超时时间
 
 * 参数：
 
@@ -2372,7 +2372,7 @@ uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
 
 ##### ffrt_queue_attr_set_callback
 ```{.cpp}
-void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* f);
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f);
 ```
 
 * 描述：设置串行队列超时回调函数
@@ -2396,10 +2396,10 @@ ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* at
 
   `attr`：所创建的串行队列属性
 
-* 返回值：串行队列超时回调函数
+* 返回值：串行队列任务超时回调函数
 
 #### 样例
-```
+```{.cpp}
 #include <stdio.h>
 #include "ffrt.h"
 
@@ -2430,6 +2430,142 @@ int main(int narg, char** argv)
     // 5、销毁串行队列属性，必需
     ffrt_queue_attr_destroy(&queue_attr);
 }
+```
+
+### ffrt_loop_t
+<hr/>
+
+* 为满足美团生态对接的要求，扩展了FFRT基本功能。新增了支持定时器、线程间通信、N并发队列、并提供Loop机制（在用户创建的线程内循环执行用户提交的任务）等功能
+
+#### 声明
+
+```{.c}
+typedef void* ffrt_loop_t
+
+ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
+int ffrt_loop_destroy(ffrt_loop_t loop);
+int ffrt_loop_run(ffrt_loop_t loop);
+void ffrt_loop_stop(ffrt_loop_t loop);
+int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb);
+ffrt_timer_t ffrt_loop_timer_start(
+    ffrt_loop_t loop, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
+int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
+```
+
+#### 参数
+
+`queue`: 表示一个队列句柄
+
+`loop`: 表示一个loop句柄
+
+`op`: 表示目标文件描述符的操作
+
+`fd`: 表示执行操作的目标文件描述符
+
+`events`: 表示跟目标文件描述符相关联的事件类型
+
+`data`: 表示回调函数中被用户使用的数据
+
+`cb`: 表示一个回调函数，当目标文件描述符被获取时执行
+
+`timeout`: 表示函数调用中阻塞时间的上限，单位为毫秒
+
+`repeat`: 表示是否重复这个定时器
+
+#### 返回值
+* ffrt_loop_create接口：当loop成功创建后返回一个非空的loop句柄，否则返回一个空指针
+* ffrt_loop_destroy接口：当loop成功被销毁返回0，否则返回-1
+* ffrt_loop_run接口：当loop成功运行返回0，否则返回-1
+* ffrt_loop_epoll_ctl接口：如果成功在loop里添加/删除fd，返回0，否则返回-1
+* ffrt_loop_timer_start接口：在loop里开启一个定时器，返回该定时器的句柄
+* ffrt_loop_timer_stop接口：在loop里停止一个目标定时器，停止成功：返回0，如果停止失败：返回-1
+
+#### 描述
+* FFRT提供loop的编程机制，loop支持任务提交，提交的任务直接在用户线程中执行
+* FFRT loop基于FFRT queue构建任务队列，基于FFRT Poller实现事件监听，loop内部自动遍历任务队列执行任务，当没有任务时进入Poller的epoll_wait监听事件，线程进入休眠状态
+* 支持用户通过接口创建loop，返回给用户loop句柄，创建loop时需要传入一个已创建的FFRT queue作为该loop的任务队列
+* loop创建后支持向queue中提交任务，并支持在loop run的过程中向queue中提交任务
+* 提供ffrt_loop_create接口创建loop，用户传入queue，创建时将loop和queue相互绑定
+* **注意：这里对传入的queue要求从未提交过任务，即：不支持queue的任务既在worker上执行又在用户线程上执行**
+* **注意：传入的queue类型仅支持N并发队列，不支持其它类型的队列**
+* 提供ffrt_loop_run接口，运行loop，loop启动后遍历queue中的任务执行
+* 提供ffrt_loop_stop接口，停止运行loop，停止后loop不能再运行
+* 提供ffrt_loop_destroy接口，将loop销毁，同时解除queue和loop间的绑定关系，意味着loop销毁后不能再向该queue提交任务
+* 提供ffrt_loop_epoll_ctl接口，使用户可以监听/删除一个fd，当fd被调用时，执行用户的回调函数
+* 提供ffrt_loop_timer_start接口，在loop中开始一个定时器
+* 提供ffrt_loop_timer_stop接口，在loop中停止一个目标定时器
+
+#### 样例
+```{.c}
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    // step1: 创建queue
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
+
+    // step2: 创建loop
+    auto loop = ffrt_loop_create(queue_handle);
+
+    // step3: 此时可以向loop提交任务
+    int result1 = 0;
+    std::function<void()>&& basicFunc1 = [&result1]() { result1 += 10; };
+    ffrt_task_handle_t task1 = ffrt_queue_submit_h(queue_handle,
+        create_function_wrapper(basicFunc1, ffrt_function_kind_queue), nullptr);
+    
+    // step4: 在进程中执行loop run
+    pthread_t thread;
+    pthread_create(&thread, 0, ThreadFunc, loop);
+
+    static int x = 0;
+    int* xf = &x;
+    void* data = xf;
+    uint64_t timeout1 = 20;
+    uint64_t timeout2 = 10;
+    uint64_t expected = 0xabacadae;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+
+    struct TestData testData {.fd = testFd, .expected = expected};
+    EXPECT_EQ(0, ffrt_loop_timer_start(loop, timeout1, data, cb, false));
+    EXPECT_EQ(1, ffrt_loop_timer_start(loop, timeout2, data, cb, false));
+
+    ffrt_loop_epoll_ctl(loop, EPOLL_CTL_ADD, testFd, EPOLLIN, (void*)(&testData), testCallBack);
+    ssize_t n = write(testFd, &expected, sizeof(uint64_t));
+    EXPECT_EQ(n, sizeof(uint64_t));
+    usleep(25000);
+    ffrt_loop_epoll_ctl(loop, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
+
+    EXPECT_EQ(2, x);
+
+    // step5: 继续向loop上提交任务
+    int result2 = 0;
+    std::function<void()>&& basicFunc2 = [&result2]() { result2 += 20; };
+    ffrt_task_handle_t task2 = ffrt_queue_submit_h(queue_handle,
+        create_function_wrapper(basicFunc2, ffrt_function_kind_queue), nullptr);
+    
+    ffrt_queue_wait(task1);
+    ffrt_queue_wait(task2);
+    EXPECT_EQ(result1, 10);
+    EXPECT_EQ(result2, 20);
+
+    // step6: 停止loop
+    ffrt_loop_stop(loop);
+    pthread_join(thread, nullptr);
+
+    // step7: loop销毁
+    ffrt_loop_destroy(loop);
+
+    // step8: 队列销毁
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
 ```
 
 
@@ -2490,7 +2626,7 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 * 若成功则为 ffrt_success ，否则发生错误
 
 #### 描述
-* 该接口只能在FFRT task 内部调用，在FFRT task 外部调用存在未定义的行为
+* 该接口支持在FFRT task 内部调用，也支持在FFRT task 外部调用
 * 该功能能够避免pthread传统的pthread_mutex_t 在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
 * **注意：目前暂不支持定时功能**
 * **注意：C API中的ffrt_mutexattr_t需要用户调用`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`显示创建和销毁，而C++ API无需该操作**
@@ -2827,16 +2963,9 @@ typedef enum {
     ffrt_error_inval = EINVAL
 } ffrt_error_t;
 
-struct ffrt_cond_t;
-typedef enum {
-    ffrt_clock_realtime = CLOCK_REALTIME,
-    ffrt_clock_monotonic = CLOCK_MONOTONIC
-} ffrt_clockid_t;
-
-int ffrt_condattr_init(ffrt_condattr_t* attr);
-int ffrt_condattr_destroy(ffrt_condattr_t* attr);
-int ffrt_condattr_setclock(ffrt_condattr_t* attr, ffrt_clockid_t clock);
-int ffrt_condattr_getclock(const ffrt_condattr_t* attr, ffrt_clockid_t* clock);
+typedef struct {
+    uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
+} ffrt_cond_t;
 
 int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
 int ffrt_cond_signal(ffrt_cond_t* cond);
@@ -2870,7 +2999,7 @@ int ffrt_cond_destroy(ffrt_cond_t* cond);
 * 若成功则为 ffrt_success，若在锁定互斥前抵达时限则为 ffrt_error_timedout
 
 #### 描述
-* 该接口只能在FFRT task 内部调用，在FFRT task 外部调用存在未定义的行为
+* 该接口支持在FFRT task 内部调用，也支持在FFRT task 外部调用
 * 该功能能够避免传统的pthread_cond_t在条件不满足时陷入内核的问题，在使用得当的条件下将会有更好的性能
 * **注意：C API中的ffrt_cond_t需要用户调用`ffrt_cond_init`和`ffrt_cond_destroy`显式创建和销毁，而C++ API中依赖构造和析构自动完成**
 * **注意：C API中的ffrt_cond_t对象的置空和销毁由用户完成，对同一个ffrt_cond_t仅能调用一次`ffrt_cond_destroy`，重复对同一个ffrt_cond_t调用`ffrt_cond_destroy`，其行为是未定义的**

@@ -2430,6 +2430,142 @@ int main(int narg, char** argv)
 }
 ```
 
+### ffrt_loop_t
+<hr/>
+
+* 为满足美团生态对接的要求，扩展了FFRT基本功能。新增了支持定时器、线程间通信、N并发队列、并提供Loop机制（在用户创建的线程内循环执行用户提交的任务）等功能
+
+#### 声明
+
+```{.c}
+typedef void* ffrt_loop_t
+
+ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
+int ffrt_loop_destroy(ffrt_loop_t loop);
+int ffrt_loop_run(ffrt_loop_t loop);
+void ffrt_loop_stop(ffrt_loop_t loop);
+int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb);
+ffrt_timer_t ffrt_loop_timer_start(
+    ffrt_loop_t loop, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
+int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
+```
+
+#### 参数
+
+`queue`: 表示一个队列句柄
+
+`loop`: 表示一个loop句柄
+
+`op`: 表示目标文件描述符的操作
+
+`fd`: 表示执行操作的目标文件描述符
+
+`events`: 表示跟目标文件描述符相关联的事件类型
+
+`data`: 表示回调函数中被用户使用的数据
+
+`cb`: 表示一个回调函数，当目标文件描述符被获取时执行
+
+`timeout`: 表示函数调用中阻塞时间的上限，单位为毫秒
+
+`repeat`: 表示是否重复这个定时器
+
+#### 返回值
+* ffrt_loop_create接口：当loop成功创建后返回一个非空的loop句柄，否则返回一个空指针
+* ffrt_loop_destroy接口：当loop成功被销毁返回0，否则返回-1
+* ffrt_loop_run接口：当loop成功运行返回0，否则返回-1
+* ffrt_loop_epoll_ctl接口：如果成功在loop里添加/删除fd，返回0，否则返回-1
+* ffrt_loop_timer_start接口：在loop里开启一个定时器，返回该定时器的句柄
+* ffrt_loop_timer_stop接口：在loop里停止一个目标定时器，停止成功：返回0，如果停止失败：返回-1
+
+#### 描述
+* FFRT提供loop的编程机制，loop支持任务提交，提交的任务直接在用户线程中执行
+* FFRT loop基于FFRT queue构建任务队列，基于FFRT Poller实现事件监听，loop内部自动遍历任务队列执行任务，当没有任务时进入Poller的epoll_wait监听事件，线程进入休眠状态
+* 支持用户通过接口创建loop，返回给用户loop句柄，创建loop时需要传入一个已创建的FFRT queue作为该loop的任务队列
+* loop创建后支持向queue中提交任务，并支持在loop run的过程中向queue中提交任务
+* 提供ffrt_loop_create接口创建loop，用户传入queue，创建时将loop和queue相互绑定
+* **注意：这里对传入的queue要求从未提交过任务，即：不支持queue的任务既在worker上执行又在用户线程上执行**
+* **注意：传入的queue类型仅支持N并发队列，不支持其它类型的队列**
+* 提供ffrt_loop_run接口，运行loop，loop启动后遍历queue中的任务执行
+* 提供ffrt_loop_stop接口，停止运行loop，停止后loop不能再运行
+* 提供ffrt_loop_destroy接口，将loop销毁，同时解除queue和loop间的绑定关系，意味着loop销毁后不能再向该queue提交任务
+* 提供ffrt_loop_epoll_ctl接口，使用户可以监听/删除一个fd，当fd被调用时，执行用户的回调函数
+* 提供ffrt_loop_timer_start接口，在loop中开始一个定时器
+* 提供ffrt_loop_timer_stop接口，在loop中停止一个目标定时器
+
+#### 样例
+```{.c}
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt;
+using namespace std;
+
+int main(int narg, char** argv)
+{
+    // step1: 创建queue
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
+
+    // step2: 创建loop
+    auto loop = ffrt_loop_create(queue_handle);
+
+    // step3: 此时可以向loop提交任务
+    int result1 = 0;
+    std::function<void()>&& basicFunc1 = [&result1]() { result1 += 10; };
+    ffrt_task_handle_t task1 = ffrt_queue_submit_h(queue_handle,
+        create_function_wrapper(basicFunc1, ffrt_function_kind_queue), nullptr);
+    
+    // step4: 在进程中执行loop run
+    pthread_t thread;
+    pthread_create(&thread, 0, ThreadFunc, loop);
+
+    static int x = 0;
+    int* xf = &x;
+    void* data = xf;
+    uint64_t timeout1 = 20;
+    uint64_t timeout2 = 10;
+    uint64_t expected = 0xabacadae;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+
+    struct TestData testData {.fd = testFd, .expected = expected};
+    EXPECT_EQ(0, ffrt_loop_timer_start(loop, timeout1, data, cb, false));
+    EXPECT_EQ(1, ffrt_loop_timer_start(loop, timeout2, data, cb, false));
+
+    ffrt_loop_epoll_ctl(loop, EPOLL_CTL_ADD, testFd, EPOLLIN, (void*)(&testData), testCallBack);
+    ssize_t n = write(testFd, &expected, sizeof(uint64_t));
+    EXPECT_EQ(n, sizeof(uint64_t));
+    usleep(25000);
+    ffrt_loop_epoll_ctl(loop, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
+
+    EXPECT_EQ(2, x);
+
+    // step5: 继续向loop上提交任务
+    int result2 = 0;
+    std::function<void()>&& basicFunc2 = [&result2]() { result2 += 20; };
+    ffrt_task_handle_t task2 = ffrt_queue_submit_h(queue_handle,
+        create_function_wrapper(basicFunc2, ffrt_function_kind_queue), nullptr);
+    
+    ffrt_queue_wait(task1);
+    ffrt_queue_wait(task2);
+    EXPECT_EQ(result1, 10);
+    EXPECT_EQ(result2, 20);
+
+    // step6: 停止loop
+    ffrt_loop_stop(loop);
+    pthread_join(thread, nullptr);
+
+    // step7: loop销毁
+    ffrt_loop_destroy(loop);
+
+    // step8: 队列销毁
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+```
+
 
 ## 同步原语
 

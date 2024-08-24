@@ -158,6 +158,16 @@ void QueueHandler::Cancel()
     queue_->Remove();
 }
 
+void QueueHandler::CancelAndWait()
+{
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
+        GetQueueId());
+    queue_->Remove();
+    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
+        std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
+    }
+}
+
 int QueueHandler::Cancel(const char* name)
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,

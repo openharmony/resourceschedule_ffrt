@@ -89,6 +89,9 @@ QueueHandler::~QueueHandler()
 bool QueueHandler::SetLoop(Loop* loop)
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
+    if (queue_->GetQueueType() == ffrt_queue_eventhandler_interactive) {
+        return true;
+    }
     FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_concurrent),
         return false, "[queueId=%u] type invalid", GetQueueId());
     return reinterpret_cast<ConcurrentQueue*>(queue_.get())->SetLoop(loop);

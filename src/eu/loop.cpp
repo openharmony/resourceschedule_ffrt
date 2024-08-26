@@ -15,6 +15,7 @@
 
 #include "loop.h"
 #include "tm/queue_task.h"
+#include "util/event_handler_adapter.h"
 
 namespace ffrt {
 Loop::Loop(QueueHandler* handler) : handler_(handler) {}
@@ -27,6 +28,11 @@ Loop::~Loop()
 
 void Loop::Run()
 {
+    if (this->GetQueueType == ffrt_queue_eventhandler_interactive) {
+        FFRT_LOGE("main loop no need to run\n");
+        return;
+    }
+
     while (!stopFlag_.load()) {
         auto task = handler_->PickUpTask();
         if (task) {
@@ -44,8 +50,10 @@ void Loop::Run()
 
 void Loop::Stop()
 {
-    stopFlag_.store(true);
-    WakeUp();
+    if (this->GetQueueType() != ffrt_queue_eventhandler_interactive) {
+        stopFlag_.store(true);
+        WakeUp();
+    }
 }
 
 void Loop::WakeUp()
@@ -53,12 +61,25 @@ void Loop::WakeUp()
     poller_.WakeUp();
 }
 
+int Loop::GetQueueType()
+{
+    return handler_->GetQueue()->GetQueueType();
+}
+
 int Loop::EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb)
 {
     if (op == EPOLL_CTL_ADD) {
-        return poller_.AddFdEvent(op, events, fd, data, cb);
+        if (this->GetQueueType() == ffrt_queue_eventhandler_interactive) {
+            return EventHandlerAdapter::Instance()->AddFdListener(handler_->GetEventHandler(), fd, events, data, cb);
+        } else {
+            return poller_.AddFdEvent(op, events, fd, data, cb);
+        }
     } else if (op == EPOLL_CTL_DEL) {
-        return poller_.DelFdEvent(fd);
+        if (this->GetQueueType() == ffrt_queue_eventhandler_interactive) {
+            return EventHandlerAdapter::Instance()->RemoveFdListener(handler_->GetEventHandler(), fd);
+        } else {
+            return poller_.DelFdEvent(fd);
+        }
     } else if (op == EPOLL_CTL_MOD) {
         FFRT_LOGE("EPOLL_CTL_MOD not supported yet");
         return -1;

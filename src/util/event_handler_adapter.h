@@ -54,11 +54,15 @@ void* GetMainEventHandlerForFFRT();
 void* GetCurrentEventHandlerForFFRT();
 bool PostTaskByFFRT(void* handler, const std::function<void()>& callback, const TaskOptions& task);
 int RemoveTaskForFFRT(void* handler, const uintptr_t taskId);
+int AddFdListenerByFFRT(void* handler, uint32_t fd, uint32_t event, void* data, ffrt_poller_cb cb);
+int RemoveFdListenerByFFRT(void* handler, uint32_t fd);
 
 using GetMainEventHandlerType = decltype(GetMainEventHandlerForFFRT)*;
 using GetCurrentEventHandlerType = decltype(GetCurrentEventHandlerForFFRT)*;
 using PostTaskType = decltype(PostTaskByFFRT)*;
 using RemoveTaskType = decltype(RemoveTaskForFFRT)*;
+using AddFdListenerType = decltype(AddFdListenerByFFRT)*;
+using RemoveFdListenerType = decltype(RemoveFdListenerByFFRT)*;
 
 class EventHandlerAdapter {
 public:
@@ -87,6 +91,8 @@ public:
     GetCurrentEventHandlerType GetCurrentEventHandler = nullptr;
     PostTaskType PostTask = nullptr;
     RemoveTaskType RemoveTask = nullptr;
+    AddFdListenerType AddFdListener = nullptr;
+    RemoveFdListenerType RemoveFdListener = nullptr;
 
 private:
     void Load()
@@ -126,6 +132,20 @@ private:
             dlsym(handle_, "RemoveTaskForFFRT"));
         if (RemoveTask == nullptr) {
             FFRT_LOGE("get RemoveTaskForFFRT symbol fail.");
+            return;
+        } 
+
+        AddFdListener = reinterpret_cast<AddFdListenerType>(
+            dlsym(handle_, "AddFdListenerByFFRT"));
+        if (AddFdListener == nullptr) {
+            FFRT_LOGE("get AddFdListenerByFFRT symbol fail.");
+            return;
+        }
+         
+        RemoveFdListener = reinterpret_cast<RemoveFdListenerType>(
+            dlsym(handle_, "RemoveFdListenerByFFRT"));
+        if (RemoveFdListener == nullptr) {
+            FFRT_LOGE("get RemoveFdListenerByFFRT symbol fail.");
             return;
         }
     }

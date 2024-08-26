@@ -133,7 +133,7 @@ private:
         if (RemoveTask == nullptr) {
             FFRT_LOGE("get RemoveTaskForFFRT symbol fail.");
             return;
-        } 
+        }
 
         AddFdListener = reinterpret_cast<AddFdListenerType>(
             dlsym(handle_, "AddFdListenerByFFRT"));

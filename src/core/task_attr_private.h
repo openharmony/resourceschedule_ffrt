@@ -24,7 +24,7 @@ namespace ffrt {
 class task_attr_private {
 public:
     task_attr_private()
-        : qos_(qos_default)
+        : qos_(qos_inherit)
     {
     }
 

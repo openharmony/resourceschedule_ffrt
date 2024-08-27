@@ -57,7 +57,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
     }
 
     QueueMonitor::GetInstance().RegisterQueueId(GetQueueId(), this);
-    FFRT_LOGI("construct %s succ", name_.c_str());
+    FFRT_LOGI("construct %s succ, qos[%d]", name_.c_str(), qos_);
 }
 
 QueueHandler::~QueueHandler()

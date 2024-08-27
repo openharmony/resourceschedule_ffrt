@@ -72,7 +72,7 @@ public:
         return qos;
     }
 
-    void SetQos(QoS& newQos);
+    void SetQos(const QoS& newQos);
     uint64_t reserved[8];
 
     void FreeMem() override;

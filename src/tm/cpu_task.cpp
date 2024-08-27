@@ -26,11 +26,13 @@ const int TSD_SIZE = 128;
 }
 
 namespace ffrt {
-void CPUEUTask::SetQos(QoS& newQos)
+void CPUEUTask::SetQos(const QoS& newQos)
 {
     if (newQos == qos_inherit) {
         if (!this->IsRoot()) {
             this->qos = parent->qos;
+        } else {
+            this->qos = QoS();
         }
         FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos());
     } else {
@@ -69,9 +71,10 @@ void CPUEUTask::Execute()
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
     const QoS &qos)
-    : parent(parent), rank(id), qos(qos)
+    : parent(parent), rank(id)
 {
     fq_we.task = this;
+    SetQos(qos);
     if (attr && !attr->name_.empty()) {
         label = attr->name_;
     } else if (IsRoot()) {

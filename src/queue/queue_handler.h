@@ -50,7 +50,8 @@ public:
 
     inline bool IsValidForLoop()
     {
-        return !isUsed_.load() && queue_->GetQueueType() == ffrt_queue_concurrent;
+        return !isUsed_.load() && (queue_->GetQueueType() == ffrt_queue_concurrent
+               || queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
     }
 
     inline std::string GetName()
@@ -76,6 +77,11 @@ public:
 
     int Dump(const char* tag, char* buf, uint32_t len, bool historyInfo = true);
     int DumpSize(ffrt_inner_queue_priority_t priority);
+
+    inline const std::unique_ptr<BaseQueue>& GetQueue()
+    {
+        return queue_;
+    }
 
 private:
     void Deliver();

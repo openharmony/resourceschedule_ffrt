@@ -31,6 +31,7 @@ public:
     ffrt_timer_t TimerStart(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
     int TimerStop(ffrt_timer_t handle);
     void WakeUp();
+    int GetQueueType();
 
 private:
     QueueHandler* handler_ = nullptr;

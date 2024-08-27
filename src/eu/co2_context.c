@@ -22,6 +22,7 @@ void context_entry(void);
 #if defined(__aarch64__)
 asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     "ldp x0, x1, [sp], #0x10\n"
+    "mov lr, xzr\n"
     "br  x1\n"
     ".size context_entry, . - context_entry\n"
     ".global co2_save_context; .type co2_save_context, %function; co2_save_context:\n"
@@ -59,6 +60,7 @@ asm(".global context_entry; .type context_entry, %function; context_entry:\n"
 #elif defined(__arm__)
 asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     "pop {r0, r1}\n"
+    "mov lr, #0\n"
     "bx  r1\n"
     ".size context_entry, . - context_entry\n"
     ".global co2_save_context; .type co2_save_context, %function; co2_save_context:\n"

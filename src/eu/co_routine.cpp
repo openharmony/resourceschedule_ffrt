@@ -445,11 +445,11 @@ void CoStart(ffrt::CPUEUTask* task)
             return;
         }
         GetCoEnv()->pending = nullptr;
+        FFRTTraceRecord::TaskCoSwitchOut(task);
         // Fast path: skip state transition
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-            FFRTTraceRecord::TaskCoSwitchOut(task->GetQos(), task);
 #ifdef FFRT_HITRACE_ENABLE
         HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
         HiTraceChain::Restore(currentId);

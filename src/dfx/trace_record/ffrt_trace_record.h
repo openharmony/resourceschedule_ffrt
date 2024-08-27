@@ -176,10 +176,10 @@ public:
 #endif
     }
 
-    static inline void TaskCoSwitchOut(int qos, TaskBase* task)
+    static inline void TaskCoSwitchOut(TaskBase* task)
     {
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
-        g_recordTaskCounter_[task->type][qos].coSwitchCounter.fetch_add(1, std::memory_order_relaxed);
+        g_recordTaskCounter_[task->type][task->GetQos()].coSwitchCounter.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 

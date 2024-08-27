@@ -47,8 +47,8 @@ void SCPUEUTask::DecDepRef()
     if (--dataRefCnt.submitDep == 0) {
         FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
         FFRT_WAKE_TRACER(this->gid);
-        this->UpdateState(TaskState::READY);
         FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
+        this->UpdateState(TaskState::READY);
     }
 }
 
@@ -115,8 +115,8 @@ void SCPUEUTask::DecWaitDataRef()
         waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);
-        this->UpdateState(TaskState::READY);
         FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
+        this->UpdateState(TaskState::READY);
     }
 }
 

@@ -90,6 +90,7 @@ struct SyncData {
 using EventVec = typename std::vector<epoll_event>;
 class Poller : private NonCopyable {
     using WakeDataList = typename std::list<std::unique_ptr<struct WakeDataWithCb>>;
+    using TimePoint = std::chrono::steady_clock::time_point;
 public:
     Poller() noexcept;
     ~Poller() noexcept;
@@ -100,6 +101,7 @@ public:
 
     PollerRet PollOnce(int timeout = -1) noexcept;
     void WakeUp() noexcept;
+    void ResetTimerfd(TimePoint& tp) noexcept;
 
     int RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat = false) noexcept;
     int UnregisterTimer(int handle) noexcept;
@@ -136,6 +138,7 @@ private:
     int timerHandle_ = -1;
     EpollStatus flag_ = EpollStatus::WAKE;
     struct WakeDataWithCb m_wakeData;
+    struct WakeDataWithCb m_timerWakeData;
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
     std::unordered_map<CPUEUTask*, SyncData> m_waitTaskMap;

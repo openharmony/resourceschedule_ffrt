@@ -15,14 +15,18 @@
 
 #include "delayed_worker.h"
 
+#include <array>
 #include <unistd.h>
-#include <sys/syscall.h>
 #include <sys/prctl.h>
+#include <sys/timerfd.h>
 #include <thread>
 #include "dfx/log/ffrt_log_api.h"
+#include "internal_inc/assert.h"
 #include "util/name_manager.h"
 namespace {
-    const int FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 180;
+    const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
+    const int NS_PER_SEC = 1000 * 1000 * 1000;
+    const int WAIT_EVENT_SIZE = 5;
 }
 namespace ffrt {
 void DelayedWorker::ThreadInit()
@@ -50,22 +54,40 @@ void DelayedWorker::ThreadInit()
                 break;
             }
             if (result == 0) {
-                auto time_out = map.begin()->first;
-                cv.wait_until(lk, time_out);
+                uint64_t ns = map.begin()->first.time_since_epoch().count();
+                itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
+                timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
             } else if (result == 1) {
                 if (++noTaskDelayCount_ > 1) {
                     exited_ = true;
                     break;
                 }
-                cv.wait_until(lk, std::chrono::steady_clock::now() +
-                    std::chrono::seconds(FFRT_DELAY_WORKER_TIMEOUT_SECONDS));
+                itimerspec its = { {0, 0}, {FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS, 0} };
+                timerfd_settime(timerfd_, 0, &its, nullptr);
+            }
+            lk.unlock();
+            std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
+            int nfds = epoll_wait(epollfd_, waitedEvents.data(), waitedEvents.size(), -1);
+            if (nfds < 0 && errno != EINTR) {
+                FFRT_LOGE("epoll_wait error, errorno= %d.", errno);
+                continue;
             }
         }
     });
 }
 
-DelayedWorker::DelayedWorker()
+DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
+    timerfd_ { ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC) }
 {
+    FFRT_ASSERT(epollfd_ >= 0);
+    FFRT_ASSERT(timerfd_ >= 0);
+
+    epoll_event timer_event { .events = EPOLLIN | EPOLLET, .data = { .fd = timerfd_ } };
+    if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, timerfd_, &timer_event) < 0) {
+        FFRT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
+        std::terminate();
+    }
+
     ThreadInit();
 }
 
@@ -74,10 +96,12 @@ DelayedWorker::~DelayedWorker()
     lock.lock();
     toExit = true;
     lock.unlock();
-    cv.notify_one();
+    itimerspec its = { {0, 0}, {0, 1} };
+    timerfd_settime(timerfd_, 0, &its, nullptr);
     if (delayWorker != nullptr && delayWorker->joinable()) {
         delayWorker->join();
     }
+    ::close(timerfd_);
 }
 
 DelayedWorker& DelayedWorker::GetInstance()
@@ -134,11 +158,12 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
         w = true;
     }
     map.emplace(to, DelayedWork {we, &wakeup});
-    lock.unlock();
     if (w) {
-        cv.notify_one();
+        uint64_t ns = to.time_since_epoch().count();
+        itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
+        timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
     }
-
+    lock.unlock();
     return true;
 }
 

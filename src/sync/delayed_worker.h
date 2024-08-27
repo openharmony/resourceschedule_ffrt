@@ -33,10 +33,11 @@ class DelayedWorker {
     std::multimap<TimePoint, DelayedWork> map;
     std::mutex lock;
     std::atomic_bool toExit = false;
-    std::condition_variable cv;
     std::unique_ptr<std::thread> delayWorker = nullptr;
     int noTaskDelayCount_{0};
     bool exited_ = false;
+    int epollfd_{-1};
+    int timerfd_{-1};
 
     int HandleWork(void);
     void ThreadInit();

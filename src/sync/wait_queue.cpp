@@ -184,14 +184,25 @@ bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
     return true;
 }
 
-void WaitQueue::NotifyOne() noexcept
+void WaitQueue::Notify(bool one) noexcept
 {
+    // the caller should assure the WaitQueue life time.
+    // this function should assure the WaitQueue do not be access after the wqlock is empty(),
+    // that mean the last wait thread/co may destory the WaitQueue.
+    // all the break out should assure the wqlock is in unlock state.
+    // the continue should assure the wqlock is in lock state.
     wqlock.lock();
-    while (!empty()) {
-        WaitUntilEntry* we = pop_front();
-        if (we == nullptr) {
+    for (; ;) {
+        if (empty()) {
+            wqlock.unlock();
             break;
         }
+        WaitUntilEntry* we = pop_front();
+        if (we == nullptr) {
+            wqlock.unlock();
+            break;
+        }
+        bool isEmpty = empty();
         CPUEUTask* task = we->task;
         if (ThreadNotifyMode(task) || we->weType == 2) {
             std::unique_lock<std::mutex> lk(we->wl);
@@ -208,37 +219,11 @@ void WaitQueue::NotifyOne() noexcept
             wqlock.unlock();
             CoRoutineFactory::CoWakeFunc(task, false);
         }
-        return;
-    }
-    wqlock.unlock();
-}
-
-void WaitQueue::NotifyAll() noexcept
-{
-    wqlock.lock();
-    while (!empty()) {
-        WaitUntilEntry* we = pop_front();
-        if (we == nullptr) {
+        if (isEmpty || one) {
             break;
-        }
-        CPUEUTask* task = we->task;
-        if (ThreadNotifyMode(task) || we->weType == 2) {
-            std::unique_lock<std::mutex> lk(we->wl);
-            if (BlockThread(task)) {
-                task->blockType = BlockType::BLOCK_COROUTINE;
-                we->task = nullptr;
-            }
-            wqlock.unlock();
-            we->cv.notify_one();
-        } else {
-            if (!WeNotifyProc(we)) {
-                continue;
-            }
-            wqlock.unlock();
-            CoRoutineFactory::CoWakeFunc(task, false);
         }
         wqlock.lock();
     }
-    wqlock.unlock();
 }
+
 } // namespace ffrt

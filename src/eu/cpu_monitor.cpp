@@ -132,7 +132,7 @@ void CPUMonitor::MonitorMain()
     int ret = BlockawareLoadSnapshot(keyPtr, &domainInfoMonitor);
     if (ret != 0) {
         FFRT_LOGE("blockaware load snapshot fail, ret[%d]", ret);
-        break;
+        return;
     }
     for (int i = 0; i < qosMonitorMaxNum; i++) {
         size_t taskCount = static_cast<size_t>(ops.GetTaskCount(i));

@@ -26,7 +26,6 @@
 #include <list>
 #include <memory>
 #include "task_base.h"
-#include "sched/interval.h"
 #include "sched/task_state.h"
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"

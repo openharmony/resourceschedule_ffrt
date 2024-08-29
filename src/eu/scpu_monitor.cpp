@@ -31,4 +31,9 @@ void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
     GetOps().HandleTaskNotity(qos, this, notifyType);
 }
+
+void SCPUMonitor::WorkerInit()
+{
+    return;
+}
 }

@@ -20,9 +20,11 @@
 #include <sys/prctl.h>
 #include <sys/timerfd.h>
 #include <thread>
+#include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/assert.h"
 #include "util/name_manager.h"
+#include "sched/scheduler.h"
 namespace {
     const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
     const int NS_PER_SEC = 1000 * 1000 * 1000;
@@ -39,9 +41,10 @@ void DelayedWorker::ThreadInit()
         param.sched_priority = 1;
         int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
         if (ret != 0) {
-            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
+            FFRT_LOGW("[%d] set priority warn ret[%d] eno[%d]\n", pthread_self(), ret, errno);
         }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
+        std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
         for (;;) {
             std::unique_lock lk(lock);
             if (toExit) {
@@ -66,12 +69,25 @@ void DelayedWorker::ThreadInit()
                 timerfd_settime(timerfd_, 0, &its, nullptr);
             }
             lk.unlock();
-            std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
             int nfds = epoll_wait(epollfd_, waitedEvents.data(), waitedEvents.size(), -1);
-            if (nfds < 0 && errno != EINTR) {
+            if (nfds < 0) {
                 FFRT_LOGE("epoll_wait error, errorno= %d.", errno);
                 continue;
             }
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+            for (int i = 0; i < nfds; i++) {
+                if (waitedEvents[i].data.fd == monitorfd_) {
+                    char buffer;
+                    size_t n = ::read(monitorfd_, &buffer, sizeof buffer);
+                    if (n == 1) {
+                        monitor->MonitorMain();
+                    } else {
+                        FFRT_LOGE("monitor read fail:%d, %s", n, errno);
+                    }
+                    continue;
+                }
+            }
+#endif
         }
     });
 }
@@ -87,7 +103,17 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
         FFRT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
         std::terminate();
     }
-
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    FFRTScheduler::Instance();
+    monitor = ExecuteUnit::Instance().GetCPUMonitor();
+    monitorfd_ = BlockawareMonitorfd(-1, monitor->WakeupCond());
+    FFRT_ASSERT(monitorfd_ >= 0);
+    epoll_event monitor_event {.event = EPOLLIN, .data = {.fd = monitorfd_}};
+    int ret = epoll_ctl(epollfd_, EPOLL_CTL_ADD, monitorfd_, &monitor_event);
+    if (ret < 0) {
+        FFRT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
+    }
+#endif
     ThreadInit();
 }
 
@@ -101,6 +127,9 @@ DelayedWorker::~DelayedWorker()
     if (delayWorker != nullptr && delayWorker->joinable()) {
         delayWorker->join();
     }
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    ::close(monitorfd_);
+#endif
     ::close(timerfd_);
 }
 

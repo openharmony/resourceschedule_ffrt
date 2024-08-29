@@ -17,6 +17,7 @@
 #define FFRT_WORKER_MONITOR_H
 
 #include <mutex>
+#include <map>
 #include "eu/worker_thread.h"
 #include "tm/cpu_task.h"
 

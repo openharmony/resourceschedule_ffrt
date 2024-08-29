@@ -24,6 +24,7 @@
 #include <functional>
 #include <linux/futex.h>
 #include "sync.h"
+#include "delayed_worker.h"
 
 #ifdef NS_PER_SEC
 #undef NS_PER_SEC

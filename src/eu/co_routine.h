@@ -15,8 +15,9 @@
 
 #ifndef FFRT_CO_ROUTINE_HPP
 #define FFRT_CO_ROUTINE_HPP
-#include <functional>
 #include <atomic>
+#include <functional>
+#include <thread>
 #include "co2_context.h"
 
 #if defined(__aarch64__)

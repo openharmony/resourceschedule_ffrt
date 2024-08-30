@@ -117,7 +117,7 @@ void QueueHandler::Submit(QueueTask* task)
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
     // if qos not specified, qos of the queue is inherited by task
-    if (task->GetQos() == qos_inherit) {
+    if (task->GetQos() == qos_inherit || task->GetQos() == qos_default) {
         task->SetQos(qos_);
     }
 

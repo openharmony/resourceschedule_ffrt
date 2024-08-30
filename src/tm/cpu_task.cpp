@@ -72,10 +72,9 @@ void CPUEUTask::Execute()
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
     const QoS &qos)
-    : parent(parent), rank(id)
+    : parent(parent), rank(id), qos(qos)
 {
     fq_we.task = this;
-    SetQos(qos);
     if (attr && !attr->name_.empty()) {
         label = attr->name_;
     } else if (IsRoot()) {

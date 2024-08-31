@@ -87,7 +87,7 @@ public:
     {
         FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
         FFRT_TRACE_SCOPE(1, onSubmitUV);
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+        QoS qos = ((attr == nullptr || attr->qos_ == qos_inherit) ? QoS() : QoS(attr->qos_));
         FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(qos);
         LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
         FFRTScheduler* sch = FFRTScheduler::Instance();

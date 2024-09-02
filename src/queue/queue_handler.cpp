@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include "queue_handler.h"
-#include <sys/syscall.h>
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
@@ -166,7 +165,7 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Remove();
-    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
+    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) != 0 || queue_->GetActiveStatus()) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
 }

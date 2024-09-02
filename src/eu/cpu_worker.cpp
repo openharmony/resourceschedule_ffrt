@@ -18,7 +18,6 @@
 #include "ffrt_trace.h"
 #include "sched/scheduler.h"
 #include "eu/cpu_manager_interface.h"
-#include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
 #include "dfx/perf/ffrt_perf.h"

@@ -66,8 +66,8 @@ inline void InsDedup(std::vector<CPUEUTask*> &in_handles, std::vector<const void
     for (uint32_t i = 0; i < ins->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), ins->items[i].ptr) == outsNoDup.end()) {
             if ((ins->items[i].type) == ffrt_dependence_task) {
-                ((ffrt::CPUEUTask*)(ins->items[i].ptr))->IncDeleteRef();
-                in_handles.emplace_back((ffrt::CPUEUTask*)(ins->items[i].ptr));
+                static_cast<ffrt::CPUEUTask*>(ins->items[i].ptr)->IncDeleteRef();
+                in_handles.emplace_back(static_cast<ffrt::CPUEUTask*>(ins->items[i].ptr));
             }
             insNoDup.push_back(ins->items[i].ptr);
         }

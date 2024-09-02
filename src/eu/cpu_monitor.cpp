@@ -63,15 +63,13 @@ void CPUMonitor::SetupMonitor()
     wakeupCond.check_ahead = false;
     wakeupCond.global.low = 0;
     wakeupCond.global.high = 0;
-    for (int i = 0; i < qosMonitorMaxNum; i++) {
+    for (int i = 0; i < BLOCKAWARE_DOMAIN_ID_MAX + 1; i++) {
         wakeupCond.local[i].low = 0;
-        wakeupCond.local[i].high = ctrlQueue[i].maxConcurrency;
-        wakeupCond.global.low += wakeupCond.local[i].low;
-        wakeupCond.global.high += wakeupCond.local[i].high;
-    }
-    if (qosMonitorMaxNum <= BLOCKAWARE_DOMAIN_ID_MAX) {
-        for (int i = qosMonitorMaxNum; i <= BLOCKAWARE_DOMAIN_ID_MAX; i++) {
-            wakeupCond.local[i].low = 0;
+        if (i < qosMonitorMaxNum) {
+            wakeupCond.local[i].high = ctrlQueue[i].maxConcurrency;
+            wakeupCond.global.low += wakeupCond.local[i].low;
+            wakeupCond.global.high += wakeupCond.local[i].high;
+        } else {
             wakeupCond.local[i].high = 0;
         }
     }

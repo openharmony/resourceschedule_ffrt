@@ -17,7 +17,7 @@
 #include "internal_inc/osal.h"
 #include "sched/execute_ctx.h"
 #include "tm/cpu_task.h"
-// #include "dfx/log/ffrt_log_api.h"
+#include "dfx/log/ffrt_log_api.h"
 
 #ifdef __cplusplus
 extern "C" {

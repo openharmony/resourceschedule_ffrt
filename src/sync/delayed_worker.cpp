@@ -20,11 +20,11 @@
 #include <sys/prctl.h>
 #include <sys/timerfd.h>
 #include <thread>
-// #include "eu/execute_unit.h"
+#include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/assert.h"
 #include "util/name_manager.h"
-// #include "sched/scheduler.h"
+#include "sched/scheduler.h"
 namespace {
     const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
     const int NS_PER_SEC = 1000 * 1000 * 1000;
@@ -74,6 +74,20 @@ void DelayedWorker::ThreadInit()
                 FFRT_LOGE("epoll_wait error, errorno= %d.", errno);
                 continue;
             }
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+            for (int i = 0; i < nfds; i++) {
+                if (waitedEvents[i].data.fd == monitorfd_) {
+                    char buffer;
+                    size_t n = ::read(monitorfd_, &buffer, sizeof buffer);
+                    if (n == 1) {
+                        monitor->MonitorMain();
+                    } else {
+                        FFRT_LOGE("monitor read fail:%d, %s", n, errno);
+                    }
+                    break;
+                }
+            }
+#endif
         }
     });
 }
@@ -89,6 +103,17 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
         FFRT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
         std::terminate();
     }
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    FFRTScheduler::Instance();
+    monitor = ExecuteUnit::Instance().GetCPUMonitor();
+    monitorfd_ = BlockawareMonitorfd(-1, monitor->WakeupCond());
+    FFRT_ASSERT(monitorfd_ >= 0);
+    epoll_event monitor_event {.event = EPOLLIN, .data = {.fd = monitorfd_}};
+    int ret = epoll_ctl(epollfd_, EPOLL_CTL_ADD, monitorfd_, &monitor_event);
+    if (ret < 0) {
+        FFRT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
+    }
+#endif
     ThreadInit();
 }
 

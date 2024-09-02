@@ -25,14 +25,7 @@
 extern "C" {
 #endif
 
-#define BLOCKAWARE_DOMAIN_ID_MAX     15
-#define HM_PR_SILK_BLOCKAWARE_OPS    0x534b4241
-#define BLOCKAWARE_SUBOPS_INIT       0x1
-#define BLOCKAWARE_SUBOPS_REG        0x2
-#define BLOCKAWARE_SUBOPS_UNREG      0x3
-#define BLOCKAWARE_SUBOPS_WAIT       0x4
-#define BLOCKAWARE_SUBOPS_WAKE       0x5
-#define BLOCKAWARE_SUBOPS_MONITORFD  0X6
+
 
 struct BlockawareDomainInfo {
     unsigned int nrRunning;

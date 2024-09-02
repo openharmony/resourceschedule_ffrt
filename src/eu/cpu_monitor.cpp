@@ -63,6 +63,16 @@ void CPUMonitor::SetupMonitor()
     wakeupCond.check_ahead = false;
     wakeupCond.global.low = 0;
     wakeupCond.global.high = 0;
+    for (int i = 0; i < BLOCKAWARE_DOMAIN_ID_MAX + 1; i++) {
+        wakeupCond.local[i].low = 0;
+        if (i < qosMonitorMaxNum) {
+            wakeupCond.local[i].high = ctrlQueue[i].maxConcurrency;
+            wakeupCond.global.low += wakeupCond.local[i].low;
+            wakeupCond.global.high += wakeupCond.local[i].high;
+        } else {
+            wakeupCond.local[i].high = 0;
+        }
+    }
     for (int i = 0; i < QoS::MaxNum(); i++) {
         exceedUpperWaterLine[i] = false;
     }
@@ -72,6 +82,12 @@ void CPUMonitor::SetupMonitor()
 void CPUMonitor::StartMonitor()
 {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    int ret = BlockawareInit(&keyPtr);
+    if (ret != 0) {
+        FFRT_LOGE("blockaware init fail, ret[%d], key[0x%lx]", ret, keyPtr);
+    } else {
+        blockAwareInit = true;
+    }
 #else
     monitorThread = nullptr;
 #endif
@@ -110,6 +126,21 @@ BlockawareWakeupCond* CPUMonitor::WakeupCond(void)
 
 void CPUMonitor::MonitorMain()
 {
+    (void)WorkerInit();
+    int ret = BlockawareLoadSnapshot(keyPtr, &domainInfoMonitor);
+    if (ret != 0) {
+        FFRT_LOGE("blockaware load snapshot fail, ret[%d]", ret);
+        return;
+    }
+    for (int i = 0; i < qosMonitorMaxNum; i++) {
+        size_t taskCount = static_cast<size_t>(ops.GetTaskCount(i));
+        if (taskCount > 0 && domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
+            Poke(i, taskCount, TaskNotifyType::TASK_ADDED);
+        }
+        if (domainInfoMonitor.localinfo[i].nrRunning > wakeupCond.local[i].high) {
+            exceedUpperWaterLine[i] = true;
+        }
+    }
 }
 
 bool CPUMonitor::IsExceedRunningThreshold(const QoS& qos)

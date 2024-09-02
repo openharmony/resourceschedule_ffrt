@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
+#include "sched/execute_ctx.h"
 
 namespace ffrt {
 namespace sync_detail {

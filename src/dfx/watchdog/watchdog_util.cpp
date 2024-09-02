@@ -20,8 +20,8 @@
 #ifdef FFRT_OH_WATCHDOG_ENABLE
 #include "c/ffrt_dump.h"
 #endif
-#include "dfx/log/ffrt_log_api.h"
-#include "util/slab.h"
+// #include "dfx/log/ffrt_log_api.h"
+// #include "util/slab.h"
 namespace {
 constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
 constexpr uint64_t VALID_TIMEOUT_MAX = 30000;

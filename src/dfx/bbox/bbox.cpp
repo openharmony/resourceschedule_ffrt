@@ -34,7 +34,7 @@
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #endif
 #include "dfx/dump/dump.h"
-#include "util/slab.h"
+// #include "util/slab.h"
 
 using namespace ffrt;
 

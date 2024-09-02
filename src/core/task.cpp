@@ -30,7 +30,7 @@
 #include "dfx/watchdog/watchdog_util.h"
 #include "eu/func_manager.h"
 #include "util/ffrt_facade.h"
-#include "util/slab.h"
+// #include "util/slab.h"
 #include "eu/sexecute_unit.h"
 #include "core/task_io.h"
 #include "sync/poller.h"

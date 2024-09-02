@@ -29,7 +29,7 @@
 
 #include "qos.h"
 #include "tm/cpu_task.h"
-#include "dfx/log/ffrt_log_api.h"
+// #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 constexpr int PTHREAD_CREATE_NO_MEM_CODE = 11;

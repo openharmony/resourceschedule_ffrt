@@ -53,7 +53,7 @@ void SetTaskRtg(pid_t tid, unsigned int grpId)
         return;
     }
 
-    if (ioctl(fd, PERF_CTRL_SET_TASK_RTG, &data)) {
+    if (ioctl(fd, PERF_CTRL_SET_TASK_RTG, &data) != 0) {
         FFRT_LOGW("Error set rtg %d,%u. %s", tid, grpId, strerror(errno));
         close(fd);
         return;
@@ -68,7 +68,7 @@ void SetRtgStatus(unsigned long long status)
         return;
     }
 
-    if (ioctl(fd, PERF_CTRL_SET_FRAME_STATUS, &status)) {
+    if (ioctl(fd, PERF_CTRL_SET_FRAME_STATUS, &status) != 0) {
         FFRT_LOGW("Error set rtg status=%llu. %s", status, strerror(errno));
         close(fd);
         return;
@@ -83,7 +83,7 @@ void SetRtgQos(int qos) // MHZ
         return;
     }
 
-    if (ioctl(fd, PERF_CTRL_SET_FRAME_RATE, &qos)) {
+    if (ioctl(fd, PERF_CTRL_SET_FRAME_RATE, &qos) != 0) {
         FFRT_LOGW("Error set rtg qos=%d. %s", qos, strerror(errno));
         close(fd);
         return;
@@ -105,7 +105,7 @@ void SetRtgLoadMode(unsigned int grpId, bool utilEnabled, bool freqEnabled)
         return;
     }
 
-    if (ioctl(fd, PERF_CTRL_SET_RTG_LOAD_MODE, &loadMode)) {
+    if (ioctl(fd, PERF_CTRL_SET_RTG_LOAD_MODE, &loadMode) != 0) {
         FFRT_LOGW("Error set rtg loadMode %d:%d/%d. %s", loadMode.grpId, loadMode.utilEnabled,
             loadMode.freqEnabled, strerror(errno));
         close(fd);
@@ -122,7 +122,7 @@ void set_task_min_util(pid_t tid, unsigned int util)
         return;
     }
 
-    if (ioctl(fd, PERF_CTRL_SET_TASK_MIN_UTIL, &cfg)) {
+    if (ioctl(fd, PERF_CTRL_SET_TASK_MIN_UTIL, &cfg) != 0) {
         FFRT_LOGW("Error set min util %d,%u. %s", tid, util, strerror(errno));
         close(fd);
         return;

@@ -282,7 +282,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         ops.WakeupWorkers(qos);
     } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
         workerCtrl.executionNum++;
-        FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
+        FFRTTraceRecord::WorkRecord(static_cast<int>(qos), workerCtrl.executionNum);
         workerCtrl.lock.unlock();
         ops.IncWorker(qos);
     } else {

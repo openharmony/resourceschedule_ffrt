@@ -249,7 +249,7 @@ static inline int BlockawareWake(void)
 static inline int BlockawareMonitorfd(int fd, struct BlockawareWakeupCond *cond)
 {
     int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_MONITORFD,
-            static_cast<unsigned long>(fd), reinterpret_cast<unsigned long>(cond));
+        static_cast<unsigned long>(fd), reinterpret_cast<unsigned long>(cond));
     return (rc >= 0) ? rc : -errno;
 }
 

@@ -17,7 +17,6 @@
 #define FFRT_TASK_IO_H
 
 #include "internal_inc/types.h"
-#include "sched/qos.h"
 #include "c/executor_task.h"
 
 namespace ffrt {

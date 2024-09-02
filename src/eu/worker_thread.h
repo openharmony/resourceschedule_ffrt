@@ -17,11 +17,9 @@
 #define FFRT_WORKER_THREAD_HPP
 
 #include <atomic>
-#include <unistd.h>
 #ifdef FFRT_PTHREAD_ENABLE
 #include <pthread.h>
 #endif
-#include <thread>
 #ifdef OHOS_THREAD_STACK_DUMP
 #include <sstream>
 #include "dfx_dump_catcher.h"
@@ -29,7 +27,6 @@
 
 #include "qos.h"
 #include "tm/cpu_task.h"
-#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 constexpr int PTHREAD_CREATE_NO_MEM_CODE = 11;

@@ -17,7 +17,6 @@
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
-#include "util/slab.h"
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"

@@ -20,11 +20,9 @@
 #include <sys/prctl.h>
 #include <sys/timerfd.h>
 #include <thread>
-#include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/assert.h"
 #include "util/name_manager.h"
-#include "sched/scheduler.h"
 namespace {
     const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
     const int NS_PER_SEC = 1000 * 1000 * 1000;

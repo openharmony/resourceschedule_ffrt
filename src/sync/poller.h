@@ -20,7 +20,6 @@
 #include <sys/eventfd.h>
 #endif
 #include <list>
-#include <map>
 #include <unordered_map>
 #include <array>
 #include "qos.h"

@@ -109,6 +109,10 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
     monitor = ExecuteUnit::Instance().GetCPUMonitor();
     monitorfd_ = BlockawareMonitorfd(-1, monitor->WakeupCond());
     FFRT_ASSERT(monitorfd_ >= 0);
+    // monitorfd does not support 'CLOEXEC', add current kernel does not inherit monitorfd after 'fork'.
+    // 1) if user calls 'exec' directly after 'fork' and does not use ffrt, it's ok. 
+    // 2) if user calls 'exec' directly, the original process cannot close monitorfd automatically, and
+    // it will be fail when new program use ffrt to create monitorfd.
     epoll_event monitor_event {.event = EPOLLIN, .data = {.fd = monitorfd_}};
     int ret = epoll_ctl(epollfd_, EPOLL_CTL_ADD, monitorfd_, &monitor_event);
     if (ret < 0) {

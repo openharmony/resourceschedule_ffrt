@@ -97,7 +97,6 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 
 bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
 {
-    wq->wqlock.lock();
     bool toWake = true;
 
     // two kinds: 1) notify was not called, timeout grabbed the lock first;
@@ -112,7 +111,6 @@ bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
         wue->status.store(we_status::TIMEOUT_DONE, std::memory_order_release);
         toWake = false;
     }
-    wq->wqlock.unlock();
     return toWake;
 }
 
@@ -130,9 +128,12 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
     task->wue->cb = ([&](WaitEntry* we) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         ffrt::CPUEUTask* task = wue->task;
+        wqlock.lock();
         if (!WeTimeoutProc(this, wue)) {
+            wqlock.unlock();
             return;
         }
+        wqlock.unlock();
         FFRT_LOGD("task(%d) time is up", task->gid);
         CoRoutineFactory::CoWakeFunc(task, true);
     });
@@ -142,16 +143,19 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         wqlock.lock();
         push_back(we);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
-        // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
         if (DelayedWakeup(we->tp, we, we->cb)) {
             wqlock.unlock();
+            // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
             return true;
         } else {
-            wqlock.unlock();
             if (!WeTimeoutProc(this, we)) {
+                wqlock.unlock();
+                // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
                 return true;
             }
             task->wakeupTimeOut = true;
+            wqlock.unlock();
+            // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
             return false;
         }
     });

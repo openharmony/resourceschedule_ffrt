@@ -18,6 +18,7 @@
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "queue_monitor.h"
 #include "util/event_handler_adapter.h"
+#include "util/slab.h"
 #include "tm/queue_task.h"
 #include "concurrent_queue.h"
 #include "eventhandler_adapter_queue.h"

@@ -60,8 +60,10 @@ public:
     bool IsExceedRunningThreshold(const QoS& qos);
     bool IsBlockAwareInit(void);
     void MonitorMain();
+    BlockawareWakeupCond* WakeupCond(void);
 #endif
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
+    virtual void WorkerInit() = 0;
     int SetWorkerMaxNum(const QoS& qos, int num);
     /* strategy options for handling task notify events */
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);

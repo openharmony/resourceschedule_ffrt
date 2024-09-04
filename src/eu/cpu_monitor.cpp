@@ -43,12 +43,6 @@ CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
 
 CPUMonitor::~CPUMonitor()
 {
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    stopMonitor = true;
-    if (blockAwareInit) {
-        BlockawareWake();
-    }
-#endif
     if (monitorThread != nullptr) {
         monitorThread->join();
     }
@@ -69,11 +63,15 @@ void CPUMonitor::SetupMonitor()
     wakeupCond.check_ahead = false;
     wakeupCond.global.low = 0;
     wakeupCond.global.high = 0;
-    for (int i = 0; i < qosMonitorMaxNum; i++) {
+    for (int i = 0; i < BLOCKAWARE_DOMAIN_ID_MAX + 1; i++) {
         wakeupCond.local[i].low = 0;
-        wakeupCond.local[i].high = ctrlQueue[i].maxConcurrency;
-        wakeupCond.global.low += wakeupCond.local[i].low;
-        wakeupCond.global.high += wakeupCond.local[i].high;
+        if (i < qosMonitorMaxNum) {
+            wakeupCond.local[i].high = ctrlQueue[i].maxConcurrency;
+            wakeupCond.global.low += wakeupCond.local[i].low;
+            wakeupCond.global.high += wakeupCond.local[i].high;
+        } else {
+            wakeupCond.local[i].high = 0;
+        }
     }
     for (int i = 0; i < QoS::MaxNum(); i++) {
         exceedUpperWaterLine[i] = false;
@@ -84,7 +82,12 @@ void CPUMonitor::SetupMonitor()
 void CPUMonitor::StartMonitor()
 {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    monitorThread = new std::thread([this] { this->MonitorMain(); });
+    int ret = BlockawareInit(&keyPtr);
+    if (ret != 0) {
+        FFRT_LOGE("blockaware init fail, ret[%d], key[0x%lx]", ret, keyPtr);
+    } else {
+        blockAwareInit = true;
+    }
 #else
     monitorThread = nullptr;
 #endif
@@ -116,46 +119,26 @@ uint32_t CPUMonitor::GetMonitorTid() const
 }
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
+BlockawareWakeupCond* CPUMonitor::WakeupCond(void)
+{
+    return &wakeupCond;
+}
+
 void CPUMonitor::MonitorMain()
 {
-    int ret = BlockawareInit(&keyPtr);
+    (void)WorkerInit();
+    int ret = BlockawareLoadSnapshot(keyPtr, &domainInfoMonitor);
     if (ret != 0) {
-        FFRT_LOGE("blockaware init fail, ret[%d], key[0x%lx]", ret, keyPtr);
+        FFRT_LOGE("blockaware load snapshot fail, ret[%d]", ret);
         return;
-    } else {
-        blockAwareInit = true;
     }
-    (void)pthread_setname_np(pthread_self(), CPU_MONITOR_NAME);
-    ret = syscall(SYS_gettid);
-    if (ret == -1) {
-        monitorTid = 0;
-        FFRT_LOGE("syscall(SYS_gettid) failed");
-    } else {
-        monitorTid = static_cast<uint32_t>(ret);
-    }
-    while (true) {
-        if (stopMonitor) {
-            break;
+    for (int i = 0; i < qosMonitorMaxNum; i++) {
+        size_t taskCount = static_cast<size_t>(ops.GetTaskCount(i));
+        if (taskCount > 0 && domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
+            Poke(i, taskCount, TaskNotifyType::TASK_ADDED);
         }
-        ret = BlockawareWaitCond(&wakeupCond);
-        if (ret != 0) {
-            FFRT_LOGE("blockaware cond wait fail, ret[%d]", ret);
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(JITTER_DELAY_MS));
-        ret = BlockawareLoadSnapshot(keyPtr, &domainInfoMonitor);
-        if (ret != 0) {
-            FFRT_LOGE("blockaware load snapshot fail, ret[%d]", ret);
-            break;
-        }
-        for (int i = 0; i < qosMonitorMaxNum; i++) {
-            size_t taskCount = static_cast<size_t>(ops.GetTaskCount(i));
-            if (taskCount > 0 && domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
-                Poke(i, taskCount, TaskNotifyType::TASK_ADDED);
-            }
-            if (domainInfoMonitor.localinfo[i].nrRunning > wakeupCond.local[i].high) {
-                exceedUpperWaterLine[i] = true;
-            }
+        if (domainInfoMonitor.localinfo[i].nrRunning > wakeupCond.local[i].high) {
+            exceedUpperWaterLine[i] = true;
         }
     }
 }

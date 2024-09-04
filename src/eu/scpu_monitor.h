@@ -27,6 +27,7 @@ public:
     SleepType IntoSleep(const QoS& qos) override;
 
     void Notify(const QoS& qos, TaskNotifyType notifyType) override;
+    void WorkerInit() override;
 };
 }
 #endif /* SCPU_MONITOR_H */

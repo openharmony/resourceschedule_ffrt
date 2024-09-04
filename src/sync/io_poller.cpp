@@ -37,7 +37,7 @@ struct IOPollerInstance: public IOPoller {
         param.sched_priority = 1;
         int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
         if (ret != 0) {
-            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
+            FFRT_LOGW("[%d] set priority warn ret[%d] eno[%d]\n", pthread_self(), ret, errno);
         }
         while (!m_exitFlag.load(std::memory_order_relaxed)) {
             IOPoller::PollOnce(-1);

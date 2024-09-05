@@ -2566,6 +2566,99 @@ int main(int narg, char** argv)
 
 ```
 
+### ffrt_timer_t
+<hr/>
+
+* FFRT timer基于epoll实现定时功能，epoll是一种I/O事件监听、通知机制。在定期执行PollOnce时会根据所设的timeout时间执行其中的epoll_wait阻塞等待注册的事件发生。epoll_wait的参数timeout是函数调用中阻塞时间的上限，单位是ms，若timeout > 0，则在期间有检测到对象变为ready状态或者捕获到信号然后返回，否则直到超时。Timeout = -1则会一直在阻塞。
+
+#### 声明
+```{.c}
+ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
+int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);
+```
+
+#### 参数
+
+`qos`
+
+* 表示运行定时器work的优先级
+
+`timeout`
+
+* 表示函数调用中阻塞时长的上限，单位为毫秒
+
+`data`
+
+* 表示回调函数中使用的用户数据
+
+`cb`
+
+* 表示在超时之后被执行的用户回调函数
+
+`repeat`
+
+* 表示是否重复这个定时器
+
+`handle`
+
+* 表示目标定时器的句柄
+
+
+#### 返回值
+
+* ffrt_timer_start接口：返回一个定时器句柄
+* ffrt_timer_stop接口：成功停止一个目标定时器，返回0；否则返回-1
+
+
+#### 描述
+
+* 提供接口ffrt_timer_start设定超时的绝对时间，用于设定epoll_wait阻塞时间，若调用PollOnce时已超时，则执行入参所设的回调函数cb
+* 提供接口ffrt_timer_stop用于根据任务handle取消定时任务
+
+
+#### 样例
+
+```{.c}
+#include <stdio.h>
+#include "ffrt.h"
+
+using namespace ffrt
+using namespace std
+
+struct TestData {
+    int fd;
+    uint64_t expected;
+};
+
+int main(int narg, char** argv)
+{
+    static int x = 0;
+    int* xf = &x;
+    void* data = xf;
+    uint64_t timeout = 20;
+    uint64_t expected = 0xabacadae;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+
+    struct TestData testData {.fd = testFd, .expected = expected};
+    ffrt::submit([=]() {
+        ffrt_qos_t taskQos = ffrt_this_task_get_qos();
+        int handle = ffrt_timer_start(taskQos, timeout, data, cb, false);
+
+        ffrt_epoll_ctl(taskQos, EPOLL_CTL_ADD, testFd, EPOLLIN, (void*)(&testData), testCallBack);
+        ffrt_usleep(19000);
+        ffrt_timer_stop(taskQos, handle);
+        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
+        stall_us(200);
+
+        ffrt_epoll_ctl(taskQos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
+    }, {}, {});
+    ffrt::wait();
+}
+
+```
+
+
+
 
 ## 同步原语
 

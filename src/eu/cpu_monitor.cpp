@@ -23,8 +23,8 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
 #include "util/name_manager.h"
-#include "util/ffrt_facade.h"
 #include "sync/poller.h"
+#include "util/ffrt_facade.h"
 #include "util/spmc_queue.h"
 namespace {
 const size_t TIGGER_SUPPRESS_WORKER_COUNT = 4;

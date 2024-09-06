@@ -25,7 +25,7 @@ ExecuteUnit::ExecuteUnit()
 {
 }
 
-ExecuteUnit& FFRTFacade::GetEUInstance()
+ExecuteUnit& ExecuteUnit::Instance()
 {
     return SingletonRegister<ExecuteUnit>::Instance();
 }

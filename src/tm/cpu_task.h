@@ -109,7 +109,7 @@ inline bool ExecutedOnWorker(CPUEUTask* task)
 
 inline bool LegacyMode(CPUEUTask* task)
 {
-    return task && task->legacyMode;
+    return task && (task->legacyCountNum > 0);
 }
 
 inline bool BlockThread(CPUEUTask* task)

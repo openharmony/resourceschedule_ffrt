@@ -33,7 +33,7 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     SimpleAllocator<VersionCtx>::instance();
     PollerProxy::Instance();
     FFRTScheduler::Instance();
-    FFRTFacade::GetEUInstance();
+    ExecuteUnit::Instance();
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 
@@ -93,7 +93,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         task->stackId = FFRTCollectAsyncStack();
     }
 #endif
-
 #ifdef FFRT_BBOX_ENABLE
     TaskSubmitCounterInc();
 #endif
@@ -149,6 +148,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             return;
         }
     }
+    
     if (attr != nullptr) {
         task->notifyWorker_ = attr->notifyWorker_;
     }

@@ -37,7 +37,7 @@ public:
 
     static inline PollerProxy& GetPPInstance()
     {
-        static PollerProxy& inst = Instance().GetPPInstanceImpl();
+        PollerProxy& inst = Instance().GetPPInstanceImpl();
         return inst;
     }
 
@@ -55,7 +55,7 @@ private:
 
     inline ExecuteUnit& GetEUInstanceImpl()
     {
-        return FFRTFacade::GetEUInstance();
+        return ExecuteUnit::Instance();
     }
 
     inline DependenceManager& GetDMInstanceImpl()
@@ -66,7 +66,7 @@ private:
     inline PollerProxy& GetPPInstanceImpl()
     {
         return PollerProxy::Instance();
-    }    
+    }
 };
 
 } // namespace FFRT

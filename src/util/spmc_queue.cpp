@@ -101,7 +101,7 @@ bool SpmcQueue::FindElement(void* target)
         if (target == element) {
             return true;
         }
-        head++
+        head++;
     }
     return false;
 }

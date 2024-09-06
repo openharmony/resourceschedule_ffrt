@@ -34,7 +34,6 @@
                 "hilog",
                 "hisysevent",
                 "faultloggerd",
-                "hitrace",
 
                 "napi"
             ]

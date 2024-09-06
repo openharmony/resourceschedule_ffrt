@@ -23,6 +23,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/config.h"
 #include "util/name_manager.h"
+#include "util/ffrt_facade.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
 namespace {
@@ -278,7 +279,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         ops.IncWorker(qos);
     } else {
         if (workerCtrl.pollWaitFlag) {
-            PollerProxy::Instance()->GetPoller(qos).WakeUp();
+            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
         }
         workerCtrl.lock.unlock();
     }

@@ -25,11 +25,13 @@ const int TSD_SIZE = 128;
 }
 
 namespace ffrt {
-void CPUEUTask::SetQos(QoS& newQos)
+void CPUEUTask::SetQos(const QoS& newQos)
 {
     if (newQos == qos_inherit) {
         if (!this->IsRoot()) {
             this->qos = parent->qos;
+        } else {
+            this->qos = QoS();
         }
         FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos());
     } else {

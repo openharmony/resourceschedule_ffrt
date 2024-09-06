@@ -47,6 +47,13 @@ public:
     int PushTail(void* object);
 
     /**
+    * @brief 查找特定元素。
+    * @param target 目标元素。
+    * @retval 成功返回true，失败返回false。
+    */
+    bool FindElement(void* target);
+
+    /**
     * @brief 从队列首部批量取出元素后将元素批量推入目标队列尾部。
     * @param dstQueue 目标队列。
     * @param elementNum 取出元素数量。

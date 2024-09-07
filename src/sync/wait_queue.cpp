@@ -50,7 +50,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
 {
     bool ret = false;
     wqlock.lock();
-    we->status.store(we_status::INIT, std::memory_order_release);
+    wn->status.store(we_status::INIT, std::memory_order_release);
     if (legacyMode) {
         task->blockType = BlockType::BLOCK_THREAD;
         wn->task = task;

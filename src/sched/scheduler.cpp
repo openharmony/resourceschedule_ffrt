@@ -15,6 +15,7 @@
 
 #include "scheduler.h"
 
+#include "util/ffrt_facade.h"
 #include "util/singleton_register.h"
 
 namespace {
@@ -48,17 +49,17 @@ bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
     if (taskType == ffrt_uv_task || taskType == ffrt_io_task) {
         FFRT_EXECUTOR_TASK_READY_MARKER(task); // uv/io task ready to enque
     }
-    auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+    auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
     lock->lock();
     fifoQue[static_cast<unsigned short>(level)]->WakeupNode(node);
     lock->unlock();
 
     if (taskType == ffrt_io_task) {
-        ExecuteUnit::Instance().NotifyLocalTaskAdded(qos);
+        FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(qos);
         return true;
     }
 
-    ExecuteUnit::Instance().NotifyTaskAdded(qos);
+    FFRTFacade::GetEUInstance().NotifyTaskAdded(qos);
     return true;
 }
 
@@ -69,7 +70,7 @@ bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
     int level = qos();
     FFRT_COND_DO_ERR((level == qos_inherit), return false, "Level incorrect");
     
-    auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+    auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
     lock->lock();
     if (!node->InList()) {
         lock->unlock();
@@ -101,7 +102,7 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
     std::string label = task->label;
 
     FFRT_READY_MARKER(gid); // ffrt normal task ready to enque
-    auto lock = ExecuteUnit::Instance().GetSleepCtl(level);
+    auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
     lock->lock();
     fifoQue[static_cast<unsigned short>(level)]->WakeupTask(task);
     int taskCount = fifoQue[static_cast<size_t>(level)]->RQSize();
@@ -115,7 +116,7 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
     }
 
     if (notifyWorker) {
-        ExecuteUnit::Instance().NotifyTaskAdded(_qos);
+        FFRTFacade::GetEUInstance().NotifyTaskAdded(_qos);
     }
 
     return true;

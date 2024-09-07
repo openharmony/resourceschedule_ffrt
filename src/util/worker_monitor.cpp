@@ -27,6 +27,7 @@
 #include "eu/co_routine_factory.h"
 #include "internal_inc/osal.h"
 #include "sched/scheduler.h"
+#include "util/ffrt_facade.h"
 
 namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
@@ -118,7 +119,7 @@ void WorkerMonitor::SubmitMemReleaseTask()
             return;
         }
 
-        WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+        WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
         {
             bool noWorkerThreads = true;
             std::lock_guard submitTaskLock(submitTaskMutex_);
@@ -151,7 +152,7 @@ void WorkerMonitor::CheckWorkerStatus()
         return;
     }
 
-    WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     {
         bool noWorkerThreads = true;
         std::lock_guard submitTaskLock(submitTaskMutex_);

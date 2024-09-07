@@ -24,6 +24,7 @@
 #include "internal_inc/config.h"
 #include "util/name_manager.h"
 #include "sync/poller.h"
+#include "util/ffrt_facade.h"
 #include "util/spmc_queue.h"
 namespace {
 const size_t TIGGER_SUPPRESS_WORKER_COUNT = 4;
@@ -278,7 +279,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         ops.IncWorker(qos);
     } else {
         if (workerCtrl.pollWaitFlag) {
-            PollerProxy::Instance()->GetPoller(qos).WakeUp();
+            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
         }
         workerCtrl.lock.unlock();
     }

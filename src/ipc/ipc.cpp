@@ -26,8 +26,17 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_this_task_set_legacy_mode(bool mode)
 {
     auto task = ffrt::ExecuteCtx::Cur()->task;
-    if (task) {
-        task->legacyMode = mode;
+    if (!task) {
+        return;
+    }
+
+    if (mode) {
+        task->legacyCountNum++;
+    } else {
+        task->legacyCountNum--;
+        if (task->legacyCountNum < 0) {
+            FFRT_LOGE("Legacy Count num less than zero");
+        }
     }
 }
 

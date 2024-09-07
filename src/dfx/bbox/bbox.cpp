@@ -32,6 +32,7 @@
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #endif
 #include "dfx/dump/dump.h"
+#include "util/ffrt_facade.h"
 
 using namespace ffrt;
 
@@ -123,10 +124,9 @@ static inline void SaveTaskCounter()
 
 static inline void SaveWorkerStatus()
 {
-    WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    ffrt::QoS _qos = static_cast<int>(qos_max);
-    for (int i = 0; i < _qos() + 1; i++) {
+    for (int i = 0; i < QoS::MaxNum(); i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             CPUEUTask* t = thread.first->curTask;
@@ -145,8 +145,7 @@ static inline void SaveWorkerStatus()
 static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    ffrt::QoS _qos = static_cast<int>(qos_max);
-    for (int i = 0; i < _qos() + 1; i++) {
+    for (int i = 0; i < QoS::MaxNum(); i++) {
         int nt = FFRTScheduler::Instance()->GetScheduler(i).RQSize();
         if (!nt) {
             continue;
@@ -429,11 +428,10 @@ std::string SaveWorkerStatusInfo(void)
 {
     std::ostringstream ss;
     std::ostringstream oss;
-    WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     oss << "    |-> worker count" << std::endl;
     ss << "    |-> worker status" << std::endl;
-    ffrt::QoS _qos = static_cast<int>(qos_max);
-    for (int i = 0; i < _qos() + 1; i++) {
+    for (int i = 0; i < QoS::MaxNum(); i++) {
         std::vector<int> tidArr;
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
@@ -470,9 +468,8 @@ std::string SaveReadyQueueStatusInfo()
 {
     std::ostringstream ss;
     ss << "    |-> ready queue status" << std::endl;
-    ffrt::QoS _qos = static_cast<int>(qos_max);
-    for (int i = 0; i < _qos() + 1; i++) {
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(i));
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(static_cast<int>(i));
         std::lock_guard lg(*lock);
 
         int nt = FFRTScheduler::Instance()->GetScheduler(i).RQSize();

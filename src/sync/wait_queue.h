@@ -60,16 +60,12 @@ struct TaskWithNode : public TaskListNode {
 
 class WaitQueue {
 public:
-    spin_mutex wqlock;
-    WaitUntilEntry* whead;
     using TimePoint = std::chrono::steady_clock::time_point;
     void SuspendAndWait(mutexPrivate* lk);
     bool SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept;
-    bool WeNotifyProc(WaitUntilEntry* we);
-    void NotifyAll() noexcept;
-    void NotifyOne() noexcept;
-    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, CPUEUTask* task);
-    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, bool legacyMode, CPUEUTask* task);
+    void NotifyAll() noexcept { Notify(false); }
+    void NotifyOne() noexcept { Notify(true); }
+
     WaitQueue()
     {
         whead = new WaitUntilEntry();
@@ -89,6 +85,15 @@ public:
     }
 
 private:
+    spin_mutex wqlock;
+    WaitUntilEntry* whead;
+
+private:
+    bool WeNotifyProc(WaitUntilEntry* we);
+    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, CPUEUTask* task);
+    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, bool legacyMode, CPUEUTask* task);
+    void Notify(bool one) noexcept;
+
     inline bool empty() const
     {
         if (whead == nullptr) {

@@ -22,8 +22,8 @@ void context_entry(void);
 #if defined(__aarch64__)
 asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     "ldp x0, x1, [sp], #0x10\n"
-    "br  x1\n"
     "mov lr, xzr\n"
+    "br  x1\n"
     ".size context_entry, . - context_entry\n"
     ".global co2_save_context; .type co2_save_context, %function; co2_save_context:\n"
     "stp x19, x20, [x0,#0]\n"

@@ -89,7 +89,7 @@ public:
 #ifdef FFRT_BBOX_ENABLE
         TaskSubmitCounterInc();
 #endif
-        QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
+        QoS qos = ((attr == nullptr || attr->qos_ == qos_inherit) ? QoS() : QoS(attr->qos_));
 
         LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
         FFRTScheduler* sch = FFRTScheduler::Instance();

@@ -20,7 +20,6 @@
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
-using namespace OHOS::HiviewDFX;
 
 namespace ffrt {
 
@@ -94,14 +93,6 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         task->stackId = FFRTCollectAsyncStack();
     }
 #endif
-
-#ifdef FFRT_HITRACE_ENABLE
-    if (HiTraceChain::GetId().IsValid() && task != nullptr) {
-        task->traceId_ = HiTraceChain::CreateSpan();
-        HiTraceChain::Tracepoint(HITRACE_TP_CS, task->traceId_, "ffrt::SDependenceManager::onSubmit");
-    }
-#endif
-
 #ifdef FFRT_BBOX_ENABLE
     TaskSubmitCounterInc();
 #endif
@@ -156,18 +147,8 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             FFRT_TRACE_END();
             return;
         }
-
-#ifdef FFRT_HITRACE_ENABLE
-            if (task != nullptr) {
-                HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
-            }
-#endif
     }
-#ifdef FFRT_HITRACE_ENABLE
-    if (task != nullptr) {
-        HiTraceChain::Tracepoint(HITRACE_TP_CR, task->traceId_, "ffrt::SDependenceManager::onSubmit");
-    }
-#endif
+    
     if (attr != nullptr) {
         task->notifyWorker_ = attr->notifyWorker_;
     }

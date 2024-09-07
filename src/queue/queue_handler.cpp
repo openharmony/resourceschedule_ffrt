@@ -87,6 +87,9 @@ QueueHandler::~QueueHandler()
 bool QueueHandler::SetLoop(Loop* loop)
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
+    if (queue_->GetQueueType() == ffrt_queue_eventhandler_interactive) {
+        return true;
+    }
     FFRT_COND_DO_ERR((queue_->GetQueueType() != ffrt_queue_concurrent),
         return false, "[queueId=%u] type invalid", GetQueueId());
     return reinterpret_cast<ConcurrentQueue*>(queue_.get())->SetLoop(loop);
@@ -112,7 +115,7 @@ void QueueHandler::Submit(QueueTask* task)
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
     // if qos not specified, qos of the queue is inherited by task
-    if (task->GetQos() == qos_inherit) {
+    if (task->GetQos() == qos_inherit || task->GetQos() == qos_default) {
         task->SetQos(qos_);
     }
 

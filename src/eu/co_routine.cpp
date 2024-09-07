@@ -43,9 +43,6 @@
 #endif
 
 using namespace ffrt;
-#ifdef FFRT_HITRACE_ENABLE
-using namespace OHOS::HiviewDFX;
-#endif
 
 static inline void CoStackCheck(CoRoutine* co)
 {
@@ -407,15 +404,6 @@ void CoStart(ffrt::CPUEUTask* task)
 
     FFRTTraceRecord::TaskRun(task->GetQos(), task);
 
-#ifdef FFRT_HITRACE_ENABLE
-    using namespace OHOS::HiviewDFX;
-    HiTraceId currentId = HiTraceChain::GetId();
-    if (task != nullptr) {
-        HiTraceChain::SaveAndSet(task->traceId_);
-        HiTraceChain::Tracepoint(HITRACE_TP_SR, task->traceId_, "ffrt::CoStart");
-    }
-#endif
-
     for (;;) {
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -450,19 +438,11 @@ void CoStart(ffrt::CPUEUTask* task)
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-#ifdef FFRT_HITRACE_ENABLE
-        HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
-        HiTraceChain::Restore(currentId);
-#endif
             return;
         }
         FFRT_WAKE_TRACER(task->gid); // fast path wk
         GetCoEnv()->runningCo = co;
     }
-#ifdef FFRT_HITRACE_ENABLE
-    HiTraceChain::Tracepoint(HITRACE_TP_SS, HiTraceChain::GetId(), "ffrt::CoStart");
-    HiTraceChain::Restore(currentId);
-#endif
 }
 
 // called by thread work

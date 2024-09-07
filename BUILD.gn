@@ -82,9 +82,6 @@ config("ffrt_config") {
   }
 
   #defines += ffrt_release_defines
-  if (is_ohos) {
-    defines += [ "FFRT_HITRACE_ENABLE" ]
-  }
 }
 
 config("ffrt_inner_config") {
@@ -198,7 +195,6 @@ ohos_shared_library("libffrt") {
       "faultloggerd:libunwinder",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
-      "hitrace:libhitracechain",
     ]
 
     defines = []

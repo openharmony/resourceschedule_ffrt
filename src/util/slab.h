@@ -152,10 +152,10 @@ private:
             primaryCache.push_back(t);
             count++;
         } else {
-            ::operator delete(t);
 #ifdef FFRT_BBOX_ENABLE
             secondaryCache.erase(t);
 #endif
+            ::operator delete(t);
         }
         lock.unlock();
     }

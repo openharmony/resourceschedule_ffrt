@@ -59,10 +59,10 @@ Poller::~Poller() noexcept
     m_cachedTaskEvents.clear();
 }
 
-PollerProxy* PollerProxy::Instance()
+PollerProxy& PollerProxy::Instance()
 {
     static PollerProxy pollerInstance;
-    return &pollerInstance;
+    return pollerInstance;
 }
 
 int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept

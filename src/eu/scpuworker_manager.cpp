@@ -16,13 +16,14 @@
 #include <climits>
 #include <cstring>
 #include <sys/stat.h>
-#include "eu/scpu_monitor.h"
+#include "dfx/perf/ffrt_perf.h"
+#include "eu/co_routine_factory.h"
 #include "eu/cpu_manager_interface.h"
 #include "eu/qos_interface.h"
+#include "eu/scpu_monitor.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
-#include "eu/co_routine_factory.h"
-#include "dfx/perf/ffrt_perf.h"
+#include "util/ffrt_facade.h"
 #include "eu/scpuworker_manager.h"
 #include "util/slab.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -52,7 +53,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
             pollersMtx[qos].unlock();
-            PollerProxy::Instance()->GetPoller(qos).WakeUp();
+            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
             sleepCtl[qos].cv.notify_all();
             {
                 usleep(1000);
@@ -87,7 +88,7 @@ void SCPUWorkerManager::AddDelayedTask(int qos)
 
         if (taskCount != 0) {
             FFRT_LOGI("notify task, qos %d", qos);
-            ExecuteUnit::Instance().NotifyTaskAdded(QoS(qos));
+            FFRTFacade::GetEUInstance().NotifyTaskAdded(QoS(qos));
         } else {
             AddDelayedTask(qos);
         }
@@ -117,7 +118,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         bool taskExistence = GetTaskCount(thread->GetQos()) ||
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
             reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
-        bool needPoll = !PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap() &&
+        bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
             (polling_[thread->GetQos()] == 0);
         return tearDown || taskExistence || needPoll;
         })) {

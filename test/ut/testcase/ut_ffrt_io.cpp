@@ -28,7 +28,7 @@
 #include "sync/io_poller.h"
 #define private public
 #define protect public
-#include "sync/poller.h"
+#include "util/ffrt_facade.h"
 #undef private
 #undef protect
 
@@ -49,16 +49,16 @@ protected:
     virtual void SetUp()
     {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     }
 
     virtual void TearDown()
     {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    ffrt::PollerProxy::Instance()->GetPoller(qos).timerHandle_ = -1;
-    ffrt::PollerProxy::Instance()->GetPoller(qos).timerMap_.clear();
-    ffrt::PollerProxy::Instance()->GetPoller(qos).executedHandle_.clear();
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerHandle_ = -1;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerMap_.clear();
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).executedHandle_.clear();
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
     }
 };
 
@@ -199,7 +199,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_fail_cb_null, TestSize.Level1)
 HWTEST_F(ffrtIoTest, ffrt_timer_start_fail_flag_teardown, TestSize.Level1)
 {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
     uint64_t timeout = 20;
     void* data = nullptr;
 
@@ -216,7 +216,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwait, TestSize.Leve
     uint64_t timeout2 = 10;
     uint64_t expected = 0xabacadae;
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAIT;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAIT;
     EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
 
     EXPECT_EQ(1, ffrt_timer_start(qos, timeout2, data, cb, false));
@@ -245,7 +245,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwake, TestSize.Leve
     uint64_t expected = 0xabacadae;
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     EXPECT_EQ(1, ffrt_timer_start(qos, timeout2, data, cb, false));
     struct TestData testData {.fd = testFd, .expected = expected};
     ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
@@ -273,7 +273,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_long_timeout_flagwake, TestSize.Level
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 
     EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     EXPECT_EQ(1, ffrt_timer_start(qos, timeout2, data, cb, false));
     struct TestData testData {.fd = testFd, .expected = expected};
     ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
@@ -310,7 +310,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapfirst_flagwait, TestSize.Level1)
 
     int handle = ffrt_timer_start(qos, timeout2, data, cb, false);
     EXPECT_EQ(1, handle);
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAIT;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAIT;
     ffrt_timer_stop(qos, handle);
     struct TestData testData {.fd = testFd, .expected = expected};
     ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
@@ -337,7 +337,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapother, TestSize.Level1)
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 
     EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAIT;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAIT;
     int handle = ffrt_timer_start(qos, timeout2, data, cb, false);
     EXPECT_EQ(1, handle);
     ffrt_timer_stop(qos, handle);
@@ -366,7 +366,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapfirst_flagwake, TestSize.Level1)
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 
     EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     int handle = ffrt_timer_start(qos, timeout2, data, cb, false);
     EXPECT_EQ(1, handle);
     ffrt_timer_stop(qos, handle);
@@ -394,7 +394,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_flag_teardown, TestSize.Level1)
     uint64_t expected = 0xabacadae;
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 
-    ffrt::PollerProxy::Instance()->GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
     int handle = ffrt_timer_start(qos, timeout2, data, cb, false);
     EXPECT_EQ(-1, handle);
     ffrt_timer_stop(qos, handle);

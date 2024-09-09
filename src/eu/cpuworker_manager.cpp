@@ -23,6 +23,7 @@
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
+#include "util/ffrt_facade.h"
 #ifdef FFRT_WORKER_MONITOR
 #include "util/worker_monitor.h"
 #endif
@@ -183,7 +184,7 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
 
 PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
 {
-    if (tearDown || PollerProxy::Instance()->GetPoller(thread->GetQos()).DetermineEmptyMap()) {
+    if (tearDown || FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap()) {
         return PollerRet::RET_NULL;
     }
     auto& pollerMtx = pollersMtx[thread->GetQos()];
@@ -192,7 +193,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
         if (timeout == -1) {
             monitor->IntoPollWait(thread->GetQos());
         }
-        PollerRet ret = PollerProxy::Instance()->GetPoller(thread->GetQos()).PollOnce(timeout);
+        PollerRet ret = FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).PollOnce(timeout);
         if (timeout == -1) {
             monitor->OutOfPollWait(thread->GetQos());
         }

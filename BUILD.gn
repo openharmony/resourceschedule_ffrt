@@ -56,7 +56,6 @@ config("ffrt_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
-    "QOS_FRAME_RTG",
     "FFRT_TRACE_RECORD_LEVEL=1",
     "FFRT_SEND_EVENT",
   ]

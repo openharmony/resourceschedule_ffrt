@@ -43,7 +43,7 @@ struct WorkGroup {
     WgType type;
 };
 
-#if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
+#if (defined(QOS_FRAME_RTG))
 
 struct WorkGroup* WorkgroupCreate(uint64_t interval);
 int WorkgroupClear(struct WorkGroup* wg);
@@ -52,8 +52,21 @@ bool LeaveWG(int tid);
 
 #else
 
+#ifdef QOS_WORKER_FRAME_RTG
+    WorkGroup* CreateRSWorkGroup(uint64_t interval);
+    bool JoinRSWorkGroup(int tid);
+    bool LeaveRSWorkGroup(int tid);
+    bool DestoryRSWorkGroup();
+#endif
+
 inline struct WorkGroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
 {
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return CreateRSWorkGroup(interval);
+    }
+#endif
     struct WorkGroup* wg = new (std::nothrow) struct WorkGroup();
     if (wg == nullptr) {
         return nullptr;
@@ -63,6 +76,12 @@ inline struct WorkGroup* WorkgroupCreate(uint64_t interval __attribute__((unused
 
 inline int WorkgroupClear(struct WorkGroup* wg)
 {
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return DestoryRSWorkGroup();
+    }
+#endif
     delete wg;
     wg = nullptr;
     return 0;
@@ -70,12 +89,24 @@ inline int WorkgroupClear(struct WorkGroup* wg)
 
 inline bool JoinWG(int tid)
 {
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return JoinRSWorkGroup(tid);
+    }
+#endif
     (void)tid;
     return true;
 }
 
 inline bool LeaveWG(int tid)
 {
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return LeaveRSWorkGroup(tid);
+    }
+#endif
     (void)tid;
     return true;
 }

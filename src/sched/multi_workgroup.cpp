@@ -12,13 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
-#include "workgroup_internal.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
+#include "workgroup_internal.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "task_client_adapter.h"
 
@@ -33,7 +31,7 @@ static WorkGroup *rsWorkGroup = nullptr;
 static int wgCount = 0;
 static std::mutex wgLock;
 
-#if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
+#if (defined(QOS_WORKER_FRAME_RTG))
 
 void WorkgroupInit(struct WorkGroup* wg, uint64_t interval, int rtgId)
 {
@@ -65,7 +63,7 @@ bool InsertThreadInWorkGroup(WorkGroup *workGroup, int tid)
 {
     if (workGroup == nullptr) {
         FFRT_LOGE("[RSWorkGroup] join thread %{public}d into workGroup failed, workGroup is null", tid);
-        return -1;
+        return false;
     }
     int targetIndex = -1;
     for (int i = 0; i < MAX_WG_THREADS; i++) {
@@ -83,7 +81,7 @@ bool InsertThreadInWorkGroup(WorkGroup *workGroup, int tid)
     return true;
 }
 
-void CreateRSWorkGroup(uint64_t interval)
+WorkGroup* CreateRSWorkGroup(uint64_t interval)
 {
     IntervalReply rs;
     rs.rtgId = -1;
@@ -96,14 +94,14 @@ void CreateRSWorkGroup(uint64_t interval)
                 rsWorkGroup = new struct WorkGroup();
                 if (rsWorkGroup == nullptr) {
                     FFRT_LOGE("[RSWorkGroup] rsWorkGroup malloc failed!");
-                    return;
+                    return nullptr;
                 }
                 WorkgroupInit(rsWorkGroup, interval, rs.rtgId);
                 wgCount++;
             }
         }
     }
-    FFRT_LOGI("[RSWorkGroup] query render_service %{public}d", rs.rtgId);
+    return rsWorkGroup;
 }
 
 bool LeaveRSWorkGroup(int tid)
@@ -156,7 +154,9 @@ bool DestoryRSWorkGroup()
     }
     return false;
 }
+#endif
 
+#if defined(QOS_FRAME_RTG)
 bool JoinWG(int tid)
 {
     if (wgId < 0) {
@@ -244,10 +244,6 @@ int WorkgroupClear(struct WorkGroup* wg)
     wg = nullptr;
     return ret;
 }
-
-#endif
-
-#if defined(QOS_FRAME_RTG)
 
 void WorkgroupStartInterval(struct WorkGroup* wg)
 {

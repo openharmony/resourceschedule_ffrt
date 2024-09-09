@@ -100,10 +100,7 @@ static inline void SaveWorkerStatus()
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());
                 continue;
             }
-            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
-                FFRT_BBOX_LOG("qos %d: worker tid %d is running task id %lu name %s", i, thread.first->Id(),
-                    t->gid, t->label.c_str());
-            }
+            FFRT_BBOX_LOG("qos %d: worker tid %d is running task", i, thread.first->Id());
         }
     }
 }

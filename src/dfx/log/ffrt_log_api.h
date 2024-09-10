@@ -18,6 +18,9 @@
 
 #ifdef OHOS_STANDARD_SYSTEM
 #include <array>
+#ifdef FFRT_ENG_DEBUG
+#include <info/fatal_message.h>
+#endif
 #include <string_view>
 #include "hilog/log.h"
 #include "dfx/bbox/fault_logger_fd_manager.h"
@@ -184,7 +187,10 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #define FFRT_UNLIKELY_COND_DO_ABORT(cond, fmt, ...) \
     do { \
         if (unlikely(cond)) { \
+            char fatal_msg[256]; \
+            snprintf_s(fatal_msg, sizeof(fatal_msg), sizeof(fatal_msg) - 1, fmt, ##__VA_ARGS__); \
             FFRT_LOGE(fmt, ##__VA_ARGS__); \
+            set_fatal_message(fatal_msg); \
             abort(); \
         } \
     } while (0)

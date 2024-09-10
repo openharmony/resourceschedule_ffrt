@@ -18,18 +18,27 @@
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"
 #include "dm/dependence_manager.h"
+#include "sync/poller.h"
 namespace ffrt {
 
 class FFRTFacade {
 public:
     static inline ExecuteUnit& GetEUInstance()
     {
-        return Instance().GetEUInstanceImpl();
+        static ExecuteUnit& inst = Instance().GetEUInstanceImpl();
+        return inst;
     }
 
     static inline DependenceManager& GetDMInstance()
     {
-        return Instance().GetDMInstanceImpl();
+        static DependenceManager& inst = Instance().GetDMInstanceImpl();
+        return inst;
+    }
+
+    static inline PollerProxy& GetPPInstance()
+    {
+        PollerProxy& inst = Instance().GetPPInstanceImpl();
+        return inst;
     }
 
 private:
@@ -52,6 +61,11 @@ private:
     inline DependenceManager& GetDMInstanceImpl()
     {
         return DependenceManager::Instance();
+    }
+
+    inline PollerProxy& GetPPInstanceImpl()
+    {
+        return PollerProxy::Instance();
     }
 };
 

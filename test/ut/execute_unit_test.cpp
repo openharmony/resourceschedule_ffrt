@@ -18,6 +18,7 @@
 #include "eu/execute_unit.h"
 #include "eu/thread_group.h"
 #include "internal_inc/types.h"
+#include "util/ffrt_facade.h"
 
 using namespace testing;
 using namespace testing::ext;
@@ -51,7 +52,7 @@ protected:
  */
 HWTEST_F(ExecuteUnitTest, NotifyTaskAdded, TestSize.Level1)
 {
-    ExecuteUnit::Instance().NotifyTaskAdded(QoS(qos(5)));
+    FFRTFacade::GetEUInstance().NotifyTaskAdded(QoS(qos(5)));
 }
 
 /**
@@ -62,7 +63,7 @@ HWTEST_F(ExecuteUnitTest, NotifyTaskAdded, TestSize.Level1)
 HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level1)
 {
     QoS *qos1 = new QoS();
-    ExecuteUnit::Instance().BindWG(DevType(0), *qos1);
+    FFRTFacade::GetEUInstance().BindWG(DevType(0), *qos1);
 }
 
 /**
@@ -73,7 +74,7 @@ HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level1)
 HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level1)
 {
     QoS *qos1 = new QoS();
-    ExecuteUnit::Instance().UnbindTG(DevType(0), *qos1);
+    FFRTFacade::GetEUInstance().UnbindTG(DevType(0), *qos1);
 }
 
 /**
@@ -84,5 +85,5 @@ HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level1)
 HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level1)
 {
     QoS *qos1 = new QoS();
-    ThreadGroup* it = ExecuteUnit::Instance().BindTG(DevType(0), *qos1);
+    ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(DevType(0), *qos1);
 }

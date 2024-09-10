@@ -37,7 +37,6 @@
  */
 #ifndef FFRT_API_C_TYPE_DEF_H
 #define FFRT_API_C_TYPE_DEF_H
-#include <pthread.h>
 #include <stdint.h>
 #include <errno.h>
 

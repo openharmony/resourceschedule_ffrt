@@ -160,7 +160,7 @@ private:
         secondaryCache.erase(t);
         lock.unlock();
 #endif
-        ::operator delete (t);    
+        ::operator delete(t);    
     }
 
     SimpleAllocator(std::size_t size = sizeof(T)) : TSize(size)

@@ -22,10 +22,6 @@
 #include "sched/execute_ctx.h"
 #include "util/task_deleter.h"
 
-#ifdef FFRT_HITRACE_ENABLE
-#include "hitrace/trace.h"
-#endif
-
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
 class TaskBase {
@@ -72,10 +68,6 @@ public:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
     std::mutex mutex_; // used in coroute
     std::condition_variable waitCond_; // cv for thread wait
-
-#ifdef FFRT_HITRACE_ENABLE
-    OHOS::HiviewDFX::HiTraceId traceId_;
-#endif
 
     void SetTraceTag(const char* name)
     {

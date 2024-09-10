@@ -13,28 +13,13 @@
  * limitations under the License.
  */
 #include "poller.h"
-#include <sys/timerfd.h>
-#include "internal_inc/assert.h"
 #include "sched/execute_ctx.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
 
-namespace {
-    const int NS_PER_SEC = 1000 * 1000 * 1000;
-}
-
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
-    m_timerWakeData.cb = nullptr;
-    m_timerWakeData.fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-    FFRT_ASSERT(m_timerWakeData.fd >= 0);
-    epoll_event timerEvent { .events = EPOLLIN | EPOLLET, .data = { .ptr = static_cast<void*>(&m_timerWakeData) } };
-    if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_timerWakeData.fd, &timerEvent) < 0) {
-        FFRT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_timerWakeData.fd, errno);
-        std::terminate();
-    }
-
     m_wakeData.cb = nullptr;
     m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
@@ -46,7 +31,6 @@ Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 
 Poller::~Poller() noexcept
 {
-    ::close(m_timerWakeData.fd);
     ::close(m_wakeData.fd);
     ::close(m_epFd);
     timerHandle_ = -1;
@@ -59,10 +43,10 @@ Poller::~Poller() noexcept
     m_cachedTaskEvents.clear();
 }
 
-PollerProxy* PollerProxy::Instance()
+PollerProxy& PollerProxy::Instance()
 {
     static PollerProxy pollerInstance;
-    return &pollerInstance;
+    return pollerInstance;
 }
 
 int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
@@ -252,23 +236,12 @@ void Poller::WakeUp() noexcept
     (void)::write(m_wakeData.fd, &one, sizeof one);
 }
 
-void Poller::ResetTimerfd(TimePoint& tp) noexcept
-{
-    uint64_t ns = tp.time_since_epoch().count();
-    itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
-    timerfd_settime(m_timerWakeData.fd, TFD_TIMER_ABSTIME, &its, nullptr);
-}
-
 void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
                               std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept
 {
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(waitedEvents[i].data.ptr);
         int currFd = data->fd;
-        if (currFd == m_timerWakeData.fd) {
-            continue;
-        }
-
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
             (void)::read(m_wakeData.fd, &one, sizeof one);
@@ -523,7 +496,7 @@ void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept
     timerEmpty_.store(false);
 
     if (wake) {
-        ResetTimerfd(absoluteTime);
+        WakeUp();
     }
 }
 

@@ -25,6 +25,7 @@
 #include "eu/osattr_manager.h"
 #include "eu/qos_interface.h"
 #include "qos.h"
+#include "util/ffrt_facade.h"
 #include "util/name_manager.h"
 
 namespace ffrt {
@@ -32,7 +33,7 @@ WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1)
 {
 #ifdef FFRT_PTHREAD_ENABLE
     pthread_attr_init(&attr_);
-    size_t stackSize = ExecuteUnit::Instance().GetGroupCtl()[qos()].workerStackSize;
+    size_t stackSize = FFRTFacade::GetEUInstance().GetGroupCtl()[qos()].workerStackSize;
     if (stackSize > 0) {
         pthread_attr_setstacksize(&attr_, stackSize);
     }

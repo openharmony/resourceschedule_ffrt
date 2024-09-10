@@ -28,7 +28,6 @@ public:
     friend class CPUManagerStrategy;
 private:
     void AddDelayedTask(int qos);
-    std::array<WaitUntilEntry, QoS::MaxNum()> weList;
 };
 } // namespace ffrt
 #endif

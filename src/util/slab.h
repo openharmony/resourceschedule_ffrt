@@ -23,8 +23,9 @@
 #include <unordered_set>
 #endif
 #include <sys/mman.h>
-#include "sync/sync.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "spmc_queue.h"
+#include "sync/sync.h"
 
 namespace ffrt {
 const std::size_t BatchAllocSize = 32 * 1024;
@@ -73,7 +74,7 @@ public:
         return Instance()->getUnSafeUnfreed();
     }
 private:
-    std::vector<T*> primaryCache;
+    SpmcQueue primaryCache;
 #ifdef FFRT_BBOX_ENABLE
     std::unordered_set<T*> secondaryCache;
 #endif
@@ -97,8 +98,7 @@ private:
         char* p = reinterpret_cast<char*>(basePtr);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             if (basePtr != nullptr &&
-                std::find(primaryCache.begin(), primaryCache.end(),
-                    reinterpret_cast<T*>(p + i)) == primaryCache.end()) {
+                primaryCache.FindElement(reinterpret_cast<void *>(p + i)) == false) {
                 ret.push_back(reinterpret_cast<void *>(p + i));
             }
         }
@@ -111,53 +111,56 @@ private:
 
     void init()
     {
+        lock.lock();
+        if (basePtr) {
+            lock.unlock();
+            return;
+        }
+
         char* p = reinterpret_cast<char*>(operator new(MmapSz));
         count = MmapSz / TSize;
-        primaryCache.reserve(count);
+        primaryCache.Init(count);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
-            primaryCache.push_back(reinterpret_cast<T*>(p + i));
+            primaryCache.PushTail(p + i);
         }
         basePtr = reinterpret_cast<T*>(p);
+        lock.unlock();
     }
 
     T* Alloc()
     {
-        lock.lock();
-        T* t = nullptr;
-        if (count == 0) {
-            if (basePtr != nullptr) {
-                t = reinterpret_cast<T*>(::operator new(TSize));
-#ifdef FFRT_BBOX_ENABLE
-                secondaryCache.insert(t);
-#endif
-                lock.unlock();
-                return t;
-            }
+        // 未初始化
+        if (primaryCache.GetCapacity() == 0) {
             init();
         }
-        t = primaryCache.back();
-        primaryCache.pop_back();
-        count--;
-        lock.unlock();
-        return t;
+        // 一级cache已耗尽
+        if (primaryCache.GetLength()) {
+            T* t = reinterpret_cast<T*>(::operator new(TSize));
+#ifdef FFRT_BBOX_ENABLE
+            lock.lock();
+            secondaryCache.insert(t);
+            lock.unlock();
+#endif
+            return t;
+        }
+        return static_cast<T*>(primaryCache.PopHead());
     }
 
     void free(T* t)
     {
-        lock.lock();
-        if (basePtr != nullptr &&
-            basePtr <= t &&
+        if (basePtr && basePtr <= t &&
             static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
             static_cast<size_t>(reinterpret_cast<uintptr_t>(basePtr)) + MmapSz) {
-            primaryCache.push_back(t);
-            count++;
-        } else {
-#ifdef FFRT_BBOX_ENABLE
-            secondaryCache.erase(t);
-#endif
-            ::operator delete(t);
+            primaryCache.PushTail(t);
+            return;
         }
+            
+#ifdef FFRT_BBOX_ENABLE
+        lock.lock();
+        secondaryCache.erase(t);
         lock.unlock();
+#endif
+        ::operator delete(t);
     }
 
     SimpleAllocator(std::size_t size = sizeof(T)) : TSize(size)
@@ -173,7 +176,7 @@ private:
         uint32_t try_cnt = ALLOCATOR_DESTRUCT_TIMESOUT;
         std::size_t reserved = MmapSz / TSize;
         while (try_cnt > 0) {
-            if (primaryCache.size() == reserved && secondaryCache.size() == 0) {
+            if (primaryCache.GetLength() == reserved && secondaryCache.size() == 0) {
                 break;
             }
             lck.unlock();

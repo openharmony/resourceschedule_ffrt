@@ -39,9 +39,9 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
         return -1;
     }
     if (op == EPOLL_CTL_DEL) {
-        return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).DelFdEvent(fd);
+        return ffrt::FFRTFacade::GetPPInstance().GetPoller(ffrtQos).DelFdEvent(fd);
     } else if (op == EPOLL_CTL_ADD || op == EPOLL_CTL_MOD) {
-        int ret = ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
+        int ret = ffrt::FFRTFacade::GetPPInstance().GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
         if (ret == 0) {
             ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(ffrtQos);
         }
@@ -59,7 +59,7 @@ int ffrt_epoll_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, 
     if (!QosConvert(qos, ffrtQos)) {
         return -1;
     }
-    return ffrt::PollerProxy::Instance()->GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout);
+    return ffrt::FFRTFacade::GetPPInstance().GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -70,7 +70,7 @@ void ffrt_poller_wakeup(ffrt_qos_t qos)
         return;
     }
 
-    ffrt::PollerProxy::Instance()->GetPoller(pollerQos).WakeUp();
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).WakeUp();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -81,7 +81,7 @@ uint8_t ffrt_epoll_get_count(ffrt_qos_t qos)
         return 0;
     }
 
-    return ffrt::PollerProxy::Instance()->GetPoller(pollerQos).GetPollCount();
+    return ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).GetPollCount();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -93,5 +93,5 @@ uint64_t ffrt_epoll_get_wait_time(void* taskHandle)
     }
 
     auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
-    return ffrt::PollerProxy::Instance()->GetPoller(task->qos).GetTaskWaitTime(task);
+    return ffrt::FFRTFacade::GetPPInstance().GetPoller(task->qos).GetTaskWaitTime(task);
 }

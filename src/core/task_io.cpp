@@ -120,7 +120,7 @@ void ffrt_wake_coroutine(void* task)
         if (rand() % INSERT_GLOBAL_QUEUE_FREQ) {
             if (ffrt::ExecuteCtx::Cur()->localFifo != nullptr &&
                 ffrt::ExecuteCtx::Cur()->localFifo->PushTail(task) == 0) {
-                ffrt::ExecuteUnit::Instance().NotifyLocalTaskAdded(wakedTask->qos);
+                ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(wakedTask->qos);
                 return;
             }
         }

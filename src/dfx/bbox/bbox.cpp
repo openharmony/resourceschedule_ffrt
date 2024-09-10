@@ -35,6 +35,7 @@
 #endif
 #include "dfx/dump/dump.h"
 #include "util/slab.h"
+#include "util/ffrt_facade.h"
 
 using namespace ffrt;
 
@@ -90,7 +91,7 @@ static inline void SaveTaskCounter()
 
 static inline void SaveWorkerStatus()
 {
-    WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
     for (int i = 0; i < QoS::MaxNum(); i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
@@ -100,10 +101,7 @@ static inline void SaveWorkerStatus()
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());
                 continue;
             }
-            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
-                FFRT_BBOX_LOG("qos %d: worker tid %d is running task id %lu name %s", i, thread.first->Id(),
-                    t->gid, t->label.c_str());
-            }
+            FFRT_BBOX_LOG("qos %d: worker tid %d is running task", i, thread.first->Id());
         }
     }
 }
@@ -417,7 +415,7 @@ std::string SaveWorkerStatusInfo(void)
 {
     std::ostringstream ss;
     std::ostringstream oss;
-    WorkerGroupCtl* workerGroup = ExecuteUnit::Instance().GetGroupCtl();
+    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     oss << "    |-> worker count" << std::endl;
     ss << "    |-> worker status" << std::endl;
     for (int i = 0; i < QoS::MaxNum(); i++) {
@@ -460,7 +458,7 @@ std::string SaveReadyQueueStatusInfo()
     std::ostringstream ss;
     ss << "    |-> ready queue status" << std::endl;
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        auto lock = ExecuteUnit::Instance().GetSleepCtl(static_cast<int>(i));
+        auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(static_cast<int>(i));
         std::lock_guard lg(*lock);
 
         int nt = FFRTScheduler::Instance()->GetScheduler(i).RQSize();

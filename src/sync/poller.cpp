@@ -447,23 +447,22 @@ void Poller::ProcessTimerDataCb(CPUEUTask* task) noexcept
 
 void Poller::ExecuteTimerCb(TimePoint timer) noexcept
 {
-    std::vector<TimerDataWithCb> timerData;
-    for (auto iter = timerMap_.begin(); iter != timerMap_.end();) {
-        if (iter->first <= timer) {
-            timerData.emplace_back(iter->second);
-            if (iter->second.cb != nullptr) {
-                executedHandle_[iter->second.handle] = TimerStatus::EXECUTING;
-            }
-            iter = timerMap_.erase(iter);
-            continue;
+    while (!timerMap_.empty()) {
+        auto iter = timerMap_.begin();
+        if (iter->first > timer) {
+            break;
         }
-        break;
-    }
-    timerEmpty_.store(timerMap_.empty());
 
-    timerMutex_.unlock();
-    for (const auto& data : timerData) {
-        if (data.cb) {
+        TimerDataWithCb data = iter->second;
+        if (data.cb != nullptr) {
+            executedHandle_[data.handle] = TimerStatus::EXECUTING;
+        }
+
+        timerMap_.erase(iter);
+        timerEmpty_.store(timerMap_.empty());
+
+        timerMutex_.unlock();
+        if (data.cb != nullptr) {
             data.cb(data.data);
         } else if (data.task != nullptr) {
             ProcessTimerDataCb(data.task);
@@ -472,15 +471,15 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
         if (data.cb != nullptr) {
             executedHandle_[data.handle] = TimerStatus::EXECUTED;
         }
-        if (data.repeat) {
-            std::lock_guard lock(timerMutex_);
-            auto iter = executedHandle_.find(data.handle);
-            if (iter != executedHandle_.end()) {
-                executedHandle_.erase(data.handle);
-                RegisterTimerImpl(data);
-            }
+
+        timerMutex_.lock();
+
+        if (data.repeat && (executedHandle_.find(data.handle) != executedHandle_.end())) {
+            executedHandle_.erase(data.handle);
+            RegisterTimerImpl(data);
         }
     }
+    timerMutex_.unlock();
 }
 
 void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept

@@ -18,6 +18,7 @@
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
+#include "tm/queue_task.h"
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
@@ -32,7 +33,9 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 #endif
     // control construct sequences of singletons
     SimpleAllocator<CPUEUTask>::Instance();
+    SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
+    SimpleAllocator<WaitUntilEntry>::Instance();
     PollerProxy::Instance();
     FFRTScheduler::Instance();
     ExecuteUnit::Instance();

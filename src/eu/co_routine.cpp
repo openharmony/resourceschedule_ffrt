@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <securec.h>
 #include <string>
 #include <sys/mman.h>
 #include "ffrt_trace.h"
@@ -108,7 +109,7 @@ void InitWorkerTsdValueToTask(void** taskTsd)
     const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
-        FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "key[%d] invalid", key);
+        FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "FFRT abort: key[%d] invalid", key);
         auto addr = threadTsd[key];
         if (addr) {
             taskTsd[key] = addr;
@@ -152,15 +153,16 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
     const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
-        FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "key[%d] invalid", key);
+        FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "FFRT abort: key[%d] invalid", key);
         auto threadVal = threadTsd[key];
         auto taskVal = taskTsd[key];
         if (!threadVal && taskVal) {
             threadTsd[key] = taskVal;
         } else {
-            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)), "mismatch key = [%d]", key);
+            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)),
+                "FFRT abort: mismatch key = [%d]", key);
             FFRT_UNLIKELY_COND_DO_ABORT((threadVal && !taskVal),
-                "unexpected: thread exist but task not exist, key = [%d]", key);
+                "FFRT abort: unexpected: thread exist but task not exist, key = [%d]", key);
         }
         taskTsd[key] = nullptr;
     }

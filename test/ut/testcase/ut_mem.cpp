@@ -19,11 +19,14 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "func_pool.h"
 #include "internal_inc/osal.h"
+#include "../common.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class MemTest : public testing::Test {
 protected:

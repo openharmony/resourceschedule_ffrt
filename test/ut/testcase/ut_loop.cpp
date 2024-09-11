@@ -18,11 +18,14 @@
 #include <gtest/gtest.h>
 #include "ffrt_inner.h"
 #include "c/loop.h"
+#include "../common.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class LoopTest : public testing::Test {
 protected:

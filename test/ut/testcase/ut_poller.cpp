@@ -23,10 +23,14 @@
 #include "sync/poller"
 #undef private
 #include "util.h"
+#include "../common.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
+using namespace testing::ext;
+#endif
 
 class PollerTest : public testing::Test {
 protected:
@@ -55,7 +59,7 @@ static void Testfun(void* data)
 }
 static void (*g_cb)(void*) = Testfun;
 
-HWTEST_F(PollerTest, unregister_timer_001)
+HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level1)
 {
     Poller poller;
     // 1、组装timeMap_

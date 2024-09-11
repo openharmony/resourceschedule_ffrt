@@ -21,6 +21,7 @@
 #include "ffrt_inner.h"
 #include "securec.h"
 #include "util.h"
+#include "../common.h"
 
 static const int BUFFER_SIZE = 120000;
 static const int SLEEP_MS = 3 * 1000;
@@ -34,7 +35,9 @@ static const int TASK_NUM_610 = 610;
 using namespace std;
 using namespace ffrt;
 using namespace testing;
-
+#ifdef HWTEST_TESTING_EXT_ENABLE
+using namespace testing::ext;
+#endif
 class QueueDumpTest : public testing::Test {
 protected:
     static void SetUpTestCase()
@@ -255,7 +258,7 @@ static void QueueDumpMaxDumpSizeTest(ffrt_queue_t& queue_handle, char* buf)
 /**
  * @brief queue dump interface user cases
  */
-TEST_F(QueueDumpTest, queue_dump_case)
+HWTEST_F(QueueDumpTest, queue_dump_case, TestSize.Level1)
 {
     // 创建类型为ffrt_queue_eventhandler_adapter的队列
     ffrt_queue_attr_t queue_attr;

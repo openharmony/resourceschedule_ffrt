@@ -22,9 +22,12 @@
 #define private public
 #include "sched/frame_interval.h"
 #undef private
+#include "common.h"
 
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 
 class FrameIntervalTest : public testing::Test {

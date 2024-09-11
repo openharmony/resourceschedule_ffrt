@@ -24,11 +24,14 @@
 #include <linux/types.h>
 #include "eu/qos_interface.h"
 #include "ffrt_inner.h"
+#include "common.h"
 
 #define GET_TID() syscall(SYS_gettid)
 
 using namespace ffrt;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class QosInterfaceTest : public testing::Test {
 protected:

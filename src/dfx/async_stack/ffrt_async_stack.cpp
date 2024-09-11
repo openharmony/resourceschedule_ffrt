@@ -88,7 +88,7 @@ void FFRTSetStackId(uint64_t stackId)
     }
 }
 
-void CloseAsyncStackLibHandle() 
+void CloseAsyncStackLibHandle()
 {
     if (g_asyncStackLibHandle != nullptr) {
         dlclose(g_asyncStackLibHandle);

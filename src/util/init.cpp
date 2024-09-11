@@ -51,7 +51,7 @@ __attribute__((constructor)) static void ffrt_init()
     ffrt::SetFuncQosMap(ffrt::QoSMap);
     ffrt::SetFuncQosMax(ffrt::QoSMax);
 }
-__attribute__((destructor)) static void ffrt_deinit(void)
+__attribute__((destructor)) static void FfrtDeinit(void)
 {
 #ifdef FFRT_ASYNC_STACKTRACE
     ffrt::CloseAsyncStackLibHandle();

@@ -50,6 +50,14 @@ HWTEST_F(InheritTest, executorToCPUEUTask, TestSize.Level1)
     ffrt_executor_task_t w;
     w.type = 1;
     auto* cputask = reinterpret_cast<SCPUEUTask*>(&w);
+    printf("w.addr:%lx\n", reinterpret_cast<uint64_t>(&w));
+    printf("w.type Addr%lx\n", reinterpret_cast<uint64_t>(&(w.type)));
+
+    printf("cputask base Addr %lx\n", reinterpret_cast<uint64_t>(cputask));
+    printf("cputask.type TaskBase Addr%lx\n", reinterpret_cast<uint64_t>(&(cputask->type)));
+    printf("cputask.rc Taskdeleter Addr %lx\n", reinterpret_cast<uint64_t>(&cputask->rc));
+    printf("cputask.wue Addr %lx\n", reinterpret_cast<uint64_t>(&cputask->wue));
+    
     EXPECT_EQ(w.type, 1);
     EXPECT_EQ(cputask->type, 1);
     EXPECT_EQ(reinterpret_cast<uint64_t>(&(w.type)), reinterpret_cast<uint64_t>(&(cputask->type)));

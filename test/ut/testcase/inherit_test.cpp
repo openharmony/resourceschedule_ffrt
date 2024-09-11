@@ -57,7 +57,7 @@ HWTEST_F(InheritTest, executorToCPUEUTask, TestSize.Level1)
     printf("cputask.type TaskBase Addr%lx\n", reinterpret_cast<uint64_t>(&(cputask->type)));
     printf("cputask.rc Taskdeleter Addr %lx\n", reinterpret_cast<uint64_t>(&cputask->rc));
     printf("cputask.wue Addr %lx\n", reinterpret_cast<uint64_t>(&cputask->wue));
-    
+
     EXPECT_EQ(w.type, 1);
     EXPECT_EQ(cputask->type, 1);
     EXPECT_EQ(reinterpret_cast<uint64_t>(&(w.type)), reinterpret_cast<uint64_t>(&(cputask->type)));

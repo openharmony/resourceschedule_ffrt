@@ -23,9 +23,12 @@
 
 using FFRTSetStackIdFunc = void(*)(uint64_t stackId);
 using FFRTCollectAsyncStackFunc = uint64_t(*)();
-static FFRTCollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
-static FFRTSetStackIdFunc g_setStackIdFunc = nullptr;
-static bool g_enabledFFRTAsyncStack = false;
+namespace {
+    FFRTCollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
+    FFRTSetStackIdFunc g_setStackIdFunc = nullptr;
+    void* g_asyncStackLibHandle = nullptr;
+    bool g_enabledFFRTAsyncStack = false;
+}
 
 static void LoadDfxAsyncStackLib()
 {
@@ -35,24 +38,24 @@ static void LoadDfxAsyncStackLib()
     }
 
     // if async stack is not enabled, the lib should not be unloaded
-    static void* asyncStackLibHandle = dlopen("libasync_stack.z.so", RTLD_NOW);
-    if (asyncStackLibHandle == nullptr) {
+    g_asyncStackLibHandle = dlopen("libasync_stack.z.so", RTLD_NOW);
+    if (g_asyncStackLibHandle == nullptr) {
         return;
     }
 
-    g_collectAsyncStackFunc = reinterpret_cast<FFRTCollectAsyncStackFunc>(dlsym(asyncStackLibHandle,
+    g_collectAsyncStackFunc = reinterpret_cast<FFRTCollectAsyncStackFunc>(dlsym(g_asyncStackLibHandle,
                                                                                 "CollectAsyncStack"));
     if (g_collectAsyncStackFunc == nullptr) {
-        dlclose(asyncStackLibHandle);
-        asyncStackLibHandle = nullptr;
+        dlclose(g_asyncStackLibHandle);
+        g_asyncStackLibHandle = nullptr;
         return;
     }
 
-    g_setStackIdFunc = reinterpret_cast<FFRTSetStackIdFunc>(dlsym(asyncStackLibHandle, "SetStackId"));
+    g_setStackIdFunc = reinterpret_cast<FFRTSetStackIdFunc>(dlsym(g_asyncStackLibHandle, "SetStackId"));
     if (g_setStackIdFunc == nullptr) {
         g_collectAsyncStackFunc = nullptr;
-        dlclose(asyncStackLibHandle);
-        asyncStackLibHandle = nullptr;
+        dlclose(g_asyncStackLibHandle);
+        g_asyncStackLibHandle = nullptr;
         return;
     }
 
@@ -82,6 +85,14 @@ void FFRTSetStackId(uint64_t stackId)
     if (IsFFRTAsyncStackEnabled() &&
         (g_setStackIdFunc != nullptr)) {
         return g_setStackIdFunc(stackId);
+    }
+}
+
+void CloseAsyncStackLibHandle() 
+{
+    if (g_asyncStackLibHandle != nullptr){
+        dlclose(g_asyncStackLibHandle);
+        g_asyncStackLibHandle = nullptr;
     }
 }
 }

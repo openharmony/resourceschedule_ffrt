@@ -24,6 +24,9 @@
 #include "util/slab.h"
 #include "tm/task_factory.h"
 #include "qos.h"
+#ifdef FFRT_ASYNC_STACKTRACE
+#include "dfx/async_stack/ffrt_async_stack.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +50,12 @@ __attribute__((constructor)) static void ffrt_init()
     ffrt::FFRTScheduler::RegistInsCb(ffrt::SFFRTScheduler::Instance);
     ffrt::SetFuncQosMap(ffrt::QoSMap);
     ffrt::SetFuncQosMax(ffrt::QoSMax);
+}
+__attribute__((destructor)) static void ffrt_deinit(void)
+{
+#ifdef FFRT_ASYNC_STACKTRACE
+    ffrt::CloseAsyncStackLibHandle();
+#endif
 }
 #ifdef __cplusplus
 }

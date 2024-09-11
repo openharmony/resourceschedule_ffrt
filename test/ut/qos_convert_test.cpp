@@ -20,9 +20,12 @@
 #include <unistd.h>
 #include "cpp/qos_convert.h"
 #include "eu/qos_interface.h"
+#include "common.h"
 
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 
 class QosConvertTest : public testing::Test {

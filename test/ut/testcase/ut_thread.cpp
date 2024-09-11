@@ -27,9 +27,12 @@
 #define private public
 #include "eu/worker_thread.h"
 #undef private
+#include "../common.h"
 
 using namespace ffrt;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class ThreadTest : public testing::Test {
 protected:

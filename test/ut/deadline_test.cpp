@@ -21,9 +21,12 @@
 #include "dm/dependence_manager.h"
 #include "sched/frame_interval.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "common.h"
 
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 
 class DeadlineTest : public testing::Test {

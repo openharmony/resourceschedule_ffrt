@@ -25,11 +25,14 @@
 #include "ffrt_inner.h"
 #include "eu/cpu_monitor.h"
 #include "sched/scheduler.h"
+#include "../common.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class CoroutineTest : public testing::Test {
 protected:

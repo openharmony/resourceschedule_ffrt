@@ -22,10 +22,13 @@
 #include "eu/cpu_monitor.h"
 #include "core/entity.h"
 #include "sched/scheduler.h"
+#include "../common.h"
 
 using namespace std;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 
 class ExecuteUnitTest : public testing::Test {

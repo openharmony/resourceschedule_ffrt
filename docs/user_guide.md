@@ -430,8 +430,8 @@ public:
     enum qos qos() const; // get qos
     task_attr& name(const char* name); // set name
     const char* name() const; // get name
-    task_attr& stack_size(uint64_t stack_size); // set task stack size 
-    const uint64_t stack_size() const; // get task stack size 
+    task_attr& stack_size(uint64_t stack_size); // set task stack size
+    const uint64_t stack_size() const; // get task stack size
 };
 }
 ```
@@ -459,8 +459,8 @@ public:
 * qos 级别从上到下依次递增，qos_user_interactive拥有最高优先级
 * stack_size 约定
   * 绝大多数情况下无需设定task 的栈大小，将使用系统默认的task 栈大小(如某些平台是1MB)
-  * 需要调整task 的栈大小时，请谨慎设置栈大小，过小的栈可能导致栈溢出，过大的栈可能消耗更多的内存资源
-  * 与pthread_attr_setstacksize 类似，stack_size 有下限值没有上限值。当设定值小于下限值（如某些平台是32KB）时，默认使用下限值；理论上你可以设置很大的值，但请合理设置栈大小
+  * 需要调整task 栈大小时，请谨慎设置栈大小，过小的栈可能导致栈溢出，过大的栈可能消耗更多的内存资源
+  * 与pthread_attr_setstacksize 类似，stack_size 有下限值没有上限值。当设定值小于下限值(如某些平台是32KB)时，默认使用下限值；理论上你可以设置很大的值，但请合理设置栈大小
   * 由于栈保护机制等原因，实际可用的栈大小是略小于您的设定值的(如某些平台上会比设定值小4KB)，这取决于内部实现
   * 接口上对设定值没有对齐要求，在某些平台上会将设定值向上对齐到4KB的整数倍，这取决于内部实现
 
@@ -692,7 +692,7 @@ return 1
 ## 串行队列
 <hr />
 
-串行队列基于FFRT协程调度模型，实现了消息队列功能。串行任务执行在FFRT workers上，用户无需维护一个专用的线程，拥有更轻量级的调度开销。
+串行队列基于FFRT协程调度模型，实现了消息队列功能。串行任务执行在FFRT Workers上，用户无需维护一个专用的线程，拥有更轻量级的调度开销。
 
 支持以下基本功能：
 
@@ -794,7 +794,7 @@ int queue::cancel(const task_handle& handle);
 
 * 描述：根据句柄取消对应的任务
 
-* 参数:
+* 参数: 
 
   `handle`：任务的句柄
 
@@ -859,7 +859,7 @@ int main(int narg, char** argv)
 
 * 生命周期，进程结束前需要释放FFRT资源。
 
-  例如SA业务，会在全局变量中管理串行队列。由于进程会先卸载libffrt.so再释放全局变量，如果进程结束时，SA未显式释放持有的串行队列，队列将随全局变量析构，析构时会访问已释放的ffrt资源，导致Fuzz用例出现use-after-free问题。
+  例如SA业务，会在全局变量中管理串行队列。由于进程会先卸载libffrt.so再释放全局变量，如果进程结束时，SA未显示释放持有的串行队列，队列将随全局变量析构，析构时会访问已释放的ffrt资源，导致Fuzz用例出现use-after-free问题。
 
 * 不允许在串行任务中调用ffrt::submit和ffrt::wait，其行为是未定义的
 
@@ -2171,9 +2171,9 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
 * 参数：
 
   `queue`：串行队列的句柄
-
+ 
   `f`：任务执行器指针
-
+ 
   `attr`：所创建的queue属性
 
 * 返回值：不涉及
@@ -2184,14 +2184,14 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
 ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
 ```
 
-* 描述：提交一个任务到队列中调度执行，并返回任务句柄
+* 描述：提交一个任务到串行队列中调度执行，并返回任务句柄
 
 * 参数：
 
   `queue`：串行队列的句柄
-
-  `f`：任务执行指针
-
+ 
+  `f`：任务执行器指针
+ 
   `attr`：所创建的queue属性
 
 * 返回值：如果任务被提交，则返回一个非空的任务句柄；否则返回空指针
@@ -2626,7 +2626,7 @@ void ffrt_recursive_mutex_task()
     ffrt_wait();
     printf("sum = %d", sum);
 }
-
+ 
 int main(int narg, char** argv)
 {
     int r;
@@ -2839,11 +2839,6 @@ typedef enum {
 typedef struct {
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
-
-int ffrt_condattr_init(ffrt_condattr_t* attr);
-int ffrt_condattr_destroy(ffrt_condattr_t* attr);
-int ffrt_condattr_setclock(ffrt_condattr_t* attr, ffrt_clockid_t clock);
-int ffrt_condattr_getclock(const ffrt_condattr_t* attr, ffrt_clockid_t* clock);
 
 int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
 int ffrt_cond_signal(ffrt_cond_t* cond);

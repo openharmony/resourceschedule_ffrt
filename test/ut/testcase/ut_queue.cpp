@@ -481,10 +481,17 @@ HWTEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency, TestSize.Level1)
     ffrt_queue_attr_destroy(&queue_attr1);
 }
 
+/*
+ * 测试用例名称 : ffrt_queue_has_task
+ * 测试用例描述 : 测试 ffrt_queue_has_task
+ * 操作步骤     : 1、往队列中提交若干任务，其中包含待查询的任务
+ *               2、调用ffrt_queue_has_task查询任务是否在队列中
+ * 预期结果    : 查询结果与预期相同
+ */
 HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
 
     std::mutex lock;
@@ -504,12 +511,14 @@ HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
         ffrt_queue_submit(queue_handle, create_function_wrapper(emptyFunc, ffrt_function_kind_queue), &task_attr);
     }
 
+    // 全字匹配
     for (int i = 0; i < 10; i++) {
         std::string name = "empty_function_" + std::to_string(i);
         bool hasEmptyTask = ffrt_queue_has_task(queue_handle, name.c_str());
         EXPECT_EQ(hasEmptyTask, true);
     }
 
+    // 正则匹配
     bool hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_.*");
     EXPECT_EQ(hasEmptyTask, true);
 
@@ -523,10 +532,18 @@ HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
+/*
+ * 测试用例名称 : ffrt_queue_cancel_all_and_cancel_by_name
+ * 测试用例描述 : 测试 ffrt_queue_cancel_all、ffrt_queue_cancel_by_name
+ * 操作步骤     : 1、往队列中提交若干任务
+ *               2、调用ffrt_queue_cancel_by_name取消指定任务
+ *               3、调用ffrt_queue_cancel_all取消所有任务
+ * 预期结果    : 任务取消成功
+ */
 HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(
         static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
 
@@ -547,6 +564,7 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
         ffrt_queue_submit(queue_handle, create_function_wrapper(emptyFunc, ffrt_function_kind_queue), &task_attr);
     }
 
+    // 测试ffrt_queue_cancel_by_name
     bool hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_3");
     EXPECT_EQ(hasEmptyTask, true);
 
@@ -555,6 +573,7 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
     hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_3");
     EXPECT_EQ(hasEmptyTask, false);
 
+    // 测试ffrt_queue_cancel_all
     hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_.*");
     EXPECT_EQ(hasEmptyTask, true);
 
@@ -576,10 +595,16 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
+/*
+ * 测试用例名称 : ffrt_queue_deque_task_priority_with_greedy
+ * 测试用例描述 : 测试并发队列取任务逻辑
+ * 操作步骤     : 1、往队列中提交不同优先级的若干任务
+ * 预期结果    : 任务按照优先级从高往低执行，每执行5个高优先级任务，就执行一个低优先级任务
+ */
 HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(
         static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
 
@@ -605,6 +630,7 @@ HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
             }
         };
     }
+
     ffrt_task_attr_t task_attr;
     ffrt_task_attr_init(&task_attr);
     ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_idle);
@@ -632,10 +658,17 @@ HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
+/*
+ * 测试用例名称 : ffrt_queue_submit_head
+ * 测试用例描述 : 测试 ffrt_queue_submit_head
+ * 操作步骤     : 1、往队列中提交若干任务
+ *               2、调用ffrt_queue_submit_head提交任务至队头
+ * 预期结果    : 提交到对头的任务优先被执行
+ */
 HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(
         static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
 
@@ -684,17 +717,12 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
-/*
- * 测试用例名称：ffrt_queue_eventhandler_interactive_queue
- * 测试用例描述：eventhandler_interactive_queue的创建
- * 操作步骤    ：初始化一个eventhandler_interactive_queue类型队列
- * 预期结果    ：能够正常初始化eventhandler_interactive_queue类型队列
- */
-HWTEST_F(QueueTest, ffrt_queue_eventhandler_interactive_queue, TestSize.Level1) {
+HWTEST_F(QueueTest, ffrt_eventhandler_interactive_queue, TestSize.Level1)
+{
     ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr); //初始化属性，必须
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(
-        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test queue", &queue_attr);
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test_queue", &queue_attr);
     EXPECT_TRUE(queue_handle != nullptr);
 
     ffrt_queue_attr_destroy(&queue_attr);

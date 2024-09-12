@@ -789,6 +789,7 @@ ohos_unittest("ut_mem") {
     "-fcxx-exceptions",
     "-std=c++11",
     "-DFFRT_PERF_EVENT_ENABLE",
+    "-DUSE_GTEST",
   ]
 
   sources = [

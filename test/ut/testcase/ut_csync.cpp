@@ -22,6 +22,7 @@
 #include "ffrt_inner.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/thread.h"
+#include "c/ffrt_ipc.h"
 #include "../common.h"
 
 extern "C" int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
@@ -33,6 +34,7 @@ extern "C" int ffrt_mutex_lock(ffrt_mutex_t *mutex);
 extern "C" int ffrt_mutex_unlock(ffrt_mutex_t *mutex);
 extern "C" int ffrt_mutex_trylock(ffrt_mutex_t *mutex);
 extern "C" int ffrt_mutex_destroy(ffrt_mutex_t *mutex);
+
 using namespace std;
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
@@ -58,6 +60,11 @@ protected:
     }
 };
 
+/**
+ * @tc.name: mutexattr_nullptr_fail
+ * @tc.desc: Test function of mutexattr when the input is nullptr;
+ * @tc.type: FUNC
+ */
 HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level1)
 {
     int ret = ffrt_mutexattr_init(nullptr);
@@ -70,6 +77,11 @@ HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level1)
     EXPECT_EQ(ret, ffrt_error_inval);
 }
 
+/**
+ * @tc.name: mutex_nullptr_fail
+ * @tc.desc: Test function of mutex when the input is nullptr;
+ * @tc.type: FUNC
+ */
 HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level1)
 {
     int ret = ffrt_mutex_init(nullptr, nullptr);
@@ -83,6 +95,30 @@ HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level1)
     ffrt_mutex_destroy(nullptr);
 }
 
+/**
+ * @tc.name: mutex_try_lock
+ * @tc.desc: Test function of mutex:try_lock
+ * @tc.type: FUNC
+ */
+HWTEST_F(SyncTest, mutex_try_lock, TestSize.Level1)
+{
+    int val = -1;
+    ffrt::mutex lock;
+    lock.lock();
+    val = lock.try_lock();
+    EXPECT_EQ(val, 0);
+    lock.unlock();
+    val = lock.try_lock();
+    EXPECT_EQ(val, 1);
+    lock.unlock();
+    lock.unlock();
+}
+
+/**
+ * @tc.name: recursive_mutex_try_lock
+ * @tc.desc: Test function of recursive mutex:try_lock
+ * @tc.type: FUNC
+ */
 HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level1)
 {
     int val = -1;
@@ -95,6 +131,111 @@ HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level1)
     EXPECT_EQ(val, 1);
     lock.unlock();
     lock.unlock();
+}
+
+/**
+ * @tc.name: mutex_lock_with_BlockThread
+ * @tc.desc: Test function of mutex:lock in Thread mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SyncTest, mutex_lock_with_BlockThread, TestSize.Level1)
+{
+    int x = 0;
+    ffrt::mutex lock;
+    ffrt::submit([&]() {
+        ffrt::this_task::sleep_for(10ms);
+        ffrt_this_task_set_legacy_mode(true);
+        lock.lock();
+        ffrt::submit([&]() {
+            EXPECT_EQ(x, 1);
+            }, {&x}, {});
+        ffrt::submit([&]() {
+            x++;
+            EXPECT_EQ(x, 2);
+            }, {&x}, {&x});
+        ffrt::submit([&]() {
+            EXPECT_EQ(x, 2);
+            }, {&x}, {});
+        ffrt::wait();
+        lock.unlock();
+        ffrt_this_task_set_legacy_mode(false);
+        }, {}, {}, ffrt::task_attr().name("t2"));
+
+    ffrt::submit([&]() {
+        ffrt_this_task_set_legacy_mode(true);
+        lock.lock();
+        ffrt::submit([&]() {
+            EXPECT_EQ(x, 0);
+            }, {&x}, {});
+        ffrt::submit([&]() {
+            x++;
+            EXPECT_EQ(x, 1);
+            }, {&x}, {&x});
+        ffrt::submit([&]() {
+            EXPECT_EQ(x, 1);
+            }, {&x}, {});
+        ffrt::wait();
+        lock.unlock();
+        ffrt_this_task_set_legacy_mode(false);
+        }, {}, {}, ffrt::task_attr().name("t1"));
+    ffrt::wait();
+}
+
+/**
+ * @tc.name: shared_mutex_lock_with_BlockThread
+ * @tc.desc: Test function of shared mutex:lock in Thread mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SyncTest, shared_mutex_lock_with_BlockThread, TestSize.Level1)
+{
+    int x = 0;
+    int N = 10;
+    ffrt::shared_mutex lock;
+    for (int i = 0; i < N; ++i) {
+        ffrt::submit([&]() {
+            ffrt_this_task_set_legacy_mode(true);
+            lock.lock();
+            ffrt::this_task::sleep_for(10ms);
+            x++;
+            lock.unlock();
+            ffrt_this_task_set_legacy_mode(false);
+            }, {}, {}, ffrt::task_attr().name("t1"));
+    }
+    ffrt::submit([&]() {
+        ffrt_this_task_set_legacy_mode(true);
+        lock.lock();
+        printf("x is %d", x);
+        lock.unlock();
+        ffrt_this_task_set_legacy_mode(false);
+        }, {}, {}, ffrt::task_attr().name("t2"));
+    
+    ffrt::wait();
+}
+
+/**
+ * @tc.name: set_legacy_mode_within_nested_task
+ * @tc.desc: Test function of mutex:lock in Thread mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
+{
+    int x = 0;
+    ffrt::submit([&]() {
+        ffrt_this_task_set_legacy_mode(true);
+        ffrt_this_task_set_legacy_mode(true);
+        ffrt::submit([&]() {
+            ffrt_this_task_set_legacy_mode(true);
+            x++;
+            EXPECT_EQ(x, 1);
+            ffrt_this_task_set_legacy_mode(false);
+            ffrt_this_task_set_legacy_mode(false);
+            }, {}, {});        
+        ffrt::wait();
+        ffrt_this_task_set_legacy_mode(false);
+        ffrt_this_task_set_legacy_mode(false);
+        }, {}, {});
+    ffrt::wait();
+    EXPECT_EQ(x, 1);
 }
 
 HWTEST_F(SyncTest, class_data_align, TestSize.Level1)
@@ -175,6 +316,84 @@ HWTEST_F(SyncTest, lock_stress_c_api, TestSize.Level1)
     const int M = 1000;
     const int J = 10000;
     ffrt::mutex* lock = new ffrt::mutex;
+    int acc = 0;
+    for (int i = 0; i < N; ++i) {
+        ffrt::submit(
+            [&]() {
+                for (int j = 0; j < M; ++j) {
+                    lock->lock();
+                    acc++;
+                    lock->unlock();
+                }
+            },
+            {}, {});
+    }
+
+    for (int j = 0; j < J; ++j) {
+        lock->lock();
+        acc++;
+        lock->unlock();
+    }
+
+    ffrt::wait();
+    EXPECT_EQ(acc, (M * N + J));
+    delete lock;
+}
+
+/**
+ * @tc.name: recursive_lock_stress
+ * @tc.desc: Test C++ function of recursive mutex:lock in stress mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SyncTest, recursive_lock_stress, TestSize.Level1)
+{
+    // trigger lazy init
+    ffrt::submit([&]() {}, {}, {});
+    ffrt::wait();
+
+    const int N = 10;
+    const int M = 1000;
+    const int J = 10000;
+    ffrt::recursive_mutex lock;
+    // std::mutex lock;
+    int acc = 0;
+    for (int i = 0; i < N; ++i) {
+        ffrt::submit(
+            [&]() {
+                for (int j = 0; j < M; ++j) {
+                    lock.lock();
+                    acc++;
+                    lock.unlock();
+                }
+            },
+            {}, {});
+    }
+
+    for (int j = 0; j < J; ++j) {
+        lock.lock();
+        acc++;
+        lock.unlock();
+    }
+
+    ffrt::wait();
+    EXPECT_EQ(acc, (M * N + J));
+}
+
+/**
+ * @tc.name: recursive_lock_stress
+ * @tc.desc: Test C function of recursive mutex:lock in stress mode
+ * @tc.type: FUNC
+ */
+HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level1)
+{
+    // trigger lazy init
+    ffrt::submit([&]() {}, {}, {});
+    ffrt::wait();
+
+    const int N = 10;
+    const int M = 1000;
+    const int J = 10000;
+    ffrt::recursive_mutex* lock = new ffrt::recursive_mutex;
     int acc = 0;
     for (int i = 0; i < N; ++i) {
         ffrt::submit(
@@ -610,7 +829,7 @@ static void TryLockTest(ffrt::shared_mutex& smtx)
             smtx.unlock();
         },
         {}, {});
-    
+
     ffrt::this_task::sleep_for(2ms);
 
     bool ret = smtx.try_lock();

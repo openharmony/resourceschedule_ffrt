@@ -190,7 +190,7 @@ HWTEST_F(SyncTest, mutex_lock_with_BlockThread, TestSize.Level1)
 HWTEST_F(SyncTest, shared_mutex_lock_with_BlockThread, TestSize.Level1)
 {
     int x = 0;
-    int N = 10;
+    const int N = 10;
     ffrt::shared_mutex lock;
     for (int i = 0; i < N; ++i) {
         ffrt::submit([&]() {

@@ -154,9 +154,9 @@ HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level1)
     void* data = xf;
     uint64_t timeout = 1;
     uint64_t sleepTime = 2500;
-    int max_iter = 100;
+    int maxIter = 100;
     // 2、 创建两个线程，并发PollerOnce和Unregister
-    for (int i = 0; i < max_iter; i++) {
+    for (int i = 0; i < maxIter; i++) {
         int timerHandle = poller.RegisterTimer(timeout, data, g_cb, true);
         EXPECT_FALSE(poller.timerMap_.empty());
         auto boundPollonce = std::bind(&Poller::PollOnce, &poller, timeout);

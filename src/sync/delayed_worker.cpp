@@ -114,7 +114,7 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
      * 2. if user calls 'exec' directly, the original process cannot close monitorfd automatically, and
      * it will be fail when new program use ffrt to create monitorfd.
      */
-    epoll_event monitor_event {.event = EPOLLIN, .data = {.fd = monitorfd_}};
+    epoll_event monitor_event {.events = EPOLLIN, .data = {.fd = monitorfd_}};
     int ret = epoll_ctl(epollfd_, EPOLL_CTL_ADD, monitorfd_, &monitor_event);
     if (ret < 0) {
         FFRT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));

@@ -100,6 +100,7 @@ config("ffrt_inner_config") {
 
 ohos_shared_library("libffrt") {
   if (ffrt_support_enable) {
+    branch_protector_ret = "pac_ret"
     public_configs = [ ":ffrt_config" ]
     configs = [ ":ffrt_inner_config" ]
     ldflags = [ "-Wl,-z,nodelete" ]

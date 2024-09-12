@@ -42,9 +42,6 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode
         lk->unlock();
         wn->cv.wait(nl);
     }
-    wqlock.lock();
-    remove(wn);
-    wqlock.unlock();
     lk->lock();
 }
 bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
@@ -52,6 +49,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
 {
     bool ret = false;
     wqlock.lock();
+    wn->status.store(we_status::INIT, std::memory_order_release);
     if (legacyMode) {
         task->blockType = BlockType::BLOCK_THREAD;
         wn->task = task;
@@ -65,9 +63,15 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
             ret = true;
         }
     }
-    wqlock.lock();
-    remove(wn);
-    wqlock.unlock();
+
+    // notify scenarios wn is already pooped
+    // in addition, condition variables may be spurious woken up
+    // in this case, wn needs to be removed from the linked list
+    if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFING) {
+        wqlock.lock();
+        remove(wn);
+        wqlock.unlock();
+    }
     lk->lock();
     return ret;
 }
@@ -206,6 +210,7 @@ void WaitQueue::Notify(bool one) noexcept
         CPUEUTask* task = we->task;
         if (ThreadNotifyMode(task) || we->weType == 2) {
             std::unique_lock<std::mutex> lk(we->wl);
+            we->status.store(we_status::NOTIFING, std::memory_order_release);
             if (BlockThread(task)) {
                 task->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;

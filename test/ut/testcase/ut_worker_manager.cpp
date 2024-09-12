@@ -25,9 +25,13 @@
 #include "eu/scpuworker_manager.h"
 #undef private
 #undef protected
+#include "../common.h"
 
-using namespace ffrt;
+using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
+using namespace ffrt;
 
 class WorkerManagerTest : public testing::Test {
 protected:

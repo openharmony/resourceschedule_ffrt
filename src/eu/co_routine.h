@@ -26,8 +26,6 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 constexpr size_t STACK_MAGIC = 0x7BCDABCD;
 #elif defined(__x86_64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
-#elif defined(__riscv) && __riscv_xlen == 64
-constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #endif
 
 namespace ffrt {
@@ -58,6 +56,8 @@ constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
 using CoCtx = struct co2_context;
 
 struct CoRoutineEnv {
+    // when task is running, runningCo same with task->co
+    // if task switch out, set to null. if task complete, be used as co cache for next task.
     CoRoutine* runningCo = nullptr;
     CoCtx schCtx;
     const std::function<bool(ffrt::CPUEUTask*)>* pending = nullptr;

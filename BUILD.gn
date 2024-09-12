@@ -39,10 +39,8 @@ config("ffrt_config") {
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",
-    "-DUSE_OHOS_QOS",
     "-DFFRT_PTHREAD_ENABLE",
-    "-DFFRT_OH_WATCHDOG_ENABLE",
-    "-DQOS_WORKER_FRAME_RTG",
+    "-DUSE_OHOS_QOS",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -56,7 +54,7 @@ config("ffrt_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
-    "QOS_FRAME_RTG",
+    "FFRT_OH_WATCHDOG_ENABLE",
   ]
 
   #ffrt_release_defines = [
@@ -195,7 +193,7 @@ ohos_shared_library("libffrt") {
     defines = []
 
     if (ffrt_async_stack_enable) {
-      defines += [ "ASYNC_STACKTRACE" ]
+      defines += [ "FFRT_ASYNC_STACKTRACE" ]
       sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
     }
 
@@ -215,18 +213,6 @@ ohos_shared_library("libffrt") {
   }
 }
 
-ohos_prebuilt_etc("blacklist_cfg") {
-  relative_install_dir = "ffrt"
-  source = "worker_monitor.conf"
-  part_name = "ffrt"
-  subsystem_name = "resourceschedule"
-  install_enable = true
-  install_images = [ "system" ]
-}
-
 group("ffrt_ndk") {
-  deps = [
-    ":blacklist_cfg",
-    ":libffrt",
-  ]
+  deps = [ ":libffrt" ]
 }

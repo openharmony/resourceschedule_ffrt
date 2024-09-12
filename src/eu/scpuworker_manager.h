@@ -23,6 +23,8 @@ public:
     SCPUWorkerManager();
     ~SCPUWorkerManager() override;
     WorkerAction WorkerIdleAction(const WorkerThread* thread) override;
+    WorkerAction WorkerIdleActionSimplified(const WorkerThread* thread) override;
+    void WorkerRetiredSimplified(WorkerThread* thread) override;
     void WorkerPrepare(WorkerThread* thread) override;
     void WakeupWorkers(const QoS& qos) override;
     friend class CPUManagerStrategy;

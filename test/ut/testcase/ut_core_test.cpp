@@ -24,10 +24,13 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/bbox/bbox.h"
 #include "tm/cpu_task.h"
+#include "../common.h"
 
 using namespace std;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 
 class CoreTest : public testing::Test {

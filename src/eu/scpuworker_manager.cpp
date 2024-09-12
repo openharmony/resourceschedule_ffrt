@@ -70,10 +70,46 @@ SCPUWorkerManager::~SCPUWorkerManager()
     delete monitor;
 }
 
+void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
+{
+    pid_t pid = thread->Id();
+    int qos = static_cast<int>(thread->GetQos());
+
+    bool isEmptyQosThreads = false;
+    {
+        std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
+        thread->SetExited(true);
+        thread->Detach();
+        auto worker = std::move(groupCtl[qos].threads[thread]);
+        int ret = groupCtl[qos].threads.erase(thread);
+        if (ret != 1) {
+            FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
+        }
+        isEmptyQosThreads = groupCtl[qos].threads.empty();
+        WorkerLeaveTg(QoS(qos), pid);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (IsBlockAwareInit()) {
+            ret = BlockawareUnregister();
+            if (ret != 0) {
+                FFRT_LOGE("blockaware unregister fail, ret[%d]", ret);
+            }
+        }
+#endif
+        worker = nullptr;
+    }
+
+    // qos has no worker, start delay worker to monitor task
+    if (isEmptyQosThreads) {
+        FFRT_LOGI("qos has no worker, start delay worker to monitor task, qos %d", qos);
+        AddDelayedTask(qos);
+    }
+}
+
 void SCPUWorkerManager::AddDelayedTask(int qos)
 {
     weList[qos].tp = std::chrono::steady_clock::now() + std::chrono::microseconds(DELAYED_WAKED_UP_TASK_TIME_INTERVAL);
     weList[qos].cb = ([this, qos](WaitEntry* we) {
+        (void)we;
         int taskCount = GetTaskCount(QoS(qos));
         std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
         bool isEmpty = groupCtl[qos].threads.empty();
@@ -136,6 +172,41 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
             reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
             });
+        monitor->OutOfDeepSleep(thread->GetQos());
+        return WorkerAction::RETRY;
+#else
+        monitor->TimeoutCount(thread->GetQos());
+        FFRT_LOGD("worker exit");
+        return WorkerAction::RETIRE;
+#endif
+    }
+}
+
+WorkerAction SCPUWorkerManager::WorkerIdleActionSimplified(const WorkerThread* thread)
+{
+    if (tearDown) {
+        return WorkerAction::RETIRE;
+    }
+
+    auto& ctl = sleepCtl[thread->GetQos()];
+    std::unique_lock lk(ctl.mutex);
+    (void)monitor->IntoSleep(thread->GetQos());
+    FFRT_PERF_WORKER_IDLE(static_cast<int>(thread->GetQos()));
+    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
+        bool taskExistence = GetTaskCount(thread->GetQos());
+        return tearDown || taskExistence;
+        })) {
+        monitor->WakeupCount(thread->GetQos());
+        FFRT_PERF_WORKER_AWAKE(static_cast<int>(thread->GetQos()));
+        return WorkerAction::RETRY;
+    } else {
+#if !defined(IDLE_WORKER_DESTRUCT)
+        monitor->IntoDeepSleep(thread->GetQos());
+        CoStackFree();
+        if (monitor->IsExceedDeepSleepThreshold()) {
+            ffrt::CoRoutineReleaseMem();
+        }
+        ctl.cv.wait(lk, [this, thread] {return tearDown || GetTaskCount(thread->GetQos());});
         monitor->OutOfDeepSleep(thread->GetQos());
         return WorkerAction::RETRY;
 #else

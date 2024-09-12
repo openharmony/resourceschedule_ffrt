@@ -23,9 +23,13 @@
 
 #include "eu/rtg_ioctl.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "../common.h"
 
-using namespace ffrt;
+using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
+using namespace ffrt;
 
 class RTGTest : public testing::Test {
 protected:

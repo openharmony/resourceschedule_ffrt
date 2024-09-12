@@ -19,9 +19,13 @@
 #include "sched/interval.h"
 #include "sched/sched_deadline.h"
 #include "tm/cpu_task.h"
+#include "../common.h"
 
-using namespace ffrt;
+using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
+using namespace ffrt;
 
 class DeadlineTest : public testing::Test {
 protected:

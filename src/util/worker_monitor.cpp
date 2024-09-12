@@ -38,7 +38,7 @@ constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
 constexpr char IPC_STACK_NAME[] = "libipc_core";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
-constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
+const std::vector<std::string> SKIP_SAMPLING_PROCESS = {"hdcd", "updater"};
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
     1000 * 1000, 60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
 };
@@ -47,22 +47,15 @@ const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
 namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
-    // 获取当前进程名称
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-
-    // 从配置文件读取黑名单
-    std::string skipProcess;
-    std::ifstream file(CONF_FILEPATH);
-    if (file.is_open()) {
-        while (std::getline(file, skipProcess)) {
-            if (strstr(processName, skipProcess.c_str()) != nullptr) {
-                skipSampling_ = true;
-                return;
-            }
+    // hdc在调用hdc shell的时候会长期占用worker，过滤该进程以防止一直打印超时信息
+    // 另外，对hdc进程进行监控会概率性导致hdc断连，原因未知，暂时规避
+    for (const auto& skipProcess : SKIP_SAMPLING_PROCESS) {
+        if (strstr(processName, skipProcess.c_str()) != nullptr) {
+            skipSampling_ = true;
+            break;
         }
-    } else {
-        FFRT_LOGW("worker_monitor.conf does not exist or file permission denied");
     }
 
     SubmitSamplingTask();
@@ -100,6 +93,9 @@ void WorkerMonitor::SubmitTask()
 
 void WorkerMonitor::SubmitSamplingTask()
 {
+    if (skipSampling_) {
+        return;
+    }
     watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
     watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
     if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {

@@ -58,9 +58,6 @@ static void spin()
     asm volatile("isb sy");
 #elif defined(__arm__)
     asm volatile("yield");
-#elif defined(__riscv)
-    // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/riscv/include/asm/vdso/processor.h?h=v6.6#n25
-    asm volatile(".4byte 0x100000F");
 #endif
 }
 

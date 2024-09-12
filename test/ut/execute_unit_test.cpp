@@ -19,9 +19,12 @@
 #include "eu/thread_group.h"
 #include "internal_inc/types.h"
 #include "util/ffrt_facade.h"
+#include "common.h"
 
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 using namespace std;
 

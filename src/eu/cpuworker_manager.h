@@ -96,6 +96,7 @@ private:
     bool WorkerTearDown();
     bool DecWorker() override
     {return false;}
+    virtual void WorkerRetiredSimplified(WorkerThread* thread) = 0;
     void NotifyTaskPicked(const WorkerThread* thread);
     /* strategy options for task pick up */
     CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread);
@@ -103,6 +104,7 @@ private:
 
     /* strategy options for worker wait action */
     virtual WorkerAction WorkerIdleAction(const WorkerThread* thread) = 0;
+    virtual WorkerAction WorkerIdleActionSimplified(const WorkerThread* thread) = 0;
 
     void WorkerSetup(WorkerThread* thread);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);

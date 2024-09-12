@@ -22,6 +22,7 @@
 #include "ffrt_inner.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/thread.h"
+#include "../common.h"
 
 extern "C" int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
 extern "C" int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type);
@@ -34,7 +35,9 @@ extern "C" int ffrt_mutex_trylock(ffrt_mutex_t *mutex);
 extern "C" int ffrt_mutex_destroy(ffrt_mutex_t *mutex);
 using namespace std;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class SyncTest : public testing::Test {
 protected:

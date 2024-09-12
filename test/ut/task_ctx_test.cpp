@@ -18,9 +18,12 @@
 #include "qos.h"
 #include "ffrt_inner.h"
 #include "internal_inc/types.h"
+#include "common.h"
 
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 using namespace std;
 

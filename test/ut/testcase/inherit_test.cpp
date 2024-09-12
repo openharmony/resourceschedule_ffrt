@@ -17,11 +17,14 @@
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "../common.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class InheritTest : public testing::Test {
 protected:

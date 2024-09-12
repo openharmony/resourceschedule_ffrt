@@ -48,6 +48,7 @@ public:
 public:
     /* strategy options for worklooper function */
     static void WorkerLooperDefault(WorkerThread* p);
+    static void WorkerLooperStandard(WorkerThread* p);
 
 private:
     static void* WrapDispatch(void* worker);

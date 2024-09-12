@@ -23,13 +23,17 @@
 #include "eu/cpu_manager_interface.h"
 #include "eu/worker_thread.h"
 #include "qos.h"
+#include "common.h"
+
 #undef private
 #undef protected
 
 namespace OHOS {
 namespace FFRT_TEST {
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace OHOS::FFRT_TEST;
 using namespace ffrt;
 using namespace std;

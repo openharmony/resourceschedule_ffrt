@@ -27,10 +27,13 @@
 #include "sched/task_manager.h"
 #include "core/task_attr_private.h"
 #include "tm/scpu_task.h"
+#include "../common.h"
 
 using namespace std;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 
 class SchedulerTest : public testing::Test {

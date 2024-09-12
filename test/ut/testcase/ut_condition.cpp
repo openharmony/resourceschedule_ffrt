@@ -17,11 +17,14 @@
 #include <chrono>
 #include "c/thread.h"
 #include "ffrt_inner.h"
+#include "../common.h"
 
 using namespace ffrt;
 using namespace std;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class CVTest : public testing::Test {
 protected:

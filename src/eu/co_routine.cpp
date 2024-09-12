@@ -47,7 +47,7 @@ static inline void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
         FFRT_LOGE("sp offset:%p.\n", co->stkMem.stk +
-            co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
+            co->stkMem.size - co->ctx.regs[REG_SP]);
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_task_attr_set_stack_size'.\n");
     }
 }
@@ -157,9 +157,9 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
         if (!threadVal && taskVal) {
             threadTsd[key] = taskVal;
         } else {
-            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)), "mismatch key = [%d]", key);
+            FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)), "mismatch key=[%d]", key);
             FFRT_UNLIKELY_COND_DO_ABORT((threadVal && !taskVal),
-                "unexpected: thread exist but task not exist, key = [%d]", key);
+                "unexpected: thread exists but task not exists, key=[%d]", key);
         }
         taskTsd[key] = nullptr;
     }

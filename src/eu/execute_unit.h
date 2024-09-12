@@ -72,7 +72,7 @@ public:
     }
 
     virtual std::unique_ptr<WorkerManager> InitManager() = 0;
-    
+
     void CreateWorkerManager();
 
 protected:

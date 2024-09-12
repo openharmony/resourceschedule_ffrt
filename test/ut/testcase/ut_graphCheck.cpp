@@ -17,11 +17,14 @@
 
 #include <gtest/gtest.h>
 #include "util/graph_check.h"
+#include "../common.h"
 
 using namespace std;
 using namespace testing;
 using namespace ffrt;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class GraphCheckTest : public testing::Test {
 protected:

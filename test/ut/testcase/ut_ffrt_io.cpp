@@ -31,10 +31,13 @@
 #include "util/ffrt_facade.h"
 #undef private
 #undef protect
+#include "../common.h"
 
 using namespace std;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class ffrtIoTest : public testing::Test {
 protected:

@@ -71,7 +71,7 @@ config("ffrt_test_config") {
     defines += [ "TDD_MUSL" ]
   }
   if (ffrt_async_stack_enable) {
-    defines += [ "ASYNC_STACKTRACE" ]
+    defines += [ "FFRT_ASYNC_STACKTRACE" ]
   }
 }
 

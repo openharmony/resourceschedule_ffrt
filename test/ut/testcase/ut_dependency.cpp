@@ -20,12 +20,16 @@
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "../common.h"
+
 #ifndef WITH_NO_MOCKER
 extern "C" int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr);
 #endif
 using namespace std;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 
 class DependencyTest : public testing::Test {
 protected:

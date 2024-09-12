@@ -50,8 +50,7 @@ void DelayedWorker::ThreadInit()
                 break;
             }
             if (result == 0) {
-                auto time_out = map.begin()->first;
-                cv.wait_until(lk, time_out);
+                cv.wait_until(lk, map.begin()->first);
             } else if (result == 1) {
                 if (++noTaskDelayCount_ > 1) {
                     exited_ = true;
@@ -116,12 +115,6 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     if (toExit) {
         lock.unlock();
         FFRT_LOGE("DelayedWorker destroy, dispatch failed\n");
-        return false;
-    }
-
-    time_point_t now = std::chrono::steady_clock::now();
-    if (to <= now) {
-        lock.unlock();
         return false;
     }
 

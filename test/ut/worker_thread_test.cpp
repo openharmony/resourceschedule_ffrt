@@ -21,13 +21,16 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/resource.h>
+#include "common.h"
 
 #define private public
 #include "eu/worker_thread.h"
 #undef private
 
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
 using namespace ffrt;
 
 class WorkerThreadTest : public testing::Test {

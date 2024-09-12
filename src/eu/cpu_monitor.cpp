@@ -371,6 +371,7 @@ void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotif
 
 void CPUMonitor::HandleTaskNotifyUltraConservative(const QoS& qos, void* p, TaskNotifyType notifyType)
 {
+    (void)notifyType;
     CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
     int taskCount = monitor->ops.GetTaskCount(qos);
     if (taskCount == 0) {

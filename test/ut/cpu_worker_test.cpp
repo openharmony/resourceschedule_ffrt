@@ -24,7 +24,6 @@
 #include "eu/worker_thread.h"
 #include "qos.h"
 #include "common.h"
-
 #undef private
 #undef protected
 
@@ -63,7 +62,5 @@ protected:
  * @tc.desc: Test whether the Start interface are normal.
  * @tc.type: FUNC
  */
-
-// 死循环 卡在cpp的line33
 }
 }

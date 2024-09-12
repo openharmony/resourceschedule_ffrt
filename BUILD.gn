@@ -54,7 +54,7 @@ config("ffrt_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
-    "-DFFRT_OH_WATCHDOG_ENABLE",
+    "FFRT_OH_WATCHDOG_ENABLE",
   ]
 
   #ffrt_release_defines = [

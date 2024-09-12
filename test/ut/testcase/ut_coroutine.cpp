@@ -52,13 +52,12 @@ protected:
     {
     }
 };
-
 constexpr int BLOCKED_COUNT = 3;
 
 typedef struct {
     int count;
     std::mutex lock;
-}StacklessCoroutine1;
+} StacklessCoroutine1;
 
 ffrt_coroutine_ret_t stackless_coroutine(void* co)
 {
@@ -66,7 +65,6 @@ ffrt_coroutine_ret_t stackless_coroutine(void* co)
     std::lock_guard lg(stacklesscoroutine->lock);
     printf("stacklesscoroutine %d\n", stacklesscoroutine->count);
     stacklesscoroutine->count++;
-
     if (stacklesscoroutine->count < BLOCKED_COUNT) {
         ffrt_wake_coroutine(ffrt_get_current_task());
         return ffrt_coroutine_pending;

@@ -17,6 +17,7 @@
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
+#include <inttypes.h>
 #include "../common.h"
 
 using namespace std;
@@ -50,13 +51,13 @@ HWTEST_F(InheritTest, executorToCPUEUTask, TestSize.Level1)
     ffrt_executor_task_t w;
     w.type = 1;
     auto* cputask = reinterpret_cast<SCPUEUTask*>(&w);
-    printf("w.addr:%llx\n", reinterpret_cast<uint64_t>(&w));
-    printf("w.type Addr%llx\n", reinterpret_cast<uint64_t>(&(w.type)));
+    printf("w.addr:%" PRIx64 "\n", reinterpret_cast<uint64_t>(&w));
+    printf("w.type Addr%" PRIx64 "\n", reinterpret_cast<uint64_t>(&(w.type)));
 
-    printf("cputask base Addr %llx\n", reinterpret_cast<uint64_t>(cputask));
-    printf("cputask.type TaskBase Addr%llx\n", reinterpret_cast<uint64_t>(&(cputask->type)));
-    printf("cputask.rc Taskdeleter Addr %llx\n", reinterpret_cast<uint64_t>(&cputask->rc));
-    printf("cputask.wue Addr %llx\n", reinterpret_cast<uint64_t>(&cputask->wue));
+    printf("cputask base Addr %" PRIx64 "\n", reinterpret_cast<uint64_t>(cputask));
+    printf("cputask.type TaskBase Addr%" PRIx64 "\n", reinterpret_cast<uint64_t>(&(cputask->type)));
+    printf("cputask.rc Taskdeleter Addr %" PRIx64 "\n", reinterpret_cast<uint64_t>(&cputask->rc));
+    printf("cputask.wue Addr %" PRIx64 "\n", reinterpret_cast<uint64_t>(&cputask->wue));
 
     EXPECT_EQ(w.type, 1);
     EXPECT_EQ(cputask->type, 1);

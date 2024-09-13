@@ -17,7 +17,7 @@
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
-#include <inttypes.h>
+#include <cinttypes>
 #include "../common.h"
 
 using namespace std;

@@ -19,10 +19,12 @@
 #include "core/entity.h"
 #include "core/version_ctx.h"
 #include "ffrt_inner.h"
+#include "c/ffrt_ipc.h"
 #include "sched/task_state.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/bbox/bbox.h"
 #include "tm/cpu_task.h"
+#include "tm/queue_task.h"
 #include "../common.h"
 
 using namespace std;
@@ -99,4 +101,184 @@ HWTEST_F(CoreTest, ffrt_submit_wait_success_01, TestSize.Level1)
     ffrt_task_attr_destroy(attr);
     free(attr);
     attr = nullptr;
+}
+
+/**
+ * @tc.name: ThreadWaitAndNotifyModeCheck
+ * @tc.desc: Test function of ThreadWaitMode and ThreadNotifyMode
+ * @tc.type: FUNC
+ */
+HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
+{
+    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS());
+
+    // when executing task is nullptr
+    EXPECT_EQ(ThreadWaitMode(nullptr), true);
+
+    // when executing task is root
+    EXPECT_EQ(ThreadWaitMode(task), true);
+
+    // when executing task in legacy mode
+    SCPUEUTask* parent = new SCPUEUTask(nullptr, nullptr, 0, QoS());
+    task->parent = parent;
+    task->legacyCountNum = 1;
+    EXPECT_EQ(ThreadWaitMode(task), true);
+
+    // when task is valid and not in legacy mode
+    task->legacyCountNum = 0;
+    EXPECT_EQ(ThreadWaitMode(task), false);
+
+    // when block thread is false
+    EXPECT_EQ(ThreadNotifyMode(task), false);
+
+    // when block thread is true
+    task->blockType = BlockType::BLOCK_THREAD;
+    EXPECT_EQ(ThreadNotifyMode(task), true);
+
+    delete parent;
+    delete task;
+}
+
+/**
+ * @tc.name: ffrt_this_task_set_legacy_mode_yeild_test
+ * @tc.desc: Test function of ffrt_this_task_set_legacy_mode with ffrt_yield
+ * @tc.type: FUNC
+ */
+HWTEST_F(CoreTest, ffrt_this_task_set_legacy_mode_yield_test, TestSize.Level1)
+{
+    int count = 12;
+    for (int i = 0; i < count; i++) {
+        ffrt::submit(
+            [&]() {
+            ffrt_this_task_set_legacy_mode(true);
+            ffrt_usleep(100);
+            printf("test");
+            ffrt_yield();
+            ffrt_this_task_set_legacy_mode(false);
+        },
+            {}, {});
+    }
+    ffrt::wait();
+}
+
+/**
+ * 测试用例名称：task_attr_set_timeout
+ * 测试用例描述：验证task_attr的设置timeout接口
+ * 预置条件：创建有效的task_attr
+ * 操作步骤：设置timeout值，通过get接口与设置值对比
+ * 预期结果：设置成功
+ */
+HWTEST_F(CoreTest, task_attr_set_timeout, TestSize.Level1)
+{
+    ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
+    ffrt_task_attr_init(attr);
+    ffrt_task_attr_set_timeout(attr, 1000);
+    uint64_t timeout = ffrt_task_attr_get_timeout(attr);
+    EXPECT_EQ(timeout, 1000);
+}
+
+/**
+ * 测试用例名称：task_attr_set_timeout_nullptr
+ * 测试用例描述：验证task_attr的设置timeout接口的异常场景
+ * 预置条件：针对nullptr进行设置
+ * 操作步骤：设置timeout值，通过get接口与设置值对比
+ * 预期结果：设置失败，返回值为0
+ */
+HWTEST_F(CoreTest, task_attr_set_timeout_nullptr, TestSize.Level1)
+{
+    ffrt_task_attr_t* attr = nullptr;
+    ffrt_task_attr_set_timeout(attr, 1000);
+    uint64_t timeout = ffrt_task_attr_get_timeout(attr);
+    EXPECT_EQ(timeout, 0);
+}
+
+/**
+ * 测试用例名称：ffrt_task_handle_ref_nullptr
+ * 测试用例描述：验证task_handle的增加、消减引用计数接口的异常场景
+ * 预置条件：针对nullptr进行设置
+ * 操作步骤：对nullptr进行调用
+ * 预期结果：接口校验异常场景成功，用例正常执行结束
+ */
+HWTEST_F(CoreTest, ffrt_task_handle_ref_nullptr, TestSize.Level1)
+{
+    ffrt_task_handle_inc_ref(nullptr);
+    ffrt_task_handle_dec_ref(nullptr);
+}
+
+/**
+ * 测试用例名称：ffrt_task_handle_ref
+ * 测试用例描述：验证task_handle的增加、消减引用计数接口
+ * 预置条件：创建有效的task_handle
+ * 操作步骤：对task_handle进行设置引用计数接口
+ * 预期结果：读取rc值
+ */
+HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level1)
+{
+    // 验证notify_worker的功能
+    int result = 0;
+    ffrt_task_attr_t taskAttr;
+    (void)ffrt_task_attr_init(&taskAttr); // 初始化task属性，必须
+    ffrt_task_attr_set_delay(&taskAttr, 10000); // 延时10ms执行
+    std::function<void()>&& OnePlusFunc = [&result]() { result += 1; };
+    ffrt_task_handle_t handle = ffrt_submit_h_base(ffrt::create_function_wrapper(OnePlusFunc), {}, {}, &taskAttr);
+    auto task = static_cast<ffrt::CPUEUTask*>(handle);
+    EXPECT_EQ(task->rc.load(), 2); // task还未执行完成，所以task和handle各计数一次
+    ffrt_task_handle_inc_ref(handle);
+    EXPECT_EQ(task->rc.load(), 3);
+    ffrt_task_handle_dec_ref(handle);
+    EXPECT_EQ(task->rc.load(), 2);
+    ffrt::wait({handle});
+    EXPECT_EQ(result, 1);
+    ffrt_task_handle_destroy(handle);
+}
+
+/**
+ * 测试用例名称：WaitFailWhenReuseHandle
+ * 测试用例描述：构造2个submit_h的任务，验证task_handle转成dependence后，调用ffrt::wait的场景
+ * 预置条件：创建一个submit_h任务，确保执行完成，且将task_handle转成dependence后保存
+ * 操作步骤：创建另外一个task_handle任务，并且先执行ffrt::wait保存的dependence的数组
+ * 预期结果：任务正常执行结束
+ */
+HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
+{
+    std::vector<ffrt::dependence> deps;
+    {
+        auto h = ffrt::submit_h([] { printf("task0 done\n"); });
+        printf("task0 handle: %p\n:", static_cast<void*>(h));
+        deps.emplace_back(h);
+    }
+    usleep(1000);
+    std::atomic_bool stop = false;
+    auto h = ffrt::submit_h([&] {
+        printf("task1 start\n");
+        while (!stop);
+        printf("task1 done\n");
+        });
+    ffrt::wait(deps);
+    stop = true;
+    ffrt::wait();
+}
+
+/*
+ * 测试用例名称：ffrt_task_get_tid_test
+ * 测试用例描述：测试ffrt_task_get_tid接口
+ * 预置条件    ：创建SCPUEUTask
+ * 操作步骤    ：调用ffrt_task_get_tid方法，入参分别为SCPUEUTask、QueueTask对象和空指针
+ * 预期结果    ：ffrt_task_get_tid功能正常，传入空指针时返回0
+ */
+HWTEST_F(CoreTest, ffrt_task_get_tid_test, TestSize.Level1)
+{
+    ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0, ffrt::QoS(2));
+    ffrt::QueueTask* queueTask = new ffrt::QueueTask(nullptr);
+    pthread_t tid = ffrt_task_get_tid(task);
+    EXPECT_EQ(tid, 0);
+
+    tid = ffrt_task_get_tid(queueTask);
+    EXPECT_EQ(tid, 0);
+
+    tid = ffrt_task_get_tid(nullptr);
+    EXPECT_EQ(tid, 0);
+
+    delete task;
+    delete queueTask;
 }

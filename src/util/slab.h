@@ -34,7 +34,7 @@ constexpr uint32_t ALLOCATOR_DESTRUCT_TIMESOUT = 1000;
 #endif
 
 #ifndef FFRT_ALLOCATOR_MMAP_SIZE
-#define FFRT_ALLOCATOR_MMAP_SIZE 8 * 1024 * 1024
+#define FFRT_ALLOCATOR_MMAP_SIZE (8 * 1024 * 1024)
 #endif
 
 template <typename T, size_t MmapSz = BatchAllocSize>

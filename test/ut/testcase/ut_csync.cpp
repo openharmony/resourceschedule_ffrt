@@ -229,7 +229,7 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
             EXPECT_EQ(x, 1);
             ffrt_this_task_set_legacy_mode(false);
             ffrt_this_task_set_legacy_mode(false);
-            }, {}, {});        
+            }, {}, {});
         ffrt::wait();
         ffrt_this_task_set_legacy_mode(false);
         ffrt_this_task_set_legacy_mode(false);

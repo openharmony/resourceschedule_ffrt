@@ -14,4 +14,5 @@ declare_args() {
   ffrt_support_enable = true
   ffrt_async_stack_enable = true
   ffrt_task_local_enable = false
+  ffrt_allocator_mmap_size = "8 * 1024 * 1024"
 }

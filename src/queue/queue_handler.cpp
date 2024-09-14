@@ -229,6 +229,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
         f->destroy(f);
         task->Notify();
+        RemoveTimeoutMonitor(task);
 
         // run task batch
         nextTask = task->GetNextTask();
@@ -281,25 +282,25 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     }
 
     task->IncDeleteRef();
-    WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
+    timeoutWe_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     // set delayed worker callback
-    we->cb = ([this, task](WaitEntry* we) {
+    timeoutWe_->cb = ([this, task](WaitEntry* timeoutWe_) {
         if (!task->GetFinishStatus()) {
             RunTimeOutCallback(task);
         }
         delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
+        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(timeoutWe_));
     });
 
     // set delayed worker wakeup time
     std::chrono::microseconds timeout(timeout_);
     auto now = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
-    we->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
+    timeoutWe_->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
 
-    if (!DelayedWakeup(we->tp, we, we->cb)) {
+    if (!DelayedWakeup(timeoutWe_->tp, timeoutWe_, timeoutWe_->cb)) {
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(we);
+        SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe_);
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
             name_.c_str(), timeout_);
         return;
@@ -307,6 +308,20 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
 
     delayedCbCnt_.fetch_add(1);
     FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, name_.c_str());
+}
+
+void QueueHandler::RemoveTimeoutMonitor(QueueTask* task)
+{
+    if (timeout_ <= 0) {
+        return;
+    }
+
+    WaitEntry* dwe = static_cast<WaitEntry*>(timeoutWe_);
+    if (DelayedRemove(timeoutWe_->tp, dwe)) {
+        delayedCbCnt_.fetch_sub(1);
+        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(timeoutWe_));
+    }
+    return;
 }
 
 void QueueHandler::RunTimeOutCallback(QueueTask* task)

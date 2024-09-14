@@ -22,6 +22,7 @@
 #include "c/queue_ext.h"
 #include "cpp/task.h"
 #include "base_queue.h"
+#include "sched/execute_ctx.h"
 
 namespace ffrt {
 class QueueTask;
@@ -87,6 +88,7 @@ private:
     void Deliver();
     void TransferInitTask();
     void SetTimeoutMonitor(QueueTask* task);
+    void RemoveTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
     // queue info
@@ -99,6 +101,7 @@ private:
     uint64_t timeout_ = 0;
     std::atomic_int delayedCbCnt_ = {0};
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    WaitUntilEntry* timeoutWe_ = nullptr;
 };
 } // namespace ffrt
 

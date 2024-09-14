@@ -57,7 +57,7 @@ HWTEST_F(ExecuteUnitTest, submit_cancel_succ, TestSize.Level1)
     ffrt::submit([&]() { x += 1; });
     ffrt::submit([&]() { x += 2; }, {}, {}, ffrt::task_attr().delay(1));
     auto h1 = ffrt::submit_h([&]() { x += 3; });
-    auto h2 = ffrt::submit_h([&]() { x += 4; }, {}, {}, ffrt::task_attr().delay(5));
+    auto h2 = ffrt::submit_h([&]() { x += 4; }, {}, {}, ffrt::task_attr().delay(2));
     int cancel_ret = ffrt::skip(h2);
     EXPECT_EQ(cancel_ret, 0);
     ffrt::wait();

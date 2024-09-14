@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include <gtest/gtest.h>
 #include <thread>
 #include "eu/execute_unit.h"
@@ -21,10 +20,13 @@
 #include "util/ffrt_facade.h"
 #include "common.h"
 
+namespace OHOS {
+namespace FFRT_TEST {
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
+using namespace OHOS::FFRT_TEST;
 using namespace ffrt;
 using namespace std;
 
@@ -89,4 +91,7 @@ HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level1)
 {
     QoS *qos1 = new QoS();
     ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(DevType(0), *qos1);
+}
+
+}
 }

@@ -411,6 +411,9 @@ void CoStart(ffrt::CPUEUTask* task)
         FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
+        if (task->type == ffrt_normal_task) {
+            task->UpdateState(ffrt::TaskState::RUNNING);
+        }
         CoSwitchInTrace(task);
 #ifdef FFRT_TASK_LOCAL_ENABLE
         SwitchTsdToTask(co->task);
@@ -461,6 +464,9 @@ void CoYield(void)
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
     GetCoEnv()->runningCo = nullptr;
     CoSwitchOutTrace(co->task);
+    if (co->task->type == ffrt_normal_task) {
+        co->task->UpdateState(ffrt::TaskState::BLOCKED);
+    }
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     SwitchTsdToThread(co->task);

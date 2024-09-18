@@ -17,7 +17,8 @@
             "SystemCapability.Resourceschedule.Ffrt.Core"
         ],
         "features": [
-            "ffrt_support_enable"
+            "ffrt_support_enable",
+            "ffrt_allocator_mmap_size"
         ],
         "adapted_system_type": [
             "standard"

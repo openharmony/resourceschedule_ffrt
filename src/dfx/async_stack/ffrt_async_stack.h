@@ -18,5 +18,6 @@
 namespace ffrt {
     uint64_t FFRTCollectAsyncStack(void);
     void FFRTSetStackId(uint64_t stackId);
+    void CloseAsyncStackLibHandle();
 }
 #endif /* FFRT_DFX_ASYNC_STACK_H */

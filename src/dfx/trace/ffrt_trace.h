@@ -276,24 +276,24 @@ static bool _IsTagEnabled(uint64_t label)
 // DFX Trace for FFRT Executor Task
 #define FFRT_EXECUTOR_TASK_SUBMIT_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("P", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("P", ((reinterpret_cast<uintptr_t>(ptr)) & 0x7fffffff)); \
     }
 #define FFRT_EXECUTOR_TASK_READY_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("R", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("R", ((reinterpret_cast<uintptr_t>(ptr)) & 0x7fffffff)); \
     }
 #define FFRT_EXECUTOR_TASK_BLOCK_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("B", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("B", ((reinterpret_cast<uintptr_t>(ptr)) & 0x7fffffff)); \
     }
 #define FFRT_EXECUTOR_TASK_FINISH_MARKER(ptr) \
     { \
-        FFRT_TRACE_ASYNC_END("F", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
+        FFRT_TRACE_ASYNC_END("F", ((reinterpret_cast<uintptr_t>(ptr)) & 0x7fffffff)); \
     }
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
     { \
         FFRT_TRACE_BEGIN(("FFRTex_task|" + \
-            std::to_string(((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111))).c_str()); \
+            std::to_string(((reinterpret_cast<uintptr_t>(ptr)) & 0xffffffff))).c_str()); \
     }
 #define FFRT_EXECUTOR_TASK_END() \
     { \

@@ -71,6 +71,9 @@ config("ffrt_test_config") {
   if (ffrt_async_stack_enable) {
     defines += [ "ASYNC_STACKTRACE" ]
   }
+  if (target_cpu == "arm") {
+    defines += [ "APP_USE_ARM" ]
+  }
 }
 
 ohos_unittest("frame_interval_test") {
@@ -281,32 +284,6 @@ ohos_unittest("ut_coroutine") {
   part_name = "ffrt"
 }
 
-ohos_unittest("ut_core_test") {
-  module_out_path = module_output_path
-
-  configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
-
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
-
-  sources = [ "testcase/ut_core_test.cpp" ]
-  deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
-
-  if (is_standard_system) {
-    public_external_deps = gtest_public_external_deps
-  }
-
-  install_enable = true
-  part_name = "ffrt"
-}
-
 ohos_unittest("inherit_test") {
   module_out_path = module_output_path
 
@@ -330,6 +307,57 @@ ohos_unittest("inherit_test") {
   }
 
   install_enable = true
+  part_name = "ffrt"
+}
+
+ohos_unittest("multi_workgroup_test") {
+  module_out_path = module_output_path
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc = [
+    "-frtti",
+    "-Xclang",
+    "-fcxx-exceptions",
+    "-std=c++11",
+    "-DFFRT_PERF_EVENT_ENABLE",
+  ]
+
+  sources = [ "multi_workgroup_test.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
+ohos_unittest("qos_convert_test") {
+  module_out_path = module_output_path
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc = [
+    "-frtti",
+    "-Xclang",
+    "-fcxx-exceptions",
+    "-std=c++11",
+    "-DFFRT_PERF_EVENT_ENABLE",
+  ]
+
+  sources = [ "qos_convert_test.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
   part_name = "ffrt"
 }
 
@@ -817,11 +845,12 @@ group("ffrt_unittest_ffrt") {
       ":execute_unit_test",
       ":frame_interval_test",
       ":inherit_test",
+      ":multi_workgroup_test",
+      ":qos_convert_test",
       ":qos_interface_test",
       ":task_ctx_test",
       ":ut_condition",
       ":ut_core",
-      ":ut_core_test",
       ":ut_coroutine",
       ":ut_csync",
       ":ut_deadline",

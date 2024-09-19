@@ -36,7 +36,7 @@ void InsertTask(void* task, int qos)
 {
     ffrt_executor_task_t* executorTask = reinterpret_cast<ffrt_executor_task_t*>(task);
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList*>(&executorTask->wq);
-    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, qos)) {
+    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, qos)) {
         FFRT_LOGE("Insert task failed.");
     }
 }
@@ -79,7 +79,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
 
 int CPUWorkerManager::GetTaskCount(const QoS& qos)
 {
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(qos);
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(qos);
     return sched.RQSize();
 }
 
@@ -96,7 +96,7 @@ CPUEUTask* CPUWorkerManager::PickUpTaskFromGlobalQueue(WorkerThread* thread)
         return nullptr;
     }
 
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     return sched.PickNextTask();
@@ -120,7 +120,7 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         return nullptr;
     }
 
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     CPUEUTask* task = sched.PickNextTask();

@@ -23,6 +23,9 @@
 #define protected public
 #include "eu/worker_manager.h"
 #include "eu/scpuworker_manager.h"
+#include "sched/task_scheduler.h"
+#include "tm/scpu_task.h"
+#include "sched/scheduler.h"
 #undef private
 #undef protected
 #include "../common.h"
@@ -131,4 +134,56 @@ HWTEST_F(WorkerManagerTest, CPUWorkerStandardLoopTest, TestSize.Level1)
     delete manager;
     worker->Join();
     delete worker;
+}
+
+TEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue)
+{
+    CPUWorkerManager* manager = new SCPUWorkerManager();
+    CPUManagerStrategy* strategy = new CPUManagerStrategy();
+    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
+
+    auto worker = strategy->CreateCPUWorker(QoS(qos(0)), manager);
+    auto& sched = FFRTScheduler::Instance()->GetScheduler(worker->GetQos());
+
+    int ret = sched.WakeupTask(reinterpret_cast<CPUEUTask*>(task));
+    EXPERT_EQ(ret, 1);
+
+    auto pickTask = manager->PickUpTaskFromGlobalQueue(worker);
+    EXPECT_NE(pickTask, nullptr);
+
+    delete worker;
+    delete task;
+    delete strategy;
+    delete manager;
+}
+
+TEST_F(WorkerManagerTest, PickUpTaskBatch)
+{
+    CPUWorkerManager* manager = new SCPUWorkerManager();
+    CPUManagerStrategy* strategy = new CPUManagerStrategy();
+    SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
+    SCPUEUTask* task2 = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
+    CPUMonitor* monitor = manager->GetCPUMonitor();
+
+    auto worker1 = strategy->CreateCPUWorker(QoS(qos(0)), manager);
+    auto worker2 = strategy->CreateCPUWorker(QoS(qos(0)), manager);
+
+    monitor->WakeupDeepSleep(QoS(qos(0)), false);
+    monitor->WakeupDeepSleep(QoS(qos(0)), false);
+
+    auto& sched1 = FFRTScheduler::Instance()->GetScheduler(worker1->GetQos());
+    auto& sched2 = FFRTScheduler::Instance()->GetScheduler(worker2->GetQos());
+
+    EXPECT_EQ(sched1.WakeupTask(reinterpret_cast<CPUEUTask*>(task1)), 1);
+    EXPECT_EQ(sched2.WakeupTask(reinterpret_cast<CPUEUTask*>(task2)), 1);
+
+    EXPECT_NE(manager->PickUpTaskBatch(worker1), nullptr);
+    EXPECT_NE(manager->PickUpTaskBatch(worker2), nullptr);
+
+    delete worker1;
+    delete worker2;
+    delete task1;
+    delete task2;
+    delete strategy;
+    delete manager;
 }

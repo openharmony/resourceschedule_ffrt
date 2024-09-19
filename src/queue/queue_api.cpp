@@ -259,6 +259,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandler)
 {
     FFRT_COND_DO_ERR(unlikely(queue == nullptr), return, "input invalid, queue is nullptr");
+    FFRT_COND_DO_ERR(unlikely(eventhandler == nullptr), return, "input invalid, eventhandler is nullptr");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
     handler->SetEventHandler(eventhandler);
 }

@@ -71,6 +71,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
         fdEmpty_.store(false);
     } else if (op == EPOLL_CTL_MOD) {
         auto iter = m_wakeDataMap.find(fd);
+        FFRT_COND_RETURN_ERROR(iter == m_wakeDataMap.end(), -1, "fd %d does not exist in wakeDataMap", fd);
         if (iter->second.size() != 1) {
             FFRT_LOGE("epoll_ctl mod fd wakedata num invalid");
             return -1;

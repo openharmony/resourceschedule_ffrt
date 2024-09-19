@@ -79,7 +79,9 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
 
     (void)in_deps;
     (void)out_deps;
-    ffrt::IOTaskExecutor* task = new ffrt::IOTaskExecutor(qos);
+    ffrt::IOTaskExecutor* task = new (std::nothrow) ffrt::IOTaskExecutor(qos);
+    FFRT_COND_RETURN_VOID(task == nullptr, "new IOTaskExecutor failed");
+
     task->work.exec = exec;
     task->work.destroy = destroy;
     task->work.data = co;

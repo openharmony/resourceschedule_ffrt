@@ -787,3 +787,24 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
 
     EXPECT_EQ(result, 1);
 }
+
+/*
+ * 测试用例名称 : ffrt_queue_set_eventhand
+ * 测试用例描述：设置串行队列的eventhandler
+ * 操作步骤 ：1、创建队列
+             2、调用ffrt_queue_set_eventhandler接口设置串行队列的eventhandler
+             3、删除队列
+ * 预期结果 ：查询结果与预期相同
+ */
+TEST_F(QueueTest, ffrt_queue_set_eventhand)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test_queue", &queue_attr);
+    ffrt_queue_set_eventhandler(queue_handle, nullptr);
+    void* temphandler = ffrt_get_current_queue_eventhandler();
+    EXPECT_EQ(temphandler, nullptr);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}

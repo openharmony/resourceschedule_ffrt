@@ -138,6 +138,7 @@ int dump_info_all(char *buf, uint32_t len)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len)
 {
+    FFRT_COND_RETURN_ERROR(buf == nullptr || len < 1, -1, "buf is nullptr or len is less than 1, len %u", len);
     switch (cmd) {
         case DUMP_INFO_ALL: {
             return dump_info_all(buf, len);

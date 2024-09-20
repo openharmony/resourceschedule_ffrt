@@ -86,14 +86,14 @@ static int SetRssQos(int level)
     if (level < -1 || level > 9) {
         return ERROR_NUM;
     }
-    int32_t handle_ = open(QOS_CTRL_FILE_PATH.c_str(), (O_RDWR | O_CLOEXEC));
-    if (handle_ <= 0) {
-        printf("invalid handle_ %d\n", static_cast<int>(handle_));
+    int32_t handle = open(QOS_CTRL_FILE_PATH.c_str(), (O_RDWR | O_CLOEXEC));
+    if (handle <= 0) {
+        printf("invalid handle %d\n", static_cast<int>(handle));
         return ERROR_NUM;
     }
 
     struct TaskConfig threadData = {tid, level};
-    int ret = ioctl(handle_, QOS_CTRL_SET_QOS_THREAD, &threadData);
+    int ret = ioctl(handle, QOS_CTRL_SET_QOS_THREAD, &threadData);
     if (ret != 0) {
         printf("ioctl setQos failed\n");
         return ERROR_NUM;

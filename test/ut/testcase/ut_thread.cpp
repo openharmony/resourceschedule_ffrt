@@ -35,9 +35,9 @@ using namespace testing::ext;
 #endif
 using namespace ffrt;
 #ifdef APP_USE_ARM
-static const size_t g_workerStackSize = 131072;
+static const size_t WORKER_STACK_SIZE = 131072;
 #else
-static const size_t g_workerStackSize = 10 * 1024 * 1024;
+static const size_t WORKER_STACK_SIZE = 10 * 1024 * 1024;
 #endif
 
 class ThreadTest : public testing::Test {
@@ -142,7 +142,7 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     wt->Join();
     EXPECT_EQ(inc, 2);
     pthread_attr_getstacksize(&wt->attr_, &stackSize);
-    EXPECT_EQ(stackSize, g_workerStackSize);
+    EXPECT_EQ(stackSize, WORKER_STACK_SIZE);
     delete wt;
 }
 

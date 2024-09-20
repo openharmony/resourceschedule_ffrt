@@ -224,7 +224,7 @@ HWTEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue, TestSize.Level1)
     auto& sched = FFRTScheduler::Instance()->GetScheduler(worker->GetQos());
 
     int ret = sched.WakeupTask(reinterpret_cast<CPUEUTask*>(task));
-    EXPERT_EQ(ret, 1);
+    EXPECT_EQ(ret, 1);
 
     auto pickTask = manager->PickUpTaskFromGlobalQueue(worker);
     EXPECT_NE(pickTask, nullptr);

@@ -37,8 +37,8 @@ using namespace testing::ext;
 #endif
 using namespace ffrt;
 
-#define IOCTL_SET_FLO_CONFIG	_IOWR('x', 51, struct flo_cfg)
-struct flo_cfg {
+#define IOCTL_SET_FLO_CONFIG	_IOWR('x', 51, struct FloCfg)
+struct FloCfg {
     int pid;             // process id
     int id;              // code part context id (0-32), shouldn't be duplicate
     unsigned int size;   // this context using how much ddr size set 0x100000(1MB) as default
@@ -49,14 +49,14 @@ struct flo_cfg {
 #endif
 };
 
-int init_cfg(int ctx_id)
+int init_cfg(int ctxId)
 {
     int fd;
-    struct flo_cfg data;
+    struct FloCfg data;
  
-    struct flo_cfg cfg = {
+    struct FloCfg cfg = {
         .pid = getpid(),
-        .id = ctx_id,
+        .id = ctxId,
         .size = 1048576,
         .port = 0,
         .offset = 256,

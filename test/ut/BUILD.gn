@@ -302,7 +302,7 @@ ohos_unittest("ut_cpumonitor") {
   deps = ffrt_ut_base_deps
   external_deps = []
   external_deps += ffrt_ut_base_external_deps
-  external_deps += ["googletest:gmock"]
+  external_deps += [ "googletest:gmock" ]
 
   if (is_standard_system) {
     public_external_deps = gtest_public_external_deps
@@ -427,7 +427,7 @@ ohos_unittest("ut_cgroup_qos") {
     "-fcxx-exceptions",
     "-std=c++11",
     "-DFFRT_PERF_EVENT_ENABLE",
-    "-DWITH_NO_MOCKER"
+    "-DWITH_NO_MOCKER",
   ]
 
   sources = [ "testcase/ut_cgroup_qos.cpp" ]
@@ -714,7 +714,7 @@ ohos_unittest("ut_loop") {
     "-fcxx-exceptions",
     "-std=c++11",
     "-DFFRT_PERF_EVENT_ENABLE",
-    "-DWITH_NO_MOCKER"
+    "-DWITH_NO_MOCKER",
   ]
 
   sources = [ "testcase/ut_loop.cpp" ]

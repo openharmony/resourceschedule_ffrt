@@ -181,7 +181,7 @@ HWTEST_F(LoopTest, loop_destroy_fail, TestSize.Level1)
  */
 HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
 {
-    const uint64_t SLEEP_TIME = 250000;
+    const uint64_t sleepTime = 250000;
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
@@ -193,7 +193,7 @@ HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
     pthread_create(&thread, 0, ThreadFunc, loop);
 
     ffrt_loop_stop(loop);
-    usleep(SLEEP_TIME);
+    usleep(sleepTime);
     int ret = ffrt_loop_destroy(loop);
     EXPECT_EQ(ret, 0);
 
@@ -201,12 +201,12 @@ HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
  
- struct TestData {
+struct TestData {
     int fd;
     uint64_t expected;
 };
  
-static void testCallBack(void* token, uint32_t event)
+static void TestCallBack(void* token, uint32_t event)
 {
     struct TestData* testData = reinterpret_cast<TestData*>(token);
     uint64_t value = 0;
@@ -246,7 +246,7 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     uint64_t expected = 0xabacadae;
     struct TestData testData {.fd = testFd, .expected = expected};
-    ret = ffrt_loop_epoll_ctl(loop, EPOLL_CTL_ADD, testFd, EPOLLIN, (void*)(&testData), testCallBack);
+    ret = ffrt_loop_epoll_ctl(loop, EPOLL_CTL_ADD, testFd, EPOLLIN, (void*)(&testData), TestCallBack);
     EXPECT_EQ(ret, 0);
     ssize_t n = write(testFd, &expected, sizeof(uint64_t));
     EXPECT_EQ(n, sizeof(uint64_t));

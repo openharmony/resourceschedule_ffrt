@@ -15,7 +15,7 @@
 
 #include <gtest/gtest.h>
 #include "ffrt_inner.h"
-#include "stdlib.h"
+#include <cstdlib>
 #include "../common.h"
 
 using namespace testing;
@@ -54,7 +54,7 @@ public:
     }
 };
 
-Env env __attribute__ ((init_priority(102)));
+Env g_env __attribute__ ((init_priority(102)));
 HWTEST_F(InitTest, hardware_test, TestSize.Level1)
 {
     int x = 0;

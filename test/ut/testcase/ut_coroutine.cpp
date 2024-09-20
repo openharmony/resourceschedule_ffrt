@@ -33,7 +33,11 @@ using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
-
+#ifdef APP_USE_ARM
+#define SIZEOF_BYTES sizeof(uint32_t)
+#else
+#define SIZEOF_BYTES sizeof(uint64_t)
+#endif
 class CoroutineTest : public testing::Test {
 protected:
     static void SetUpTestCase()
@@ -137,7 +141,7 @@ HWTEST_F(CoroutineTest, ffrt_epoll_ctl_add_del, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
         }, {}, {});
 
     struct TestData testData {.fd = testFd, .expected = expected};

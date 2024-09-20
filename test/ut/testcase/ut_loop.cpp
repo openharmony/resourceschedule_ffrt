@@ -231,7 +231,9 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
     ffrt_queue_t queue_handle = ffrt_queue_create(
         static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test_queue", &queue_attr);
+#ifndef WITH_NO_MOCKER
     MOCKER(ffrt_get_main_queue).stubs().will(returnValue(queue_handle));
+#endif
  
     EventHandlerAdapter::Instance()->AddFdListener = AddFdListener;
     EventHandlerAdapter::Instance()->RemoveFdListener = RemoveFdListener;
@@ -256,6 +258,8 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
     ffrt_loop_stop(loop);
     ffrt_loop_destroy(loop);
  
+#ifndef WITH_NO_MOCKER
     GlobalMockObject::reset();
     GlobalMockObject::verify();
+#endif
 }

@@ -572,8 +572,7 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::QoS _qos = qos;
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
-    ffrt::FFRTFacade::GetDMInstance();
-    ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
+    ffrt::FFRTScheduler* sch = ffrt::FFRTFacade::GetSchedInstance();
     bool ret = sch->RemoveNode(node, _qos);
     if (ret) {
         ffrt::FFRTTraceRecord::TaskCancel<ffrt_uv_task>(qos);

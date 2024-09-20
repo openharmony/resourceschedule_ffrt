@@ -81,8 +81,8 @@ private:
     WaitUntilEntry watchdogWaitEntry_;
     WaitUntilEntry memReleaseWaitEntry_;
     std::map<WorkerThread*, TaskTimeoutInfo> workerStatus_;
-    bool samplingTaskExit_ = false;
-    bool memReleaseTaskExit_ = false;
+    bool samplingTaskExit_ = true;
+    bool memReleaseTaskExit_ = true;
 };
 }
 #endif

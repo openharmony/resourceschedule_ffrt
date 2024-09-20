@@ -18,6 +18,7 @@
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "queue_monitor.h"
 #include "util/event_handler_adapter.h"
+#include "util/ffrt_facade.h"
 #include "util/slab.h"
 #include "tm/queue_task.h"
 #include "concurrent_queue.h"
@@ -256,7 +257,7 @@ void QueueHandler::TransferTask(QueueTask* task)
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
         reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->SetCurrentRunningTask(task);
     }
-    FFRTScheduler* sch = FFRTScheduler::Instance();
+    FFRTScheduler* sch = FFRTFacade::GetSchedInstance();
     FFRT_READY_MARKER(task->gid); // ffrt queue task ready to enque
     if (!sch->InsertNode(&entry->node, task->GetQos())) {
         FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, name_.c_str());

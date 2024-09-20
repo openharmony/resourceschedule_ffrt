@@ -19,6 +19,7 @@
 #include "eu/execute_unit.h"
 #include "dm/dependence_manager.h"
 #include "sync/poller.h"
+#include "sync/delayed_worker.h"
 namespace ffrt {
 
 class FFRTFacade {
@@ -38,6 +39,18 @@ public:
     static inline PollerProxy& GetPPInstance()
     {
         PollerProxy& inst = Instance().GetPPInstanceImpl();
+        return inst;
+    }
+
+    static inline DelayedWorker& GetDWInstance()
+    {
+        DelayedWorker& inst = Instance().GetDWInstanceImpl();
+        return inst;
+    }
+
+    static inline FFRTScheduler* GetSchedInstance()
+    {
+        FFRTScheduler* inst = Instance().GetSchedInstanceImpl();
         return inst;
     }
 
@@ -66,6 +79,16 @@ private:
     inline PollerProxy& GetPPInstanceImpl()
     {
         return PollerProxy::Instance();
+    }
+
+    inline DelayedWorker& GetDWInstanceImpl()
+    {
+        return DelayedWorker::GetInstance();
+    }
+
+    inline FFRTScheduler* GetSchedInstanceImpl()
+    {
+        return FFRTScheduler::Instance();
     }
 };
 

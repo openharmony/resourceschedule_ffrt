@@ -22,6 +22,7 @@
 #include <fstream>
 #include <random>
 #include <algorithm>
+#include <cinttypes>
 #include "util.h"
 #include "ffrt_inner.h"
 #include "c/ffrt_ipc.h"
@@ -147,7 +148,7 @@ HWTEST_F(ffrtIoTest, IoPoller_Producer_N_Consumer_N, TestSize.Level1)
             EXPECT_EQ(n, sizeof(uint64_t));
             }, {}, {});
     }
-    printf("max eventfd:%lu.\n", evN);
+    printf("max eventfd:%" PRIu64 ".\n", evN);
     ffrt::wait();
 }
 

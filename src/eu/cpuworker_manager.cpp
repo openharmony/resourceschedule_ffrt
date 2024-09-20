@@ -36,7 +36,7 @@ void InsertTask(void* task, int qos)
 {
     ffrt_executor_task_t* executorTask = reinterpret_cast<ffrt_executor_task_t*>(task);
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList*>(&executorTask->wq);
-    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, qos)) {
+    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, qos)) {
         FFRT_LOGE("Insert task failed.");
     }
 }
@@ -79,7 +79,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
 
 int CPUWorkerManager::GetTaskCount(const QoS& qos)
 {
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(qos);
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(qos);
     return sched.RQSize();
 }
 
@@ -87,19 +87,6 @@ int CPUWorkerManager::GetWorkerCount(const QoS& qos)
 {
     std::shared_lock<std::shared_mutex> lck(groupCtl[qos()].tgMutex);
     return groupCtl[qos()].threads.size();
-}
-
-// pick task from global queue (per qos)
-CPUEUTask* CPUWorkerManager::PickUpTaskFromGlobalQueue(WorkerThread* thread)
-{
-    if (tearDown) {
-        return nullptr;
-    }
-
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
-    auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
-    std::lock_guard lg(*lock);
-    return sched.PickNextTask();
 }
 
 // pick task from local queue (per worker)
@@ -112,45 +99,6 @@ CPUEUTask* CPUWorkerManager::PickUpTaskFromLocalQueue(WorkerThread* thread)
     CPUWorker* worker = reinterpret_cast<CPUWorker*>(thread);
     void* task = worker->localFifo.PopHead();
     return reinterpret_cast<CPUEUTask*>(task);
-}
-
-CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
-{
-    if (tearDown) {
-        return nullptr;
-    }
-
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
-    auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
-    std::lock_guard lg(*lock);
-    CPUEUTask* task = sched.PickNextTask();
-    if (task == nullptr) {
-        return nullptr;
-    }
-
-    int wakedWorkerNum = monitor->WakedWorkerNum(thread->GetQos());
-    // when there is only one worker, the global queue is equivalent to the local queue
-    // prevents local queue tasks that cannot be executed due to blocking tasks
-    if (wakedWorkerNum <= 1) {
-        return task;
-    }
-
-    SpmcQueue* queue = &(reinterpret_cast<CPUWorker*>(thread)->localFifo);
-    int expectedTask = GetTaskCount(thread->GetQos()) / wakedWorkerNum - 1;
-    for (int i = 0; i < expectedTask; i++) {
-        if (queue->GetLength() == queue->GetCapacity()) {
-            return task;
-        }
-
-        CPUEUTask* task2local = sched.PickNextTask();
-        if (task2local == nullptr) {
-            return task;
-        }
-
-        queue->PushTail(task2local);
-    }
-
-    return task;
 }
 
 unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)

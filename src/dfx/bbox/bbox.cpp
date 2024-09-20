@@ -110,13 +110,13 @@ static inline void SaveReadyQueueStatus()
 {
     FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        int nt = FFRTScheduler::Instance()->GetScheduler(i).RQSize();
+        int nt = FFRTFacade::GetSchedInstance()->GetScheduler(i).RQSize();
         if (!nt) {
             continue;
         }
 
         for (int j = 0; j < nt; j++) {
-            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(i).PickNextTask();
+            CPUEUTask* t = FFRTFacade::GetSchedInstance()->GetScheduler(i).PickNextTask();
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i, j, nt);
                 continue;
@@ -461,13 +461,13 @@ std::string SaveReadyQueueStatusInfo()
         auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(static_cast<int>(i));
         std::lock_guard lg(*lock);
 
-        int nt = FFRTScheduler::Instance()->GetScheduler(i).RQSize();
+        int nt = FFRTFacade::GetSchedInstance()->GetScheduler(i).RQSize();
         if (!nt) {
             continue;
         }
 
         for (int j = 1; j <= nt; j++) {
-            CPUEUTask* t = FFRTScheduler::Instance()->GetScheduler(i).PickNextTask();
+            CPUEUTask* t = FFRTFacade::GetSchedInstance()->GetScheduler(i).PickNextTask();
             if (t == nullptr) {
                 ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << ">"
                    << " null" << std::endl;
@@ -480,7 +480,7 @@ std::string SaveReadyQueueStatusInfo()
                 ss << std::endl;
             }
 
-            FFRTScheduler::Instance()->GetScheduler(i).WakeupTask(t);
+            FFRTFacade::GetSchedInstance()->GetScheduler(i).WakeupTask(t);
         }
     }
     return ss.str();

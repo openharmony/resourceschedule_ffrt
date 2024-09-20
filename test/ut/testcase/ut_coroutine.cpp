@@ -52,13 +52,12 @@ protected:
     {
     }
 };
-
 constexpr int BLOCKED_COUNT = 3;
 
 typedef struct {
     int count;
     std::mutex lock;
-}StacklessCoroutine1;
+} StacklessCoroutine1;
 
 ffrt_coroutine_ret_t stackless_coroutine(void* co)
 {
@@ -66,7 +65,6 @@ ffrt_coroutine_ret_t stackless_coroutine(void* co)
     std::lock_guard lg(stacklesscoroutine->lock);
     printf("stacklesscoroutine %d\n", stacklesscoroutine->count);
     stacklesscoroutine->count++;
-
     if (stacklesscoroutine->count < BLOCKED_COUNT) {
         ffrt_wake_coroutine(ffrt_get_current_task());
         return ffrt_coroutine_pending;
@@ -90,12 +88,14 @@ void destroy_stackless_coroutine(void *co)
 
 HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
 {
+    // coroutine_submit_004
     StacklessCoroutine1 co1 = {0};
     StacklessCoroutine1 co2 = {0};
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
     ffrt_submit_coroutine((void *)&co1, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
     ffrt_submit_coroutine((void *)&co2, exec_stackless_coroutine, destroy_stackless_coroutine, NULL, NULL, &attr);
+    // ffrt_poller_wakeup_001
     ffrt_poller_wakeup(ffrt_qos_default);
     usleep(100000);
     EXPECT_EQ(co1.count, 4);
@@ -104,11 +104,13 @@ HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
 
 HWTEST_F(CoroutineTest, coroutine_submit_fail, TestSize.Level1)
 {
+    // get_task_001
     EXPECT_EQ(ffrt_get_current_task(), nullptr);
 
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
 
+    // coroutine_submit_001
     ffrt_submit_coroutine(nullptr, nullptr, nullptr, NULL, NULL, &attr);
     ffrt_submit_coroutine(nullptr, nullptr, nullptr, NULL, NULL, &attr);
 }
@@ -125,6 +127,7 @@ static void testCallBack(void* token, uint32_t event)
     ssize_t n = read(testData->fd, &value, sizeof(uint64_t));
     EXPECT_EQ(n, sizeof(value));
     EXPECT_EQ(value, testData->expected);
+    printf("cb done\n");
 }
 
 HWTEST_F(CoroutineTest, ffrt_epoll_ctl_add_del, TestSize.Level1)
@@ -135,11 +138,15 @@ HWTEST_F(CoroutineTest, ffrt_epoll_ctl_add_del, TestSize.Level1)
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
         EXPECT_EQ(sizeof(n), sizeof(uint32_t));
-    }, {}, {});
+        }, {}, {});
 
     struct TestData testData {.fd = testFd, .expected = expected};
+    // poller_register_001
     ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
+
     usleep(100);
+
+    // poller_deregister_001
     ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     close(testFd);
 }

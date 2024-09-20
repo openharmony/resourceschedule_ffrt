@@ -49,6 +49,7 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif
+    DelayedWorker::GetInstance();
 }
 
 SDependenceManager::~SDependenceManager()

@@ -27,6 +27,7 @@
 #include "sched/task_manager.h"
 #include "core/task_attr_private.h"
 #include "tm/scpu_task.h"
+#include "sched/scheduler.h"
 #include "../common.h"
 
 using namespace std;
@@ -172,4 +173,27 @@ HWTEST_F(SchedulerTest, taskstateCount_test, TestSize.Level1)
     SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
     SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
     TaskManager::Instance().TaskStateCount(task2);
+}
+
+HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level1)
+{
+    ffrt::FIFOQueue *fifoqueue = new ffrt::FIFOQueue();
+    int aimnum = 10;
+    for (int i = 0; i < aimnum ; i++) {
+        SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
+        fifoqueue->EnQueue(task);
+    }
+    EXPECT_EQ(fifoqueue->Size(), aimnum);
+    EXPECT_EQ(fifoqueue->Empty(), false);
+}
+
+HWTEST_F(SchedulerTest, ffrt_scheduler_test, TestSize.Level1)
+{
+    ffrt::SFFRTScheduler *sffrtscheduler = new ffrt::SFFRTScheduler();
+    LinkedList* node = new LinkedList();
+    QoS qos;
+    EXPECT_EQ(sffrtscheduler->InsertNode(node, qos), true);
+    EXPECT_EQ(sffrtscheduler->RemoveNode(node, qos), true);
+
+    delete node;
 }

@@ -20,10 +20,13 @@
 #include "internal_inc/types.h"
 #include "common.h"
 
+namespace OHOS {
+namespace FFRT_TEST {
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
+using namespace OHOS::FFRT_TEST;
 using namespace ffrt;
 using namespace std;
 
@@ -77,4 +80,6 @@ HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level1)
     task3->SetQos(qos3);
     EXPECT_EQ(task3->qos, static_cast<int>(qos_user_interactive));
     delete task3;
+}
+}
 }

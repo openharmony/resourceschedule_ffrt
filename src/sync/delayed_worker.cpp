@@ -105,10 +105,10 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
         std::terminate();
     }
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    FFRTScheduler::Instance();
     monitor = ExecuteUnit::Instance().GetCPUMonitor();
     monitorfd_ = BlockawareMonitorfd(-1, monitor->WakeupCond());
     FFRT_ASSERT(monitorfd_ >= 0);
+    FFRT_LOGI("timerfd:%d, monitorfd:%d", timerfd_, monitorfd_);
     /* monitorfd does not support 'CLOEXEC', add current kernel does not inherit monitorfd after 'fork'.
      * 1. if user calls 'exec' directly after 'fork' and does not use ffrt, it's ok.
      * 2. if user calls 'exec' directly, the original process cannot close monitorfd automatically, and

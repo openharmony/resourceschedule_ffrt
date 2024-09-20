@@ -33,6 +33,10 @@ const std::size_t BatchAllocSize = 32 * 1024;
 constexpr uint32_t ALLOCATOR_DESTRUCT_TIMESOUT = 1000;
 #endif
 
+#ifndef FFRT_ALLOCATOR_MMAP_SIZE
+#define FFRT_ALLOCATOR_MMAP_SIZE (8 * 1024 * 1024)
+#endif
+
 template <typename T, size_t MmapSz = BatchAllocSize>
 class SimpleAllocator {
 public:
@@ -154,7 +158,7 @@ private:
             primaryCache.PushTail(t);
             return;
         }
-            
+
 #ifdef FFRT_BBOX_ENABLE
         lock.lock();
         secondaryCache.erase(t);
@@ -196,7 +200,7 @@ private:
     }
 };
 
-template <typename T, std::size_t MmapSz = 8 * 1024 * 1024>
+template <typename T, std::size_t MmapSz = FFRT_ALLOCATOR_MMAP_SIZE>
 class QSimpleAllocator {
     std::size_t TSize;
     std::size_t curAllocated;

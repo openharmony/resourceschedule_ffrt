@@ -25,6 +25,7 @@
 #include <linux/futex.h>
 #include "sync.h"
 #include "delayed_worker.h"
+#include "util/ffrt_facade.h"
 
 #ifdef NS_PER_SEC
 #undef NS_PER_SEC
@@ -32,12 +33,12 @@
 namespace ffrt {
 bool DelayedWakeup(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
-    return DelayedWorker::GetInstance().dispatch(to, we, wakeup);
+    return FFRTFacade::GetDWInstance().dispatch(to, we, wakeup);
 }
 
 bool DelayedRemove(const TimePoint& to, WaitEntry* we)
 {
-    return DelayedWorker::GetInstance().remove(to, we);
+    return FFRTFacade::GetDWInstance().remove(to, we);
 }
 
 void spin_mutex::lock_contended()

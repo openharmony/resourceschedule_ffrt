@@ -38,6 +38,7 @@ using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
+
 class QueueDumpTest : public testing::Test {
 protected:
     static void SetUpTestCase()

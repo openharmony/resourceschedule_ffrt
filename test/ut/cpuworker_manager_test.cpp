@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+
 #include <gtest/gtest.h>
 #include <thread>
 #include "eu/cpu_monitor.h"
@@ -23,10 +24,13 @@
 #include "qos.h"
 #include "common.h"
 
+namespace OHOS {
+namespace FFRT_TEST {
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
+using namespace OHOS::FFRT_TEST;
 using namespace ffrt;
 using namespace std;
 
@@ -59,4 +63,6 @@ HWTEST_F(CpuworkerManagerTest, NotifyTaskAdded, TestSize.Level1)
 {
     auto *it = new SCPUWorkerManager();
     it->NotifyTaskAdded(QoS(qos(5)));
+}
+}
 }

@@ -98,7 +98,7 @@ private:
     {return false;}
     void NotifyTaskPicked(const WorkerThread* thread);
     /* strategy options for task pick up */
-    CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread);
+    virtual CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread) = 0;
     CPUEUTask* PickUpTaskFromLocalQueue(WorkerThread* thread);
 
     /* strategy options for worker wait action */
@@ -107,7 +107,7 @@ private:
     void WorkerSetup(WorkerThread* thread);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);
     unsigned int StealTaskBatch(WorkerThread* thread);
-    CPUEUTask* PickUpTaskBatch(WorkerThread* thread);
+    virtual CPUEUTask* PickUpTaskBatch(WorkerThread* thread) = 0;
     std::atomic_uint64_t stealWorkers[QoS::MaxNum()] = {0};
     friend class CPUManagerStrategy;
 };

@@ -28,10 +28,11 @@
 
 #define GET_TID() syscall(SYS_gettid)
 
-using namespace ffrt;
+using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
+using namespace ffrt;
 
 class QosInterfaceTest : public testing::Test {
 protected:
@@ -68,7 +69,7 @@ HWTEST_F(QosInterfaceTest, FFRTEnableRtgTest, TestSize.Level1)
 
 /**
  * @tc.name: FFRTAuthEnable_test
- * @tc.desc: Test whether the AuthEnable interface are normal.
+ * @tc.desc: Test whether the FFRTAuthEnable interface are normal.
  * @tc.type: FUNC
  */
 HWTEST_F(QosInterfaceTest, FFRTAuthEnableTest, TestSize.Level1)
@@ -173,8 +174,8 @@ HWTEST_F(QosInterfaceTest, FFRTQosLeaveTest, TestSize.Level1)
 }
 
 /**
- * @tc.name: QosLeaveForOther_test
- * @tc.desc: Test whether the QosLeaveForOther interface are normal.
+ * @tc.name: FFRTQosLeaveForOther_test
+ * @tc.desc: Test whether the FFRTQosLeaveForOther interface are normal.
  * @tc.type: FUNC
  */
 HWTEST_F(QosInterfaceTest, FFRTQosLeaveForOtherTest, TestSize.Level1)

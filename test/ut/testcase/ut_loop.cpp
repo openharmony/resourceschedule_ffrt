@@ -16,7 +16,9 @@
 #include <thread>
 #include <chrono>
 #include <gtest/gtest.h>
+#ifndef WITH_NO_MOCKER
 #include <mockcpp/mockcpp.hpp>
+#endif
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include "ffrt_inner.h"

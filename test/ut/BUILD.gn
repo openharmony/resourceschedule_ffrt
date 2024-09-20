@@ -284,6 +284,34 @@ ohos_unittest("ut_coroutine") {
   part_name = "ffrt"
 }
 
+ohos_unittest("ut_cpumonitor") {
+  module_out_path = module_output_path
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc = [
+    "-frtti",
+    "-Xclang",
+    "-fcxx-exceptions",
+    "-std=c++11",
+    "-DFFRT_PERF_EVENT_ENABLE",
+  ]
+
+  sources = [ "testcase/ut_cpumonitor.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = []
+  external_deps += ffrt_ut_base_external_deps
+  external_deps += ["googletest:gmock"]
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
 ohos_unittest("inherit_test") {
   module_out_path = module_output_path
 
@@ -376,6 +404,33 @@ ohos_unittest("qos_interface_test") {
   ]
 
   sources = [ "qos_interface_test.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
+ohos_unittest("ut_cgroup_qos") {
+  module_out_path = module_output_path
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc = [
+    "-frtti",
+    "-Xclang",
+    "-fcxx-exceptions",
+    "-std=c++11",
+    "-DFFRT_PERF_EVENT_ENABLE",
+    "-DWITH_NO_MOCKER"
+  ]
+
+  sources = [ "testcase/ut_cgroup_qos.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -506,6 +561,32 @@ ohos_unittest("ut_dependency") {
   ]
 
   sources = [ "testcase/ut_dependency.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
+ohos_unittest("ut_dfx") {
+  module_out_path = module_output_path
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc = [
+    "-frtti",
+    "-Xclang",
+    "-fcxx-exceptions",
+    "-std=c++11",
+    "-DFFRT_PERF_EVENT_ENABLE",
+  ]
+
+  sources = [ "testcase/ut_dfx.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -849,12 +930,15 @@ group("ffrt_unittest_ffrt") {
       ":qos_convert_test",
       ":qos_interface_test",
       ":task_ctx_test",
+      ":ut_cgroup_qos",
       ":ut_condition",
       ":ut_core",
       ":ut_coroutine",
+      ":ut_cpumonitor",
       ":ut_csync",
       ":ut_deadline",
       ":ut_dependency",
+      ":ut_dfx",
       ":ut_execute_unit",
       ":ut_ffrt_io",
       ":ut_graphCheck",

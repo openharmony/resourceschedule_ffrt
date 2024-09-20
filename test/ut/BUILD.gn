@@ -572,32 +572,6 @@ ohos_unittest("ut_dependency") {
   part_name = "ffrt"
 }
 
-ohos_unittest("ut_dfx") {
-  module_out_path = module_output_path
-
-  configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
-
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
-
-  sources = [ "testcase/ut_dfx.cpp" ]
-  deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
-
-  if (is_standard_system) {
-    public_external_deps = gtest_public_external_deps
-  }
-
-  install_enable = true
-  part_name = "ffrt"
-}
-
 ohos_unittest("ut_execute_unit") {
   module_out_path = module_output_path
 
@@ -939,7 +913,6 @@ group("ffrt_unittest_ffrt") {
       ":ut_csync",
       ":ut_deadline",
       ":ut_dependency",
-      ":ut_dfx",
       ":ut_execute_unit",
       ":ut_ffrt_io",
       ":ut_graphCheck",

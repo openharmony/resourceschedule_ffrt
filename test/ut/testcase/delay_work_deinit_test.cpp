@@ -17,10 +17,14 @@
 #include "ffrt_inner.h"
 #include "c/ffrt_dump.h"
 #include "sync/delayed_worker.h"
+#include "../common.h"
 
 using namespace std;
 using namespace ffrt;
 using namespace testing;
+#ifdef HWTEST_TESTING_EXT_ENABLE
+using namespace testing::ext;
+#endif
 
 class delayWorkDeinitTest : public testing::Test {
 protected:
@@ -66,7 +70,7 @@ void SendDelayedWorker(uint64_t timeoutUs)
  *              2、等待任务执行完成
  * 预期结果    ：检测是否为delayworker线程，callback函数中检查为是，主线程检查为否
  */
-TEST_F(delayWorkDeinitTest, delay_work_thread_para_01)
+HWTEST_F(delayWorkDeinitTest, delay_work_thread_para_01, TestSize.Level1)
 {
     const uint64_t timeoutUs = 100;
     DelayedWorker::ThreadEnvCreate();

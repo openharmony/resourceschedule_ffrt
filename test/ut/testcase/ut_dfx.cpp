@@ -18,6 +18,7 @@
 #include "../common.h"
 #include "dfx/bbox/bbox.h"
 #include "c/queue_ext.h"
+#include "../common.h"
 
 using namespace ffrt;
 
@@ -84,7 +85,7 @@ static void SignalReg(int signo)
     sigaction(signo, &newAction, nullptr);
 }
 
-TEST_F(DfxTest, queue_dfx_bbox_normal_task_0001)
+HWTEST_F(DfxTest, queue_dfx_bbox_normal_task_0001, TestSize.Level1)
 {
     // 异常信号用例，测试bbox功能正常；
     int x = 0;
@@ -127,7 +128,7 @@ TEST_F(DfxTest, queue_dfx_bbox_normal_task_0001)
     sleep(1);
 }
 
-TEST_F(DfxTest, queue_dfx_bbox_queue_task_0001)
+HWTEST_F(DfxTest, queue_dfx_bbox_queue_task_0001, TestSize.Level1)
 {
     // 异常信号用例，测试bbox功能正常；
     int x = 0;

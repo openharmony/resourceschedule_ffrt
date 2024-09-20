@@ -138,6 +138,7 @@ HWTEST_F(CpuMonitorTest, monitor_notify_workers_test, TestSize.Level1)
     EXPECT_EQ(wmonitor.ctrlQueue[qos_default].executionNum, 4);
 }
 
+#ifndef APP_USE_ARM
 /**
  * @tc.name: TryDestroy
  * @tc.desc: Test whether the RollbackDestroy interface are normal.
@@ -181,3 +182,4 @@ HWTEST_F(CpuMonitorTest, monitor_worker_rollbackdestroy_test, TestSize.Level1)
     wmonitor.RollbackDestroy(qosDefault, true);
     EXPECT_EQ(wmonitor.ctrlQueue[qos_default].executionNum, 1);
 }
+#endif

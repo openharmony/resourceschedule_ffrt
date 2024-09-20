@@ -49,7 +49,7 @@ struct FloCfg {
 #endif
 };
 
-int init_cfg(int ctxId)
+int InitCfg(int ctxId)
 {
     int fd;
     struct FloCfg data;
@@ -106,14 +106,14 @@ protected:
 
 HWTEST_F(FloTest, FFRTFloApiSuccess, TestSize.Level1)
 {
-    init_cfg(1);
+    InitCfg(1);
     ffrt_flo_start(1);
     ffrt_flo_end(1);
 }
  
 HWTEST_F(FloTest, FFRTFloTaskWithoutYield, TestSize.Level1)
 {
-    init_cfg(2);
+    InitCfg(2);
     auto handle = ffrt::submit_h([] {
         ffrt_flo_start(2);
         ffrt_flo_end(2);
@@ -123,7 +123,7 @@ HWTEST_F(FloTest, FFRTFloTaskWithoutYield, TestSize.Level1)
  
 HWTEST_F(FloTest, FFRTFloTaskWithYield, TestSize.Level1)
 {
-    init_cfg(3);
+    InitCfg(3);
     auto handle = ffrt::submit_h([] {
         ffrt_flo_start(3);
         ffrt::this_task::yield();

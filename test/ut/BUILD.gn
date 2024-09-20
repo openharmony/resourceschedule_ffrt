@@ -714,6 +714,7 @@ ohos_unittest("ut_loop") {
     "-fcxx-exceptions",
     "-std=c++11",
     "-DFFRT_PERF_EVENT_ENABLE",
+    "-DWITH_NO_MOCKER"
   ]
 
   sources = [ "testcase/ut_loop.cpp" ]

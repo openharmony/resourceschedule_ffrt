@@ -29,9 +29,15 @@
 #undef private
 #include "../common.h"
 
-using namespace ffrt;
+using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
+using namespace ffrt;
+#ifdef APP_USE_ARM
+static const size_t g_workerStackSize = 131072;
+#else
+static const size_t g_workerStackSize = 10 * 1024 * 1024;
 #endif
 
 class ThreadTest : public testing::Test {
@@ -136,7 +142,7 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     wt->Join();
     EXPECT_EQ(inc, 2);
     pthread_attr_getstacksize(&wt->attr_, &stackSize);
-    EXPECT_EQ(stackSize, 131072); // 蓝区stack size
+    EXPECT_EQ(stackSize, g_workerStackSize);
     delete wt;
 }
 

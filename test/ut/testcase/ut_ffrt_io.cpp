@@ -1,17 +1,17 @@
 /*
-* Copyright (c) 2023 Huawei Device Co., Ltd.
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, sofware
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, sofware
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include <gtest/gtest.h>
 #include <cstdlib>
@@ -24,6 +24,7 @@
 #include <algorithm>
 #include "util.h"
 #include "ffrt_inner.h"
+#include "c/ffrt_ipc.h"
 #include "eu/co_routine.h"
 #include "sync/io_poller.h"
 #define private public
@@ -37,6 +38,11 @@ using namespace std;
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
+#endif
+#ifdef APP_USE_ARM
+#define SIZEOF_UINT_T sizeof(uint32_t)
+#else
+#define SIZEOF_UINT_T sizeof(uint64_t)
 #endif
 
 class ffrtIoTest : public testing::Test {
@@ -182,7 +188,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_map_null, TestSize.Level1)
     usleep(30000);
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -284,7 +290,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_long_timeout_flagwake, TestSize.Level
     usleep(15000);
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -321,7 +327,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapfirst_flagwait, TestSize.Level1)
     usleep(15000);
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -350,7 +356,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapother, TestSize.Level1)
     usleep(15000);
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -380,7 +386,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapfirst_flagwake, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -408,7 +414,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_flag_teardown, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -437,7 +443,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_query_test, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -467,7 +473,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_query_stop, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
@@ -489,7 +495,7 @@ HWTEST_F(ffrtIoTest, ffrt_poller_deregister_qos_valid, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     
     usleep(100);
@@ -514,7 +520,7 @@ HWTEST_F(ffrtIoTest, ffrt_poller_deregister_qos_fd_invalid, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
     
     usleep(100);
@@ -539,7 +545,7 @@ HWTEST_F(ffrtIoTest, ffrt_poller_deregister_qos_qos_invalid, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         }, {}, {});
 
     usleep(100);
@@ -601,7 +607,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         result = ffrt_epoll_wait(qos_level, &ev, maxevents, timeout);
         }, {}, {});
     usleep(1000);
@@ -629,7 +635,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_events_invalid, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         result = ffrt_epoll_wait(qos_level, nullptr, maxevents, timeout);
         }, {}, {});
     usleep(1000);
@@ -658,7 +664,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_maxevents_invalid, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         result = ffrt_epoll_wait(qos_level, &ev, maxevents, timeout);
         }, {}, {});
     usleep(1000);
@@ -686,7 +692,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_timeout_invalid, TestSize.Level1)
 
     ffrt::submit([&]() {
         ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), sizeof(uint32_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_UINT_T);
         result = ffrt_epoll_wait(qos_level, &ev, maxevents, timeout);
         }, {}, {});
     usleep(1000);

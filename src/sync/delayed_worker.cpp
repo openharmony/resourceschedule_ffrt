@@ -194,7 +194,7 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
     }
     map.emplace(to, DelayedWork {we, &wakeup});
     if (w) {
-        uint64_t ns = to.time_since_epoch().count();
+        uint64_t ns = static_cast<uint64_t>(to.time_since_epoch().count());
         itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
         timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
     }

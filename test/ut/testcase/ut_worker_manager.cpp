@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <gtest/gtest.h>
 #ifndef WITH_NO_MOCKER
 #include <mockcpp/mockcpp.hpp>
@@ -27,10 +28,11 @@
 #undef protected
 #include "../common.h"
 
-using namespace ffrt;
+using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
+using namespace ffrt;
 
 class WorkerManagerTest : public testing::Test {
 protected:
@@ -57,6 +59,26 @@ HWTEST_F(WorkerManagerTest, JoinRtgTest, TestSize.Level1)
     QoS* qos = new QoS();
     cm->IncWorker(*qos);
     cm->JoinRtg(*qos);
+
+    delete qos;
+    delete cm;
+}
+
+HWTEST_F(WorkerManagerTest, IncWorkerTest, TestSize.Level1)
+{
+    CPUWorkerManager* cm = new SCPUWorkerManager();
+    QoS* qos = new QoS(-1);
+    cm->IncWorker(*qos);
+
+    delete qos;
+    delete cm;
+}
+
+HWTEST_F(WorkerManagerTest, GetWorkerCountTest, TestSize.Level1)
+{
+    CPUWorkerManager* cm = new SCPUWorkerManager();
+    QoS* qos = new QoS(2);
+    cm->GetWorkerCount(*qos);
 
     delete qos;
     delete cm;
@@ -122,13 +144,67 @@ HWTEST_F(WorkerManagerTest, CPUWorkerStandardLoopTest, TestSize.Level1)
         std::bind(&CPUWorkerManager::WorkerIdleActionSimplified, manager, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerRetired, manager, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerPrepare, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::TryPoll, manager, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&CPUWorkerManager::StealTaskBatch, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::PickUpTaskBatch, manager, std::placeholders::_1),
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        std::bind(&CPUWorkerManager::IsExceedRunningThreshold, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::IsBlockAwareInit, manager),
+#endif
     };
-    WorkerThread* worker = new CPUWorker(QoS(2), std::move(ops));
+    WorkerThread* worker = new CPUWorker(QoS(2), std::move(ops), manager);
     EXPECT_NE(worker, nullptr);
-    sleep(1);
-    manager->NotifyTaskAdded(QoS(2));
+    sleep(1); // wait worker into wait action
+    manager->NotifyTaskAdded(QoS(2)); // wake worker
 
     delete manager;
     worker->Join();
     delete worker;
+}
+
+HWTEST_F(WorkerManagerTest, CPUMonitorHandleNotifyConservativeTest, TestSize.Level1)
+{
+    SCPUWorkerManager* manager = new SCPUWorkerManager();
+
+    CpuMonitorOps monitorOps { // change monitor's notify handle strategy
+        std::bind(&SCPUWorkerManager::IncWorker, manager, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::WakeupWorkers, manager, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::GetTaskCount, manager, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
+        CPUMonitor::HandleTaskNotifyConservative,
+    };
+    manager->monitor->ops = std::move(monitorOps);
+
+    manager->NotifyTaskAdded(QoS(2)); // task notify event
+}
+
+int GetTaskCountStub(const QoS& qos)
+{
+    return 1;
+}
+
+/*
+ * 测试用例名称：CPUMonitorHandleTaskNotifyUltraConservativeTest
+ * 测试用例描述：ffrt保守调度策略
+ * 预置条件    ：创建SCPUWorkerManager，策略设置为HandleTaskNotifyUltraConservative，GetTaskCount方法打桩为GetTaskCountStub
+ * 操作步骤    ：调用SCPUWorkerManager的Notify方法
+ * 预期结果    ：成功执行HandleTaskNotifyUltraConservative方法
+ */
+HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyUltraConservativeTest, TestSize.Level1)
+{
+    SCPUWorkerManager* manager = new SCPUWorkerManager();
+
+    CpuMonitorOps monitorOps { // change monitor's notify handle strategy
+        std::bind(&SCPUWorkerManager::IncWorker, manager, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::WakeupWorkers, manager, std::placeholders::_1),
+        std::bind(&GetTaskCountStub, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
+        CPUMonitor::HandleTaskNotifyUltraConservative,
+    };
+    manager->monitor->ops = std::move(monitorOps);
+
+    manager->NotifyTaskAdded(QoS(2)); // task notify event
+
+    manager->monitor->ctrlQueue[2].sleepingWorkerNum = 1;
+    manager->NotifyTaskAdded(QoS(2)); // task notify event
 }

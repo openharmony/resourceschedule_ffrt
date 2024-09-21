@@ -13,33 +13,19 @@
  * limitations under the License.
  */
 
-
 #include <gtest/gtest.h>
-#include <thread>
-#include "eu/cpu_monitor.h"
-#include "eu/cpu_worker.h"
-#include "eu/scpuworker_manager.h"
-#ifdef APP_USE_ARM
-#include "eu/cpu_manager_interface.h"
-#else
-#include "eu/cpu_manager_strategy.h"
-#endif
-#include "eu/worker_thread.h"
-#include "qos.h"
-#include "common.h"
+#include "ffrt_inner.h"
+#include "../common.h"
 
-namespace OHOS {
-namespace FFRT_TEST {
+extern "C" int ffrt_set_task_io_qos(int service, uint64_t id, int qos, void* payload);
+
+using namespace std;
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
-using namespace OHOS::FFRT_TEST;
-using namespace ffrt;
-using namespace std;
 
-
-class CpuworkerManagerTest : public testing::Test {
+class ResourceMngrTest : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -58,15 +44,26 @@ protected:
     }
 };
 
-/**
- * @tc.name: NotifyTaskAdded
- * @tc.desc: Test whether the NotifyTaskAdded interface are normal.
- * @tc.type: FUNC
+/*
+ * 测试用例名称 : ffrt_set_task_io_qos_succ
+ * 测试用例描述：设置任务的IO QoS成功
+ * 操作步骤    ：1、设置qos为0
+ * 预期结果    ：执行成功
  */
-HWTEST_F(CpuworkerManagerTest, NotifyTaskAdded, TestSize.Level1)
+HWTEST_F(ResourceMngrTest, ffrt_set_task_io_qos_succ, TestSize.Level1)
 {
-    auto *it = new SCPUWorkerManager();
-    it->NotifyTaskAdded(QoS(qos(5)));
+    int ret = ffrt_set_task_io_qos(0, 0, 0, nullptr);
+    EXPECT_EQ(ret, 0);
 }
-}
+
+/*
+ * 测试用例名称 : ffrt_set_task_io_qos_fail
+ * 测试用例描述：设置任务的IO QoS失败
+ * 操作步骤    ：1、设置qos为-1
+ * 预期结果    ：执行失败
+ */
+HWTEST_F(ResourceMngrTest, ffrt_set_task_io_qos_fail, TestSize.Level1)
+{
+    int ret = ffrt_set_task_io_qos(0, 0, -1, nullptr);
+    EXPECT_EQ(ret, 1);
 }

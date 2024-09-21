@@ -13,33 +13,17 @@
  * limitations under the License.
  */
 
-
 #include <gtest/gtest.h>
-#include <thread>
-#include "eu/cpu_monitor.h"
-#include "eu/cpu_worker.h"
-#include "eu/scpuworker_manager.h"
-#ifdef APP_USE_ARM
-#include "eu/cpu_manager_interface.h"
-#else
-#include "eu/cpu_manager_strategy.h"
-#endif
-#include "eu/worker_thread.h"
-#include "qos.h"
-#include "common.h"
+#include "ffrt_inner.h"
+#include <cstdlib>
+#include "../common.h"
 
-namespace OHOS {
-namespace FFRT_TEST {
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
-using namespace OHOS::FFRT_TEST;
-using namespace ffrt;
-using namespace std;
 
-
-class CpuworkerManagerTest : public testing::Test {
+class InitTest : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -58,15 +42,26 @@ protected:
     }
 };
 
-/**
- * @tc.name: NotifyTaskAdded
- * @tc.desc: Test whether the NotifyTaskAdded interface are normal.
- * @tc.type: FUNC
- */
-HWTEST_F(CpuworkerManagerTest, NotifyTaskAdded, TestSize.Level1)
+class Env {
+public:
+    Env()
+    {
+        putenv("FFRT_PATH_HARDWARE=1");
+    }
+    ~Env()
+    {
+        putenv("FFRT_PATH_HARDWARE=0");
+    }
+};
+
+Env g_env __attribute__ ((init_priority(102)));
+HWTEST_F(InitTest, hardware_test, TestSize.Level1)
 {
-    auto *it = new SCPUWorkerManager();
-    it->NotifyTaskAdded(QoS(qos(5)));
-}
-}
+    int x = 0;
+    auto h = ffrt::submit_h(
+        [&]() {
+            x++;
+        }, {}, {});
+    ffrt::wait({h});
+    EXPECT_EQ(x, 1);
 }

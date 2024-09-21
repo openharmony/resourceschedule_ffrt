@@ -14,17 +14,18 @@
  */
 
 #include <gtest/gtest.h>
+#include <cinttypes>
 #include "ffrt_inner.h"
 #include "util.h"
 #include "c/deadline.h"
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "../common.h"
-
 #ifndef WITH_NO_MOCKER
 extern "C" int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr);
 #endif
+#include "../common.h"
+
 using namespace std;
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
@@ -72,6 +73,7 @@ HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level1)
     ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
     ffrt::submit([] {
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+        printf("id is  %" PRIu64 "\n", ffrt::this_task::get_id());
     });
     ffrt_this_task_get_id();
     ffrt::wait();
@@ -79,6 +81,128 @@ HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level1)
 #ifndef WITH_NO_MOCKER
     ffrt_set_cgroup_attr(static_cast<int>(ffrt::qos_user_initiated), nullptr);
 #endif
+}
+
+HWTEST_F(DependencyTest, update_qos_success_03, TestSize.Level1)
+{
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt::submit([] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+    });
+    ffrt_restore_qos_config();
+}
+
+HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level1)
+{
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt::submit([] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+    });
+    int ret2 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 4);
+    EXPECT_EQ(ret2, 0);
+}
+
+HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level1)
+{
+    int x = 0;
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt_task_attr_get_name(nullptr);
+    ffrt_task_attr_set_name(nullptr, "A");
+    ffrt_task_attr_set_qos(nullptr, static_cast<int>(ffrt::qos_user_initiated));
+    ffrt_task_attr_get_qos(nullptr);
+    ffrt_task_attr_destroy(nullptr);
+    ffrt_submit_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt::submit([&] {
+        x++;
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+        printf("id is  %" PRIu64 "\n", ffrt::this_task::get_id());
+    });
+    ffrt_this_task_get_id();
+    ffrt::wait();
+    ffrt_this_task_update_qos(static_cast<int>(ffrt::qos_user_initiated));
+#ifndef WITH_NO_MOCKER
+    ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};
+    ffrt_set_cgroup_attr(static_cast<int>(ffrt::qos_user_initiated), &attr);
+#endif
+    EXPECT_EQ(x, 1);
+}
+
+HWTEST_F(DependencyTest, update_qos_failed_01, TestSize.Level1)
+{
+    int x = 0;
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt_task_attr_get_name(nullptr);
+    ffrt_task_attr_set_name(nullptr, "A");
+    ffrt_task_attr_set_qos(nullptr, static_cast<int>(ffrt::qos_user_initiated));
+    ffrt_task_attr_get_qos(nullptr);
+    ffrt_task_attr_destroy(nullptr);
+    ffrt_submit_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt::submit([&] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+        printf("id is  %" PRIu64 "\n", ffrt::this_task::get_id());
+        int ret1 = ffrt_this_task_update_qos(static_cast<int>(ffrt::qos_default));
+        EXPECT_EQ(ret1, 0);
+        x++;
+    });
+    ffrt_this_task_get_id();
+    ffrt::wait();
+#ifndef WITH_NO_MOCKER
+    ffrt_set_cgroup_attr(static_cast<int>(ffrt::qos_user_initiated), nullptr);
+#endif
+    EXPECT_EQ(x, 1);
+}
+
+HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
+{
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt::submit([] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+    });
+    int ret1 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_inherit), 4);
+    EXPECT_EQ(ret1, -1);
+}
+
+HWTEST_F(DependencyTest, executor_task_submit_success_01, TestSize.Level1)
+{
+    ffrt_task_attr_t attr;
+    static ffrt_executor_task_t work;
+    work.wq[0] = &work.wq;
+    work.wq[1] = &work.wq;
+    work.type = reinterpret_cast<uintptr_t>(&attr);
+
+    ffrt_executor_task_submit(&work, &attr);
+}
+HWTEST_F(DependencyTest, executor_task_submit_nullptr_01, TestSize.Level1)
+{
+    ffrt_executor_task_submit(nullptr, nullptr);
+}
+
+HWTEST_F(DependencyTest, executor_task_submit_cancel_01, TestSize.Level1)
+{
+    ffrt_executor_task_cancel(nullptr, static_cast<int>(ffrt::qos_user_initiated));
+}
+
+HWTEST_F(DependencyTest, executor_task_submit_cancel_02, TestSize.Level1)
+{
+    ffrt_task_attr_t attr;
+    ffrt_task_attr_init(&attr);
+    ffrt_executor_task_t work;
+    work.type = reinterpret_cast<uintptr_t>(&attr);
+
+    ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
+    ffrt_executor_task_submit(&work, &attr);
+    usleep(10000);
+    int cancelled = ffrt_executor_task_cancel(&work, static_cast<int>(ffrt::qos_user_initiated));
+    EXPECT_EQ(cancelled, 0);
+
+    ffrt_task_attr_destroy(&attr);
 }
 
 HWTEST_F(DependencyTest, update_trace_tag_success_02, TestSize.Level1)

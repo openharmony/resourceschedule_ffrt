@@ -852,6 +852,7 @@ group("ffrt_unittest_ffrt") {
       ":ut_csync",
       ":ut_deadline",
       ":ut_dependency",
+      ":ut_dump",
       ":ut_execute_unit",
       ":ut_ffrt_io",
       ":ut_graphCheck",
@@ -865,7 +866,6 @@ group("ffrt_unittest_ffrt") {
       ":ut_thread",
       ":worker_manager_test",
       ":worker_thread_test",
-      ":ut_dump",
     ]
   }
 }

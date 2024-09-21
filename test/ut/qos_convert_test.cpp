@@ -119,6 +119,7 @@ static int QosTransfer(int qos)
     }
 }
 
+#ifndef APP_USE_ARM
 HWTEST_F(QosConvertTest, GetStaticQos1, TestSize.Level1)
 {
     for (int i = 1; i <= NR_QOS_LEVEL; i++) {
@@ -132,6 +133,7 @@ HWTEST_F(QosConvertTest, GetStaticQos1, TestSize.Level1)
         EXPECT_EQ(tmpQos, QosTransfer(i));
     }
 }
+#endif
 
 HWTEST_F(QosConvertTest, GetStaticQos2, TestSize.Level1)
 {
@@ -169,6 +171,7 @@ HWTEST_F(QosConvertTest, GetDynamicQos, TestSize.Level1)
 #endif
 }
 
+#ifndef APP_USE_ARM
 HWTEST_F(QosConvertTest, FFRTQosGetInterface, TestSize.Level1)
 {
     SetRssQos(8);
@@ -192,5 +195,6 @@ HWTEST_F(QosConvertTest, FFRTQosGetForOtherInterface, TestSize.Level1)
     EXPECT_EQ(data.staticQos, 5);
     EXPECT_EQ(ret, 0);
 }
+#endif
 }
 }

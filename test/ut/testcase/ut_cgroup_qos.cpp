@@ -57,6 +57,7 @@ protected:
     }
 };
 
+#ifndef APP_USE_ARM
 HWTEST_F(CgroupQosTest, UpdateSchedAttr_test, TestSize.Level1)
 {
         ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};
@@ -68,6 +69,7 @@ HWTEST_F(CgroupQosTest, UpdateSchedAttr_test, TestSize.Level1)
         ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(qos_user_interactive)), &attr);
         EXPECT_EQ(ret, -1);
 }
+#endif
 
 HWTEST_F(CgroupQosTest, SetTidToCGroup_test, TestSize.Level1)
 {

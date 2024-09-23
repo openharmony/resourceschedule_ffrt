@@ -19,11 +19,7 @@
 #include "eu/worker_manager.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/cpu_monitor.h"
-#ifdef APP_USE_ARM
 #include "eu/cpu_manager_interface.h"
-#else
-#include "eu/cpu_manager_strategy.h"
-#endif
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "common.h"

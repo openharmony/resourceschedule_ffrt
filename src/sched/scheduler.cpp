@@ -69,7 +69,7 @@ bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
 
     int level = qos();
     FFRT_COND_DO_ERR((level == qos_inherit), return false, "Level incorrect");
-    
+
     auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
     lock->lock();
     if (!node->InList()) {

@@ -42,7 +42,8 @@ constexpr char IPC_STACK_NAME[] = "libipc_core";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
-    1000 * 1000, 10 * 1000 * 1000, 30 * 1000 * 1000, 60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
+    1000 * 1000, 3 * 1000 * 1000, 5 * 1000 * 1000, 10 * 1000 * 1000,
+    60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
 };
 }
 

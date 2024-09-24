@@ -20,7 +20,11 @@
 #include "eu/cpu_worker.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/scpu_monitor.h"
+#ifdef FFRT_GITEE
 #include "eu/cpu_manager_interface.h"
+#else
+#include "eu/cpu_manager_strategy.h"
+#endif
 #include "eu/worker_thread.h"
 #include "qos.h"
 #include "common.h"
@@ -76,7 +80,7 @@ HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
     cpu.IntoSleep(QoS(5));
 }
 
-#ifdef APP_USE_ARM
+#ifdef FFRT_GITEE
 /**
  * @tc.name: WakeupCount
  * @tc.desc: Test whether the WakeupCount interface are normal.
@@ -171,7 +175,7 @@ HWTEST_F(CpuMonitorTest, IntoDeepSleep, TestSize.Level1)
     cpu.IntoDeepSleep(QoS(5));
 }
 
-#ifdef APP_USE_ARM
+#ifdef FFRT_GITEE
 /**
  * @tc.name: OutOfDeepSleep
  * @tc.desc: Test whether the OutOfDeepSleep interface are normal.

@@ -19,7 +19,11 @@
 #include "eu/worker_manager.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/cpu_monitor.h"
+#ifdef FFRT_GITEE
 #include "eu/cpu_manager_interface.h"
+#else
+#include "eu/cpu_manager_strategy.h"
+#endif
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "common.h"

@@ -138,7 +138,7 @@ HWTEST_F(CpuMonitorTest, monitor_notify_workers_test, TestSize.Level1)
     EXPECT_EQ(wmonitor.ctrlQueue[qos_default].executionNum, 4);
 }
 
-#ifndef OHOS_STANDARD_SYSTEM
+#ifndef FFRT_GITEE
 /**
  * @tc.name: TryDestroy
  * @tc.desc: Test whether the RollbackDestroy interface are normal.

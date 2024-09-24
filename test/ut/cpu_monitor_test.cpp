@@ -20,7 +20,11 @@
 #include "eu/cpu_worker.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/scpu_monitor.h"
+#ifdef FFRT_GITEE
 #include "eu/cpu_manager_interface.h"
+#else
+#include "eu/cpu_manager_strategy.h"
+#endif
 #include "eu/worker_thread.h"
 #include "qos.h"
 #include "common.h"

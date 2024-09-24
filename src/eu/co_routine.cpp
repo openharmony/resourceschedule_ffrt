@@ -179,7 +179,7 @@ void SwitchTsdToThread(ffrt::CPUEUTask* task)
     }
 
     UpdateWorkerTsdValueToThread(task->tsd);
-    
+
     task->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
 }
@@ -364,6 +364,13 @@ static inline int CoAlloc(ffrt::CPUEUTask* task)
 static inline int CoCreat(ffrt::CPUEUTask* task)
 {
     CoAlloc(task);
+    if (GetCoEnv()->runningCo == nullptr) { // retry once if alloc failed
+        CoAlloc(task);
+        if (GetCoEnv()->runningCo == nullptr) { // retry still failed
+            FFRT_LOGE("alloc co routine failed");
+            return -1;
+        }
+    }
     BindNewCoRoutione(task);
     auto co = task->coRoutine;
     if (co->status.load() == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
@@ -392,16 +399,18 @@ static inline void CoSwitchOutTrace(ffrt::CPUEUTask* task)
 }
 
 // called by thread work
-void CoStart(ffrt::CPUEUTask* task)
+int CoStart(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
         if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
             FFRT_LOGE("executed by worker suddenly, ignore backtrace");
-            return;
+            return 0;
         }
     }
-    CoCreat(task);
+    if (CoCreat(task) != 0) {
+        return -1;
+    }
     auto co = task->coRoutine;
 
     FFRTTraceRecord::TaskRun(task->GetQos(), task);
@@ -428,14 +437,14 @@ void CoStart(ffrt::CPUEUTask* task)
         if (co->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
             co->isTaskDone = false;
-            return;
+            return 0;
         }
 
         // 2. couroutine task block, switch to thread
         // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = GetCoEnv()->pending;
         if (pending == nullptr) {
-            return;
+            return 0;
         }
         GetCoEnv()->pending = nullptr;
         FFRTTraceRecord::TaskCoSwitchOut(task);
@@ -443,11 +452,12 @@ void CoStart(ffrt::CPUEUTask* task)
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-            return;
+            return 0;
         }
         FFRT_WAKE_TRACER(task->gid); // fast path wk
         GetCoEnv()->runningCo = co;
     }
+    return 0;
 }
 
 // called by thread work

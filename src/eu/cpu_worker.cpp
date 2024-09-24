@@ -34,10 +34,12 @@ const unsigned int TRY_POLL_FREQ = 51;
 }
 
 namespace ffrt {
-void CPUWorker::Run(CPUEUTask* task)
+void CPUWorker::Run(CPUEUTask* task, CPUWorker* worker)
 {
     if constexpr(USE_COROUTINE) {
-        CoStart(task);
+        if (CoStart(task) != 0) {
+            worker->localFifo.PushTail(task);
+        }
         return;
     }
 
@@ -113,7 +115,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
             worker->curTaskGid_ = task->gid;
             ctx->task = task;
             ctx->lastGid_ = task->gid;
-            Run(task);
+            Run(task, worker);
             ctx->task = nullptr;
             worker->curTaskLabel_ = "";
             worker->curTaskGid_ = UINT64_MAX;

@@ -52,7 +52,7 @@ public:
 private:
     static void* WrapDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
-    static void Run(CPUEUTask* task);
+    static void Run(CPUEUTask* task, CPUWorker* worker);
     static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
     static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker);
     static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker);

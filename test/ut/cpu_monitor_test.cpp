@@ -76,7 +76,7 @@ HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
     cpu.IntoSleep(QoS(5));
 }
 
-#ifdef APP_USE_ARM
+#ifdef FFRT_GITEE
 /**
  * @tc.name: WakeupCount
  * @tc.desc: Test whether the WakeupCount interface are normal.
@@ -171,7 +171,7 @@ HWTEST_F(CpuMonitorTest, IntoDeepSleep, TestSize.Level1)
     cpu.IntoDeepSleep(QoS(5));
 }
 
-#ifdef APP_USE_ARM
+#ifdef FFRT_GITEE
 /**
  * @tc.name: OutOfDeepSleep
  * @tc.desc: Test whether the OutOfDeepSleep interface are normal.

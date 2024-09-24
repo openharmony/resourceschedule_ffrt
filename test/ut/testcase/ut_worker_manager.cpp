@@ -120,7 +120,7 @@ HWTEST_F(WorkerManagerTest, LeaveTGTest, TestSize.Level1)
 #endif
 }
 
-#ifdef APP_USE_ARM
+#ifdef FFRT_GITEE
 HWTEST_F(WorkerManagerTest, CPUManagerStrategyApiTest, TestSize.Level1)
 {
     WorkerManager* manager = new SCPUWorkerManager();

@@ -57,7 +57,7 @@ protected:
     }
 };
 
-#ifndef APP_USE_ARM
+#ifndef FFRT_GITEE
 HWTEST_F(CgroupQosTest, UpdateSchedAttr_test, TestSize.Level1)
 {
         ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};

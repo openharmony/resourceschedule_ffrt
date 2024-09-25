@@ -206,6 +206,11 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 {
     std::lock_guard<decltype(lock)> l(lock);
 
+    if (toExit) {
+        FFRT_LOGE("DelayedWorker destroy, remove failed");
+        return false;
+    }
+
     auto range = map.equal_range(to);
     for (auto it = range.first; it != range.second; ++it) {
         if (it->second.we == we) {

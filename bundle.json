@@ -18,7 +18,8 @@
         ],
         "features": [
             "ffrt_support_enable",
-            "ffrt_allocator_mmap_size"
+            "ffrt_allocator_mmap_size",
+            "ffrt_stack_size"
         ],
         "adapted_system_type": [
             "standard"

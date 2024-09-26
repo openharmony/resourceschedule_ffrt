@@ -59,6 +59,7 @@ config("ffrt_config") {
     "FFRT_TRACE_RECORD_LEVEL=1",
     "FFRT_SEND_EVENT",
     "FFRT_ALLOCATOR_MMAP_SIZE=${ffrt_allocator_mmap_size}",
+    "FFRT_STACK_SIZE=${ffrt_stack_size}",
   ]
 
   #ffrt_release_defines = [

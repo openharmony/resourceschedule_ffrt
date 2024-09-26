@@ -30,6 +30,10 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #endif
 
+#ifndef FFRT_STACK_SIZE
+#define FFRT_STACK_SIZE (1 << 20)
+#endif
+
 namespace ffrt {
 class CPUEUTask;
 struct WaitEntry;
@@ -52,7 +56,7 @@ enum class BlockType {
     BLOCK_THREAD
 };
 
-constexpr uint64_t STACK_SIZE = 1 << 20;
+constexpr uint64_t STACK_SIZE = FFRT_STACK_SIZE;
 constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
 
 using CoCtx = struct co2_context;

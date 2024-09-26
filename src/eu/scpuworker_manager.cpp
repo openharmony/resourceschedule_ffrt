@@ -83,6 +83,7 @@ void SCPUWorkerManager::AddDelayedTask(int qos)
 
         if (!isEmpty) {
             FFRT_LOGW("qos[%d] has worker, no need add delayed task", qos);
+            SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
             return;
         }
 

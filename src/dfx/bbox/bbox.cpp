@@ -131,6 +131,7 @@ static inline void SaveReadyQueueStatus()
 
 static inline void SaveNormalTaskStatus()
 {
+    TaskFactory::LockMem();
     auto unfree = TaskFactory::GetUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         std::vector<CPUEUTask*> tmp;
@@ -168,12 +169,13 @@ static inline void SaveNormalTaskStatus()
     apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
     });
+    TaskFactory::UnlockMem();
 }
 
 static inline void SaveQueueTaskStatus()
 {
     std::lock_guard lk(SimpleAllocator<QueueTask>::Instance()->lock);
-    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnSafeUnfreedMem();
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
     auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
         std::vector<QueueTask*> tmp;
         for (auto task : unfreeQueueTask) {
@@ -490,6 +492,7 @@ std::string SaveNormalTaskStatusInfo(void)
 {
     std::string ffrtStackInfo;
     std::ostringstream ss;
+    TaskFactory::LockMem();
     auto unfree = TaskFactory::GetUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         std::vector<CPUEUTask*> tmp;
@@ -532,6 +535,7 @@ std::string SaveNormalTaskStatusInfo(void)
     apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
     });
+    TaskFactory::UnlockMem();
 
     return ffrtStackInfo;
 }
@@ -541,7 +545,7 @@ std::string SaveQueueTaskStatusInfo()
     std::string ffrtStackInfo;
     std::ostringstream ss;
     std::lock_guard lk(SimpleAllocator<QueueTask>::Instance()->lock);
-    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnSafeUnfreedMem();
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
     auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
         std::vector<QueueTask*> tmp;
         for (auto task : unfreeQueueTask) {

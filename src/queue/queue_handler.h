@@ -34,6 +34,7 @@ public:
     ~QueueHandler();
 
     void Cancel();
+    void CancelAndWait();
     int Cancel(const char* name);
     int Cancel(QueueTask* task);
     void Dispatch(QueueTask* inTask);

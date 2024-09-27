@@ -222,6 +222,14 @@ void ffrt_queue_cancel_all(ffrt_queue_t queue)
 }
 
 API_ATTRIBUTE((visibility("default")))
+void ffrt_queue_cancel_and_wait(ffrt_queue_t queue)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return, "input invalid, queue is nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    handler->CancelAndWait();
+}
+
+API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_cancel_by_name(ffrt_queue_t queue, const char* name)
 {
     FFRT_COND_DO_ERR(unlikely(queue == nullptr), return -1, "input invalid, queue is nullptr");

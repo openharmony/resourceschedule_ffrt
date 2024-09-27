@@ -80,6 +80,14 @@ FFRT_C_API bool ffrt_queue_has_task(ffrt_queue_t queue, const char* name);
 FFRT_C_API void ffrt_queue_cancel_all(ffrt_queue_t queue);
 
 /**
+ * @brief Cancels all unexecuted tasks and wait for running tasks in the queue. No new tasks will be accepted.
+ *
+ * @param queue Indicates a queue handle.
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_queue_cancel_and_wait(ffrt_queue_t queue);
+
+/**
  * @brief Cancels a task with the given name in the queue.
  *
  * @param queue Indicates a queue handle.

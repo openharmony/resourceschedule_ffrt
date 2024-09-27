@@ -567,6 +567,7 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
     EXPECT_EQ(hasEmptyTask, false);
 
     lock.unlock();
+    ffrt_queue_cancel_and_wait(queue_handle);
     ffrt_queue_wait(handle);
 
     isIdle = ffrt_queue_is_idle(queue_handle);

@@ -58,7 +58,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
             {
                 usleep(1000);
                 std::shared_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
-                if (groupCtl[qos].threads.empty()) {
+                if (groupCtl[qos].threads.empty() && workerRetiringCount_[qos].load() == 0) {
                     break;
                 }
             }
@@ -71,35 +71,40 @@ SCPUWorkerManager::~SCPUWorkerManager()
     delete monitor;
 }
 
-void SCPUWorkerManager::AddDelayedTask(int qos)
+void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
 {
-    WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
-    we->tp = std::chrono::steady_clock::now() + std::chrono::microseconds(DELAYED_WAKED_UP_TASK_TIME_INTERVAL);
-    we->cb = ([this, qos](WaitEntry* we) {
-        int taskCount = GetTaskCount(QoS(qos));
+    pid_t pid = thread->Id();
+    QoS qos = thread->GetQos();
+    workerRetiringCount_[qos].fetch_add(1);
+
+    bool isEmptyQosThreads = false;
+    {
         std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
-        bool isEmpty = groupCtl[qos].threads.empty();
-        lck.unlock();
-
-        if (!isEmpty) {
-            FFRT_LOGW("qos[%d] has worker, no need add delayed task", qos);
-            SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
-            return;
+        thread->SetExited(true);
+        thread->Detach();
+        auto worker = std::move(groupCtl[qos].threads[thread]);
+        int ret = groupCtl[qos].threads.erase(thread);
+        if (ret != 1) {
+            FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos(), ret);
         }
-
-        if (taskCount != 0) {
-            FFRT_LOGI("notify task, qos %d", qos);
-            FFRTFacade::GetEUInstance().NotifyTaskAdded(QoS(qos));
-        } else {
-            AddDelayedTask(qos);
+        isEmptyQosThreads = groupCtl[qos].threads.empty();
+        WorkerLeaveTg(qos, pid);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (IsBlockAwareInit()) {
+            ret = BlockawareUnregister();
+            if (ret != 0) {
+                FFRT_LOGE("blockaware unregister fail, ret[%d]", ret);
+            }
         }
-        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
-    });
-
-    if (!DelayedWakeup(we->tp, we, we->cb)) {
-        SimpleAllocator<WaitUntilEntry>::FreeMem(we);
-        FFRT_LOGW("add delyaed task failed, qos %d", qos);
+#endif
+        worker = nullptr;
     }
+
+    if (isEmptyQosThreads && GetTaskCount(qos) > 0) {
+        FFRTFacade::GetEUInstance().NotifyTaskAdded(qos);
+    }
+
+    workerRetiringCount_[qos].fetch_sub(1);
 }
 
 WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)

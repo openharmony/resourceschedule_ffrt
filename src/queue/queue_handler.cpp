@@ -228,9 +228,9 @@ void QueueHandler::Dispatch(QueueTask* inTask)
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
         }
 
-        RemoveTimeoutMonitor(task);
         f->destroy(f);
         task->Notify();
+        RemoveTimeoutMonitor(task);
 
         // run task batch
         nextTask = task->GetNextTask();
@@ -317,12 +317,12 @@ void QueueHandler::RemoveTimeoutMonitor(QueueTask* task)
         return;
     }
 
-    if (DelayedRemove(timeoutWe_->tp, timeoutWe_)) {
-        task->DecDeleteRef();
+    WaitEntry* dwe = static_cast<WaitEntry*>(timeoutWe_);
+    if (DelayedRemove(timeoutWe_->tp, dwe)) {
         delayedCbCnt_.fetch_sub(1);
         SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(timeoutWe_));
-        timeoutWe_ = nullptr;
     }
+    return;
 }
 
 void QueueHandler::RunTimeOutCallback(QueueTask* task)

@@ -99,6 +99,18 @@ bool BaseQueue::HasTask(const char* name)
     return iter != whenMap_.cend();
 }
 
+void BaseQueue::PrintMutexOwner()
+{
+    MutexOwnerType type = mutex_.GetOwnerType();
+    if (type == MutexOwnerType::MUTEX_OWNER_TYPE_TASK) {
+        FFRT_LOGI("In queue %u, task %llu owns the lock for %llu us.",
+            queueId_, mutex_.GetOwnerId(), mutex_.GetDuration());
+    } else {
+        FFRT_LOGI("In queue %u, thread %llu owns the lock for %llu us.",
+            queueId_, mutex_.GetOwnerId(), mutex_.GetDuration());
+    }
+}
+
 void BaseQueue::ClearWhenMap()
 {
     for (auto it = whenMap_.begin(); it != whenMap_.end(); it++) {
@@ -109,7 +121,7 @@ void BaseQueue::ClearWhenMap()
         }
     }
     whenMap_.clear();
-    cond_.notify_one();
+    cond_.NotifyOne();
 }
 
 std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr)

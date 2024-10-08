@@ -89,9 +89,8 @@ QueueTask* ConcurrentQueue::Pull()
 
     // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
-        uint32_t queueId = queueId_;
         int oldValue = concurrency_.fetch_sub(1); // 取不到后继的task，当前这个task正式退出
-        FFRT_LOGD("concurrency[%d] - 1 [queueId=%u] switch into inactive", oldValue, queueId);
+        FFRT_LOGD("concurrency[%d] - 1 [queueId=%u] switch into inactive", oldValue, queueId_);
         return nullptr;
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);

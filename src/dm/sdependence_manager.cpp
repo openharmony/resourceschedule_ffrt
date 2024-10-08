@@ -125,10 +125,9 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         */
     task->IncChildRef();
 
-    std::vector<std::pair<VersionCtx*, NestType>> inDatas;
-    std::vector<std::pair<VersionCtx*, NestType>> outDatas;
-
     if (!(insNoDup.empty() && outsNoDup.empty())) {
+        std::vector<std::pair<VersionCtx*, NestType>> inDatas;
+        std::vector<std::pair<VersionCtx*, NestType>> outDatas;
         // 3 Put the submitted task into Entity
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
 

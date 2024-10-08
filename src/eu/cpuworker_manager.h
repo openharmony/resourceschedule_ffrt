@@ -96,6 +96,7 @@ private:
     bool WorkerTearDown();
     bool DecWorker() override
     {return false;}
+    virtual void WorkerRetiredSimplified(WorkerThread* thread) = 0;
     void NotifyTaskPicked(const WorkerThread* thread);
     /* strategy options for task pick up */
     virtual CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread) = 0;

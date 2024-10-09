@@ -368,7 +368,7 @@ int SDependenceManager::onSkip(ffrt_task_handle_t handle)
         return ffrt_success;
     }
 
-    FFRT_LOGE("skip task [%lu] failed", task->gid);    
+    FFRT_LOGE("skip task [%lu] failed", task->gid);
     return ffrt_error;
 }
 } // namespace ffrt

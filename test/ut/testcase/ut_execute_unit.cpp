@@ -76,8 +76,8 @@ HWTEST_F(ExecuteUnitTest, submit_cancel_failed, TestSize.Level1)
     EXPECT_EQ(x, 1);
 
     cancel_ret = ffrt::skip(h1);
-    EXPECT_EQ(cancel_ret, 1);
+    EXPECT_EQ(cancel_ret, -1);
     ffrt::task_handle h3;
     cancel_ret = ffrt::skip(h3);
-    EXPECT_EQ(cancel_ret, -1);
+    EXPECT_EQ(cancel_ret, 22);
 }

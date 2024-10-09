@@ -526,18 +526,7 @@ int64_t ffrt_this_queue_get_id()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_skip(ffrt_task_handle_t handle)
 {
-    if (!handle) {
-        FFRT_LOGE("input ffrt task handle is invalid.");
-        return -1;
-    }
-    ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
-    auto exp = ffrt::SkipStatus::SUBMITTED;
-    if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
-        __ATOMIC_RELAXED)) {
-        return 0;
-    }
-    FFRT_LOGW("skip task [%lu] failed, because the task is executing now or has finished.", task->gid);
-    return 1;
+    return ffrt::FFRTFacade::GetDMInstance().onSkip(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))

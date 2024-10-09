@@ -104,9 +104,11 @@ public:
     virtual void onWait(const ffrt_deps_t* deps) = 0;
 #endif
 
-    virtual int onExecResults(const ffrt_deps_t *deps) = 0;
+    virtual int onExecResults(ffrt_task_handle_t handle) = 0;
 
     virtual void onTaskDone(CPUEUTask* task) = 0;
+
+    virtual int onSkip(ffrt_task_handle_t handle) = 0;
 
     static inline CPUEUTask* Root()
     {

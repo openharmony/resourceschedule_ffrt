@@ -526,7 +526,7 @@ int64_t ffrt_this_queue_get_id()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_skip(ffrt_task_handle_t handle)
 {
-    return ffrt::FFRTFacade::GetDMInstance()::onSkip(handle);
+    return ffrt::FFRTFacade::GetDMInstance().onSkip(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))

@@ -32,6 +32,7 @@ typedef enum {
     ffrt_io_task = 1,
     ffrt_uv_task, // only used to register func for libuv
     ffrt_queue_task,
+    ffrt_xpu_task,
     ffrt_invalid_task
 } ffrt_executor_task_type_t;
 

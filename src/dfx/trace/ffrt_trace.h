@@ -73,9 +73,9 @@ void StartAsyncTrace(uint64_t label, const std::string& value, int32_t taskId, f
 void FinishAsyncTrace(uint64_t label, const std::string& value, int32_t taskId);
 void CountTrace(uint64_t label, const std::string& name, int64_t count);
 #ifdef APP_USE_ARM
-static const std::string TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
+constexpr const char* TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
 #else
-static const std::string TRACE_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitrace_meter.so";
+constexpr const char* TRACE_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitrace_meter.so";
 #endif
 class TraceAdapter {
 public:
@@ -112,16 +112,16 @@ private:
             return true;
         }
 
-        handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
+        handle = dlopen(TRACE_LIB_PATH, RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
-            FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH.c_str());
+            FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH);
             return false;
         }
 
 #define LOAD_FUNC(x) x = reinterpret_cast<x##Type>(dlsym(handle, #x));                        \
         if (x == nullptr)                                                                     \
         {                                                                                     \
-            FFRT_LOGE("load func %s from %s failed", #x, TRACE_LIB_PATH.c_str());             \
+            FFRT_LOGE("load func %s from %s failed", #x, TRACE_LIB_PATH);             \
             return false;                                                                     \
         }
             LOAD_FUNC(IsTagEnabled);

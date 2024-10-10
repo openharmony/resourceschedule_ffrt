@@ -23,9 +23,9 @@
 
 namespace ffrt {
 #if (defined(__aarch64__) || defined(__x86_64__))
-static const std::string EVENTHANDLER_LIB_PATH = "/system/lib64/chipset-pub-sdk/libeventhandler.z.so";
+constexpr const char* EVENTHANDLER_LIB_PATH = "/system/lib64/chipset-pub-sdk/libeventhandler.z.so";
 #else
-static const std::string EVENTHANDLER_LIB_PATH = "/system/lib/chipset-pub-sdk/libeventhandler.z.so";
+constexpr const char* EVENTHANDLER_LIB_PATH = "/system/lib/chipset-pub-sdk/libeventhandler.z.so";
 #endif
 
 enum class Priority : uint32_t {
@@ -101,7 +101,7 @@ private:
             return;
         }
 
-        handle_ = dlopen(EVENTHANDLER_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
+        handle_ = dlopen(EVENTHANDLER_LIB_PATH, RTLD_NOW | RTLD_LOCAL);
         if (handle_ == nullptr) {
             FFRT_LOGE("eventhandler lib handle is null.");
             return;

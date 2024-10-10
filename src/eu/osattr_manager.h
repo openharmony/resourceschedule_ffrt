@@ -38,15 +38,15 @@ const std::string cpuUclampmaxNode = "/cpu.uclamp.max";
 const std::string cpuLatencyniceNode = "/cpu.latency.nice";
 const std::string cpuvipprioNode = "/cpu.vip_prio";
 #endif
-const int PATH_MAX_LENS = 4096;
-const int CGROUP_SHARES_MIN = 2;
-const int CGROUP_SHARES_MAX = 262144;
-const int CGROUP_LAT_NICE_MIN = -20;
-const int CGROUP_LAT_NICE_MAX = 19;
-const int CGROUP_UCLAMP_MIN = 0;
-const int CGROUP_UCLAMP_MAX = 100;
-const int CGROUP_VIPPRIO_MIN = 0;
-const int CGROUP_VIPPRIO_MAX = 10;
+constexpr int PATH_MAX_LENS = 4096;
+constexpr int CGROUP_SHARES_MIN = 2;
+constexpr int CGROUP_SHARES_MAX = 262144;
+constexpr int CGROUP_LAT_NICE_MIN = -20;
+constexpr int CGROUP_LAT_NICE_MAX = 19;
+constexpr int CGROUP_UCLAMP_MIN = 0;
+constexpr int CGROUP_UCLAMP_MAX = 100;
+constexpr int CGROUP_VIPPRIO_MIN = 0;
+constexpr int CGROUP_VIPPRIO_MAX = 10;
 class OSAttrManager {
 public:
     OSAttrManager() {}

@@ -2616,6 +2616,7 @@ int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);
 
 * 提供接口ffrt_timer_start设定超时的绝对时间，用于设定epoll_wait阻塞时间，若调用PollOnce时已超时，则执行入参所设的回调函数cb
 * 提供接口ffrt_timer_stop用于根据任务handle取消定时任务
+* 当timer超时回调被执行时，ffrt会记录并保存handle的执行状态（执行中、执行完成），该记录会在ffrt_timer_stop被调用后删除。因此建议ffrt_timer_start和ffrt_timer_stop接口成对使用，否则可能造成记录数据的无限膨胀
 
 
 #### 样例

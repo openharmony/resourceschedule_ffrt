@@ -23,7 +23,6 @@ public:
     SCPUWorkerManager();
     ~SCPUWorkerManager() override;
     WorkerAction WorkerIdleAction(const WorkerThread* thread) override;
-    void WorkerRetiredSimplified(WorkerThread* thread) override;
     void WorkerPrepare(WorkerThread* thread) override;
     void WakeupWorkers(const QoS& qos) override;
     CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread) override;
@@ -31,7 +30,6 @@ public:
     friend class CPUManagerStrategy;
 private:
     void AddDelayedTask(int qos);
-    std::array<std::atomic<int>, QoS::MaxNum()> workerRetiringCount_;
 };
 } // namespace ffrt
 #endif

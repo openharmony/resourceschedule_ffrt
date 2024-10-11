@@ -235,10 +235,10 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         // run task batch
         nextTask = task->GetNextTask();
         if (nextTask == nullptr) {
+            QueueMonitor::GetInstance().ResetQueueInfo(GetQueueId());
             if (!queue_->IsOnLoop()) {
                 Deliver();
             }
-            QueueMonitor::GetInstance().ResetQueueInfo(GetQueueId());
         }
         task->DecDeleteRef();
     }

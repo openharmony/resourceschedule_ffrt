@@ -25,7 +25,8 @@ namespace ffrt {
 struct TaskTimeoutInfo {
     CPUEUTask* task_ = nullptr;
     int recordLevel_ = 0;
-    int sampledTimes_ = -2;
+    int executionTime_ = 0;
+    int executionTime_ = 0;
 
     TaskTimeoutInfo() {}
     explicit TaskTimeoutInfo(CPUEUTask* task) : task_(task) {}
@@ -35,14 +36,14 @@ struct TimeoutFunctionInfo {
     size_t qosLevel_;
     int coWorkerCount_;
     int tid_;
-    int sampledTimes_;
+    int executionTime_;
     uintptr_t type_;
     uint64_t gid_;
     std::string label_;
 
-    TimeoutFunctionInfo(size_t qosLevel, int coWorkerCount, int workerId, int sampledTimes,
+    TimeoutFunctionInfo(size_t qosLevel, int coWorkerCount, int workerId, int executionTime,
         uintptr_t workerTaskType, uint64_t taskId, std::string workerTaskLabel)
-        : qosLevel_(qosLevel), coWorkerCount_(coWorkerCount), tid_(workerId), sampledTimes_(sampledTimes),
+        : qosLevel_(qosLevel), coWorkerCount_(coWorkerCount), tid_(workerId), executionTime_(executionTime),
         type_(workerTaskType) {
             if (type_ == ffrt_normal_task || type_ == ffrt_queue_task) {
                 gid_ = taskId;

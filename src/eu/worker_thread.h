@@ -125,6 +125,7 @@ public:
             }
         }
         if (ret != 0) {
+            FFRT_LOGE("pthread_create failed, ret = %d", ret);
             exited = true;
         }
         pthread_attr_destroy(&attr_);

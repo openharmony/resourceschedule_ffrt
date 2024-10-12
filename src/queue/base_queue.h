@@ -21,10 +21,9 @@
 #include <mutex>
 #include <memory>
 #include "c/queue.h"
+#include "cpp/condition_variable.h"
 #include "internal_inc/non_copyable.h"
 #include "queue_strategy.h"
-#include "sync/record_condition_variable.h"
-#include "sync/record_mutex.h"
 
 namespace ffrt {
 class QueueTask;
@@ -69,18 +68,6 @@ public:
 
     bool HasTask(const char* name);
 
-    bool HasLock()
-    {
-        return mutex_.HasLock();
-    }
-
-    bool IsLockTimeout()
-    {
-        return mutex_.IsTimeout();
-    }
-
-    void PrintMutexOwner();
-
 protected:
     inline uint64_t GetNow() const
     {
@@ -96,8 +83,8 @@ protected:
     std::multimap<uint64_t, QueueTask*> whenMap_;
     QueueStrategy<QueueTask>::DequeFunc dequeFunc_ { nullptr };
 
-    RecordMutex mutex_;
-    RecordConditionVariable cond_;
+    ffrt::mutex mutex_;
+    ffrt::condition_variable cond_;
 
 private:
     static std::atomic_uint32_t queueId;

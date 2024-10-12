@@ -128,7 +128,6 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
     TimePoint now = std::chrono::steady_clock::now();
     queuesRunningInfo_[queueId] = {taskId, now};
     if (exit_.exchange(false)) {
-        abortSendTimer_.store(false);
         SendDelayedWorker(now + std::chrono::microseconds(timeoutUs_));
     }
 }
@@ -188,21 +187,6 @@ void QueueMonitor::CheckQueuesStatus()
         std::shared_lock lock(mutex_);
         queueRunningInfoSize = queuesRunningInfo_.size();
     }
-
-    // Displays information about queues that hold locks for a long time.
-    for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
-        if (queuesStructInfo_[i] == nullptr || queuesStructInfo_[i]->GetQueue() == nullptr) {
-            continue;
-        }
-
-        if (!queuesStructInfo_[i]->GetQueue()->HasLock() || !queuesStructInfo_[i]->GetQueue()->IsLockTimeout()) {
-            continue;
-        }
-
-        queuesStructInfo_[i]->GetQueue()->PrintMutexOwner();
-    }
-
-    // Displays information about queues whose tasks time out.
     for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
         {
             std::unique_lock lock(mutex_);
@@ -231,7 +215,7 @@ void QueueMonitor::CheckQueuesStatus()
                 std::string senarioName = "Serial_Queue_Timeout";
                 TaskTimeoutReport(ss, processNameStr, senarioName);
             }
-#endif
+#endif   
             ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
             if (func) {
                 func(taskId, ss.str().c_str(), ss.str().size());

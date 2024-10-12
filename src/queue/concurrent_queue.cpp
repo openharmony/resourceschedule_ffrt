@@ -61,7 +61,7 @@ int ConcurrentQueue::Push(QueueTask* task)
 
     whenMap_.insert({task->GetUptime(), task});
     if (task == whenMap_.begin()->second) {
-        cond_.NotifyAll();
+        cond_.notify_all();
     }
 
     return SUCC;
@@ -82,7 +82,7 @@ QueueTask* ConcurrentQueue::Pull()
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        cond_.WaitFor(lock, std::chrono::microseconds(diff));
+        cond_.wait_for(lock, std::chrono::microseconds(diff));
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
     }
@@ -112,7 +112,7 @@ void ConcurrentQueue::Stop()
     }
     whenMap_.clear();
     if (loop_ == nullptr) {
-        cond_.NotifyAll();
+        cond_.notify_all();
     }
 
     FFRT_LOGI("clear [queueId=%u] succ", queueId_);

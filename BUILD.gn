@@ -172,7 +172,6 @@ ohos_shared_library("libffrt") {
       "src/sync/perf_counter.cpp",
       "src/sync/poller.cpp",
       "src/sync/poller_api.cpp",
-      "src/sync/record_mutex.cpp",
       "src/sync/shared_mutex.cpp",
       "src/sync/sleep.cpp",
       "src/sync/sync.cpp",

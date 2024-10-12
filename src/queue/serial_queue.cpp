@@ -35,7 +35,7 @@ int SerialQueue::Push(QueueTask* task)
 
     whenMap_.insert({task->GetUptime(), task});
     if (task == whenMap_.begin()->second) {
-        cond_.NotifyOne();
+        cond_.notify_one();
     }
 
     return SUCC;
@@ -49,7 +49,7 @@ QueueTask* SerialQueue::Pull()
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        cond_.WaitFor(lock, std::chrono::microseconds(diff));
+        cond_.wait_for(lock, std::chrono::microseconds(diff));
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
     }

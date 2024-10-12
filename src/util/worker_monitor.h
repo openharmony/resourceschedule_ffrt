@@ -25,7 +25,7 @@ namespace ffrt {
 struct TaskTimeoutInfo {
     CPUEUTask* task_ = nullptr;
     int recordLevel_ = 0;
-    int executionTime_ = 0;
+    int sampledTimes_ = 0;
     int executionTime_ = 0;
 
     TaskTimeoutInfo() {}

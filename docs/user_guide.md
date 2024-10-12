@@ -3850,7 +3850,11 @@ void fib_ffrt(int x, int* y)
 * recursive mutex在lock()成功时记录调用者"执行栈"作为锁的owner，在后续lock()时会判断调用者是否为当前执行栈，如果是则返回成功，以支持在同一个执行栈中嵌套获取锁。在标准库的实现中，"执行栈"以线程标识表示。
 * 在FFRT Task中使用标准库的recursive mutex，如果在外层和内层lock()之间，发生Task（协程）退出，Task恢复执行时在不同于首次调用lock()的FFRT Worker上，则判断当前线程不是owner，lock()失败，FFRT Worker挂起，后面的unlock()不会被执行，从而出现死锁。
 
-## 不支持用户在fork出的子进程内使用ffrt
+## FFRT对使用fork()场景的支持说明
+
+* 在未使用FFRT的进程中，创建子进程，支持在该子进程中使用FFRT（调用submit，timer，epoll等任务类操作）。
+* 在已经使用FFRT的进程中，以fork()（无exec()）方式创建子进程，不支持在该子进程中使用FFRT。
+* 在已经使用FFRT的进程中，以fork()+exec()方式创建子进程，支持在子进程中使用FFRT。
 
 ## 以动态库方式部署FFRT
 

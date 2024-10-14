@@ -66,7 +66,7 @@ void QueueTask::Notify()
     std::unique_lock lock(mutex_);
     isFinished_.store(true);
     if (onWait_) {
-        cond_.notify_all();
+        waitCond_.notify_all();
     }
 }
 
@@ -87,7 +87,7 @@ void QueueTask::Wait()
     std::unique_lock lock(mutex_);
     onWait_ = true;
     while (!isFinished_.load()) {
-        cond_.wait(lock);
+        waitCond_.wait(lock);
     }
 }
 

@@ -62,7 +62,7 @@ namespace ffrt {
 #ifdef FFRT_OH_WATCHDOG_ENABLE
         FFRT_LOGI("start to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout);
         auto now = std::chrono::steady_clock::now();
-        WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
+        WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
         // set dealyedworker callback
         we->cb = ([gid, timeout](WaitEntry* we) {
             std::lock_guard<decltype(lock)> l(lock);

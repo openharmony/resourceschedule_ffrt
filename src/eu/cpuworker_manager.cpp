@@ -17,8 +17,9 @@
 #include <sys/stat.h>
 #include "qos.h"
 #include "dfx/perf/ffrt_perf.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "eu/cpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
@@ -74,6 +75,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance().SubmitTask();
 #endif
+    FFRTTraceRecord::UseFfrt();
     return true;
 }
 
@@ -280,6 +282,7 @@ void CPUWorkerManager::WorkerJoinTg(const QoS& qos, pid_t pid)
 void CPUWorkerManager::WorkerLeaveTg(const QoS& qos, pid_t pid)
 {
     if (qos == qos_user_interactive) {
+        (void)LeaveWG(pid);
         return;
     }
     auto& tgwrap = groupCtl[qos()];

@@ -29,12 +29,12 @@
 #undef NS_PER_SEC
 #endif
 namespace ffrt {
-bool DelayedWakeup(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
+bool DelayedWakeup(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     return DelayedWorker::GetInstance().dispatch(to, we, wakeup);
 }
 
-bool DelayedRemove(const time_point_t& to, WaitEntry* we)
+bool DelayedRemove(const TimePoint& to, WaitEntry* we)
 {
     return DelayedWorker::GetInstance().remove(to, we);
 }

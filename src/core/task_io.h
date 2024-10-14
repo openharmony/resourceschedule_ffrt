@@ -28,8 +28,8 @@ typedef struct {
     void* data;
 } ffrt_io_callable_t;
 
-struct ffrt_executor_io_task: public ffrt_executor_task {
-    ffrt_executor_io_task(const QoS &qos) : qos(qos)
+struct IOTaskExecutor: public ffrt_executor_task {
+    IOTaskExecutor(const QoS &qos) : qos(qos)
     {
         type = ffrt_io_task;
         work = {nullptr, nullptr, nullptr};

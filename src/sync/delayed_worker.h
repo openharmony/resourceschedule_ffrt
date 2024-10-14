@@ -22,7 +22,7 @@
 #include "cpp/sleep.h"
 #include "sched/execute_ctx.h"
 namespace ffrt {
-using time_point_t = std::chrono::steady_clock::time_point;
+using TimePoint = std::chrono::steady_clock::time_point;
 
 struct DelayedWork {
     WaitEntry* we;
@@ -30,7 +30,7 @@ struct DelayedWork {
 };
 
 class DelayedWorker {
-    std::multimap<time_point_t, DelayedWork> map;
+    std::multimap<TimePoint, DelayedWork> map;
     std::mutex lock;
     std::atomic_bool toExit = false;
     std::condition_variable cv;
@@ -43,12 +43,14 @@ class DelayedWorker {
 
 public:
     static DelayedWorker &GetInstance();
+    static void ThreadEnvCreate();
+    static bool IsDelayerWorkerThread();
 
     DelayedWorker(DelayedWorker const&) = delete;
     void operator=(DelayedWorker const&) = delete;
 
-    bool dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
-    bool remove(const time_point_t& to, WaitEntry* we);
+    bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
+    bool remove(const TimePoint& to, WaitEntry* we);
 
 private:
     DelayedWorker();

@@ -19,12 +19,37 @@
 #include <sys/syscall.h>
 #include <sys/prctl.h>
 #include <thread>
+#include <pthread.h>
 #include "dfx/log/ffrt_log_api.h"
 #include "util/name_manager.h"
 namespace {
     const int FFRT_DELAY_WORKER_TIMEOUT_SECONDS = 180;
+    const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
 }
+
 namespace ffrt {
+pthread_key_t g_ffrtDelayWorkerFlagKey;
+pthread_once_t g_ffrtDelayWorkerThreadKeyOnce = PTHREAD_ONCE_INIT;
+void FFRTDelayWorkerEnvKeyCreate()
+{
+    pthread_key_create(&g_ffrtDelayWorkerFlagKey, nullptr);
+}
+
+void DelayedWorker::ThreadEnvCreate()
+{
+    pthread_once(&g_ffrtDelayWorkerThreadKeyOnce, FFRTDelayWorkerEnvKeyCreate);
+}
+
+bool DelayedWorker::IsDelayerWorkerThread()
+{
+    bool isDelayerWorkerFlag = false;
+    void* flag = pthread_getspecific(g_ffrtDelayWorkerFlagKey);
+    if ((flag != nullptr) && (reinterpret_cast<uintptr_t>(flag) == FFRT_DELAY_WORKER_MAGICNUM)) {
+        isDelayerWorkerFlag = true;
+    }
+    return isDelayerWorkerFlag;
+}
+
 void DelayedWorker::ThreadInit()
 {
     if (delayWorker != nullptr && delayWorker->joinable()) {
@@ -38,6 +63,8 @@ void DelayedWorker::ThreadInit()
             FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]\n", pthread_self(), ret, errno);
         }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
+        pthread_setspecific(g_ffrtDelayWorkerFlagKey, reinterpret_cast<void*>(FFRT_DELAY_WORKER_MAGICNUM));
+
         for (;;) {
             std::unique_lock lk(lock);
             if (toExit) {
@@ -50,7 +77,8 @@ void DelayedWorker::ThreadInit()
                 break;
             }
             if (result == 0) {
-                cv.wait_until(lk, map.begin()->first);
+                auto time_out = map.begin()->first;
+                cv.wait_until(lk, time_out);
             } else if (result == 1) {
                 if (++noTaskDelayCount_ > 1) {
                     exited_ = true;
@@ -90,9 +118,9 @@ int DelayedWorker::HandleWork()
     if (!map.empty()) {
         noTaskDelayCount_ = 0;
         do {
-            time_point_t now = std::chrono::steady_clock::now();
+            TimePoint now = std::chrono::steady_clock::now();
             auto cur = map.begin();
-            if (cur->first <= now) {
+            if (!toExit && cur != map.end() && cur->first <= now) {
                 DelayedWork w = cur->second;
                 map.erase(cur);
                 lock.unlock();
@@ -108,13 +136,19 @@ int DelayedWorker::HandleWork()
 }
 
 // There is no requirement that to be less than now
-bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
+bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;
     lock.lock();
     if (toExit) {
         lock.unlock();
         FFRT_LOGE("DelayedWorker destroy, dispatch failed\n");
+        return false;
+    }
+
+    TimePoint now = std::chrono::steady_clock::now();
+    if (to <= now) {
+        lock.unlock();
         return false;
     }
 
@@ -135,7 +169,7 @@ bool DelayedWorker::dispatch(const time_point_t& to, WaitEntry* we, const std::f
     return true;
 }
 
-bool DelayedWorker::remove(const time_point_t& to, WaitEntry* we)
+bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 {
     std::lock_guard<decltype(lock)> l(lock);
 

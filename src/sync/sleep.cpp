@@ -38,7 +38,7 @@ CPUEUTask* ExecuteCtxTask()
     return ctx->task;
 }
 
-void sleep_until_impl(const time_point_t& to)
+void SleepUntilImpl(const TimePoint& to)
 {
     auto task = ExecuteCtxTask();
     if (ThreadWaitMode(task)) {
@@ -52,7 +52,7 @@ void sleep_until_impl(const time_point_t& to)
         return;
     }
     // be careful about local-var use-after-free here
-    std::function<void(WaitEntry*)> cb([](WaitEntry* we) { CoRoutineFactory::CoWakeFunc(we->task, false); });
+    static std::function<void(WaitEntry*)> cb([](WaitEntry* we) { CoRoutineFactory::CoWakeFunc(we->task, false); });
     FFRT_BLOCK_TRACER(ExecuteCtxTask()->gid, slp);
     CoWait([&](CPUEUTask* task) -> bool { return DelayedWakeup(to, &task->fq_we, cb); });
 }
@@ -90,7 +90,7 @@ int ffrt_usleep(uint64_t usec)
     auto duration = std::chrono::microseconds{usec};
     auto to = std::chrono::steady_clock::now() + duration;
 
-    ffrt::this_task::sleep_until_impl(to);
+    ffrt::this_task::SleepUntilImpl(to);
     return ffrt_success;
 }
 

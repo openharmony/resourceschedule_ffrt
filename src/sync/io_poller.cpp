@@ -113,7 +113,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
     epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&data)} };
     FFRT_BLOCK_TRACER(ctx->task->gid, fd);
     if (ThreadWaitMode(ctx->task)) {
-        std::unique_lock<std::mutex> lck(ctx->task->lock);
+        std::unique_lock<std::mutex> lck(ctx->task->mutex_);
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
             if (FFRT_UNLIKELY(LegacyMode(ctx->task))) {
                 ctx->task->blockType = BlockType::BLOCK_THREAD;
@@ -161,7 +161,7 @@ void IOPoller::PollOnce(int timeout) noexcept
 
         auto task = reinterpret_cast<CPUEUTask *>(data->data);
         if (ThreadNotifyMode(task)) {
-            std::unique_lock<std::mutex> lck(task->lock);
+            std::unique_lock<std::mutex> lck(task->mutex_);
             if (BlockThread(task)) {
                 task->blockType = BlockType::BLOCK_COROUTINE;
             }

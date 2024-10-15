@@ -525,10 +525,19 @@ int Poller::UnregisterTimer(int handle) noexcept
     auto it = executedHandle_.find(handle);
     if (it != executedHandle_.end()) {
         while (it->second == TimerStatus::EXECUTING) {
+            timerMutex_.unlock();
             std::this_thread::yield();
+            timerMutex_.lock();
+            it = executedHandle_.find(handle);
+            if (it == executedHandle_.end()) {
+                break;
+            }
         }
-        executedHandle_.erase(it);
-        return 0;
+
+        if (it != executedHandle_.end()) {
+            executedHandle_.erase(it);
+            return 0;
+        }
     }
 
     bool wake = false;

@@ -23,7 +23,7 @@ file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/dfx/dump/dump.cpp"
 	"${FFRT_CODE_PATH}/dfx/sysevent/sysevent.cpp"
 	"${FFRT_CODE_PATH}/dfx/watchdog/watchdog_util.cpp"
-	"${FFRT_CODEPATH}/staging_qos/sched/qos_register_impl.cpp"
+	"${FFRT_CODE_PATH}/staging_qos/sched/qos_register_impl.cpp"
 	"${FFRT_CODE_PATH}/flo/*.cpp"
 )
 

@@ -20,9 +20,9 @@
 #include <string>
 #include <sys/mman.h>
 #ifdef OHOS_STANDARD_SYSTEM
-#include "../src_ext/flo/flo_ohos.h"
+#include "flo/flo_ohos.h"
 #else
-#include "../src_ext/flo/flo_adapter.h"
+#include "flo/flo_adapter.h"
 #endif
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"

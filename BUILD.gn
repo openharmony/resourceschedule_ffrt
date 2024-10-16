@@ -20,6 +20,7 @@ config("ffrt_config") {
   include_dirs = [
     "interfaces/kits",
     "interfaces/inner_api",
+    "interfaces/staging_api",
   ]
 
   ffrt_defaults_cflags = [

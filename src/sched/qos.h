@@ -18,7 +18,7 @@
 
 #include "ffrt_inner.h"
 #include "staging_qos/sched/qos_register_impl.h"
-#include "../staging.api/qos/qos_def.h"
+#include "staging_api/qos/qos_def.h"
 
 constexpr unsigned char NR_QOS = 6;
 

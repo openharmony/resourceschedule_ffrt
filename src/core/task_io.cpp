@@ -129,7 +129,7 @@ void ffrt_wake_coroutine(void* task)
     }
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&wakedTask->wq);
-    if (!ffrt::FFRTSchedule::Instance()->InsertNode(node, wakedTask->qos)) {
+    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, wakedTask->qos)) {
         FFRT_LOGE("Submit io task failed!");
     }
 }

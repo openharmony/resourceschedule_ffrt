@@ -27,7 +27,6 @@
 #include "qos.h"
 #include "util/ffrt_facade.h"
 #include "util/name_manager.h"
-#include "staging_qos/sched/qos_register_impl.h"
 
 namespace ffrt {
 WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
@@ -83,26 +82,7 @@ void SetThreadAttr(WorkerThread* thread, const QoS& qos)
 {
     if (qos() <= qos_max) {
         FFRTQosApplyForOther(qos(), thread->Id());
-    } else if (qos() > qos_max_&& qoe() < GetFuncQosMax()() - 1) {
-        // custom register qos
-        unsigned long affinity = QosRegister::Instance()->GetAffinity(qos());
-        FFRT_LOGD("customQos %d affinity 0x%x", qos(), affinity);
-        int ret = 0;
-        if (affinity != 0) {
-            ret = SetCpuAffinity(affinity, thread->Id());
-        }
-        if (ret != 0) {
-            FFRT_LOGE("set affinity failed, ret %d", ret);
-        }
-
-        int expectQos = QosRegister::Instance()->GetExpectQos(qos());
-        FFRT_LOGD("expectQos: %d", expectQos);
-        FFRTQosApplyForOther(expectQos, thread->Id());    }
-    } else if (qoe() == GetFuncQosMax()() - 1) {
-        OSAttrManager::Instance()->SetTidToGroup(thread->Id());
-    } else {
-        FFRT_LOGE("qos:%d is invalid\n", qos());
+        FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
     }
-    FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
 }
 }; // namespace ffrt

@@ -19,11 +19,6 @@
 #include <cstring>
 #include <string>
 #include <sys/mman.h>
-#ifdef OHOS_STANDARD_SYSTEM
-#include "flo/flo_ohos.h"
-#else
-#include "flo/flo_adapter.h"
-#endif
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
@@ -379,10 +374,6 @@ static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
         }
     }
     FFRT_FAKE_TRACE_MARKER(task->gid);
-
-    if (task->floCtxId >= 0) {
-        FloRestore(task->floCtxId);
-    }
 }
 
 static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
@@ -391,10 +382,6 @@ static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
     int traceTagNum = static_cast<int>(task->traceTag.size());
     for (int i = 0; i < traceTagNum; ++i) {
         FFRT_TRACE_END();
-    }
-
-    if (task->floCtxId >= 0) {
-        FloSave(task->floCtxId);
     }
 }
 

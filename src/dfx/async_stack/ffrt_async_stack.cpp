@@ -24,8 +24,8 @@
 using FFRTSetStackIdFunc = void(*)(uint64_t stackId);
 using FFRTCollectAsyncStackFunc = uint64_t(*)();
 static FFRTCollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
-static g_setStackIdFunc = nullptr;
-static g_enabledFFRTAsyncStack = false;
+static FFRTSetStackIdFunc g_setStackIdFunc = nullptr;
+static bool g_enabledFFRTAsyncStack = false;
 
 static void LoadDfxAsyncStackLib()
 {

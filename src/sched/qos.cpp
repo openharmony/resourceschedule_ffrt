@@ -20,39 +20,37 @@ int QoSMap(int qos)
     if (qos <= static_cast<int>(qos_inherit)) {
         return qos_inherit;
     } else if (qos >= static_cast<int>(qos_background) &&
-        qos <= (static_cast<int>(qos_max) + MAX_REGISTER_QOS_NUM)) {
+        qos <= static_cast<int>(qos_max)) {
         return qos;
-    } else if (qos >= qos_custom_begin && qos <= qos_custom_max) {
-        return CAL_CUSTOM_QOS(qos);
     } else {
         return qos_default;
     }
 }
 
-static FuncQosMap funcQosMap = nullptr;
+static FuncQosMap g_funcQosMap = nullptr;
 void SetFuncQosMap(FuncQosMap func)
 {
-    funcQosMap = func;
+    g_funcQosMap = func;
 }
 
 FuncQosMap GetFuncQosMap(void)
 {
-    return funcQosMap;
+    return g_funcQosMap;
 }
 
 int QoSMax(void)
 {
-    return CAL_CUSTOM_QOS(qos_custom_max) + 1;
+    return qos_max + 1;
 }
 
-static FuncQosMax funcQosMax = nullptr;
+static FuncQosMax g_funcQosMax = nullptr;
 void SetFuncQosMax(FuncQosMax func)
 {
-    funcQosMax = func;
+    g_funcQosMax = func;
 }
 
 FuncQosMax GetFuncQosMax(void)
 {
-    return funcQosMax;
+    return g_funcQosMax;
 }
 }

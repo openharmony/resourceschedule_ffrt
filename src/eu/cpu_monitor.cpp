@@ -369,7 +369,7 @@ void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotif
     WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
 
-    if (notifyType == TaskNotifyType::Task_PICKED) {
+    if (notifyType == TaskNotifyType::TASK_PICKED) {
         int wakedWorkerCount = workerCtrl.executionNum;
         double remainingLoadRatio = (wakedWorkerCount == 0) ? static_cast<double>(workerCtrl.maxConcurrency) :
             static_cast<double>(taskCount) / static_cast<double>(wakedWorkerCount);

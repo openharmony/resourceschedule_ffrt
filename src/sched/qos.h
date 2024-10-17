@@ -17,14 +17,11 @@
 #define FFRT_QOS_H
 
 #include "ffrt_inner.h"
-#include "staging_qos/sched/qos_register_impl.h"
-#include "staging_api/qos/qos_def.h"
 
 constexpr unsigned char NR_QOS = 6;
 
 namespace ffrt {
 
-#define CAL_CUSTOM_QOS(qos)  (qos_max + MAX_REGISTER_QOS_NUM + (qos) - ffrt_qos_custom_begin + 1)
 typedef int (*FuncQosMap)(int qos);
 void SetFuncQosMap(FuncQosMap func);
 FuncQosMap GetFuncQosMap(void);
@@ -43,8 +40,8 @@ public:
     {
         if (qos < static_cast<int>(qos_inherit)) {
             qos = qos_inherit;
-        } else if (GetFuncQosMax() != nullptr && qos >= GetFuncQosMax()()) {
-            qos = GetFuncQosMax()() - 1;
+        } else if (qos > static_cast<int>(qos_max)) {
+            qos = qos_max;
         }
         qos_ = qos;
     }
@@ -70,15 +67,12 @@ public:
 
     static int Max()
     {
-        if (GetFuncQosMax() != nullptr) {
-            return GetFuncQosMax()();
-        }
-        return CAL_CUSTOM_QOS(qos_custom_max) + 1;
+        return qos_max + 1;
     }
 
     static constexpr int MaxNum()
     {
-        return CAL_CUSTOM_QOS(qos_custon_max) + 1;
+        return qos_max + 1;
     }
 
 private:

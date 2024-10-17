@@ -30,12 +30,11 @@
 #include "dfx/watchdog/watchdog_util.h"
 #include "eu/func_manager.h"
 #include "util/ffrt_facade.h"
+#include "util/slab.h"
 #include "eu/sexecute_unit.h"
-
 #include "core/task_io.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-
 #include "tm/task_factory.h"
 #include "tm/queue_task.h"
 
@@ -537,6 +536,7 @@ int ffrt_skip(ffrt_task_handle_t handle)
         __ATOMIC_RELAXED)) {
         return 0;
     }
+    FFRT_LOGW("skip task [%lu] failed, because the task is executing now or has finished.", task->gid);
     return 1;
 }
 
@@ -572,8 +572,7 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::QoS _qos = qos;
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
-    ffrt::FFRTFacade::GetDMInstance();
-    ffrt::FFRTScheduler* sch = ffrt::FFRTSchedule::GetSchedInstance();
+    ffrt::FFRTScheduler* sch = ffrt::FFRTFacade::GetSchedInstance();
     bool ret = sch->RemoveNode(node, _qos);
     if (ret) {
         ffrt::FFRTTraceRecord::TaskCancel<ffrt_uv_task>(qos);

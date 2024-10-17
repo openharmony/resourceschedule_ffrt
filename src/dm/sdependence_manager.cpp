@@ -18,7 +18,6 @@
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
-#include "tm/queue_task.h"
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
@@ -33,7 +32,6 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 #endif
     // control construct sequences of singletons
     SimpleAllocator<CPUEUTask>::Instance();
-    SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
     PollerProxy::Instance();
@@ -93,13 +91,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
     FFRT_TRACE_BEGIN(("submit|" + std::to_string(task->gid)).c_str());
-    FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_ASYNC_STACKTRACE
     {
         task->stackId = FFRTCollectAsyncStack();
     }
 #endif
-
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos, &(task->createTime), &(task->fromTid));
 
@@ -158,10 +154,30 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         task->notifyWorker_ = attr->notifyWorker_;
     }
 
-    FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     FFRT_TRACE_END();
+}
+
+void SDependenceManager::onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+{
+    if (runTask->dev_type != FFRT_DEV_CPU) {
+        FFRT_LOGE("Submit dev task failed, not cpu task");
+        return;
+    }
+    ffrt_callable_t call = runTask->run;
+    if (call.exec == nullptr) {
+        FFRT_LOGE("task exec is nullptr");
+        return;
+    }
+    std::function<void()>&& func = [=]() {
+        call.exec(call.args);
+        if (call.destory) {
+            call.destory(call.args);
+        }
+    };
+    onSubmit(hasHandle, handle, create_function_wrapper(std::move(func)), ins, outs, attr);
 }
 
 void SDependenceManager::onWait()

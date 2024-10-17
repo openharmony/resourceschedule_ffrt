@@ -279,7 +279,7 @@ bool FFRTIsWork()
     return FFRTTraceRecord::FfrtBeUsed();
 }
 
-void RecordDebugInfo()
+void RecordDebugInfo(void)
 {
     auto t = ExecuteCtx::Cur()->task;
     FFRT_BBOX_LOG("<<<=== ffrt debug log start ===>>>");
@@ -473,7 +473,7 @@ std::string SaveKeyInfo(void)
     std::ostringstream oss;
 
     monitor->WorkerInit();
-    oss << "    | -> key status" << std::endl;
+    oss << "    |-> key status" << std::endl;
     if (saveKeyStatusInfo == nullptr) {
         oss << "no key status info" << std::endl;
         return oss.str();

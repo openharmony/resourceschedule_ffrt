@@ -34,7 +34,7 @@ inline ffrt_function_header_t* create_callable_wrapper(const ffrt_callable_t& ca
             call.destory(call.args);
         }
     };
-    return create_callable_wrapper(std::move(func));
+    return create_function_wrapper(std::move(func));
 }
 }
 
@@ -51,7 +51,7 @@ ffrt_task_handle_t ffrt_hcs_submit_h(const ffrt_hcs_task_t *task, const ffrt_dep
     }
 
     ffrt_task_handle_t handle = nullptr;
-    DependenceManager::Instance().onSubmitDev(task, true, handle, int_deps, out_deps, p);
+    DependenceManager::Instance().onSubmitDev(task, true, handle, in_deps, out_deps, p);
     FFRT_COND_DO_ERR((handle == nullptr), return nullptr, "invalid XPU task");
 
     if (task->post_run.exec != nullptr) {

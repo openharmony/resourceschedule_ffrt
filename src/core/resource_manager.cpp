@@ -48,7 +48,7 @@ public:
             return;
         }
 
-#define LOAD_FUNC(func) func##Func = reinterpret_cast<func##Type>(dlsym(handle, #func))      \
+#define LOAD_FUNC(func) func##Func = reinterpret_cast<func##Type>(dlsym(handle, #func));      \
 if (func##Func == nullptr)                                                                   \
         {                                                                                    \
             FFRT_LOGE("dlsym %s failed: %s", #func, dlerror());                              \
@@ -73,7 +73,7 @@ if (func##Func == nullptr)                                                      
         static HiaiAdapter instance;
         return &instance;
     }
-#define REG_FUNC(func) using func##Func = decltype(func)*; func##Type func##Func = nullptr
+#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func##Func = nullptr
     REG_FUNC(HMS_HiAIConfig_SetComputeIOBandWidthMode);
 #undef REG_FUNC
 

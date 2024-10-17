@@ -21,6 +21,8 @@
 #include "sync/poller.h"
 #include "sync/delayed_worker.h"
 namespace ffrt {
+bool GetExitFlag();
+std::shared_mutex& GetExitMtx();
 
 class FFRTFacade {
 public:
@@ -55,10 +57,7 @@ public:
     }
 
 private:
-    FFRTFacade()
-    {
-        DependenceManager::Instance();
-    }
+    FFRTFacade();
 
     static FFRTFacade& Instance()
     {

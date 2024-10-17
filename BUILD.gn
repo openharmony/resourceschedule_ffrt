@@ -183,6 +183,7 @@ ohos_shared_library("libffrt") {
       "src/tm/queue_task.cpp",
       "src/tm/scpu_task.cpp",
       "src/tm/task_factory.cpp",
+      "src/util/ffrt_facade.cpp",
       "src/util/graph_check.cpp",
       "src/util/init.cpp",
       "src/util/spmc_queue.cpp",

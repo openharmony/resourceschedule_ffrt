@@ -50,7 +50,12 @@ WorkerMonitor::WorkerMonitor()
     // 获取当前进程名称
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-
+    if (strlen(processName) == 0) {
+        FFRT_LOGW("Get process name failed, skip worker monitor.");
+        skipSampling_ = true;
+        return;
+    }
+    
     // 从配置文件读取黑名单
     std::string skipProcess;
     std::ifstream file(CONF_FILEPATH);

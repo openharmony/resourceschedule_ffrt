@@ -20,7 +20,7 @@
 #include "eu/cpu_worker.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/scpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "eu/worker_thread.h"
 #include "qos.h"
 #include "common.h"

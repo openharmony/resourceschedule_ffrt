@@ -106,12 +106,12 @@ ohos_shared_library("libffrt") {
     ldflags = [ "-Wl,-z,nodelete" ]
 
     sources = [
-      "src/core/resource_manager.cpp",
       "src/core/entity.cpp",
+      "src/core/resource_manager.cpp",
       "src/core/task.cpp",
       "src/core/task_io.cpp",
-      "src/core/xpu_task.cpp",
       "src/core/version_ctx.cpp",
+      "src/core/xpu_task.cpp",
       "src/dfx/bbox/bbox.cpp",
       "src/dfx/bbox/fault_logger_fd_manager.cpp",
       "src/dfx/dump/dump.cpp",
@@ -124,11 +124,11 @@ ohos_shared_library("libffrt") {
       "src/eu/co2_context.c",
       "src/eu/co_routine.cpp",
       "src/eu/co_routine_factory.cpp",
+      "src/eu/cpu_manager_strategy.cpp",
       "src/eu/cpu_monitor.cpp",
       "src/eu/cpu_worker.cpp",
       "src/eu/cpuworker_manager.cpp",
       "src/eu/execute_unit.cpp",
-      "src/eu/cpu_manager_strategy.cpp",
       "src/eu/loop.cpp",
       "src/eu/loop_api.cpp",
       "src/eu/osattr_manager.cpp",

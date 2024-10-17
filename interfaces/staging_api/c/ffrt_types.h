@@ -35,7 +35,7 @@ typedef enum {
     FFRT_DEV_AAE,
     FFRT_DEV_DPA,
     FFRT_DEV_DFA,
-    ffrt_DEV_CPU
+    FFRT_DEV_CPU
 } ffrt_dev_type;
 
 /**

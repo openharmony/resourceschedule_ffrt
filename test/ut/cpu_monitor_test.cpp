@@ -185,3 +185,5 @@ TEST_F(CpuMonitorTest, IsExceedDeepSleepThreshold)
 
     bool ret = cpu.IsExceedDeepSleepThreshold();
 }
+}
+}

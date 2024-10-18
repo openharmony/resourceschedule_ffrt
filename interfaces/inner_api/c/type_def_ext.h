@@ -68,6 +68,26 @@ typedef struct {
 } ffrt_os_sched_attr;
 
 typedef struct {
+    unsigned int hardLimit;
+    unsigned int maxConcurrency;
+    unsigned int reserveNum;
+    unsigned int qos;
+} ffrt_qos_config_attr;
+
+#ifdef OHOS_STANDARD_SYSTEM
+#define MAX_QOS_LENGTH 15
+#else
+#define MAX_QOS_LENGTH 19
+#endif
+typedef struct {
+    ffrt_qos_config_attr qosConfigArray[MAX_QOS_LENGTH];
+    unsigned int effectLen;
+    unsigned int lowQosReserveWorkerNum;
+    unsigned int highQosReserveWorkerNum;
+    unsigned int globalReserveWorkerNum;
+} ffrt_worker_num_attr;
+
+typedef struct {
     long storage;
 } ffrt_rwlockattr_t;
 

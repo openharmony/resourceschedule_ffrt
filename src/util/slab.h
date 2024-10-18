@@ -73,9 +73,14 @@ public:
         return Instance()->getUnfreed();
     }
 
-    static std::vector<void *> getUnSafeUnfreedMem()
+    static void LockMem()
     {
-        return Instance()->getUnSafeUnfreed();
+        return Instance()->SimpleAllocatorLock();
+    }
+
+    static void UnlockMem()
+    {
+        return Instance()->SimpleAllocatorUnLock();
     }
 private:
     SpmcQueue primaryCache;
@@ -87,14 +92,6 @@ private:
     std::size_t count = 0;
 
     std::vector<void *> getUnfreed()
-    {
-        lock.lock();
-        std::vector<void *> ret = getUnSafeUnfreed();
-        lock.unlock();
-        return ret;
-    }
-
-    std::vector<void *> getUnSafeUnfreed()
     {
         std::vector<void *> ret;
 #ifdef FFRT_BBOX_ENABLE
@@ -111,6 +108,16 @@ private:
         }
 #endif
         return ret;
+    }
+
+    void SimpleAllocatorLock()
+    {
+        lock.lock();
+    }
+
+    void SimpleAllocatorUnLock()
+    {
+        lock.unlock();
     }
 
     void init()

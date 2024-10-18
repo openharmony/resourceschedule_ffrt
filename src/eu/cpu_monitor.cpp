@@ -38,6 +38,7 @@ constexpr int JITTER_DELAY_MS = 5;
 namespace ffrt {
 CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
 {
+    LogAllWorkerNum();
     SetupMonitor();
     StartMonitor();
 }
@@ -53,10 +54,25 @@ CPUMonitor::~CPUMonitor()
 
 void CPUMonitor::SetupMonitor()
 {
+    globalReserveWorkerNum = DEFAULT_GLOBAL_RESERVE_NUM;
+    lowQosReserveWorkerNum = DEFAULT_LOW_RESERVE_NUM;
+    highQosReserveWorkerNum = DEFAULT_HIGH_RESERVE_NUM;
+
+    globalReserveWorkerToken = std::make_unique<Token>(globalReserveWorkerNum);
+    lowQosReserveWorkerToken = std::make_unique<Token>(lowQosReserveWorkerNum);
+    highQosReserveWorkerToken = std::make_unique<Token>(highQosReserveWorkerNum);
+    lowQosUseGlobalWorkerToken = std::make_unique<Token>(0);
+    highQosUseGlobalWorkerToken = std::make_unique<Token>(0);
+
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
+        ctrlQueue[qos].maxConcurrency = DEFAULT_MAXCONCURRENCY;
+        if (qos > qos_max) {
+            ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT - DEFAULT_SINGLE_NUM;
+            ctrlQueue[qos].reserveNum = 0;
+            continue;
+        }
         ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT;
-        ctrlQueue[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(qos);
-        setWorkerMaxNum[qos] = false;
+        ctrlQueue[qos].reserveNum = DEFAULT_SINGLE_NUM;
     }
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     memset_s(&domainInfoMonitor, sizeof(domainInfoMonitor), 0, sizeof(domainInfoMonitor));
@@ -80,6 +96,121 @@ void CPUMonitor::SetupMonitor()
 #endif
 }
 
+bool CPUMonitor::QosWorkerNumValid(ffrt_worker_num_attr *qosData)
+{
+    bool setWorkerNumQos[QoS::MaxNum()] = {false};
+    qosData->effectLen = qosData->effectLen == DEFAULT_PARAMS_VALUE ? qos_max + 1 : qosData->effectLen;
+    if (qosData->effectLen > QoS::MaxNum()) {
+        FFRT_LOGE("effectLen is invalid[%d]", qosData->effectLen);
+        return false;
+    }
+    if (MaxValueInvalid(qosData->lowQosReserveWorkerNum, GLOBAL_QOS_MAXNUM) ||
+        MaxValueInvalid(qosData->highQosReserveWorkerNum, GLOBAL_QOS_MAXNUM) ||
+        MaxValueInvalid(qosData->globalReserveWorkerNum, GLOBAL_QOS_MAXNUM)) {
+        FFRT_LOGE("lowQosReserveWorkerNum[%d],highQosReserveWorkerNum[%d],globalReserveWorkerNum[%d]",
+            qosData->lowQosReserveWorkerNum, qosData->highQosReserveWorkerNum, qosData->globalReserveWorkerNum);
+        return false;
+    }
+    unsigned int totalReserveNum = DEFAULT_GLOBAL_HARDLIMIT;
+    totalReserveNum = qosData->lowQosReserveWorkerNum == DEFAULT_PARAMS_VALUE ?
+        totalReserveNum : totalReserveNum - DEFAULT_LOW_RESERVE_NUM + qosData->lowQosReserveWorkerNum;
+    totalReserveNum = qosData->highQosReserveWorkerNum == DEFAULT_PARAMS_VALUE ?
+        totalReserveNum : totalReserveNum - DEFAULT_HIGH_RESERVE_NUM + qosData->highQosReserveWorkerNum;
+    totalReserveNum = qosData->globalReserveWorkerNum == DEFAULT_PARAMS_VALUE ?
+        totalReserveNum : totalReserveNum - DEFAULT_GLOBAL_RESERVE_NUM + qosData->globalReserveWorkerNum;
+    for (unsigned int i = 0; i < qosData->effectLen; i++) {
+        ffrt_qos_config_attr* singleQos = &(qosData->qosConfigArray[i]);
+        unsigned int qos = singleQos->qos;
+        if (qos >= QoS::MaxNum() || setWorkerNumQos[qos]) {
+            FFRT_LOGE("qos[%d] is invalid or repeat setting", qos);
+            return false;
+        }
+        setWorkerNumQos[qos] = true;
+        if (MaxValueInvalid(singleQos->maxConcurrency, MAX_MAXCONCURRENCY) ||
+            MaxValueInvalid(singleQos->hardLimit, GLOBAL_QOS_MAXNUM) ||
+            MaxValueInvalid(singleQos->reserveNum, GLOBAL_QOS_MAXNUM)) {
+            FFRT_LOGE("qos[%d],maxConcurrency[%d],hardLimit[%d],reserveNum[%d] is invalid",
+                qos, singleQos->maxConcurrency, singleQos->hardLimit, singleQos->reserveNum);
+            return false;
+        }
+        totalReserveNum = singleQos->reserveNum == DEFAULT_PARAMS_VALUE ? totalReserveNum : (qos > qos_max ?
+            totalReserveNum + singleQos->reserveNum : totalReserveNum - DEFAULT_SINGLE_NUM + singleQos->reserveNum);
+    }
+    if (totalReserveNum == 0 || totalReserveNum > GLOBAL_QOS_MAXNUM) {
+        FFRT_LOGE("totalNum[%d],lowQosWorkerNum[%d],highQosWorkerNum[%d],globalWorkerNum[%d] invalid", totalReserveNum,
+            qosData->lowQosReserveWorkerNum, qosData->highQosReserveWorkerNum, qosData->globalReserveWorkerNum);
+        for (unsigned int i = 0; i < qosData->effectLen; i++) {
+            ffrt_qos_config_attr* singleQos = &(qosData->qosConfigArray[i]);
+            FFRT_LOGE("totalReserveNum is check fail.reserveNum[%d]", singleQos->reserveNum);
+        }
+        return false;
+    }
+    return true;
+}
+
+bool CPUMonitor::MaxValueInvalid(unsigned int value, unsigned int default_value)
+{
+    return value != DEFAULT_PARAMS_VALUE && value > default_value;
+}
+template <typename T>
+void CPUMonitor::Assignment(T& targetValue, unsigned int value)
+{
+    targetValue = value != DEFAULT_PARAMS_VALUE ? value : targetValue;
+}
+
+bool CPUMonitor::QosWorkerNumSegment(ffrt_worker_num_attr *qosData)
+{
+    setWorkerNumLock.lock();
+    if (setWorkerNum) {
+        setWorkerNumLock.unlock();
+        FFRT_LOGE("qos config data setting repeat");
+        return false;
+    }
+    setWorkerNum = true;
+    setWorkerNumLock.unlock();
+    if (!QosWorkerNumValid(qosData)) {
+        return false;
+    }
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        WorkerCtrl &workerCtrl = ctrlQueue[i];
+        workerCtrl.lock.lock();
+        if (workerCtrl.sleepingWorkerNum != 0 || workerCtrl.executionNum != 0) {
+            for (int j = 0;j <= i; j++) {
+                WorkerCtrl &workerCtrl = ctrlQueue[j];
+                workerCtrl.lock.unlock();
+            }
+            FFRT_LOGE("Can only be set during initiallization,qos[%d], executionNum[%d],sleepingNum[%d]",
+                i, workerCtrl.executionNum, workerCtrl.sleepingWorkerNum);
+            return false;
+        }
+    }
+
+    for (unsigned int i = 0;i < qosData->effectLen; i++) {
+        auto singleQos = qosData->qosConfigArray[i];
+        int qos = singleQos.qos;
+        WorkerCtrl &workerCtrl = ctrlQueue[qos];
+        Assignment(workerCtrl.hardLimit, singleQos.hardLimit);
+        Assignment(workerCtrl.maxConcurrency, singleQos.maxConcurrency);
+        Assignment(workerCtrl.reserveNum, singleQos.reserveNum);
+    }
+    Assignment(lowQosReserveWorkerNum, qosData->lowQosReserveWorkerNum);
+    Assignment(highQosReserveWorkerNum, qosData->highQosReserveWorkerNum);
+    Assignment(globalReserveWorkerNum, qosData->globalReserveWorkerNum);
+    globalReserveWorkerToken = std::make_unique<Token>(globalReserveWorkerNum);
+    lowQosReserveWorkerToken = std::make_unique<Token>(lowQosReserveWorkerNum);
+    highQosReserveWorkerToken = std::make_unique<Token>(highQosReserveWorkerNum);
+
+    FFRT_LOGI("succ:globalReserveWorkerNum[%d],highQosReserveWorkerNum[%d],lowQosReserveWorkerNum[%d]",
+        globalReserveWorkerNum, highQosReserveWorkerNum, lowQosReserveWorkerNum);
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        WorkerCtrl &workerCtrl = ctrlQueue[i];
+        FFRT_LOGI("succ:qos[%d], reserveNum[%d], maxConcurrency[%d], hardLimit[%d]",
+            i, workerCtrl.reserveNum, workerCtrl.maxConcurrency, workerCtrl.hardLimit);
+        workerCtrl.lock.unlock();
+    }
+    return true;
+}
+
 void CPUMonitor::StartMonitor()
 {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -92,26 +223,6 @@ void CPUMonitor::StartMonitor()
 #else
     monitorThread = nullptr;
 #endif
-}
-
-int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[qos()];
-    workerCtrl.lock.lock();
-    if (setWorkerMaxNum[qos()]) {
-        FFRT_LOGE("qos[%d] worker num can only been setup once", qos());
-        workerCtrl.lock.unlock();
-        return -1;
-    }
-    if (num <= 0 || num > QOS_WORKER_MAXNUM) {
-        FFRT_LOGE("qos[%d] worker num[%d] is invalid.", qos(), num);
-        workerCtrl.lock.unlock();
-        return -1;
-    }
-    workerCtrl.hardLimit = num;
-    setWorkerMaxNum[qos()] = true;
-    workerCtrl.lock.unlock();
-    return 0;
 }
 
 uint32_t CPUMonitor::GetMonitorTid() const
@@ -163,6 +274,10 @@ void CPUMonitor::TimeoutCount(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
+    size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
+    if (totalNum > workerCtrl.reserveNum) {
+        ReleasePublicWorkerNum(qos);
+    }
     workerCtrl.sleepingWorkerNum--;
     workerCtrl.lock.unlock();
 }
@@ -174,6 +289,16 @@ void CPUMonitor::WakeupCount(const QoS& qos, bool isDeepSleepWork)
     workerCtrl.sleepingWorkerNum--;
     workerCtrl.executionNum++;
     workerCtrl.lock.unlock();
+}
+
+void CPUMonitor::DoDestroy(const QoS& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    std::unique_lock lk(workerCtrl.lock);
+    size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
+    if (totalNum > workerCtrl.reserveNum) {
+        ReleasePublicWorkerNum(qos);
+    }
 }
 
 int CPUMonitor::WakedWorkerNum(const QoS& qos)
@@ -238,6 +363,76 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
     return deepSleepingWorkerNum * 2 > totalWorker;
 }
 
+bool CPUMonitor::LowQosUseReserveWorkerNum()
+{
+    if (lowQosReserveWorkerToken->try_acquire()) {
+        return true;
+    } else {
+        if (globalReserveWorkerToken->try_acquire()) {
+            lowQosUseGlobalWorkerToken->release();
+            return true;
+        } else {
+            FFRT_LOGD("worker unavailable[%d], lowQosUse[%d], highQosUse[%d]",
+                qos(), lowQosUseGlobalWorkerToken->load(), highQosUseGlobalWorkerToken->load());
+            return false;
+        }
+    }
+}
+
+bool CPUMonitor::HighQosUseReserveWorkerNum()
+{
+    if (highQosReserveWorkerToken->try_acquire()) {
+        return true;
+    } else {
+        if (globalReserveWorkerToken->try_acquire()) {
+            highQosUseGlobalWorkerToken->release();
+            return true;
+        } else {
+            FFRT_LOGD("worker unavailable[%d], lowQosUse[%d], highQosUse[%d]",
+                qos(), lowQosUseGlobalWorkerToken->load(), highQosUseGlobalWorkerToken->load());
+            return false;
+        }
+    }
+}
+
+bool CPUMonitor::TryAcquirePublicWorkerNum(const QoS& qos)
+{
+    return qos() <= ffrt_qos_default ? LowQosUseReserveWorkerNum() : HighQosUseReserveWorkerNum();
+}
+
+void CPUMonitor::ReleasePublicWorkerNum(const QoS& qos)
+{
+    if (qos() <= ffrt_qos_default) {
+        if (lowQosUseGlobalWorkerToken->try_acquire()) {
+            globalReserveWorkerToken->release();
+        } else {
+            lowQosReserveWorkerToken->release();
+        }
+    } else {
+        if (highQosUseGlobalWorkerToken->try_acquire()) {
+            globalReserveWorkerToken->release();
+        } else {
+            highQosReserveWorkerToken->release();
+        }
+    }
+}
+
+void CPUMonitor::LogAllWorkerNum()
+{
+    FFRT_LOGD("globalReserveWorkerNum[%d],highQosReserveWorkerNum[%d],lowQosReserveWorkerNum[%d]",
+        globalReserveWorkerNum, highQosReserveWorkerNum, lowQosReserveWorkerNum);
+    FFRT_LOGD("globalReserveWorkerToken[%d],highQosReserveWorkerToken[%d],lowQosReserveWorkerToken[%d]",
+        globalReserveWorkerToken->load(), highQosReserveWorkerToken->load(), lowQosReserveWorkerToken->load());
+    FFRT_LOGD("lowQosUseGlobalWorkerToken[%d], highQosUseGlobalWorkerToken[%d]",
+        lowQosUseGlobalWorkerToken->load(), highQosUseGlobalWorkerToken->load());
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        WorkerCtrl &workerCtrl = ctrlQueue[i];
+        size_t runningNum = workerCtrl.executionNum;
+        size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
+        FFRT_LOGD("succ:qos[%d], reserveNum[%d], maxConcurrency[%d], hardLimit[%d], runningNum[%d], totalNum[%d]",
+            i, workerCtrl.reserveNum, workerCtrl.maxConcurrency, workerCtrl.hardLimit, runningNum, totalNum);
+    }
+}
 void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -264,7 +459,8 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
     if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
         workerCtrl.lock.unlock();
         ops.WakeupWorkers(qos);
-    } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
+    } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit) &&
+        (totalNum < workerCtrl.reserveNum || TryAcquirePublicWorkerNum(qos))) {
         workerCtrl.executionNum++;
         FFRTTraceRecord::WorkRecord(static_cast<int>(qos), workerCtrl.executionNum);
         workerCtrl.lock.unlock();
@@ -273,6 +469,8 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         if (workerCtrl.pollWaitFlag) {
             FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
         }
+        FFRT_LOGD("noInc:qos[%d],reserveNum[%d],maxConcurrency[%d],hardLimit[%d],runningNum[%d],totalNum[%d]",
+            qos(), workerCtrl.reserveNum, workerCtrl.maxConcurrency, workerCtrl.hardLimit, runningNum, totalNum);
         workerCtrl.lock.unlock();
     }
 }
@@ -282,19 +480,26 @@ void CPUMonitor::NotifyWorkers(const QoS& qos, int number)
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
 
-    int increasableNumber = static_cast<int>(workerCtrl.maxConcurrency) -
-        (workerCtrl.executionNum + workerCtrl.sleepingWorkerNum);
+    int maxWorkerLimit = static_cast<int>(std::min(workerCtrl.maxConcurrency, workerCtrl.hardLimit));
+    int increasableNumber = maxWorkerLimit - (workerCtrl.executionNum + workerCtrl.sleepingWorkerNum);
     int wakeupNumber = std::min(number, workerCtrl.sleepingWorkerNum);
     for (int idx = 0; idx < wakeupNumber; idx++) {
         ops.WakeupWorkers(qos);
     }
 
+    int incPublicNum = workerCtrl.reserveNum - (workerCtrl.executionNum + workerCtrl.sleepingWorkerNum);
     int incNumber = std::min(number - wakeupNumber, increasableNumber);
     for (int idx = 0; idx < incNumber; idx++) {
-        workerCtrl.executionNum++;
-        ops.IncWorker(qos);
+        if (idx < incPublicNum || TryAcquirePublicWorkerNum(qos)) {
+            workerCtrl.executionNum++;
+            ops.IncWorker(qos);
+        } else {
+            FFRT_LOGD("Fail:qos[%d],reserveNum[%d],maxConcurrency[%d],hardLimit[%d],totalNum[%d],idx[%d],inc[%d]",
+                qos(), workerCtrl.reserveNum, workerCtrl.maxConcurrency, workerCtrl.hardLimit,
+                workerCtrl.executionNum + workerCtrl.sleepingWorkerNum, idx, incNumber);
+        }
     }
-
+    
     workerCtrl.lock.unlock();
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
@@ -337,7 +542,8 @@ void CPUMonitor::PokeAdd(const QoS& qos)
             }
         }
 #endif
-        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
+        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit) &&
+        (totalNum < workerCtrl.reserveNum || TryAcquirePublicWorkerNum(qos))) {
             workerCtrl.executionNum++;
             workerCtrl.lock.unlock();
             ops.IncWorker(qos);
@@ -345,6 +551,8 @@ void CPUMonitor::PokeAdd(const QoS& qos)
             if (workerCtrl.pollWaitFlag) {
                 FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
             }
+            FFRT_LOGD("noInc:qos[%d],reserveNum[%d],maxConcurrency[%d],hardLimit[%d],runningNum[%d],totalNum[%d]",
+                qos(), workerCtrl.reserveNum, workerCtrl.maxConcurrency, workerCtrl.hardLimit, runningNum, totalNum);
             workerCtrl.lock.unlock();
         }
     }
@@ -373,7 +581,8 @@ void CPUMonitor::PokePick(const QoS& qos)
             }
         }
 #endif
-        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
+        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit) &&
+        (totalNum < workerCtrl.reserveNum || TryAcquirePublicWorkerNum(qos))) {
             workerCtrl.executionNum++;
             workerCtrl.lock.unlock();
             ops.IncWorker(qos);
@@ -381,8 +590,11 @@ void CPUMonitor::PokePick(const QoS& qos)
             if (workerCtrl.pollWaitFlag) {
                 FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
             }
+            FFRT_LOGD("noInc:qos[%d],reserveNum[%d],maxConcurrency[%d],hardLimit[%d],runningNum[%d],totalNum[%d]",
+                qos(), workerCtrl.reserveNum, workerCtrl.maxConcurrency, workerCtrl.hardLimit, runningNum, totalNum);
             workerCtrl.lock.unlock();
         }
     }
 }
+
 }

@@ -25,6 +25,7 @@
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
 #include "eu/worker_thread.h"
+#include "eu/cpu_monitor.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/watchdog/watchdog_util.h"
@@ -406,19 +407,10 @@ void ffrt_restore_qos_config()
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
+bool ffrt_set_qos_worker_num(ffrt_worker_num_attr *qosData)
 {
-    if (ffrt::GetFuncQosMap() == nullptr) {
-        FFRT_LOGE("FuncQosMap has not regist");
-        return -1;
-    }
-    ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
-    if (((qos != ffrt::qos_default) && (_qos() == ffrt::qos_default)) || (qos <= ffrt::qos_inherit)) {
-        FFRT_LOGE("qos[%d] is invalid.", qos);
-        return -1;
-    }
     ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
-    return monitor->SetWorkerMaxNum(_qos, num);
+    return monitor->QosWorkerNumSegment(qosData);
 }
 
 API_ATTRIBUTE((visibility("default")))

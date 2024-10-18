@@ -118,7 +118,7 @@ TEST_F(CpuMonitorTest, TimeoutCount)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, Notify)
+TEST_F(CpuMonitorTest, Notify)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
 
@@ -175,7 +175,7 @@ TEST_F(CpuMonitorTest, WakeupDeepSleep)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, IsExceedDeepSleepThreshold, TestSize.Level1)
+TEST_F(CpuMonitorTest, IsExceedDeepSleepThreshold)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     SCPUMonitor cpu({

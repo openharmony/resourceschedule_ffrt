@@ -99,7 +99,7 @@ TEST_F(CpuMonitorTest, WakeupSleep)
  *
  *
  */
-TEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
+TEST_F(CpuMonitorTest, TimeoutCount)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
 

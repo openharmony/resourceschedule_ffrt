@@ -23,10 +23,6 @@ config("ffrt_config") {
   ]
 
   ffrt_defaults_cflags = [
-    "-g",
-    "-D_FORTIFY_SOURCE=2",
-    "-O2",
-    "-fPIC",
     "-Wno-unused-variable",
     "-Wno-unused-function",
     "-Wno-unused-value",
@@ -36,13 +32,6 @@ config("ffrt_config") {
     "-Wno-float-equal",
     "-Wno-unused-parameter",
     "-fno-common",
-    "-DOHOS_STANDARD_SYSTEM",
-    "-DTASKSTAT_LOG_ENABLE=0",
-    "-DIDLE_WORKER_DESTRUCT",
-    "-DUSE_OHOS_QOS",
-    "-DFFRT_PTHREAD_ENABLE",
-    "-DFFRT_OH_WATCHDOG_ENABLE",
-    "-DQOS_WORKER_FRAME_RTG",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -101,7 +90,22 @@ config("ffrt_inner_config") {
     ]
   }
 
-  cflags_cc = [ "-std=c++17" ]
+  ffrt_inner_cflags = [
+    "-std=c++17",
+    "-g",
+    "-D_FORTIFY_SOURCE=2",
+    "-O2",
+    "-fPIC",
+    "-DOHOS_STANDARD_SYSTEM",
+    "-DTASKSTAT_LOG_ENABLE=0",
+    "-DIDLE_WORKER_DESTRUCT",
+    "-DUSE_OHOS_QOS",
+    "-DFFRT_PTHREAD_ENABLE",
+    "-DFFRT_OH_WATCHDOG_ENABLE",
+    "-DQOS_WORKER_FRAME_RTG",
+  ]
+
+  cflags_cc = ffrt_inner_cflags
 }
 
 ohos_shared_library("libffrt") {

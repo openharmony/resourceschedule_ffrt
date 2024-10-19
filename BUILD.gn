@@ -32,6 +32,7 @@ config("ffrt_config") {
     "-Wno-float-equal",
     "-Wno-unused-parameter",
     "-fno-common",
+    "-DUSE_OHOS_QOS",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -99,7 +100,6 @@ config("ffrt_inner_config") {
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
     "-DIDLE_WORKER_DESTRUCT",
-    "-DUSE_OHOS_QOS",
     "-DFFRT_PTHREAD_ENABLE",
     "-DFFRT_OH_WATCHDOG_ENABLE",
     "-DQOS_WORKER_FRAME_RTG",

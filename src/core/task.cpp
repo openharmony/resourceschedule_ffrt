@@ -407,7 +407,7 @@ void ffrt_restore_qos_config()
 }
 
 API_ATTRIBUTE((visibility("default")))
-bool ffrt_set_qos_worker_num(ffrt_worker_num_attr *qosData)
+int ffrt_set_qos_worker_num(ffrt_worker_num_param *qosData)
 {
     ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
     return monitor->QosWorkerNumSegment(qosData);

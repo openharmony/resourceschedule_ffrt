@@ -32,6 +32,40 @@ constexpr unsigned int DEFAULT_GLOBAL_RESERVE_NUM = 24;
 constexpr unsigned int DEFAULT_LOW_RESERVE_NUM = 12;
 constexpr unsigned int DEFAULT_HIGH_RESERVE_NUM = 12;
 constexpr unsigned int GLOBAL_QOS_MAXNUM = 256;
+
+class QosWorkerConfig {
+public:
+    struct FfrtQosWorkerNumCfg {
+        unsigned int hardLimit = DEFAULT_HARDLIMIT;
+        unsigned int maxConcurrency = DEFAULT_MAXCONCURRENCY;
+        unsigned int reserveNum = DEFAULT_SINGLE_NUM;
+    };
+
+    QosWorkerConfig(int workerNum)
+    {
+        mQosWorkerCfg.resize(workerNum);
+    }
+    QosWorkerConfig(const QosWorkerConfig&) = delete;
+    QosWorkerConfig& operator=(const QosWorkerConfig&) = delete;
+    ~QosWorkerConfig() {}
+
+    unsigned int GetGlobalMaxWorkerNum() const
+    {
+        unsigned int ret = 0;
+        ret += mLowQosReserveWorkerNum;
+        ret += mHighQosReserveWorkerNum;
+        ret += mGlobalReserveWorkerNum;
+        for (const auto &tmpStru : mQosWorkerCfg) {
+            ret += tmpStru.reserveNum;
+        }
+        return ret;
+    }
+
+    std::vector<FfrtQosWorkerNumCfg> mQosWorkerCfg;
+    unsigned int mLowQosReserveWorkerNum = DEFAULT_LOW_RESERVE_NUM;
+    unsigned int mHighQosReserveWorkerNum = DEFAULT_HIGH_RESERVE_NUM;
+    unsigned int mGlobalReserveWorkerNum = DEFAULT_GLOBAL_RESERVE_NUM;
+};
 }
 
 #endif /* GLOBAL_CONFIG_H */

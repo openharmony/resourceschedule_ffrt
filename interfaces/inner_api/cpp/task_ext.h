@@ -67,7 +67,7 @@ static inline void restore_qos_config()
  * lowQosReserveWorkerNum is a low partition qos public resource.{[min, max], default} is {[0,256],12}.
  * highQosReserveWorkerNum is a hight partition qos public resource.{[min, max], default} is {[0,256],12}.
  * lowQosReserveWorkerNum is a global qos public resource.{[min, max], default} is {[0,256],24}.
- * qosConfigArray is an array of ffrt_qos_config_attr.
+ * qosConfigArray is an array of ffrt_qos_config.
  * effectLen: param setting will success when qosConfigArray index less than effectLen.
  * qos valid in [0,5].
  * reserveNum: mininum number which qos can create worker.{[min, max], default} is {[0,256],8}.
@@ -76,7 +76,7 @@ static inline void restore_qos_config()
  * @return return ture when setting success.return false when setting fail, and param is default.
  * @version 1.0
  */
-static inline bool set_qos_worker_num(ffrt_worker_num_attr* qosData)
+static inline int set_qos_worker_num(ffrt_worker_num_param* qosData)
 {
     return ffrt_set_qos_worker_num(qosData);
 }

@@ -43,7 +43,7 @@ FFRT_C_API void ffrt_restore_qos_config(void);
  * lowQosReserveWorkerNum is a low partition qos public resource.{[min, max], default} is {[0,256],12}.
  * highQosReserveWorkerNum is a hight partition qos public resource.{[min, max], default} is {[0,256],12}.
  * lowQosReserveWorkerNum is a global qos public resource.{[min, max], default} is {[0,256],24}.
- * qosConfigArray is an array of ffrt_qos_config_attr.
+ * qosConfigArray is an array of ffrt_qos_config.
  * effectLen: param setting will success when qosConfigArray index less than effectLen.
  * qos valid in [0,5].
  * reserveNum: mininum number which qos can create worker.{[min, max], default} is {[0,256],8}.
@@ -52,7 +52,7 @@ FFRT_C_API void ffrt_restore_qos_config(void);
  * @return return ture when setting success.return false when setting fail, and param is default.
  * @version 1.0
  */
-FFRT_C_API bool ffrt_set_qos_worker_num(ffrt_worker_num_attr* qosData);
+FFRT_C_API int ffrt_set_qos_worker_num(ffrt_worker_num_param* qosData);
 
 /**
  * @brief Set the task execution timeout.

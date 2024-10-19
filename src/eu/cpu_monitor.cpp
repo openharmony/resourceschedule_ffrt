@@ -36,15 +36,17 @@ constexpr int JITTER_DELAY_MS = 5;
 }
 
 namespace ffrt {
-CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
+CPUMonitor::CPUMonitor(CpuMonitorOps&& ops)
+    : ops(ops),
+      qosWorkerConfig(QoS::MaxNum())
 {
-    LogAllWorkerNum();
     SetupMonitor();
     StartMonitor();
 }
 
 CPUMonitor::~CPUMonitor()
 {
+    LogAllWorkerNum();
     if (monitorThread != nullptr) {
         monitorThread->join();
     }
@@ -69,6 +71,8 @@ void CPUMonitor::SetupMonitor()
         if (qos > qos_max) {
             ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT - DEFAULT_SINGLE_NUM;
             ctrlQueue[qos].reserveNum = 0;
+            qosWorkerConfig.mQosWorkerCfg[qos].reserveNum = 0;
+            qosWorkerConfig.mQosWorkerCfg[qos].hardLimit = DEFAULT_HARDLIMIT - DEFAULT_SINGLE_NUM;
             continue;
         }
         ctrlQueue[qos].hardLimit = DEFAULT_HARDLIMIT;
@@ -96,51 +100,69 @@ void CPUMonitor::SetupMonitor()
 #endif
 }
 
-bool CPUMonitor::QosWorkerNumValid(ffrt_worker_num_attr *qosData)
+void SetWorkerPara(unsigned int& param, unsigned int value)
+{
+    if (value != DEFAULT_PARAMS_VALUE) {
+        param = value;
+    }
+}
+
+int CPUMonitor::SetQosWorkerPara(ffrt_qos_config& qosCfg)
+{
+    SetWorkerPara(qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].maxConcurrency, qosCfg.maxConcurrency);
+    SetWorkerPara(qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].hardLimit, qosCfg.hardLimit);
+    SetWorkerPara(qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].reserveNum, qosCfg.reserveNum);
+
+    if ((qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].maxConcurrency > MAX_MAXCONCURRENCY) ||
+        (qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].hardLimit > GLOBAL_QOS_MAXNUM) ||
+        (qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].reserveNum > GLOBAL_QOS_MAXNUM)) {
+        FFRT_LOGE("qos[%d],maxConcurrency[%d],hardLimit[%d],reserveNum[%d] is invalid",
+            qosCfg.qos, qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].maxConcurrency,
+            qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].hardLimit,
+            qosWorkerConfig.mQosWorkerCfg[qosCfg.qos].reserveNum);
+        return -1;
+    }
+    return 0;
+}
+
+bool CPUMonitor::QosWorkerNumValid(ffrt_worker_num_param *qosData)
 {
     bool setWorkerNumQos[QoS::MaxNum()] = {false};
-    qosData->effectLen = qosData->effectLen == DEFAULT_PARAMS_VALUE ? qos_max + 1 : qosData->effectLen;
     if (qosData->effectLen > QoS::MaxNum()) {
         FFRT_LOGE("effectLen is invalid[%d]", qosData->effectLen);
         return false;
     }
-    if (MaxValueInvalid(qosData->lowQosReserveWorkerNum, GLOBAL_QOS_MAXNUM) ||
-        MaxValueInvalid(qosData->highQosReserveWorkerNum, GLOBAL_QOS_MAXNUM) ||
-        MaxValueInvalid(qosData->globalReserveWorkerNum, GLOBAL_QOS_MAXNUM)) {
-        FFRT_LOGE("lowQosReserveWorkerNum[%d],highQosReserveWorkerNum[%d],globalReserveWorkerNum[%d]",
-            qosData->lowQosReserveWorkerNum, qosData->highQosReserveWorkerNum, qosData->globalReserveWorkerNum);
-        return false;
-    }
-    unsigned int totalReserveNum = DEFAULT_GLOBAL_HARDLIMIT;
-    totalReserveNum = qosData->lowQosReserveWorkerNum == DEFAULT_PARAMS_VALUE ?
-        totalReserveNum : totalReserveNum - DEFAULT_LOW_RESERVE_NUM + qosData->lowQosReserveWorkerNum;
-    totalReserveNum = qosData->highQosReserveWorkerNum == DEFAULT_PARAMS_VALUE ?
-        totalReserveNum : totalReserveNum - DEFAULT_HIGH_RESERVE_NUM + qosData->highQosReserveWorkerNum;
-    totalReserveNum = qosData->globalReserveWorkerNum == DEFAULT_PARAMS_VALUE ?
-        totalReserveNum : totalReserveNum - DEFAULT_GLOBAL_RESERVE_NUM + qosData->globalReserveWorkerNum;
+
     for (unsigned int i = 0; i < qosData->effectLen; i++) {
-        ffrt_qos_config_attr* singleQos = &(qosData->qosConfigArray[i]);
-        unsigned int qos = singleQos->qos;
+        unsigned int qos = qosData->qosConfigArray[i].qos;
         if (qos >= QoS::MaxNum() || setWorkerNumQos[qos]) {
             FFRT_LOGE("qos[%d] is invalid or repeat setting", qos);
             return false;
         }
         setWorkerNumQos[qos] = true;
-        if (MaxValueInvalid(singleQos->maxConcurrency, MAX_MAXCONCURRENCY) ||
-            MaxValueInvalid(singleQos->hardLimit, GLOBAL_QOS_MAXNUM) ||
-            MaxValueInvalid(singleQos->reserveNum, GLOBAL_QOS_MAXNUM)) {
-            FFRT_LOGE("qos[%d],maxConcurrency[%d],hardLimit[%d],reserveNum[%d] is invalid",
-                qos, singleQos->maxConcurrency, singleQos->hardLimit, singleQos->reserveNum);
+        if (SetQosWorkerPara(qosData->qosConfigArray[i] != 0)) {
             return false;
         }
-        totalReserveNum = singleQos->reserveNum == DEFAULT_PARAMS_VALUE ? totalReserveNum : (qos > qos_max ?
-            totalReserveNum + singleQos->reserveNum : totalReserveNum - DEFAULT_SINGLE_NUM + singleQos->reserveNum);
     }
+
+    SetWorkerPara(qosWorkerConfig.mLowQosReserveWorkerNum, qosData->lowQosReserveWorkerNum);
+    SetWorkerPara(qosWorkerConfig.mHighQosReserveWorkerNum, qosData->highQosReserveWorkerNum);
+    SetWorkerPara(qosWorkerConfig.mGlobalReserveWorkerNum, qosData->globalReserveWorkerNum);
+
+    if ((qosWorkerConfig.mLowQosReserveWorkerNum> GLOBAL_QOS_MAXNUM) ||
+        (qosWorkerConfig.mHighQosReserveWorkerNum > GLOBAL_QOS_MAXNUM) ||
+        (qosWorkerConfig.mGlobalReserveWorkerNum > GLOBAL_QOS_MAXNUM)) {
+        FFRT_LOGE("lowQosReserveWorkerNum[%d],highQosReserveWorkerNum[%d],globalReserveWorkerNum[%d]",
+            qosWorkerConfig.mLowQosReserveWorkerNum, qosWorkerConfig.mHighQosReserveWorkerNum,
+            qosWorkerConfig.mGlobalReserveWorkerNum);
+        return false;
+    }
+    unsigned int totalReserveNum = qosWorkerConfig.GetGlobalMaxWorkerNum();
     if (totalReserveNum == 0 || totalReserveNum > GLOBAL_QOS_MAXNUM) {
         FFRT_LOGE("totalNum[%d],lowQosWorkerNum[%d],highQosWorkerNum[%d],globalWorkerNum[%d] invalid", totalReserveNum,
             qosData->lowQosReserveWorkerNum, qosData->highQosReserveWorkerNum, qosData->globalReserveWorkerNum);
         for (unsigned int i = 0; i < qosData->effectLen; i++) {
-            ffrt_qos_config_attr* singleQos = &(qosData->qosConfigArray[i]);
+            ffrt_qos_config* singleQos = &(qosData->qosConfigArray[i]);
             FFRT_LOGE("totalReserveNum is check fail.reserveNum[%d]", singleQos->reserveNum);
         }
         return false;
@@ -158,18 +180,18 @@ void CPUMonitor::Assignment(T& targetValue, unsigned int value)
     targetValue = value != DEFAULT_PARAMS_VALUE ? value : targetValue;
 }
 
-bool CPUMonitor::QosWorkerNumSegment(ffrt_worker_num_attr *qosData)
+int CPUMonitor::QosWorkerNumSegment(ffrt_worker_num_param *qosData)
 {
     setWorkerNumLock.lock();
     if (setWorkerNum) {
         setWorkerNumLock.unlock();
         FFRT_LOGE("qos config data setting repeat");
-        return false;
+        return -1;
     }
     setWorkerNum = true;
     setWorkerNumLock.unlock();
     if (!QosWorkerNumValid(qosData)) {
-        return false;
+        return -1;
     }
     for (int i = 0; i < QoS::MaxNum(); i++) {
         WorkerCtrl &workerCtrl = ctrlQueue[i];
@@ -181,21 +203,20 @@ bool CPUMonitor::QosWorkerNumSegment(ffrt_worker_num_attr *qosData)
             }
             FFRT_LOGE("Can only be set during initiallization,qos[%d], executionNum[%d],sleepingNum[%d]",
                 i, workerCtrl.executionNum, workerCtrl.sleepingWorkerNum);
-            return false;
+            return -1;
         }
     }
 
-    for (unsigned int i = 0;i < qosData->effectLen; i++) {
-        auto singleQos = qosData->qosConfigArray[i];
-        int qos = singleQos.qos;
-        WorkerCtrl &workerCtrl = ctrlQueue[qos];
-        Assignment(workerCtrl.hardLimit, singleQos.hardLimit);
-        Assignment(workerCtrl.maxConcurrency, singleQos.maxConcurrency);
-        Assignment(workerCtrl.reserveNum, singleQos.reserveNum);
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        WorkerCtrl &workerCtrl = ctrlQueue[i];
+        workerCtrl.hardLimit = qosWorkerConfig.mQosWorkerCfg[i].hardLimit;
+        workerCtrl.maxConcurrency = qosWorkerConfig.mQosWorkerCfg[i].maxConcurrency;
+        workerCtrl.reserveNum = qosWorkerConfig.mQosWorkerCfg[i].reserveNum;
     }
-    Assignment(lowQosReserveWorkerNum, qosData->lowQosReserveWorkerNum);
-    Assignment(highQosReserveWorkerNum, qosData->highQosReserveWorkerNum);
-    Assignment(globalReserveWorkerNum, qosData->globalReserveWorkerNum);
+
+    lowQosReserveWorkerNum = qosWorkerConfig.mLowQosReserveWorkerNum;
+    highQosReserveWorkerNum = qosWorkerConfig.mHighQosReserveWorkerNum;
+    globalReserveWorkerNum = qosWorkerConfig.mGlobalReserveWorkerNum;
     globalReserveWorkerToken = std::make_unique<Token>(globalReserveWorkerNum);
     lowQosReserveWorkerToken = std::make_unique<Token>(lowQosReserveWorkerNum);
     highQosReserveWorkerToken = std::make_unique<Token>(highQosReserveWorkerNum);
@@ -208,7 +229,7 @@ bool CPUMonitor::QosWorkerNumSegment(ffrt_worker_num_attr *qosData)
             i, workerCtrl.reserveNum, workerCtrl.maxConcurrency, workerCtrl.hardLimit);
         workerCtrl.lock.unlock();
     }
-    return true;
+    return 0;
 }
 
 void CPUMonitor::StartMonitor()

@@ -68,7 +68,7 @@ public:
 #endif
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
     virtual void WorkerInit() = 0;
-    bool QosWorkerNumSegment (ffrt_worker_num_attr* qosData);
+    int QosWorkerNumSegment (ffrt_worker_num_param* qosData);
     bool TryAcquirePublicWorkerNum(const QoS& qos);
     /* strategy options for handling task notify events */
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
@@ -93,10 +93,9 @@ private:
     CpuMonitorOps ops;
     bool setWorkerNum = false;
     std::mutex setWorkerNumLock;
-    bool QosWorkerNumValid(ffrt_worker_num_attr* qosData);
-    bool MaxValueInvalid(unsigned int value, unsigned int default_value);
-    template <typename T>
-    void Assignment(T& targetValue, unsigned int value);
+    bool SetWorkerPara(unsigned int& param, unsigned int value);
+    bool SetQosWorkerPara(ffrt_qos_config& qosCfg);
+    bool QosWorkerNumValid(ffrt_worker_num_param* qosData);
     bool LowQosUseReserveWorkerNum();
     bool HighQosUseReserveWorkerNum();
     void ReleasePublicWorkerNum(const QoS& qos);
@@ -109,6 +108,7 @@ private:
     std::unique_ptr<Token> highQosReserveWorkerToken = nullptr;
     std::unique_ptr<Token> lowQosUseGlobalWorkerToken = nullptr;
     std::unique_ptr<Token> highQosUseGlobalWorkerToken = nullptr;
+    QosWorkerConfig QosWorkerConfig;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool blockAwareInit = false;
     bool stopMonitor = false;

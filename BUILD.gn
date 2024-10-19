@@ -33,6 +33,12 @@ config("ffrt_config") {
     "-Wno-unused-parameter",
     "-fno-common",
     "-DUSE_OHOS_QOS",
+    "-DOHOS_STANDARD_SYSTEM",
+    "-DTASKSTAT_LOG_ENABLE=0",
+    "-DIDLE_WORKER_DESTRUCT",
+    "-DFFRT_PTHREAD_ENABLE",
+    "-DFFRT_OH_WATCHDOG_ENABLE",
+    "-DQOS_WORKER_FRAME_RTG",
   ]
 
   cflags = ffrt_defaults_cflags
@@ -97,12 +103,6 @@ config("ffrt_inner_config") {
     "-D_FORTIFY_SOURCE=2",
     "-O2",
     "-fPIC",
-    "-DOHOS_STANDARD_SYSTEM",
-    "-DTASKSTAT_LOG_ENABLE=0",
-    "-DIDLE_WORKER_DESTRUCT",
-    "-DFFRT_PTHREAD_ENABLE",
-    "-DFFRT_OH_WATCHDOG_ENABLE",
-    "-DQOS_WORKER_FRAME_RTG",
   ]
 
   cflags_cc = ffrt_inner_cflags

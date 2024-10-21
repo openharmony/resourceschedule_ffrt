@@ -99,7 +99,7 @@ void CPUMonitor::SetupMonitor()
 #endif
 }
 
-void SetWorkerPara(unsigned int& param, unsigned int value)
+void CPUMonitor::SetWorkerPara(unsigned int& param, unsigned int value)
 {
     if (value != DEFAULT_PARAMS_VALUE) {
         param = value;

@@ -95,7 +95,7 @@ private:
     bool setWorkerNum = false;
     std::mutex setWorkerNumLock;
     bool SetWorkerPara(unsigned int& param, unsigned int value);
-    bool SetQosWorkerPara(ffrt_qos_config& qosCfg);
+    int SetQosWorkerPara(ffrt_qos_config& qosCfg);
     bool QosWorkerNumValid(ffrt_worker_num_param* qosData);
     bool LowQosUseReserveWorkerNum();
     bool HighQosUseReserveWorkerNum();

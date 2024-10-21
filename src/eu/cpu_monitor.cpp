@@ -22,7 +22,6 @@
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
-#include "internal_inc/config.h"
 #include "util/name_manager.h"
 #include "sync/poller.h"
 #include "util/ffrt_facade.h"

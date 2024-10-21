@@ -25,6 +25,7 @@
 #include "eu/cpu_manager_interface.h"
 #include "c/type_def_ext.h"
 #include "util/token.h"
+#include "internal_inc/config.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif

@@ -139,7 +139,7 @@ bool CPUMonitor::QosWorkerNumValid(ffrt_worker_num_param *qosData)
             return false;
         }
         setWorkerNumQos[qos] = true;
-        if (SetQosWorkerPara(qosData->qosConfigArray[i] != 0)) {
+        if (SetQosWorkerPara(qosData->qosConfigArray[i]) != 0)) {
             return false;
         }
     }
@@ -167,16 +167,6 @@ bool CPUMonitor::QosWorkerNumValid(ffrt_worker_num_param *qosData)
         return false;
     }
     return true;
-}
-
-bool CPUMonitor::MaxValueInvalid(unsigned int value, unsigned int default_value)
-{
-    return value != DEFAULT_PARAMS_VALUE && value > default_value;
-}
-template <typename T>
-void CPUMonitor::Assignment(T& targetValue, unsigned int value)
-{
-    targetValue = value != DEFAULT_PARAMS_VALUE ? value : targetValue;
 }
 
 int CPUMonitor::QosWorkerNumSegment(ffrt_worker_num_param *qosData)

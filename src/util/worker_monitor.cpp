@@ -173,8 +173,8 @@ void WorkerMonitor::CheckWorkerStatus()
     }
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        int executionNum = FFRTFacade::GetEUInstance().GetCPUMointor()->WakedWorkerNum(i);
-        int sleepingWorkerNum = FFRTFacade::GetEUInstance().GetCPUMointor()->SleepingWorkerNum(i);
+        int executionNum = FFRTFacade::GetEUInstance().GetCPUMonitor()->WakedWorkerNum(i);
+        int sleepingWorkerNum = FFRTFacade::GetEUInstance().GetCPUMonitor()->SleepingWorkerNum(i);
 
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         CoWorkerInfo coWorkerInfo(i, workerGroup[i].threads.size(), executionNum, sleepingWorkerNum);
@@ -261,8 +261,6 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
         if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
             RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);
         }
-
-        RecordKeyInfo(dumpInfo);
     }
 #endif
 #ifdef FFRT_SEND_EVENT
@@ -293,17 +291,5 @@ void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo, int tid)
     }
 
     transactionFile.close();
-}
-
-void WorkerMonitor::RecordKeyInfo(const std::string& dumpInfo)
-{
-    if (dumpInfo.find(IPC_STACK_NAME) == std::string::npos || dumpInfo.find("libpower") == std::string::npos) {
-        return;
-    }
-
-#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-    std::string keyInfo = SaveKeyInfo();
-    FFRT_LOGW("%s", keyInfo.c_str());
-#endif
 }
 }

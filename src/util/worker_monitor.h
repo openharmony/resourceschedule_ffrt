@@ -58,12 +58,12 @@ struct TimeoutFunctionInfo {
     WorkerInfo workerInfo_;
     int executionTime_;
 
-    TimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, const& WorkerInfo workerInfo, int executionTime)
+    TimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, const WorkerInfo& workerInfo, int executionTime)
         : coWorkerInfo_(coWorkerInfo), workerInfo_(workerInfo), executionTime_(executionTime)
     {
         if (workerInfo_.workerTaskType_ != ffrt_normal_task && workerInfo_.workerTaskType_ != ffrt_queue_task) {
-            gid_ = UINT64_MAX; //该task type 没有 gid
-            label_ = "Unsupport_Task_type"; //该task type 没有 label
+            workerInfo_.gid_ = UINT64_MAX; //该task type 没有 gid
+            workerInfo_.label_ = "Unsupport_Task_type"; //该task type 没有 label
         }
     }
 };
@@ -83,11 +83,10 @@ private:
     void SubmitSamplingTask();
     void SubmitMemReleaseTask();
     void CheckWorkerStatus();
-    void RecordTimeoutFunctionInfo(onst CoWorkerInfo& coWorkerInfo, WorkerThread* worker,
+    void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, WorkerThread* worker,
         CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
     void RecordIpcInfo(const std::string& dumpInfo, int tid);
-    void RecordKeyInfo(const std::string& dumpInfo);
 
 private:
     std::mutex mutex_;

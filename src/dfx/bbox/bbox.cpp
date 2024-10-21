@@ -34,8 +34,8 @@
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #endif
 #include "dfx/dump/dump.h"
-#include "util/slab.h"
 #include "util/ffrt_facade.h"
+#include "util/slab.h"
 
 using namespace ffrt;
 
@@ -48,6 +48,14 @@ std::mutex bbox_handle_lock;
 std::condition_variable bbox_handle_end;
 
 static struct sigaction s_oldSa[SIGSYS + 1]; // SIGSYS = 31
+
+static FuncSaveKeyStatusInfo saveKeyStatusInfo = nullptr;
+static FuncSaveKeyStatus saveKeyStatus = nullptr;
+void SetFuncSaveKeyStatus(FuncSaveKeyStatus func, FuncSaveKeyStatusInfo infoFunc)
+{
+    saveKeyStatus = func;
+    saveKeyStatusInfo = infoFunc;
+}
 
 void TaskWakeCounterInc(void)
 {
@@ -89,6 +97,19 @@ static inline void SaveTaskCounter()
 }
 #endif
 
+static inline void SaveLocalFifoStatus(int qos, WorkerThread* thread)
+{
+    CPUWorker* worker = reinterpret_cast<CPUWorker*>(thread);
+    CPUEUTask* t = reinterpret_cast<CPUEUTask*>(worker->localFifo.PopHead());
+    while (t != nullptr) {
+        if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
+            FFRT_BBOX_LOG("qos %d: worker tid %d is localFifo task id %lu name %s",
+                qos, worker->Id(), t->gid, t->label.c_str());
+        }
+        t = reinterpret_cast<CPUEUTask*>(worker->localFifo.PopHead());
+    }
+}
+
 static inline void SaveWorkerStatus()
 {
     WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
@@ -96,6 +117,7 @@ static inline void SaveWorkerStatus()
     for (int i = 0; i < QoS::MaxNum(); i++) {
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
+            SaveLocalFifoStatus(i, thread.first);
             CPUEUTask* t = thread.first->curTask;
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());
@@ -127,6 +149,16 @@ static inline void SaveReadyQueueStatus()
             }
         }
     }
+}
+
+static inline void SaveKeyStatus()
+{
+    FFRT_BBOX_LOG("<<<=== key status ===>>>");
+    if (saveKeyStatus == nullptr) {
+        FFRT_BBOX_LOG("no key status");
+        return;
+    }
+    saveKeyStatus();
 }
 
 static inline void SaveNormalTaskStatus()
@@ -235,9 +267,26 @@ unsigned int GetBboxEnableState(void)
     return g_bbox_tid_is_dealing.load();
 }
 
+unsigned int GetBboxCalledTimes(void)
+{
+    return g_bbox_called_times.load();
+}
+
 bool FFRTIsWork()
 {
     return FFRTTraceRecord::FfrtBeUsed();
+}
+
+void RecordDebugInfo(void)
+{
+    auto t = ExecuteCtx::Cur()->task;
+    FFRT_BBOX_LOG("<<<=== ffrt debug log start ===>>>");
+
+    if ((t != nullptr) && (t->type == ffrt_normal_task || t->type == ffrt_queue_task)) {
+        FFRT_BBOX_LOG("debug log: tid %d, task id %lu, qos %d, name %s", gettid(), t->gid, t->qos(), t->label.c_str());
+    }
+    SaveKeyStatus();
+    FFRT_BBOX_LOG("<<<=== ffrt debug log finish ===>>>");
 }
 
 void SaveTheBbox()
@@ -246,7 +295,9 @@ void SaveTheBbox()
         std::thread([&]() {
             unsigned int expect = 0;
             unsigned int tid = static_cast<unsigned int>(gettid());
+            ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
             (void)g_bbox_tid_is_dealing.compare_exchange_strong(expect, tid);
+            monitor->WorkerInit();
 
 #ifdef OHOS_STANDARD_SYSTEM
             FaultLoggerFdManager::Instance().InitFaultLoggerFd();
@@ -257,6 +308,7 @@ void SaveTheBbox()
             SaveTaskCounter();
 #endif
             SaveWorkerStatus();
+            SaveKeyStatus();
             SaveReadyQueueStatus();
             SaveNormalTaskStatus();
             SaveQueueTaskStatus();
@@ -411,6 +463,21 @@ void AppendTaskInfo(std::ostringstream& oss, TaskBase* task)
         oss << " executeTime " << FormatDateString(task->executeTime);
     }
 #endif
+}
+
+std::string SaveKeyInfo(void)
+{
+    ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
+    std::ostringstream oss;
+
+    monitor->WorkerInit();
+    oss << "    |-> key status" << std::endl;
+    if (saveKeyStatusInfo == nullptr) {
+        oss << "no key status info" << std::endl;
+        return oss.str();
+    }
+    oss << saveKeyStatusInfo();
+    return oss.str();
 }
 
 std::string SaveWorkerStatusInfo(void)

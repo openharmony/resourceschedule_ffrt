@@ -65,6 +65,13 @@ config("ffrt_test_config") {
     "FFRT_RELEASE",
     "DISABLE_MONITOR",
     "FFRT_GITEE",
+    "IDLE_WORKER_DESTRUCT",
+    "FFRT_PTHREAD_ENABLE",
+    "FFRT_OH_WATCHDOG_ENABLE",
+    "QOS_WORKER_FRAME_RTG",
+    "USE_OHOS_QOS",
+    "OHOS_STANDARD_SYSTEM",
+    "TASKSTAT_LOG_ENABLE=0",
   ]
   if (use_musl) {
     defines += [ "TDD_MUSL" ]

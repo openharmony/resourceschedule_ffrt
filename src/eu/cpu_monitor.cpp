@@ -139,7 +139,7 @@ bool CPUMonitor::QosWorkerNumValid(ffrt_worker_num_param *qosData)
             return false;
         }
         setWorkerNumQos[qos] = true;
-        if (SetQosWorkerPara(qosData->qosConfigArray[i]) != 0)) {
+        if (SetQosWorkerPara(qosData->qosConfigArray[i]) != 0) {
             return false;
         }
     }

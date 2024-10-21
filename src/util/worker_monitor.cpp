@@ -30,6 +30,7 @@
 #include "internal_inc/osal.h"
 #include "sched/scheduler.h"
 #include "util/ffrt_facade.h"
+#include "dfx/bbox/bbox.h"
 
 namespace {
 constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
@@ -172,8 +173,11 @@ void WorkerMonitor::CheckWorkerStatus()
     }
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
+        int executionNum = FFRTFacade::GetEUInstance().GetCPUMointor()->WakedWorkerNum(i);
+        int sleepingWorkerNum = FFRTFacade::GetEUInstance().GetCPUMointor()->SleepingWorkerNum(i);
+
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-        size_t coWorkerCount = workerGroup[i].threads.size();
+        CoWorkerInfo coWorkerInfo(i, workerGroup[i].threads.size(), executionNum, sleepingWorkerNum);
         for (auto& thread : workerGroup[i].threads) {
             WorkerThread* worker = thread.first;
             CPUEUTask* workerTask = worker->curTask;
@@ -182,7 +186,7 @@ void WorkerMonitor::CheckWorkerStatus()
                 continue;
             }
 
-            RecordTimeoutFunctionInfo(coWorkerCount, worker, workerTask, timeoutFunctions);
+            RecordTimeoutFunctionInfo(coWorkerInfo, worker, workerTask, timeoutFunctions);
         }
     }
 
@@ -193,8 +197,8 @@ void WorkerMonitor::CheckWorkerStatus()
     SubmitSamplingTask();
 }
 
-void WorkerMonitor::RecordTimeoutFunctionInfo(size_t coWorkerCount, WorkerThread* worker, CPUEUTask* workerTask,
-    std::vector<TimeoutFunctionInfo>& timeoutFunctions)
+void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, WorkerThread* worker,
+    CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions)
 {
     auto workerIter = workerStatus_.find(worker);
     if (workerIter == workerStatus_.end()) {
@@ -210,8 +214,8 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(size_t coWorkerCount, WorkerThread
 
         taskInfo.sampledTimes_ = 0;
         if (++taskInfo.executionTime_ % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
-            timeoutFunctions.emplace_back(static_cast<int>(worker->GetQos()), coWorkerCount, worker->Id(),
-                taskInfo.executionTime_, worker->curTaskType_, worker->curTaskGid_, worker->curTaskLabel_);
+            WorkerInfo workerInfo(worker->Id(), worker->curTaskGid_, worker->curTaskType_, worker->curTaskLabel_);
+            timeoutFunctions.emplace_back(coWorkerInfo, workerInfo, taskInfo.executionTime_);
             if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1) {
                 taskInfo.recordLevel_++;
             }
@@ -232,22 +236,33 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
     std::stringstream ss;
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-    ss << "Task_Sch_Timeout: process name:[" << processName << "], Tid:[" << timeoutFunction.tid_ <<
-        "], Worker QoS Level:[" << timeoutFunction.qosLevel_ << "], Concurrent Worker Count:[" <<
-        timeoutFunction.coWorkerCount_ << "], Task Type:[" << timeoutFunction.type_ << "], ";
-    if (timeoutFunction.type_ == ffrt_normal_task || timeoutFunction.type_ == ffrt_queue_task) {
-        ss << "Task Name:[" << timeoutFunction.label_ << "], Task Id:[" << timeoutFunction.gid_ << "], ";
+    ss << "Task_Sch_Timeout: process name:[" << processName << "], Tid:[" << timeoutFunction.workerInfo_.tid_ <<
+        "], Worker QoS Level:[" << timeoutFunction.coWorkerInfo_.qosLevel_ << "], Concurrent Worker Count:[" <<
+        timeoutFunction.coWorkerInfo_.coWorkerCount_ << "], Execution Worker Number:[" <<
+        timeoutFunction.coWorkerInfo_.executionNum_ << "], Sleeping Worker Number:[" <<
+        timeoutFunction.coWorkerInfo_.sleepingWorkerNum_ << "], Task Type:[" <<
+        timeoutFunction.workerInfo_.workerTaskType_ << "], ";
+
+#ifdef WORKER_CACHE_TASKNAMEID
+    if (timeoutFunction.workerInfo_.workerTaskType_ == ffrt_normal_task ||
+        timeoutFunction.workerInfo_.workerTaskType_ == ffrt_queue_task) {
+        ss << "Task Name:[" << timeoutFunction.workerInfo_.label_ <<
+            "], Task Id:[" << timeoutFunction.workerInfo_.gid_ << "], ";
     }
+#endif
+
     ss << "occupies worker for more than [" << timeoutFunction.executionTime_ << "]s";
     FFRT_LOGW("%s", ss.str().c_str());
 
 #ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;
-    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.tid_, 0, false)) {
+    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, 0, false)) {
         FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
         if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
-            RecordIpcInfo(dumpInfo);
+            RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);
         }
+
+        RecordKeyInfo(dumpInfo);
     }
 #endif
 #ifdef FFRT_SEND_EVENT
@@ -259,7 +274,7 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
 #endif
 }
 
-void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo)
+void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo, int tid)
 {
     if (dumpInfo.find(IPC_STACK_NAME) == std::string::npos) {
         return;
@@ -270,12 +285,25 @@ void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo)
 
     FFRT_LOGW("transaction_proc:");
     std::string line;
+    std::string regexStr = ".*" + std::to_string(tid) + ".*to.*code.*";
     while (getline(transactionFile, line)) {
-        if (std::regex_match(line, std::regex(".*to.*code.*"))) {
+        if (std::regex_match(line, std::regex(regexStr))) {
             FFRT_LOGW("%s", line.c_str());
         }
     }
 
     transactionFile.close();
+}
+
+void WorkerMonitor::RecordKeyInfo(const std::string& dumpInfo)
+{
+    if (dumpInfo.find(IPC_STACK_NAME) == std::string::npos || dumpInfo.find("libpower") == std::string::npos) {
+        return;
+    }
+
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    std::string keyInfo = SaveKeyInfo();
+    FFRT_LOGW("%s", keyInfo.c_str());
+#endif
 }
 }

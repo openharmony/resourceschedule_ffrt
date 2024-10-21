@@ -183,6 +183,13 @@ int CPUMonitor::WakedWorkerNum(const QoS& qos)
     return workerCtrl.executionNum;
 }
 
+int CPUMonitor::SleepingWorkerNum(const QoS& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    std::unique_lock lk(workerCtrl.lock);
+    return workerCtrl.sleepingWorkerNum;
+}
+
 bool CPUMonitor::HasDeepSleepWork(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -248,8 +255,13 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
     /* There is no need to update running num when executionNum < maxConcurrency */
     if (workerCtrl.executionNum >= workerCtrl.maxConcurrency) {
         if (blockAwareInit && !BlockawareLoadSnapshot(keyPtr, &domainInfoNotify)) {
-            /* nrRunning may not be updated in a timely manner */
-            runningNum = workerCtrl.executionNum - domainInfoNotify.localinfo[qos()].nrBlocked;
+            if (workerCtrl.executionNum >= domainInfoNotify.localinfo[qos()].nrBlocked) {
+                /* nrRunning may not be updated in a timely manner */
+                runningNum = workerCtrl.executionNum - domainInfoNotify.localinfo[qos()].nrBlocked;
+            } else {
+                FFRT_LOGE("qos [%d] nrBlocked [%u] is larger than executionNum [%d].",
+                    qos(), domainInfoNotify.localinfo[qos()].nrBlocked, workerCtrl.executionNum);
+            }
         }
     }
 #endif

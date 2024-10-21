@@ -111,14 +111,14 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
     switch (curtask->type) {
         case ffrt_normal_task:
         case ffrt_queue_task: {
+#ifdef WORKER_CACHE_TASKNAMEID
             worker->curTaskLabel_ = task->label;
             worker->curTaskGid_ = task->gid;
+#endif
             ctx->task = task;
             ctx->lastGid_ = task->gid;
             Run(task, worker);
             ctx->task = nullptr;
-            worker->curTaskLabel_ = "";
-            worker->curTaskGid_ = UINT64_MAX;
             break;
         }
         default: {

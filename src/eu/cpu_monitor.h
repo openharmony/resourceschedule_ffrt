@@ -68,6 +68,7 @@ public:
     /* strategy options for handling task notify events */
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
+    int SleepingWorkerNum(const QoS& qos);
     void NotifyWorkers(const QoS& qos, int number);
     bool HasDeepSleepWork(const QoS& qos);
     uint32_t monitorTid = 0;

@@ -109,7 +109,7 @@ private:
     std::unique_ptr<Token> highQosReserveWorkerToken = nullptr;
     std::unique_ptr<Token> lowQosUseGlobalWorkerToken = nullptr;
     std::unique_ptr<Token> highQosUseGlobalWorkerToken = nullptr;
-    QosWorkerConfig QosWorkerConfig;
+    QosWorkerConfig qosWorkerConfig;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool blockAwareInit = false;
     bool stopMonitor = false;

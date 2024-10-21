@@ -94,7 +94,7 @@ private:
     CpuMonitorOps ops;
     bool setWorkerNum = false;
     std::mutex setWorkerNumLock;
-    bool SetWorkerPara(unsigned int& param, unsigned int value);
+    void SetWorkerPara(unsigned int& param, unsigned int value);
     int SetQosWorkerPara(ffrt_qos_config& qosCfg);
     bool QosWorkerNumValid(ffrt_worker_num_param* qosData);
     bool LowQosUseReserveWorkerNum();

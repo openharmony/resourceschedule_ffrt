@@ -43,7 +43,7 @@ public:
         return &instance;
     }
 
-#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func = nullptr
+#define REG_FUNC(func) using func##Type = decltype(func)*; func##Type func##Temp = nullptr
     REG_FUNC(cpu_boost_start);
     REG_FUNC(cpu_boost_end);
     REG_FUNC(cpu_boost_save);

@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_cpu_boost_start(bool mode)
+int ffrt_cpu_boost_start(int ctx_id)
 {
     int ret = ffrt::CpuBoostStart(ctx_id);
     if (ret == 0) {
@@ -42,7 +42,7 @@ void ffrt_cpu_boost_start(bool mode)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_cpu_boost_end(bool mode)
+int ffrt_cpu_boost_end(int ctx_id)
 {
     int ret = ffrt::CpuBoostEnd(ctx_id);
     if (ret == 0) {

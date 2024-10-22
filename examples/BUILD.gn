@@ -18,7 +18,7 @@ ohos_executable("ffrt_submit") {
 
   include_dirs = [ "../interfaces/kits" ]
 
-  deps = [ "//foundation/resourceschedule/ffrt:libffrt" ]
+  deps = [ "../..:libffrt" ]
 
   install_enable = false
   install_images = [ "system" ]

@@ -33,7 +33,26 @@ FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 // config
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
 FFRT_C_API void ffrt_restore_qos_config(void);
-FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
+
+/**
+ * @brief worker num setting.
+ *
+ * @param qosData param is default when value equal 0xffffffff.
+ * totalNum = lowQosReserveWorkerNum + highQosReserveWorkerNum + sum of all reserveNum
+ * totalNum is valid in (0,256].
+ * lowQosReserveWorkerNum is a low partition qos public resource.{[min, max], default} is {[0,256],12}.
+ * highQosReserveWorkerNum is a hight partition qos public resource.{[min, max], default} is {[0,256],12}.
+ * lowQosReserveWorkerNum is a global qos public resource.{[min, max], default} is {[0,256],24}.
+ * qosConfigArray is an array of ffrt_qos_config.
+ * effectLen: param setting will success when qosConfigArray index less than effectLen.
+ * qos valid in [0,5].
+ * reserveNum: mininum number which qos can create worker.{[min, max], default} is {[0,256],8}.
+ * maxConcurrency is amx concurrency num of the qos.{[min, max], default} is {[0,12],8}.
+ * hardLimit: max number which qos can create worker.{[min, max], default} is {[0,256],44}.
+ * @return return ture when setting success.return false when setting fail, and param is default.
+ * @version 1.0
+ */
+FFRT_C_API int ffrt_set_qos_worker_num(ffrt_worker_num_param* qosData);
 
 /**
  * @brief Set the task execution timeout.

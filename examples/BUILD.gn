@@ -27,8 +27,8 @@ ohos_executable("ffrt_submit") {
     "//foundation/resourceschedule/ffrt:libffrt"
   ]
 
-  install_enable = true
-  install_images = [ "vendor" ]
+  install_enable = false
+  install_images = [ "system" ]
   module_install_dir = "bin"
   part_name = "ffrt"
 }

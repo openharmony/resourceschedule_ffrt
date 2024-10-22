@@ -57,6 +57,7 @@ public:
     std::string label;
     std::vector<std::string> traceTag;
     bool wakeupTimeOut = false;
+    int cpuBoostCtxId = -1;
     WaitUntilEntry* wue = nullptr;
     // lifecycle connection between task and coroutine is shown as below:
     // |*task pending*|*task ready*|*task executing*|*task done*|*task release*|

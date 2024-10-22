@@ -20,6 +20,11 @@
 #include <securec.h>
 #include <string>
 #include <sys/mman.h>
+#ifndef OHOS_STANDARD_SYSTEM
+#include "cpu_boost_adapter.h"
+#else
+#include "util/cpu_boost_ohos.h"
+#endif
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
@@ -379,7 +384,7 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
     return 0;
 }
 
-static inline void CoSwitchInTrace(ffrt::CPUEUTask* task)
+static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
         for (auto name : task->traceTag) {
@@ -387,14 +392,21 @@ static inline void CoSwitchInTrace(ffrt::CPUEUTask* task)
         }
     }
     FFRT_FAKE_TRACE_MARKER(task->gid);
+
+    if (task->cpuBoostCtxId >= 0) {
+        CpuBoostRestore(task->cpuBoostCtxId);
+    }
 }
 
-static inline void CoSwitchOutTrace(ffrt::CPUEUTask* task)
+static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
 {
     FFRT_FAKE_TRACE_MARKER(task->gid);
     int traceTagNum = static_cast<int>(task->traceTag.size());
     for (int i = 0; i < traceTagNum; ++i) {
         FFRT_TRACE_END();
+    }
+    if (task->cpuBoostCtxId >= 0) {
+        CpuBoostSave(task->cpuBoostCtxId);
     }
 }
 
@@ -424,7 +436,7 @@ int CoStart(ffrt::CPUEUTask* task)
         if (task->type == ffrt_normal_task) {
             task->UpdateState(ffrt::TaskState::RUNNING);
         }
-        CoSwitchInTrace(task);
+        CoSwitchInTransaction(task);
 #ifdef FFRT_TASK_LOCAL_ENABLE
         SwitchTsdToTask(co->task);
 #endif
@@ -466,7 +478,7 @@ void CoYield(void)
     CoRoutine* co = static_cast<CoRoutine*>(GetCoEnv()->runningCo);
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
     GetCoEnv()->runningCo = nullptr;
-    CoSwitchOutTrace(co->task);
+    CoSwitchOutTransaction(co->task);
     if (co->task->type == ffrt_normal_task) {
         co->task->UpdateState(ffrt::TaskState::BLOCKED);
     }

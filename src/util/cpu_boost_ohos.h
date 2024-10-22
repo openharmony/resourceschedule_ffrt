@@ -64,18 +64,19 @@ private:
             return false;
         }
 
+        bool loadFlag = true;
+
 #define LOAD_FUNC(x) x##Temp = reinterpret_cast<x##Type>(dlsym(handle, #x)); \
-        if (x##Temp == nullptr) \
-        { \
+        if (x##Temp == nullptr) { \
             FFRT_LOGE("load func %s from %s failed", #x, CPU_BOOST_LIB_PATH); \
-            return false; \
+            loadFlag = false; \
         }
             LOAD_FUNC(cpu_boost_start);
             LOAD_FUNC(cpu_boost_end);
             LOAD_FUNC(cpu_boost_save);
             LOAD_FUNC(cpu_boost_restore);
 #undef LOAD_FUNC
-        return true;
+        return loadFlag;
     }
 
     bool UnLoad()
@@ -94,34 +95,34 @@ private:
 };
 
 #define EXECUTE_CPU_BOOST_FUNC(x, ctx_id, ret) auto func = CPUBoostAdapter::Instance()->x##Temp; \
-        if (func != nullptr) \
-            ret = func(ctx_id); \
+        if (func != nullptr) { \
+            ret = (func)(ctx_id); \
         } else { \
             ret = -1; \
         }
 
-inline int CPUBoostStart(int ctx_id)
+inline int CpuBoostStart(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_start, ctx_id, ret);
     return ret;
 }
 
-inline int CPUBoostEnd(int ctx_id)
+inline int CpuBoostEnd(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_end, ctx_id, ret);
     return ret;
 }
 
-inline int CPUBoostSave(int ctx_id)
+inline int CpuBoostSave(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_save, ctx_id, ret);
     return ret;
 }
 
-inline int CPUBoostRestore(int ctx_id)
+inline int CpuBoostRestore(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_restore, ctx_id, ret);

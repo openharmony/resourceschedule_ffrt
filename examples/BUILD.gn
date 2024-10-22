@@ -13,19 +13,12 @@
 
 import("//build/ohos.gni")
 
-
 ohos_executable("ffrt_submit") {
-  sources = [
-    "submit.cpp"
-  ]
+  sources = [ "submit.cpp" ]
 
-  include_dirs = [
-      "../interfaces/kits"
-  ]
+  include_dirs = [ "../interfaces/kits" ]
 
-  deps = [
-    "//foundation/resourceschedule/ffrt:libffrt"
-  ]
+  deps = [ "//foundation/resourceschedule/ffrt:libffrt" ]
 
   install_enable = false
   install_images = [ "system" ]

@@ -14,7 +14,7 @@
  */
 #ifndef OHOS_STANDARD_SYSTEM
 #include "cpu_boost_adapter.h"
-#else 
+#else
 #include "cpu_boost_ohos.h"
 #endif
 #include "cpp/task.h"
@@ -31,7 +31,7 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 void ffrt_cpu_boost_start(bool mode)
 {
-    int ret = ffrt::CPUBoostStart(ctx_id);
+    int ret = ffrt::CpuBoostStart(ctx_id);
     if (ret == 0) {
         ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
         if (curTask != nullptr && curTask->cpuBoostCtxId < 0) {
@@ -44,7 +44,7 @@ void ffrt_cpu_boost_start(bool mode)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_cpu_boost_end(bool mode)
 {
-    int ret = ffrt::CPUBoostEnd(ctx_id);
+    int ret = ffrt::CpuBoostEnd(ctx_id);
     if (ret == 0) {
         ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
         if (curTask != nullptr && curTask->cpuBoostCtxId == ctx_id) {

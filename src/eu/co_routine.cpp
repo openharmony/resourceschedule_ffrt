@@ -394,7 +394,7 @@ static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
     FFRT_FAKE_TRACE_MARKER(task->gid);
 
     if (task->cpuBoostCtxId >= 0) {
-        CPUBoostRestore(task->cpuBoostCtxId);
+        CpuBoostRestore(task->cpuBoostCtxId);
     }
 }
 
@@ -406,7 +406,7 @@ static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
         FFRT_TRACE_END();
     }
     if (task->cpuBoostCtxId >= 0) {
-        CPUBoostSave(task->cpuBoostCtxId);
+        CpuBoostSave(task->cpuBoostCtxId);
     }
 }
 

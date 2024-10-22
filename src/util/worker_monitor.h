@@ -32,27 +32,40 @@ struct TaskTimeoutInfo {
     explicit TaskTimeoutInfo(CPUEUTask* task) : task_(task) {}
 };
 
-struct TimeoutFunctionInfo {
+struct CoWorkerInfo {
     size_t qosLevel_;
     int coWorkerCount_;
+    int executionNum_;
+    int sleepingWorkerNum_;
+
+    CoWorkerInfo(size_t qosLevel, int coWorkerCount, int executionNum, int sleepingWorkerNum)
+        : qosLevel_(qosLevel), coWorkerCount_(coWorkerCount),
+        executionNum_(executionNum), sleepingWorkerNum_(sleepingWorkerNum) {}
+};
+
+struct WorkerInfo {
     int tid_;
-    int executionTime_;
-    uintptr_t type_;
     uint64_t gid_;
+    uintptr_t workerTaskType_;
     std::string label_;
 
-    TimeoutFunctionInfo(size_t qosLevel, int coWorkerCount, int workerId, int executionTime,
-        uintptr_t workerTaskType, uint64_t taskId, std::string workerTaskLabel)
-        : qosLevel_(qosLevel), coWorkerCount_(coWorkerCount), tid_(workerId), executionTime_(executionTime),
-        type_(workerTaskType) {
-            if (type_ == ffrt_normal_task || type_ == ffrt_queue_task) {
-                gid_ = taskId;
-                label_ = workerTaskLabel;
-            } else {
-                gid_ = UINT64_MAX; //该task type 没有 gid
-                label_ = "Unsupport_Task_type"; //该task type 没有 label
-            }
+    WorkerInfo(int workerId, uint64_t taskId, uintptr_t workerTaskType, std::string workerTaskLabel)
+        : tid_(workerId), gid_(taskId), workerTaskType_(workerTaskType), label_(workerTaskLabel) {}
+};
+
+struct TimeoutFunctionInfo {
+    CoWorkerInfo coWorkerInfo_;
+    WorkerInfo workerInfo_;
+    int executionTime_;
+
+    TimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, const WorkerInfo& workerInfo, int executionTime)
+        : coWorkerInfo_(coWorkerInfo), workerInfo_(workerInfo), executionTime_(executionTime)
+    {
+        if (workerInfo_.workerTaskType_ != ffrt_normal_task && workerInfo_.workerTaskType_ != ffrt_queue_task) {
+            workerInfo_.gid_ = UINT64_MAX; //该task type 没有 gid
+            workerInfo_.label_ = "Unsupport_Task_type"; //该task type 没有 label
         }
+    }
 };
 
 class WorkerMonitor {
@@ -70,10 +83,10 @@ private:
     void SubmitSamplingTask();
     void SubmitMemReleaseTask();
     void CheckWorkerStatus();
-    void RecordTimeoutFunctionInfo(size_t coWorkerCount, WorkerThread* worker,
+    void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, WorkerThread* worker,
         CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
-    void RecordIpcInfo(const std::string& dumpInfo);
+    void RecordIpcInfo(const std::string& dumpInfo, int tid);
 
 private:
     std::mutex mutex_;

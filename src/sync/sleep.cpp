@@ -52,7 +52,7 @@ void sleep_until_impl(const time_point_t& to)
         return;
     }
     // be careful about local-var use-after-free here
-    std::function<void(WaitEntry*)> cb([](WaitEntry* we) { CoRoutineFactory::CoWakeFunc(we->task, false); });
+    static std::function<void(WaitEntry*)> cb([](WaitEntry* we) { CoRoutineFactory::CoWakeFunc(we->task, false); });
     FFRT_BLOCK_TRACER(ExecuteCtxTask()->gid, slp);
     CoWait([&](CPUEUTask* task) -> bool { return DelayedWakeup(to, &task->fq_we, cb); });
 }

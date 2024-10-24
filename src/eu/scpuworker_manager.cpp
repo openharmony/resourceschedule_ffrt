@@ -31,7 +31,7 @@
 #endif
 
 namespace {
-#if !defined(IDLE_WORKER_DESTRUCT)
+#if !defined(OHOS_STANDARD_SYSTEM)
 constexpr int waiting_seconds = 10;
 #else
 constexpr int waiting_seconds = 5;
@@ -128,7 +128,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #endif
         return WorkerAction::RETRY;
     } else {
-#if !defined(IDLE_WORKER_DESTRUCT)
+#if !defined(OHOS_STANDARD_SYSTEM)
         monitor->IntoDeepSleep(thread->GetQos());
         CoStackFree();
         if (monitor->IsExceedDeepSleepThreshold()) {

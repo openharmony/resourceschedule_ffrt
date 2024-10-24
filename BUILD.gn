@@ -96,7 +96,6 @@ config("ffrt_inner_config") {
     "-D_FORTIFY_SOURCE=2",
     "-O2",
     "-fPIC",
-    "-DIDLE_WORKER_DESTRUCT",
     "-DFFRT_PTHREAD_ENABLE",
     "-DFFRT_OH_WATCHDOG_ENABLE",
     "-DQOS_WORKER_FRAME_RTG",

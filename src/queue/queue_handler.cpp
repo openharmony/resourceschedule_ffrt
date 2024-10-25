@@ -16,7 +16,6 @@
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
-#include "queue_monitor.h"
 #include "util/event_handler_adapter.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
@@ -57,7 +56,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
         FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", GetQueueId());
     }
 
-    QueueMonitor::GetInstance().RegisterQueueId(GetQueueId(), this);
+    FFRTFacade::GetQMInstance().RegisterQueueId(GetQueueId(), this);
     FFRT_LOGI("construct %s succ, qos[%d]", name_.c_str(), qos_);
 }
 
@@ -66,11 +65,8 @@ QueueHandler::~QueueHandler()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot destruct, [queueId=%u] constructed failed", GetQueueId());
     FFRT_LOGI("destruct %s enter", name_.c_str());
     // clear tasks in queue
-    queue_->Stop();
-    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
-        std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
-    }
-    QueueMonitor::GetInstance().ResetQueueStruct(GetQueueId());
+    CancelAndWait();
+    FFRTFacade::GetQMInstance().ResetQueueStruct(GetQueueId());
 
     // release callback resource
     if (timeout_ > 0) {
@@ -167,7 +163,7 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Remove();
-    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) != 0 || queue_->GetActiveStatus()) {
+    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) != 0 || queue_->GetActiveStatus()) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
 }
@@ -207,7 +203,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
     for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
         // dfx watchdog
         SetTimeoutMonitor(task);
-        QueueMonitor::GetInstance().UpdateQueueInfo(GetQueueId(), task->gid);
+        FFRTFacade::GetQMInstance().UpdateQueueInfo(GetQueueId(), task->gid);
 
         // run user task
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
@@ -235,7 +231,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         // run task batch
         nextTask = task->GetNextTask();
         if (nextTask == nullptr) {
-            QueueMonitor::GetInstance().ResetQueueInfo(GetQueueId());
+            FFRTFacade::GetQMInstance().ResetQueueInfo(GetQueueId());
             if (!queue_->IsOnLoop()) {
                 Deliver();
             }

@@ -33,6 +33,7 @@
 #include "dfx/bbox/bbox.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "co_routine_factory.h"
+#include "util/ffrt_facade.h"
 #ifdef FFRT_TASK_LOCAL_ENABLE
 #include "pthread_ffrt.h"
 #endif
@@ -270,7 +271,7 @@ static void CoSetStackProt(CoRoutine* co, int prot)
 
 static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
 {
-    std::size_t defaultStackSize = CoStackAttr::Instance()->size;
+    std::size_t defaultStackSize = FFRTFacade::GetCSAInstance()->size;
     CoRoutine* co = nullptr;
     if (likely(stackSize == defaultStackSize)) {
         co = ffrt::CoRoutineAllocMem(stackSize);
@@ -289,7 +290,7 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
     co->allocatedSize = stackSize;
     co->stkMem.size = static_cast<uint64_t>(stackSize - sizeof(CoRoutine) + 8);
     co->stkMem.magic = STACK_MAGIC;
-    if (CoStackAttr::Instance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
+    if (FFRTFacade::GetCSAInstance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_READ);
     }
     co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
@@ -298,10 +299,10 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
 
 static inline void CoMemFree(CoRoutine* co)
 {
-    if (CoStackAttr::Instance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
+    if (FFRTFacade::GetCSAInstance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
-    std::size_t defaultStackSize = CoStackAttr::Instance()->size;
+    std::size_t defaultStackSize = FFRTFacade::GetCSAInstance()->size;
     if (likely(co->allocatedSize == defaultStackSize)) {
         ffrt::CoRoutineFreeMem(co);
     } else {

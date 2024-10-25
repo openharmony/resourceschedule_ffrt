@@ -21,6 +21,7 @@
 #include "internal_inc/assert.h"
 #include "internal_inc/types.h"
 #include "tm/scpu_task.h"
+#include "util/ffrt_facade.h"
 #include "util/name_manager.h"
 
 namespace ffrt {
@@ -171,4 +172,9 @@ void IOPoller::PollOnce(int timeout) noexcept
         }
     }
 }
+}
+
+void ffrt_wait_fd(int fd)
+{
+    ffrt::FFRTFacade::GetIoPPInstance().WaitFdEvent(fd);
 }

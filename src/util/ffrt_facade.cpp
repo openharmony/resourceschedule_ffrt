@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "util/ffrt_facade.h"
+#include "dfx/log/ffrt_log_api.h"
 
 namespace {
 std::atomic<bool> g_exitFlag { false };
@@ -46,6 +47,7 @@ private:
 
     ~ProcessExitManager()
     {
+        FFRT_LOGW("ProcessExitManager destruction enter");
         std::unique_lock lock(g_exitMtx);
         g_exitFlag.store(true);
     }

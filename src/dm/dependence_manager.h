@@ -82,20 +82,7 @@ public:
     virtual void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
         const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
-    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
-    {
-        FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
-        FFRT_TRACE_SCOPE(1, onSubmitUV);
-        QoS qos = ((attr == nullptr || attr->qos_ == qos_inherit) ? QoS() : QoS(attr->qos_));
-        FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(qos);
-        LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
-        FFRTScheduler* sch = FFRTScheduler::Instance();
-        if (!sch->InsertNode(node, qos)) {
-            FFRT_LOGE("Submit UV task failed!");
-            return;
-        }
-        FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(qos);
-    }
+    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr);
 
     virtual void onWait() = 0;
 #ifdef QOS_DEPENDENCY

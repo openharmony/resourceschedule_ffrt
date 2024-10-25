@@ -74,17 +74,13 @@ typedef struct {
     unsigned int qos;
 } ffrt_qos_config;
 
-#ifdef OHOS_STANDARD_SYSTEM
-#define MAX_QOS_LENGTH 15
-#else
 #define MAX_QOS_LENGTH 19
-#endif
 typedef struct {
-    ffrt_qos_config qosConfigArray[MAX_QOS_LENGTH];
     unsigned int effectLen;
     unsigned int lowQosReserveWorkerNum;
     unsigned int highQosReserveWorkerNum;
     unsigned int globalReserveWorkerNum;
+    ffrt_qos_config qosConfigArray[MAX_QOS_LENGTH];
 } ffrt_worker_num_param;
 
 typedef struct {

@@ -73,7 +73,7 @@ static inline void restore_qos_config()
  * reserveNum: mininum number which qos can create worker.{[min, max], default} is {[0,256],8}.
  * maxConcurrency is amx concurrency num of the qos.{[min, max], default} is {[0,12],8}.
  * hardLimit: max number which qos can create worker.{[min, max], default} is {[0,256],44}.
- * @return return ture when setting success.return false when setting fail, and param is default.
+ * @return return 0 when setting success.return -1 when setting fail, and param is default.
  * @version 1.0
  */
 static inline int set_qos_worker_num(ffrt_worker_num_param* qosData)

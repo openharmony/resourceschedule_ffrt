@@ -426,7 +426,7 @@ void Poller::ReleaseFdWakeData() noexcept
             }
             m_delCntMap[delFd] = 1;
         } else {
-            FFRT_LOGE("fd=%d count unexpected, added num=%d, del num=%d", delFd, wakeDataList.size(), delCnt);
+            FFRT_LOGD("fd=%d count unexpected, added num=%d, del num=%d", delFd, wakeDataList.size(), delCnt);
         }
         delIter++;
     }

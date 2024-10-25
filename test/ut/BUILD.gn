@@ -24,8 +24,6 @@ gtest_public_deps = [ "//third_party/googletest:gtest_main" ]
 ffrt_ut_base_deps = [
   "../..:libffrt",
   "//third_party/googletest:gtest",
-  "//third_party/jsoncpp:jsoncpp",
-]
 
 ffrt_ut_base_external_deps = [
   "c_utils:utils",

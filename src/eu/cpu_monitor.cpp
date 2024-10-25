@@ -304,7 +304,7 @@ void CPUMonitor::WakeupCount(const QoS& qos, bool isDeepSleepWork)
 void CPUMonitor::DoDestroy(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    std::unique_lock lk(workerCtrl.lock);
+    std::lock_guard lk(workerCtrl.lock);
     size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
     if (totalNum > workerCtrl.reserveNum) {
         ReleasePublicWorkerNum(qos);
@@ -443,7 +443,7 @@ void CPUMonitor::LogAllWorkerNum()
     FFRT_LOGD("lowQosUseGlobalWorkerToken[%d], highQosUseGlobalWorkerToken[%d]",
         lowQosUseGlobalWorkerToken->load(), highQosUseGlobalWorkerToken->load());
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        WorkerCtrl &workerCtrl = ctrlQueue[i];
+        WorkerCtrl& workerCtrl = ctrlQueue[i];
         size_t runningNum = workerCtrl.executionNum;
         size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
         FFRT_LOGD("succ:qos[%d], reserveNum[%d], maxConcurrency[%d], hardLimit[%d], runningNum[%d], totalNum[%d]",

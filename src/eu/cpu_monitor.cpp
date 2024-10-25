@@ -71,7 +71,7 @@ void CPUMonitor::SetupMonitor()
             wakeupCond.global.low += wakeupCond.local[i].low;
             wakeupCond.global.high += wakeupCond.local[i].high;
         } else {
-             wakeupCond.local[i].high = 0;
+            wakeupCond.local[i].high = 0;
         }
     }
     for (int i = 0; i < QoS::MaxNum(); i++) {

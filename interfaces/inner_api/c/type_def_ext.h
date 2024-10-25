@@ -74,7 +74,6 @@ typedef struct {
     unsigned int qos;
 } ffrt_qos_config;
 
-
 #define MAX_QOS_LENGTH 19
 typedef struct {
     unsigned int effectLen;

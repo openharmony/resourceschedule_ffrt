@@ -28,7 +28,7 @@ constexpr int RS_RTG_ID = 10;
 
 namespace ffrt {
 static int wgId = -1;
-static WorkGroup *rsWorkGroup = nullptr;
+static WorkGroup* rsWorkGroup = nullptr;
 static int wgCount = 0;
 static std::mutex wgLock;
 
@@ -116,7 +116,7 @@ bool LeaveRSWorkGroup(int tid)
     if (existIndex != -1) {
         rsWorkGroup->tids[existIndex] = -1;
     }
-    FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup ,tid:%{public}d,existIndex:%{public}d", tid, existIndex);
+    FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup ,tid: %{public}d, existIndex: %{public}d", tid, existIndex);
     return true;
 }
 

@@ -113,7 +113,7 @@ private:
             if (func##Func == nullptr) {                                                        \
                 FFRT_LOGE("load func %s from %s failed", #func, TRACE_LIB_PATH_2.c_str());      \
             }                                                                                   \
-        }                                                                                       
+        }
 
             LOAD_FUNC(AddThreadToRtg);
             LOAD_FUNC(BeginFrameFreq);
@@ -185,7 +185,7 @@ static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
         if (func != nullptr) {                                             \
             func(queryItem, queryRs);                                      \
         }                                                                  \
-    } while (0)                                    
+    } while (0)
 
 #endif /* __FFRT_TASKCLIENT_ADAPTER_H__ */
 #endif /* QOS_FRAME_RTG */

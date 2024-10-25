@@ -536,7 +536,6 @@ int ffrt_skip(ffrt_task_handle_t handle)
         __ATOMIC_RELAXED)) {
         return 0;
     }
-    FFRT_LOGW("skip task [%lu] failed, because the task is executing now or has finished.", task->gid);
     return 1;
 }
 

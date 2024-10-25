@@ -30,9 +30,6 @@ public:
     void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f, const ffrt_deps_t *ins,
         const ffrt_deps_t *outs, const task_attr_private *attr) override;
 
-    void onSubmitDev(const ffrt_hcs_task_t *runTask, bool hasHandle, ffrt_task_handle_t &handle,
-        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) override;
-
     void onWait() override;
 
 #ifdef QOS_DEPENDENCY

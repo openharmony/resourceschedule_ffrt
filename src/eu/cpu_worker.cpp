@@ -24,6 +24,7 @@
 #include "dfx/perf/ffrt_perf.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
+#include "util/ffrt_facade.h"
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -36,16 +37,12 @@ const unsigned int TRY_POLL_FREQ = 51;
 }
 
 namespace ffrt {
-void CPUWorker::Run(CPUEUTask* task)
-{
-    CoRoutineEnv* coRoutineEnv = GetCoEnv();
-    Run(task, coRoutineEnv);
-}
-
-void CPUWorker::Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
+void CPUWorker::Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker)
 {
     if constexpr(USE_COROUTINE) {
-        CoStart(task, coRoutineEnv);
+        if (CoStart(task, coRoutineEnv) != 0) {
+            worker->localFifo.PushTail(task);
+        }
         return;
     }
 
@@ -129,7 +126,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, Execut
 #endif
             ctx->task = task;
             ctx->lastGid_ = task->gid;
-            Run(task, coRoutineEnv);
+            Run(task, coRoutineEnv, worker);
             ctx->task = nullptr;
             break;
         }
@@ -306,7 +303,7 @@ void CPUWorker::WorkerLooperStandard(WorkerThread* p)
 {
     CPUWorker* worker = reinterpret_cast<CPUWorker*>(p);
     auto mgr = reinterpret_cast<CPUWorkerManager*>(p->worker_mgr);
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(p->GetQos());
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(p->GetQos());
     auto lock = mgr->GetSleepCtl(static_cast<int>(p->GetQos()));
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     CoRoutineEnv* coRoutineEnv = GetCoEnv();

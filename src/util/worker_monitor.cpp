@@ -38,12 +38,10 @@ constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
-constexpr char IPC_STACK_NAME[] = "libipc_core";
+constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
-const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {
-    1000 * 1000, 10 * 1000 * 1000, 30 * 1000 * 1000, 60 * 1000 * 1000, 10 * 60 * 1000 * 1000, 30 * 60 * 1000 * 1000
-};
+const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60 };
 }
 
 namespace ffrt {
@@ -66,9 +64,6 @@ WorkerMonitor::WorkerMonitor()
     } else {
         FFRT_LOGW("worker_monitor.conf does not exist or file permission denied");
     }
-
-    SubmitSamplingTask();
-    SubmitMemReleaseTask();
 }
 
 WorkerMonitor::~WorkerMonitor()
@@ -201,18 +196,23 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(size_t coWorkerCount, WorkerThread
 
     TaskTimeoutInfo& taskInfo = workerIter->second;
     if (taskInfo.task_ == workerTask) {
-        int taskExecutionTime = ++taskInfo.sampledTimes_ * MONITOR_SAMPLING_CYCLE_US;
-        if (taskExecutionTime % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
+        if (++taskInfo.sampledTimes_ < SAMPLING_TIMES_PER_SEC) {
+            return;
+        }
+
+        taskInfo.sampledTimes_ = 0;
+        if (++taskInfo.executionTime_ % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
             timeoutFunctions.emplace_back(static_cast<int>(worker->GetQos()), coWorkerCount, worker->Id(),
-                taskInfo.sampledTimes_, worker->curTaskType_, worker->curTaskGid_, worker->curTaskLabel_);
+                taskInfo.executionTime_, worker->curTaskType_, worker->curTaskGid_, worker->curTaskLabel_);
             if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1) {
                 taskInfo.recordLevel_++;
             }
         }
+
         return;
     }
 
-    if (taskInfo.sampledTimes_ > 0) {
+    if (taskInfo.executionTime_ > 0) {
         FFRT_LOGI("Tid[%d] function is executed, which occupies worker for [%d]s.",
             worker->Id(), taskInfo.sampledTimes_ / SAMPLING_TIMES_PER_SEC + 1);
     }
@@ -221,8 +221,6 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(size_t coWorkerCount, WorkerThread
 
 void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction)
 {
-    int sampleSeconds = (timeoutFunction.sampledTimes_ == 0) ? 1 : timeoutFunction.sampledTimes_ /
-        SAMPLING_TIMES_PER_SEC;
     std::stringstream ss;
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
@@ -232,20 +230,20 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
     if (timeoutFunction.type_ == ffrt_normal_task || timeoutFunction.type_ == ffrt_queue_task) {
         ss << "Task Name:[" << timeoutFunction.label_ << "], Task Id:[" << timeoutFunction.gid_ << "], ";
     }
-    ss << "occupies worker for more than [" << sampleSeconds << "]s";
+    ss << "occupies worker for more than [" << timeoutFunction.executionTime_ << "]s";
     FFRT_LOGW("%s", ss.str().c_str());
 
 #ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;
     if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.tid_, 0, false)) {
         FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
-        if (sampleSeconds >= RECORD_IPC_INFO_TIME_THRESHOLD) {
+        if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
             RecordIpcInfo(dumpInfo);
         }
     }
 #endif
 #ifdef FFRT_SEND_EVENT
-    if (sampleSeconds == HISYSEVENT_TIMEOUT_SEC) {
+    if (timeoutFunction.executionTime_ == HISYSEVENT_TIMEOUT_SEC) {
         std::string processNameStr = std::string(processName);
         std::string senarioName = "Task_Sch_Timeout";
         TaskTimeoutReport(ss, processNameStr, senarioName);

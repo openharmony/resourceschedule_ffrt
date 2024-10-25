@@ -22,15 +22,15 @@ constexpr unsigned char NR_QOS = 6;
 
 namespace ffrt {
 
-typedef int (*FuncQosMap)(int qos);
-void SetFuncQosMap(FuncQosMap func);
-FuncQosMap GetFuncQosMap(void);
+typedef int (*Func_qos_map)(int qos);
+void SetFuncQosMap(Func_qos_map func);
+Func_qos_map GetFuncQosMap(void);
 
 int QoSMap(int qos);
 
-typedef int (*FuncQosMax)(void);
-void SetFuncQosMax(FuncQosMax func);
-FuncQosMax GetFuncQosMax(void);
+typedef int (*Func_qos_max)(void);
+void SetFuncQosMax(Func_qos_max func);
+Func_qos_max GetFuncQosMax(void);
 
 int QoSMax(void);
 

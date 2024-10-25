@@ -25,7 +25,6 @@ class SCPUMonitor : public CPUMonitor {
 public:
     SCPUMonitor(CpuMonitorOps&& ops) : CPUMonitor(std::move(ops)) {};
     void IntoSleep(const QoS& qos) override;
-
     void Notify(const QoS& qos, TaskNotifyType notifyType) override;
     void WorkerInit() override;
 };

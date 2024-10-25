@@ -51,13 +51,12 @@ public:
     /* strategy options for worklooper function */
     static void WorkerLooperDefault(WorkerThread* p);
     static void WorkerLooperStandard(WorkerThread* p);
+    static void Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker);
 
 private:
     static void* WrapDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
-    static void Run(CPUEUTask* task);
     static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
-    static void Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv);
     static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker);
     static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, ExecuteCtx* ctx, CoRoutineEnv* coRoutineEnv);
     static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker);

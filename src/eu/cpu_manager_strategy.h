@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FFRT_MANAGER_STRATEGY_HPP
-#define FFRT_MANAGER_STRATEGY_HPP
+#ifndef FFRT_CPU_MANAGER_STRATEGY_HPP
+#define FFRT_CPU_MANAGER_STRATEGY_HPP
 
 #include "eu/worker_thread.h"
 #include "qos.h"

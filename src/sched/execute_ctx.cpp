@@ -15,9 +15,10 @@
 #include "execute_ctx.h"
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <pthread.h>
+
 pthread_key_t g_executeCtxTlsKey = 0;
 pthread_once_t g_executeCtxKeyOnce = PTHREAD_ONCE_INIT;
-
 namespace ffrt {
 namespace {
 void ExecuteCtxTlsDestructor(void* args)
@@ -32,7 +33,7 @@ void MakeExecuteCtxTlsKey()
 {
     pthread_key_create(&g_executeCtxTlsKey, ExecuteCtxTlsDestructor);
 }
-} // namespace
+}
 
 ExecuteCtx::ExecuteCtx()
 {

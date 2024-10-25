@@ -17,6 +17,7 @@
 #define FFRT_WORKER_MONITOR_H
 
 #include <mutex>
+#include <map>
 #include "eu/worker_thread.h"
 #include "tm/cpu_task.h"
 
@@ -24,7 +25,8 @@ namespace ffrt {
 struct TaskTimeoutInfo {
     CPUEUTask* task_ = nullptr;
     int recordLevel_ = 0;
-    int sampledTimes_ = -2;
+    int sampledTimes_ = 0;
+    int executionTime_ = 0;
 
     TaskTimeoutInfo() {}
     explicit TaskTimeoutInfo(CPUEUTask* task) : task_(task) {}
@@ -34,14 +36,14 @@ struct TimeoutFunctionInfo {
     size_t qosLevel_;
     int coWorkerCount_;
     int tid_;
-    int sampledTimes_;
+    int executionTime_;
     uintptr_t type_;
     uint64_t gid_;
     std::string label_;
 
-    TimeoutFunctionInfo(size_t qosLevel, int coWorkerCount, int workerId, int sampledTimes,
+    TimeoutFunctionInfo(size_t qosLevel, int coWorkerCount, int workerId, int executionTime_,
         uintptr_t workerTaskType, uint64_t taskId, std::string workerTaskLabel)
-        : qosLevel_(qosLevel), coWorkerCount_(coWorkerCount), tid_(workerId), sampledTimes_(sampledTimes),
+        : qosLevel_(qosLevel), coWorkerCount_(coWorkerCount), tid_(workerId), executionTime_(executionTime_),
         type_(workerTaskType) {
             if (type_ == ffrt_normal_task || type_ == ffrt_queue_task) {
                 gid_ = taskId;
@@ -80,8 +82,8 @@ private:
     WaitUntilEntry watchdogWaitEntry_;
     WaitUntilEntry memReleaseWaitEntry_;
     std::map<WorkerThread*, TaskTimeoutInfo> workerStatus_;
-    bool samplingTaskExit_ = false;
-    bool memReleaseTaskExit_ = false;
+    bool samplingTaskExit_ = true;
+    bool memReleaseTaskExit_ = true;
 };
 }
 #endif

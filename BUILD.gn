@@ -20,7 +20,6 @@ config("ffrt_config") {
   include_dirs = [
     "interfaces/kits",
     "interfaces/inner_api",
-    "interfaces/staging_api",
   ]
 
   ffrt_defaults_cflags = [
@@ -107,11 +106,9 @@ ohos_shared_library("libffrt") {
 
     sources = [
       "src/core/entity.cpp",
-      "src/core/resource_manager.cpp",
       "src/core/task.cpp",
       "src/core/task_io.cpp",
       "src/core/version_ctx.cpp",
-      "src/core/xpu_task.cpp",
       "src/dfx/bbox/bbox.cpp",
       "src/dfx/bbox/fault_logger_fd_manager.cpp",
       "src/dfx/dump/dump.cpp",

@@ -58,12 +58,13 @@ public:
     bool IsExceedDeepSleepThreshold();
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
-    void RollbackDestory(const QoS& qos, bool irqWake = false);
-    void TryDestory(const QoS& qos);
+    void RollbackDestroy(const QoS& qos, bool irqWake = false);
+    void TryDestroy(const QoS& qos);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool IsExceedRunningThreshold(const QoS& qos);
     bool IsBlockAwareInit(void);
     void MonitorMain();
+    BlockawareWakeupCond* WakeupCond(void);
 #endif
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
     virtual void WorkerInit() = 0;

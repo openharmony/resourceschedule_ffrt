@@ -55,7 +55,7 @@ public:
     static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&free,
         TaskAllocCB<CPUEUTask>::GetUnfreedMem &&getUnfreedMem = nullptr,
         TaskAllocCB<CPUEUTask>::LockMem &&lockMem = nullptr,
-        TaskAllocCB<CPUEUTask>::UnlockMem && unlockMem = nullptr)
+        TaskAllocCB<CPUEUTask>::UnlockMem &&unlockMem = nullptr)
     {
         Instance().alloc_ = std::move(alloc);
         Instance().free_ = std::move(free);

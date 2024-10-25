@@ -123,7 +123,7 @@ private:
 void CoStackFree(void);
 void CoWorkerExit(void);
 
-void CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv);
+int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv);
 void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);

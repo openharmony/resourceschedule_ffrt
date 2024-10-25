@@ -80,7 +80,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     (void)in_deps;
     (void)out_deps;
     ffrt::IOTaskExecutor* task = new (std::nothrow) ffrt::IOTaskExecutor(qos);
-    FFRT_COND_RETURN_VOID(task == nullptr, "new IOTaskExecutore Failed");
+    FFRT_COND_RETURN_VOID(task == nullptr, "new IOTaskExecutor failed");
 
     task->work.exec = exec;
     task->work.destroy = destroy;
@@ -129,7 +129,7 @@ void ffrt_wake_coroutine(void* task)
     }
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&wakedTask->wq);
-    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, wakedTask->qos)) {
+    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, wakedTask->qos)) {
         FFRT_LOGE("Submit io task failed!");
     }
 }

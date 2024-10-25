@@ -35,6 +35,7 @@
 #endif
 #include "dfx/dump/dump.h"
 #include "util/ffrt_facade.h"
+#include "util/slab.h"
 
 using namespace ffrt;
 
@@ -479,7 +480,7 @@ std::string SaveKeyInfo(void)
         return oss.str();
     }
     oss << saveKeyStatusInfo();
-    return oss.str();                                                                                                   
+    return oss.str();
 }
 
 std::string SaveWorkerStatusInfo(void)

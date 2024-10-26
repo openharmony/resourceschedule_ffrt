@@ -12,10 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- #include "qos_register_impl.h"
- #include "c/type_def_ext.h"
- #include "dfx/log/ffrt_log_api.h"
- #include "internal_inc/osal.h"
+#include "qos_register_impl.h"
+#include "c/type_def_ext.h"
+#include "dfx/log/ffrt_log_api.h"
+#include "internal_inc/osal.h"
 
 namespace ffrt {
 API_ATTRIBUTE((visibility("default")))

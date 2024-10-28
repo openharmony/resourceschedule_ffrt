@@ -30,7 +30,7 @@
 #endif
 
 namespace ffrt {
-using time_point_t = std::chrono::steady_clock::time_point;
+using TimePoint = std::chrono::steady_clock::time_point;
 
 enum class TaskTimeoutState {
     INIT,
@@ -75,7 +75,7 @@ struct WaitUntilEntry : WaitEntry {
     }
     std::atomic_int32_t status;
     bool hasWaitTime;
-    time_point_t tp;
+    TimePoint tp;
     std::function<void(WaitEntry*)> cb;
     std::mutex wl;
     std::condition_variable cv;
@@ -91,14 +91,16 @@ struct ExecuteCtx {
     QoS qos;
     CPUEUTask* task; // 当前正在执行的Task
     WaitUntilEntry wn;
+    uint64_t lastGid_ = 0;
+    pid_t tid;
 
-    inline bool PushTaskToPriorityStack(ffrt_executor_task_t* task)
+    inline bool PushTaskToPriorityStack(ffrt_executor_task_t* executorTask)
     {
         if (priority_task_ptr == nullptr) {
             return false;
         }
         if (*priority_task_ptr == nullptr) {
-            *priority_task_ptr = task;
+            *priority_task_ptr = executorTask;
             return true;
         }
         return false;

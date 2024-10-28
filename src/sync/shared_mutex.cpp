@@ -14,6 +14,7 @@
  */
 
 #include "shared_mutex_private.h"
+#include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
 
 #include "internal_inc/osal.h"

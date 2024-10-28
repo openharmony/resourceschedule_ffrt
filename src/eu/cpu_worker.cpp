@@ -17,28 +17,32 @@
 #include "eu/worker_thread.h"
 #include "ffrt_trace.h"
 #include "sched/scheduler.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "dfx/bbox/bbox.h"
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
 #include "dfx/perf/ffrt_perf.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
+#include "util/ffrt_facade.h"
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
+#include "eu/cpuworker_manager.h"
 namespace {
 int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
 }
 
 namespace ffrt {
-void CPUWorker::Run(CPUEUTask* task)
+void CPUWorker::Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker)
 {
     if constexpr(USE_COROUTINE) {
-        CoStart(task);
+        if (CoStart(task, coRoutineEnv) != 0) {
+            worker->localFifo.PushTail(task);
+        }
         return;
     }
 
@@ -69,9 +73,6 @@ void CPUWorker::Run(CPUEUTask* task)
 
 void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
 {
-#ifdef FFRT_BBOX_ENABLE
-    TaskRunCounterInc();
-#endif
     if (task == nullptr) {
         FFRT_LOGE("task is nullptr");
         return;
@@ -87,16 +88,14 @@ void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
         FFRT_LOGE("Static func is nullptr");
         return;
     }
-
+    FFRTTraceRecord::TaskExecute<ffrt_uv_task>(qos);
     FFRT_EXECUTOR_TASK_BEGIN(task);
     func(task, qos);
     FFRT_EXECUTOR_TASK_END();
     if (type != ffrt_io_task) {
         FFRT_EXECUTOR_TASK_FINISH_MARKER(task); // task finish marker for uv task
     }
-#ifdef FFRT_BBOX_ENABLE
-    TaskFinishCounterInc();
-#endif
+    FFRTTraceRecord::TaskDone<ffrt_uv_task>(qos);
 }
 
 void* CPUWorker::WrapDispatch(void* worker)
@@ -108,14 +107,26 @@ void* CPUWorker::WrapDispatch(void* worker)
 
 void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
 {
-    auto ctx = ExecuteCtx::Cur();
+    ExecuteCtx* ctx = ExecuteCtx::Cur();
+    CoRoutineEnv* coRoutineEnv = GetCoEnv();
+    RunTask(curtask, worker, ctx, coRoutineEnv);
+}
+
+void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, ExecuteCtx* ctx, CoRoutineEnv* coRoutineEnv)
+{
     CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
     worker->curTask = task;
+    worker->curTaskType_ = task->type;
     switch (curtask->type) {
         case ffrt_normal_task:
         case ffrt_queue_task: {
+#ifdef WORKER_CACHE_TASKNAMEID
+            worker->curTaskLabel_ = task->label;
+            worker->curTaskGid_ = task->gid;
+#endif
             ctx->task = task;
-            Run(task);
+            ctx->lastGid_ = task->gid;
+            Run(task, coRoutineEnv, worker);
             ctx->task = nullptr;
             break;
         }
@@ -127,6 +138,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
         }
     }
     worker->curTask = nullptr;
+    worker->curTaskType_ = ffrt_invalid_task;
 }
 
 void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker)
@@ -210,7 +222,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
     worker->ops.WorkerLooper(worker);
     CoWorkerExit();
-    FFRT_LOGD("ExecutionThread exited");
     worker->ops.WorkerRetired(worker);
 }
 
@@ -291,14 +302,23 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
 void CPUWorker::WorkerLooperStandard(WorkerThread* p)
 {
     CPUWorker* worker = reinterpret_cast<CPUWorker*>(p);
+    auto mgr = reinterpret_cast<CPUWorkerManager*>(p->worker_mgr);
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(p->GetQos());
+    auto lock = mgr->GetSleepCtl(static_cast<int>(p->GetQos()));
+    ExecuteCtx* ctx = ExecuteCtx::Cur();
+    CoRoutineEnv* coRoutineEnv = GetCoEnv();
     for (;;) {
         // try get task
-        CPUEUTask* task = worker->ops.PickUpTask(worker);
+        CPUEUTask* task = nullptr;
+        if (!mgr->tearDown) {
+            std::lock_guard lg(*lock);
+            task = sched.PickNextTask();
+        }
 
         // if succ, notify picked and run task
         if (task != nullptr) {
-            worker->ops.NotifyTaskPicked(worker);
-            RunTask(reinterpret_cast<ffrt_executor_task_t*>(task), worker);
+            mgr->NotifyTaskPicked(worker);
+            RunTask(reinterpret_cast<ffrt_executor_task_t*>(task), worker, ctx, coRoutineEnv);
             continue;
         }
         // otherwise, worker wait action

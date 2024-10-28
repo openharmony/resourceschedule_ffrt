@@ -26,7 +26,6 @@
 #include <list>
 #include <memory>
 #include "task_base.h"
-#include "sched/interval.h"
 #include "sched/task_state.h"
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"
@@ -66,6 +65,12 @@ public:
     bool taskLocal = false;
 
     QoS qos;
+
+    int GetQos() const override
+    {
+        return qos;
+    }
+
     void SetQos(const QoS& newQos);
     uint64_t reserved[8];
 
@@ -88,23 +93,11 @@ public:
     {
         return TaskState::OnTransition(taskState, this, std::move(op));
     }
-
-    void SetTraceTag(const char* name)
-    {
-        traceTag.emplace_back(name);
-    }
-
-    void ClearTraceTag()
-    {
-        if (!traceTag.empty()) {
-            traceTag.pop_back();
-        }
-    }
 };
 
 inline bool ExecutedOnWorker(CPUEUTask* task)
 {
-    return task && !task->IsRoot();
+    return task && (task->type != ffrt_normal_task || !task->IsRoot());
 }
 
 inline bool LegacyMode(CPUEUTask* task)

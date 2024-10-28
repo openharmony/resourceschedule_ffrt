@@ -17,8 +17,11 @@
 #define FFRT_TASK_IO_H
 
 #include "internal_inc/types.h"
-#include "sched/interval.h"
-#include "util/slab.h"
+#ifdef USE_OHOS_QOS
+#include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "c/executor_task.h"
 
 namespace ffrt {
@@ -28,8 +31,8 @@ typedef struct {
     void* data;
 } ffrt_io_callable_t;
 
-struct ffrt_executor_io_task: public ffrt_executor_task {
-    ffrt_executor_io_task(const QoS &qos) : qos(qos)
+struct IOTaskExecutor: public ffrt_executor_task {
+    IOTaskExecutor(const QoS &qos) : qos(qos)
     {
         type = ffrt_io_task;
         work = {nullptr, nullptr, nullptr};

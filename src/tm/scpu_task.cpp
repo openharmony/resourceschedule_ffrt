@@ -17,6 +17,7 @@
 #include <sstream>
 #include "backtrace_local.h"
 #endif
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "dm/dependence_manager.h"
 #include "util/slab.h"
 #include "internal_inc/osal.h"
@@ -46,20 +47,16 @@ void SCPUEUTask::DecDepRef()
     if (--dataRefCnt.submitDep == 0) {
         FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
         FFRT_WAKE_TRACER(this->gid);
+        FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
         this->UpdateState(TaskState::READY);
-#ifdef FFRT_BBOX_ENABLE
-        TaskEnQueuCounterInc();
-#endif
     }
 }
 
 void SCPUEUTask::DecChildRef()
 {
     SCPUEUTask* parent = reinterpret_cast<SCPUEUTask*>(this->parent);
-    FFRT_LOGD("DecChildRef parent task:%s, childRefCnt=%u, task[%lu], name[%s]",
-        parent->label.c_str(), parent->childRefCnt.load(), gid, label.c_str());
     FFRT_TRACE_SCOPE(2, taskDecChildRef);
-    std::unique_lock<decltype(parent->lock)> lck(parent->lock);
+    std::unique_lock<decltype(parent->mutex_)> lck(parent->mutex_);
     parent->childRefCnt--;
     if (parent->childRefCnt != 0) {
         return;
@@ -99,7 +96,7 @@ void SCPUEUTask::DecWaitDataRef()
 {
     FFRT_TRACE_SCOPE(2, taskDecWaitData);
     {
-        std::lock_guard<decltype(lock)> lck(lock);
+        std::lock_guard<decltype(mutex_)> lck(mutex_);
         if (--dataRefCnt.waitDep != 0) {
             return;
         }
@@ -116,16 +113,14 @@ void SCPUEUTask::DecWaitDataRef()
         waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);
+        FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
         this->UpdateState(TaskState::READY);
-#ifdef FFRT_BBOX_ENABLE
-        TaskEnQueuCounterInc();
-#endif
     }
 }
 
 void SCPUEUTask::RecycleTask()
 {
-    std::unique_lock<decltype(lock)> lck(lock);
+    std::unique_lock<decltype(mutex_)> lck(mutex_);
     if (childRefCnt == 0) {
         FFRT_LOGD("free SCPUEUTask:%s gid=%lu", label.c_str(), gid);
         lck.unlock();

@@ -19,7 +19,7 @@
 #include "eu/worker_manager.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/cpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "common.h"

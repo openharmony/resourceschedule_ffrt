@@ -26,15 +26,15 @@
 #include "eu/osattr_manager.h"
 #include "eu/worker_thread.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/watchdog/watchdog_util.h"
 #include "eu/func_manager.h"
 #include "util/ffrt_facade.h"
+#include "util/slab.h"
 #include "eu/sexecute_unit.h"
-
 #include "core/task_io.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-
 #include "tm/task_factory.h"
 #include "tm/queue_task.h"
 
@@ -69,12 +69,12 @@ void clear_trace_tag()
     }
 }
 
-void create_delay_deps(
+void CreateDelayDeps(
     ffrt_task_handle_t &handle, const ffrt_deps_t *in_deps, const ffrt_deps_t *out_deps, task_attr_private *p)
 {
     // setting dependences is not supportted for delayed task
     if (unlikely(((in_deps != nullptr) && (in_deps->len != 0)) || ((out_deps != nullptr) && (out_deps->len != 0)))) {
-        FFRT_LOGE("delayed task not support dependence, in_deps/out_deps ignored.");
+        FFRT_LOGE("delayed task do not support dependence, in_deps/out_deps ignored.");
     }
 
     // delay task
@@ -120,7 +120,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_task_attr_set_name(ffrt_task_attr_t *attr, const char *name)
 {
     if (unlikely(!attr || !name)) {
-        FFRT_LOGE("attr or name not valid");
+        FFRT_LOGE("invalid attr or name");
         return;
     }
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->name_ = name;
@@ -272,7 +272,7 @@ void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
     if (kind == ffrt_function_kind_general) {
         return ffrt::TaskFactory::Alloc()->func_storage;
     }
-    return ffrt::SimpleAllocator<ffrt::QueueTask>::allocMem()->func_storage;
+    return ffrt::SimpleAllocator<ffrt::QueueTask>::AllocMem()->func_storage;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -294,7 +294,7 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     ffrt_task_handle_t delay_handle;
     uint64_t timeout = p->timeout_;
     p->timeout_ = 0;
-    ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+    ffrt::CreateDelayDeps(delay_handle, in_deps, out_deps, p);
     p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
@@ -321,7 +321,7 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
     ffrt_task_handle_t delay_handle = nullptr;
     uint64_t timeout = p->timeout_;
     p->timeout_ = 0;
-    ffrt::create_delay_deps(delay_handle, in_deps, out_deps, p);
+    ffrt::CreateDelayDeps(delay_handle, in_deps, out_deps, p);
     p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
@@ -536,7 +536,6 @@ int ffrt_skip(ffrt_task_handle_t handle)
         __ATOMIC_RELAXED)) {
         return 0;
     }
-    FFRT_LOGW("skip task [%lu] faild, because the task is doing now or has finished.", task->gid);
     return 1;
 }
 
@@ -552,7 +551,7 @@ void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_
         ffrt::FFRTFacade::GetDMInstance().onSubmitUV(task, p);
         return;
     }
-    FFRT_LOGE("uv function not supports delay");
+    FFRT_LOGE("uv function does not support delay");
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -572,9 +571,12 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     ffrt::QoS _qos = qos;
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
-    ffrt::FFRTFacade::GetDMInstance();
-    ffrt::FFRTScheduler* sch = ffrt::FFRTScheduler::Instance();
-    return static_cast<int>(sch->RemoveNode(node, _qos));
+    ffrt::FFRTScheduler* sch = ffrt::FFRTFacade::GetSchedInstance();
+    bool ret = sch->RemoveNode(node, _qos);
+    if (ret) {
+        ffrt::FFRTTraceRecord::TaskCancel<ffrt_uv_task>(qos);
+    }
+    return static_cast<int>(ret);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -635,6 +637,17 @@ pthread_t ffrt_task_get_tid(void* task_handle)
 
     auto task = reinterpret_cast<ffrt::CPUEUTask*>(task_handle);
     return task->runningTid.load();
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_get_cur_cached_task_id()
+{
+    uint64_t gid = ffrt_this_task_get_id();
+    if (gid == 0) {
+        return ffrt::ExecuteCtx::Cur()->lastGid_;
+    }
+
+    return gid;
 }
 #ifdef __cplusplus
 }

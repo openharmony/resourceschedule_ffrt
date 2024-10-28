@@ -280,6 +280,8 @@ void* ffrt_get_current_queue_eventhandler()
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_get_main_queue()
 {
+    FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetMainEventHandler == nullptr),
+        return nullptr, "failed to load GetMainEventHandler Func.");
     void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
     FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
     QueueHandler *handler = new (std::nothrow) QueueHandler(
@@ -292,6 +294,8 @@ ffrt_queue_t ffrt_get_main_queue()
 API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_get_current_queue()
 {
+    FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetCurrentEventHandler == nullptr),
+        return nullptr, "failed to load GetCurrentEventHandler Func.");
     void* workerHandler = EventHandlerAdapter::Instance()->GetCurrentEventHandler();
     FFRT_COND_DO_ERR((workerHandler == nullptr), return nullptr, "failed to get ArkTs worker queue.");
     QueueHandler *handler = new (std::nothrow) QueueHandler(

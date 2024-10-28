@@ -112,7 +112,7 @@ private:
             return true;
         }
 
-        handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL);
+        handle = dlopen(TRACE_LIB_PATH.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
         if (handle == nullptr) {
             FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH.c_str());
             return false;
@@ -220,6 +220,36 @@ static bool _IsTagEnabled(uint64_t label)
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _TraceCount(HITRACE_TAG_FFRT, tag, value); \
     } while (false)
+#define FFRT_TASK_BEGIN(tag, gid) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartTrace(HITRACE_TAG_FFRT, ("FFRT" + (tag) + "|" + std::to_string(gid)).c_str(), -1); \
+    } while (false)
+#define FFRT_BLOCK_TRACER(gid, tag) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag "|" + std::to_string(gid)).c_str(), -1); \
+        FFRT_TRACE_END(); \
+    } while (false)
+#define FFRT_WAKE_TRACER(gid) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartTrace(HITRACE_TAG_FFRT, ("FFWK|" + std::to_string(gid)).c_str(), -1); \
+        FFRT_TRACE_END(); \
+    } while (false)
+#define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartTrace(HITRACE_TAG_FFRT, ("FFRTex_task|" + \
+                std::to_string(((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111))).c_str(), -1); \
+    } while (false)
+#define FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(qid, gid) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartTrace(HITRACE_TAG_FFRT, ("P[sq_" + \
+                std::to_string(qid) + "]|" + std::to_string(gid)).c_str(), -1); \
+        FFRT_TRACE_END(); \
+    } while (false)
 #define FFRT_TRACE_SCOPE(level, tag) ffrt::ScopedTrace ___tracer##tag(level, #tag)
 #else
 #define FFRT_TRACE_BEGIN(tag)
@@ -228,6 +258,11 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_TRACE_ASYNC_END(tag, tid)
 #define FFRT_TRACE_COUNT(tag, value)
 #define FFRT_TRACE_SCOPE(level, tag)
+#define FFRT_TASK_BEGIN(tag, gid)
+#define FFRT_BLOCK_TRACER(gid, tag)
+#define FFRT_WAKE_TRACER(gid)
+#define FFRT_EXECUTOR_TASK_BEGIN(ptr)
+#define FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(qid, gid)
 #endif
 
 // DFX Trace for FFRT Normal Task
@@ -253,24 +288,10 @@ static bool _IsTagEnabled(uint64_t label)
     { \
         FFRT_TRACE_ASYNC_END("Co", gid); \
     }
-#define FFRT_TASK_BEGIN(tag, gid) \
-    { \
-        FFRT_TRACE_BEGIN(("FFRT" + (tag) + "|" + std::to_string(gid)).c_str()); \
-    }
 #define FFRT_TASK_END() \
     { \
         FFRT_TRACE_END(); \
     }
-#define FFRT_BLOCK_TRACER(gid, tag) \
-    do { \
-        FFRT_TRACE_BEGIN(("FFBK" #tag "|" + std::to_string(gid)).c_str()); \
-        FFRT_TRACE_END(); \
-    } while (false)
-#define FFRT_WAKE_TRACER(gid) \
-    do { \
-        FFRT_TRACE_BEGIN(("FFWK|" + std::to_string(gid)).c_str()); \
-        FFRT_TRACE_END(); \
-    } while (false)
 
 // DFX Trace for FFRT Executor Task
 #define FFRT_EXECUTOR_TASK_SUBMIT_MARKER(ptr) \
@@ -289,22 +310,13 @@ static bool _IsTagEnabled(uint64_t label)
     { \
         FFRT_TRACE_ASYNC_END("F", ((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111)); \
     }
-#define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
-    { \
-        FFRT_TRACE_BEGIN(("FFRTex_task|" + \
-            std::to_string(((reinterpret_cast<uintptr_t>(ptr)) & 0x11111111))).c_str()); \
-    }
+
 #define FFRT_EXECUTOR_TASK_END() \
     { \
         FFRT_TRACE_END(); \
     }
 
 // DFX Trace for FFRT Serial Queue Task
-#define FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(qid, gid) \
-    do { \
-        FFRT_TRACE_BEGIN(("P[sq_" + std::to_string(qid) + "]|" + std::to_string(gid)).c_str()); \
-        FFRT_TRACE_END(); \
-    } while (false)
 #define FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(gid) \
     { \
         FFRT_TRACE_ASYNC_END("E", gid); \

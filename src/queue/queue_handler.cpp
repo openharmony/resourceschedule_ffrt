@@ -16,14 +16,18 @@
 #include <sys/syscall.h>
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "queue_monitor.h"
 #include "util/event_handler_adapter.h"
+#include "util/ffrt_facade.h"
+#include "util/slab.h"
 #include "tm/queue_task.h"
 #include "concurrent_queue.h"
 #include "eventhandler_adapter_queue.h"
 #include "sched/scheduler.h"
 
 namespace {
+constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 }
@@ -55,18 +59,14 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
     }
 
     QueueMonitor::GetInstance().RegisterQueueId(GetQueueId(), this);
-    FFRT_LOGI("construct %s succ", name_.c_str());
+    FFRT_LOGI("construct %s succ, qos[%d]", name_.c_str(), qos_);
 }
 
 QueueHandler::~QueueHandler()
 {
-    FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot destruct, [queueId=%u] constructed failed", GetQueueId());
     FFRT_LOGI("destruct %s enter", name_.c_str());
     // clear tasks in queue
-    queue_->Stop();
-    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
-        std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
-    }
+    CancelAndWait();
     QueueMonitor::GetInstance().ResetQueueStruct(GetQueueId());
 
     // release callback resource
@@ -121,10 +121,12 @@ void QueueHandler::Submit(QueueTask* task)
 
     uint64_t gid = task->gid;
     FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(GetQueueId(), gid);
+    FFRTTraceRecord::TaskSubmit(&(task->createTime), &(task->fromTid));
+#if (FFRT_TRACE_RECORD_LEVEL < FFRT_TRACE_RECORD_LEVEL_1)
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
-        task->SetSenderKernelThreadId(syscall(SYS_gettid));
+        task->fromTid = ExecuteCtx::Cur()->tid;
     }
-
+#endif
     int ret = queue_->Push(task);
     if (ret == SUCC) {
         FFRT_LOGD("submit task[%lu] into %s", gid, name_.c_str());
@@ -161,7 +163,7 @@ void QueueHandler::CancelAndWait()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
-    queue_->Remove();
+    queue_->Stop();
     while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
@@ -208,7 +210,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(task->gid);
-
+        FFRTTraceRecord::TaskExecute(&(task->executeTime));
         uint64_t triggerTime{0};
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
             triggerTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -216,7 +218,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         }
 
         f->exec(f);
-
+        FFRTTraceRecord::TaskDone<ffrt_queue_task>(task->GetQos(), task);
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
             uint64_t completeTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
@@ -252,7 +254,7 @@ void QueueHandler::TransferTask(QueueTask* task)
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
         reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->SetCurrentRunningTask(task);
     }
-    FFRTScheduler* sch = FFRTScheduler::Instance();
+    FFRTScheduler* sch = FFRTFacade::GetSchedInstance();
     FFRT_READY_MARKER(task->gid); // ffrt queue task ready to enque
     if (!sch->InsertNode(&entry->node, task->GetQos())) {
         FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, GetQueueId(), name_.c_str());
@@ -277,7 +279,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     }
 
     task->IncDeleteRef();
-    WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
+    WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     // set delayed worker callback
     we->cb = ([this, task](WaitEntry* we) {
         if (!task->GetFinishStatus()) {
@@ -308,20 +310,16 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
 void QueueHandler::RunTimeOutCallback(QueueTask* task)
 {
     std::stringstream ss;
-    ss << "serial queue [" << name_ << "] queueId=" << GetQueueId() << ", serial task gid=" << task->gid <<
-        " execution time exceeds " << timeout_ << " us";
-    std::string msg = ss.str();
-    std::string eventName = "SERIAL_TASK_TIMEOUT";
-
-#ifdef FFRT_SEND_EVENT
-    time_t cur_time = time(nullptr);
-    std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
-    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
-        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "PID", getpid(), "TGID", getgid(), "UID", getuid(),
-        "MODULE_NAME", "ffrt", "PROCESS_NAME", "ffrt", "MSG", sendMsg);
-#endif
-
-    FFRT_LOGE("[%s], %s", eventName.c_str(), msg.c_str());
+    static std::once_flag flag;
+    static char processName[PROCESS_NAME_BUFFER_LENGTH];
+    std::call_once(flag, []() {
+        GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
+    });
+    std::string processNameStr = std::string(processName);
+    ss << "[Serial_Queue_Timeout_Callback] process name:[" << processNameStr << "], serial queue:[" <<
+        name_ << "], queueId:[" << GetQueueId() << "], serial task gid:[" << task->gid << "], task name:["
+        << task->label << "], execution time exceeds[" << timeout_ << "] us";
+    FFRT_LOGE("%s", ss.str().c_str());
     if (timeoutCb_ != nullptr) {
         timeoutCb_->exec(timeoutCb_);
     }

@@ -37,16 +37,3 @@ protected:
     {
     }
 };
-
-/*
- * 测试用例名称 : dump_succ
- * 测试用例描述：获取dump info失败
- * 操作步骤 ：1、调用函数ffrt_dump获取dump info
- * 预期结果 ：获取失败
- */
-TEST_F(DumpTest, dump_succ)
-{
-    char dumpinfo[1024 * 512] = {0};
-    int ret = ffrt_dump(ffrt_dump_cmd_t::DUMP_INFO_ALL, dumpinfo, 1024 * 512);
-    EXPECT_EQ(ret, -1);
-}

@@ -39,7 +39,10 @@ __attribute__((constructor)) static void ffrt_init()
         },
         [] (ffrt::CPUEUTask* task) {
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
-    });
+        },
+        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::LockMem,
+        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::UnlockMem);
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::TaskScheduler{new ffrt::FIFOQueue()}; },
         [] (ffrt::TaskScheduler* schd) { delete schd; });

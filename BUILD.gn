@@ -240,9 +240,22 @@ ohos_prebuilt_etc("blacklist_cfg") {
   ]
 }
 
+ohos_prebuilt_etc("log_ctr_whitelist_cfg") {
+  relative_install_dir = "ffrt"
+  source = "log_ctr_whitelist.conf"
+  part_name = "ffrt"
+  subsystem_name = "resourceschedule"
+  install_enable = true
+  install_images = [
+    "system",
+    "updater",
+  ]
+}
+
 group("ffrt_ndk") {
   deps = [
     ":blacklist_cfg",
     ":libffrt",
+    ":log_ctr_whitelist_cfg",
   ]
 }

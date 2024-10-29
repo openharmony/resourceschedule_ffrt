@@ -19,6 +19,7 @@
 
 #include "internal_inc/osal.h"
 #include "tm/task_factory.h"
+#include "util/ffrt_facade.h"
 #include "util/slab.h"
 
 namespace {
@@ -43,7 +44,7 @@ void CPUEUTask::SetQos(const QoS& newQos)
 void CPUEUTask::FreeMem()
 {
     BboxCheckAndFreeze();
-    PollerProxy::Instance().GetPoller(qos).ClearCachedEvents(this);
+    FFRTFacade::GetPPInstance().GetPoller(qos).ClearCachedEvents(this);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif

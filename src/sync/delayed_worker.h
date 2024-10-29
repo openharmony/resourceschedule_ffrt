@@ -36,7 +36,7 @@ class DelayedWorker {
     std::atomic_bool toExit = false;
     std::unique_ptr<std::thread> delayWorker = nullptr;
     int noTaskDelayCount_{0};
-    bool exited_ = false;
+    bool exited_ = true;
     int epollfd_{-1};
     int timerfd_{-1};
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING

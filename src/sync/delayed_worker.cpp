@@ -120,7 +120,6 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
         FFRT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
     }
 #endif
-    ThreadInit();
 }
 
 DelayedWorker::~DelayedWorker()

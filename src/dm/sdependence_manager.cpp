@@ -28,14 +28,16 @@ namespace ffrt {
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
+    // control construct sequences of singletons
 #ifdef FFRT_OH_TRACE_ENABLE
     TraceAdapter::Instance();
 #endif
-    // control construct sequences of singletons
     SimpleAllocator<CPUEUTask>::Instance();
+    SimpleAllocator<SCPUEUTask>::Instance();
     SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
+    CoStackAttr::Instance();
     PollerProxy::Instance();
     FFRTScheduler::Instance();
     ExecuteUnit::Instance();
@@ -49,6 +51,8 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif
+    QueueMonitor::GetInstance();
+    GetIOPoller();
     DelayedWorker::GetInstance();
 }
 

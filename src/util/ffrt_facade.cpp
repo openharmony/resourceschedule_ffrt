@@ -57,5 +57,6 @@ FFRTFacade::FFRTFacade()
 {
     DependenceManager::Instance();
     ProcessExitManager::Instance();
+    InitWhiteListFlag();
 }
 } // namespace FFRT

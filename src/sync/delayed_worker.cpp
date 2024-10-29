@@ -30,6 +30,7 @@ namespace {
     const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
     const int NS_PER_SEC = 1000 * 1000 * 1000;
     const int WAIT_EVENT_SIZE = 5;
+    const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
 }
 namespace ffrt {
 void DelayedWorker::ThreadInit()
@@ -43,6 +44,8 @@ void DelayedWorker::ThreadInit()
         int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
         if (ret != 0) {
             FFRT_LOGW("[%d] set priority warn ret[%d] eno[%d]\n", pthread_self(), ret, errno);
+        } else {
+            FFRT_LOGI("thread init");
         }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
@@ -50,11 +53,13 @@ void DelayedWorker::ThreadInit()
             std::unique_lock lk(lock);
             if (toExit) {
                 exited_ = true;
+                FFRT_LOGI("thread exit");
                 break;
             }
             int result = HandleWork();
             if (toExit) {
                 exited_ = true;
+                FFRT_LOGI("thread exit");
                 break;
             }
             if (result == 0) {
@@ -64,6 +69,7 @@ void DelayedWorker::ThreadInit()
             } else if (result == 1) {
                 if (++noTaskDelayCount_ > 1) {
                     exited_ = true;
+                    FFRT_LOGI("thread exit");
                     break;
                 }
                 itimerspec its = { {0, 0}, {FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS, 0} };
@@ -144,20 +150,32 @@ DelayedWorker& DelayedWorker::GetInstance()
     return instance;
 }
 
+void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
+{
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTp - startTp);
+    int64_t durationMs = duration.count();
+    if (durationMs > EXECUTION_TIMEOUT_MILISECONDS) {
+        FFRT_LOGW("handle work more than [%lld]ms", durationMs);
+    }
+}
+
 int DelayedWorker::HandleWork()
 {
     if (!map.empty()) {
         noTaskDelayCount_ = 0;
+        TimePoint startTp = std::chrono::steady_clock::now();
         do {
-            TimePoint now = std::chrono::steady_clock::now();
             auto cur = map.begin();
-            if (!toExit && cur != map.end() && cur->first <= now) {
+            if (!toExit && cur != map.end() && cur->first <= startTp) {
                 DelayedWork w = cur->second;
                 map.erase(cur);
                 lock.unlock();
                 (*w.cb)(w.we);
                 lock.lock();
                 FFRT_COND_DO_ERR(toExit, return -1, "HandleWork exit, map size:%d", map.size());
+                TimePoint endTp = std::chrono::steady_clock::now();
+                CheckTimeInterval(startTp, endTp);
+                startTp = std::move(endTp);
             } else {
                 return 0;
             }

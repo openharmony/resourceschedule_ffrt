@@ -81,7 +81,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)
 #define FFRT_LOGD(format, ...) \
     do { \
-        if (unlikely(IsInWhitelist())) {\
+        if (unlikely(IsInWhitelist())) { \
             constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
             HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_DEBUG, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
         } \

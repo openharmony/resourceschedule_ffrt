@@ -85,7 +85,8 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
         ThreadWait(&ctx->wn, lk, LegacyMode(task), task);
         return;
     }
-    task->wue = new WaitUntilEntry(task);
+    task->wue = new (std::nothrow) WaitUntilEntry(task);
+    FFRT_COND_RETURN_VOID(task->wue == nullptr, "new WaitUntilEntry failed");
     FFRT_BLOCK_TRACER(task->gid, cnd);
     CoWait([&](CPUEUTask* task) -> bool {
         wqlock.lock();

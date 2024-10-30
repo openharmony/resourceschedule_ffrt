@@ -3852,7 +3852,7 @@ void fib_ffrt(int x, int* y)
 
 ## FFRT对使用fork()场景的支持说明
 
-* 在未使用FFRT的进程中，创建子进程，支持在该子进程中使用FFRT（调用submit，timer，epoll等任务类操作）。
+* 在未使用FFRT的进程中，创建子进程，支持在该子进程中使用FFRT。
 * 在已经使用FFRT的进程中，以fork()（无exec()）方式创建子进程，不支持在该子进程中使用FFRT。
 * 在已经使用FFRT的进程中，以fork()+exec()方式创建子进程，支持在子进程中使用FFRT。
 

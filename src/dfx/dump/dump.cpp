@@ -119,6 +119,7 @@ int dump_info_all(char *buf, uint32_t len)
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         dumpInfo += SaveTaskCounterInfo();
 #endif
+        dumpInfo += SaveKeyInfo();
         dumpInfo += SaveWorkerStatusInfo();
         dumpInfo += SaveReadyQueueStatusInfo();
         dumpInfo += SaveNormalTaskStatusInfo();

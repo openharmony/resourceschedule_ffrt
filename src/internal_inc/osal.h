@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <sys/prctl.h>
 
 #define API_ATTRIBUTE(attr) __attribute__(attr)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
@@ -52,6 +53,10 @@ static inline void GetProcessName(char* processName, int bufferLength)
         }
 
         syscall(SYS_close, fd);
+    } else {
+        // no permission for /proc/self/cmdline, try prctl system call
+        prctl(PR_GET_NAME, processName);
+
     }
 }
 #endif

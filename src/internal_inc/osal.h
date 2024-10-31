@@ -21,6 +21,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <sys/prctl.h>
+#include <sys/prctl.h>
 
 #define API_ATTRIBUTE(attr) __attribute__(attr)
 #define unlikely(x)     __builtin_expect(!!(x), 0)

@@ -57,7 +57,7 @@ WorkerMonitor::WorkerMonitor()
         return;
     }
 
-    // 从配置文件中读取黑名单
+    // 从配置文件中读取屏蔽进程
     std::string skipProcess;
     std::ifstream file(CONF_FILEPATH);
     if (file.is_open()) {

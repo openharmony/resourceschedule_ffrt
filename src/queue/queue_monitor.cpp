@@ -15,20 +15,15 @@
 #include "queue_monitor.h"
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
-#include "util/slab.h"
 #include "sync/sync.h"
 #include "c/ffrt_dump.h"
-#include "dfx/sysevent/sysevent.h"
-#include "internal_inc/osal.h"
 
 namespace {
-constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t INVALID_TASK_ID = 0;
 constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 constexpr uint64_t QUEUE_INFO_INITIAL_CAPACITY = 64;
 constexpr uint64_t ALLOW_TIME_ACC_ERROR_US = 500;
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000;
-constexpr uint64_t DESTRUCT_TRY_COUNT = 100;
 
 inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayUs)
 {
@@ -42,8 +37,6 @@ QueueMonitor::QueueMonitor()
     FFRT_LOGI("queue monitor ctor enter");
     queuesRunningInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
-    lastReportedTask_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
-    we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     uint64_t timeout = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
     if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
         timeoutUs_ = 0;
@@ -57,18 +50,15 @@ QueueMonitor::QueueMonitor()
 
 QueueMonitor::~QueueMonitor()
 {
-    exit_.store(true);
-    FFRT_LOGI("destruction of QueueMonitor enter");
-    int tryCnt = DESTRUCT_TRY_COUNT;
-    // 取消定时器成功，或者中断了发送定时器，则释放we完成析构
-    while (!DelayedRemove(we_->tp, we_) && !abortSendTimer_.load()) {
-        if (--tryCnt < 0) {
+    std::unique_lock lock(mutex_);
+    FFRT_LOGW("destruction of QueueMonitor enter");
+    for (uint32_t id = 0; id < queuesRunningInfo_.size(); ++id) {
+        if (queuesRunningInfo_[id].first != INVALID_TASK_ID) {
+            usleep(MIN_TIMEOUT_THRESHOLD_US);
             break;
         }
-        usleep(MIN_TIMEOUT_THRESHOLD_US);
     }
-    SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
-    FFRT_LOGI("destruction of QueueMonitor leave");
+    FFRT_LOGW("destruction of QueueMonitor leave");
 }
 
 QueueMonitor& QueueMonitor::GetInstance()
@@ -83,7 +73,6 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId, QueueHandler* queueStruct)
     if (queueId == queuesRunningInfo_.size()) {
         queuesRunningInfo_.emplace_back(std::make_pair(INVALID_TASK_ID, std::chrono::steady_clock::now()));
         queuesStructInfo_.emplace_back(queueStruct);
-        lastReportedTask_.emplace_back(INVALID_TASK_ID);
         FFRT_LOGD("queue registration in monitor gid=%u in turn succ", queueId);
         return;
     }
@@ -93,7 +82,6 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId, QueueHandler* queueStruct)
         for (uint32_t i = queuesRunningInfo_.size(); i <= queueId; ++i) {
             queuesRunningInfo_.emplace_back(std::make_pair(INVALID_TASK_ID, std::chrono::steady_clock::now()));
             queuesStructInfo_.emplace_back(nullptr);
-            lastReportedTask_.emplace_back(INVALID_TASK_ID);
         }
         queuesStructInfo_[queueId] = queueStruct;
     }
@@ -109,7 +97,6 @@ void QueueMonitor::ResetQueueInfo(uint32_t queueId)
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,
         "ResetQueueInfo queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
     queuesRunningInfo_[queueId].first = INVALID_TASK_ID;
-    lastReportedTask_[queueId] = INVALID_TASK_ID;
 }
 
 void QueueMonitor::ResetQueueStruct(uint32_t queueId)
@@ -125,7 +112,7 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
     std::shared_lock lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,
         "UpdateQueueInfo queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
-    TimePoint now = std::chrono::steady_clock::now();
+    time_point_t now = std::chrono::steady_clock::now();
     queuesRunningInfo_[queueId] = {taskId, now};
     if (exit_.exchange(false)) {
         SendDelayedWorker(now + std::chrono::microseconds(timeoutUs_));
@@ -140,21 +127,18 @@ uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
     return queuesRunningInfo_[queueId].first;
 }
 
-void QueueMonitor::SendDelayedWorker(TimePoint delay)
+void QueueMonitor::SendDelayedWorker(time_point_t delay)
 {
-    FFRT_COND_DO_ERR(exit_.load(), abortSendTimer_.store(true);
-        return;,
-        "exit_.load() is true");
+    static WaitUntilEntry we;
+    we.tp = delay;
+    we.cb = ([this](WaitEntry* we) { CheckQueuesStatus(); });
 
-    we_->tp = delay;
-    we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
-
-    bool result = DelayedWakeup(we_->tp, we_, we_->cb);
+    bool result = DelayedWakeup(we.tp, &we, we.cb);
     // insurance mechanism, generally does not fail
     while (!result) {
         FFRT_LOGW("failed to set delayedworker because the given timestamp has passed");
-        we_->tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
-        result = DelayedWakeup(we_->tp, we_, we_->cb);
+        we.tp = GetDelayedTimeStamp(ALLOW_TIME_ACC_ERROR_US);
+        result = DelayedWakeup(we.tp, &we, we.cb);
     }
 }
 
@@ -178,11 +162,11 @@ void QueueMonitor::CheckQueuesStatus()
         }
     }
 
-    TimePoint oldestStartedTime = std::chrono::steady_clock::now();
-    TimePoint startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
+    time_point_t oldestStartedTime = std::chrono::steady_clock::now();
+    time_point_t startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
     uint64_t taskId = 0;
     uint32_t queueRunningInfoSize = 0;
-    TimePoint taskTimestamp = oldestStartedTime;
+    time_point_t taskTimestamp = oldestStartedTime;
     {
         std::shared_lock lock(mutex_);
         queueRunningInfoSize = queuesRunningInfo_.size();
@@ -200,22 +184,13 @@ void QueueMonitor::CheckQueuesStatus()
 
         if (taskTimestamp < startThreshold) {
             std::stringstream ss;
-            char processName[PROCESS_NAME_BUFFER_LENGTH];
-            GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-            ss << "Serial_Queue_Timeout, process name:[" << processName << "], serial queue qid:[" << i
-                << "], serial task gid:[" << taskId << "], execution:[" << timeoutUs_ << "] us.";
+            ss << "SERIAL_TASK_TIMEOUT: serial queue qid=" << i << ", serial task gid=" << taskId << " execution " <<
+                timeoutUs_ << " us.";
             if (queuesStructInfo_[i] != nullptr) {
                 ss << queuesStructInfo_[i]->GetDfxInfo();
             }
             FFRT_LOGE("%s", ss.str().c_str());
-#ifdef FFRT_SEND_EVENT
-            if (lastReportedTask_[i] != taskId) {
-                lastReportedTask_[i] = taskId;
-                std::string processNameStr = std::string(processName);
-                std::string senarioName = "Serial_Queue_Timeout";
-                TaskTimeoutReport(ss, processNameStr, senarioName);
-            }
-#endif
+
             ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
             if (func) {
                 func(taskId, ss.str().c_str(), ss.str().size());

@@ -61,7 +61,6 @@ public:
 
     inline uint32_t GetQueueId()
     {
-        FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "queue construct failed");
         return queue_->GetQueueId();
     }
 

@@ -58,7 +58,7 @@ public:
                 }
                 FFRT_LOGD("wait task=%p deadline=%ld", waitVersion->myProducer, deadline);
                 updateTask(waitVersion->myProducer, deadline);
-                UpdateVersion(waitVersion->preVersion, deadline);
+                updateVersion(waitVersion->preVersion, deadline);
             }
         }
     }
@@ -88,7 +88,7 @@ protected:
 private:
     std::array<TaskScheduler*, QoS::MaxNum()> fifoQue;
 #ifdef QOS_DEPENDENCY
-    void ResetDeadline(CPUEUTask* task, int64_t deadline)
+    void resetDeadline(CPUEUTask* task, int64_t deadline)
     {
         auto it = std::find_if(readyTasks.begin(), readyTasks.end(), [task](auto& p) { return p.second == task; });
         if (it == readyTasks.end()) {
@@ -104,19 +104,19 @@ private:
         if (task == nullptr) {
             return;
         }
-        ResetDeadline(task, deadline);
+        resetDeadline(task, deadline);
         onWait(task->ins, deadline);
         for (auto data : task->outs) {
-            UpdateVersion(data, deadline);
+            updateVersion(data, deadline);
         }
-        UpdateChildTask(task, deadline);
+        updateChildTask(task, deadline);
     }
-    void UpdateChildTask(CPUEUTask* task, int64_t deadline)
+    void updateChildTask(CPUEUTask* task, int64_t deadline)
     {
         (void)task;
         (void)deadline;
     }
-    void UpdateVersion(VersionCtx* data, int64_t deadline)
+    void updateVersion(VersionCtx* data, int64_t deadline)
     {
         if (data == nullptr) {
             return;
@@ -125,7 +125,7 @@ private:
         for (auto task : data->consumers) {
             updateTask(task, deadline);
         }
-        UpdateVersion(data->preVersion, deadline);
+        updateVersion(data->preVersion, deadline);
     }
 #endif
 };

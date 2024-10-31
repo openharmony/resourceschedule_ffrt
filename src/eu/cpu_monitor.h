@@ -22,23 +22,22 @@
 #include <mutex>
 #include "qos.h"
 #include "cpp/mutex.h"
-#include "eu/cpu_manager_strategy.h"
+#include "eu/cpu_manager_interface.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
-#include "sync/sync.h"
 
 namespace ffrt {
 struct WorkerCtrl {
-    alignas(cacheline_size) fast_mutex lock;
-    alignas(cacheline_size) int executionNum = 0;
-    alignas(cacheline_size) int sleepingWorkerNum = 0;
-    alignas(cacheline_size) bool irqEnable = false;
     size_t hardLimit = 0;
     size_t maxConcurrency = 0;
+    int executionNum = 0;
+    int sleepingWorkerNum = 0;
     bool pollWaitFlag = false;
     int deepSleepingWorkerNum = 0;
+    bool hasWorkDeepSleep = 0;
     bool retryBeforeDeepSleep = true;
+    std::mutex lock;
 };
 
 class CPUMonitor {
@@ -48,26 +47,20 @@ public:
     CPUMonitor& operator=(const CPUMonitor&) = delete;
     virtual ~CPUMonitor();
     uint32_t GetMonitorTid() const;
-    int TotalCount(const QoS& qos);
-    virtual void IntoSleep(const QoS& qos) = 0;
-
-    void WakeupSleep(const QoS& qos, bool irqWake = false);
+    virtual SleepType IntoSleep(const QoS& qos) = 0;
+    virtual void WakeupCount(const QoS& qos, bool isDeepSleepWork = false);
     void IntoDeepSleep(const QoS& qos);
-    void WakeupDeepSleep(const QoS& qos, bool irqWake = false);
+    void OutOfDeepSleep(const QoS& qos);
     void TimeoutCount(const QoS& qos);
     bool IsExceedDeepSleepThreshold();
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
-    void RollbackDestroy(const QoS& qos, bool irqWake = false);
-    void TryDestroy(const QoS& qos);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool IsExceedRunningThreshold(const QoS& qos);
     bool IsBlockAwareInit(void);
     void MonitorMain();
-    BlockawareWakeupCond* WakeupCond(void);
 #endif
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
-    virtual void WorkerInit() = 0;
     int SetWorkerMaxNum(const QoS& qos, int num);
     /* strategy options for handling task notify events */
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
@@ -75,10 +68,7 @@ public:
     static void HandleTaskNotifyUltraConservative(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
     void NotifyWorkers(const QoS& qos, int number);
-    void StartMonitor();
 
-    CpuMonitorOps ops;
-    std::thread* monitorThread = nullptr;
     uint32_t monitorTid = 0;
 protected:
     WorkerCtrl ctrlQueue[QoS::MaxNum()];
@@ -87,6 +77,13 @@ protected:
     {
         return ops;
     }
+private:
+    void SetupMonitor();
+    void StartMonitor();
+
+    std::thread* monitorThread;
+    CpuMonitorOps ops;
+    std::atomic<bool> setWorkerMaxNum[QoS::MaxNum()];
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool blockAwareInit = false;
     bool stopMonitor = false;
@@ -97,9 +94,6 @@ protected:
     BlockawareDomainInfoArea domainInfoNotify;
     std::atomic<bool> exceedUpperWaterLine[QoS::MaxNum()];
 #endif
-private:
-    void SetupMonitor();
-    std::atomic<bool> setWorkerMaxNum[QoS::MaxNum()];
 };
 }
 #endif /* CPU_MONITOR_H */

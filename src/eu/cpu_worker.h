@@ -17,7 +17,7 @@
 #define FFRT_CPU_WORKER_HPP
 
 #include "eu/worker_thread.h"
-#include "eu/cpu_manager_strategy.h"
+#include "eu/cpu_manager_interface.h"
 #include "c/executor_task.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
@@ -26,12 +26,10 @@
 namespace ffrt {
 const unsigned int LOCAL_QUEUE_SIZE = 128;
 const unsigned int STEAL_BUFFER_SIZE = LOCAL_QUEUE_SIZE / 2;
-
 class CPUWorker : public WorkerThread {
 public:
-    CPUWorker(const QoS& qos, CpuWorkerOps&& ops, void* worker_mgr) : WorkerThread(qos), ops(ops)
+    CPUWorker(const QoS& qos, CpuWorkerOps&& ops) : WorkerThread(qos), ops(ops)
     {
-        this->worker_mgr = worker_mgr;
         localFifo.Init(LOCAL_QUEUE_SIZE);
 #ifdef FFRT_PTHREAD_ENABLE
         Start(CPUWorker::WrapDispatch, this);
@@ -51,14 +49,13 @@ public:
     /* strategy options for worklooper function */
     static void WorkerLooperDefault(WorkerThread* p);
     static void WorkerLooperStandard(WorkerThread* p);
-    static void Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker);
 
 private:
     static void* WrapDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
+    static void Run(CPUEUTask* task);
     static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
     static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker);
-    static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, ExecuteCtx* ctx, CoRoutineEnv* coRoutineEnv);
     static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker);
     static void* GetTask(CPUWorker* worker);
     static PollerRet TryPoll(CPUWorker* worker, int timeout);

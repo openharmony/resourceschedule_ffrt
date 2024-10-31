@@ -71,7 +71,6 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
         fdEmpty_.store(false);
     } else if (op == EPOLL_CTL_MOD) {
         auto iter = m_wakeDataMap.find(fd);
-        FFRT_COND_RETURN_ERROR(iter == m_wakeDataMap.end(), -1, "fd %d does not exist in wakeDataMap", fd);
         if (iter->second.size() != 1) {
             FFRT_LOGE("epoll_ctl mod fd wakedata num invalid");
             return -1;
@@ -109,7 +108,7 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
 {
     std::unordered_map<int, int> seenFd;
     int fdCnt = 0;
-    for (size_t i = 0; i < cachedEventsVec.size(); i++) {
+    for (int i = 0; i < cachedEventsVec.size(); i++) {
         auto eventInfo = cachedEventsVec[i];
         int currFd = eventInfo.data.fd;
         // check if seen
@@ -171,7 +170,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 
     int nfds = 0;
     if (ThreadWaitMode(task)) {
-        std::unique_lock<std::mutex> lck(task->mutex_);
+        std::unique_lock<std::mutex> lck(task->lock);
         m_mapMutex.lock();
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
@@ -265,7 +264,7 @@ namespace {
 void WakeTask(CPUEUTask* task)
 {
     if (ThreadNotifyMode(task)) {
-        std::unique_lock<std::mutex> lck(task->mutex_);
+        std::unique_lock<std::mutex> lck(task->lock);
         if (BlockThread(task)) {
             task->blockType = BlockType::BLOCK_COROUTINE;
         }
@@ -299,7 +298,7 @@ void CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
 
 void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
 {
-    for (size_t i = 0; i < eventVec.size(); i++) {
+    for (int i = 0; i < eventVec.size(); i++) {
         int currFd = eventVec[i].data.fd;
         struct epoll_event maskEv;
         maskEv.events = 0;
@@ -358,7 +357,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     if (!timerMap_.empty()) {
         auto cur = timerMap_.begin();
         timerHandle = cur->second.handle;
-        TimePoint now = std::chrono::steady_clock::now();
+        time_point_t now = std::chrono::steady_clock::now();
         realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
             cur->first - now).count();
         if (realTimeout <= 0) {
@@ -446,7 +445,7 @@ void Poller::ProcessTimerDataCb(CPUEUTask* task) noexcept
     m_mapMutex.unlock();
 }
 
-void Poller::ExecuteTimerCb(TimePoint timer) noexcept
+void Poller::ExecuteTimerCb(time_point_t timer) noexcept
 {
     std::vector<TimerDataWithCb> timerData;
     for (auto iter = timerMap_.begin(); iter != timerMap_.end();) {
@@ -475,11 +474,8 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
         }
         if (data.repeat) {
             std::lock_guard lock(timerMutex_);
-            auto iter = executedHandle_.find(data.handle);
-            if (iter != executedHandle_.end()) {
-                executedHandle_.erase(data.handle);
-                RegisterTimerImpl(data);
-            }
+            executedHandle_.erase(data.handle);
+            RegisterTimerImpl(data);
         }
     }
 }
@@ -490,7 +486,7 @@ void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept
         return;
     }
 
-    TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data.timeout);
+    time_point_t absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data.timeout);
     bool wake = timerMap_.empty() || (absoluteTime < timerMap_.begin()->first && flag_ == EpollStatus::WAIT);
 
     timerMap_.emplace(absoluteTime, data);
@@ -571,7 +567,7 @@ bool Poller::IsFdExist() noexcept
 
 bool Poller::IsTimerReady() noexcept
 {
-    TimePoint now = std::chrono::steady_clock::now();
+    time_point_t now = std::chrono::steady_clock::now();
     std::lock_guard lock(timerMutex_);
     if (timerMap_.empty()) {
         return false;

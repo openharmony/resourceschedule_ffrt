@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FFRT_CPU_MANAGER_STRATEGY_HPP
-#define FFRT_CPU_MANAGER_STRATEGY_HPP
+#ifndef FFRT_CPU_MANAGER_INTERFACE_HPP
+#define FFRT_CPU_MANAGER_INTERFACE_HPP
 
 #include "eu/worker_thread.h"
 #include "qos.h"
@@ -32,6 +32,12 @@ enum class TaskNotifyType {
     TASK_PICKED = 0,
     TASK_ADDED,
     TASK_LOCAL,
+};
+
+enum class SleepType {
+    SLEEP_UNTIL_WAKEUP = 0,
+    SLEEP_UNTIL_INTERRUPT,
+    SLEEP_BREAK,
 };
 
 struct CpuWorkerOps {
@@ -55,7 +61,7 @@ struct CpuMonitorOps {
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
     std::function<int (const QoS& qos)> GetWorkerCount;
-    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotify;
+    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotity;
 };
 
 class CPUMonitor;

@@ -15,22 +15,18 @@
 #ifndef __FFRT_BBOX_H__
 #define __FFRT_BBOX_H__
 #ifdef FFRT_BBOX_ENABLE
-
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <string>
-
+#endif
+extern void TaskSubmitCounterInc(void);
+extern void TaskDoneCounterInc(void);
+extern void TaskEnQueuCounterInc(void);
+extern void TaskRunCounterInc(void);
+extern void TaskSwitchCounterInc(void);
+extern void TaskFinishCounterInc(void);
 extern void TaskWakeCounterInc(void);
 extern void TaskPendingCounterInc(void);
 extern unsigned int GetBboxEnableState(void);
-extern unsigned int GetBboxCalledTimes(void);
-
-typedef void (*FuncSaveKeyStatus)();
-typedef std::string (*FuncSaveKeyStatusInfo)();
-std::string SaveKeyInfo(void);
-#ifdef OHOS_STANDARD_SYSTEM
-void SetFuncSaveKeyStatus(FuncSaveKeyStatus func, FuncSaveKeyStatusInfo infoFunc);
-#else
-void SetFuncSaveKeyStatus(FuncSaveKeyStatus func);
-#endif
 
 // undefine in header for non-inline to explain why stop
 void BboxFreeze(void);
@@ -44,12 +40,9 @@ static inline void BboxCheckAndFreeze(void)
 }
 
 bool FFRTIsWork(void);
-void RecordDebugInfo(void);
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
 std::string SaveTaskCounterInfo(void);
-#endif
 std::string SaveWorkerStatusInfo(void);
 std::string SaveReadyQueueStatusInfo(void);
 std::string SaveNormalTaskStatusInfo(void);

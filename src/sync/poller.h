@@ -20,7 +20,6 @@
 #include <sys/eventfd.h>
 #endif
 #include <list>
-#include <map>
 #include <unordered_map>
 #include <array>
 #include "qos.h"
@@ -78,14 +77,14 @@ struct TimerDataWithCb {
 
 struct SyncData {
     SyncData() {}
-    SyncData(void *eventsPtr, int maxEvents, int *nfdsPtr, TimePoint waitTP)
+    SyncData(void *eventsPtr, int maxEvents, int *nfdsPtr, time_point_t waitTP)
         : eventsPtr(eventsPtr), maxEvents(maxEvents), nfdsPtr(nfdsPtr), waitTP(waitTP)
     {}
 
     void* eventsPtr = nullptr;
     int maxEvents = 0;
     int* nfdsPtr = nullptr;
-    TimePoint waitTP;
+    time_point_t waitTP;
 };
 
 using EventVec = typename std::vector<epoll_event>;
@@ -121,7 +120,7 @@ private:
     void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
                           std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
 
-    void ExecuteTimerCb(TimePoint timer) noexcept;
+    void ExecuteTimerCb(time_point_t timer) noexcept;
     void ProcessTimerDataCb(CPUEUTask* task) noexcept;
     void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
 
@@ -143,7 +142,7 @@ private:
     std::unordered_map<CPUEUTask*, EventVec> m_cachedTaskEvents;
 
     std::unordered_map<int, TimerStatus> executedHandle_;
-    std::multimap<TimePoint, TimerDataWithCb> timerMap_;
+    std::multimap<time_point_t, TimerDataWithCb> timerMap_;
     std::atomic_bool fdEmpty_ {true};
     std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;

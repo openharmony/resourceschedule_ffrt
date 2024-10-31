@@ -54,7 +54,7 @@ public:
     }
 
 private:
-    struct WorkGroup* wg = nullptr;
+    struct Workgroup* wg = nullptr;
     bool isBegun = false;
     QoS qos;
 

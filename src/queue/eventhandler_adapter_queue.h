@@ -21,7 +21,7 @@
 
 namespace ffrt {
 struct HistoryTask {
-    int32_t senderKernelThreadId_{0};
+    uint64_t senderKernelThreadId_{0};
     std::string taskName_{0};
     uint64_t sendTime_{0};
     uint64_t handleTime_{0};
@@ -37,7 +37,7 @@ struct HistoryTask {
     HistoryTask(uint64_t beginTime, QueueTask* task)
     {
         beginTime_ = beginTime;
-        senderKernelThreadId_ = task->fromTid;
+        senderKernelThreadId_ = task->GetSenderKernelThreadId();
         sendTime_ = task->GetUptime() - task->GetDelay();
         taskName_ = task->label;
         handleTime_ = task->GetUptime();

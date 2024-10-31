@@ -52,7 +52,7 @@ WorkerMonitor::WorkerMonitor()
     char processName[PROCESS_NAME_BUFFER_LENGTH] = "";
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (strlen(processName) == 0) {
-        FFRT_LOGW("Get process name failed, skip worker monitor.");
+        FFRT_LOGW("Can't get process name, no permission for /proc/self folder or prctl exec, skip worker monitor");
         skipSampling_ = true;
         return;
     }

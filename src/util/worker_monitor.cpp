@@ -49,7 +49,7 @@ namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
     // 获取当前进程名称
-    char processName[PROCESS_NAME_BUFFER_LENGTH] = "";
+    char processName[PROCESS_NAME_BUFFER_LENGTH] = {0};
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (strlen(processName) == 0) {
         FFRT_LOGW("Can't get process name, no permission for /proc folder or prctl exec, skip worker monitor");

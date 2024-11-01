@@ -13,11 +13,10 @@
  * limitations under the License.
  */
 
-#ifndef __FFRT_CPU_BOOST_OHOS_H__
-#define __FFRT_CPU_BOOST_OHOS_H__
 #include <string>
 #include <dlfcn.h>
 #include "dfx/log/ffrt_log_api.h"
+#include "cpu_boost_wrapper.h"
 
 namespace ffrt {
 int cpu_boost_start(int ctx_id);
@@ -93,40 +92,39 @@ private:
 
     void* handle = nullptr;
 };
+}
 
-#define EXECUTE_CPU_BOOST_FUNC(x, ctx_id, ret) auto func = CPUBoostAdapter::Instance()->x##Temp; \
+#define EXECUTE_CPU_BOOST_FUNC(x, ctx_id, ret) auto func = ffrt::CPUBoostAdapter::Instance()->x##Temp; \
         if (func != nullptr) { \
             ret = (func)(ctx_id); \
         } else { \
             ret = -1; \
         }
 
-inline int CpuBoostStart(int ctx_id)
+int CpuBoostStart(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_start, ctx_id, ret);
     return ret;
 }
 
-inline int CpuBoostEnd(int ctx_id)
+int CpuBoostEnd(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_end, ctx_id, ret);
     return ret;
 }
 
-inline int CpuBoostSave(int ctx_id)
+int CpuBoostSave(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_save, ctx_id, ret);
     return ret;
 }
 
-inline int CpuBoostRestore(int ctx_id)
+int CpuBoostRestore(int ctx_id)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_restore, ctx_id, ret);
     return ret;
 }
-}
-#endif

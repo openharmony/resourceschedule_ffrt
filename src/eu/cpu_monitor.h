@@ -23,9 +23,6 @@
 #include "qos.h"
 #include "cpp/mutex.h"
 #include "eu/cpu_manager_interface.h"
-#include "c/type_def_ext.h"
-#include "util/token.h"
-#include "internal_inc/config.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
@@ -35,7 +32,6 @@ namespace ffrt {
 struct WorkerCtrl {
     size_t hardLimit = 0;
     size_t maxConcurrency = 0;
-    size_t reserveNum = 0;
     int executionNum = 0;
     int sleepingWorkerNum = 0;
     bool pollWaitFlag = false;
@@ -60,7 +56,6 @@ public:
     bool IsExceedDeepSleepThreshold();
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
-    void DoDestroy(const QoS& qos);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool IsExceedRunningThreshold(const QoS& qos);
     bool IsBlockAwareInit(void);
@@ -69,8 +64,7 @@ public:
 #endif
     virtual void Notify(const QoS& qos, TaskNotifyType notifyType) = 0;
     virtual void WorkerInit() = 0;
-    int QosWorkerNumSegment (ffrt_worker_num_param* qosData);
-    bool TryAcquirePublicWorkerNum(const QoS& qos);
+    int SetWorkerMaxNum(const QoS& qos, int num);
     /* strategy options for handling task notify events */
     static void HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
@@ -93,24 +87,7 @@ private:
 
     std::thread* monitorThread;
     CpuMonitorOps ops;
-    bool setWorkerNum = false;
-    std::mutex setWorkerNumLock;
-    void SetWorkerPara(unsigned int& param, unsigned int value);
-    int SetQosWorkerPara(ffrt_qos_config& qosCfg);
-    bool QosWorkerNumValid(ffrt_worker_num_param* qosData);
-    bool LowQosUseReserveWorkerNum();
-    bool HighQosUseReserveWorkerNum();
-    void ReleasePublicWorkerNum(const QoS& qos);
-    void LogAllWorkerNum();
-    unsigned int globalReserveWorkerNum = 0;
-    unsigned int lowQosReserveWorkerNum = 0;
-    unsigned int highQosReserveWorkerNum = 0;
-    std::unique_ptr<Token> globalReserveWorkerToken = nullptr;
-    std::unique_ptr<Token> lowQosReserveWorkerToken = nullptr;
-    std::unique_ptr<Token> highQosReserveWorkerToken = nullptr;
-    std::unique_ptr<Token> lowQosUseGlobalWorkerToken = nullptr;
-    std::unique_ptr<Token> highQosUseGlobalWorkerToken = nullptr;
-    QosWorkerConfig qosWorkerConfig;
+    std::atomic<bool> setWorkerMaxNum[QoS::MaxNum()];
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool blockAwareInit = false;
     bool stopMonitor = false;

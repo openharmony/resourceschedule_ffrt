@@ -38,7 +38,7 @@ CPUEUTask* ExecuteCtxTask()
     return ctx->task;
 }
 
-void SleepUntilImpl(const TimePoint& to)
+void sleep_until_impl(const time_point_t& to)
 {
     auto task = ExecuteCtxTask();
     if (ThreadWaitMode(task)) {
@@ -90,7 +90,7 @@ int ffrt_usleep(uint64_t usec)
     auto duration = std::chrono::microseconds{usec};
     auto to = std::chrono::steady_clock::now() + duration;
 
-    ffrt::this_task::SleepUntilImpl(to);
+    ffrt::this_task::sleep_until_impl(to);
     return ffrt_success;
 }
 

@@ -27,43 +27,43 @@
 #include <cerrno>
 #include <securec.h>
 
-static int OpenPerfCtrl(void)
+static int open_perf_ctrl(void)
 {
-    static bool perfCtrlAvailable = true;
+    static bool perf_ctrl_available = true;
     int fd = -1;
 
-    if (!perfCtrlAvailable) {
+    if (!perf_ctrl_available) {
         return -1;
     }
 
     fd = open("/dev/hisi_perf_ctrl", O_RDWR);
     if (fd < 0) {
         FFRT_LOGW("open perf_ctrl failed");
-        perfCtrlAvailable = false;
+        perf_ctrl_available = false;
     }
 
     return fd;
 }
 
-void SetTaskRtg(pid_t tid, unsigned int grpId)
+void set_task_rtg(pid_t tid, unsigned int grp_id)
 {
-    struct RtgGroupTask data = {tid, grpId, 0};
-    int fd = OpenPerfCtrl();
+    struct rtg_group_task data = {tid, grp_id, 0};
+    int fd = open_perf_ctrl();
     if (fd < 0) {
         return;
     }
 
     if (ioctl(fd, PERF_CTRL_SET_TASK_RTG, &data)) {
-        FFRT_LOGW("Error set rtg %d,%u. %s", tid, grpId, strerror(errno));
+        FFRT_LOGW("Error set rtg %d,%u. %s", tid, grp_id, strerror(errno));
         close(fd);
         return;
     }
     close(fd);
 }
 
-void SetRtgStatus(unsigned long long status)
+void set_rtg_status(unsigned long long status)
 {
-    int fd = OpenPerfCtrl();
+    int fd = open_perf_ctrl();
     if (fd < 0) {
         return;
     }
@@ -76,9 +76,9 @@ void SetRtgStatus(unsigned long long status)
     close(fd);
 }
 
-void SetRtgQos(int qos) // MHZ
+void set_rtg_qos(int qos) // MHZ
 {
-    int fd = OpenPerfCtrl();
+    int fd = open_perf_ctrl();
     if (fd < 0) {
         return;
     }
@@ -91,23 +91,23 @@ void SetRtgQos(int qos) // MHZ
     close(fd);
 }
 
-void SetRtgLoadMode(unsigned int grpId, bool utilEnabled, bool freqEnabled)
+void set_rtg_load_mode(unsigned int grp_id, bool util_enabled, bool freq_enabled)
 {
-    struct RtgLoadMode loadMode;
+    struct rtg_load_mode load_mode;
 
-    memset_s(&loadMode, sizeof(struct RtgLoadMode), 0, sizeof(struct RtgLoadMode));
-    loadMode.grpId = grpId;
-    loadMode.utilEnabled = !!utilEnabled;
-    loadMode.freqEnabled = !!freqEnabled;
+    memset_s(&load_mode, sizeof(struct rtg_load_mode), 0, sizeof(struct rtg_load_mode));
+    load_mode.grp_id = grp_id;
+    load_mode.util_enabled = !!util_enabled;
+    load_mode.freq_enabled = !!freq_enabled;
 
-    int fd = OpenPerfCtrl();
+    int fd = open_perf_ctrl();
     if (fd < 0) {
         return;
     }
 
-    if (ioctl(fd, PERF_CTRL_SET_RTG_LOAD_MODE, &loadMode)) {
-        FFRT_LOGW("Error set rtg loadMode %d:%d/%d. %s", loadMode.grpId, loadMode.utilEnabled,
-            loadMode.freqEnabled, strerror(errno));
+    if (ioctl(fd, PERF_CTRL_SET_RTG_LOAD_MODE, &load_mode)) {
+        FFRT_LOGW("Error set rtg load_mode %d:%d/%d. %s", load_mode.grp_id, load_mode.util_enabled,
+            load_mode.freq_enabled, strerror(errno));
         close(fd);
         return;
     }
@@ -116,8 +116,8 @@ void SetRtgLoadMode(unsigned int grpId, bool utilEnabled, bool freqEnabled)
 
 void set_task_min_util(pid_t tid, unsigned int util)
 {
-    struct TaskConfig cfg = {tid, util};
-    int fd = OpenPerfCtrl();
+    struct task_config cfg = {tid, util};
+    int fd = open_perf_ctrl();
     if (fd < 0) {
         return;
     }

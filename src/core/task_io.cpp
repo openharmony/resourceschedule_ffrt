@@ -29,16 +29,21 @@ const int INSERT_GLOBAL_QUEUE_FREQ = 5;
 }
 
 namespace ffrt {
-static void work_finish_callable(IOTaskExecutor* task)
+static void work_finish_callable(ffrt_executor_io_task* task)
 {
     task->status = ExecTaskStatus::ET_FINISH;
     task->work.destroy(task->work.data);
+
+#ifdef FFRT_BBOX_ENABLE
+    TaskDoneCounterInc();
+#endif
+
     delete task;
 }
 
-static void ExecuteIOTask(ffrt_executor_task_t* data, ffrt_qos_t qos)
+static void io_ffrt_executor_task_func(ffrt_executor_task_t* data, ffrt_qos_t qos)
 {
-    IOTaskExecutor* task = static_cast<IOTaskExecutor*>(data);
+    ffrt_executor_io_task* task = static_cast<ffrt_executor_io_task*>(data);
     task->status = ExecTaskStatus::ET_EXECUTING;
     (void)qos;
     ffrt_coroutine_ptr_t coroutine = task->work.exec;
@@ -58,9 +63,9 @@ static void ExecuteIOTask(ffrt_executor_task_t* data, ffrt_qos_t qos)
 
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 
-static void InitIOTaskExecutor()
+static void ffrt_executor_io_task_init()
 {
-    ffrt_executor_task_register_func(ExecuteIOTask, ffrt_io_task);
+    ffrt_executor_task_register_func(io_ffrt_executor_task_func, ffrt_io_task);
 }
 } /* namespace ffrt */
 
@@ -72,16 +77,14 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR((exec == nullptr), return, "input invalid, exec == nullptr");
-    pthread_once(&ffrt::once, ffrt::InitIOTaskExecutor);
+    pthread_once(&ffrt::once, ffrt::ffrt_executor_io_task_init);
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
 
     (void)in_deps;
     (void)out_deps;
-    ffrt::IOTaskExecutor* task = new (std::nothrow) ffrt::IOTaskExecutor(qos);
-    FFRT_COND_RETURN_VOID(task == nullptr, "new IOTaskExecutor failed");
-
+    ffrt::ffrt_executor_io_task* task = new ffrt::ffrt_executor_io_task(qos);
     task->work.exec = exec;
     task->work.destroy = destroy;
     task->work.data = co;
@@ -109,7 +112,7 @@ void ffrt_wake_coroutine(void* task)
     TaskWakeCounterInc();
 #endif
 
-    ffrt::IOTaskExecutor* wakedTask = static_cast<ffrt::IOTaskExecutor*>(task);
+    ffrt::ffrt_executor_io_task* wakedTask = static_cast<ffrt::ffrt_executor_io_task*>(task);
     wakedTask->status = ffrt::ExecTaskStatus::ET_READY;
 
     // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yeild function
@@ -129,7 +132,7 @@ void ffrt_wake_coroutine(void* task)
     }
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&wakedTask->wq);
-    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, wakedTask->qos)) {
+    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, wakedTask->qos)) {
         FFRT_LOGE("Submit io task failed!");
     }
 }

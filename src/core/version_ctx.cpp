@@ -106,7 +106,7 @@ void VersionCtx::CreateChildVersion(SCPUEUTask* task __attribute__((unused)), Da
 {
     // Add VersionCtx
     auto prev = last;
-    last = new (SimpleAllocator<VersionCtx>::AllocMem()) VersionCtx(this->signature, this, prev);
+    last = new (SimpleAllocator<VersionCtx>::allocMem()) VersionCtx(this->signature, this, prev);
     last->status = dataStatus;
     if (prev != nullptr) {
         prev->next = last;

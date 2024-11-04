@@ -19,7 +19,6 @@
 
 typedef enum {
     DUMP_INFO_ALL = 0,
-    DUMP_TASK_STATISTIC_INFO
 } ffrt_dump_cmd_t;
 
 typedef void(*ffrt_task_timeout_cb)(uint64_t gid, const char *msg, uint32_t size);

@@ -25,31 +25,31 @@ constexpr int TASK_NUM = 1;
 
 constexpr int MAX_COUNTERS = 7;
 
-struct Counters {
+struct counters_t {
     unsigned long nr;
     unsigned long vals[MAX_COUNTERS];
 };
 
-struct PerfRecord {
+struct perf_record_t {
     char name[NAME_LEN];
-    short beginFlag;
-    short endFlag;
-    struct Counters countersBegin;
-    struct Counters countersEnd;
+    short begin_flag;
+    short end_flag;
+    struct counters_t counters_begin;
+    struct counters_t counters_end;
 };
 
-struct PerfTask {
+struct perf_task_t {
     unsigned long rd;
 
-    struct PerfRecord perfRecord[RECORD_NUM];
+    struct perf_record_t perf_record[RECORD_NUM];
 };
 
-struct PerfStat {
-    int perfFD;
-    int nCounters;
+struct perf_stat_t {
+    int perf_fd;
+    int n_counters;
     pid_t pid;
     int rsvd;
-    struct PerfTask perfTask[TASK_NUM];
+    struct perf_task_t perf_task[TASK_NUM];
 };
 
 #define CPU_CYCLES 0x11

@@ -31,7 +31,6 @@
 #include "eu/execute_unit.h"
 #include "core/entity.h"
 #include "dfx/watchdog/watchdog_util.h"
-#include "dfx/trace_record/ffrt_trace_record.h"
 #include "tm/cpu_task.h"
 #include "sync/poller.h"
 
@@ -51,7 +50,7 @@ inline bool CheckOutsHandle(const ffrt_deps_t* outs)
     }
     return true;
 }
-inline void OutsDedup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* outs)
+inline void outsDeDup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* outs)
 {
     for (uint32_t i = 0; i < outs->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), outs->items[i].ptr) == outsNoDup.end()) {
@@ -60,7 +59,7 @@ inline void OutsDedup(std::vector<const void *>& outsNoDup, const ffrt_deps_t* o
     }
 }
 
-inline void InsDedup(std::vector<CPUEUTask*> &in_handles, std::vector<const void *> &insNoDup,
+inline void insDeDup(std::vector<CPUEUTask*> &in_handles, std::vector<const void *> &insNoDup,
     std::vector<const void *> &outsNoDup, const ffrt_deps_t *ins)
 {
     for (uint32_t i = 0; i < ins->len; i++) {
@@ -87,15 +86,21 @@ public:
     {
         FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
         FFRT_TRACE_SCOPE(1, onSubmitUV);
+#ifdef FFRT_BBOX_ENABLE
+        TaskSubmitCounterInc();
+#endif
         QoS qos = ((attr == nullptr || attr->qos_ == qos_inherit) ? QoS() : QoS(attr->qos_));
-        FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(qos);
+
         LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
         FFRTScheduler* sch = FFRTScheduler::Instance();
         if (!sch->InsertNode(node, qos)) {
             FFRT_LOGE("Submit UV task failed!");
             return;
         }
-        FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(qos);
+
+#ifdef FFRT_BBOX_ENABLE
+        TaskEnQueuCounterInc();
+#endif
     }
 
     virtual void onWait() = 0;

@@ -20,8 +20,6 @@
 #ifdef FFRT_OH_WATCHDOG_ENABLE
 #include "c/ffrt_dump.h"
 #endif
-#include "dfx/log/ffrt_log_api.h"
-#include "util/slab.h"
 namespace {
 constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
 constexpr uint64_t VALID_TIMEOUT_MAX = 30000;
@@ -64,7 +62,7 @@ namespace ffrt {
 #ifdef FFRT_OH_WATCHDOG_ENABLE
         FFRT_LOGI("start to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout);
         auto now = std::chrono::steady_clock::now();
-        WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
+        WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::allocMem()) WaitUntilEntry();
         // set dealyedworker callback
         we->cb = ([gid, timeout](WaitEntry* we) {
             std::lock_guard<decltype(lock)> l(lock);

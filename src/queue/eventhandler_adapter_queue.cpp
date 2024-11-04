@@ -29,11 +29,11 @@ void DumpRunningTaskInfo(const char* tag, const ffrt::HistoryTask& currentRunnin
     if (currentRunningTask.beginTime_ == std::numeric_limits<uint64_t>::max()) {
         oss << "{}";
     } else {
-        oss << "start at " << ffrt::FormatDateString4SteadyClock(currentRunningTask.beginTime_) << ", ";
+        oss << "start at " << ffrt::FormatDateString(currentRunningTask.beginTime_) << ", ";
         oss << "Event { ";
         oss << "send thread = " << currentRunningTask.senderKernelThreadId_;
-        oss << ", send time = " << ffrt::FormatDateString4SteadyClock(currentRunningTask.sendTime_);
-        oss << ", handle time = " << ffrt::FormatDateString4SteadyClock(currentRunningTask.handleTime_);
+        oss << ", send time = " << ffrt::FormatDateString(currentRunningTask.sendTime_);
+        oss << ", handle time = " << ffrt::FormatDateString(currentRunningTask.handleTime_);
         oss << ", task name = " << currentRunningTask.taskName_;
         oss << " }\n";
     }
@@ -50,10 +50,10 @@ void DumpHistoryTaskInfo(const char* tag, const std::vector<ffrt::HistoryTask>& 
 
         oss << tag << " No. " << (i + 1) << " : Event { ";
         oss << "send thread = " << historyTask.senderKernelThreadId_;
-        oss << ", send time = " << ffrt::FormatDateString4SteadyClock(historyTask.sendTime_);
-        oss << ", handle time = " << ffrt::FormatDateString4SteadyClock(historyTask.handleTime_);
-        oss << ", trigger time = " << ffrt::FormatDateString4SteadyClock(historyTask.triggerTime_);
-        oss << ", complete time = " << ffrt::FormatDateString4SteadyClock(historyTask.completeTime_);
+        oss << ", send time = " << ffrt::FormatDateString(historyTask.sendTime_);
+        oss << ", handle time = " << ffrt::FormatDateString(historyTask.handleTime_);
+        oss << ", trigger time = " << ffrt::FormatDateString(historyTask.triggerTime_);
+        oss << ", complete time = " << ffrt::FormatDateString(historyTask.completeTime_);
         oss << ", task name = " << historyTask.taskName_;
         oss << " }\n";
     }
@@ -77,9 +77,9 @@ void DumpUnexecutedTaskInfo(const char* tag,
 
     auto taskDumpFun = [&](int n, ffrt::QueueTask* task) {
         oss << tag << " No. " << n << " : Event { ";
-        oss << "send thread = " << task->fromTid;
-        oss << ", send time = " << ffrt::FormatDateString4SteadyClock(task->GetUptime() - task->GetDelay());
-        oss << ", handle time = " << ffrt::FormatDateString4SteadyClock(task->GetUptime());
+        oss << "send thread = " << task->GetSenderKernelThreadId();
+        oss << ", send time = " << ffrt::FormatDateString(task->GetUptime() - task->GetDelay());
+        oss << ", handle time = " << ffrt::FormatDateString(task->GetUptime());
         oss << ", task name = " << task->label;
         oss << " }\n";
         dumpSize--;
@@ -201,7 +201,7 @@ void EventHandlerAdapterQueue::SetCurrentRunningTask(QueueTask* task)
 void EventHandlerAdapterQueue::PushHistoryTask(QueueTask* task, uint64_t triggerTime, uint64_t completeTime)
 {
     HistoryTask historyTask;
-    historyTask.senderKernelThreadId_ = task->fromTid;
+    historyTask.senderKernelThreadId_ = task->GetSenderKernelThreadId();
     historyTask.taskName_ = task->label;
     historyTask.sendTime_ = task->GetUptime() - task->GetDelay();
     historyTask.handleTime_ = task->GetUptime();

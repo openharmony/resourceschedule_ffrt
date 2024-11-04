@@ -26,27 +26,27 @@ extern "C" {
 #define FRAME_START (1 << 0)
 #define FRAME_END (1 << 1)
 
-void SetTaskRtg(pid_t tid, unsigned int grpId);
-void SetRtgStatus(unsigned long long status);
-void SetRtgQos(int qos);
-void SetRtgLoadMode(unsigned int grpId, bool utilEnabled, bool freqEnabled);
+void set_task_rtg(pid_t tid, unsigned int grp_id);
+void set_rtg_status(unsigned long long status);
+void set_rtg_qos(int qos);
+void set_rtg_load_mode(unsigned int grp_id, bool util_enabled, bool freq_enabled);
 void set_task_min_util(pid_t tid, unsigned int util);
 
 /* inner use */
 
-struct RtgGroupTask {
+struct rtg_group_task {
     pid_t pid;
-    unsigned int grpId;
+    unsigned int grp_id;
     bool pmu_sample_enabled;
 };
 
-struct RtgLoadMode {
-    unsigned int grpId;
-    unsigned int freqEnabled;
-    unsigned int utilEnabled;
+struct rtg_load_mode {
+    unsigned int grp_id;
+    unsigned int freq_enabled;
+    unsigned int util_enabled;
 };
 
-struct TaskConfig {
+struct task_config {
     pid_t pid;
     unsigned int value;
 };
@@ -58,11 +58,11 @@ struct TaskConfig {
 #define SET_TASK_MIN_UTIL 28
 
 #define PERF_CTRL_MAGIC 'x'
-#define PERF_CTRL_SET_TASK_RTG _IOWR(PERF_CTRL_MAGIC, SET_TASK_RTG, struct RtgGroupTask)
+#define PERF_CTRL_SET_TASK_RTG _IOWR(PERF_CTRL_MAGIC, SET_TASK_RTG, struct rtg_group_task)
 #define PERF_CTRL_SET_FRAME_STATUS _IOWR(PERF_CTRL_MAGIC, SET_FRAME_STATUS, unsigned long long)
 #define PERF_CTRL_SET_FRAME_RATE _IOWR(PERF_CTRL_MAGIC, SET_FRAME_RATE, int)
-#define PERF_CTRL_SET_RTG_LOAD_MODE _IOW(PERF_CTRL_MAGIC, SET_RTG_LOAD_MODE, struct RtgLoadMode)
-#define PERF_CTRL_SET_TASK_MIN_UTIL _IOW(PERF_CTRL_MAGIC, SET_TASK_MIN_UTIL, struct TaskConfig)
+#define PERF_CTRL_SET_RTG_LOAD_MODE _IOW(PERF_CTRL_MAGIC, SET_RTG_LOAD_MODE, struct rtg_load_mode)
+#define PERF_CTRL_SET_TASK_MIN_UTIL _IOW(PERF_CTRL_MAGIC, SET_TASK_MIN_UTIL, struct task_config)
 
 #ifdef __cplusplus
 }

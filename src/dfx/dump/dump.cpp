@@ -23,7 +23,6 @@
 #include "dfx/bbox/bbox.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace_record/ffrt_trace_record.h"
 #include "dump.h"
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
@@ -116,10 +115,7 @@ int dump_info_all(char *buf, uint32_t len)
     if (FFRTIsWork()) {
         std::string dumpInfo;
         dumpInfo += "|-> Launcher proc ffrt, pid:" + std::to_string(GetPid()) + "\n";
-#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         dumpInfo += SaveTaskCounterInfo();
-#endif
-        dumpInfo += SaveKeyInfo();
         dumpInfo += SaveWorkerStatusInfo();
         dumpInfo += SaveReadyQueueStatusInfo();
         dumpInfo += SaveNormalTaskStatusInfo();
@@ -139,22 +135,16 @@ int dump_info_all(char *buf, uint32_t len)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len)
 {
-    FFRT_COND_RETURN_ERROR(buf == nullptr || len < 1, -1, "buf is nullptr or len is less than 1, len %u", len);
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     switch (cmd) {
-        case DUMP_INFO_ALL: {
+        case ffrt_dump_cmd_t::DUMP_INFO_ALL: {
             return dump_info_all(buf, len);
         }
-        case DUMP_TASK_STATISTIC_INFO: {
-#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
-            return ffrt::FFRTTraceRecord::StatisticInfoDump(buf, len);
-#else
-            return -1;
-#endif
-        }
         default: {
-            FFRT_LOGE("ffrt_dump unsupport cmd[%d]", cmd);
+            FFRT_LOGE("ffr_dump unsupport cmd[%d]", cmd);
         }
     }
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
     return -1;
 }
 

@@ -18,9 +18,7 @@
 #include <atomic>
 #include <functional>
 #include <thread>
-#include <pthread.h>
 #include "co2_context.h"
-
 
 #if defined(__aarch64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
@@ -123,13 +121,11 @@ private:
 void CoStackFree(void);
 void CoWorkerExit(void);
 
-int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv);
+void CoStart(ffrt::CPUEUTask* task);
 void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
 void CoWake(ffrt::CPUEUTask* task, bool timeOut);
-
-CoRoutineEnv* GetCoEnv(void);
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
 void TaskTsdDeconstruct(ffrt::CPUEUTask* task);

@@ -30,7 +30,6 @@
 #include "sync/perf_counter.h"
 #include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
-#include "dfx/trace_record/ffrt_trace_record.h"
 #include "co_routine_factory.h"
 #ifdef FFRT_TASK_LOCAL_ENABLE
 #include "pthread_ffrt.h"
@@ -54,8 +53,10 @@ static inline void CoStackCheck(CoRoutine* co)
 }
 
 extern pthread_key_t g_executeCtxTlsKey;
+namespace {
 pthread_key_t g_coThreadTlsKey = 0;
 pthread_once_t g_coThreadTlsKeyOnce = PTHREAD_ONCE_INIT;
+
 void CoEnvDestructor(void* args)
 {
     auto coEnv = static_cast<CoRoutineEnv*>(args);
@@ -83,6 +84,7 @@ CoRoutineEnv* GetCoEnv()
     }
     return coEnv;
 }
+} // namespace
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
 namespace {
@@ -157,7 +159,7 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
         } else {
             FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)), "mismatch key=[%d]", key);
             FFRT_UNLIKELY_COND_DO_ABORT((threadVal && !taskVal),
-                                        "unexpected: thread exists but task not exists, key=[%d]", key);
+                "unexpected: thread exists but task not exists, key=[%d]", key);
         }
         taskTsd[key] = nullptr;
     }
@@ -174,7 +176,7 @@ void SwitchTsdToThread(ffrt::CPUEUTask* task)
     }
 
     UpdateWorkerTsdValueToThread(task->tsd);
-
+    
     task->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
 }
@@ -257,7 +259,8 @@ static void CoSetStackProt(CoRoutine* co, int prot)
     uint64_t mp = reinterpret_cast<uint64_t>(co->stkMem.stk);
     mp = (mp + p_size - 1) / p_size * p_size;
     int ret = mprotect(reinterpret_cast<void *>(static_cast<uintptr_t>(mp)), p_size, prot);
-    FFRT_UNLIKELY_COND_DO_ABORT(ret < 0, "coroutine size:%lu, mp:0x%lx, page_size:%zu, result:%d, prot:%d, err:%d, %s",
+    FFRT_UNLIKELY_COND_DO_ABORT(ret < 0,
+        "coroutine size:%lu, mp:0x%lx, page_size:%zu, result:%d, prot:%d, err:%d, %s",
         static_cast<unsigned long>(sizeof(struct CoRoutine)), static_cast<unsigned long>(mp),
         p_size, ret, prot, errno, strerror(errno));
 }
@@ -358,9 +361,6 @@ static inline int CoAlloc(ffrt::CPUEUTask* task)
 static inline int CoCreat(ffrt::CPUEUTask* task)
 {
     CoAlloc(task);
-    if (GetCoEnv()->runningCo == nullptr) {
-        return -1;
-    }
     BindNewCoRoutione(task);
     auto co = task->coRoutine;
     if (co->status.load() == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
@@ -369,17 +369,17 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
     return 0;
 }
 
-static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
+static inline void CoSwitchInTrace(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
-        for (auto& name : task->traceTag) {
+        for (auto name : task->traceTag) {
             FFRT_TRACE_BEGIN(name.c_str());
         }
     }
     FFRT_FAKE_TRACE_MARKER(task->gid);
 }
 
-static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
+static inline void CoSwitchOutTrace(ffrt::CPUEUTask* task)
 {
     FFRT_FAKE_TRACE_MARKER(task->gid);
     int traceTagNum = static_cast<int>(task->traceTag.size());
@@ -389,22 +389,21 @@ static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
 }
 
 // called by thread work
-int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
+void CoStart(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
         if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
             FFRT_LOGE("executed by worker suddenly, ignore backtrace");
-            return 0;
+            return;
         }
     }
-
-    if (CoCreat(task) != 0) {
-        return -1;
-    }
+    CoCreat(task);
     auto co = task->coRoutine;
 
-    FFRTTraceRecord::TaskRun(task->GetQos(), task);
+#ifdef FFRT_BBOX_ENABLE
+    TaskRunCounterInc();
+#endif
 
     for (;;) {
         ffrt::TaskLoadTracking::Begin(task);
@@ -412,10 +411,7 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
         FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
-        if (task->type == ffrt_normal_task) {
-            task->UpdateState(ffrt::TaskState::RUNNING);
-        }
-        CoSwitchInTransaction(task);
+        CoSwitchInTrace(task);
 #ifdef FFRT_TASK_LOCAL_ENABLE
         SwitchTsdToTask(co->task);
 #endif
@@ -428,27 +424,34 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
         if (co->isTaskDone) {
             task->UpdateState(ffrt::TaskState::EXITED);
             co->isTaskDone = false;
-            return 0;
+#ifdef FFRT_BBOX_ENABLE
+            TaskFinishCounterInc();
+#endif
+            return;
         }
 
         // 2. couroutine task block, switch to thread
         // need suspend the coroutine task or continue to execute the coroutine task.
-        auto pending = coRoutineEnv->pending;
+        auto pending = GetCoEnv()->pending;
         if (pending == nullptr) {
-            return 0;
+#ifdef FFRT_BBOX_ENABLE
+            TaskFinishCounterInc();
+#endif
+            return;
         }
-        coRoutineEnv->pending = nullptr;
-        FFRTTraceRecord::TaskCoSwitchOut(task);
+        GetCoEnv()->pending = nullptr;
         // Fast path: skip state transition
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-            return 0;
+#ifdef FFRT_BBOX_ENABLE
+            TaskSwitchCounterInc();
+#endif
+            return;
         }
         FFRT_WAKE_TRACER(task->gid); // fast path wk
-        coRoutineEnv->runningCo = co;
+        GetCoEnv()->runningCo = co;
     }
-    return 0;
 }
 
 // called by thread work
@@ -457,10 +460,7 @@ void CoYield(void)
     CoRoutine* co = static_cast<CoRoutine*>(GetCoEnv()->runningCo);
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
     GetCoEnv()->runningCo = nullptr;
-    CoSwitchOutTransaction(co->task);
-    if (co->task->type == ffrt_normal_task) {
-        co->task->UpdateState(ffrt::TaskState::BLOCKED);
-    }
+    CoSwitchOutTrace(co->task);
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     SwitchTsdToThread(co->task);
@@ -492,6 +492,7 @@ void CoWake(ffrt::CPUEUTask* task, bool timeOut)
         return;
     }
     // Fast path: state transition without lock
+    FFRT_LOGD("Cowake task[%lu], name[%s], timeOut[%d]", task->gid, task->label.c_str(), timeOut);
     task->wakeupTimeOut = timeOut;
     FFRT_WAKE_TRACER(task->gid);
     switch (task->type) {

@@ -33,6 +33,7 @@ public:
         std::atomic_uint64_t waitDep; // dependency refcnt during task execute when wait api called
     } dataRefCnt {0};
     std::atomic_uint64_t childRefCnt {0}; // unfinished children refcnt
+    std::condition_variable waitCond_; // cv for thread wait
 
     inline void IncDepRef()
     {
@@ -74,7 +75,7 @@ public:
     }
     ~RootTaskCtxWrapper()
     {
-        std::unique_lock<decltype(root->mutex_)> lck(root->mutex_);
+        std::unique_lock<decltype(root->lock)> lck(root->lock);
         if (root->childRefCnt == 0) {
             lck.unlock();
             delete root;

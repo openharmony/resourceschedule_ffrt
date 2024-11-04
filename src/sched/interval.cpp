@@ -222,7 +222,7 @@ void DefaultInterval::UpdateTaskSwitch(TaskSwitchState state)
             ctrl.Update();
             break;
         case TaskSwitchState::END:
-            ctrl.Clear();
+            ctrl.clear();
             ctrl.Update(true);
             break;
         default:

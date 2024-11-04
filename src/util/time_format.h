@@ -20,37 +20,19 @@
 #include <securec.h>
 
 namespace ffrt {
-typedef enum {
-    millisecond,
-    microsecond,
-} time_unit_t;
-
-static std::string FormatDateString(const std::chrono::system_clock::time_point& timePoint,
-    time_unit_t timeUnit = millisecond)
+std::string FormatDateString(const std::chrono::system_clock::time_point& timePoint)
 {
     constexpr int MaxMsLength = 3;
     constexpr int MsPerSecond = 1000;
     constexpr int DatetimeStringLength = 80;
-    constexpr int MaxUsLength = 6;
-    constexpr int UsPerSecond = 1000 * 1000;
 
-    std::string remainder;
-    if (microsecond == timeUnit) {
-        auto tp = std::chrono::time_point_cast<std::chrono::microseconds>(timePoint);
-        auto us = tp.time_since_epoch().count() % UsPerSecond;
-        remainder = std::to_string(us);
-        if (remainder.length() < MaxUsLength) {
-            remainder = std::string(MaxUsLength - remainder.length(), '0') + remainder;
-        }
-    } else {
-        auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
-        auto ms = tp.time_since_epoch().count() % MsPerSecond;
-        remainder = std::to_string(ms);
-        if (remainder.length() < MaxMsLength) {
-            remainder = std::string(MaxMsLength - remainder.length(), '0') + remainder;
-        }
-    }
+    auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
     auto tt = std::chrono::system_clock::to_time_t(timePoint);
+    auto ms = tp.time_since_epoch().count() % MsPerSecond;
+    auto msString = std::to_string(ms);
+    if (msString.length() < MaxMsLength) {
+        msString = std::string(MaxMsLength - msString.length(), '0') + msString;
+    }
     struct tm curTime;
     if (memset_s(&curTime, sizeof(curTime), 0, sizeof(curTime)) != EOK) {
         FFRT_LOGE("Fail to memset");
@@ -58,46 +40,17 @@ static std::string FormatDateString(const std::chrono::system_clock::time_point&
     }
     localtime_r(&tt, &curTime);
     char sysTime[DatetimeStringLength];
-    std::strftime(sysTime, sizeof(char) * DatetimeStringLength, "%Y-%m-%d %H:%M:%S.", &curTime);
-    return std::string(sysTime) + remainder;
+    std::strftime(sysTime, sizeof(char) * DatetimeStringLength, "%Y-%m-%d %I:%M:%S.", &curTime);
+    return std::string(sysTime) + msString;
 }
 
-static std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, time_unit_t timeUnit = millisecond)
+std::string FormatDateString(uint64_t steadyClockTimeStamp)
 {
-    static uint64_t globalTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-    static auto globalTp = std::chrono::system_clock::now();
-
-    std::chrono::microseconds us((int64_t)(steadyClockTimeStamp - globalTimeStamp));
-    return FormatDateString(globalTp + us, timeUnit);
-}
-
-static inline uint64_t Arm64CntFrq(void)
-{
-    uint64_t freq = 1;
-    asm volatile("mrs %0, cntfrq_el0" : "=r" (freq));
-    return freq;
-}
-
-static inline uint64_t Arm64CntCt(void)
-{
-    uint64_t tsc = 1;
-    asm volatile("mrs %0, cntvct_el0" : "=r" (tsc));
-    return tsc;
-}
-
-static std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t timeUnit = millisecond)
-{
-    constexpr int Ratio = 1000 * 1000;
-
-    static int64_t globalFreq = Arm64CntFrq();
-    if (globalFreq == 0) {
-        return "";
-    }
-    static uint64_t globalCntCt = Arm64CntCt();
-    static auto globalTp = std::chrono::system_clock::now();
-    std::chrono::microseconds us((int64_t)(cntCtTimeStamp - globalCntCt) * Ratio / globalFreq);
-    return FormatDateString(globalTp + us, timeUnit);
+    std::chrono::microseconds ms(steadyClockTimeStamp - std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
+    auto tp = std::chrono::system_clock::now() + ms;
+    return FormatDateString(tp);
 }
 }
+
 #endif // UTIL_TIME_FORAMT_H

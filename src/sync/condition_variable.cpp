@@ -90,7 +90,7 @@ int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct tim
 
     using namespace std::chrono;
     auto duration = seconds{ time_point->tv_sec } + nanoseconds{ time_point->tv_nsec };
-    auto tp = ffrt::TimePoint {
+    auto tp = ffrt::time_point_t {
         duration_cast<steady_clock::duration>(duration_cast<nanoseconds>(duration))
     };
 

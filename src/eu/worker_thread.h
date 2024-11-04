@@ -17,11 +17,9 @@
 #define FFRT_WORKER_THREAD_HPP
 
 #include <atomic>
-#include <unistd.h>
 #ifdef FFRT_PTHREAD_ENABLE
 #include <pthread.h>
 #endif
-#include <thread>
 #ifdef OHOS_THREAD_STACK_DUMP
 #include <sstream>
 #include "dfx_dump_catcher.h"
@@ -29,23 +27,18 @@
 
 #include "qos.h"
 #include "tm/cpu_task.h"
-#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 constexpr int PTHREAD_CREATE_NO_MEM_CODE = 11;
 constexpr int FFRT_RETRY_MAX_COUNT = 12;
 const std::vector<uint64_t> FFRT_RETRY_CYCLE_LIST = {
     10 * 1000, 50 * 1000, 100 * 1000, 200 * 1000, 500 * 1000, 1000 * 1000, 2 * 1000 * 1000,
-    5 * 1000 * 1000, 10 * 1000 * 1000, 50 * 1000 * 1000, 100 * 1000 * 1000, 500 * 1000 * 1000
+    5 * 1000 * 1000, 10 * 1000 * 1000,  50 * 1000 * 1000, 100 * 1000 * 1000, 500 * 1000 * 1000
 };
 
 class WorkerThread {
 public:
     CPUEUTask* curTask = nullptr;
-
-    uintptr_t curTaskType_ = ffrt_invalid_task;
-    std::string curTaskLabel_ = ""; // 需要代开宏WORKER_CACHE_NAMEID才会赋值
-    uint64_t curTaskGid_ = UINT64_MAX;
     explicit WorkerThread(const QoS& qos);
 
     virtual ~WorkerThread()
@@ -120,12 +113,11 @@ public:
             while (ret == PTHREAD_CREATE_NO_MEM_CODE && count < FFRT_RETRY_MAX_COUNT) {
                 usleep(FFRT_RETRY_CYCLE_LIST[count]);
                 count++;
-                FFRT_LOGW("pthread_create failed due to shortage of system memory, FFRT retry %d times...", count);
+                FFRT_LOGW("pthread_create failed due to shortage of system memory. FFRT retry %d times...", count);
                 ret = pthread_create(&thread_, &attr_, ThreadFunc, args);
             }
         }
         if (ret != 0) {
-            FFRT_LOGE("pthread_create failed, ret = %d", ret);
             exited = true;
         }
         pthread_attr_destroy(&attr_);
@@ -190,7 +182,6 @@ public:
 
     void WorkerSetup(WorkerThread* wthread);
     void NativeConfig();
-    void* worker_mgr;
 
 private:
     std::atomic_bool exited;

@@ -20,18 +20,17 @@
 #include "eu/cpu_worker.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/scpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "eu/worker_thread.h"
 #include "qos.h"
-#include "common.h"
-
 #undef private
 #undef protected
 
+namespace OHOS {
+namespace FFRT_TEST {
 using namespace testing;
-#ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
-#endif
+using namespace OHOS::FFRT_TEST;
 using namespace ffrt;
 using namespace std;
 
@@ -62,9 +61,10 @@ protected:
  *
  *
  */
-HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
+TEST_F(CpuMonitorTest, IntoSleep)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
+
     SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
@@ -74,21 +74,22 @@ HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
 }
 
 /**
- * @tc.name: WakeupCount
+ * @tc.name: WakeupSleep
  * @tc.desc: Test whether the WakeupCount interface are normal.
  * @tc.type: FUNC
  *
  *
  */
-HWTEST_F(CpuMonitorTest, WakeupCount, TestSize.Level1)
+TEST_F(CpuMonitorTest, WakeupSleep)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
+
     SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.WakeupCount(QoS(5));
+    cpu.WakeupSleep(QoS(5));
 }
 
 /**
@@ -98,9 +99,10 @@ HWTEST_F(CpuMonitorTest, WakeupCount, TestSize.Level1)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
+TEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
+
     SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
@@ -116,9 +118,10 @@ HWTEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, Notify, TestSize.Level1)
+HWTEST_F(CpuMonitorTest, Notify)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
+
     SCPUMonitor cpu({
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
@@ -136,7 +139,7 @@ HWTEST_F(CpuMonitorTest, Notify, TestSize.Level1)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, IntoDeepSleep, TestSize.Level1)
+TEST_F(CpuMonitorTest, IntoDeepSleep)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     SCPUMonitor cpu({
@@ -148,13 +151,13 @@ HWTEST_F(CpuMonitorTest, IntoDeepSleep, TestSize.Level1)
 }
 
 /**
- * @tc.name: OutOfDeepSleep
+ * @tc.name: WakeupDeepSleep
  * @tc.desc: Test whether the OutOfDeepSleep interface are normal.
  * @tc.type: FUNC
  *
  *
  */
-HWTEST_F(CpuMonitorTest, OutOfDeepSleep, TestSize.Level1)
+TEST_F(CpuMonitorTest, WakeupDeepSleep)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     SCPUMonitor cpu({
@@ -162,7 +165,7 @@ HWTEST_F(CpuMonitorTest, OutOfDeepSleep, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
 
-    cpu.OutOfDeepSleep(QoS(5));
+    cpu.WakeupDeepSleep(QoS(5));
 }
 
 /**

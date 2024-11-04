@@ -43,18 +43,33 @@ public:
         return {};
     }
 
+    static void LockMem()
+    {
+        return Instance().lockMem_();
+    }
+    static void UnlockMem()
+    {
+        return Instance().unlockMem_();
+    }
+
     static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&free,
-        TaskAllocCB<CPUEUTask>::GetUnfreedMem &&getUnfreedMem = nullptr)
+        TaskAllocCB<CPUEUTask>::GetUnfreedMem &&getUnfreedMem = nullptr,
+        TaskAllocCB<CPUEUTask>::LockMem &&lockMem = nullptr,
+        TaskAllocCB<CPUEUTask>::UnlockMem &&unlockMem = nullptr)
     {
         Instance().alloc_ = std::move(alloc);
         Instance().free_ = std::move(free);
         Instance().getUnfreedMem_ = std::move(getUnfreedMem);
+        Instance().lockMem_ = std::move(lockMem);
+        Instance().unlockMem_ = std::move(unlockMem);
     }
 
 private:
     TaskAllocCB<CPUEUTask>::Free free_;
     TaskAllocCB<CPUEUTask>::Alloc alloc_;
     TaskAllocCB<CPUEUTask>::GetUnfreedMem getUnfreedMem_;
+    TaskAllocCB<CPUEUTask>::LockMem lockMem_;
+    TaskAllocCB<CPUEUTask>::UnlockMem unlockMem_;
 };
 
 } // namespace ffrt

@@ -28,7 +28,6 @@ int TaskState::OnTransition(State state, CPUEUTask* task, Op&& op)
         return -1;
     }
     if (task->IsRoot()) {
-        FFRT_LOGD("task root no state transition");
         return 0;
     }
 

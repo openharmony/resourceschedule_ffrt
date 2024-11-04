@@ -24,7 +24,7 @@ VersionCtx* Entity::VA2Ctx(const void* p, SCPUEUTask* task __attribute__((unused
     if (it != vaMap.end()) {
         return it->second;
     }
-    auto version = new (SimpleAllocator<VersionCtx>::allocMem()) VersionCtx(p, nullptr, nullptr);
+    auto version = new (SimpleAllocator<VersionCtx>::AllocMem()) VersionCtx(p, nullptr, nullptr);
     vaMap[p] = version;
     return version;
 }

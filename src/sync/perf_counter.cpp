@@ -31,14 +31,14 @@ static int __perf_write = 0;
 static std::atomic<int> __perf_init = 0;
 
 static pthread_mutex_t __g_stat_mutex = PTHREAD_MUTEX_INITIALIZER;
-static std::vector<struct perf_stat_t*> __g_perfstat;
+static std::vector<struct PerfStat*>g_perfstat;
 
 static int n_event = 5;
 static int even_type = PERF_TYPE_SOFTWARE;
 static int pmu_event[MAX_COUNTERS] = {PERF_COUNT_SW_CPU_CLOCK, PERF_COUNT_SW_TASK_CLOCK, PERF_COUNT_SW_PAGE_FAULTS,
     PERF_COUNT_SW_CONTEXT_SWITCHES, PERF_COUNT_SW_CPU_MIGRATIONS};
 
-static __thread struct perf_stat_t* t_perfStat = NULL;
+static __thread struct PerfStat* t_perfStat = NULL;
 
 static inline pid_t __gettid(void)
 {
@@ -50,7 +50,7 @@ static inline int perf_event_open(struct perf_event_attr* attr, pid_t pid, int c
     return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
 
-static void perf_open(struct perf_stat_t* pf, int event)
+static void perf_open(struct PerfStat* pf, int event)
 {
     struct perf_event_attr attr = {0};
 
@@ -91,15 +91,15 @@ static void perf_open(struct perf_stat_t* pf, int event)
               This setting is invalid and will return an error.
 
     *********************************************************************************************************/
-    int ret = perf_event_open(&attr, pf->pid, -1, pf->perf_fd, 0);
+    int ret = perf_event_open(&attr, pf->pid, -1, pf->perfFD, 0);
     if (ret < 0) {
         return;
     }
 
-    if (pf->perf_fd == -1) {
-        pf->perf_fd = ret;
+    if (pf->perfFD == -1) {
+        pf->perfFD = ret;
     }
-    pf->n_counters++;
+    pf->nCounters++;
 }
 
 static void perf_init(void)
@@ -147,7 +147,7 @@ static struct perf_ignore __g_ignore[] = {
     {"task_build", 2},
 };
 
-static struct perf_ignore* find_ignore(struct perf_record_t* record)
+static struct perf_ignore* find_ignore(struct PerfRecord* record)
 {
     int i;
     int size = sizeof(__g_ignore) / sizeof(struct perf_ignore);
@@ -160,7 +160,7 @@ static struct perf_ignore* find_ignore(struct perf_record_t* record)
     return nullptr;
 }
 
-static bool perf_ignore(struct perf_record_t* record)
+static bool perf_ignore(struct PerfRecord* record)
 {
     struct perf_ignore* p = find_ignore(record);
     if ((!p) || (!p->ignore_count)) {
@@ -170,13 +170,13 @@ static bool perf_ignore(struct perf_record_t* record)
     return true;
 }
 
-static void perf_counter_output(struct perf_stat_t* stat)
+static void perf_counter_output(struct PerfStat* stat)
 {
     if (!stat) {
         printf("no perf stat,tid:%d\n", __gettid());
         return;
     }
-    std::map<std::string, counters_t> m_counters;
+    std::map<std::string, Counters> m_counters;
 
     pthread_mutex_lock(&__pw_mutex);
 
@@ -187,29 +187,29 @@ static void perf_counter_output(struct perf_stat_t* stat)
         return;
     }
 
-    auto doRecord = [&](struct perf_record_t* record) {
+    auto doRecord = [&](struct PerfRecord* record) {
         auto it = m_counters.find(record->name);
         if (it != m_counters.end()) {
             it->second.nr++;
             for (int k = 0; k < MAX_COUNTERS; k++) {
-                it->second.vals[k] += (record->counters_end.vals[k] - record->counters_begin.vals[k]);
+                it->second.vals[k] += (record->countersEnd.vals[k] - record->countersBegin.vals[k]);
             }
         } else {
-            counters_t new_;
+            Counters new_;
             new_.nr = 1;
             for (int k = 0; k < MAX_COUNTERS; k++) {
-                new_.vals[k] = (record->counters_end.vals[k] - record->counters_begin.vals[k]);
+                new_.vals[k] = (record->countersEnd.vals[k] - record->countersBegin.vals[k]);
             }
-            m_counters.insert(std::pair<std::string, counters_t>(record->name, new_));
+            m_counters.insert(std::pair<std::string, Counters>(record->name, new_));
         }
     };
 
     for (int i = 0; i < TASK_NUM; i++) {
-        struct perf_task_t* task = &stat->perf_task[i];
+        struct PerfTask* task = &stat->perfTask[i];
         int max_rd = (task->rd > RECORD_NUM) ? RECORD_NUM : task->rd;
         for (int j = 0; j < max_rd; j++) {
-            struct perf_record_t* record = &task->perf_record[j];
-            if (!(record->begin_flag) || !(record->end_flag)) {
+            struct PerfRecord* record = &task->perfRecord[j];
+            if (!(record->beginFlag) || !(record->endFlag)) {
                 continue;
             }
             if (perf_ignore(record)) {
@@ -224,7 +224,7 @@ static void perf_counter_output(struct perf_stat_t* stat)
         fprintf_s(fd,
             "pid:%d, taskname:%s, taskid:%d, recordid:%d, evt_num:%d, pmu_%x:%lu, pmu_%x:%lu, pmu_%x:%lu, pmu_%x:%lu, "
             "pmu_%x:%lu, pmu_%x:%lu, pmu_%x:%lu, nr:%lu.\n",
-            stat->pid, iter->first.c_str(), 0, 1, stat->n_counters, pmu_event[0], iter->second.vals[0], pmu_event[1],
+            stat->pid, iter->first.c_str(), 0, 1, stat->nCounters, pmu_event[0], iter->second.vals[0], pmu_event[1],
             iter->second.vals[1], pmu_event[2], iter->second.vals[2], pmu_event[3], iter->second.vals[3], pmu_event[4],
             iter->second.vals[4], pmu_event[5], iter->second.vals[5], pmu_event[6], iter->second.vals[6],
             iter->second.nr);

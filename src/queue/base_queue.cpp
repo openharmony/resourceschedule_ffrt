@@ -13,13 +13,14 @@
  * limitations under the License.
  */
 
-#include "base_queue.h"
+#include <unordered_map>
 #include "dfx/log/ffrt_log_api.h"
 #include "tm/queue_task.h"
 #include "serial_queue.h"
 #include "concurrent_queue.h"
 #include "eventhandler_adapter_queue.h"
 #include "eventhandler_interactive_queue.h"
+#include "base_queue.h"
 
 namespace {
 using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(const ffrt_queue_attr_t*);
@@ -32,9 +33,8 @@ const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
 }
 
 namespace ffrt {
-
-std::atomic_uint32_t BaseQueue::queueId(0);
-
+// 0预留为非法值
+std::atomic_uint32_t BaseQueue::queueId(1);
 void BaseQueue::Stop()
 {
     std::unique_lock lock(mutex_);

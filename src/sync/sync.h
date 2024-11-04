@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
-#include "delayed_worker.h"
+#include "sched/execute_ctx.h"
 
 namespace ffrt {
 namespace sync_detail {
@@ -92,7 +92,7 @@ public:
     }
 };
 
-bool DelayedWakeup(const time_point_t& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
-bool DelayedRemove(const time_point_t& to, WaitEntry* we);
+bool DelayedWakeup(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
+bool DelayedRemove(const TimePoint& to, WaitEntry* we);
 } // namespace ffrt
 #endif

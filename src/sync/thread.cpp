@@ -21,7 +21,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-struct thread_res {
+struct ThreadRes {
     bool is_joinable;
     void* result;
 };
@@ -37,7 +37,7 @@ int ffrt_thread_create(ffrt_thread_t* thr, const ffrt_thread_attr_t* attr, void*
         return ffrt_error;
     }
 
-    auto p = reinterpret_cast<thread_res*>(malloc(sizeof(thread_res)));
+    auto p = reinterpret_cast<ThreadRes*>(malloc(sizeof(ThreadRes)));
     if (p == nullptr) {
         FFRT_LOGE("p is empty");
         return ffrt_error_nomem;
@@ -60,7 +60,7 @@ int ffrt_thread_join(ffrt_thread_t thr, void** res)
         return ffrt_error_inval;
     }
 
-    auto p = reinterpret_cast<thread_res*>(thr);
+    auto p = reinterpret_cast<ThreadRes*>(thr);
     if (p == nullptr || !p->is_joinable) {
         return ffrt_error_inval;
     }
@@ -78,7 +78,7 @@ int ffrt_thread_detach(ffrt_thread_t thr)
         FFRT_LOGE("thr should not be empty");
         return ffrt_error_inval;
     }
-    auto p = reinterpret_cast<thread_res*>(thr);
+    auto p = reinterpret_cast<ThreadRes*>(thr);
     if (p == nullptr || !p->is_joinable) {
         return ffrt_error_inval;
     }

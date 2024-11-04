@@ -31,7 +31,7 @@ enum class MutexOwnerType {
 struct MutexOwner {
     uint64_t id; // 持锁task的id或者持锁线程的id
     MutexOwnerType type;
-    std::chrono::steady_clock::time_point timestamp;
+    uint64_t timestamp;
 };
 
 class RecordMutex {
@@ -53,19 +53,19 @@ public:
         return &mutex_;
     }
 
-    bool HasLock()
+    bool HasLock() const
     {
         return owner_.id != 0;
     }
 
     bool IsTimeout();
 
-    uint64_t GetOwnerId()
+    uint64_t GetOwnerId() const
     {
         return owner_.id;
     }
 
-    MutexOwnerType GetOwnerType()
+    MutexOwnerType GetOwnerType() const
     {
         return owner_.type;
     }

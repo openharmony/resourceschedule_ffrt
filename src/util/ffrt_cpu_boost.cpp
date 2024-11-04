@@ -25,9 +25,9 @@ extern "C" {
 #endif
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_cpu_boost_start(int ctx_id)
+int ffrt_cpu_boost_start(int ctxId)
 {
-    int ret = CpuBoostStart(ctx_id);
+    int ret = CpuBoostStart(ctxId);
     if (ret == 0) {
         if (ffrt::ExecuteCtx::Cur() == nullptr) {
             FFRT_LOGW("ExecuteCtx::Cur() is nullptr, save ctxId failed");
@@ -35,23 +35,23 @@ int ffrt_cpu_boost_start(int ctx_id)
         }
         ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
         if (curTask != nullptr && curTask->cpuBoostCtxId < 0) {
-            curTask->cpuBoostCtxId = ctx_id;
+            curTask->cpuBoostCtxId = ctxId;
         }
     }
     return ret;
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_cpu_boost_end(int ctx_id)
+int ffrt_cpu_boost_end(int ctxId)
 {
-    int ret = CpuBoostEnd(ctx_id);
+    int ret = CpuBoostEnd(ctxId);
     if (ret == 0) {
         if (ffrt::ExecuteCtx::Cur() == nullptr) {
             FFRT_LOGW("ExecuteCtx::Cur() is nullptr, clear ctxId failed");
             return ret;
         }
         ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
-        if (curTask != nullptr && curTask->cpuBoostCtxId == ctx_id) {
+        if (curTask != nullptr && curTask->cpuBoostCtxId == ctxId) {
             curTask->cpuBoostCtxId = -1;
         }
     }

@@ -19,8 +19,8 @@
 #define CPUBOOST_START_POINT  0
 #define CPUBOOST_MAX_CNT      32
 
-FFRT_C_API int ffrt_cpu_boost_start(int ctx_id);
+FFRT_C_API int ffrt_cpu_boost_start(int ctxId);
 
-FFRT_C_API int ffrt_cpu_boost_end(int ctx_id);
+FFRT_C_API int ffrt_cpu_boost_end(int ctxId);
 
 #endif // FFRT_CPU_BOOST_C_API_H

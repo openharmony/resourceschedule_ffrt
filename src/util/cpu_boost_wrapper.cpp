@@ -19,10 +19,10 @@
 #include "cpu_boost_wrapper.h"
 
 namespace ffrt {
-int cpu_boost_start(int ctx_id);
-int cpu_boost_end(int ctx_id);
-int cpu_boost_save(int ctx_id);
-int cpu_boost_restore(int ctx_id);
+int cpu_boost_start(int ctxId);
+int cpu_boost_end(int ctxId);
+int cpu_boost_save(int ctxId);
+int cpu_boost_restore(int ctxId);
 constexpr const char* CPU_BOOST_LIB_PATH = "lib_cpuboost.so";
 class CPUBoostAdapter {
 public:
@@ -94,37 +94,37 @@ private:
 };
 }
 
-#define EXECUTE_CPU_BOOST_FUNC(x, ctx_id, ret) auto func = ffrt::CPUBoostAdapter::Instance()->x##Temp; \
+#define EXECUTE_CPU_BOOST_FUNC(x, ctxId, ret) auto func = ffrt::CPUBoostAdapter::Instance()->x##Temp; \
         if (func != nullptr) { \
-            ret = (func)(ctx_id); \
+            ret = (func)(ctxId); \
         } else { \
             ret = -1; \
         }
 
-int CpuBoostStart(int ctx_id)
+int CpuBoostStart(int ctxId)
 {
     int ret = 0;
-    EXECUTE_CPU_BOOST_FUNC(cpu_boost_start, ctx_id, ret);
+    EXECUTE_CPU_BOOST_FUNC(cpu_boost_start, ctxId, ret);
     return ret;
 }
 
-int CpuBoostEnd(int ctx_id)
+int CpuBoostEnd(int ctxId)
 {
     int ret = 0;
-    EXECUTE_CPU_BOOST_FUNC(cpu_boost_end, ctx_id, ret);
+    EXECUTE_CPU_BOOST_FUNC(cpu_boost_end, ctxId, ret);
     return ret;
 }
 
-int CpuBoostSave(int ctx_id)
+int CpuBoostSave(int ctxId)
 {
     int ret = 0;
-    EXECUTE_CPU_BOOST_FUNC(cpu_boost_save, ctx_id, ret);
+    EXECUTE_CPU_BOOST_FUNC(cpu_boost_save, ctxId, ret);
     return ret;
 }
 
-int CpuBoostRestore(int ctx_id)
+int CpuBoostRestore(int ctxId)
 {
     int ret = 0;
-    EXECUTE_CPU_BOOST_FUNC(cpu_boost_restore, ctx_id, ret);
+    EXECUTE_CPU_BOOST_FUNC(cpu_boost_restore, ctxId, ret);
     return ret;
 }

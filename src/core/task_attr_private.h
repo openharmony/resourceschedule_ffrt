@@ -32,6 +32,7 @@ public:
         : qos_(attr.qos()),
           name_(attr.name()),
           delay_(attr.delay()),
+          timeout_(attr.timeout()),
           prio_(attr.priority())
     {
     }
@@ -43,6 +44,7 @@ public:
     bool notifyWorker_ = true;
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
     bool taskLocal_ = false;
+    bool headInsert_ = false;
     ffrt_function_header_t* timeoutCb_ = nullptr;
     uint64_t stackSize_ = STACK_SIZE;
 };

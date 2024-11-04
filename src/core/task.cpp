@@ -185,13 +185,13 @@ uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t *attr)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_ms)
+void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_us)
 {
     if (unlikely(!attr)) {
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_ms;
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_us;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -357,6 +357,13 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
     ffrt_task_handle_dec_ref(handle);
 }
 
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle)
+{
+    FFRT_COND_DO_ERR((handle == nullptr), return 0, "input task handle is invalid");
+    return static_cast<ffrt::TaskBase*>(handle)->gid;
+}
+
 // wait
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wait_deps(const ffrt_deps_t *deps)
@@ -495,8 +502,10 @@ uint64_t ffrt_this_task_get_id()
         return 0;
     }
 
-    if (curTask->type == ffrt_normal_task || curTask->type == ffrt_queue_task) {
+    if (curTask->type == ffrt_normal_task) {
         return curTask->gid;
+    } else if (curTask->type == ffrt_queue_task) {
+        return reinterpret_cast<ffrt::QueueTask*>(curTask)->GetHandler()->GetExecTaskId();
     }
 
     return 0;

@@ -15,12 +15,12 @@
 
 #ifndef __FFRT_CPU_BOOST_WRAPPER_H__
 #define __FFRT_CPU_BOOST_WRAPPER_H__
-int CpuBoostStart(int ctx_id);
+int CpuBoostStart(int ctxId);
 
-int CpuBoostEnd(int ctx_id);
+int CpuBoostEnd(int ctxId);
 
-int CpuBoostSave(int ctx_id);
+int CpuBoostSave(int ctxId);
 
-int CpuBoostRestore(int ctx_id);
+int CpuBoostRestore(int ctxId);
 
 #endif

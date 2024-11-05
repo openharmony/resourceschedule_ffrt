@@ -19,10 +19,10 @@
 #include "cpu_boost_wrapper.h"
 
 namespace ffrt {
-int cpu_boost_start(int ctxId);
-int cpu_boost_end(int ctxId);
-int cpu_boost_save(int ctxId);
-int cpu_boost_restore(int ctxId);
+int cpu_boost_start(int ctx_id);
+int cpu_boost_end(int ctx_id);
+int cpu_boost_save(int ctx_id);
+int cpu_boost_restore(int ctx_id);
 constexpr const char* CPU_BOOST_LIB_PATH = "lib_cpuboost.so";
 class CPUBoostAdapter {
 public:

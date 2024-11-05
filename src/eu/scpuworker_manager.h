@@ -27,7 +27,6 @@ public:
     void WorkerRetiredSimplified(WorkerThread* thread) override;
     void WorkerPrepare(WorkerThread* thread) override;
     void WakeupWorkers(const QoS& qos) override;
-    friend class CPUManagerStrategy;
 private:
     void AddDelayedTask(int qos);
 };

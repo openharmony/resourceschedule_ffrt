@@ -69,7 +69,7 @@ bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
 
     int level = qos();
     FFRT_COND_DO_ERR((level == qos_inherit), return false, "Level incorrect");
-    
+
     auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
     lock->lock();
     if (!node->InList()) {
@@ -78,9 +78,6 @@ bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
     }
     fifoQue[static_cast<unsigned short>(level)]->RemoveNode(node);
     lock->unlock();
-#ifdef FFRT_BBOX_ENABLE
-    TaskFinishCounterInc();
-#endif
     return true;
 }
 
@@ -88,14 +85,14 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
 {
     FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
 
-    int qos_level = task->qos();
-    if (qos_level == qos_inherit) {
+    int qosLevel = task->qos();
+    if (qosLevel == qos_inherit) {
         FFRT_LOGE("qos inhert not support wake up task[%lu], type[%d], name[%s]",
             task->gid, task->type, task->label.c_str());
         return false;
     }
 
-    QoS _qos = qos_level;
+    QoS _qos = qosLevel;
     int level = _qos();
     uint64_t gid = task->gid;
     bool notifyWorker = task->notifyWorker_;

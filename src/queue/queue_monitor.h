@@ -39,15 +39,18 @@ private:
     QueueMonitor &operator=(const QueueMonitor &) = delete;
     QueueMonitor &operator=(QueueMonitor &&) = delete;
 
-    void SendDelayedWorker(time_point_t delay);
+    void SendDelayedWorker(TimePoint delay);
     void CheckQueuesStatus();
     void ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64_t &taskId);
 
+    WaitUntilEntry* we_ = nullptr;
     uint64_t timeoutUs_ = 0;
     std::shared_mutex mutex_;
-    std::vector<std::pair<uint64_t, time_point_t>> queuesRunningInfo_;
+    std::vector<std::pair<uint64_t, TimePoint>> queuesRunningInfo_;
     std::vector<QueueHandler*> queuesStructInfo_;
     std::atomic_bool exit_ { false };
+    std::atomic_bool abortSendTimer_ { false };
+    std::vector<uint64_t> lastReportedTask_;
 };
 } // namespace ffrt
 

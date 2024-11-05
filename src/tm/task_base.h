@@ -18,11 +18,13 @@
 #include <atomic>
 #include <vector>
 #include "eu/co_routine.h"
+#include "qos.h"
 #include "sched/execute_ctx.h"
 #include "util/task_deleter.h"
 
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
+static constexpr uint64_t cacheline_size = 64;
 class TaskBase {
 public:
     uintptr_t reserved = 0;
@@ -34,6 +36,17 @@ public:
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
 #endif
+
+    virtual int GetQos() const
+    {
+        return qos_default;
+    }
+
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
+    uint64_t createTime;
+    uint64_t executeTime;
+#endif
+    int32_t fromTid;
 };
 
 class CoTask : public TaskBase, public TaskDeleter {
@@ -45,6 +58,7 @@ public:
     std::string label;
     std::vector<std::string> traceTag;
     bool wakeupTimeOut = false;
+    int floCtxId = -1;
     WaitUntilEntry* wue = nullptr;
     // lifecycle connection between task and coroutine is shown as below:
     // |*task pending*|*task ready*|*task executing*|*task done*|*task release*|
@@ -54,6 +68,20 @@ public:
     std::atomic<pthread_t> runningTid = 0;
     int legacyCountNum = 0; // dynamic switch controlled by set_legacy_mode api
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
+    std::mutex mutex_; // used in coroute
+    std::condition_variable waitCond_; // cv for thread wait
+
+    void SetTraceTag(const char* name)
+    {
+        traceTag.emplace_back(name);
+    }
+
+    void ClearTraceTag()
+    {
+        if (!traceTag.empty()) {
+            traceTag.pop_back();
+        }
+    }
 };
 }
 #endif

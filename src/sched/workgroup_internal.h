@@ -24,7 +24,8 @@
 #include <fcntl.h>
 #include <string>
 
-#define MAX_WG_THREADS 32
+constexpr int RS_UID = 1003;
+constexpr int MAX_WG_THREADS = 32;
 #define MAX_FRAME_BUFFER 6
 #define gettid() syscall(SYS_gettid)
 namespace ffrt {
@@ -34,7 +35,7 @@ enum WgType {
     TYPE_MAX
 };
 
-struct Workgroup {
+struct WorkGroup {
     bool started;
     int rtgId;
     int tids[MAX_WG_THREADS];
@@ -42,48 +43,45 @@ struct Workgroup {
     WgType type;
 };
 
-#if defined(QOS_FRAME_RTG)
-struct Workgroup* WorkgroupCreate(uint64_t interval);
-void WorkgroupStartInterval(struct Workgroup* wg);
-void WorkgroupStopInterval(struct Workgroup* wg);
-void WorkgroupJoin(struct Workgroup* wg, int tid);
-int WorkgroupClear(struct Workgroup* wg);
+#if (defined(QOS_FRAME_RTG))
+
+struct WorkGroup* WorkgroupCreate(uint64_t interval);
+int WorkgroupClear(struct WorkGroup* wg);
 bool JoinWG(int tid);
-#else /* !QOS_FRAME_RTG */
+bool LeaveWG(int tid);
 
-inline void WorkgroupStartInterval(struct Workgroup* wg)
+#else
+
+#ifdef QOS_WORKER_FRAME_RTG
+    WorkGroup* CreateRSWorkGroup(uint64_t interval);
+    bool JoinRSWorkGroup(int tid);
+    bool LeaveRSWorkGroup(int tid);
+    bool DestoryRSWorkGroup();
+#endif
+
+inline struct WorkGroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
 {
-    if (wg->started) {
-        return;
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return CreateRSWorkGroup(interval);
     }
-    wg->started = true;
-}
-
-inline void WorkgroupStopInterval(struct Workgroup* wg)
-{
-    if (!wg->started) {
-        return;
-    }
-    wg->started = false;
-}
-
-inline struct Workgroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
-{
-    struct Workgroup* wg = new (std::nothrow) struct Workgroup();
+#endif
+    struct WorkGroup* wg = new (std::nothrow) struct WorkGroup();
     if (wg == nullptr) {
         return nullptr;
     }
     return wg;
 }
 
-inline void WorkgroupJoin(struct Workgroup* wg, int tid)
+inline int WorkgroupClear(struct WorkGroup* wg)
 {
-    (void)wg;
-    (void)tid;
-}
-
-inline int WorkgroupClear(struct Workgroup* wg)
-{
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return DestoryRSWorkGroup();
+    }
+#endif
     delete wg;
     wg = nullptr;
     return 0;
@@ -91,8 +89,58 @@ inline int WorkgroupClear(struct Workgroup* wg)
 
 inline bool JoinWG(int tid)
 {
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return JoinRSWorkGroup(tid);
+    }
+#endif
     (void)tid;
     return true;
+}
+
+inline bool LeaveWG(int tid)
+{
+#ifdef QOS_WORKER_FRAME_RTG
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return LeaveRSWorkGroup(tid);
+    }
+#endif
+    (void)tid;
+    return true;
+}
+
+#endif
+
+#if defined(QOS_FRAME_RTG)
+
+void WorkgroupStartInterval(struct WorkGroup* wg);
+void WorkgroupStopInterval(struct WorkGroup* wg);
+void WorkgroupJoin(struct WorkGroup* wg, int tid);
+
+#else /* !QOS_FRAME_RTG */
+
+inline void WorkgroupStartInterval(struct WorkGroup* wg)
+{
+    if (wg->started) {
+        return;
+    }
+    wg->started = true;
+}
+
+inline void WorkgroupStopInterval(struct WorkGroup* wg)
+{
+    if (!wg->started) {
+        return;
+    }
+    wg->started = false;
+}
+
+inline void WorkgroupJoin(struct WorkGroup* wg, int tid)
+{
+    (void)wg;
+    (void)tid;
 }
 
 #endif /* QOS_FRAME_RTG */

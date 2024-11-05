@@ -21,6 +21,7 @@
 #include "dm/sdependence_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "util/singleton_register.h"
+#include "util/slab.h"
 #include "tm/task_factory.h"
 #include "qos.h"
 
@@ -31,11 +32,14 @@ __attribute__((constructor)) static void ffrt_init()
 {
     ffrt::TaskFactory::RegistCb(
         [] () -> ffrt::CPUEUTask* {
-            return static_cast<ffrt::CPUEUTask*>(ffrt::SimpleAllocator<ffrt::SCPUEUTask>::allocMem());
+            return static_cast<ffrt::CPUEUTask*>(ffrt::SimpleAllocator<ffrt::SCPUEUTask>::AllocMem());
         },
         [] (ffrt::CPUEUTask* task) {
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
-    });
+    },
+    ffrt::SimpleAllocator<ffrt::SCPUEUTask>::getUnfreedMem,
+    ffrt::SimpleAllocator<ffrt::SCPUEUTask>::LockMem,
+    ffrt::SimpleAllocator<ffrt::SCPUEUTask>::UnlockMem);
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::TaskScheduler{new ffrt::FIFOQueue()}; },
         [] (ffrt::TaskScheduler* schd) { delete schd; });

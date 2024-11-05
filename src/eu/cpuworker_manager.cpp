@@ -17,8 +17,9 @@
 #include <sys/stat.h>
 #include "qos.h"
 #include "dfx/perf/ffrt_perf.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "eu/cpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
@@ -36,7 +37,7 @@ void InsertTask(void* task, int qos)
 {
     ffrt_executor_task_t* executorTask = reinterpret_cast<ffrt_executor_task_t*>(task);
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList*>(&executorTask->wq);
-    if (!ffrt::FFRTScheduler::Instance()->InsertNode(node, qos)) {
+    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, qos)) {
         FFRT_LOGE("Insert task failed.");
     }
 }
@@ -74,12 +75,13 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance().SubmitTask();
 #endif
+    FFRTTraceRecord::UseFfrt();
     return true;
 }
 
 int CPUWorkerManager::GetTaskCount(const QoS& qos)
 {
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(qos);
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(qos);
     return sched.RQSize();
 }
 
@@ -96,7 +98,7 @@ CPUEUTask* CPUWorkerManager::PickUpTaskFromGlobalQueue(WorkerThread* thread)
         return nullptr;
     }
 
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     return sched.PickNextTask();
@@ -120,7 +122,7 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
         return nullptr;
     }
 
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(thread->GetQos());
+    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     CPUEUTask* task = sched.PickNextTask();
@@ -280,6 +282,7 @@ void CPUWorkerManager::WorkerJoinTg(const QoS& qos, pid_t pid)
 void CPUWorkerManager::WorkerLeaveTg(const QoS& qos, pid_t pid)
 {
     if (qos == qos_user_interactive) {
+        (void)LeaveWG(pid);
         return;
     }
     auto& tgwrap = groupCtl[qos()];

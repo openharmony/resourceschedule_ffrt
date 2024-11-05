@@ -20,51 +20,52 @@
 #include "types.h"
 
 namespace ffrt {
-constexpr unsigned int DEFAULT_GLOBAL_HARDLIMIT = 96;
-constexpr unsigned int DEFAULT_PARAMS_VALUE = 0Xffffffff;
+constexpr int DEFAULT_MINCONCURRENCY = 4;
+constexpr int INTERACTIVE_MAXCONCURRENCY = USE_COROUTINE ? 8 : 40000;
+constexpr int DEFAULT_MAXCONCURRENCY = USE_COROUTINE ? 8 : 80000;
+constexpr int DEFAULT_HARDLIMIT = 16;
+constexpr int QOS_WORKER_MAXNUM = (8 * 16);
 
-constexpr unsigned int DEFAULT_MAXCONCURRENCY = 8;
-constexpr unsigned int MAX_MAXCONCURRENCY = 12;
-constexpr unsigned int DEFAULT_HARDLIMIT = 44;
-constexpr unsigned int DEFAULT_SINGLE_NUM = 8;
-
-constexpr unsigned int DEFAULT_GLOBAL_RESERVE_NUM = 24;
-constexpr unsigned int DEFAULT_LOW_RESERVE_NUM = 12;
-constexpr unsigned int DEFAULT_HIGH_RESERVE_NUM = 12;
-constexpr unsigned int GLOBAL_QOS_MAXNUM = 256;
-
-class QosWorkerConfig {
+class GlobalConfig {
 public:
-    struct FfrtQosWorkerNumCfg {
-        unsigned int hardLimit = DEFAULT_HARDLIMIT;
-        unsigned int maxConcurrency = DEFAULT_MAXCONCURRENCY;
-        unsigned int reserveNum = DEFAULT_SINGLE_NUM;
-    };
+    GlobalConfig(const GlobalConfig&) = delete;
 
-    QosWorkerConfig(int workerNum)
+    GlobalConfig& operator=(const GlobalConfig&) = delete;
+
+    ~GlobalConfig() {}
+
+    static inline GlobalConfig& Instance()
     {
-        mQosWorkerCfg.resize(workerNum);
+        static GlobalConfig cfg;
+        return cfg;
     }
-    QosWorkerConfig(const QosWorkerConfig&) = delete;
-    QosWorkerConfig& operator=(const QosWorkerConfig&) = delete;
-    ~QosWorkerConfig() {}
 
-    unsigned int GetGlobalMaxWorkerNum() const
+    void setCpuWorkerNum(const QoS& qos, int num)
     {
-        unsigned int ret = 0;
-        ret += mLowQosReserveWorkerNum;
-        ret += mHighQosReserveWorkerNum;
-        ret += mGlobalReserveWorkerNum;
-        for (const auto &tmpStru : mQosWorkerCfg) {
-            ret += tmpStru.reserveNum;
+        if ((num <= 0) || (num > DEFAULT_MAXCONCURRENCY)) {
+            num = DEFAULT_MAXCONCURRENCY;
         }
-        return ret;
+        this->cpu_worker_num[qos()] = static_cast<size_t>(num);
     }
 
-    std::vector<FfrtQosWorkerNumCfg> mQosWorkerCfg;
-    unsigned int mLowQosReserveWorkerNum = DEFAULT_LOW_RESERVE_NUM;
-    unsigned int mHighQosReserveWorkerNum = DEFAULT_HIGH_RESERVE_NUM;
-    unsigned int mGlobalReserveWorkerNum = DEFAULT_GLOBAL_RESERVE_NUM;
+    size_t getCpuWorkerNum(const QoS& qos)
+    {
+        return this->cpu_worker_num[qos()];
+    }
+
+private:
+    GlobalConfig()
+    {
+        for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
+            if (qos == static_cast<int>(qos_user_interactive)) {
+                this->cpu_worker_num[qos] = INTERACTIVE_MAXCONCURRENCY;
+            } else {
+                this->cpu_worker_num[qos] = DEFAULT_MAXCONCURRENCY;
+            }
+        }
+    }
+
+    size_t cpu_worker_num[QoS::MaxNum()];
 };
 }
 

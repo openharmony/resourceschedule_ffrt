@@ -203,6 +203,14 @@ void ffrt_queue_wait(ffrt_task_handle_t handle)
 }
 
 API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_queue_get_task_cnt(ffrt_queue_t queue)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return 0, "input invalid, queue == nullptr");
+    QueueHandler* handler = static_cast<QueueHandler*>(queue);
+    return handler->GetTaskCnt();
+}
+
+API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_cancel(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return -1, "input invalid, handle is nullptr");

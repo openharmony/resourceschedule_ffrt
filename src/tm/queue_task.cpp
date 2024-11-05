@@ -18,6 +18,9 @@
 #include "c/task.h"
 #include "util/slab.h"
 
+namespace {
+constexpr uint64_t MIN_SCHED_TIMEOUT = 100000; // 0.1s
+}
 namespace ffrt {
 QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool insertHead)
     : handler_(handler), insertHead_(insertHead)
@@ -41,9 +44,19 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         uptime_ += delay_;
         prio_ = attr->prio_;
         stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
+        if (delay_ && attr->timeout_) {
+            FFRT_LOGW("task [gid=%llu] not support delay and timeout at the same time, timeout ignored", gid);
+        } else if (attr->timeout_) {
+            schedTimeout_ = std::max(attr->timeout_, MIN_SCHED_TIMEOUT); // min 0.1s
+        }
     }
 
-    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d", gid, delay_, type, prio_);
+    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus",
+              gid,
+              delay_,
+              type,
+              prio_,
+              schedTimeout_);
 }
 
 QueueTask::~QueueTask()

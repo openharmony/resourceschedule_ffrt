@@ -81,7 +81,7 @@ private:
     }
 
     ffrt::mutex mutex_;
-    MutexOwner owner_ = { 0 };
+    MutexOwner owner_ = {};
 };
 } // namespace ffrt
 

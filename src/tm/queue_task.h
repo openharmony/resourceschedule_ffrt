@@ -100,6 +100,10 @@ public:
         return insertHead_;
     }
 
+    inline uint64_t GetSchedTimeout() const
+    {
+        return schedTimeout_;
+    }
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 
 private:
@@ -108,6 +112,7 @@ private:
     QueueHandler* handler_;
     bool insertHead_ = false;
     uint64_t delay_ = 0;
+    uint64_t schedTimeout_ = 0;
     int qos_ = qos_inherit;
 
     QueueTask* nextTask_ = nullptr;

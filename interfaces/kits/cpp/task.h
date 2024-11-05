@@ -176,6 +176,31 @@ public:
     {
         return ffrt_task_attr_get_stack_size(this);
     }
+
+    /**
+     * @brief Sets the task schedule timeout.
+     *
+     * @param timeou_us task scheduler timeout.
+     * @since 12
+     * @version 1.0
+     */
+    inline task_attr& timeout(uint64_t timeout_us)
+    {
+        ffrt_task_attr_set_timeout(this, timeout_us);
+        return *this;
+    }
+
+    /**
+     * @brief Obtains the task schedule timeout.
+     *
+     * @return Returns task scheduler timeout.
+     * @since 12
+     * @version 1.0
+     */
+    inline uint64_t timeout() const
+    {
+        return ffrt_task_attr_get_timeout(this);
+    }
 };
 
 class task_handle {
@@ -200,6 +225,18 @@ public:
     inline task_handle(task_handle&& h)
     {
         *this = std::move(h);
+    }
+
+    /**
+     * @brief get gid from task handle.
+     *
+     * @return Return gid.
+     * @since 10
+     * @version 1.0
+     */
+    inline uint64_t get_id() const
+    {
+        return ffrt_task_handle_get_id(p);
     }
 
     inline task_handle& operator=(task_handle&& h)

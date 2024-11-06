@@ -186,6 +186,63 @@ public:
     }
 
     /**
+     * @brief Submits a task with a specified attribute to this queue.
+     *
+     * @param func Indicates a task executor function closure.
+     * @param attr Indicates a task attribute.
+     * @since 10
+     * @version 1.0
+     */
+    inline void submit_head(const std::function<void()>& func, const task_attr& attr = {})
+    {
+        ffrt_queue_submit_head(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
+    }
+
+    /**
+     * @brief Submits a task with a specified attribute to this queue.
+     *
+     * @param func Indicates a task executor function closure.
+     * @param attr Indicates a task attribute.
+     * @since 10
+     * @version 1.0
+     */
+    inline void submit_head(std::function<void()>&& func, const task_attr& attr = {})
+    {
+        ffrt_queue_submit_head(queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), &attr);
+    }
+
+    /**
+     * @brief Submits a task with a specified attribute to this queue, and obtains a task handle.
+     *
+     * @param func Indicates a task executor function closure.
+     * @param attr Indicates a task attribute.
+     * @return Returns a non-null task handle if the task is submitted;
+               returns a null pointer otherwise.
+     * @since 10
+     * @version 1.0
+     */
+    inline task_handle submit_head_h(const std::function<void()>& func, const task_attr& attr = {})
+    {
+        return ffrt_queue_submit_head_h(queue_handle, create_function_wrapper(func, ffrt_function_kind_queue), &attr);
+    }
+
+    /**
+     * @brief Submits a task with a specified attribute to this queue, and obtains a task handle.
+     *
+     * @param func Indicates a task executor function closure.
+     * @param attr Indicates a task attribute.
+     * @return Returns a non-null task handle if the task is submitted;
+               returns a null pointer otherwise.
+     * @since 10
+     * @version 1.0
+     */
+    inline task_handle submit_head_h(std::function<void()>&& func, const task_attr& attr = {})
+    {
+        return ffrt_queue_submit_head_h(
+            queue_handle, create_function_wrapper(std::move(func), ffrt_function_kind_queue), &attr);
+    }
+
+    /**
      * @brief Cancels a task.
      *
      * @param handle Indicates a task handle.
@@ -209,6 +266,19 @@ public:
     inline void wait(const task_handle& handle)
     {
         return ffrt_queue_wait(handle);
+    }
+
+    /**
+     * @brief Get queue task count.
+     *
+     * @param queue Indicates a queue handle.
+     * @return Returns the queue task count.
+     * @since 10
+     * @version 1.0
+    */
+    inline uint64_t get_task_cnt()
+    {
+        return ffrt_queue_get_task_cnt(queue_handle);
     }
 
 private:

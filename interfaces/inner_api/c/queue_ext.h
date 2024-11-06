@@ -39,29 +39,6 @@ typedef enum {
 } ffrt_inner_queue_priority_t;
 
 /**
- * @brief Submits a task to a queue, for tasks with the same delay, insert the header.
- *
- * @param queue Indicates a queue handle.
- * @param f Indicates a pointer to the task executor.
- * @param attr Indicates a pointer to the task attribute.
- * @version 1.0
- */
-FFRT_C_API void ffrt_queue_submit_head(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
-
-/**
- * @brief Submits a task to the queue, and obtains a task handle, for tasks with the same delay, insert the header.
- *
- * @param queue Indicates a queue handle.
- * @param f Indicates a pointer to the task executor.
- * @param attr Indicates a pointer to the task attribute.
- * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
- * @version 1.0
- */
-FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_head_h(
-    ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
-
-/**
  * @brief Checks whether a task with the given name can be found in the queue.
  *
  * @param queue Indicates a queue handle.

@@ -36,24 +36,6 @@ FFRT_C_API void ffrt_restore_qos_config(void);
 FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
 
 /**
- * @brief Set the task execution timeout.
- *
- * @param attr Indicates a pointer to the task attribute.
- * @param timeout_ms task execution timeout.
- * @version 1.0
- */
-FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t timeout_ms);
-
-/**
- * @brief Get the task execution timeout.
- *
- * @param attr Indicates a pointer to the task attribute.
- * @return Returns the task execution timeout.
- * @version 1.0
- */
-FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
-
-/**
  * @brief Sets whether the task notifies worker, only support for normal task.
  *
  * @param attr Indicates a pointer to the task attribute.

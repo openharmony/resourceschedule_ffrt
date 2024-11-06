@@ -12,19 +12,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "eu/scpu_monitor.h"
 
 namespace ffrt {
-SleepType SCPUMonitor::IntoSleep(const QoS& qos)
+void SCPUMonitor::IntoSleep(const QoS& qos)
 {
-    SleepType type = SleepType::SLEEP_UNTIL_WAKEUP;
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
     workerCtrl.sleepingWorkerNum++;
     workerCtrl.executionNum--;
     workerCtrl.lock.unlock();
-    return type;
 }
 
 void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)

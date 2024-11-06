@@ -45,6 +45,7 @@ protected:
 
     virtual void SetUp()
     {
+        ffrt_task_timeout_set_threshold(1);
     }
 
     virtual void TearDown()

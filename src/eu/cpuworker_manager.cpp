@@ -17,8 +17,9 @@
 #include <sys/stat.h>
 #include "qos.h"
 #include "dfx/perf/ffrt_perf.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "eu/cpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
@@ -72,8 +73,9 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     FFRT_PERF_WORKER_WAKE(workerQos);
     lock.unlock();
 #ifdef FFRT_WORKER_MONITOR
-    FFRTFFacade::GetWMInstance().SubmitTask();
+    FFRTFacade::GetWMInstance().SubmitTask();
 #endif
+    FFRTTraceRecord::UseFfrt();
     return true;
 }
 

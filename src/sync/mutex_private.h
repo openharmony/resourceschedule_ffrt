@@ -141,7 +141,7 @@ public:
     bool try_lock() override;
 
     RecursiveMutexPrivate() = default;
-    ~RecursiveMutexPrivate() override = default;
+    ~RecursiveMutexPrivate() = default;
     RecursiveMutexPrivate(RecursiveMutexPrivate const&) = delete;
     void operator = (RecursiveMutexPrivate const&) = delete;
 

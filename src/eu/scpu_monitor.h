@@ -16,7 +16,7 @@
 #ifndef SCPU_MONITOR_H
 #define SCPU_MONITOR_H
 
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "eu/cpu_monitor.h"
 
 namespace ffrt {
@@ -24,8 +24,7 @@ namespace ffrt {
 class SCPUMonitor : public CPUMonitor {
 public:
     SCPUMonitor(CpuMonitorOps&& ops) : CPUMonitor(std::move(ops)) {};
-    SleepType IntoSleep(const QoS& qos) override;
-
+    void IntoSleep(const QoS& qos) override;
     void Notify(const QoS& qos, TaskNotifyType notifyType) override;
     void WorkerInit() override;
 };

@@ -106,18 +106,21 @@ HWTEST_F(ThreadTest, SetExitedTest, TestSize.Level1)
 HWTEST_F(ThreadTest, GetQosTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
+    EXPECT_NE(wt, nullptr);
     QoS ret = wt->GetQos();
 }
 
 HWTEST_F(ThreadTest, JoinTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
+    EXPECT_NE(wt, nullptr);
     wt->Join();
 }
 
 HWTEST_F(ThreadTest, DetachTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
+    EXPECT_NE(wt, nullptr);
     wt->Detach();
 }
 
@@ -156,5 +159,8 @@ HWTEST_F(ThreadTest, c_api_thread_simple_test, TestSize.Level1)
 
 HWTEST_F(ThreadTest, wait_queue_test, TestSize.Level1)
 {
-    TaskWithNode node = TaskWithNode();
+    ffrt::submit([]{
+        TaskWithNode node = TaskWithNode();
+        EXPECT_NE(node.task, nullptr);
+    }, {}, {});
 }

@@ -23,9 +23,9 @@
 #include <map>
 #include <functional>
 #include <linux/futex.h>
+#include "sync.h"
 #include "delayed_worker.h"
 #include "util/ffrt_facade.h"
-#include "sync.h"
 
 #ifdef NS_PER_SEC
 #undef NS_PER_SEC
@@ -60,6 +60,9 @@ static void spin()
     asm volatile("isb sy");
 #elif defined(__arm__)
     asm volatile("yield");
+#elif defined(__riscv)
+    // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/riscv/include/asm/vdso/processor.h?h=v6.6#n25
+    asm volatile(".4byte 0x100000F");
 #endif
 }
 

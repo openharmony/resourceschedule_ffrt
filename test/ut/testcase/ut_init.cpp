@@ -14,8 +14,8 @@
  */
 
 #include <gtest/gtest.h>
-#include <cstdlib>
 #include "ffrt_inner.h"
+#include <cstdlib>
 #include "../common.h"
 
 using namespace testing;

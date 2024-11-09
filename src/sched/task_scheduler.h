@@ -65,12 +65,12 @@ public:
 
     bool RemoveNode(LinkedList* node)
     {
-        FFRT_PERF_TASK_NUM(qos, RQSize());
         bool ret = false;
         {
             que->RmQueueNode(node);
             ret = true;
         }
+        FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
     }
 

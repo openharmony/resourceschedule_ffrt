@@ -18,7 +18,6 @@
 #include "c/ffrt_dump.h"
 #include "sync/delayed_worker.h"
 #include "../common.h"
-#include "util/ffrt_facade.h"
 
 using namespace std;
 using namespace ffrt;
@@ -60,7 +59,7 @@ void SendDelayedWorker(uint64_t timeoutUs)
 
     g_delayWorkerThreadTestWe.tp = delay;
     g_delayWorkerThreadTestWe.cb = ([](ffrt::WaitEntry* we) { CheckCallBackThreadName(); });
-    FFRTFacade::GetDWInstance().dispatch(g_delayWorkerThreadTestWe.tp,
+    DelayedWorker::GetInstance().dispatch(g_delayWorkerThreadTestWe.tp,
         &g_delayWorkerThreadTestWe, g_delayWorkerThreadTestWe.cb);
 }
 

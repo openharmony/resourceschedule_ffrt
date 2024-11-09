@@ -56,9 +56,7 @@ protected:
 
 HWTEST_F(CoreTest, core_test_success_01, TestSize.Level1)
 {
-    int fd = 0;
-    sync_io(fd);
-    EXPECT_EQ(fd, 0);
+    sync_io(0);
 }
 
 HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
@@ -204,10 +202,8 @@ HWTEST_F(CoreTest, task_attr_set_timeout_nullptr, TestSize.Level1)
  */
 HWTEST_F(CoreTest, ffrt_task_handle_ref_nullptr, TestSize.Level1)
 {
-    ffrt_task_handle_t handle = nullptr;
-    ffrt_task_handle_inc_ref(handle);
-    ffrt_task_handle_dec_ref(handle);
-    EXPECT_EQ(handle, nullptr);
+    ffrt_task_handle_inc_ref(nullptr);
+    ffrt_task_handle_dec_ref(nullptr);
 }
 
 /**

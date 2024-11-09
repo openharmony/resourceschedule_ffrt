@@ -17,11 +17,7 @@
 #define FFRT_TASK_IO_H
 
 #include "internal_inc/types.h"
-#ifdef USE_OHOS_QOS
-#include "qos.h"
-#else
-#include "staging_qos/sched/qos.h"
-#endif
+#include "sched/qos.h"
 #include "c/executor_task.h"
 
 namespace ffrt {

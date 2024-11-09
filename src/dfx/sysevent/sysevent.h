@@ -19,7 +19,7 @@
 #include <string>
 namespace ffrt {
 #ifdef FFRT_SEND_EVENT
-void TaskTimeoutReport(std::stringstream& ss, const std::string& processNameStr, const std::string& senarioName);
+void TaskTimeoutReport(std::stringstream& ss, std::string& processNameStr, std::string& senarioName);
 #endif
 }
 #endif

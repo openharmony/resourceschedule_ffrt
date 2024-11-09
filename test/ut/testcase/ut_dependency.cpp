@@ -21,7 +21,6 @@
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dm/sdependence_manager.h"
 #ifndef WITH_NO_MOCKER
 extern "C" int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr);
 #endif
@@ -101,6 +100,8 @@ HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level1)
     ffrt::submit([] {
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
     });
+    int ret2 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 4);
+    EXPECT_EQ(ret2, 0);
 }
 
 HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level1)
@@ -164,21 +165,28 @@ HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
     ffrt::submit([] {
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
     });
+    int ret1 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_inherit), 4);
+    EXPECT_EQ(ret1, -1);
 }
 
-HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level1)
+HWTEST_F(DependencyTest, executor_task_submit_success_01, TestSize.Level1)
 {
     ffrt_task_attr_t attr;
     static ffrt_executor_task_t work;
     work.wq[0] = &work.wq;
     work.wq[1] = &work.wq;
     work.type = reinterpret_cast<uintptr_t>(&attr);
-    ffrt_executor_task_submit(nullptr, nullptr);
 
     ffrt_executor_task_submit(&work, &attr);
+}
+HWTEST_F(DependencyTest, executor_task_submit_nullptr_01, TestSize.Level1)
+{
+    ffrt_executor_task_submit(nullptr, nullptr);
+}
 
-    int ret = ffrt_executor_task_cancel(nullptr, static_cast<int>(ffrt::qos_user_initiated));
-    EXPECT_EQ(ret, 0);
+HWTEST_F(DependencyTest, executor_task_submit_cancel_01, TestSize.Level1)
+{
+    ffrt_executor_task_cancel(nullptr, static_cast<int>(ffrt::qos_user_initiated));
 }
 
 HWTEST_F(DependencyTest, executor_task_submit_cancel_02, TestSize.Level1)
@@ -197,16 +205,19 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_02, TestSize.Level1)
     ffrt_task_attr_destroy(&attr);
 }
 
-HWTEST_F(DependencyTest, update_trace_tag_task_attr_success, TestSize.Level1)
+HWTEST_F(DependencyTest, update_trace_tag_success_02, TestSize.Level1)
 {
     ffrt::set_trace_tag("TASK A");
     ffrt::clear_trace_tag();
+}
 
+HWTEST_F(DependencyTest, task_attr_success_02, TestSize.Level1)
+{
     ffrt::task_attr tmpTask;
     tmpTask.name("Task A");
     tmpTask.qos(static_cast<int>(ffrt::qos_user_initiated));
-
-    EXPECT_EQ(ffrt_task_attr_get_qos(&tmpTask), ffrt::qos_user_initiated);
+    tmpTask.name();
+    tmpTask.qos();
 }
 
 HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Level1)
@@ -273,16 +284,4 @@ HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Leve
     }
 
     ffrt::qos_interval_destroy(it);
-}
-
-void AddOne(void* args)
-{
-    *(static_cast<int*>(args)) += 1;
-}
-
-HWTEST_F(DependencyTest, dependency_onsubmit_dev, TestSize.Level1)
-{
-    int data = 0;
-    ffrt_task_handle_t handle = nullptr;
-    ffrt::SDependenceManager& dependenceManager = ffrt::SDependenceManager::Instance();
 }

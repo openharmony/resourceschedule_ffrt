@@ -27,15 +27,15 @@ int QoSMap(int qos)
     }
 }
 
-static FuncQosMap funcQosMap = nullptr;
+static FuncQosMap g_funcQosMap = nullptr;
 void SetFuncQosMap(FuncQosMap func)
 {
-    funcQosMap = func;
+    g_funcQosMap = func;
 }
 
 FuncQosMap GetFuncQosMap(void)
 {
-    return funcQosMap;
+    return g_funcQosMap;
 }
 
 int QoSMax(void)
@@ -43,14 +43,14 @@ int QoSMax(void)
     return qos_max + 1;
 }
 
-static FuncQosMax funcQosMax = nullptr;
+static FuncQosMax g_funcQosMax = nullptr;
 void SetFuncQosMax(FuncQosMax func)
 {
-    funcQosMax = func;
+    g_funcQosMax = func;
 }
 
 FuncQosMax GetFuncQosMax(void)
 {
-    return funcQosMax;
+    return g_funcQosMax;
 }
 }

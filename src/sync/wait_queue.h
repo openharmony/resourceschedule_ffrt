@@ -59,6 +59,10 @@ struct TaskWithNode : public TaskListNode {
 };
 
 class WaitQueue {
+private:
+    spin_mutex wqlock;
+    WaitUntilEntry* whead;
+
 public:
     using TimePoint = std::chrono::steady_clock::time_point;
     void SuspendAndWait(mutexPrivate* lk);
@@ -83,10 +87,6 @@ public:
         whead = nullptr;
         wqlock.unlock();
     }
-
-private:
-    spin_mutex wqlock;
-    WaitUntilEntry* whead;
 
 private:
     bool WeNotifyProc(WaitUntilEntry* we);

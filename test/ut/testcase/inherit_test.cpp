@@ -13,11 +13,11 @@
  * limitations under the License.
  */
 #include <gtest/gtest.h>
-#include <cinttypes>
 #include "ffrt_inner.h"
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
+#include <cinttypes>
 #include "../common.h"
 
 using namespace std;

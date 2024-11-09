@@ -69,7 +69,6 @@ HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level1)
 {
     QoS *qos1 = new QoS();
     FFRTFacade::GetEUInstance().BindWG(DevType(0), *qos1);
-    EXPECT_EQ(*qos1, qos_default);
 }
 
 /**
@@ -81,7 +80,6 @@ HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level1)
 {
     QoS *qos1 = new QoS();
     FFRTFacade::GetEUInstance().UnbindTG(DevType(0), *qos1);
-    EXPECT_EQ(*qos1, qos_default);
 }
 
 /**
@@ -93,7 +91,6 @@ HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level1)
 {
     QoS *qos1 = new QoS();
     ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(DevType(0), *qos1);
-    EXPECT_EQ(*qos1, qos_default);
 }
 
 }

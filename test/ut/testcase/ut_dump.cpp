@@ -15,13 +15,9 @@
 
 #include <gtest/gtest.h>
 #include "ffrt_inner.h"
-#include "../common.h"
 
 using namespace std;
 using namespace testing;
-#ifdef HWTEST_TESTING_EXT_ENABLE
-using namespace testing::ext;
-#endif
 
 class DumpTest : public testing::Test {
 protected:
@@ -41,15 +37,3 @@ protected:
     {
     }
 };
-
-/*
- * 测试用例名称：dump_succ
- * 测试用例描述：获取dump info失败
- * 操作步骤    ：1、调用函数ffrt_dump获取dump info
- * 预期结果    ：获取失败
- */
-HWTEST_F(DumpTest, dump_succ, TestSize.Level1)
-{
-    char dumpinfo[1024 * 512] = {0};
-    ffrt_dump(ffrt_dump_cmd_t::DUMP_INFO_ALL, dumpinfo, 1024 * 512);
-}

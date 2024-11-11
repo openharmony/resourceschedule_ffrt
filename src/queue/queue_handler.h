@@ -14,7 +14,7 @@
  */
 #ifndef FFRT_QUEUE_HANDLER_H
 #define FFRT_QUEUE_HANDLER_H
- 
+
 #include <atomic>
 #include <memory>
 #include <string>
@@ -23,6 +23,7 @@
 #include "c/queue_ext.h"
 #include "cpp/task.h"
 #include "base_queue.h"
+#include "sched/execute_ctx.h"
 #include "sched/execute_ctx.h"
 
 namespace ffrt {
@@ -47,21 +48,21 @@ public:
 
     bool SetLoop(Loop* loop);
     bool ClearLoop();
-	
+
     QueueTask* PickUpTask();
-	
-	inline bool IsValidForLoop()
+
+    inline bool IsValidForLoop()
     {
         return !isUsed_.load() && (queue_->GetQueueType() == ffrt_queue_concurrent
-				|| queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
+               || queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
     }
-	
-	inline std::string GetName()
+
+    inline std::string GetName()
     {
         return name_;
     }
-	
-	inline uint32_t GetQueueId()
+
+    inline uint32_t GetQueueId()
     {
         FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "queue construct failed");
         return queue_->GetQueueId();
@@ -80,7 +81,7 @@ public:
 
     inline uint64_t GetTaskCnt()
     {
-        FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
+        FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueID=%u] constructed failed", GetQueueId());
         return queue_->GetMapSize();
     }
 
@@ -100,6 +101,7 @@ private:
     void Deliver();
     void TransferInitTask();
     void SetTimeoutMonitor(QueueTask* task);
+    void RemoveTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
     void CheckSchedDeadline();
@@ -118,6 +120,7 @@ private:
     uint64_t timeout_ = 0;
     std::atomic_int delayedCbCnt_ = {0};
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    WaitUntilEntry* timeoutWe_ = nullptr;
 
     std::mutex mutex_;
     bool initSchedTimer_ = false;

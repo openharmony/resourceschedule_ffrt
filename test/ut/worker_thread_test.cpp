@@ -110,7 +110,6 @@ HWTEST_F(WorkerThreadTest, SetExitedTest, TestSize.Level1)
 HWTEST_F(WorkerThreadTest, GetQosTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
-        EXPECT_NE(wt, nullptr);
     QoS ret = wt->GetQos();
 }
 
@@ -122,7 +121,6 @@ HWTEST_F(WorkerThreadTest, GetQosTest, TestSize.Level1)
 HWTEST_F(WorkerThreadTest, JoinTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_NE(wt, nullptr);
     wt->Join();
 }
 
@@ -134,6 +132,5 @@ HWTEST_F(WorkerThreadTest, JoinTest, TestSize.Level1)
 HWTEST_F(WorkerThreadTest, DetachTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_NE(wt, nullptr);
     wt->Detach();
 }

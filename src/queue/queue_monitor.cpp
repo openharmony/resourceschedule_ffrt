@@ -55,7 +55,7 @@ QueueMonitor::QueueMonitor()
 
 QueueMonitor::~QueueMonitor()
 {
-    FFRT_LOGI("destruction of QueueMonitor");
+    FFRT_LOGI("destruction of QueueMonitor enter");
     SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
 }
 

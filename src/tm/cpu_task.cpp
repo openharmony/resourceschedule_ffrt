@@ -103,5 +103,6 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
     if (attr) {
         stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
     }
+    FFRT_LOGD("create task name:%s gid=%lu taskLocal:%d", label.c_str(), gid, taskLocal);
 }
 } /* namespace ffrt */

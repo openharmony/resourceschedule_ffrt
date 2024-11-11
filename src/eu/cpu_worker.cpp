@@ -17,30 +17,27 @@
 #include "eu/worker_thread.h"
 #include "ffrt_trace.h"
 #include "sched/scheduler.h"
-#include "eu/cpu_manager_strategy.h"
-#include "dfx/bbox/bbox.h"
+#include "eu/cpu_manager_interface.h"
 #include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
 #include "dfx/perf/ffrt_perf.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#include "util/ffrt_facade.h"
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
-#include "eu/cpuworker_manager.h"
 namespace {
 int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
 }
 
 namespace ffrt {
-void CPUWorker::Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker)
+void CPUWorker::Run(CPUEUTask* task, CPUWorker* worker)
 {
     if constexpr(USE_COROUTINE) {
-        if (CoStart(task, coRoutineEnv) != 0) {
+        if (CoStart(task) != 0) {
             worker->localFifo.PushTail(task);
         }
         return;
@@ -107,13 +104,7 @@ void* CPUWorker::WrapDispatch(void* worker)
 
 void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
 {
-    ExecuteCtx* ctx = ExecuteCtx::Cur();
-    CoRoutineEnv* coRoutineEnv = GetCoEnv();
-    RunTask(curtask, worker, ctx, coRoutineEnv);
-}
-
-void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, ExecuteCtx* ctx, CoRoutineEnv* coRoutineEnv)
-{
+    auto ctx = ExecuteCtx::Cur();
     CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
     worker->curTask = task;
     worker->curTaskType_ = task->type;
@@ -126,7 +117,7 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, Execut
 #endif
             ctx->task = task;
             ctx->lastGid_ = task->gid;
-            Run(task, coRoutineEnv, worker);
+            Run(task, worker);
             ctx->task = nullptr;
             break;
         }
@@ -222,6 +213,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
     worker->ops.WorkerLooper(worker);
     CoWorkerExit();
+    FFRT_LOGD("ExecutionThread exited");
     worker->ops.WorkerRetired(worker);
 }
 
@@ -291,39 +283,6 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
         auto action = worker->ops.WaitForNewAction(worker);
         if (action == WorkerAction::RETRY) {
             worker->tick = 0;
-            continue;
-        } else if (action == WorkerAction::RETIRE) {
-            break;
-        }
-    }
-}
-
-// work looper with standard procedure which could be strategical
-void CPUWorker::WorkerLooperStandard(WorkerThread* p)
-{
-    CPUWorker* worker = reinterpret_cast<CPUWorker*>(p);
-    auto mgr = reinterpret_cast<CPUWorkerManager*>(p->worker_mgr);
-    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(p->GetQos());
-    auto lock = mgr->GetSleepCtl(static_cast<int>(p->GetQos()));
-    ExecuteCtx* ctx = ExecuteCtx::Cur();
-    CoRoutineEnv* coRoutineEnv = GetCoEnv();
-    for (;;) {
-        // try get task
-        CPUEUTask* task = nullptr;
-        if (!mgr->tearDown) {
-            std::lock_guard lg(*lock);
-            task = sched.PickNextTask();
-        }
-
-        // if succ, notify picked and run task
-        if (task != nullptr) {
-            mgr->NotifyTaskPicked(worker);
-            RunTask(reinterpret_cast<ffrt_executor_task_t*>(task), worker, ctx, coRoutineEnv);
-            continue;
-        }
-        // otherwise, worker wait action
-        auto action = worker->ops.WaitForNewAction(worker);
-        if (action == WorkerAction::RETRY) {
             continue;
         } else if (action == WorkerAction::RETIRE) {
             break;

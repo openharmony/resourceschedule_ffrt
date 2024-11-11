@@ -125,7 +125,7 @@ int dump_info_all(char *buf, uint32_t len)
         dumpInfo += SaveNormalTaskStatusInfo();
         dumpInfo += SaveQueueTaskStatusInfo();
         if (dumpInfo.length() > (len - 1)) {
-            FFRT_LOGW("dumpInfo exceeds the buffer length, info length:%d, input len:%u", dumpInfo.length(), len);
+            FFRT_LOGW("dumpInfo exceeds the buffer length, length:%d", dumpInfo.length());
         }
         return snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
     } else {

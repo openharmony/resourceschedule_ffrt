@@ -76,7 +76,7 @@ config("ffrt_test_config") {
     defines += [ "TDD_MUSL" ]
   }
   if (ffrt_async_stack_enable) {
-    defines += [ "FFRT_ASYNC_STACKTRACE" ]
+    defines += [ "ASYNC_STACKTRACE" ]
   }
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]

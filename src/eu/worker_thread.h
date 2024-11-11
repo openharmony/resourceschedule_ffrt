@@ -65,7 +65,7 @@ public:
             }
 #endif
         }
-        FFRT_LOGW("WorkerThread enter destruction");
+        FFRT_LOGI("Qos %d WorkerThread enter destruction.", qos());
         Detach();
     }
 

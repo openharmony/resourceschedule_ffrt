@@ -34,14 +34,15 @@
 namespace {
 int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
+constexpr int CO_CREATE_RETRY_INTERVAL = 500 * 1000;
 }
 
 namespace ffrt {
 void CPUWorker::Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker)
 {
     if constexpr(USE_COROUTINE) {
-        if (CoStart(task, coRoutineEnv) != 0) {
-            worker->localFifo.PushTail(task);
+        while (CoStart(task, coRoutineEnv) != 0) {
+            usleep(CO_CREATE_RETRY_INTERVAL);
         }
         return;
     }
@@ -158,6 +159,7 @@ void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker)
 
 void* CPUWorker::GetTask(CPUWorker* worker)
 {
+#ifdef FFRT_LOCAL_QUEUE_ENABLE
     // periodically pick up tasks from the global queue to prevent global queue starvation
     if (worker->tick % worker->global_interval == 0) {
         worker->tick = 0;
@@ -183,6 +185,14 @@ void* CPUWorker::GetTask(CPUWorker* worker)
     }
 
     return worker->localFifo.PopHead();
+#else
+    CPUEUTask* task = worker->ops.PickUpTaskBatch(worker);
+    if (task != nullptr) {
+        worker->ops.NotifyTaskPicked(worker);
+    }
+
+    return task;
+#endif
 }
 
 PollerRet CPUWorker::TryPoll(CPUWorker* worker, int timeout)
@@ -250,6 +260,7 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
             continue;
         }
 
+#ifdef FFRT_LOCAL_QUEUE_ENABLE
         // pick up tasks from global queue
         CPUEUTask* task = worker->ops.PickUpTaskBatch(worker);
         // the worker is not notified when the task attribute is set not to notify worker
@@ -278,6 +289,7 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
             worker->tick = 1;
             continue;
         }
+#endif
 
         // enable a worker to enter the epoll wait -1 state and continuously listen to fd or timer events
         // only one worker enters this state at a QoS level

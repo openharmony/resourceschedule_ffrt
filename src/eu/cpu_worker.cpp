@@ -34,7 +34,7 @@
 namespace {
 int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
-constexpr int CO_CREATE_RETRY_INTERVAL = 100 * 1000;
+constexpr int CO_CREATE_RETRY_INTERVAL = 500 * 1000;
 }
 
 namespace ffrt {
@@ -42,7 +42,6 @@ void CPUWorker::Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* work
 {
     if constexpr(USE_COROUTINE) {
         while (CoStart(task, coRoutineEnv) != 0) {
-            FFRT_LOGW("Temporary memory exhausted, retry.");
             usleep(CO_CREATE_RETRY_INTERVAL);
         }
         return;

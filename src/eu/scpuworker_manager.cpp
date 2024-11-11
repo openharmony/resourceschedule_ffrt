@@ -140,8 +140,6 @@ CPUEUTask* SCPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     CPUEUTask* task = sched.PickNextTask();
-
-#ifdef FFRT_LOCAL_QUEUE_ENABLE
     if (task == nullptr) {
         return nullptr;
     }
@@ -167,7 +165,6 @@ CPUEUTask* SCPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 
         queue->PushTail(task2local);
     }
-#endif
 
     return task;
 }
@@ -181,7 +178,7 @@ void SCPUWorkerManager::AddDelayedTask(int qos)
         std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
         bool isEmpty = groupCtl[qos].threads.empty();
         lck.unlock();
-
+        
         if (!isEmpty) {
             SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
             FFRT_LOGW("qos[%d] has worker, no need add delayed task", qos);
@@ -284,7 +281,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleActionSimplified(const WorkerThread* t
 #endif
     }
 }
-
+    
 void SCPUWorkerManager::WorkerPrepare(WorkerThread* thread)
 {
     WorkerJoinTg(thread->GetQos(), thread->Id());
@@ -302,3 +299,4 @@ void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
     FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
 }
 } // namespace ffrt
+

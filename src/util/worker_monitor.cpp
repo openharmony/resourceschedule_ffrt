@@ -49,20 +49,20 @@ namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
     // 获取当前进程名称
-    char processName[PROCESS_NAME_BUFFER_LENGTH] = {0};
+    char processName[PROCESS_NAME_BUFFER_LENGTH] = "";
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (strlen(processName) == 0) {
-        FFRT_LOGW("Can't get process name, no permission for /proc folder or prctl exec, skip worker monitor");
+        FFRT_LOGW("Get process name failed, skip worker monitor");
         skipSampling_ = true;
         return;
     }
 
-    // 从配置文件中读取屏蔽进程
+    // 从配置文件读取黑名单
     std::string skipProcess;
     std::ifstream file(CONF_FILEPATH);
     if (file.is_open()) {
         while (std::getline(file, skipProcess)) {
-            if (std::string(processName).find(skipProcess) != std::string::npos) {
+            if (strstr(processName, skipProcess.c_str()) != nullptr) {
                 skipSampling_ = true;
                 return;
             }

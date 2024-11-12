@@ -61,7 +61,6 @@ public:
     // NOTE: call destructor before FreeMem
     static void FreeMem(T* t)
     {
-        t->~T();
         // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
         // return之前的lck析构不产生UAF问题，因为return之前随着root析构，锁的内存被释放
         Instance()->free(t);
@@ -128,7 +127,7 @@ private:
             return;
         }
 
-        char* p = reinterpret_cast<char*>(operator new(MmapSz));
+        char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
         count = MmapSz / TSize;
         primaryCache.Init(count);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
@@ -146,7 +145,7 @@ private:
         }
         // 一级cache已耗尽
         if (primaryCache.GetLength()) {
-            T* t = reinterpret_cast<T*>(::operator new(TSize));
+            T* t = reinterpret_cast<T*>(std::calloc(1, TSize));
 #ifdef FFRT_BBOX_ENABLE
             lock.lock();
             secondaryCache.insert(t);
@@ -159,6 +158,7 @@ private:
 
     void free(T* t)
     {
+        t->~T();
         if (basePtr && basePtr <= t &&
             static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
             static_cast<size_t>(reinterpret_cast<uintptr_t>(basePtr)) + MmapSz) {

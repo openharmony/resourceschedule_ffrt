@@ -24,12 +24,12 @@
 
 namespace ffrt {
 typedef struct ffrt_record_task_counter {
-    std::atomic<unsigned int> submitCounter{0};
-    std::atomic<unsigned int> enqueueCounter{0};
-    std::atomic<unsigned int> coSwitchCounter{0};
-    std::atomic<unsigned int> runCounter{0};
-    std::atomic<unsigned int> doneCounter{0};
-    std::atomic<unsigned int> cancelCounter{0};
+    alignas(cacheline_size) std::atomic<unsigned int> submitCounter{0};
+    alignas(cacheline_size) std::atomic<unsigned int> enqueueCounter{0};
+    alignas(cacheline_size) std::atomic<unsigned int> coSwitchCounter{0};
+    alignas(cacheline_size) std::atomic<unsigned int> runCounter{0};
+    alignas(cacheline_size) std::atomic<unsigned int> doneCounter{0};
+    alignas(cacheline_size) std::atomic<unsigned int> cancelCounter{0};
 } ffrt_record_task_counter_t;
 
 typedef struct ffrt_record_task_time {
@@ -68,15 +68,22 @@ public:
         return ffrt_be_used_;
     }
 
+    static inline void UseFfrt()
+    {
+        if (unlikely(!ffrt_be_used_)) {
+            ffrt_be_used_ = true;
+        }
+    }
+
     template<ffrt_executor_task_type_t taskType>
-    static inline void AddSubmitCounter(int qos)
+    static inline void TaskSubmit(int qos)
     {
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         g_recordTaskCounter_[taskType][qos].submitCounter.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 
-    static inline void RecordCreateTimeAndTid(uint64_t* createTime, int32_t* fromTid)
+    static inline void TaskSubmit(uint64_t* createTime, int32_t* fromTid)
     {
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
         *createTime = TimeStamp();
@@ -85,30 +92,15 @@ public:
     }
 
     template<ffrt_executor_task_type_t taskType>
-    static inline void TaskSubmit(int qos)
-    {
-        if (unlikely(!ffrt_be_used_)) {
-            ffrt_be_used_ = true;
-        }
-        AddSubmitCounter<taskType>(qos);
-    }
-
-    static inline void TaskSubmit(uint64_t* createTime, int32_t* fromTid)
-    {
-        if (unlikely(!ffrt_be_used_)) {
-            ffrt_be_used_ = true;
-        }
-        RecordCreateTimeAndTid(createTime, fromTid);
-    }
-
-    template<ffrt_executor_task_type_t taskType>
     static inline void TaskSubmit(int qos, uint64_t* createTime, int32_t* fromTid)
     {
-        if (unlikely(!ffrt_be_used_)) {
-            ffrt_be_used_ = true;
-        }
-        AddSubmitCounter<taskType>(qos);
-        RecordCreateTimeAndTid(createTime, fromTid);
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
+        g_recordTaskCounter_[taskType][qos].submitCounter.fetch_add(1, std::memory_order_relaxed);
+#endif
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
+        *createTime = TimeStamp();
+        *fromTid = ExecuteCtx::Cur()->tid;
+#endif
     }
 
     static inline void TaskExecute(uint64_t* executeTime)

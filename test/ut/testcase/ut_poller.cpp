@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #include <thread>
 #include <chrono>
 #include <gtest/gtest.h>
@@ -30,26 +30,26 @@ using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
- 
+
 class PollerTest : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
     }
- 
+
     static void TearDownTestCase()
     {
     }
- 
+
     virtual void SetUp()
     {
     }
- 
+
     virtual void TearDown()
     {
     }
 };
- 
+
 static void Testfun(void* data)
 {
     int* testData = static_cast<int*>(data);
@@ -57,7 +57,7 @@ static void Testfun(void* data)
     printf("%d, timeout callback\n", *testData);
 }
 static void (*g_cb)(void*) = Testfun;
- 
+
 /*
  * 测试用例名称：poll_once_batch_timeout
  * 测试用例描述：PollOnce批量超时测试
@@ -85,7 +85,7 @@ HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level1)
     usleep(sleepTime);
     poller.PollOnce(1);
     EXPECT_EQ(true, poller.DetermineEmptyMap());
- 
+
     uint64_t timeout3 = 10000;
     uint64_t timeout4 = 100;
     int loopNum = 2;
@@ -99,7 +99,7 @@ HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level1)
     // 预计等待时间为100，可能有几毫秒的误差
     EXPECT_EQ(true, m >= timeout4 && m < timeout3);
 }
- 
+
 /*
  * 测试用例名称：cache_events_mask_test
  * 测试用例描述：本地events缓存
@@ -117,7 +117,7 @@ HWTEST_F(PollerTest, cache_events_mask_test, TestSize.Level1)
     poller.CacheEventsAndDoMask(currTask, eventVec);
     EXPECT_EQ(1, poller.m_cachedTaskEvents[currTask].size());
 }
- 
+
 /*
  * 测试用例名称：fetch_cached_event_unmask
  * 测试用例描述：遍历本地events缓存，并提出缓存event
@@ -171,4 +171,97 @@ HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level1)
         poller.timerMap_.clear();
         poller.executedHandle_.clear();
     }
+}
+
+std::mutex g_mutexRegister;
+std::condition_variable g_cvRegister;
+
+void WaitCallback(void* data)
+{
+    int* dependency = reinterpret_cast<int*>(data);
+    while (*dependency != 1) {
+        std::this_thread::yield();
+    }
+}
+
+void EmptyCallback(void* data) {}
+
+/*
+ * 测试用例名称: multi_timer_dependency
+ * 测试用例描述: poller批量超时回调依赖测试
+ * 预置条件    : 构造三个超时时间相同的timer， 回调A依赖回调B执行完成，回调B依赖timer C取消成功，三者并发
+ * 操作步骤    : 1、调用PollOnce接口
+ * 预期结果    : 1、三个回调执行完成，没有卡死现象
+ */
+HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level1)
+{
+    int dependency = 0;
+    ffrt::task_handle handle = ffrt::submit_h([&] {
+        std::unique_lock lk(g_mutexRegister);
+        g_cvRegister.wait(lk);
+        dependency = 1;
+    });
+
+    TimePoint timeout = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    TimerDataWithCb data(&dependency, WaitCallback, nullptr, false, 100);
+    data.handle = 0;
+
+    Poller poller;
+    poller.timerMap_.emplace(timeout, data);
+
+    data.handle++;
+    data.cb = EmptyCallback;
+    poller.timerMap_.emplace(timeout, data);
+
+    std::thread th1([&] { poller.PollOnce(-1); });
+    std::thread th2([&] {
+        usleep(100 * 1000);
+        poller.UnregisterTimer(1);
+        g_cvRegister.notify_all();
+    });
+
+    th1.join();
+    th2.join();
+    ffrt::wait({handle});
+}
+
+/*
+ * 测试用例名称 : multi_timer_dependency_unregister_self
+ * 测试用例描述 : poller批量超时回调,解注册自身依赖测试
+ * 预置条件     : 构造两个超时时间相同的timer， 回调A依赖回调B执行完成，回调B依赖另一个线程的timer A取消成功，三者并发
+ * 操作步骤     : 1、调用PollOnce接口
+ * 预期结果     : 1、三个回调执行完成，没有卡死现象
+ */
+HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level1)
+{
+    int dependency = 0;
+
+    TimePoint timeout = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    TimerDataWithCb data(&dependency, WaitCallback, nullptr, false, 100);
+    data.handle = 0;
+
+    Poller poller;
+    poller.timerMap_.emplace(timeout, data);
+
+    data.handle++;
+    data.cb = EmptyCallback;
+    poller.timerMap_.emplace(timeout, data);
+
+    ffrt::task_handle handle = ffrt::submit_h([&] {
+        std::unique_lock lk(g_mutexRegister);
+        g_cvRegister.wait(lk);
+        poller.IsTimerReady();
+        dependency = 1;
+    });
+
+    std::thread th1([&] { poller.PollOnce(-1); });
+    std::thread th2([&] {
+        usleep(100 * 1000);
+        g_cvRegister.notify_all();
+        poller.UnregisterTimer(0);
+    });
+
+    th1.join();
+    th2.join();
+    ffrt::wait({handle});
 }

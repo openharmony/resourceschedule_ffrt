@@ -27,6 +27,7 @@
 #include "sync/poller.h"
 #include "util/ffrt_facade.h"
 #include "util/spmc_queue.h"
+
 namespace {
 const size_t TIGGER_SUPPRESS_WORKER_COUNT = 4;
 const size_t TIGGER_SUPPRESS_EXECUTION_NUM = 2;
@@ -39,7 +40,6 @@ namespace ffrt {
 CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
 {
     SetupMonitor();
-    StartMonitor();
 }
 
 CPUMonitor::~CPUMonitor()
@@ -142,6 +142,7 @@ void CPUMonitor::MonitorMain()
             exceedUpperWaterLine[i] = true;
         }
     }
+    stopMonitor = true;
 }
 
 bool CPUMonitor::IsExceedRunningThreshold(const QoS& qos)
@@ -162,25 +163,46 @@ bool CPUMonitor::IsBlockAwareInit(void)
 void CPUMonitor::TimeoutCount(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
     workerCtrl.sleepingWorkerNum--;
-    workerCtrl.lock.unlock();
 }
 
-void CPUMonitor::WakeupCount(const QoS& qos, bool isDeepSleepWork)
+void CPUMonitor::WakeupSleep(const QoS& qos, bool irqWake)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
+    if (irqWake) {
+        workerCtrl.irqEnable = false;
+    }
     workerCtrl.sleepingWorkerNum--;
     workerCtrl.executionNum++;
-    workerCtrl.lock.unlock();
 }
 
-int CPUMonitor::WakedWorkerNum(const QoS& qos)
+int CPUMonitor::TotalCount(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    std::unique_lock lk(workerCtrl.lock);
-    return workerCtrl.executionNum;
+    workerCtrl.lock.lock();
+    int total = workerCtrl.sleepingWorkerNum + workerCtrl.executionNum;
+    workerCtrl.lock.unlock();
+    return total;
+}
+
+void CPUMonitor::RollbackDestroy(const QoS& qos, bool irqWake)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    std::lock_guard lk(workerCtrl.lock);
+    if (irqWake) {
+        workerCtrl.irqEnable = false;
+    }
+    workerCtrl.executionNum++;
+}
+
+bool CPUMonitor::TryDestroy(const QoS& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    std::lock_guard lk(workerCtrl.lock);
+    workerCtrl.sleepingWorkerNum--;
+    return workerCtrl.sleepingWorkerNum > 0;
 }
 
 int CPUMonitor::SleepingWorkerNum(const QoS& qos)
@@ -190,45 +212,44 @@ int CPUMonitor::SleepingWorkerNum(const QoS& qos)
     return workerCtrl.sleepingWorkerNum;
 }
 
-bool CPUMonitor::HasDeepSleepWork(const QoS& qos)
+int CPUMonitor::WakedWorkerNum(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    std::lock_guard lock(workerCtrl.lock);
-    return workerCtrl.hasWorkDeepSleep;
+    std::lock_guard lk(workerCtrl.lock);
+    return workerCtrl.executionNum;
 }
 
 void CPUMonitor::IntoDeepSleep(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
     workerCtrl.deepSleepingWorkerNum++;
-    workerCtrl.lock.unlock();
 }
 
-void CPUMonitor::OutOfDeepSleep(const QoS& qos)
+void CPUMonitor::WakeupDeepSleep(const QoS& qos, bool irqWake)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
+    if (irqWake) {
+        workerCtrl.irqEnable = false;
+    }
     workerCtrl.sleepingWorkerNum--;
-    workerCtrl.executionNum++;
     workerCtrl.deepSleepingWorkerNum--;
-    workerCtrl.lock.unlock();
+    workerCtrl.executionNum++;
 }
 
 void CPUMonitor::IntoPollWait(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
     workerCtrl.pollWaitFlag = true;
-    workerCtrl.lock.unlock();
 }
 
 void CPUMonitor::OutOfPollWait(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
     workerCtrl.pollWaitFlag = false;
-    workerCtrl.lock.unlock();
 }
 
 bool CPUMonitor::IsExceedDeepSleepThreshold()
@@ -237,10 +258,9 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
     int deepSleepingWorkerNum = 0;
     for (unsigned int i = 0; i < static_cast<unsigned int>(QoS::Max()); i++) {
         WorkerCtrl& workerCtrl = ctrlQueue[i];
-        workerCtrl.lock.lock();
+        std::lock_guard lk(workerCtrl.lock);
         deepSleepingWorkerNum += workerCtrl.deepSleepingWorkerNum;
         totalWorker += workerCtrl.executionNum + workerCtrl.sleepingWorkerNum;
-        workerCtrl.lock.unlock();
     }
     return deepSleepingWorkerNum * 2 > totalWorker;
 }
@@ -278,7 +298,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         ops.WakeupWorkers(qos);
     } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
         workerCtrl.executionNum++;
-        FFRTTraceRecord::WorkRecord(static_cast<int>(qos), workerCtrl.executionNum);
+        FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
         workerCtrl.lock.unlock();
         ops.IncWorker(qos);
     } else {
@@ -331,69 +351,83 @@ void CPUMonitor::HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType
     }
 }
 
-
-void CPUMonitor::PokeAdd(const QoS& qos)
+// conservative strategy for poking workers
+void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotifyType notifyType)
 {
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
-        workerCtrl.lock.unlock();
+    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
+    int taskCount = monitor->ops.GetTaskCount(qos);
+    if (taskCount == 0) {
+        //no available task in global queue, skip
         return;
-    } else {
-        size_t runningNum = workerCtrl.executionNum;
-        size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        if (workerCtrl.executionNum >= workerCtrl.maxConcurrency) {
-            if (blockAwareInit && !BlockawareLoadSnapshot(keyPtr, &domainInfoNotify)) {
-                runningNum = workerCtrl.executionNum - domainInfoNotify.localinfo[qos()].nrBlocked;
-            }
-        }
-#endif
-        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
-            workerCtrl.executionNum++;
-            workerCtrl.lock.unlock();
-            ops.IncWorker(qos);
-        } else {
-            if (workerCtrl.pollWaitFlag) {
-                FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
-            }
-            workerCtrl.lock.unlock();
-        }
     }
-}
-
-void CPUMonitor::PokePick(const QoS& qos)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    constexpr double thresholdTaskPick = 1.0;
+    WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
     workerCtrl.lock.lock();
-    if (static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) {
-        if (workerCtrl.hasWorkDeepSleep &&GetOps().GetTaskCount(qos) == 0) {
+
+    if (notifyType == TaskNotifyType::TASK_PICKED) {
+        int wakedWorkerCount = workerCtrl.executionNum;
+        double remainingLoadRatio = (wakedWorkerCount == 0) ? static_cast<double>(workerCtrl.maxConcurrency) :
+            static_cast<double>(taskCount) / static_cast<double>(wakedWorkerCount);
+        if (remainingLoadRatio <= thresholdTaskPick) {
+            //for task pick, wake worker when load ratio > 1
             workerCtrl.lock.unlock();
             return;
         }
-
-        workerCtrl.lock.unlock();
-
-        ops.WakeupWorkers(qos);
-    } else {
-        size_t runningNum = workerCtrl.executionNum;
-        size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        if (workerCtrl.executionNum >= workerCtrl.maxConcurrency) {
-            if (blockAwareInit && !BlockawareLoadSnapshot(keyPtr, &domainInfoNotify)) {
-                runningNum = workerCtrl.executionNum - domainInfoNotify.localinfo[qos()].nrBlocked;
-            }
-        }
-#endif
-        if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
+    }
+  
+    if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.maxConcurrency) {
+        if (workerCtrl.sleepingWorkerNum == 0) {
+            FFRT_LOGI("begin to create worker, notifyType[%d]"
+                "execnum[%d], maxconcur[%d], slpnum[%d], dslpnum[%d]",
+                notifyType, workerCtrl.executionNum, workerCtrl.maxConcurrency,
+                workerCtrl.sleepingWorkerNum, workerCtrl.deepSleepingWorkerNum);
             workerCtrl.executionNum++;
             workerCtrl.lock.unlock();
-            ops.IncWorker(qos);
+            monitor->ops.IncWorker(qos);
         } else {
-            if (workerCtrl.pollWaitFlag) {
-                FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
-            }
             workerCtrl.lock.unlock();
+            monitor->ops.WakeupWorkers(qos);
+        }
+    } else {
+        workerCtrl.lock.unlock();
+    }
+}
+
+void CPUMonitor::HandleTaskNotifyUltraConservative(const QoS& qos, void* p, TaskNotifyType notifyType)
+{
+    (void)notifyType;
+    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
+    int taskCount = monitor->ops.GetTaskCount(qos);
+    if (taskCount == 0) {
+        // no available task in global queue, skip
+        return;
+    }
+
+    WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
+    std::lock_guard lock(workerCtrl.lock);
+    
+    int runningNum = workerCtrl.executionNum;
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    if (monitor->blockAwareInit && !BlockawareLoadSnapshot(monitor->keyPtr, &monitor->domainInfoNotify)) {
+        /* nrRunning may not be updated in a timely manner */
+        runningNum = workerCtrl.executionNum - monitor->domainInfoNotify.localinfo[qos()].nrBlocked;
+        if (!monitor->stopMonitor && taskCount == runningNum) {
+            BlockawareWake();
+            return;
+        }
+    }
+#endif
+
+    if (taskCount < runningNum) {
+        return;
+    }
+
+    if (runningNum < static_cast<int>(workerCtrl.maxConcurrency)) {
+        if (workerCtrl.sleepingWorkerNum == 0) {
+            workerCtrl.executionNum++;
+            monitor->ops.IncWorker(qos);
+        } else {
+            monitor->ops.WakeupWorkers(qos);
         }
     }
 }

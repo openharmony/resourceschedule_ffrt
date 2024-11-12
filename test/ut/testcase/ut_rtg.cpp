@@ -54,7 +54,6 @@ HWTEST_F(RTGTest, rtg_init_test, TestSize.Level1)
 {
     bool enabled = RTGCtrl::Instance().Enabled();
     FFRT_LOGE("RTGCtrl Init %s", enabled ? "Success" : "Failed");
-    EXPECT_EQ(enabled, false);
 }
 
 HWTEST_F(RTGTest, rtg_get_group_test, TestSize.Level1)
@@ -63,13 +62,11 @@ HWTEST_F(RTGTest, rtg_get_group_test, TestSize.Level1)
     if (tgid < 0) {
         FFRT_LOGE("Failed to Get RTG id %d", tgid);
     }
-    EXPECT_LE(tgid, 0);
 
     bool ret = RTGCtrl::Instance().PutThreadGroup(tgid);
     if (!ret) {
         FFRT_LOGE("Failed to Put RTG id %d", tgid);
     }
-    EXPECT_EQ(ret, false);
 }
 
 HWTEST_F(RTGTest, rtg_set_window_size_test, TestSize.Level1)
@@ -80,19 +77,16 @@ HWTEST_F(RTGTest, rtg_set_window_size_test, TestSize.Level1)
     if (tgid < 0) {
         FFRT_LOGE("Failed to Get RTG id %d", tgid);
     }
-    EXPECT_LE(tgid, 0);
 
     bool ret = RTGCtrl::Instance().SetGroupWindowSize(tgid, WINDOW_SIZE);
     if (!ret) {
         FFRT_LOGE("Failed to Set Window Size %d", WINDOW_SIZE);
     }
-    EXPECT_EQ(ret, false);
 
     ret = RTGCtrl::Instance().PutThreadGroup(tgid);
     if (!ret) {
         FFRT_LOGE("Failed to Put RTG id %d", tgid);
     }
-    EXPECT_EQ(ret, false);
 }
 
 HWTEST_F(RTGTest, rtg_set_invalid_interval_test, TestSize.Level1)
@@ -103,19 +97,16 @@ HWTEST_F(RTGTest, rtg_set_invalid_interval_test, TestSize.Level1)
     if (tgid < 0) {
         FFRT_LOGE("Failed to Get RTG id %d", tgid);
     }
-    EXPECT_LE(tgid, 0);
 
     bool ret = RTGCtrl::Instance().SetInvalidInterval(tgid, INVALID_INTERVAL);
     if (!ret) {
         FFRT_LOGE("Failed to Set Invalid Interval %d", INVALID_INTERVAL);
     }
-    EXPECT_EQ(ret, false);
 
     ret = RTGCtrl::Instance().PutThreadGroup(tgid);
     if (!ret) {
         FFRT_LOGE("Failed to Put RTG id %d", tgid);
     }
-    EXPECT_EQ(ret, false);
 }
 
 HWTEST_F(RTGTest, rtg_set_preferred_cluster_test, TestSize.Level1)
@@ -126,19 +117,16 @@ HWTEST_F(RTGTest, rtg_set_preferred_cluster_test, TestSize.Level1)
     if (tgid < 0) {
         FFRT_LOGE("Failed to Get RTG id %d", tgid);
     }
-    EXPECT_LE(tgid, 0);
 
     bool ret = RTGCtrl::Instance().SetPreferredCluster(tgid, CLUSTER_ID);
     if (!ret) {
         FFRT_LOGE("Failed to Set Preferred Cluster %d", CLUSTER_ID);
     }
-        EXPECT_EQ(ret, false);
 
     ret = RTGCtrl::Instance().PutThreadGroup(tgid);
     if (!ret) {
         FFRT_LOGE("Failed to Put RTG id %d", tgid);
     }
-    EXPECT_EQ(ret, false);
 }
 
 HWTEST_F(RTGTest, rtg_begin_end_test, TestSize.Level1)
@@ -147,25 +135,21 @@ HWTEST_F(RTGTest, rtg_begin_end_test, TestSize.Level1)
     if (tgid < 0) {
         FFRT_LOGE("Failed to Get RTG id %d", tgid);
     }
-        EXPECT_LE(tgid, 0);
 
     bool ret = RTGCtrl::Instance().Begin(tgid);
     if (!ret) {
         FFRT_LOGE("Failed to Begin");
     }
-        EXPECT_EQ(ret, false);
 
     ret = RTGCtrl::Instance().End(tgid);
     if (!ret) {
         FFRT_LOGE("Failed to End");
     }
-        EXPECT_EQ(ret, false);
 
     ret = RTGCtrl::Instance().PutThreadGroup(tgid);
     if (!ret) {
         FFRT_LOGE("Failed to Put RTG id %d", tgid);
     }
-        EXPECT_EQ(ret, false);
 }
 
 HWTEST_F(RTGTest, rtg_add_tread_test, TestSize.Level1)

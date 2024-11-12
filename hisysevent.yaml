@@ -14,7 +14,7 @@
 domain: FFRT
 
 AI_KERN_POWER_UP_ERR:
-  __BASE: {type: FAULT, level: MINOR, desc: AI KERNEL ipu powerup fail or status invalid, preserve: true}
+  __BASE: {type: FAULT, level: MINOR, desc: AI KERNEL ipu fail or status invalid, preserve: true}
   ERROR_LEVEL: {type: INT32, desc: error level}
   IC_NAME: {type: STRING, desc: IC name}
   MODULE_NAME: {type: STRING, desc: module name}
@@ -24,7 +24,7 @@ AI_KERN_POWER_UP_ERR:
   DEVICE_NAME: {type: STRING, desc: device name}
   RUNNING_TEST_SWITCH: {type: BOOL, desc: running_test_switch}
   FAULT_PHENOMENON: {type: STRING, desc: fault_phenomenon}
-  NFF_THRESHOLD_MONTH: {type: INT32, desc: nff_threshold_month}
+  NFF_THRESHOLD_MOUTH: {type: INT32, desc: nff_threshold_mouth}
   NFF_THRESHOLD_DAY: {type: INT32, desc: nff_threshold_day}
 
 AI_KERN_WTD_TIMEOUT_ERR:
@@ -38,7 +38,7 @@ AI_KERN_WTD_TIMEOUT_ERR:
   DEVICE_NAME: {type: STRING, desc: device name}
   RUNNING_TEST_SWITCH: {type: BOOL, desc: running_test_switch}
   FAULT_PHENOMENON: {type: STRING, desc: fault_phenomenon}
-  NFF_THRESHOLD_MONTH: {type: INT32, desc: nff_threshold_month}
+  NFF_THRESHOLD_MOUTH: {type: INT32, desc: nff_threshold_mouth}
   NFF_THRESHOLD_DAY: {type: INT32, desc: nff_threshold_day}
 
 TASK_TIMEOUT:

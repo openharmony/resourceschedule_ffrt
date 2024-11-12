@@ -172,7 +172,6 @@ HWTEST_F(SchedulerTest, taskstateCount_test, TestSize.Level1)
 {
     SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
     SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
-    EXPECT_NE(task2, nullptr);
     TaskManager::Instance().TaskStateCount(task2);
 }
 

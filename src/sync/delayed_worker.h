@@ -41,15 +41,13 @@ class DelayedWorker {
     int timerfd_{-1};
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     int monitorfd_{-1};
-    CPUMonitor* monitor = nullptr;
+    CPUMonitor* monitor;
 #endif
     int HandleWork(void);
     void ThreadInit();
 
 public:
     static DelayedWorker &GetInstance();
-    static void ThreadEnvCreate();
-    static bool IsDelayerWorkerThread();
 
     DelayedWorker(DelayedWorker const&) = delete;
     void operator=(DelayedWorker const&) = delete;

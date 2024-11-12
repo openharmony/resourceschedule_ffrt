@@ -186,7 +186,7 @@ static inline void SaveNormalTaskStatus()
             }
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))
                 && t != g_cur_task) {
-                CoStart(t, GetCoEnv());
+                CoStart(t);
             }
         }
     };
@@ -229,7 +229,7 @@ static inline void SaveQueueTaskStatus()
             }
 
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
-                CoStart(reinterpret_cast<CPUEUTask*>(t), GetCoEnv());
+                CoStart(reinterpret_cast<CPUEUTask*>(t));
             }
         }
     };

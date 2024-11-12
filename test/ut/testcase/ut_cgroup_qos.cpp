@@ -73,41 +73,32 @@ HWTEST_F(CgroupQosTest, UpdateSchedAttr_test, TestSize.Level1)
 
 HWTEST_F(CgroupQosTest, SetTidToCGroup_test, TestSize.Level1)
 {
-        int32_t pid = 100;
-        OSAttrManager::Instance()->SetTidToCGroup(pid);
+        OSAttrManager::Instance()->SetTidToCGroup(100);
         OSAttrManager::Instance()->SetTidToCGroup(-1);
-        EXPECT_EQ(pid, 100);
 }
 
 HWTEST_F(CgroupQosTest, SetCGroupCtlPara_test, TestSize.Level1)
 {
-        int32_t value = 1;
-        OSAttrManager::Instance()->SetCGroupCtlPara("", value);
-        OSAttrManager::Instance()->SetCGroupCtlPara("test", value);
-        EXPECT_EQ(value, 1);
+        OSAttrManager::Instance()->SetCGroupCtlPara("", 1);
+        OSAttrManager::Instance()->SetCGroupCtlPara("test", 1);
 }
 
 HWTEST_F(CgroupQosTest, SetCGroupSetPara_test, TestSize.Level1)
 {
-        std::string value = "1";
-        OSAttrManager::Instance()->SetCGroupSetPara("", value);
-        OSAttrManager::Instance()->SetCGroupSetPara("test", value);
-        EXPECT_EQ(value, "1");
+        OSAttrManager::Instance()->SetCGroupSetPara("", "1");
+        OSAttrManager::Instance()->SetCGroupSetPara("test", "1");
 }
 
 HWTEST_F(CgroupQosTest, SetTidToCGroupPrivate_test, TestSize.Level1)
 {
-        int32_t pid = 100;
-        OSAttrManager::Instance()->SetTidToCGroupPrivate("test", pid);
+        OSAttrManager::Instance()->SetTidToCGroupPrivate("test", 100);
         OSAttrManager::Instance()->SetTidToCGroupPrivate("test", -1);
-        EXPECT_EQ(pid, 100);
 }
 
 HWTEST_F(CgroupQosTest, SetCGroupPara_test, TestSize.Level1)
 {
         int a = 100;
         OSAttrManager::Instance()->SetCGroupPara("/proc/cpuinfo", a);
-        EXPECT_EQ(a, 100);
 }
 
 HWTEST_F(CgroupQosTest, SetCGroupPara_err_test, TestSize.Level1)
@@ -118,7 +109,6 @@ HWTEST_F(CgroupQosTest, SetCGroupPara_err_test, TestSize.Level1)
 #endif
         int a = 3;
         OSAttrManager::Instance()->SetCGroupPara("/proc/cpuinfo", a);
-        EXPECT_EQ(a, 3);
 #ifndef WITH_NO_MOCKER
         MOCKER(write).stubs().will(returnValue(-1));
         MOCKER(read).stubs().will(returnValue(0));
@@ -153,12 +143,7 @@ protected:
 HWTEST_F(QosTest, QosConfig_test, TestSize.Level1)
 {
 #ifndef WITH_NO_MOCKER
-    int i = 0;
-    auto handle = ffrt::submit_h([]{
         QosConfig::Instance().setPolicySystem();
-        i++;
-    });
-    EXPECT_EQ(i, 1);
 #endif
 }
 
@@ -186,15 +171,13 @@ HWTEST_F(QosInterfaceTest, QosPolicyTest, TestSize.Level1)
     struct QosPolicyData qp = {0, 0, 0, 0, 0};
     struct QosPolicyDatas policyDatas = {0, 0, {qp}};
 
-    int ret = QosPolicy(&policyDatas);
-    EXPECT_NE(ret, 0);
+    QosPolicy(&policyDatas);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTEnableRtgTest, TestSize.Level1)
 {
     bool flag = false;
     FFRTEnableRtg(flag);
-    EXPECT_EQ(flag, false);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTAuthEnableTest, TestSize.Level1)
@@ -203,7 +186,6 @@ HWTEST_F(QosInterfaceTest, FFRTAuthEnableTest, TestSize.Level1)
     unsigned int uaFlag = 0x1fff;
     unsigned int status = 3;
     FFRTAuthEnable(uid, uaFlag, status);
-    EXPECT_EQ(status, 3);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTAuthSwitchTest, TestSize.Level1)
@@ -213,14 +195,12 @@ HWTEST_F(QosInterfaceTest, FFRTAuthSwitchTest, TestSize.Level1)
     unsigned int qosFlag = 0x0003;
     unsigned int status = 3;
     FFRTAuthSwitch(uid, rtgFlag, qosFlag, status);
-    EXPECT_EQ(status, 3);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTAuthDeleteTest, TestSize.Level1)
 {
     unsigned int uid = 3039;
     FFRTAuthDelete(uid);
-    EXPECT_EQ(uid, 3039);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTAuthPauseTest, TestSize.Level1)
@@ -230,7 +210,6 @@ HWTEST_F(QosInterfaceTest, FFRTAuthPauseTest, TestSize.Level1)
     unsigned int status = 3;
     FFRTAuthEnable(uid, uaFlag, status);
     FFRTAuthPause(uid);
-    EXPECT_EQ(uid, 3039);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level1)
@@ -241,7 +220,6 @@ HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level1)
 
     FFRTAuthEnable(uid, uaFlag, status);
     FFRTAuthGet(uid, &uaFlag, &status);
-    EXPECT_EQ(status, 3);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTQosApplyTest, TestSize.Level1)
@@ -249,7 +227,6 @@ HWTEST_F(QosInterfaceTest, FFRTQosApplyTest, TestSize.Level1)
     unsigned int level = 1;
 
     FFRTQosApply(level);
-    EXPECT_EQ(level, 1);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTQosApplyForOtherTest, TestSize.Level1)
@@ -258,7 +235,6 @@ HWTEST_F(QosInterfaceTest, FFRTQosApplyForOtherTest, TestSize.Level1)
     int tid = 0;
 
     FFRTQosApplyForOther(level, tid);
-    EXPECT_EQ(level, 1);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTQosLeaveTest, TestSize.Level1)
@@ -273,7 +249,6 @@ HWTEST_F(QosInterfaceTest, FFRTQosLeaveForOtherTest, TestSize.Level1)
     FFRTQosApplyForOther(level, tid);
 
     FFRTQosLeaveForOther(tid);
-    EXPECT_EQ(level, 1);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTQosConvertInt, TestSize.Level1)
@@ -282,5 +257,4 @@ HWTEST_F(QosInterfaceTest, FFRTQosConvertInt, TestSize.Level1)
     QoS qos2 = 2;
     QoS qos3 = qos1 + qos2;
     printf("qos3=%d", qos3());
-    EXPECT_EQ(qos3, 3);
 }

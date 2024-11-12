@@ -38,7 +38,7 @@ namespace ffrt {
 void CPUWorker::Run(CPUEUTask* task, CPUWorker* worker)
 {
     if constexpr(USE_COROUTINE) {
-        while (CoStart(task, coRoutineEnv) != 0) {
+        while (CoStart(task) != 0) {
             usleep(CO_CREATE_RETRY_INTERVAL);
         }
         return;

@@ -86,6 +86,7 @@ struct SyncData {
     int maxEvents = 0;
     int* nfdsPtr = nullptr;
     TimePoint waitTP;
+    int timerHandle = -1;
 };
 
 using EventVec = typename std::vector<epoll_event>;

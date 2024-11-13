@@ -95,8 +95,6 @@ protected:
     int qosMonitorMaxNum = std::min(QoS::Max(), BLOCKAWARE_DOMAIN_ID_MAX + 1);
     BlockawareWakeupCond wakeupCond;
     BlockawareDomainInfoArea domainInfoMonitor;
-    BlockawareDomainInfoArea domainInfoNotify;
-    std::atomic<bool> exceedUpperWaterLine[QoS::MaxNum()];
 #endif
 private:
     void SetupMonitor();

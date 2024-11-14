@@ -24,6 +24,7 @@
 
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
+static constexpr uint64_t cacheline_size = 64;
 class TaskBase {
 public:
     uintptr_t reserved = 0;

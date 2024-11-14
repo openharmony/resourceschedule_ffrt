@@ -186,6 +186,7 @@ public:
 
     void WorkerSetup(WorkerThread* wthread);
     void NativeConfig();
+    void* worker_mgr;
 
 private:
     std::atomic_bool exited;

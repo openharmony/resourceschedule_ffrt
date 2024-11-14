@@ -582,6 +582,7 @@ HWTEST_F(ffrtIoTest, ffrt_task_attr_set_local_attr_invalid, TestSize.Level1)
 {
     bool isLocalSet = true;
     ffrt_task_attr_set_local(nullptr, isLocalSet);
+    EXPECT_EQ(isLocalSet, true);
 }
 
 struct WakeData {

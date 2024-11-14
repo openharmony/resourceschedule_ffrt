@@ -60,12 +60,12 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     wakeData->monitorEvents = events;
 
     epoll_event ev = { .events = events, .data = { .ptr = ptr } };
-    std::unique_lock lock(m_mapMutex);
     if (epoll_ctl(m_epFd, op, fd, &ev) != 0) {
         FFRT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
     }
 
+    std::unique_lock lock(m_mapMutex);
     if (op == EPOLL_CTL_ADD) {
         m_wakeDataMap[fd].emplace_back(std::move(wakeData));
         fdEmpty_.store(false);
@@ -315,14 +315,6 @@ void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
 {
     for (size_t i = 0; i < eventVec.size(); i++) {
         int currFd = eventVec[i].data.fd;
-        auto delIter = m_delCntMap.find(currFd);
-        if (delIter != m_delCntMap.end()) {
-            unsigned int delCnt = static_cast<unsigned int>(delIter->second);
-            auto& WakeDataList = m_wakeDataMap[currFd];
-            if (WakeDataList.size() == delCnt) {
-                continue;
-            }
-        }
         struct epoll_event maskEv;
         maskEv.events = 0;
         if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
@@ -506,12 +498,9 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
         timerMutex_.unlock();
         if (data.cb != nullptr) {
             data.cb(data.data);
+            executedHandle_[data.handle] = TimerStatus::EXECUTED;
         } else if (data.task != nullptr) {
             ProcessTimerDataCb(data.task);
-        }
-
-        if (data.cb != nullptr) {
-            executedHandle_[data.handle] = TimerStatus::EXECUTED;
         }
 
         timerMutex_.lock();

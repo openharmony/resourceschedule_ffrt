@@ -20,6 +20,7 @@
 #include <sys/prctl.h>
 #include <sys/timerfd.h>
 #include <thread>
+#include <pthread.h>
 #include "eu/blockaware.h"
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -27,12 +28,36 @@
 #include "util/name_manager.h"
 #include "sched/scheduler.h"
 namespace {
+    const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
     const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
     const int NS_PER_SEC = 1000 * 1000 * 1000;
     const int WAIT_EVENT_SIZE = 5;
     const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
 }
+
 namespace ffrt {
+pthread_key_t g_ffrtDelayWorkerFlagKey;
+pthread_once_t g_ffrtDelayWorkerThreadKeyOnce = PTHREAD_ONCE_INIT;
+void FFRTDelayWorkeEnvKeyCreate()
+{
+    pthread_key_create(&g_ffrtDelayWorkerFlagKey, nullptr);
+}
+
+void DelayedWorker::ThreadEnvCreate()
+{
+    pthread_once(&g_ffrtDelayWorkerThreadKeyOnce, FFRTDelayWorkeEnvKeyCreate);
+}
+
+bool DelayedWorker::IsDelayerWorkerThread()
+{
+    bool isDelayerWorkerFlag = false;
+    void* flag = pthread_getspecific(g_ffrtDelayWorkerFlagKey);
+    if ((flag != nullptr) && (reinterpret_cast<uintptr_t>(flag) == FFRT_DELAY_WORKER_MAGICNUM)) {
+        isDelayerWorkerFlag = true;
+    }
+    return isDelayerWorkerFlag;
+}
+
 void DelayedWorker::ThreadInit()
 {
     if (delayWorker != nullptr && delayWorker->joinable()) {
@@ -48,6 +73,7 @@ void DelayedWorker::ThreadInit()
             FFRT_LOGI("thread init");
         }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
+        pthread_setspecific(g_ffrtDelayWorkerFlagKey, reinterpret_cast<void*>(FFRT_DELAY_WORKER_MAGICNUM));
         std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
         for (;;) {
             std::unique_lock lk(lock);
@@ -115,7 +141,7 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
     monitorfd_ = BlockawareMonitorfd(-1, monitor->WakeupCond());
     FFRT_ASSERT(monitorfd_ >= 0);
     FFRT_LOGI("timerfd:%d, monitorfd:%d", timerfd_, monitorfd_);
-    /* monitorfd does not support 'CLOEXEC', add current kernel does not inherit monitorfd after 'fork'.
+    /* monitorfd does not support 'CLOEXEC', and current kernel does not inherit monitorfd after 'fork'.
      * 1. if user calls 'exec' directly after 'fork' and does not use ffrt, it's ok.
      * 2. if user calls 'exec' directly, the original process cannot close monitorfd automatically, and
      * it will be fail when new program use ffrt to create monitorfd.
@@ -156,7 +182,7 @@ void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
     int64_t durationMs = duration.count();
     if (durationMs > EXECUTION_TIMEOUT_MILISECONDS) {
         FFRT_LOGW("handle work more than [%lld]ms", durationMs);
-    }
+        }
 }
 
 int DelayedWorker::HandleWork()

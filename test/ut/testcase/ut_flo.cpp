@@ -106,9 +106,12 @@ protected:
 
 HWTEST_F(FloTest, FFRTFloApiSuccess, TestSize.Level1)
 {
+    int i = 0;
     InitCfg(1);
     ffrt_flo_start(1);
+    i++;
     ffrt_flo_end(1);
+    EXCEPT_EQ(i, 1);
 }
  
 HWTEST_F(FloTest, FFRTFloTaskWithoutYield, TestSize.Level1)

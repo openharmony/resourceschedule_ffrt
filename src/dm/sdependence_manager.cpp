@@ -52,7 +52,6 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif
     QueueMonitor::GetInstance();
-    GetIOPoller();
     DelayedWorker::GetInstance();
 }
 

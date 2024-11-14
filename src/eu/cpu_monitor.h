@@ -102,4 +102,3 @@ private:
 };
 }
 #endif /* CPU_MONITOR_H */
-

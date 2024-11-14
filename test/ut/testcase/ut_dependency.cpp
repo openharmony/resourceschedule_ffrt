@@ -101,6 +101,8 @@ HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level1)
     ffrt::submit([] {
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
     });
+    int ret2 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 4);
+    EXPECT_EQ(ret2, 0);
 }
 
 HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level1)
@@ -164,6 +166,8 @@ HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
     ffrt::submit([] {
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
     });
+    int ret1 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_inherit), 4);
+    EXPECT_EQ(ret1, -1);
 }
 
 HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level1)

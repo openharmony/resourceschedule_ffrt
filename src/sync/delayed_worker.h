@@ -59,7 +59,7 @@ public:
 
 private:
     DelayedWorker();
-
+    void DumpMap();
     ~DelayedWorker();
 };
 } // namespace ffrt

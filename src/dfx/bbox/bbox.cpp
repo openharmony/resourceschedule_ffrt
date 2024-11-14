@@ -504,6 +504,15 @@ std::string SaveWorkerStatusInfo(void)
                 AppendTaskInfo(ss, t);
                 ss << std::endl;
             }
+            if (t->type != ffrt_normal_task && t->type != ffrt_queue_task && t->type != ffrt_invalid_task) {
+                ss << "        qos " << i << ": worker tid " << thread.first->Id();
+                if (t->type == ffrt_io_task) {
+                    ss << " io task is running";
+                } else {
+                    ss << " uv task is running";
+                }
+                ss << std::endl;
+            }
         }
         if (tidArr.size() == 0) {
             continue;

@@ -133,9 +133,8 @@ void CPUMonitor::MonitorMain()
         return;
     }
     for (int i = 0; i < qosMonitorMaxNum; i++) {
-        size_t taskCount = static_cast<size_t>(ops.GetTaskCount(i));
-        if (taskCount > 0 && domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
-            Poke(i, taskCount, TaskNotifyType::TASK_ADDED);
+        if (domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
+            Notify(i, TaskNotifyType::TASK_ESCAPED);
         }
     }
     stopMonitor = true;
@@ -230,13 +229,6 @@ void CPUMonitor::WakeupDeepSleep(const QoS& qos, bool irqWake)
     workerCtrl.executionNum++;
 }
 
-void CPUMonitor::IntoPollWait(const QoS& qos)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    std::lock_guard lk(workerCtrl.lock);
-    workerCtrl.pollWaitFlag = true;
-}
-
 void CPUMonitor::OutOfPollWait(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -282,7 +274,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
         (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
 
-    if (notifyType != TaskNotifyType::TASK_ADDED && tiggerSuppression) {
+    if (notifyType != TaskNotifyType::TASK_ADDED && notifyType != TaskNotifyType::TASK_ESCAPED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;
     }
@@ -341,6 +333,7 @@ void CPUMonitor::HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType
     switch (notifyType) {
         case TaskNotifyType::TASK_ADDED:
         case TaskNotifyType::TASK_PICKED:
+        case TaskNotifyType::TASK_ESCAPED:
             if (taskCount > 0) {
                 monitor->Poke(qos, taskCount, notifyType);
             }

@@ -50,13 +50,13 @@ public:
     uint32_t GetMonitorTid() const;
     int TotalCount(const QoS& qos);
     virtual void IntoSleep(const QoS& qos) = 0;
+    virtual void IntoPollWait(const QoS& qos) = 0;
 
     void WakeupSleep(const QoS& qos, bool irqWake = false);
     void IntoDeepSleep(const QoS& qos);
     void WakeupDeepSleep(const QoS& qos, bool irqWake = false);
     void TimeoutCount(const QoS& qos);
     bool IsExceedDeepSleepThreshold();
-    void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
     void RollbackDestroy(const QoS& qos, bool irqWake = false);
     bool TryDestroy(const QoS& qos);

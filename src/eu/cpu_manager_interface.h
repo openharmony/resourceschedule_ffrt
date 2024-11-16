@@ -32,7 +32,6 @@ enum class TaskNotifyType {
     TASK_PICKED = 0,
     TASK_ADDED,
     TASK_LOCAL,
-    TASK_ESCAPED,
 };
 
 enum class SleepType {

@@ -30,6 +30,8 @@ constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
+constexpr uint32_t CONGESTION_CNT = 5;
+constexpr uint32_t CONGESTION_TIMEOUT_US = 300000000; // 5min
 }
 
 namespace ffrt {
@@ -133,8 +135,12 @@ void QueueHandler::Submit(QueueTask* task)
     }
 #endif
 
+    // worker after that schedule timeout is set for queue
     if (task->GetSchedTimeout() > 0) {
         AddSchedDeadline(task);
+    }
+    if (we_ != nullptr) {
+        CheckOverload();
     }
 
     int ret = queue_->Push(task);
@@ -405,7 +411,6 @@ int QueueHandler::DumpSize(ffrt_inner_queue_priority_t priority)
 void QueueHandler::SendSchedTimer(TimePoint delay)
 {
     we_->tp = delay;
-    we_->cb = ([this](WaitEntry* we_) { CheckSchedDeadline(); });
     bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     while (!result) {
         FFRT_LOGW("failed to set delayedworker, retry");
@@ -440,30 +445,21 @@ void QueueHandler::CheckSchedDeadline()
         } else {
             std::chrono::microseconds timeout(nextDeadline);
             TimePoint tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(
-			    std::chrono::steady_clock::time_point() + timeout);
+                std::chrono::steady_clock::time_point() + timeout);
+            FFRT_LOGI("queueId=%u set sched timer", GetQueueId());
             SendSchedTimer(tp);
         }
     }
 
     // Reporting Timeout Infomation
     if (!timeoutTaskId.empty()) {
-        std::stringstream ss;
-        ss << "Queue_Schedule_Timeout, queueId=" << GetQueueId() << ", timeout task gid: ";
-        for (auto& id : timeoutTaskId) {
-            ss << id << " ";
-        }
-
-        FFRT_LOGE("%s", ss.str().c_str());
-        ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-        if (func) {
-            func(GetQueueId(), ss.str().c_str(), ss.str().size());
-        }
+        ReportTimeout(timeoutTaskId);
     }
 }
 
 void QueueHandler::AddSchedDeadline(QueueTask* task)
 {
-    // sched timeout only support serial queues, other queue types will be supported based on service requirements.
+    // sched timeout only support serial queues, other queue types will be supported based on service requirments.
     if (queue_->GetQueueType() != ffrt_queue_serial) {
         return;
     }
@@ -474,11 +470,13 @@ void QueueHandler::AddSchedDeadline(QueueTask* task)
     if (!initSchedTimer_) {
         if (we_ == nullptr) {
             we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
+            we_->cb = ([this](WaitEntry* we_) { CheckSchedDeadline(); });
         }
         std::chrono::microseconds timeout(schedDeadline_[task]);
         TimePoint tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(
-		    std::chrono::steady_clock::time_point() + timeout);
+            std::chrono::steady_clock::time_point() + timeout);
         SendSchedTimer(tp);
+        initSchedTimer_ = true;
     }
 }
 
@@ -488,4 +486,34 @@ void QueueHandler::RemoveSchedDeadline(QueueTask* task)
     schedDeadline_.erase(task);
 }
 
-} // namespace ffrt
+void QueueHandler::CheckOverload()
+{
+    if (queue_->GetMapSize() <= CONGESTION_CNT) {
+        return;
+    }
+
+    uint64_t expect = queue_->GetHeadUptime();
+    uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (now > expect && now - expect > CONGESTION_TIMEOUT_US * overloadTimes_.load()) {
+        overloadTimes_.fetch_add(1);
+        std::vector<uint64_t> timeoutVec = {};
+        ReportTimeout(timeoutVec);
+    }
+}
+
+void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
+{
+    std::stringstream ss;
+    ss << "Queue_Schedule_Timeout, queueId=" << GetQueueId() << ", timeout task gid: ";
+    for (auto& id : timeoutTaskId) {
+        ss << id << " ";
+    }
+
+    FFRT_LOGE("%s", ss.str().c_str());
+    ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+    if (func) {
+        func(GetQueueId(), ss.str().c_str(), ss.str().size());
+    }
+}
+} //namespace ffrt

@@ -17,6 +17,7 @@
 
 #include <array>
 #include <unistd.h>
+#include <sstream>
 #include <sys/prctl.h>
 #include <sys/timerfd.h>
 #include <thread>
@@ -30,9 +31,13 @@
 namespace {
     const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
     const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
+    const int EPOLL_WAIT_TIMEOUT__MILISECONDS = 3 * 60 * 1000;
     const int NS_PER_SEC = 1000 * 1000 * 1000;
+    const int FAKE_WAKE_UP_ERROR = 4;
     const int WAIT_EVENT_SIZE = 5;
     const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
+    const int DUMP_MAP_MAX_COUNT = 3;
+    constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 }
 
 namespace ffrt {
@@ -58,6 +63,45 @@ bool DelayedWorker::IsDelayerWorkerThread()
     return isDelayerWorkerFlag;
 }
 
+bool IsDelayedWorkerPreserved()
+{
+    static std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
+    char processName[PROCESS_NAME_BUFFER_LENGTH];
+    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
+    if (whitelist.find(processName) != whitelist.end()) {
+        return true;
+    }
+
+    return false;
+}
+
+void DelayedWorker::DumpMap()
+{
+    lock.lock();
+    if (map.empty()) {
+        lock.unlock();
+        return;
+    }
+
+    TimePoint now = std::chrono::steady_clock::now();
+    if (now < map.begin()->first) {
+        lock.unlock();
+        return;
+    }
+
+    int count = 0;
+    std::stringstream ss;
+    unsigned int printCount = map.size() < DUMP_MAP_MAX_COUNT ? map.size() : DUMP_MAP_MAX_COUNT;
+    for (auto it = map.begin(); it != map.end() && count < DUMP_MAP_MAX_COUNT; ++it, ++count) {
+        ss << it->first.time_since_epoch().count();
+        if (count < printCount - 1) {
+            ss << ",";
+        }
+    }
+    lock.unlock();
+    FFRT_LOGW("DumpMap:now=%lu,%s", now.time_since_epoch().count(), ss.str().c_str());
+}
+
 void DelayedWorker::ThreadInit()
 {
     if (delayWorker != nullptr && delayWorker->joinable()) {
@@ -70,41 +114,57 @@ void DelayedWorker::ThreadInit()
         if (ret != 0) {
             FFRT_LOGW("[%d] set priority warn ret[%d] eno[%d]\n", pthread_self(), ret, errno);
         } else {
-            FFRT_LOGI("thread init");
+            FFRT_LOGW("delayedWorker init");
         }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         pthread_setspecific(g_ffrtDelayWorkerFlagKey, reinterpret_cast<void*>(FFRT_DELAY_WORKER_MAGICNUM));
         std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
+        static bool preserved = IsDelayedWorkerPreserved();
         for (;;) {
             std::unique_lock lk(lock);
             if (toExit) {
                 exited_ = true;
-                FFRT_LOGI("thread exit");
+                FFRT_LOGW("delayedWorker exit");
                 break;
             }
             int result = HandleWork();
             if (toExit) {
                 exited_ = true;
-                FFRT_LOGI("thread exit");
+                FFRT_LOGW("delayedWorker exit");
                 break;
             }
             if (result == 0) {
                 uint64_t ns = map.begin()->first.time_since_epoch().count();
                 itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
-                timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
-            } else if (result == 1) {
+                int ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
+                if (ret != 0) {
+                    FFRT_LOGE("timerfd_settime error,ns=%lu,ret= %d.", ns, ret);
+                }
+            } else if ((result == 1) && (!preserved)) {
                 if (++noTaskDelayCount_ > 1) {
                     exited_ = true;
-                    FFRT_LOGI("thread exit");
+                    FFRT_LOGW("delayedWorker exit");
                     break;
                 }
                 itimerspec its = { {0, 0}, {FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS, 0} };
-                timerfd_settime(timerfd_, 0, &its, nullptr);
+                int ret = timerfd_settime(timerfd_, 0, &its, nullptr);
+                if (ret != 0) {
+                    FFRT_LOGE("timerfd_settime error, ret= %d.", ret);
+                }
             }
             lk.unlock();
-            int nfds = epoll_wait(epollfd_, waitedEvents.data(), waitedEvents.size(), -1);
+            FFRT_TRACE_BEGIN("epoll");
+            int nfds = epoll_wait(epollfd_, waitedEvents.data(), waitedEvents.size(),
+                EPOLL_WAIT_TIMEOUT__MILISECONDS);
+            if (nfds == 0) {
+                DumpMap();
+            }
+            FFRT_TRACE_END();
+
             if (nfds < 0) {
-                FFRT_LOGE("epoll_wait error, errorno= %d.", errno);
+                if (errno != FAKE_WAKE_UP_ERROR) {
+                    FFRT_LOGW("epoll_wait error, errorno= %d.", errno);
+                }
                 continue;
             }
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -113,7 +173,9 @@ void DelayedWorker::ThreadInit()
                     char buffer;
                     size_t n = ::read(monitorfd_, &buffer, sizeof buffer);
                     if (n == 1) {
+                        FFRT_TRACE_BEGIN("monitor");
                         monitor->MonitorMain();
+                        FFRT_TRACE_END();
                     } else {
                         FFRT_LOGE("monitor read fail:%d, %s", n, errno);
                     }
@@ -182,7 +244,7 @@ void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
     int64_t durationMs = duration.count();
     if (durationMs > EXECUTION_TIMEOUT_MILISECONDS) {
         FFRT_LOGW("handle work more than [%lld]ms", durationMs);
-        }
+    }
 }
 
 int DelayedWorker::HandleWork()
@@ -239,7 +301,10 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
     if (w) {
         uint64_t ns = static_cast<uint64_t>(to.time_since_epoch().count());
         itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
-        timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
+        int ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
+        if (ret != 0) {
+            FFRT_LOGE("timerfd_settime error, ns=%lu, ret= %d.", ns, ret);
+        }
     }
     lock.unlock();
     return true;

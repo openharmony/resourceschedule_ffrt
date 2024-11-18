@@ -186,7 +186,7 @@ static inline void SaveNormalTaskStatus()
             }
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))
                 && t != g_cur_task) {
-                CoStart(t);
+                CoStart(t, GetCoEnv());
             }
         }
     };
@@ -229,7 +229,7 @@ static inline void SaveQueueTaskStatus()
             }
 
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
-                CoStart(reinterpret_cast<CPUEUTask*>(t));
+                CoStart(reinterpret_cast<CPUEUTask*>(t), GetCoEnv());
             }
         }
     };
@@ -502,6 +502,15 @@ std::string SaveWorkerStatusInfo(void)
                 ss << "        qos " << i << ": worker tid " << thread.first->Id()
                     << " is running, task id " << t->gid << " name " << t->label.c_str();
                 AppendTaskInfo(ss, t);
+                ss << std::endl;
+            }
+            if (t->type != ffrt_normal_task && t->type != ffrt_queue_task && t->type != ffrt_invalid_task) {
+                ss << "        qos " << i << ": worker tid " << thread.first->Id();
+                if (t->type == ffrt_io_task) {
+                    ss << " io task is running";
+                } else {
+                    ss << " uv task is running";
+                }
                 ss << std::endl;
             }
         }

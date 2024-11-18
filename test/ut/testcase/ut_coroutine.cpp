@@ -24,8 +24,12 @@
 #include "c/executor_task.h"
 #include "ffrt_inner.h"
 #include "eu/cpu_monitor.h"
+#include "eu/cpu_worker.h"
+#include "eu/co_routine.h"
+#include "eu/scpuworker_manager.h"
 #include "sched/scheduler.h"
 #include "../common.h"
+#include "tm/scpu_task.h"
 
 using namespace std;
 using namespace ffrt;

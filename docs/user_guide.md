@@ -1769,6 +1769,14 @@ void ffrt_task_attr_set_qos(ffrt_task_attr_t* attr, ffrt_qos_t qos);
 ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t* attr);
 void ffrt_task_attr_set_name(ffrt_task_attr_t* attr, const char* name);
 const char* ffrt_task_attr_get_name(const ffrt_task_attr_t* attr);
+
+void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_us);
+uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
+void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priority_t priority);
+ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_task_attr_t* attr);
+void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t size);
+uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
+
 ```
 
 #### 参数
@@ -2031,7 +2039,7 @@ x = 3
 #### 声明
 
 ```{.c}
-uint64_t ffrt_this_task_get_id();
+uint64_t ffrt_this_task_get_id(void);
 ```
 
 #### 参数
@@ -2084,6 +2092,104 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos);
 #### 样例
 
 * 忽略
+
+
+### ffrt_this_task_get_qos
+
+<hr/>
+
+* 获取当前正在执行的task的优先级
+
+#### 声明
+
+```{.cpp}
+ffrt_qos_t ffrt_this_task_get_qos();
+```
+
+#### 参数
+
+* 无
+
+#### 返回值
+
+* 返回任务的优先级
+
+#### 描述
+
+* 忽略
+
+#### 样例
+
+* 忽略
+
+### ffrt_task_handle_inc_ref/dec_ref
+
+<hr/>
+
+* 增删任务句柄的引用计数
+
+#### 声明
+
+```{.cpp}
+uint32_t ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
+uint32_t ffrt_task_handle_dec_ref(ffrt_task_handle_t handle);
+```
+
+#### 参数
+
+* `handle` 表示一个任务句柄
+
+#### 返回值
+
+* 返回任务句柄的引用计数，或者-1
+
+#### 描述
+
+`inc_ref`
+* 为传入的任务句柄的引用计数+1，返回+1前的引用计数，该行为是原子的
+* 如果传入的任务句柄为空，返回-1
+* 用户需要保证传入的任务句柄有效，否则调用该接口的行为不可预期
+* 任务资源仅在引用计数为0时释放，用户调用该接口后如果没调用dec_ref可能导致内存泄漏
+
+`dec_ref`
+* 为传入的任务句柄的引用计数-1，返回-1前的引用计数，该行为是原子的
+* 如果传入的任务句柄为空，返回-1
+* 用户需要保证传入的任务句柄有效，否则调用该接口的行为不可预期
+* 当引用计数减到0时会立刻释放任务资源，若此时任务尚未完成，可能出现不可预期的行为
+
+#### 样例
+
+* 忽略
+
+### ffrt_set_worker_stack_size
+
+<hr/>
+
+* 增删任务句柄的引用计数
+
+#### 声明
+
+```{.cpp}
+ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
+```
+
+#### 参数
+
+* `qos` 表示优先级
+* `stack_size` 表示worker线程的栈大小
+
+#### 返回值
+
+* 无
+
+#### 描述
+
+* 将线程的栈大小设置为具体的QoS等级
+
+#### 样例
+
+* 忽略
+
 
 ## 串行队列
 <hr />
@@ -3852,7 +3958,7 @@ void fib_ffrt(int x, int* y)
 
 ## FFRT对使用fork()场景的支持说明
 
-* 在未使用FFRT的进程中，创建子进程，支持在该子进程中使用FFRT（调用submit，timer，epoll等任务类操作）。
+* 在未使用FFRT的进程中，创建子进程，支持在该子进程中使用FFRT。
 * 在已经使用FFRT的进程中，以fork()（无exec()）方式创建子进程，不支持在该子进程中使用FFRT。
 * 在已经使用FFRT的进程中，以fork()+exec()方式创建子进程，支持在子进程中使用FFRT。
 

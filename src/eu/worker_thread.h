@@ -65,7 +65,7 @@ public:
             }
 #endif
         }
-        FFRT_LOGW("WorkerThread enter destruction");
+        FFRT_LOGI("Qos %d WorkerThread enter destruction.", qos());
         Detach();
     }
 
@@ -186,6 +186,7 @@ public:
 
     void WorkerSetup(WorkerThread* wthread);
     void NativeConfig();
+    void* worker_mgr;
 
 private:
     std::atomic_bool exited;

@@ -33,7 +33,14 @@ int SerialQueue::Push(QueueTask* task)
         return INACTIVE;
     }
 
-    whenMap_.insert({task->GetUptime(), task});
+    if (task->InsertHead() && !whenMap_.empty()) {
+        FFRT_LOGD("head insert task=%u in [queueId=%u]", task->gid, queueId_);
+        uint64_t headTime = (whenMap_.begin()->first > 0) ? whenMap_.begin()->first - 1 : 0;
+        whenMap_.insert({headTime, task});
+    } else {
+        whenMap_.insert({task->GetUptime(), task});
+    }
+
     if (task == whenMap_.begin()->second) {
         cond_.NotifyOne();
     }

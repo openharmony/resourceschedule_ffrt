@@ -58,27 +58,9 @@ static inline void restore_qos_config()
     ffrt_restore_qos_config();
 }
 
-/**
- * @brief worker num setting.
- *
- * @param qosData param is default when value equal 0xffffffff.
- * totalNum = lowQosReserveWorkerNum + highQosReserveWorkerNum + sum of all reserveNum
- * totalNum is valid in (0,256].
- * lowQosReserveWorkerNum is a low partition qos public resource.{[min, max], default} is {[0,256],12}.
- * highQosReserveWorkerNum is a hight partition qos public resource.{[min, max], default} is {[0,256],12}.
- * lowQosReserveWorkerNum is a global qos public resource.{[min, max], default} is {[0,256],24}.
- * qosConfigArray is an array of ffrt_qos_config.
- * effectLen: param setting will success when qosConfigArray index less than effectLen.
- * qos valid in [0,5].
- * reserveNum: mininum number which qos can create worker.{[min, max], default} is {[0,256],8}.
- * maxConcurrency is amx concurrency num of the qos.{[min, max], default} is {[0,12],8}.
- * hardLimit: max number which qos can create worker.{[min, max], default} is {[0,256],44}.
- * @return return 0 when setting success.return -1 when setting fail, and param is default.
- * @version 1.0
- */
-static inline int set_qos_worker_num(ffrt_worker_num_param* qosData)
+static inline int set_cpu_worker_max_num(qos qos_, uint32_t num)
 {
-    return ffrt_set_qos_worker_num(qosData);
+    return ffrt_set_cpu_worker_max_num(qos_, num);
 }
 
 /**

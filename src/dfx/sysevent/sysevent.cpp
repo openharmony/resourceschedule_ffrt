@@ -15,6 +15,7 @@
 #ifdef FFRT_SEND_EVENT
 #include "sysevent.h"
 #include "hisysevent.h"
+#include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
 void TaskTimeoutReport(std::stringstream& ss, std::string& processNameStr, std::string& senarioName)
@@ -26,6 +27,16 @@ void TaskTimeoutReport(std::stringstream& ss, std::string& processNameStr, std::
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", senarioName,
         "PROCESS_NAME", processNameStr, "MSG", sendMsg);
+}
+
+void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum)
+{
+    std::string msg = "qos: " + std::to_string(qos) + ", worker num: " + std::to_string(totalNum);
+    std::string eventName = "WORKER_ESCAPE";
+    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", "Trigger_Escape",
+        "PROCESS_NAME", processName, "MSG", msg);
+    FFRT_LOGW("Process: %s trigger escape. %s", processName.c_str(), msg.c_str());
 }
 }
 #endif

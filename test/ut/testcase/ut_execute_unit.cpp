@@ -72,7 +72,7 @@ HWTEST_F(ExecuteUnitTest, submit_cancel_failed, TestSize.Level1)
     auto h2 = ffrt::submit_h([&]() { x += 2; }, {&x}, {&x}, ffrt::task_attr().delay(1));
     int cancel_ret = ffrt::skip(h2);
     EXPECT_EQ(cancel_ret, 0);
-    ffrt::wait();
+    ffrt::wait({h1});
     EXPECT_EQ(x, 1);
 
     cancel_ret = ffrt::skip(h1);

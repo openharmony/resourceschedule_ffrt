@@ -132,6 +132,7 @@ ohos_shared_library("libffrt") {
       "src/eu/co2_context.c",
       "src/eu/co_routine.cpp",
       "src/eu/co_routine_factory.cpp",
+      "src/eu/cpu_manager_strategy.cpp",
       "src/eu/cpu_monitor.cpp",
       "src/eu/cpu_worker.cpp",
       "src/eu/cpuworker_manager.cpp",
@@ -209,7 +210,7 @@ ohos_shared_library("libffrt") {
     defines = []
 
     if (ffrt_async_stack_enable) {
-      defines += [ "ASYNC_STACKTRACE" ]
+      defines += [ "FFRT_ASYNC_STACKTRACE" ]
       sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
     }
 
@@ -241,22 +242,9 @@ ohos_prebuilt_etc("blacklist_cfg") {
   ]
 }
 
-ohos_prebuilt_etc("log_ctr_whitelist_cfg") {
-  relative_install_dir = "ffrt"
-  source = "log_ctr_whitelist.conf"
-  part_name = "ffrt"
-  subsystem_name = "resourceschedule"
-  install_enable = true
-  install_images = [
-    "system",
-    "updater",
-  ]
-}
-
 group("ffrt_ndk") {
   deps = [
     ":blacklist_cfg",
     ":libffrt",
-    ":log_ctr_whitelist_cfg",
   ]
 }

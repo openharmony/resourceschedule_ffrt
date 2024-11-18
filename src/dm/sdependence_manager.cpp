@@ -52,7 +52,6 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif
     QueueMonitor::GetInstance();
-    GetIOPoller();
     DelayedWorker::GetInstance();
 }
 
@@ -97,13 +96,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
     FFRT_TRACE_BEGIN(("submit|" + std::to_string(task->gid)).c_str());
-    FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_ASYNC_STACKTRACE
     {
         task->stackId = FFRTCollectAsyncStack();
     }
 #endif
-
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos, &(task->createTime), &(task->fromTid));
 
@@ -156,12 +153,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             return;
         }
     }
-    
+
     if (attr != nullptr) {
         task->notifyWorker_ = attr->notifyWorker_;
     }
 
-    FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     FFRT_TRACE_END();

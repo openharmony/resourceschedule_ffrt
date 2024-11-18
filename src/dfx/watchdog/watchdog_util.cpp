@@ -35,8 +35,10 @@ namespace ffrt {
     static std::mutex lock;
 
 
-    bool IsValidTimeout(uint64_t gid, uint64_t timeout_ms)
+    bool IsValidTimeout(uint64_t gid, uint64_t timeout_us)
     {
+        // us convert to ms
+        uint64_t timeout_ms = timeout_us / CONVERT_TIME_UNIT;
         // 当前有效的并行任务timeout时间范围是10-30s
         if (timeout_ms >= VALID_TIMEOUT_MIN && timeout_ms <= VALID_TIMEOUT_MAX) {
             FFRT_LOGI("task gid=%llu with timeout [%llu ms] is valid", gid, timeout_ms);
@@ -62,26 +64,28 @@ namespace ffrt {
     bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout, uint64_t delay)
     {
 #ifdef FFRT_OH_WATCHDOG_ENABLE
-        FFRT_LOGI("start to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout);
+        // us convert to ms
+        uint64_t timeout_ms = timeout / CONVERT_TIME_UNIT;
+        FFRT_LOGI("start to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout_ms);
         auto now = std::chrono::steady_clock::now();
         WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
         // set dealyedworker callback
-        we->cb = ([gid, timeout](WaitEntry* we) {
+        we->cb = ([gid, timeout_ms](WaitEntry* we) {
             std::lock_guard<decltype(lock)> l(lock);
             if (taskStatusMap.count(gid) > 0) {
-                RunTimeOutCallback(gid, timeout);
+                RunTimeOutCallback(gid, timeout_ms);
             } else {
                 FFRT_LOGI("task gid=%llu has finished", gid);
             }
             SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
         });
         // set dealyedworker wakeup time
-        std::chrono::microseconds timeoutTime(timeout * CONVERT_TIME_UNIT);
+        std::chrono::microseconds timeoutTime(timeout);
         std::chrono::microseconds delayTime(delay);
         we->tp = (now + timeoutTime + delayTime);
         if (!DelayedWakeup(we->tp, we, we->cb)) {
             SimpleAllocator<WaitUntilEntry>::FreeMem(we);
-            FFRT_LOGE("failed to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout);
+            FFRT_LOGE("failed to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout_ms);
             return false;
         }
 #endif
@@ -104,7 +108,7 @@ namespace ffrt {
             FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than the max count", gid);
             return;
         }
-        if (!SendTimeoutWatchdog(gid, timeout, 0)) {
+        if (!SendTimeoutWatchdog(gid, timeout * CONVERT_TIME_UNIT, 0)) {
             FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);
             return;
         };

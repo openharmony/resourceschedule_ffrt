@@ -29,6 +29,7 @@ constexpr unsigned int DEFAULT_CPUINDEX_LIMIT = 7;
 struct IOPollerInstance: public IOPoller {
     IOPollerInstance() noexcept: m_runner([&] { RunForever(); })
     {
+        DependenceManager::Instance();
         pthread_setname_np(m_runner.native_handle(), IO_POLLER_NAME);
     }
 

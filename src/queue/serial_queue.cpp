@@ -36,13 +36,18 @@ int SerialQueue::Push(QueueTask* task)
     if (task->InsertHead() && !whenMap_.empty()) {
         FFRT_LOGD("head insert task=%u in [queueId=%u]", task->gid, queueId_);
         uint64_t headTime = (whenMap_.begin()->first > 0) ? whenMap_.begin()->first - 1 : 0;
-        whenMap_.insert({headTime, task});
+        whenMap_.insert({std::min(headTime, task->GetUptime()), task});
     } else {
         whenMap_.insert({task->GetUptime(), task});
     }
 
     if (task == whenMap_.begin()->second) {
         cond_.NotifyOne();
+    }
+
+    if (whenMap_.size() >= overloadThreshold_) {
+        FFRT_LOGW("[queueId=%u] overload warning, size=%llu", queueId_, whenMap_.size());
+        overloadThreshold_ += overloadThreshold_;
     }
 
     return SUCC;

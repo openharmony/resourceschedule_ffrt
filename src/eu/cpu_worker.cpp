@@ -240,9 +240,6 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
 {
     CPUWorker* worker = reinterpret_cast<CPUWorker*>(p);
     for (;;) {
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        if (!worker->ops.IsExceedRunningThreshold(worker)) {
-#endif
         // get task in the order of priority -> local queue -> global queue
         void* local_task = GetTask(worker);
         worker->tick++;
@@ -297,9 +294,7 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
         if (ret != PollerRet::RET_NULL) {
             continue;
         }
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        }
-#endif
+
         auto action = worker->ops.WaitForNewAction(worker);
         if (action == WorkerAction::RETRY) {
             worker->tick = 0;

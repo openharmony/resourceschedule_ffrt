@@ -690,6 +690,7 @@ ohos_unittest("ut_mem") {
   include_dirs = [ "../testfunc" ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DUSE_GTEST" ]
 
   sources = [
     "../testfunc/func_pool.cpp",

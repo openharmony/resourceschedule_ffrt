@@ -20,11 +20,7 @@
 #include <securec.h>
 #include <string>
 #include <sys/mman.h>
-#ifndef OHOS_STANDARD_SYSTEM
-#include "cpu_boost_adapter.h"
-#else
-#include "util/cpu_boost_ohos.h"
-#endif
+#include "util/cpu_boost_wrapper.h"
 #include "ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"

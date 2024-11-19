@@ -20,7 +20,11 @@
 #include <chrono>
 #include <string>
 #include "ffrt_inner.h"
+#ifdef USE_GTEST
 #include <gtest/gtest.h>
+#else
+#include "ptest.h"
+#endif
 #include "dfx/log/ffrt_log_api.h"
 
 using namespace std;

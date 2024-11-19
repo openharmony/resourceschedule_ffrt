@@ -52,4 +52,29 @@ HWTEST_F(DumpTest, dump_succ, TestSize.Level1)
 {
     char dumpinfo[1024 * 512] = {0};
     ffrt_dump(ffrt_dump_cmd_t::DUMP_INFO_ALL, dumpinfo, 1024 * 512);
+    EXPECT_EQ(ret, -1);
+}
+
+/*
+ * 测试用例名称：dump_cb_succ
+ * 测试用例描述：设置与获取task_timeout_cb成功
+ * 预期结果    ：设置与获取成功
+ */
+HWTEST_F(DumpTest, dump_cb_succ, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(nullptr);
+    ffrt_task_timeout_cb ret = ffrt_task_timeout_get_cb();
+    EXPECT_EQ(ret, nullptr);
+}
+
+/*
+ * 测试用例名称：dump_threshold_succ
+ * 测试用例描述：设置与获取task_timeout_threshold成功
+ * 预期结果    ：设置与获取成功
+ */
+HWTEST_F(DumpTest, dump_thre_succ, TestSize.Level1)
+{
+    ffrt_task_timeout_set_threshold(500);
+    uint32_t ret = ffrt_task_timeout_get_threshold();
+    EXPECT_EQ(ret, 500);
 }

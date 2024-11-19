@@ -77,6 +77,17 @@ HWTEST_F(WorkerManagerTest, IncWorkerTest, TestSize.Level1)
     delete cm;
 }
 
+HWTEST_F(WorkerManagerTest, IncWorkerTest2, TestSize.Level1)
+{
+    CPUWorkerManager* cm = new SCPUWorkerManager();
+    QoS* qos = new QoS(-1);
+    cm->tearDown = true;
+    cm->IncWorker(*qos);
+
+    delete qos;
+    delete cm;
+}
+
 HWTEST_F(WorkerManagerTest, GetWorkerCountTest, TestSize.Level1)
 {
     CPUWorkerManager* cm = new SCPUWorkerManager();
@@ -214,6 +225,46 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyUltraConservativeTest, Tes
     manager->NotifyTaskAdded(QoS(2)); // task notify event
 }
 
+HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest, TestSize.Level1)
+{
+    SCPUWorkerManager* manager = new SCPUWorkerManager();
+
+    CpuMonitorOps monitorOps { // change monitor's notify handle strategy
+        std::bind(&SCPUWorkerManager::IncWorker, manager, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::WakeupWorkers, manager, std::placeholders::_1),
+        std::bind(&GetTaskCountStub, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
+        CPUMonitor::HandleTaskNotifyUltraConservative,
+    };
+    manager->monitor->ops = std::move(monitorOps);
+
+    manager->NotifyTaskAdded(QoS(2)); // task notify event
+
+    manager->monitor->ctrlQueue[2].sleepingWorkerNum = 1;
+    manager->NotifyTaskAdded(QoS(2)); // task notify event
+}
+
+HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSize.Level1)
+{
+    SCPUWorkerManager* manager = new SCPUWorkerManager();
+    TaskNotifyType::TASK_PICKED;
+
+    CpuMonitorOps monitorOps { // change monitor's notify handle strategy
+        std::bind(&SCPUWorkerManager::IncWorker, manager, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::WakeupWorkers, manager, std::placeholders::_1),
+        std::bind(&GetTaskCountStub, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
+        std::bind(&SCPUWorkerManager::HandleTaskNotifyConservative, std::placeholders::_1, std::placeholders::_2, TaskNotifyType::TASK_PICKED),
+    };
+    manager->monitor->ops = std::move(monitorOps);
+
+    manager->NotifyTaskAdded(QoS(2)); // task notify event
+
+    manager->monitor->ctrlQueue[2].sleepingWorkerNum = 1;
+    manager->NotifyTaskAdded(QoS(2)); // task notify event
+}
+
+
 HWTEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue, TestSize.Level1)
 {
     CPUWorkerManager* manager = new SCPUWorkerManager();
@@ -264,4 +315,74 @@ HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
     delete task2;
     delete strategy;
     delete manager;
+}
+
+HWTEST_F(WorkerManagerTest, WorkerRetiredSimplified, TestSize.Level1)
+{
+    CPUWorkerManager* manager = new SCPUWorkerManager();
+    CPUManagerStrategy* strategy = new CPUManagerStrategy();
+    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
+
+    auto worker = strategy->CreateCPUWorker(QoS(qos(0)), manager);
+    auto& sched = FFRTScheduler::Instance()->GetScheduler(worker->GetQos());
+
+    int ret = sched.WakeupTask(reinterpret_cast<CPUEUTask*>(task));
+    EXPECT_EQ(ret, 1);
+
+    manager->WorkerRetiredSimplified(worker);
+    manager->tearDown = true;
+    auto pickTask = manager->PickUpTaskFromGlobalQueue(worker);
+    EXPECT_EQ(pickTask, nullptr);
+
+    usleep(200000);
+    manager->tearDown = true;
+    manager->sleepCtl[QoS(qos(0))].cv.notify_all();
+    usleep(200000);
+
+    delete manager;
+    delete worker;
+    delete task;
+    delete strategy;
+}
+
+HWTEST_F(WorkerManagerTest, WakeupWorkersTest, TestSize.Level1)
+{
+    CPUWorkerManager* manager = new SCPUWorkerManager();
+    CPUManagerStrategy* strategy = new CPUManagerStrategy();
+    // QoS* qos = new QoS(2);
+    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
+
+    auto worker = strategy->CreateCPUWorker(QoS(qos(0)), manager);
+    auto& sched = FFRTScheduler::Instance()->GetScheduler(worker->GetQoS());
+
+    int ret = sched.WakeupTask(reinterpret_cast<CPUEUTask*>(task));
+    EXPECT_EQ(ret, 1);
+
+    manager->WorkerRetiredSimplified(worker);
+    manager->tearDown = true;
+    manager->WakeupWorkers(QoS(qos(0)));
+
+    delete manager;
+    delete worker;
+    delete task;
+    delete strategy;
+}
+
+HWTEST_F(WorkerManagerTest, WakeupDeepSleep, TestSize.Level1)
+{
+    CPUWorkerManager* manager = new SCPUWorkerManager();
+    CPUManagerStrategy* strategy = new CPUManagerStrategy();
+    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
+    CPUMonitor* monitor = manager->GetCPUMonitor();
+
+    auto worker = strategy->CreateCPUWorker(QoS(qos(0)), manager);
+    monitor->WakeupDeepSleep(QoS(qos(0)), true);
+    auto& sched = FFRTScheduler::Instance()->GetScheduler(worker->GetQoS());
+
+    EXPECT_EQ(sched.WakeupTask(reinterpret_cast<CPUEUTask*>(task)), 1);
+
+    delete manager;
+    delete worker;
+    delete task;
+    delete strategy;
 }

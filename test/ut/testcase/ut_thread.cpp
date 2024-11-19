@@ -73,6 +73,13 @@ int simple_thd_func(void *)
     return 0;
 }
 
+void* tmp_func(void *)
+{
+    int *num = 0;
+    (*num)++;
+    return num;
+}
+
 HWTEST_F(ThreadTest, IdleTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
@@ -135,11 +142,11 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     EXPECT_EQ(inc, 1);
     delete wt;
 
-    ffrt_error_t ret = ffrt_set_worker_stack_size(6, 10);
+    ffrt_error_t ret = ffrt_set_worker_stack_size(5, 10);
     EXPECT_EQ(ret, ffrt_error_inval);
 
-    ret = ffrt_set_worker_stack_size(6, 10 * 1024 * 1024);
-    wt = new WorkerThread(QoS(6));
+    ret = ffrt_set_worker_stack_size(5, WORKER_STACK_SIZE);
+    wt = new WorkerThread(QoS(5));
     wt->NativeConfig();
     wt->Start(MockStart, &inc);
     wt->Join();
@@ -154,6 +161,17 @@ HWTEST_F(ThreadTest, c_api_thread_simple_test, TestSize.Level1)
     ffrt_thread_t thread;
     ffrt_thread_create(&thread, nullptr, nullptr, nullptr);
     ffrt_thread_detach(nullptr);
+    ffrt_thread_join(nullptr, nullptr);
+}
+
+HWTEST_F(ThreadTest, c_api_thread_simple_test2, TestSize.Level1)
+{
+    ffrt_thread_t thread;
+    ffrt_thread_attr_t attr;
+    attr.storage[0] = 12345;
+    int a = 0;
+    ffrt_thread_create(&thread, &attr, tmp_func, &a);
+    ffrt_thread_detach(&thread);
     ffrt_thread_join(nullptr, nullptr);
 }
 

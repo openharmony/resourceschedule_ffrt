@@ -124,7 +124,6 @@ private:
     {
         char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
         count = MmapSz / TSize;
-        // primaryCache.reserve(count);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             primaryCache.push_back(reinterpret_cast<T*>(p + i));
         }

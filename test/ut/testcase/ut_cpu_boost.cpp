@@ -25,9 +25,13 @@
 #include <cstdbool>
 #include <sys/ioctl.h>
 #include <gtest/gtest.h>
+#ifndef WITH_NO_MOCKER
+#include <mockcpp/mockcpp.hpp>
+#include "util/cpu_boost_wrapper.h"
+#endif
 #include "ffrt_inner.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "c/ffrt_flo.h"
+#include "c/ffrt_cpu_boost.h"
 #include "../common.h"
 
 using namespace std;
@@ -37,13 +41,13 @@ using namespace testing::ext;
 #endif
 using namespace ffrt;
 
-#define IOCTL_SET_FLO_CONFIG	_IOWR('x', 51, struct FloCfg)
-struct FloCfg {
+#define IOCTL_SET_CPU_BOOST_CONFIG	_IOWR('x', 51, struct CpuBoostCfg)
+struct CpuBoostCfg {
     int pid;             // process id
     int id;              // code part context id (0-32), shouldn't be duplicate
     unsigned int size;   // this context using how much ddr size set 0x100000(1MB) as default
-    unsigned int port;   // 0 as default I/D cache FLO work on the same time
-    unsigned int offset; // how many ahead used by FLO prefecher
+    unsigned int port;   // 0 as default I/D cache cpu boost work on the same time
+    unsigned int offset; // how many ahead used by cpu boost prefecher
 #ifndef __OHOS__
     bool ffrt;
 #endif
@@ -52,9 +56,8 @@ struct FloCfg {
 int InitCfg(int ctxId)
 {
     int fd;
-    struct FloCfg data;
  
-    struct FloCfg cfg = {
+    struct CpuBoostCfg cfg = {
         .pid = getpid(),
         .id = ctxId,
         .size = 1048576,
@@ -65,7 +68,7 @@ int InitCfg(int ctxId)
 #endif
     };
 
-    printf("get para: pid-%d id-%d size-0x%x port-%d offset-%d.\n",
+    printf("get para: pid-%d id-%d size-0x%x port-%u offset-%u.\n",
         cfg.pid, cfg.id, cfg.size, cfg.port, cfg.offset);
 
     fd = open("/dev/hisi_perf_ctrl", O_RDWR);
@@ -74,18 +77,18 @@ int InitCfg(int ctxId)
         return -1;
     }
 
-    if (ioctl(fd, IOCTL_SET_FLO_CONFIG, &cfg) == -1) {
-        printf("Error %d (%s) in IOCTL_SET_FLO_CONFIG\n", errno, strerror(errno));
+    if (ioctl(fd, IOCTL_SET_CPU_BOOST_CONFIG, &cfg) == -1) {
+        printf("Error %d (%s) in IOCTL_SET_CPU_BOOST_CONFIG\n", errno, strerror(errno));
         close(fd);
         return -1;
     }
 
     close(fd);
-    printf("flo cfg finished.\n");
+    printf("cpu boost cfg finished.\n");
     return 0;
 }
 
-class FloTest : public testing::Test {
+class CpuBoostTest : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -104,33 +107,62 @@ protected:
     }
 };
 
-HWTEST_F(FloTest, FFRTFloApiSuccess, TestSize.Level1)
+HWTEST_F(CpuBoostTest, FFRTCpuBoostApiSuccess, TestSize.Level1)
 {
     int i = 0;
     InitCfg(1);
-    ffrt_flo_start(1);
+    ffrt_cpu_boost_start(1);
     i++;
-    ffrt_flo_end(1);
-    EXCEPT_EQ(i, 1);
+    ffrt_cpu_boost_end(1);
+    EXPECT_EQ(i, 1);
 }
- 
-HWTEST_F(FloTest, FFRTFloTaskWithoutYield, TestSize.Level1)
+
+HWTEST_F(CpuBoostTest, FFRTCpuBoostTaskWithoutYield, TestSize.Level1)
 {
     InitCfg(2);
     auto handle = ffrt::submit_h([] {
-        ffrt_flo_start(2);
-        ffrt_flo_end(2);
+        ffrt_cpu_boost_start(2);
+        ffrt_cpu_boost_end(2);
     }, {}, {});
     ffrt::wait({handle});
 }
- 
-HWTEST_F(FloTest, FFRTFloTaskWithYield, TestSize.Level1)
+
+HWTEST_F(CpuBoostTest, FFRTCpuBoostTaskWithYield, TestSize.Level1)
 {
     InitCfg(3);
     auto handle = ffrt::submit_h([] {
-        ffrt_flo_start(3);
+        ffrt_cpu_boost_start(3);
         ffrt::this_task::yield();
-        ffrt_flo_end(3);
+        ffrt_cpu_boost_end(3);
     }, {}, {});
     ffrt::wait({handle});
 }
+
+#ifndef WITH_NO_MOCKER
+HWTEST_F(CpuBoostTest, FFRTCpuBoostApiStubSuccess, TestSize.Level1)
+{
+    int i = 0;
+    MOCKER(CpuBoostStart).stubs().will(returnValue(0));
+    MOCKER(CpuBoostEnd).stubs().will(returnValue(0));
+    ffrt_cpu_boost_start(1);
+    i++;
+    ffrt_cpu_boost_end(1);
+    EXPECT_EQ(i, 1);
+    GlobalMockObject::reset();
+    GlobalMockObject::verify();
+}
+
+HWTEST_F(CpuBoostTest, FFRTCpuBoostTaskWithoutYieldStub, TestSize.Level1)
+{
+    MOCKER(CpuBoostStart).stubs().will(returnValue(0));
+    MOCKER(CpuBoostEnd).stubs().will(returnValue(0));
+    auto handle = ffrt::submit_h([] {
+        ffrt_cpu_boost_start(1);
+        ffrt::this_task::yield();
+        ffrt_cpu_boost_end(1);
+    }, {}, {});
+    ffrt::wait({handle});
+    GlobalMockObject::reset();
+    GlobalMockObject::verify();
+}
+#endif

@@ -923,7 +923,7 @@ ohos_unittest("ut_dump") {
 }
 
 ohos_unittest("ut_qos_convert") {
-  module_out_path = module_out_path
+  module_out_path = module_output_path
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
@@ -949,22 +949,25 @@ ohos_unittest("ut_qos_convert") {
 }
 
 ohos_unittest("ut_loop") {
-  module_out_path = module_out_path
+  module_out_path = module_output_path
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
-  
+
   cflags_cc = [
     "-frtti",
     "-Xclang",
     "-fcxx-exceptions",
     "-std=c++11",
     "-DFFRT_PERF_EVENT_ENABLE",
+    "-DWITH_NO_MOCKER",
   ]
 
   sources = [ "testcase/ut_loop.cpp" ]
   deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
+  external_deps = []
+  external_deps += ffrt_ut_base_external_deps
+  external_deps += [ "googletest:gmock" ]
 
   if (is_standard_system) {
     public_external_deps = gtest_public_external_deps

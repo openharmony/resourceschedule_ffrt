@@ -254,7 +254,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
         std::bind(&SCPUWorkerManager::WakeupWorkers, manager, std::placeholders::_1),
         std::bind(&GetTaskCountStub, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::HandleTaskNotifyConservative, std::placeholders::_1, 
+        std::bind(&SCPUWorkerManager::HandleTaskNotifyConservative, std::placeholders::_1,
                   std::placeholders::_2, TaskNotifyType::TASK_PICKED),
     };
     manager->monitor->ops = std::move(monitorOps);

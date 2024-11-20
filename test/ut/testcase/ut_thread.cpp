@@ -73,7 +73,7 @@ int simple_thd_func(void *)
     return 0;
 }
 
-void* tmp_func(void *)
+void* TmpFunc(void *)
 {
     int *num = 0;
     (*num)++;
@@ -170,7 +170,7 @@ HWTEST_F(ThreadTest, c_api_thread_simple_test2, TestSize.Level1)
     ffrt_thread_attr_t attr;
     attr.storage[0] = 12345;
     int a = 0;
-    ffrt_thread_create(&thread, &attr, tmp_func, &a);
+    ffrt_thread_create(&thread, &attr, TmpFunc, &a);
     ffrt_thread_detach(&thread);
     ffrt_thread_join(nullptr, nullptr);
 }

@@ -254,7 +254,8 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
         std::bind(&SCPUWorkerManager::WakeupWorkers, manager, std::placeholders::_1),
         std::bind(&GetTaskCountStub, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
-        std::bind(&SCPUWorkerManager::HandleTaskNotifyConservative, std::placeholders::_1, std::placeholders::_2, TaskNotifyType::TASK_PICKED),
+        std::bind(&SCPUWorkerManager::HandleTaskNotifyConservative, std::placeholders::_1, 
+                  std::placeholders::_2, TaskNotifyType::TASK_PICKED),
     };
     manager->monitor->ops = std::move(monitorOps);
 
@@ -349,7 +350,6 @@ HWTEST_F(WorkerManagerTest, WakeupWorkersTest, TestSize.Level1)
 {
     CPUWorkerManager* manager = new SCPUWorkerManager();
     CPUManagerStrategy* strategy = new CPUManagerStrategy();
-    // QoS* qos = new QoS(2);
     SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
 
     auto worker = strategy->CreateCPUWorker(QoS(qos(0)), manager);

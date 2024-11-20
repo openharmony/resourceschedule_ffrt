@@ -52,7 +52,11 @@ HWTEST_F(DumpTest, dump_succ, TestSize.Level1)
 {
     char dumpinfo[1024 * 512] = {0};
     ffrt_dump(ffrt_dump_cmd_t::DUMP_INFO_ALL, dumpinfo, 1024 * 512);
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    EXPECT_NE(ret, -1);
+#else
     EXPECT_EQ(ret, -1);
+#endif
 }
 
 /*

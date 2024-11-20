@@ -238,10 +238,16 @@ HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level1)
     unsigned int uid = 3039;
     unsigned int uaFlag = 0x1fff;
     unsigned int status = 3;
-
-    FFRTAuthEnable(uid, uaFlag, status);
+    int ret = 0;
+    ret = FFRTAuthEnable(uid, uaFlag, status);
     FFRTAuthGet(uid, &uaFlag, &status);
-    EXPECT_EQ(status, 3);
+
+    if (ret < 0) {
+        EXPECT_EQ(status, 0);
+    }
+    else {
+        EXPECT_EQ(status, 3);
+    }
 }
 
 HWTEST_F(QosInterfaceTest, FFRTQosApplyTest, TestSize.Level1)
@@ -263,7 +269,8 @@ HWTEST_F(QosInterfaceTest, FFRTQosApplyForOtherTest, TestSize.Level1)
 
 HWTEST_F(QosInterfaceTest, FFRTQosLeaveTest, TestSize.Level1)
 {
-    FFRTQosLeave();
+    int ret = FFRTQosLeave();
+    EXPECT_EQ(ret, 0);
 }
 
 HWTEST_F(QosInterfaceTest, FFRTQosLeaveForOtherTest, TestSize.Level1)

@@ -66,7 +66,6 @@ HWTEST_F(QosConvertTest, IsDelayerWorkerThreadTest, TestSize.Level1)
 {
     const uint64_t timeoutUs = 100;
     DelayedWorker::ThreadEnvCreate();
-    // SendDelayedWorker(timeoutUs);
     sleep(1);
     bool ret = DelayedWorker::IsDelayerWorkerThread();
     EXPECT_EQ(ret, false);
@@ -91,14 +90,16 @@ protected:
     }
 };
 
-int tmpFun() {
-    return 6;
+int TmpFun()
+{
+    int ret = 6;
+    return ret;
 }
 
 HWTEST_F(CgroupQosTest, SchedAttrTest, TestSize.Level1)
 {
     ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};
-    static FuncQosMax FuncQosMax = tmpFun;
+    static FuncQosMax FuncQosMax = TmpFun;
     OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 8);
     OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 1);
     OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 15);

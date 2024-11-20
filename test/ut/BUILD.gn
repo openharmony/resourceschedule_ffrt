@@ -775,6 +775,7 @@ ohos_unittest("ut_dump") {
 
 ohos_unittest("ut_qos_convert") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]

@@ -79,12 +79,6 @@ void MyFunc()
     int b = a;
 }
 
-void* TmpFunc(void *)
-{
-    void* ptr = MyFunc();
-    return ptr;
-}
-
 HWTEST_F(ThreadTest, IdleTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
@@ -175,7 +169,7 @@ HWTEST_F(ThreadTest, c_api_thread_simple_test2, TestSize.Level1)
     ffrt_thread_attr_t attr;
     attr.storage[0] = 12345;
     int a = 0;
-    ffrt_thread_create(&thread, &attr, TmpFunc, &a);
+    ffrt_thread_create(&thread, &attr, MyFunc, &a);
     ffrt_thread_detach(&thread);
     ffrt_thread_join(nullptr, nullptr);
 }

@@ -19,11 +19,9 @@
 
 #include <atomic>
 #include <chrono>
+#include <dlfcn.h>
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
-#ifdef FFRT_OH_TRACE_ENABLE
-#include <dlfcn.h>
-#endif
 
 #if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
 
@@ -53,8 +51,8 @@ extern "C" {
     void CTC_QueryInterval(int queryItem, IntervalReply& queryRs);
 }
 
-constexpr const char* TRACE_LIB_PATH_1 = "libconcurrentsvc.z.so";
-constexpr const char* TRACE_LIB_PATH_2 = "libconcurrent_task_client.z.so";
+constexpr const char* TRACE_LIB_PATH_1 = "/system/lib64/libconcurrentsvc.z.so";
+constexpr const char* TRACE_LIB_PATH_2 = "/system/lib64/libconcurrent_task_client.z.so";
 
 class TaskClientAdapter {
 public:
@@ -113,9 +111,8 @@ private:
             func##Func = reinterpret_cast<func##Type>(dlsym(handle_2, #func));                  \
             if (func##Func == nullptr) {                                                        \
                 FFRT_LOGE("load func %s from %s failed", #func, TRACE_LIB_PATH_2);      \
-                return;                                                                         \
             }                                                                                   \
-        }                                                                                       
+        }
 
             LOAD_FUNC(AddThreadToRtg);
             LOAD_FUNC(BeginFrameFreq);
@@ -187,7 +184,7 @@ static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
         if (func != nullptr) {                                             \
             func(queryItem, queryRs);                                      \
         }                                                                  \
-    } while (0)                                                 
+    } while (0)
 
 #endif /* __FFRT_TASKCLIENT_ADAPTER_H__ */
 #endif /* QOS_FRAME_RTG */

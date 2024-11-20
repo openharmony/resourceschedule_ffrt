@@ -599,7 +599,7 @@ bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
         auto co = curTask->coRoutine;
         if (co) {
             *size = co->stkMem.size;
-            *stack_addr = static_cast<void*>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - 8);
+            *stack_addr = GetCoStackAddr(co);
             return true;
         }
     }

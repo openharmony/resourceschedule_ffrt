@@ -14,7 +14,7 @@
  */
 #ifndef FFRT_QUEUE_HANDLER_H
 #define FFRT_QUEUE_HANDLER_H
- 
+
 #include <atomic>
 #include <memory>
 #include <string>
@@ -47,21 +47,21 @@ public:
 
     bool SetLoop(Loop* loop);
     bool ClearLoop();
-	
+
     QueueTask* PickUpTask();
-	
-	inline bool IsValidForLoop()
+
+    inline bool IsValidForLoop()
     {
         return !isUsed_.load() && (queue_->GetQueueType() == ffrt_queue_concurrent
-				|| queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
+               || queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
     }
-	
-	inline std::string GetName()
+
+    inline std::string GetName()
     {
         return name_;
     }
-	
-	inline uint32_t GetQueueId()
+
+    inline uint32_t GetQueueId()
     {
         FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "queue construct failed");
         return queue_->GetQueueId();

@@ -220,12 +220,22 @@ static inline void CoExit(CoRoutine* co, bool isNormalTask)
     }
 #endif
     CoStackCheck(co);
+#ifdef ASAN_MODE
+    /* co to thread start */
+    __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, co->asanFiberAddr, co->asanFiberSize);
+    /* clear remaining shadow stack */
+    __asan_handle_no_return();
+#endif
     CoSwitch(&co->ctx, &co->thEnv->schCtx);
 }
 
 static inline void CoStartEntry(void* arg)
 {
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
+#ifdef ASAN_MODE
+    /* thread to co finish first */
+    __sanitizer_finish_switch_fiber(co->asanFakeStack, (void **)&co->asanFiberAddr, &co->asanFiberSize);
+#endif
     ffrt::CPUEUTask* task = co->task;
     bool isNormalTask = false;
     switch (task->type) {
@@ -403,15 +413,24 @@ static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
     }
 }
 
-// called by thread work
-int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
+static inline bool CoBboxPreCheck(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
         if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
             FFRT_LOGE("executed by worker suddenly, ignore backtrace");
-            return 0;
+            return false;
         }
+    }
+
+    return true;
+}
+
+// called by thread work
+int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
+{
+    if (!CoBboxPreCheck(task)) {
+        return 0;
     }
     if (CoCreat(task) != 0) {
         return -1;
@@ -433,7 +452,15 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 #ifdef FFRT_TASK_LOCAL_ENABLE
         SwitchTsdToTask(co->task);
 #endif
+#ifdef ASAN_MODE
+    /* thread to co start */
+    __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
+#endif
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
+#ifdef ASAN_MODE
+    /* co to thread finish */
+    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
+#endif
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
         CoStackCheck(co);
@@ -462,7 +489,6 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
         FFRT_WAKE_TRACER(task->gid); // fast path wk
         coRoutineEnv->runningCo = co;
     }
-    return 0;
 }
 
 // called by thread work
@@ -480,7 +506,16 @@ void CoYield(void)
     SwitchTsdToThread(co->task);
 #endif
     CoStackCheck(co);
+#ifdef ASAN_MODE
+    /* co to thread start */
+    __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, co->asanFiberAddr, co->asanFiberSize);
+#endif
+    /* co switch to thread */
     CoSwitch(&co->ctx, &GetCoEnv()->schCtx);
+#ifdef ASAN_MODE
+    /* thread to co finish */
+    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
+#else
     while (GetBboxEnableState() != 0) {
         if (GetBboxEnableState() != gettid()) {
             BboxFreeze(); // freeze non-crash thread
@@ -491,6 +526,7 @@ void CoYield(void)
         co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH)); // recovery to old state
         CoExit(co, co->task->type == ffrt_normal_task);
     }
+#endif
 }
 
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred)

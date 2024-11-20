@@ -135,7 +135,7 @@ void QueueHandler::Submit(QueueTask* task)
     }
 #endif
 
-    // worker after that schedule timeout is set for queue
+    // work after that schedule timeout is set for queue
     if (task->GetSchedTimeout() > 0) {
         AddSchedDeadline(task);
     }
@@ -206,7 +206,7 @@ int QueueHandler::Cancel(QueueTask* task)
     if (task->GetSchedTimeout() > 0) {
         RemoveSchedDeadline(task);
     }
-	
+
     int ret = queue_->Remove(task);
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
@@ -459,7 +459,7 @@ void QueueHandler::CheckSchedDeadline()
 
 void QueueHandler::AddSchedDeadline(QueueTask* task)
 {
-    // sched timeout only support serial queues, other queue types will be supported based on service requirments.
+    // sched timeout only support serial queues, other queue types will be supported based on service requirements.
     if (queue_->GetQueueType() != ffrt_queue_serial) {
         return;
     }
@@ -470,7 +470,7 @@ void QueueHandler::AddSchedDeadline(QueueTask* task)
     if (!initSchedTimer_) {
         if (we_ == nullptr) {
             we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
-            we_->cb = ([this](WaitEntry* we_) { CheckSchedDeadline(); });
+            we_->cb = ([this](WaitEntry* we) { CheckSchedDeadline(); });
         }
         std::chrono::microseconds timeout(schedDeadline_[task]);
         TimePoint tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(
@@ -493,8 +493,8 @@ void QueueHandler::CheckOverload()
     }
 
     uint64_t expect = queue_->GetHeadUptime();
-    uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count();
+    uint64_t now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
     if (now > expect && now - expect > CONGESTION_TIMEOUT_US * overloadTimes_.load()) {
         overloadTimes_.fetch_add(1);
         std::vector<uint64_t> timeoutVec = {};

@@ -18,6 +18,7 @@
 
 #include <new>
 #include <vector>
+#include <deque>
 #include <mutex>
 #ifdef FFRT_BBOX_ENABLE
 #include <unordered_set>
@@ -81,7 +82,7 @@ public:
         return Instance()->SimpleAllocatorUnLock();
     }
 private:
-    std::vector<T*> primaryCache;
+    std::deque<T*> primaryCache;
 #ifdef FFRT_BBOX_ENABLE
     std::unordered_set<T*> secondaryCache;
 #endif
@@ -123,7 +124,7 @@ private:
     {
         char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
         count = MmapSz / TSize;
-        primaryCache.reserve(count);
+        // primaryCache.reserve(count);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             primaryCache.push_back(reinterpret_cast<T*>(p + i));
         }
@@ -145,8 +146,8 @@ private:
             }
             init();
         }
-        t = primaryCache.back();
-        primaryCache.pop_back();
+        t = primaryCache.front();
+        primaryCache.pop_front();
         count--;
         lock.unlock();
         return t;

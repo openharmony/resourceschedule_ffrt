@@ -691,13 +691,7 @@ ohos_unittest("ut_mem") {
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
   cflags_cc += [ "-DUSE_GTEST" ]
 
   sources = [
@@ -785,13 +779,7 @@ ohos_unittest("ut_qos_convert") {
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_qos_convert.cpp" ]
   deps = ffrt_ut_base_deps

@@ -73,11 +73,16 @@ int simple_thd_func(void *)
     return 0;
 }
 
+void MyFunc()
+{
+    int a = 0;
+    int b = a;
+}
+
 void* TmpFunc(void *)
 {
-    int *num = 0;
-    (*num)++;
-    return num;
+    void* ptr = MyFunc();
+    return ptr;
 }
 
 HWTEST_F(ThreadTest, IdleTest, TestSize.Level1)

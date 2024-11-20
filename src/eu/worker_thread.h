@@ -44,7 +44,7 @@ public:
     CPUEUTask* curTask = nullptr;
 
     uintptr_t curTaskType_ = ffrt_invalid_task;
-    std::string curTaskLabel_ = ""; // 需要代开宏WORKER_CACHE_NAMEID才会赋值
+    std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值
     uint64_t curTaskGid_ = UINT64_MAX;
     explicit WorkerThread(const QoS& qos);
 
@@ -69,7 +69,7 @@ public:
             }
 #endif
         }
-        FFRT_LOGW("WorkerThread enter destruction");
+        FFRT_LOGW("to exit, qos[%d]", qos());
         Detach();
     }
 

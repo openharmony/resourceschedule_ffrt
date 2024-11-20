@@ -39,6 +39,9 @@ public:
     {
         return ffrt_queue_serial;
     }
+
+    // initial value of overload threshold is 16
+    uint32_t overloadThreshold_ = 16;
 };
 
 std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr);

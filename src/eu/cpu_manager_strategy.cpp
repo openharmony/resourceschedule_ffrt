@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -48,7 +48,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
         [pIns] (WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
         [pIns] (WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        [pIns] (const WorkerThread* thread) { return pIns->IsExceedRuningThreshold(thread); },
+        [pIns] (const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
         [pIns] () { return pIns->IsBlockAwareInit(); },
 #endif
     };
@@ -77,7 +77,7 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
     // default strategy of monitor ops
     CpuMonitorOps ops {
         [pIns] (const QoS& qos) { return pIns->IncWorker(qos); },
-        [pIns] (const QoS& qos) { pIns-> WakeupWorkers(qos); },
+        [pIns] (const QoS& qos) { pIns->WakeupWorkers(qos); },
         [pIns] (const QoS& qos) { return pIns->GetTaskCount(qos); },
         [pIns] (const QoS& qos) { return pIns->GetWorkerCount(qos); },
         CPUMonitor::HandleTaskNotifyDefault,
@@ -86,7 +86,7 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
 #ifdef OHOS_STANDARD_SYSTEM
     for (const auto& notifyFunc : NOTIFY_FUNCTION_FACTORY) {
         if (strstr(processName, notifyFunc.first.c_str())) {
-            ops.HandleTaskNotify = notifyFunc.second;
+            ops.HandleTaskNotity = notifyFunc.second;
             break;
         }
     }

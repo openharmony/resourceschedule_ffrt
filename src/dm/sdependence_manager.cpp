@@ -15,6 +15,7 @@
 
 #include "sdependence_manager.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
+#include "tm/queue_task.h"
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
@@ -27,13 +28,16 @@ namespace ffrt {
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
+    // control construct sequences of singletons
 #ifdef FFRT_OH_TRACE_ENABLE
     TraceAdapter::Instance();
 #endif
-    // control construct sequences of singletons
     SimpleAllocator<CPUEUTask>::Instance();
+    SimpleAllocator<SCPUEUTask>::Instance();
+    SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
+    CoStackAttr::Instance();
     PollerProxy::Instance();
     FFRTScheduler::Instance();
     ExecuteUnit::Instance();
@@ -47,6 +51,8 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif
+    QueueMonitor::GetInstance();
+    GetIOPoller();
     DelayedWorker::GetInstance();
 }
 
@@ -149,7 +155,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             return;
         }
     }
-    
+
     if (attr != nullptr) {
         task->notifyWorker_ = attr->notifyWorker_;
     }

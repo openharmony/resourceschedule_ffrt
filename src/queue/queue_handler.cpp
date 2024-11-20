@@ -17,7 +17,6 @@
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
-#include "queue_monitor.h"
 #include "util/event_handler_adapter.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
@@ -31,6 +30,8 @@ constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
+constexpr uint32_t CONGESTION_CNT = 5;
+constexpr uint32_t CONGESTION_TIMEOUT_US = 300000000; // 5min
 }
 
 namespace ffrt {
@@ -59,7 +60,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
         FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", GetQueueId());
     }
 
-    QueueMonitor::GetInstance().RegisterQueueId(GetQueueId(), this);
+    FFRTFacade::GetQMInstance().RegisterQueueId(GetQueueId(), this);
     FFRT_LOGI("construct %s succ, qos[%d]", name_.c_str(), qos_);
 }
 
@@ -68,7 +69,7 @@ QueueHandler::~QueueHandler()
     FFRT_LOGI("destruct %s enter", name_.c_str());
     // clear tasks in queue
     CancelAndWait();
-    QueueMonitor::GetInstance().ResetQueueStruct(GetQueueId());
+    FFRTFacade::GetQMInstance().ResetQueueStruct(GetQueueId());
 
     // release callback resource
     if (timeout_ > 0) {
@@ -134,8 +135,12 @@ void QueueHandler::Submit(QueueTask* task)
     }
 #endif
 
+    // work after that schedule timeout is set for queue
     if (task->GetSchedTimeout() > 0) {
         AddSchedDeadline(task);
+    }
+    if (we_ != nullptr) {
+        CheckOverload();
     }
 
     int ret = queue_->Push(task);
@@ -175,7 +180,7 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Stop();
-    while (QueueMonitor::GetInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
+    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
 }
@@ -201,6 +206,7 @@ int QueueHandler::Cancel(QueueTask* task)
     if (task->GetSchedTimeout() > 0) {
         RemoveSchedDeadline(task);
     }
+
     int ret = queue_->Remove(task);
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
@@ -218,8 +224,8 @@ void QueueHandler::Dispatch(QueueTask* inTask)
     for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
         // dfx watchdog
         SetTimeoutMonitor(task);
-        QueueMonitor::GetInstance().UpdateQueueInfo(GetQueueId(), task->gid);
-		execTaskId_.store(task->gid);
+        FFRTFacade::GetQMInstance().UpdateQueueInfo(GetQueueId(), task->gid);
+        execTaskId_.store(task->gid);
 
         // run user task
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
@@ -250,8 +256,8 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         // run task batch
         nextTask = task->GetNextTask();
         if (nextTask == nullptr) {
-            QueueMonitor::GetInstance().ResetQueueInfo(GetQueueId());
-			execTaskId_.store(0);
+            FFRTFacade::GetQMInstance().ResetQueueInfo(GetQueueId());
+            execTaskId_.store(0);
             if (!queue_->IsOnLoop()) {
                 Deliver();
             }
@@ -405,10 +411,9 @@ int QueueHandler::DumpSize(ffrt_inner_queue_priority_t priority)
 void QueueHandler::SendSchedTimer(TimePoint delay)
 {
     we_->tp = delay;
-    we_->cb = ([this](WaitEntry* we_) { CheckSchedDeadline(); });
     bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     while (!result) {
-        FFRT_LOGW("failed to set delayedwoker, retry");
+        FFRT_LOGW("failed to set delayedworker, retry");
         we_->tp = std::chrono::steady_clock::now() + std::chrono::microseconds(SCHED_TIME_ACC_ERROR_US);
         result = DelayedWakeup(we_->tp, we_, we_->cb);
     }
@@ -422,7 +427,7 @@ void QueueHandler::CheckSchedDeadline()
         std::unique_lock lock(mutex_);
         uint64_t threshold = std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count() + SCHED_TIME_ACC_ERROR_US;
-
+        
         auto it = schedDeadline_.begin();
         uint64_t nextDeadline = UINT64_MAX;
         while (it != schedDeadline_.end()) {
@@ -440,24 +445,15 @@ void QueueHandler::CheckSchedDeadline()
         } else {
             std::chrono::microseconds timeout(nextDeadline);
             TimePoint tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(
-			    std::chrono::steady_clock::time_point() + timeout);
+                std::chrono::steady_clock::time_point() + timeout);
+            FFRT_LOGI("queueId=%u set sched timer", GetQueueId());
             SendSchedTimer(tp);
         }
     }
-
-    // Reporting Timeout Infomation
+    
+    // Reporting Timeout Information
     if (!timeoutTaskId.empty()) {
-        std::stringstream ss;
-        ss << "Queue_Schedule_Timeout, queueId=" << GetQueueId() << ", timeout task gid: ";
-        for (auto& id : timeoutTaskId) {
-            ss << id << " ";
-        }
-
-        FFRT_LOGE("%s", ss.str().c_str());
-        ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-        if (func) {
-            func(GetQueueId(), ss.str().c_str(), ss.str().size());
-        }
+        ReportTimeout(timeoutTaskId);
     }
 }
 
@@ -470,15 +466,17 @@ void QueueHandler::AddSchedDeadline(QueueTask* task)
 
     std::unique_lock lock(mutex_);
     schedDeadline_.insert({task, task->GetSchedTimeout() + task->GetUptime()});
-
+    
     if (!initSchedTimer_) {
         if (we_ == nullptr) {
             we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
+            we_->cb = ([this](WaitEntry* we_) { CheckSchedDeadline(); });
         }
         std::chrono::microseconds timeout(schedDeadline_[task]);
         TimePoint tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(
-		    std::chrono::steady_clock::time_point() + timeout);
+            std::chrono::steady_clock::time_point() + timeout);
         SendSchedTimer(tp);
+        initSchedTimer_ = true;
     }
 }
 
@@ -486,6 +484,37 @@ void QueueHandler::RemoveSchedDeadline(QueueTask* task)
 {
     std::unique_lock lock(mutex_);
     schedDeadline_.erase(task);
+}
+
+void QueueHandler::CheckOverload()
+{
+    if (queue_->GetMapSize() <= CONGESTION_CNT) {
+        return;
+    }
+
+    uint64_t expect = queue_->GetHeadUptime();
+    uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (now > expect && now - expect > CONGESTION_TIMEOUT_US * overloadTimes_.load()) {
+        overloadTimes_.fetch_add(1);
+        std::vector<uint64_t> timeoutVec = {};
+        ReportTimeout(timeoutVec);
+    }
+}
+
+void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
+{
+    std::stringstream ss;
+    ss << "Queue_Schedule_Timeout, queueId=" << GetQueueId() << ", timeout task gid: ";
+    for (auto& id : timeoutTaskId) {
+        ss << id << " ";
+    }
+
+    FFRT_LOGE("%s", ss.str().c_str());
+    ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+    if (func) {
+        func(GetQueueId(), ss.str().c_str(), ss.str().size());
+    }
 }
 
 } // namespace ffrt

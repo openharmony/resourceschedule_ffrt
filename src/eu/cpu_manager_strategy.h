@@ -55,7 +55,7 @@ struct CpuMonitorOps {
     std::function<void (const QoS& qos)> WakeupWorkers;
     std::function<int (const QoS& qos)> GetTaskCount;
     std::function<int (const QoS& qos)> GetWorkerCount;
-    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotify;
+    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotity;
 };
 
 class CPUMonitor;

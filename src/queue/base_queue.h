@@ -61,6 +61,12 @@ public:
         return whenMap_.size();
     }
 
+    inline uint64_t GetHeadUptime()
+    {
+        std::unique_lock lock(mutex_);
+        return whenMap_.empty() ? UINT64_MAX : whenMap_.begin()->first;
+    }
+
     inline uint32_t GetQueueId() const
     {
         return queueId_;

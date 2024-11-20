@@ -59,7 +59,7 @@ public:
     void IntoPollWait(const QoS& qos);
     void OutOfPollWait(const QoS& qos);
     void RollbackDestroy(const QoS& qos, bool irqWake = false);
-    void TryDestroy(const QoS& qos);
+    bool TryDestroy(const QoS& qos);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool IsExceedRunningThreshold(const QoS& qos);
     bool IsBlockAwareInit(void);
@@ -74,6 +74,7 @@ public:
     static void HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotifyType notifyType);
     static void HandleTaskNotifyUltraConservative(const QoS& qos, void* p, TaskNotifyType notifyType);
     int WakedWorkerNum(const QoS& qos);
+    int SleepingWorkerNum(const QoS& qos);
     void NotifyWorkers(const QoS& qos, int number);
     void StartMonitor();
 

@@ -45,18 +45,14 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         prio_ = attr->prio_;
         stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
         if (delay_ && attr->timeout_) {
-            FFRT_LOGW("task [gid=%llu] not support delay and timeout at the same time, timeout ignored", gid);
+            FFRT_LOGW("task [gid=%llu] not suport delay and timeout at the same time, timeout ignored", gid);
         } else if (attr->timeout_) {
             schedTimeout_ = std::max(attr->timeout_, MIN_SCHED_TIMEOUT); // min 0.1s
         }
     }
 
-    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus",
-              gid,
-              delay_,
-              type,
-              prio_,
-              schedTimeout_);
+    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus", gid, delay_, type, prio_,
+        schedTimeout_);
 }
 
 QueueTask::~QueueTask()

@@ -180,7 +180,7 @@ public:
     /**
      * @brief Sets the task schedule timeout.
      *
-     * @param timeou_us task scheduler timeout.
+     * @param timeout_us task scheduler timeout.
      * @since 12
      * @version 1.0
      */

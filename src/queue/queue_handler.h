@@ -80,7 +80,7 @@ public:
 
     inline uint64_t GetTaskCnt()
     {
-        FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueID=%u] constructed failed", GetQueueId());
+        FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
         return queue_->GetMapSize();
     }
 
@@ -102,6 +102,8 @@ private:
     void SetTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
+    void CheckOverload();
+    void ReportTimeout(const std::vector<uint64_t>& timeoutTaskId);
     void CheckSchedDeadline();
     void SendSchedTimer(TimePoint delay);
     void AddSchedDeadline(QueueTask* task);
@@ -122,6 +124,7 @@ private:
     std::mutex mutex_;
     bool initSchedTimer_ = false;
     WaitUntilEntry* we_ = nullptr;
+    std::atomic_uint32_t overloadTimes_ = {1};
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
 };
 } // namespace ffrt

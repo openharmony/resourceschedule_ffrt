@@ -50,8 +50,5 @@ private:
 IOPoller& GetIOPoller() noexcept;
 }
 
-static inline void ffrt_wait_fd(int fd)
-{
-    ffrt::GetIOPoller().WaitFdEvent(fd);
-}
+void ffrt_wait_fd(int fd);
 #endif

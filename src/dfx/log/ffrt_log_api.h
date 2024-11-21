@@ -20,6 +20,7 @@
 #include <array>
 #include <string_view>
 #include "hilog/log.h"
+#include "internal_inc/osal.h"
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #else
 #include "log_base.h"
@@ -32,6 +33,8 @@
 #define FFRT_LOG_LEVEL_MAX (FFRT_LOG_DEBUG + 1)
 
 unsigned int GetLogId(void);
+bool IsInWhitelist(void);
+void InitWhiteListFlag(void);
 
 #ifdef OHOS_STANDARD_SYSTEM
 template<size_t N>
@@ -75,8 +78,10 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)
 #define FFRT_LOGD(format, ...) \
     do { \
-        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_DEBUG, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        if (unlikely(IsInWhitelist())) { \
+            constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+            HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_DEBUG, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        } \
     } while (0)
 #else
 #define FFRT_LOGD(format, ...)

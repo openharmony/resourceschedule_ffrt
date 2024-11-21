@@ -16,11 +16,18 @@
 #define UTIL_FFRTFACADE_HPP
 #include "tm/cpu_task.h"
 #include "sched/scheduler.h"
+#include "eu/co_routine.h"
 #include "eu/execute_unit.h"
 #include "dm/dependence_manager.h"
-#include "sync/poller.h"
+#include "queue/queue_monitor.h"
 #include "sync/delayed_worker.h"
+#include "sync/poller.h"
+#include "sync/io_poller.h"
+#include "util/worker_monitor.h"
+
 namespace ffrt {
+bool GetExitFlag();
+std::shared_mutex& GetExitMtx();
 
 class FFRTFacade {
 public:
@@ -38,27 +45,48 @@ public:
 
     static inline PollerProxy& GetPPInstance()
     {
-        PollerProxy& inst = Instance().GetPPInstanceImpl();
+        static PollerProxy& inst = Instance().GetPPInstanceImpl();
         return inst;
     }
 
     static inline DelayedWorker& GetDWInstance()
     {
-        DelayedWorker& inst = Instance().GetDWInstanceImpl();
+        static DelayedWorker& inst = Instance().GetDWInstanceImpl();
         return inst;
     }
 
     static inline FFRTScheduler* GetSchedInstance()
     {
-        FFRTScheduler* inst = Instance().GetSchedInstanceImpl();
+        static FFRTScheduler* inst = Instance().GetSchedInstanceImpl();
+        return inst;
+    }
+
+    static inline IOPoller& GetIoPPInstance()
+    {
+        static IOPoller& inst = Instance().GetIoPPInstanceImpl();
+        return inst;
+    }
+
+    static inline CoStackAttr* GetCSAInstance()
+    {
+        static CoStackAttr* inst = Instance().GetCSAInstanceImpl();
+        return inst;
+    }
+
+    static inline QueueMonitor& GetQMInstance()
+    {
+        static QueueMonitor& inst = Instance().GetQMInstanceImpl();
+        return inst;
+    }
+
+    static inline WorkerMonitor& GetWMInstance()
+    {
+        static WorkerMonitor& inst = Instance().GetWMInstanceImpl();
         return inst;
     }
 
 private:
-    FFRTFacade()
-    {
-        DependenceManager::Instance();
-    }
+    FFRTFacade();
 
     static FFRTFacade& Instance()
     {
@@ -89,6 +117,26 @@ private:
     inline FFRTScheduler* GetSchedInstanceImpl()
     {
         return FFRTScheduler::Instance();
+    }
+
+    inline IOPoller& GetIoPPInstanceImpl()
+    {
+        return GetIOPoller();
+    }
+
+    inline CoStackAttr* GetCSAInstanceImpl()
+    {
+        return CoStackAttr::Instance();
+    }
+
+    inline QueueMonitor& GetQMInstanceImpl()
+    {
+        return QueueMonitor::GetInstance();
+    }
+
+    inline WorkerMonitor& GetWMInstanceImpl()
+    {
+        return WorkerMonitor::GetInstance();
     }
 };
 

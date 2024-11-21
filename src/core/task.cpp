@@ -25,7 +25,6 @@
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
 #include "eu/worker_thread.h"
-#include "eu/cpu_monitor.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/watchdog/watchdog_util.h"

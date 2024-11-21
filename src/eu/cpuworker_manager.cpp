@@ -26,7 +26,7 @@
 #include "eu/cpuworker_manager.h"
 #include "util/ffrt_facade.h"
 #ifdef FFRT_WORKER_MONITOR
-#include "util/worker_monitor.h"
+#include "util/ffrt_facade.h"
 #endif
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
@@ -73,9 +73,10 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     FFRT_PERF_WORKER_WAKE(workerQos);
     lock.unlock();
 #ifdef FFRT_WORKER_MONITOR
-    WorkerMonitor::GetInstance().SubmitTask();
+    FFRTFacade::GetWMInstance().SubmitTask();
 #endif
     FFRTTraceRecord::UseFfrt();
+    FFRT_LOGI("qos[%d]", workerQos);
     return true;
 }
 

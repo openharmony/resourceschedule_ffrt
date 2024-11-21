@@ -27,7 +27,7 @@ void SCPUMonitor::IntoSleep(const QoS& qos)
 
 void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
-    GetOps().HandleTaskNotify(qos, this, notifyType);
+    GetOps().HandleTaskNotity(qos, this, notifyType);
 }
 
 void SCPUMonitor::WorkerInit()

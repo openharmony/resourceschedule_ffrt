@@ -107,8 +107,15 @@ void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
 
     // qos has no worker, start delay worker to monitor task
     if (isEmptyQosThreads) {
+        std::shared_mutex& exitMtx = GetExitMtx();
+        exitMtx.lock_shared();
+        if (GetExitFlag()) {
+            exitMtx.unlock_shared();
+            return;
+        }
         FFRT_LOGI("qos has no worker, start delay worker to monitor task, qos %d", qos);
         AddDelayedTask(qos);
+        exitMtx.unlock_shared();
     }
 }
 
@@ -123,6 +130,7 @@ void SCPUWorkerManager::AddDelayedTask(int qos)
         lck.unlock();
 
         if (!isEmpty) {
+            SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
             FFRT_LOGW("qos[%d] has worker, no need add delayed task", qos);
             return;
         }

@@ -32,7 +32,7 @@
 
 namespace {
 /* SUPPORT_WORKER_DESTRUCT indicates that the idle thread destruction function is supported.
- * The stack canary is saved or destored during coroutine switch-out and switch-in,
+ * The stack canary is saved or restored during coroutine switch-out and switch-in,
  * currently, only the stack canary used by the ohos compiler stack protection is global
  * and is not affected by worker destruction.
 */
@@ -110,7 +110,7 @@ void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
         worker = nullptr;
     }
 
-    //qos has no worker, start delay worker to monitor task
+    // qos has no worker, start delay worker to monitor task
     if (isEmptyQosThreads) {
         std::shared_mutex& exitMtx = GetExitMtx();
         exitMtx.lock_shared();
@@ -188,7 +188,7 @@ void SCPUWorkerManager::AddDelayedTask(int qos)
         std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
         bool isEmpty = groupCtl[qos].threads.empty();
         lck.unlock();
-        
+
         if (!isEmpty) {
             SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
             FFRT_LOGW("qos[%d] has worker, no need add delayed task", qos);
@@ -223,10 +223,8 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     BlockawareEnterSleeping();
 #endif
-	if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
-        bool taskExistence = GetTaskCount(thread->GetQos()) ||
-            reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
-            reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
+    if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
+        bool taskExistence = GetTaskCount(thread->GetQos());
         bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
             (polling_[thread->GetQos()] == 0);
         return tearDown || taskExistence || needPoll;
@@ -286,12 +284,12 @@ WorkerAction SCPUWorkerManager::WorkerIdleActionSimplified(const WorkerThread* t
         monitor->WakeupDeepSleep(thread->GetQos());
         return WorkerAction::RETRY;
 #else
-		monitor->TimeoutCount(thread->GetQos());
+        monitor->TimeoutCount(thread->GetQos());
         return WorkerAction::RETIRE;
 #endif
     }
 }
-    
+
 void SCPUWorkerManager::WorkerPrepare(WorkerThread* thread)
 {
     WorkerJoinTg(thread->GetQos(), thread->Id());

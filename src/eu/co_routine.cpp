@@ -161,7 +161,7 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
             FFRT_UNLIKELY_COND_DO_ABORT((threadVal && taskVal && (threadVal != taskVal)),
                 "FFRT abort: mismatch key=[%u]", key);
             FFRT_UNLIKELY_COND_DO_ABORT((threadVal && !taskVal),
-                "FFRT abort: unexpected: thread exists but task not exist, key=[%u]", key);
+                "FFRT abort: unexpected: thread exists but task not exists, key=[%u]", key);
         }
         taskTsd[key] = nullptr;
     }
@@ -234,7 +234,7 @@ static inline void CoStartEntry(void* arg)
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
 #ifdef ASAN_MODE
     /* thread to co finish first */
-    __sanitizer_finish_switch_fiber(co->asanFakeStack, (void **)&co->asanFiberAddr, &co->asanFiberSize);
+    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
     ffrt::CPUEUTask* task = co->task;
     bool isNormalTask = false;
@@ -390,7 +390,7 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
 static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
 {
     if (task->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
-        for (auto name : task->traceTag) {
+        for (auto& name : task->traceTag) {
             FFRT_TRACE_BEGIN(name.c_str());
         }
     }

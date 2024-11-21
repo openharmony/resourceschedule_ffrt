@@ -58,6 +58,10 @@ config("ffrt_config") {
 
   defines += ffrt_debug_defines
 
+  if (is_asan && !use_hwasan) {
+    defines += [ "ASAN_MODE" ]
+  }
+
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
   }

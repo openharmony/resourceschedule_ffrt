@@ -43,7 +43,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
         [pIns] (WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
         [pIns] (WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        [pIns] (const WorkerThread* thread) { return pIns->IsExceedRuningThreshold(thread); },
+        [pIns] (const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
         [pIns] () { return pIns->IsBlockAwareInit(); },
 #endif
     };

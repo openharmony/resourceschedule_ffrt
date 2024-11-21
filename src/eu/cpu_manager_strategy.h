@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-#ifndef FFRT_CPU_MANAGER_INTERFACE_HPP
-#define FFRT_CPU_MANAGER_INTERFACE_HPP
 #ifndef FFRT_CPU_MANAGER_STRATEGY_HPP
 #define FFRT_CPU_MANAGER_STRATEGY_HPP
 
@@ -65,7 +63,6 @@ struct CpuMonitorOps {
     std::function<int (const QoS& qos)> GetTaskCount;
     std::function<int (const QoS& qos)> GetWorkerCount;
     std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotity;
-    std::function<void (const QoS& qos, void*, TaskNotifyType)> HandleTaskNotify;
 };
 
 class CPUMonitor;
@@ -75,6 +72,5 @@ public:
     static CPUMonitor* CreateCPUMonitor(void* manager);
 };
 }
-#endif
 #endif
 

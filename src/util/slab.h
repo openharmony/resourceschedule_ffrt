@@ -122,6 +122,10 @@ private:
     void init()
     {
         char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
+        if (p == nullptr) {
+            FFRT_LOGE("calloc failed");
+            std::terminate;
+        }
         count = MmapSz / TSize;
         primaryCache.reserve(count);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
@@ -137,6 +141,10 @@ private:
         if (count == 0) {
             if (basePtr != nullptr) {
                 t = reinterpret_cast<T*>(std::calloc(1, TSize));
+                if (t == nullptr) {
+                    FFRT_LOGE("calloc failed");
+                    std::terminate;
+                }
 #ifdef FFRT_BBOX_ENABLE
             	secondaryCache.insert(t);
 #endif
@@ -166,7 +174,7 @@ private:
 #ifdef FFRT_BBOX_ENABLE
             secondaryCache.erase(t);
 #endif
-            ::operator delete(t);
+            std::free(t);
         }
         lock.unlock();
     }
@@ -196,10 +204,10 @@ private:
             FFRT_LOGE("clear allocator failed");
         }
         for (auto ite = secondaryCache.cbegin(); ite != secondaryCache.cend(); ite++) {
-            ::operator delete(*ite);
+            std::free(*ite);
         }
 #endif
-        ::operator delete(basePtr);
+        std::free(basePtr);
         FFRT_LOGI("destruct SimpleAllocator");
     }
 };

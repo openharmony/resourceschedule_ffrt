@@ -69,9 +69,9 @@ void CPUMonitor::SetupMonitor()
     for (int i = 0; i < BLOCKAWARE_DOMAIN_ID_MAX + 1; i++) {
         wakeupCond.local[i].low = 0;
         if (i < qosMonitorMaxNum) {
-            wakeupCond.local[i].high = UNIT_MAX;
+            wakeupCond.local[i].high = UINT_MAX;
             wakeupCond.global.low += wakeupCond.local[i].low;
-            wakeupCond.global.high = UNIT_MAX;
+            wakeupCond.global.high = UINT_MAX;
         } else {
             wakeupCond.local[i].high = 0;
         }
@@ -352,7 +352,7 @@ void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotif
     CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
     int taskCount = monitor->ops.GetTaskCount(qos);
     if (taskCount == 0) {
-        //no available task in global queue, skip
+        // no available task in global queue, skip
         return;
     }
     constexpr double thresholdTaskPick = 1.0;
@@ -364,12 +364,12 @@ void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotif
         double remainingLoadRatio = (wakedWorkerCount == 0) ? static_cast<double>(workerCtrl.maxConcurrency) :
             static_cast<double>(taskCount) / static_cast<double>(wakedWorkerCount);
         if (remainingLoadRatio <= thresholdTaskPick) {
-            //for task pick, wake worker when load ratio > 1
+            // for task pick, wake worker when load ratio > 1
             workerCtrl.lock.unlock();
             return;
         }
     }
-  
+
     if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.maxConcurrency) {
         if (workerCtrl.sleepingWorkerNum == 0) {
             FFRT_LOGI("begin to create worker, notifyType[%d]"
@@ -400,12 +400,13 @@ void CPUMonitor::HandleTaskNotifyUltraConservative(const QoS& qos, void* p, Task
 
     WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
     std::lock_guard lock(workerCtrl.lock);
-    
+
     int runningNum = workerCtrl.executionNum;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    if (monitor->blockAwareInit && !BlockawareLoadSnapshot(monitor->keyPtr, &monitor->domainInfoNotify)) {
-        /* nrRunning may not be updated in a timely manner */
-        runningNum = workerCtrl.executionNum - monitor->domainInfoNotify.localinfo[qos()].nrBlocked;
+    if (monitor->blockAwareInit) {
+        /* nrBlocked may not be updated in a timely manner */
+        auto nrBlocked = BlockawareLoadSnapshotNrBlockedFast(monitor->keyPtr, qos());
+        runningNum = workerCtrl.executionNum - nrBlocked;
         if (!monitor->stopMonitor && taskCount == runningNum) {
             BlockawareWake();
             return;

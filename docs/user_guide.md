@@ -156,7 +156,7 @@ void submit(const std::function<void()>& func, const std::vector<const void*>& i
 
 - 该接口支持嵌套调用，即任务中可以继续提交子任务
 
-- 该接口在实现上使用多个重载版本以优化性能（基于移动语义，初始化列表等），用户只需按上述原型使用，编译时会自动选择最佳版本，支持的重载版本有：
+- 该接口采用多种优化策略，包括使用移动语义和初始化列表，用户仅需按照提供的原型调用，编译器会自动选择最优的重载版本。具体支持以下重载版本：
 
   ```cpp
   void submit(std::function<void()>&& func);
@@ -509,9 +509,9 @@ task_handle submit_h(const std::function<void()>& func, const std::vector<const 
 
 ##### 描述
 
-- 该接口与 submit 使用基本相同，从性能的角度，在不需要返回 task handle 的场景，可以调用 submit 接口相对于 submit_h 有更好的性能
+- 该接口与 submit 使用基本相同，从性能的角度，在不需要返回 task handle 的场景，可以调用 submit 接口 相对于 submit_h 有更好的性能
 - task_handle 可以和其他的数据 depends 同时作为某个 task 的 in_deps，表示该 task 的执行依赖 task_handle 对应的 task 执行完成
-- task_handle 可以和其他的数据 depends 同时作为 wait 的 deps，表示当前任务将被 suspend，直到 task_handle 对应的 task 执行完成后将被恢复
+- task_handle 可以和其他的数据 depends 同时作为 wait 的 deps，表示当前任务将被 suspend，直到 task_handle 对应的 task 执行完成后方被恢复
 - task_handle 不建议作为某个 task 的 out_deps，其行为是未定义的
 
 ##### 样例
@@ -750,7 +750,7 @@ int queue::cancel(const task_handle& handle);
 - 参数：
   `handle`：任务的句柄
 - 返回值：
-  若成功返回 0，否则返回其他非 0 值
+  若成功返回 0，失败时返回非零值
 
 ###### wait
 
@@ -1352,7 +1352,7 @@ int main(int narg, char** argv)
 }
 ```
 
-- 这是一个`busy sleep`，同时允许其他可以被执行的 task 插入执行
+- 这是一个非阻塞等待，允许其他可执行的 task 抢占执行
 
 ## C API
 
@@ -1497,9 +1497,9 @@ void ffrt_wait();
 
 ##### 描述
 
-- `ffrt_wait_deps(deps)` 用于等待 deps 指代的数据被生产完成才能执行后面的代码
+- `ffrt_wait_deps(deps)` 用于等待由 deps 指定的数据准备就绪后，方可执行后续代码。
 
-- `ffrt_wait()` 用于等待当前上下文提交的所有子任务（注意：不包括孙任务和下级子任务）都完成才能执行后面的代码
+- `ffrt_wait()` 用于等待当前上下文提交的所有子任务都完成才能执行后面的代码（注意：不包括孙任务和下级子任务）
 - 该接口支持在 FFRT task 内部调用，也支持在 FFRT task 外部调用
 - 在 FFRT task 外部调用的 wait 是 OS 能够感知的等待，相对于 FFRT task 内部调用的 wait 是更加昂贵的，因此我们希望尽可能让更多的 wait 发生在 FFRT task 内部，而不是 FFRT task 外部
 
@@ -2033,7 +2033,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos);
 - 该接口对当前 task 的 qos 调整会立即生效
 - 如果新设定的 qos 与当前的 qos 不一致，则会 block 当前 task 的执行，再按照新的 qos 恢复执行
 - 如果新设定的 qos 与当前的 qos 一致，则接口会立即返回 0，不做任何处理
-- 如果在非 task 内部调用该接口，则返回非 0 值，用户可以选择忽略或其他处理
+- 如果在非 task 内部调用该接口，则返回非零值，调用者可以选择忽略或进行其他处理
 
 ##### 样例
 
@@ -2164,7 +2164,7 @@ int ffrt_queue_cancel(ffrt_task_handle_t handle);
 
   `handle`：任务的句柄
 
-- 返回值：若成功返回 0，否则返回其他非 0 值
+- 返回值：若成功返回 0，失败时返回非零值
 
 ##### 样例
 
@@ -2249,7 +2249,7 @@ int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
 
   `attr`：已初始化的串行队列属性
 
-- 返回值：若成功返回 0，否则返回 -1
+- 返回值：若成功返回 0，失败返回 -1
 
 ###### ffrt_queue_attr_destroy
 
@@ -2578,7 +2578,7 @@ int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);
 
 ##### 描述
 
-- 提供接口 `ffrt_timer_start` 设定超时的绝对时间，用于设定 epoll_wait 阻塞时间，若调用 PollOnce 时已超时，则执行入参所设的回调函数 cb
+- 提供接口 `ffrt_timer_start` 设定超时时间，用于设定 epoll_wait 阻塞时间，若调用 PollOnce 时已超时，则执行入参所设的回调函数 cb
 - 提供接口 `ffrt_timer_stop` 用于根据任务 handle 取消定时任务
 - 当 timer 超时回调被执行时，FFRT 会记录并保存 handle 的执行状态（执行中、执行完成），该记录会在 `ffrt_timer_stop` 被调用后删除。因此建议 `ffrt_timer_start`和 `ffrt_timer_stop` 接口成对使用，否则可能造成记录数据的无限膨胀
 
@@ -3298,7 +3298,7 @@ Time: Tue Aug 13 11:34:42 2024
 
 #### ffrt_yield
 
-- 当前 task 主动让出 CPU 执行资源，让其他可以被执行的 task 先执行，如果没有其他可被执行的 task，yield 无效
+- 当前 task 主动让出 CPU 执行资源，允许其他可执行的 task 运行，如果没有其他可执行的 task，yield 无效
 
 ##### 声明
 
@@ -3596,7 +3596,7 @@ ffrt::wait();
 
 <img src="images/image-20220926153825527.png" alt ="images/image-20220926153825527.png" style="zoom:100%" />
 
-基于以上实现，从上面的 Trace 中我们看到，NPU 的硬件时间被完全用满，系统端到端性能达到最优，而付出的开发代价将会比 GCD 或多线程小的多。
+基于以上实现，从上面的 Trace 中我们可以观察到，NPU 的计算得到了充分利用，整个系统的性能表现卓越，而付出的开发代价将会比 GCD 或多线程小的多。
 
 ### 样例：Camera FaceStory
 

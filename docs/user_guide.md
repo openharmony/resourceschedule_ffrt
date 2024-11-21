@@ -163,16 +163,16 @@ void submit(const std::function<void()>& func, const std::vector<const void*>& i
   void submit(std::function<void()>&& func, std::initializer_list<const void*> in_deps);
   void submit(std::function<void()>&& func, std::initializer_list<const void*> in_deps, std::initializer_list<const void*> out_deps);
   void submit(std::function<void()>&& func, std::initializer_list<const void*> in_deps, std::initializer_list<const void*> out_deps, const task_attr& attr);
-  
+
   void submit(std::function<void()>&& func, const std::vector<const void*>& in_deps);
   void submit(std::function<void()>&& func, const std::vector<const void*>& in_deps, const std::vector<const void*>& out_deps);
   void submit(std::function<void()>&& func, const std::vector<const void*>& in_deps, const std::vector<const void*>& out_deps, const task_attr& attr);
-  
+
   void submit(const std::function<void()>& func);
   void submit(const std::function<void()>& func, std::initializer_list<const void*> in_deps);
   void submit(const std::function<void()>& func, std::initializer_list<const void*> in_deps, std::initializer_list<const void*> out_deps);
   void submit(const std::function<void()>& func, std::initializer_list<const void*> in_deps, std::initializer_list<const void*> out_deps, const task_attr& attr);
-  
+
   void submit(const std::function<void()>& func, const std::vector<const void*>& in_deps);
   void submit(const std::function<void()>& func, const std::vector<const void*>& in_deps, const std::vector<const void*>& out_deps);
   void submit(const std::function<void()>& func, const std::vector<const void*>& in_deps, const std::vector<const void*>& out_deps, const task_attr& attr);
@@ -206,7 +206,7 @@ int main(int narg, char** argv)
 4.由于 3 个 Task 在数据依赖关系上没有生产者 - 消费者或生产者 - 生产者依赖关系，因此 3 个 Task 是可以并行的，1 种可能的输出是：
 
 ```output
-num: 0   
+num: 0
 num: 2
 num: 1
 ```
@@ -295,7 +295,7 @@ nested task  1.1
 task 2
 nested task 1.2
 nested task 2.2
-nested task 2.1  
+nested task 2.1
 ```
 
 #### wait
@@ -308,7 +308,7 @@ nested task 2.1
 ```cpp
 namespace ffrt {
 void wait(const std::vector<const void*>& deps);
-void wait(); 
+void wait();
 }
 ```
 
@@ -449,7 +449,7 @@ public:
 
 int main(int narg, char** argv)
 {
-    ffrt::submit([] { std::cout << "hello ffrt" << std::endl; }, {}, {}, 
+    ffrt::submit([] { std::cout << "hello ffrt" << std::endl; }, {}, {},
         ffrt::task_attr().qos(ffrt::qos_background));
     ffrt::wait();
     return 0;
@@ -527,7 +527,7 @@ int main(int narg, char** argv)
     int x = 1;
     ffrt::submit([&] { x++; }, {}, {&x});
     ffrt::submit([&] { std::cout << "world, x = " << x << std::endl; }, {&x, h}); // this task depend x and h
-    
+
     // handle work with wait
     ffrt::task_handle h2 = ffrt::submit_h([&] { std::cout << "handle wait" << std::endl; x++; });
     ffrt::wait({h2});
@@ -818,7 +818,7 @@ FFRT 串行队列 C++ API，提供设置与获取串行队列优先级、设置�
 ```cpp
 namespace ffrt {
 class queue_attr {
-public: 
+public:
     queue_attr(const queue_attr&) = delete;
     queue_attr& operator=(const queue_attr&) = delete;
 
@@ -1333,7 +1333,7 @@ void yield();
 #include "ffrt.h"
 
 using namespace std::chrono_literals;
-// "busy sleep" while suggesting that other tasks run 
+// "busy sleep" while suggesting that other tasks run
 // for a small amount of time
 void little_sleep(std::chrono::microseconds us)
 {
@@ -1678,7 +1678,7 @@ int main(int narg, char** argv)
 {
     int x1 = 1;
     int x2 = 2;
-    
+
     const std::vector<ffrt_dependence_t> t_deps = {{ffrt_dependence_data, &x1}, {ffrt_dependence_data, &x2}};
     ffrt_deps_t deps{static_cast<uint32_t>(t_deps.size()), t_deps.data()};
     // some code use deps
@@ -1696,12 +1696,12 @@ int main(int narg, char** argv)
 {
     int x1 = 1;
     int x2 = 2;
-    
+
     ffrt_dependence_t* t = new ffrt_dependence_t[2];
     t[0]= {ffrt_dependence_data, &x1};
     t[1]= {ffrt_dependence_data, &x2};
     ffrt_deps_t deps = {2, t};
-    
+
     // some code use deps
     return 0;
 }
@@ -1950,7 +1950,7 @@ static inline void ffrt_submit_c(ffrt_function_t func, const ffrt_function_t aft
 }
 
 int main(int narg, char** argv)
-{  
+{
     // handle work with submit
     ffrt_task_handle_t h = ffrt_submit_h_c(func0, NULL, NULL, NULL, NULL, NULL); // not need some data in this task
     int x = 1;
@@ -1961,7 +1961,7 @@ int main(int narg, char** argv)
     ffrt_submit_c(func1, NULL, &x, NULL, &d1, NULL);
     ffrt_submit_c(func2, NULL, &x, &d2, NULL, NULL); // this task depend x and h
     ffrt_task_handle_destroy(h);
-    
+
     // handle work with wait
     ffrt_task_handle_t h2 = ffrt_submit_h_c(func3, NULL, &x, NULL, NULL, NULL);
     const std::vector<ffrt_dependence_t> d3_deps = {{ffrt_dependence_data, h2}};
@@ -2484,7 +2484,7 @@ int main(int narg, char** argv)
     std::function<void()>&& basicFunc1 = [&result1]() { result1 += 10; };
     ffrt_task_handle_t task1 = ffrt_queue_submit_h(queue_handle,
         create_function_wrapper(basicFunc1, ffrt_function_kind_queue), nullptr);
-    
+
     // step4: 在进程中执行 loop run
     pthread_t thread;
     pthread_create(&thread, 0, ThreadFunc, loop);
@@ -2514,7 +2514,7 @@ int main(int narg, char** argv)
     std::function<void()>&& basicFunc2 = [&result2]() { result2 += 20; };
     ffrt_task_handle_t task2 = ffrt_queue_submit_h(queue_handle,
         create_function_wrapper(basicFunc2, ffrt_function_kind_queue), nullptr);
-    
+
     ffrt_queue_wait(task1);
     ffrt_queue_wait(task2);
     EXPECT_EQ(result1, 10);
@@ -2707,7 +2707,7 @@ typedef struct {
 void func(void* arg)
 {
     tuple* t = (tuple*)arg;
-    
+
     int ret = ffrt_mutex_lock(t->mtx);
     if (ret != ffrt_success) {
         printf("error\n");
@@ -3330,12 +3330,12 @@ void ffrt_yield();
 
 ##### 描述
 
-- 长耗时任务打印机制  
+- 长耗时任务打印机制
   当任务执行时间超过一秒时，会触发一次堆栈打印，后续该任务堆栈打印频率调整为一分钟。连续打印十次后，打印频率调整为十分钟。再触发十次打印后，打印频率固定为三十分钟。
 
-- 该机制的堆栈打印调用的是 DFX 的 `GetBacktraceStringByTid` 接口，该接口会向阻塞线程发送抓栈信号，触发中断并抓取调用栈返回。  
+- 该机制的堆栈打印调用的是 DFX 的 `GetBacktraceStringByTid` 接口，该接口会向阻塞线程发送抓栈信号，触发中断并抓取调用栈返回。
 
-##### 样例  
+##### 样例
 
 在对应进程日志中搜索 `RecordSymbolAndBacktrace` 关键字，对应的日志示例如下：
 
@@ -3358,7 +3358,7 @@ W C01719/ffrt: #09 pc 00000000000467b0 /system/lib64/chipset-sdk/libffrt.so
 
 ##### 注意事项
 
-如果代码中存在 `sleep` 等会被中断唤醒的阻塞，用户需主动接收该阻塞的返回值，并重新调用。  
+如果代码中存在 `sleep` 等会被中断唤醒的阻塞，用户需主动接收该阻塞的返回值，并重新调用。
 示例如下：
 
 ```c
@@ -3436,7 +3436,7 @@ while (leftTime != 0) {
       };
   }
   ```
-  
+
 - **出于易用性方面的考虑，除非必要，强烈建议你使用 C++ API，调用 C API 将会使你的代码非常臃肿或者更容易产生资源未释放问题**
 
 | 需求列表                                                     |
@@ -3728,7 +3728,7 @@ void fib_ffrt(int x, int* y)
     } else {
         int *y1 = (int*)malloc(sizeof(int));
         int *y2 = (int*)malloc(sizeof(int));
-  
+
         ffrt::submit([=] {fib_ffrt(x - 1, y1);}, {}, {y1} );
         ffrt::submit([=] {fib_ffrt(x - 2, y2);}, {}, {y2} );
         ffrt::submit([=] {*y = *y1 + *y2; }, {y1, y2}, {} );

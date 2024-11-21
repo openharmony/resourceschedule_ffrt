@@ -65,7 +65,7 @@ FFRT: Function Flow Runtime，一种并发编程框架，提供以数据依赖�
 ├── resourceschedule_ffrt
 ├── third_party
 │   └── bounds_checking_function
-```  
+```
 
 > 再进入到 ffrt 代码路径下，执行 scripts 下的 shell 脚本 (`sh scripts/run_example.sh`)。
 

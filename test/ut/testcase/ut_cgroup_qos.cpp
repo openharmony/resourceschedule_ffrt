@@ -244,8 +244,7 @@ HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level1)
 
     if (ret < 0) {
         EXPECT_EQ(status, 0);
-    }
-    else {
+    } else {
         EXPECT_EQ(status, 3);
     }
 }

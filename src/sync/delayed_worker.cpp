@@ -91,7 +91,7 @@ void DelayedWorker::DumpMap()
 
     int count = 0;
     std::stringstream ss;
-    unsigned int printCount = map.size() < DUMP_MAP_MAX_COUNT ? map.size() : DUMP_MAP_MAX_COUNT;
+    int printCount = map.size() < DUMP_MAP_MAX_COUNT ? map.size() : DUMP_MAP_MAX_COUNT;
     for (auto it = map.begin(); it != map.end() && count < DUMP_MAP_MAX_COUNT; ++it, ++count) {
         ss << it->first.time_since_epoch().count();
         if (count < printCount - 1) {
@@ -136,7 +136,7 @@ void DelayedWorker::ThreadInit()
             if (result == 0) {
                 uint64_t ns = map.begin()->first.time_since_epoch().count();
                 itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
-                int ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
+                ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
                 if (ret != 0) {
                     FFRT_LOGE("timerfd_settime error,ns=%lu,ret= %d.", ns, ret);
                 }
@@ -147,7 +147,7 @@ void DelayedWorker::ThreadInit()
                     break;
                 }
                 itimerspec its = { {0, 0}, {FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS, 0} };
-                int ret = timerfd_settime(timerfd_, 0, &its, nullptr);
+                ret = timerfd_settime(timerfd_, 0, &its, nullptr);
                 if (ret != 0) {
                     FFRT_LOGE("timerfd_settime error, ret= %d.", ret);
                 }

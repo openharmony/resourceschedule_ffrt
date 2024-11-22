@@ -43,6 +43,9 @@ int SerialQueue::Push(QueueTask* task)
 
     if (task == whenMap_.begin()->second) {
         cond_.NotifyOne();
+    } else if ((whenMap_.begin()->second->GetDelay() > 0) && (GetNow() > whenMap_.begin()->first)) {
+        FFRT_LOGI("push task notify cond_wait.");
+        cond_.NotifyOne();
     }
 
     if (whenMap_.size() >= overloadThreshold_) {

@@ -51,12 +51,8 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         }
     }
 
-    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus",
-              gid,
-              delay_,
-              type,
-              prio_,
-              schedTimeout_);
+    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus", gid, delay_, type, prio_,
+        schedTimeout_);
 }
 
 QueueTask::~QueueTask()

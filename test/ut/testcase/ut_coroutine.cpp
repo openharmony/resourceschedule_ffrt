@@ -165,7 +165,7 @@ HWTEST_F(CoroutineTest, coroutine_alloc_fail, TestSize.Level1)
 {
     ffrt::task_attr attr;
     const uint64_t id = 0;
-    ffrt::SCPUEUTask task(reinterpret_cast<ffrt::task_attr_private *>(&attr), nullptr, id, ffrt::Qos(2));
+    ffrt::SCPUEUTask task(reinterpret_cast<ffrt::task_attr_private *>(&attr), nullptr, id, ffrt::QoS(2));
     task.coRoutine = nullptr;
     task.stack_size = 100 * (1uLL << 40); // 100T
     struct CoRoutineEnv env;
@@ -193,5 +193,5 @@ HWTEST_F(CoroutineTest, coroutine_alloc_fail, TestSize.Level1)
 
     delete manager;
     worker->Join();
-    delete worker();
+    delete worker;
 }

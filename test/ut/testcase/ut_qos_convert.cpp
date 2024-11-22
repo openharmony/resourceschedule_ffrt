@@ -58,7 +58,7 @@ HWTEST_F(QosConvertTest, GetDynamicQosTest, TestSize.Level1)
 HWTEST_F(QosConvertTest, GetStaticQosTest, TestSize.Level1)
 {
     qos tmpQos = qos_default;
-    int ret = GeStaticQos(tmpQos);
+    int ret = GetStaticQos(tmpQos);
     EXPECT_EQ(ret, -1);
 }
 
@@ -81,11 +81,11 @@ protected:
     {
     }
 
-    static void SetUp()
+    virtual void SetUp()
     {
     }
 
-    static void TearDown()
+    virtual void TearDown()
     {
     }
 };
@@ -104,7 +104,7 @@ HWTEST_F(CgroupQosTest, SchedAttrTest, TestSize.Level1)
     OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 1);
     OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 15);
     int ret = 0;
-    ret = OSAttrManager::Instance->UpdateSchedAttr(QoS(static_cast<int>(qos_defined_ive)), &attr);
+    ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(qos_defined_ive)), &attr);
     EXPECT_EQ(ret, 0);
 }
 

@@ -73,10 +73,11 @@ int simple_thd_func(void *)
     return 0;
 }
 
-void MyFunc()
+void* MyFunc(void * arg)
 {
-    int a = 0;
-    int b = a;
+    int *counter = (int *)arg;
+    (*counter)++;
+    return arg;
 }
 
 HWTEST_F(ThreadTest, IdleTest, TestSize.Level1)

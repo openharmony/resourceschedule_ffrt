@@ -111,12 +111,13 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
     int fdCnt = 0;
     for (size_t i = 0; i < cachedEventsVec.size(); i++) {
         auto eventInfo = cachedEventsVec[i];
-        int currFd = eventInfo.data.fd;
+        struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(eventInfo.data.ptr);
+        int currFd = data->fd;
         // check if seen
         auto iter = seenFd.find(currFd);
         if (iter == seenFd.end()) {
             // if not seen, copy cached events and record idx
-            eventsVec[fdCnt].data.fd = currFd;
+            eventsVec[fdCnt].data.ptr = data;
             eventsVec[fdCnt].events = eventInfo.events;
             seenFd[currFd] = fdCnt;
             fdCnt++;
@@ -255,7 +256,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
         }
 
         if (data->task != nullptr) {
-            epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = currFd} };
+            epoll_event ev = { .events = waitedEvents[i].events, .data = {.ptr = data} };
             syncTaskEvents[data->task].push_back(ev);
         }
     }
@@ -280,7 +281,7 @@ int CopyEventsToConsumer(EventVec& cachedEventsVec, struct epoll_event* eventsVe
     int nfds = cachedEventsVec.size();
     for (int i = 0; i < nfds; i++) {
         eventsVec[i].events = cachedEventsVec[i].events;
-        eventsVec[i].data.fd = cachedEventsVec[i].data.fd;
+        eventsVec[i].data.ptr = cachedEventsVec[i].data.ptr;
     }
     return nfds;
 }
@@ -300,7 +301,8 @@ void CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
 void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
 {
     for (size_t i = 0; i < eventVec.size(); i++) {
-        int currFd = eventVec[i].data.fd;
+        struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(eventVec[i].data.ptr);
+        int currFd = data->fd;
         auto delIter = m_delCntMap.find(currFd);
         if (delIter != m_delCntMap.end()) {
             unsigned int delCnt = static_cast<unsigned int>(delIter->second);
@@ -311,6 +313,7 @@ void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
         }
         struct epoll_event maskEv;
         maskEv.events = 0;
+        maskEv.data = {.ptr = data};
         if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
             // ENOENT indicate fd is not in epfd, may be deleted
             FFRT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
@@ -342,6 +345,7 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
 
         WakeTask(currTask);
     }
+
     m_mapMutex.unlock();
 }
 

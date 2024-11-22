@@ -33,6 +33,12 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #define FFRT_STACK_SIZE (1 << 20)
 #endif
 
+#ifdef ASAN_MODE
+extern "C" void __sanitizer_start_switch_fiber(void **fake_stack_save, const void *bottom, size_t size);
+extern "C" void __sanitizer_finish_switch_fiber(void *fake_stack_save, const void **bottom_old, size_t *size_old);
+extern "C" void __asan_handle_no_return();
+#endif
+
 namespace ffrt {
 class CPUEUTask;
 struct WaitEntry;
@@ -80,7 +86,7 @@ struct CoRoutine {
     CoRoutineEnv* thEnv;
     ffrt::CPUEUTask* task;
 #ifdef ASAN_MODE
-    void *asanFakeStack = nullptr; // not finished, need further verification
+    void *asanFakeStack = nullptr;  // not finished, need further verification
     const void *asanFiberAddr = nullptr;
     size_t asanFiberSize = 0;
 #endif

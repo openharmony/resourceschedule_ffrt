@@ -124,7 +124,7 @@ private:
         char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
         if (p == nullptr) {
             FFRT_LOGE("calloc failed");
-            std::terminate;
+            std::terminate();
         }
         count = MmapSz / TSize;
         primaryCache.reserve(count);
@@ -143,12 +143,12 @@ private:
                 t = reinterpret_cast<T*>(std::calloc(1, TSize));
                 if (t == nullptr) {
                     FFRT_LOGE("calloc failed");
-                    std::terminate;
+                    std::terminate();
                 }
 #ifdef FFRT_BBOX_ENABLE
-            	secondaryCache.insert(t);
+                secondaryCache.insert(t);
 #endif
-            	lock.unlock();
+                lock.unlock();
                 return t;
             }
             init();

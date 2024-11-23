@@ -209,7 +209,11 @@ private:
     unsigned int domain_id;
 #endif
 };
+constexpr int CFS_PRIO_MIN = 1;
+constexpr int CFS_PRIO_DEFAULT = 20;
+constexpr int CFS_PRIO_MAX = 40;
+constexpr int VIP_PRIO_MIN = 41;
+constexpr int VIP_PRIO_MAX = 50;
 void SetThreadAttr(WorkerThread* thread, const QoS& qos);
-void SetThreadPriority(unsigned char priority, WorkerThread* thread);
 } // namespace ffrt
 #endif

@@ -210,5 +210,6 @@ private:
 #endif
 };
 void SetThreadAttr(WorkerThread* thread, const QoS& qos);
+void SetThreadPriority(unsigned char priority, WorkerThread* thread);
 } // namespace ffrt
 #endif

@@ -16,6 +16,7 @@
 #include "eu/worker_thread.h"
 #include <algorithm>
 #include <unistd.h>
+#include <sys/resource.h>
 #include <sys/syscall.h>
 #include "dfx/log/ffrt_log_api.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -24,11 +25,16 @@
 #include "eu/execute_unit.h"
 #include "eu/osattr_manager.h"
 #include "eu/qos_interface.h"
+#include "internal_inc/osal.h"
 #include "qos.h"
 #include "util/ffrt_facade.h"
 #include "util/name_manager.h"
 
 namespace ffrt {
+constexpr int MAX_RT_PRIO = 89;
+constexpr int MAX_VIP_PRIO = 99;
+constexpr int MAX_CFS_PRIO = 100;
+constexpr int DEFAULT_PRIO = 120;
 WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
 {
 #ifdef FFRT_PTHREAD_ENABLE
@@ -78,11 +84,57 @@ int SetCpuAffinity(unsigned long affinity, int tid)
     return ret;
 }
 
-void SetThreadAttr(WorkerThread* thread, const QoS& qos)
+void SetThreadPriority(unsigned char priority, WorkerThread* thread)
+{
+    int ret = 0;
+    if (priority < MAX_RT_PRIO) {
+        struct sched_param param;
+        param.sched_priority = MAX_RT_PRIO - priority;
+        ret = pthread_setschedparam(thread->GetThread(), SCHED_RR, &param);
+        if (ret != 0) {
+            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]", thread->Id(), ret, errno);
+        }
+    } else if (priority < MAX_VIP_PRIO) {
+        pid_t pid = getpid();
+        const std::string path = "/proc/" + std::to_string(pid) + "/task/" + std::to_string(thread->Id()) + "/vip_prio";
+        int vip_prio = MAX_VIP_PRIO - priority;
+        OSAttrManager::Instance->SetCGroupPara(path, vip_prio);
+    } else {
+        struct sched_param param;
+        param.sched_priority = 0;
+        ret = pthread_setschedparam(thread->GetThread(), SCHED_OTHER, &param);
+        if (ret != 0) {
+            FFRT_LOGE("[%d] set priority sched_normal failed ret[%d] errno[%d]", thread->Id(), ret, errno);
+        }
+        ret = setpriority(PRIO_PROCESS, thread->Id(), priority - DEFAULT_PRIO);
+        if (ret != 0) {
+            FFRT_LOGE("[%d] set priority failed ret[%d] errno[%d]", thread->Id(), ret, errno);
+        }
+    }
+}
+
+// void SetThreadAttr(WorkerThread* thread, const QoS& qos)
+// {
+//     constexpr int processNameLen = 32;
+//     static std::once_flag flag;
+//     static char processName[processNameLen];
+//     std::call_once(flag, []() {
+//         GetProcessName(processName, processNameLen);
+//     });
+//     if (strstr(processName, "CameraDaemon")) {
+//         SetCameraThreadAttr(thread, qos);
+//     } else {
+//         SetDefaultThreadAttr(thread, qos);
+//     }
+// }
+
+void SetDefaultThreadAttr(WorkerThread* thread, const QoS& qos)
 {
     if (qos() <= qos_max) {
         FFRTQosApplyForOther(qos(), thread->Id());
-        FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
+        FFRT_LOGD("qos apply tid[%d] level[%d]", thread->Id(), qos());
+    } else {
+        FFRT_LOGE("default qos:%d is invalid", qos());
     }
 }
 }; // namespace ffrt

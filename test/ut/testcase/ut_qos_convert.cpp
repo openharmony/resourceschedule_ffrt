@@ -39,11 +39,11 @@ protected:
     {
     }
 
-    static void SetUp()
+    virtual void SetUp()
     {
     }
 
-    static void TearDown()
+    virtual void TearDown()
     {
     }
 };
@@ -104,7 +104,7 @@ HWTEST_F(CgroupQosTest, SchedAttrTest, TestSize.Level1)
     OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 1);
     OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 15);
     int ret = 0;
-    ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(qos_defined_ive)), &attr);
+    ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(3)), &attr);
     EXPECT_EQ(ret, 0);
 }
 
@@ -114,7 +114,7 @@ HWTEST_F(CgroupQosTest, SetTidToCGroupPrivateTest, TestSize.Level1)
     std::string value = "1";
     int num = 0xfffff;
     int ret = 0;
-    ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(qos_defined_ive)), &attr);
+    ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(3)), &attr);
     OSAttrManager::Instance()->SetTidToCGroupPrivate(value, num);
     EXPECT_EQ(ret, 0);
 }

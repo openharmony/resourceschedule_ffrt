@@ -74,7 +74,7 @@ QueueTask* ConcurrentQueue::Pull()
     uint64_t now = GetNow();
     if (loop_ != nullptr) {
         if (!whenMap_.empty() && now >= whenMap_.begin()->first && !isExit_) {
-            return dequeFunc_(queueId_, now, whenMap_, nullptr);
+            return dequeFunc_(queueId_, now, &whenMap_, nullptr);
         }
         return nullptr;
     }
@@ -96,7 +96,7 @@ QueueTask* ConcurrentQueue::Pull()
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue next expired task by priority
-    return dequeFunc_(queueId_, now, whenMap_, nullptr);
+    return dequeFunc_(queueId_, now, &whenMap_, nullptr);
 }
 
 void ConcurrentQueue::Stop()

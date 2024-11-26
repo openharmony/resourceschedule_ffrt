@@ -78,7 +78,7 @@ QueueTask* SerialQueue::Pull()
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue due tasks in batch
-    return dequeFunc_(queueId_, now, whenMap_, nullptr);
+    return dequeFunc_(queueId_, now, &whenMap_, nullptr);
 }
 
 std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr)

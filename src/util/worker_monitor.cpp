@@ -52,12 +52,12 @@ WorkerMonitor::WorkerMonitor()
     char processName[PROCESS_NAME_BUFFER_LENGTH] = "";
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (strlen(processName) == 0) {
-        FFRT_LOGW("Get process name failed, skip worker monitor");
+        FFRT_LOGW("Get process name failed, skip worker monitor.");
         skipSampling_ = true;
         return;
     }
 
-    // 从配置文件读取黑名单
+    // 从配置文件读取黑名单比对
     std::string skipProcess;
     std::ifstream file(CONF_FILEPATH);
     if (file.is_open()) {
@@ -71,7 +71,6 @@ WorkerMonitor::WorkerMonitor()
         FFRT_LOGW("worker_monitor.conf does not exist or file permission denied");
     }
 
-    //
     watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
     memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
         std::lock_guard lock(mutex_);
@@ -174,6 +173,7 @@ void WorkerMonitor::CheckWorkerStatus()
             return;
         }
     }
+
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
         int executionNum = FFRTFacade::GetEUInstance().GetCPUMonitor()->WakedWorkerNum(i);
@@ -294,5 +294,17 @@ void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo, int tid)
     }
 
     transactionFile.close();
+}
+
+void WorkerMonitor::RecordKeyInfo(const std::string& dumpInfo)
+{
+    if (dumpInfo.find(IPC_STACK_NAME) == std::string::npos || dumpInfo.find("libpower") == std::string::npos) {
+        return;
+    }
+
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    std::string keyInfo = SaveKeyInfo();
+    FFRT_LOGW("%s", keyInfo.c_str());
+#endif
 }
 }

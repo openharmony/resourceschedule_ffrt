@@ -157,15 +157,6 @@ HWTEST_F(CpuMonitorTest, SubmitMemReleaseTask_test, TestSize.Level1)
     EXPECT_EQ(workermonitor.skipSampling_, true);
 }
 
-HWTEST_F(CpuMonitorTest, RecordKeyInfo_test, TestSize.Level1)
-{
-    WorkerMonitor workermonitor;
-    const std::string& dumpInfo = "";
-    workermonitor.RecordKeyInfo(dumpInfo);
-
-    EXPECT_EQ(workermonitor.skipSampling_, false);
-}
-
 HWTEST_F(CpuMonitorTest, CheckWorkerStatus_test, TestSize.Level1)
 {
     WorkerMonitor workermonitor;

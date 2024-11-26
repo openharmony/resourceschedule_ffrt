@@ -825,12 +825,12 @@ group("ffrt_unittest_ffrt") {
       ":ut_interval",
       ":ut_loop",
       ":ut_mem",
+      ":ut_qos_convert",
       ":ut_queue",
       ":ut_queue_dump",
       ":ut_rtg",
       ":ut_scheduler",
       ":ut_thread",
-      ":ut_qos_convert",
       ":worker_manager_test",
       ":worker_thread_test",
     ]

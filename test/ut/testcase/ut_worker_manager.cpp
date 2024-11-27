@@ -60,11 +60,10 @@ HWTEST_F(WorkerManagerTest, JoinRtgTest, TestSize.Level1)
 {
     CPUWorkerManager* cm = new SCPUWorkerManager();
     QoS* qos = new QoS();
-    cm->IncWorker(*qos);
     cm->JoinRtg(*qos);
 
-    delete qos;
     delete cm;
+    delete qos;
 }
 
 HWTEST_F(WorkerManagerTest, IncWorkerTest, TestSize.Level1)
@@ -73,8 +72,8 @@ HWTEST_F(WorkerManagerTest, IncWorkerTest, TestSize.Level1)
     QoS* qos = new QoS(-1);
     cm->IncWorker(*qos);
 
-    delete qos;
     delete cm;
+    delete qos;
 }
 
 HWTEST_F(WorkerManagerTest, GetWorkerCountTest, TestSize.Level1)
@@ -83,8 +82,8 @@ HWTEST_F(WorkerManagerTest, GetWorkerCountTest, TestSize.Level1)
     QoS* qos = new QoS(2);
     cm->GetWorkerCount(*qos);
 
-    delete qos;
     delete cm;
+    delete qos;
 }
 
 HWTEST_F(WorkerManagerTest, JoinTGTest, TestSize.Level1)
@@ -113,8 +112,8 @@ HWTEST_F(WorkerManagerTest, LeaveTGTest, TestSize.Level1)
     cm->JoinTG(*qos);
     cm->LeaveTG(*qos);
 
-    delete qos;
     delete cm;
+    delete qos;
 #ifndef WITH_NO_MOCKER
     GlobalMockObject::verify();
 #endif
@@ -229,10 +228,10 @@ HWTEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue, TestSize.Level1)
     auto pickTask = manager->PickUpTaskFromGlobalQueue(worker);
     EXPECT_NE(pickTask, nullptr);
 
+    delete manager;
     delete worker;
     delete task;
     delete strategy;
-    delete manager;
 }
 
 HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
@@ -258,10 +257,10 @@ HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
     EXPECT_NE(manager->PickUpTaskBatch(worker1), nullptr);
     EXPECT_NE(manager->PickUpTaskBatch(worker2), nullptr);
 
+    delete manager;
     delete worker1;
     delete worker2;
     delete task1;
     delete task2;
     delete strategy;
-    delete manager;
 }

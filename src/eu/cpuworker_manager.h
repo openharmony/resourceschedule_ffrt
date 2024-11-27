@@ -94,7 +94,7 @@ public:
     bool WorkerTearDown();
     bool DecWorker() override
     {return false;}
-    virtual void WorkerRetiredSimplified(WorkerThread* thread) = 0;
+    void WorkerRetiredSimplified(WorkerThread* thread);
     void NotifyTaskPicked(const WorkerThread* thread);
     /* strategy options for task pick up */
     virtual CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread) = 0;
@@ -110,6 +110,8 @@ public:
     virtual CPUEUTask* PickUpTaskBatch(WorkerThread* thread) = 0;
     std::atomic_uint64_t stealWorkers[QoS::MaxNum()] = {0};
     friend class CPUManagerStrategy;
+    std::array<WaitUntilEntry, QoS::MaxNum()> weList;
+    void AddDelayedTask(int qos);
 };
 } // namespace ffrt
 #endif

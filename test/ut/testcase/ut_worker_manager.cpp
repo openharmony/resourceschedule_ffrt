@@ -62,8 +62,8 @@ HWTEST_F(WorkerManagerTest, JoinRtgTest, TestSize.Level1)
     QoS* qos = new QoS();
     cm->JoinRtg(*qos);
 
-    delete cm;
     delete qos;
+    delete cm;
 }
 
 HWTEST_F(WorkerManagerTest, IncWorkerTest, TestSize.Level1)
@@ -72,8 +72,8 @@ HWTEST_F(WorkerManagerTest, IncWorkerTest, TestSize.Level1)
     QoS* qos = new QoS(-1);
     cm->IncWorker(*qos);
 
-    delete cm;
     delete qos;
+    delete cm;
 }
 
 HWTEST_F(WorkerManagerTest, GetWorkerCountTest, TestSize.Level1)
@@ -82,8 +82,8 @@ HWTEST_F(WorkerManagerTest, GetWorkerCountTest, TestSize.Level1)
     QoS* qos = new QoS(2);
     cm->GetWorkerCount(*qos);
 
-    delete cm;
     delete qos;
+    delete cm;
 }
 
 HWTEST_F(WorkerManagerTest, JoinTGTest, TestSize.Level1)
@@ -112,8 +112,8 @@ HWTEST_F(WorkerManagerTest, LeaveTGTest, TestSize.Level1)
     cm->JoinTG(*qos);
     cm->LeaveTG(*qos);
 
-    delete cm;
     delete qos;
+    delete cm;
 #ifndef WITH_NO_MOCKER
     GlobalMockObject::verify();
 #endif

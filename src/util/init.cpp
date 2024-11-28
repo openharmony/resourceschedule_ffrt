@@ -47,7 +47,7 @@ __attribute__((constructor)) static void ffrt_init()
         [] () -> ffrt::TaskScheduler* { return new ffrt::TaskScheduler{new ffrt::FIFOQueue()}; },
         [] (ffrt::TaskScheduler* schd) { delete schd; });
     CoRoutineFactory::RegistCb(
-        [] (ffrt::CPUEUTask* task, bool timeOut) -> void {CoWake(task, timeOut);});
+        [] (ffrt::CPUEUTask* task, CoWakeType type) -> void {CoWake(task, type);});
     ffrt::DependenceManager::RegistInsCb(ffrt::SDependenceManager::Instance);
     ffrt::ExecuteUnit::RegistInsCb(ffrt::SExecuteUnit::Instance);
     ffrt::FFRTScheduler::RegistInsCb(ffrt::SFFRTScheduler::Instance);

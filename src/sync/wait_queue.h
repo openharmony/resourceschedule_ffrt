@@ -62,7 +62,7 @@ class WaitQueue {
 public:
     using TimePoint = std::chrono::steady_clock::time_point;
     void SuspendAndWait(mutexPrivate* lk);
-    bool SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept;
+    int SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept;
     void NotifyAll() noexcept { Notify(false); }
     void NotifyOne() noexcept { Notify(true); }
 
@@ -89,7 +89,7 @@ private:
     WaitUntilEntry* whead;
 
 private:
-    bool WeNotifyProc(WaitUntilEntry* we);
+    void WeNotifyProc(WaitUntilEntry* we);
     void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, CPUEUTask* task);
     bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, bool legacyMode, CPUEUTask* task);
     void Notify(bool one) noexcept;
@@ -107,7 +107,7 @@ private:
         while (!empty()) {
             FFRT_LOGE("There are still tasks in cv that have not been awakened");
             WaitUntilEntry *wue = pop_front();
-            (void)WeNotifyProc(wue);
+            WeNotifyProc(wue);
         }
     }
 

@@ -39,7 +39,7 @@ enum QueueAction {
 
 class BaseQueue : public NonCopyable {
 public:
-    explicit BaseQueue() : queueId_(queueId++) {}
+    explicit BaseQueue();
     virtual ~BaseQueue() = default;
 
     virtual int Push(QueueTask* task) = 0;
@@ -108,9 +108,6 @@ protected:
 
     RecordMutex mutex_;
     RecordConditionVariable cond_;
-
-private:
-    static std::atomic_uint32_t queueId;
 };
 
 std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr);

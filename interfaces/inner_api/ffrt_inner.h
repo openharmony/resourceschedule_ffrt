@@ -31,5 +31,6 @@
 #include "c/executor_task.h"
 #include "c/shared_mutex.h"
 #include "c/ffrt_dump.h"
+#include "c/init.h"
 #endif
 #endif

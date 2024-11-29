@@ -24,7 +24,7 @@
 
 namespace {
 // 0预留为非法值
-std::atomic_uint32_t s_queueId(1);
+std::atomic_uint32_t g_queueId(1);
 using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(const ffrt_queue_attr_t*);
 const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_serial, ffrt::CreateSerialQueue },
@@ -48,7 +48,7 @@ void ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::Reco
 }
 
 namespace ffrt {
-BaseQueue::BaseQueue() : queueId_(s_queueId++) {}
+BaseQueue::BaseQueue() : queueId_(g_queueId++) {}
 
 void BaseQueue::Stop()
 {

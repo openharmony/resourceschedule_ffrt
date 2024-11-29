@@ -535,14 +535,14 @@ void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred)
     CoYield();
 }
 
-void CoWake(ffrt::CPUEUTask* task, bool timeOut)
+void CoWake(ffrt::CPUEUTask* task, CoWakeType type)
 {
     if (task == nullptr) {
         FFRT_LOGE("task is nullptr");
         return;
     }
     // Fast path: state transition without lock
-    task->wakeupTimeOut = timeOut;
+    task->coWakeType = type;
     FFRT_WAKE_TRACER(task->gid);
     switch (task->type) {
         case ffrt_normal_task: {

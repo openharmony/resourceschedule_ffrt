@@ -283,7 +283,7 @@ void WakeTask(CPUEUTask* task)
         }
         reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
     } else {
-        CoRoutineFactory::CoWakeFunc(task, false);
+        CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
     }
 }
 

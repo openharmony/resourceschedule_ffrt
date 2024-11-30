@@ -19,6 +19,6 @@
  *
  * @version 1.0
 */
-FFRT_C_API void ffrtChildInit(void);
+FFRT_C_API void ffrt_child_init(void);
 
 #endif

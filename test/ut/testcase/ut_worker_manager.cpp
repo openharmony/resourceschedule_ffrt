@@ -60,7 +60,6 @@ HWTEST_F(WorkerManagerTest, JoinRtgTest, TestSize.Level1)
 {
     CPUWorkerManager* cm = new SCPUWorkerManager();
     QoS* qos = new QoS();
-    cm->IncWorker(*qos);
     cm->JoinRtg(*qos);
 
     delete qos;
@@ -281,10 +280,10 @@ HWTEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue, TestSize.Level1)
     auto pickTask = manager->PickUpTaskFromGlobalQueue(worker);
     EXPECT_NE(pickTask, nullptr);
 
+    delete manager;
     delete worker;
     delete task;
     delete strategy;
-    delete manager;
 }
 
 HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
@@ -310,12 +309,12 @@ HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
     EXPECT_NE(manager->PickUpTaskBatch(worker1), nullptr);
     EXPECT_NE(manager->PickUpTaskBatch(worker2), nullptr);
 
+    delete manager;
     delete worker1;
     delete worker2;
     delete task1;
     delete task2;
     delete strategy;
-    delete manager;
 }
 
 HWTEST_F(WorkerManagerTest, WorkerRetiredSimplified, TestSize.Level1)

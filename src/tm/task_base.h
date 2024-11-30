@@ -57,7 +57,7 @@ public:
 
     std::string label;
     std::vector<std::string> traceTag;
-    bool wakeupTimeOut = false;
+    CoWakeType coWakeType { CoWakeType::NO_TIMEOUT_WAKE };
     int cpuBoostCtxId = -1;
     WaitUntilEntry* wue = nullptr;
     // lifecycle connection between task and coroutine is shown as below:

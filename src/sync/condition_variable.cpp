@@ -94,7 +94,7 @@ int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct tim
         duration_cast<steady_clock::duration>(duration_cast<nanoseconds>(duration))
     };
 
-    return pc->SuspendAndWaitUntil(pm, tp) ? ffrt_error_timedout : ffrt_success;
+    return pc->SuspendAndWaitUntil(pm, tp);
 }
 
 API_ATTRIBUTE((visibility("default")))

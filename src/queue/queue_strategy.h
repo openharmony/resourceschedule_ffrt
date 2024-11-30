@@ -21,17 +21,19 @@
 #include "c/type_def.h"
 #include "c/queue_ext.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
 template<typename T>
 class QueueStrategy {
 public:
-    using DequeFunc = T*(*)(const uint32_t, const uint64_t, std::multimap<uint64_t, T*>&, void*);
+    using DequeFunc = T*(*)(const uint32_t, const uint64_t, std::multimap<uint64_t, T*>*, void*);
 
     static T* DequeBatch(const uint32_t queueId, const uint64_t now,
-        std::multimap<uint64_t, T*>& whenMap, void* args)
+        std::multimap<uint64_t, T*>* whenMapIn, void* args)
     {
         (void)args;
+        auto& whenMap = *whenMapIn;
         // dequeue due tasks in batch
         T* head = whenMap.begin()->second;
         whenMap.erase(whenMap.begin());
@@ -53,9 +55,10 @@ public:
     }
 
     static T* DequeSingleByPriority(const uint32_t queueId,
-        const uint64_t now, std::multimap<uint64_t, T*>& whenMap, void* args)
+        const uint64_t now, std::multimap<uint64_t, T*>* whenMapIn, void* args)
     {
         (void)args;
+        auto& whenMap = *whenMapIn;
         // dequeue next expired task by priority
         auto iterTarget = whenMap.begin();
         for (auto ite = whenMap.begin(); ite != whenMap.end() && ite->first < now; ite++) {
@@ -75,35 +78,54 @@ public:
     }
 
     static T* DequeSingleAgainstStarvation(const uint32_t queueId,
-        const uint64_t now, std::multimap<uint64_t, T*>& whenMap, void* args)
+        const uint64_t now, std::multimap<uint64_t, T*>* whenMapVec, void* args)
     {
         // dequeue in descending order of priority
         // a low-priority task is dequeued every time five high-priority tasks are dequeued
         constexpr int maxPullTaskCount = 5;
         std::vector<int>* pulledTaskCount = static_cast<std::vector<int>*>(args);
 
-        auto iterTarget = whenMap.begin();
+        int iterIndex = ffrt_inner_queue_priority_idle;
+        auto iterTarget = whenMapVec[iterIndex].cbegin();
+        for (int idx = 0; idx < ffrt_inner_queue_priority_idle; idx++) {
+            const auto& currentMap = whenMapVec[idx];
+            if (currentMap.empty()) {
+                continue;
+            }
+            if (whenMapVec[iterIndex].empty() || iterTarget->first > currentMap.cbegin()->first) {
+                iterIndex = idx;
+                iterTarget = currentMap.cbegin();
+            }
+        }
+
         for (int idx = 0; idx < ffrt_inner_queue_priority_idle; idx++) {
             if ((*pulledTaskCount)[idx] >= maxPullTaskCount) {
                 continue;
             }
 
-            auto iter = std::find_if(whenMap.begin(), whenMap.end(),
-                [idx, now](const auto& pair) { return (pair.first < now) && (pair.second->GetPriority() == idx); });
-            if (iter != whenMap.end()) {
-                iterTarget = iter;
+            const auto& currentMap = whenMapVec[idx];
+            if (!currentMap.empty() && currentMap.cbegin()->first < now) {
+                iterTarget = currentMap.cbegin();
+                iterIndex = idx;
                 break;
             }
         }
 
         T* head = iterTarget->second;
-        (*pulledTaskCount)[head->GetPriority()]++;
-        for (int idx = 0; idx < head->GetPriority(); idx++) {
+        (*pulledTaskCount)[iterIndex]++;
+
+        for (int idx = 0; idx < iterIndex; idx++) {
             (*pulledTaskCount)[idx] = 0;
         }
+        whenMapVec[iterIndex].erase(iterTarget);
 
-        whenMap.erase(iterTarget);
-        FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ", head->gid, whenMap.size(), queueId);
+        size_t mapCount = 0;
+        for (int idx = 0; idx <= ffrt_inner_queue_priority_idle; idx++) {
+            auto& currentMap = whenMapVec[idx];
+            mapCount += currentMap.size();
+        }
+        FFRT_LOGD("dequeue [gid=%llu], prio %d, %u other tasks in [queueId=%u] ",
+            head->gid, head->GetPriority(), mapCount, queueId);
 
         return head;
     }

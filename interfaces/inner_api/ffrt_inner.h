@@ -24,7 +24,7 @@
 #include "cpp/deadline.h"
 #include "cpp/qos_convert.h"
 #include "cpp/shared_mutex.h"
-#include “ffrt_init.h”
+#include “c/init.h”
 #else
 #include "c/task_ext.h"
 #include "c/queue_ext.h"

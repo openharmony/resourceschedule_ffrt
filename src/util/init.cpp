@@ -60,7 +60,7 @@ __attribute__((destructor)) static void FfrtDeinit(void)
     ffrt::CloseAsyncStackLibHandle();
 #endif
 }
-void ffrtChildInit(void)
+void ffrt_child_init(void)
 {
     ffrt_init();
 }

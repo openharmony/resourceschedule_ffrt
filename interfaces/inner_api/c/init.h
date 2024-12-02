@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_INNER_API_CPP_INIT_H
-#define FFRT_INNER_API_CPP_INIT_H
+#ifndef FFRT_API_C_INTI_H
+#define FFRT_API_C_INIT_H
 /**
  * @brief In the subprocess, initialize the ffrt resources.
  *        Only applicable for the cloning scene, and only allowed to be called once.

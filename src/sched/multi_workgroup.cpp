@@ -66,20 +66,13 @@ bool InsertThreadInWorkGroup(WorkGroup *workGroup, int tid)
         FFRT_LOGE("[RSWorkGroup] join thread %{public}d into workGroup failed, workGroup is null", tid);
         return false;
     }
-    int targetIndex = -1;
     for (int i = 0; i < MAX_WG_THREADS; i++) {
         if (workGroup->tids[i] == -1) {
             workGroup->tids[i] = tid;
-            targetIndex = i;
             return true;
         }
     }
-    if (targetIndex == -1) {
-        FFRT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed, max_thread_num: %{public}d",
-            tid, MAX_WG_THREADS);
-        return false;
-    }
-    return true;
+    return false;
 }
 
 WorkGroup* CreateRSWorkGroup(uint64_t interval)

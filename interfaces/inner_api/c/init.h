@@ -16,7 +16,8 @@
 #define FFRT_INNER_API_CPP_INIT_H
 /**
  * @brief In the subprocess, initialize the ffrt resources.
- *
+ *        Only applicable for the cloning scene, and only allowed to be called once.
+ 
  * @version 1.0
 */
 FFRT_C_API void ffrt_child_init(void);

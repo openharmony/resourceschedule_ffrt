@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "poller.h"
+#include "ffrt_trace.h"
 #include "sched/execute_ctx.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -251,8 +252,11 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
                     std::chrono::steady_clock::now().time_since_epoch()).count());
             if (now > lastPrintTimes_ + POLER_PRINT_ERROR_LOG_US) {
                 FFRT_LOGE("data is nullptr, events:[%d]", waitedEvents[i].events);
+                FFRT_TRACE_BEGIN("ProcessWaitedFds");
                 lastPrintTimes_ = now;
+                FFRT_TRACE_END();
             }
+            continue;
         }
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {

@@ -149,6 +149,8 @@ private:
     std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;
     mutable spin_mutex timerMutex_;
+    
+    std::atomic_uint64_t lastPrintTimes_ = {0};
 };
 
 struct PollerProxy {

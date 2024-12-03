@@ -39,7 +39,7 @@ enum QueueAction {
 
 class BaseQueue : public NonCopyable {
 public:
-    explicit BaseQueue() : queueId_(queueId++) {}
+    explicit BaseQueue();
     virtual ~BaseQueue() = default;
 
     virtual int Push(QueueTask* task) = 0;
@@ -73,7 +73,7 @@ public:
         return queueId_;
     }
 
-    bool HasTask(const char* name);
+    virtual bool HasTask(const char* name);
 
     bool HasLock()
     {
@@ -94,7 +94,11 @@ protected:
             std::chrono::steady_clock::now().time_since_epoch()).count();
     }
 
-    void ClearWhenMap();
+    void Stop(std::multimap<uint64_t, QueueTask*>& whenMap);
+    void Remove(std::multimap<uint64_t, QueueTask*>& whenMap);
+    int Remove(const QueueTask* task, std::multimap<uint64_t, QueueTask*>& whenMap);
+    int Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whenMap);
+    bool HasTask(const char* name, std::multimap<uint64_t, QueueTask*> whenMap);
 
     const uint32_t queueId_;
     bool isExit_ { false };
@@ -104,9 +108,6 @@ protected:
 
     RecordMutex mutex_;
     RecordConditionVariable cond_;
-
-private:
-    static std::atomic_uint32_t queueId;
 };
 
 std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr);

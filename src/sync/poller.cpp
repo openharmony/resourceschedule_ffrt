@@ -17,6 +17,10 @@
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
 
+namespace {
+    constexpr uint64_t POLER_PRINT_ERROR_LOG_US = 5000 * 1000; // 5s
+}
+
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
@@ -242,6 +246,14 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
 {
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(waitedEvents[i].data.ptr);
+        if (data == nullptr) {
+            uint64_t now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()).count());
+            if (now > lastPrintTimes_ + POLER_PRINT_ERROR_LOG_US) {
+                FFRT_LOGE("data is nullptr, events:[%d]", waitedEvents[i].events);
+                lastPrintTimes_ = now;
+            }
+        }
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
@@ -271,7 +283,7 @@ void WakeTask(CPUEUTask* task)
         }
         reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
     } else {
-        CoRoutineFactory::CoWakeFunc(task, false);
+        CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
     }
 }
 
@@ -342,9 +354,9 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
 
         WakeTask(currTask);
     }
+
     m_mapMutex.unlock();
 }
-
 uint64_t Poller::GetTaskWaitTime(CPUEUTask* task) noexcept
 {
     std::unique_lock lock(m_mapMutex);

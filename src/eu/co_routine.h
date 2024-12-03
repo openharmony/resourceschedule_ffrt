@@ -61,6 +61,11 @@ enum class BlockType {
     BLOCK_THREAD
 };
 
+enum class CoWakeType {
+    TIMEOUT_WAKE,
+    NO_TIMEOUT_WAKE
+};
+
 constexpr uint64_t STACK_SIZE = FFRT_STACK_SIZE;
 constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
 constexpr uint64_t STACK_MEM_SIZE = 8;
@@ -119,13 +124,13 @@ public:
 
 class CoRoutineFactory {
 public:
-    using CowakeCB = std::function<void (ffrt::CPUEUTask*, bool)>;
+    using CowakeCB = std::function<void (ffrt::CPUEUTask*, CoWakeType)>;
 
     static CoRoutineFactory &Instance();
 
-    static void CoWakeFunc(ffrt::CPUEUTask* task, bool timeOut)
+    static void CoWakeFunc(ffrt::CPUEUTask* task, CoWakeType type)
     {
-        return Instance().cowake_(task, timeOut);
+        return Instance().cowake_(task, type);
     }
 
     static void RegistCb(const CowakeCB &cowake)
@@ -143,7 +148,7 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv);
 void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
-void CoWake(ffrt::CPUEUTask* task, bool timeOut);
+void CoWake(ffrt::CPUEUTask* task, CoWakeType type);
 
 CoRoutineEnv* GetCoEnv(void);
 

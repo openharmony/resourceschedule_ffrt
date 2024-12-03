@@ -75,8 +75,8 @@ int simple_thd_func(void *)
 
 void* MyFunc(void * arg)
 {
-    int *cnter_ = (int *)arg;
-    (*cnter_)++;
+    int *cnter = (int *)arg;
+    (*cnter)++;
     return arg;
 }
 

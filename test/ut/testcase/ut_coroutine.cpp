@@ -108,6 +108,8 @@ HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
     usleep(100000);
     EXPECT_EQ(co1.count, 4);
     EXPECT_EQ(co2.count, 4);
+
+    ffrt_wake_coroutine(nullptr);
 }
 
 HWTEST_F(CoroutineTest, coroutine_submit_fail, TestSize.Level1)
@@ -157,4 +159,39 @@ HWTEST_F(CoroutineTest, ffrt_epoll_ctl_add_del, TestSize.Level1)
     // poller_deregister_001
     ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     close(testFd);
+}
+
+HWTEST_F(CoroutineTest, coroutine_alloc_fail, TestSize.Level1)
+{
+    ffrt::task_attr attr;
+    const uint64_t id = 0;
+    ffrt::SCPUEUTask task(reinterpret_cast<ffrt::task_attr_private *>(&attr), nullptr, id, ffrt::QoS(2));
+    task.coRoutine = nullptr;
+    task.stack_size = 100 * (1uLL << 40); // 100T
+    struct CoRoutineEnv env;
+
+    CPUWorkerManager* manager = new SCPUWorkerManager();
+    CpuWorkerOps ops {
+        CPUWorker::WorkerLooperStandard,
+        std::bind(&CPUWorkerManager::PickUpTaskFromGlobalQueue, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::NotifyTaskPicked, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WorkerIdleActionSimplified, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WorkerRetired, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WorkerPrepare, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::TryPoll, manager, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&CPUWorkerManager::StealTaskBatch, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::PickUpTaskBatch, manager, std::placeholders::_1),
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        std::bind(&CPUWorkerManager::IsExceedRunningThreshold, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::IsBlockAwareInit, manager),
+#endif
+    };
+    CPUWorker* worker = new CPUWorker(QoS(2), std::move(ops), manager);
+    EXPECT_NE(worker, nullptr);
+    sleep(1); // wait worker into wait action
+    worker->Run(&task, &env, worker);
+
+    delete manager;
+    worker->Join();
+    delete worker;
 }

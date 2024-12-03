@@ -198,3 +198,12 @@ HWTEST_F(SchedulerTest, ffrt_scheduler_test, TestSize.Level1)
 
     delete node;
 }
+
+HWTEST_F(SchedulerTest, set_cur_state_test, TestSize.Level1)
+{
+    SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
+    SCPUEUTask* task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
+    EXPECT_NE(task2, nullptr);
+    task2->state.SetCurState(ffrt::TaskState::RUNNING);
+    TaskManager::Instance().TaskStateCount(task2);
+}

@@ -170,6 +170,35 @@ HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
     EXPECT_EQ(ret1, -1);
 }
 
+HWTEST_F(DependencyTest, ffrt_task_attr_get_name_set_notify_test, TestSize.Level1)
+{
+    int x = 0;
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt_task_attr_t attr;
+    attr.storage[0] = 12345;
+    ffrt_task_attr_set_name(nullptr, "A");
+    ffrt_task_attr_get_name(&attr);
+    ffrt_task_attr_set_notify_worker(&attr, true);
+    ffrt_task_attr_set_notify_worker(nullptr, true);
+    ffrt_task_attr_set_qos(nullptr, static_cast<int>(ffrt::qos_user_initiated));
+    ffrt_task_attr_get_qos(nullptr);
+    ffrt_task_attr_destroy(nullptr);
+    ffrt_submit_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt::submit([&] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+        printf("id is %" PRIu64 "\n", ffrt::this_task::get_id());
+        int ret1 = ffrt_this_task_update_qos(static_cast<int>(ffrt::qos_default));
+        EXPECT_EQ(ret1, 0);
+        x++;
+    });
+    ffrt_this_task_get_id();
+    ffrt::wait();
+    ffrt_set_cgroup_attr(static_cast<int>(ffrt::qos_user_initiated), nullptr);
+    EXPECT_EQ(x, 1);
+}
+
 HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level1)
 {
     ffrt_task_attr_t attr;

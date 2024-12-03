@@ -773,3 +773,19 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid_with_thread_mode, TestSize.Level1)
     usleep(1000);
     EXPECT_EQ(0, result);
 }
+
+HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level1)
+{
+    ffrt_qos_t qos = ffrt_qos_default;
+
+    int  ret = ffrt_epoll_get_count(qos);
+    EXPECT_NE(ret, 0);
+}
+
+HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_invalid, TestSize.Level1)
+{
+    void* taskHandle = nullptr;
+
+    int ret = ffrt_epoll_get_wait_time(taskHandle);
+    EXPECT_EQ(ret, 0);
+}

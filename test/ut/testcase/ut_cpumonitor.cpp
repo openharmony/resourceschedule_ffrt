@@ -18,6 +18,7 @@
 #define private public
 #define protected public
 #include <eu/scpu_monitor.h>
+#include <util/worker_monitor.h>
 #undef private
 #undef protected
 
@@ -138,6 +139,33 @@ HWTEST_F(CpuMonitorTest, monitor_notify_workers_test, TestSize.Level1)
     EXPECT_EQ(wmonitor.ctrlQueue[qos_default].executionNum, 4);
 }
 
+HWTEST_F(CpuMonitorTest, SubmitTask_test, TestSize.Level1)
+{
+    WorkerMonitor workermonitor;
+    workermonitor.skipSampling_ = true;
+    workermonitor.SubmitTask();
+
+    EXPECT_EQ(workermonitor.skipSampling_, true);
+}
+
+HWTEST_F(CpuMonitorTest, SubmitMemReleaseTask_test, TestSize.Level1)
+{
+    WorkerMonitor workermonitor;
+    workermonitor.skipSampling_ = true;
+    workermonitor.SubmitMemReleaseTask();
+
+    EXPECT_EQ(workermonitor.skipSampling_, true);
+}
+
+HWTEST_F(CpuMonitorTest, CheckWorkerStatus_test, TestSize.Level1)
+{
+    WorkerMonitor workermonitor;
+    workermonitor.skipSampling_ = true;
+    workermonitor.CheckWorkerStatus();
+
+    EXPECT_EQ(workermonitor.skipSampling_, true);
+}
+
 #ifndef FFRT_GITEE
 /**
  * @tc.name: TryDestroy
@@ -182,4 +210,51 @@ HWTEST_F(CpuMonitorTest, monitor_worker_rollbackdestroy_test, TestSize.Level1)
     wmonitor.RollbackDestroy(qosDefault, true);
     EXPECT_EQ(wmonitor.ctrlQueue[qos_default].executionNum, 1);
 }
+
+HWTEST_F(CpuMonitorTest, set_worker_max_num_test, TestSize.Level1)
+{
+    testing::NiceMock<MockWorkerManager> mWmanager;
+    SCPUMonitor wmonitor({
+        std::bind(&MockWorkerManager::IncWorker, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::WakeupWorkers, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::GetTaskCount, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::GetWorkerCount, &mWmanager, std::placeholders::_1) });
+
+    int ret = wmonitor.SetWorkerMaxNum(qos(2), 160);
+    wmonitor.WakeupSleep(QoS(5), true);
+    wmonitor.RollbackDestroy(QoS(5), false);
+
+    EXPECT_EQ(ret, -1);
+}
+
+HWTEST_F(CpuMonitorTest, set_worker_max_num_test2, TestSize.Level1)
+{
+    testing::NiceMock<MockWorkerManager> mWmanager;
+    SCPUMonitor wmonitor({
+        std::bind(&MockWorkerManager::IncWorker, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::WakeupWorkers, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::GetTaskCount, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::GetWorkerCount, &mWmanager, std::placeholders::_1) });
+    
+    int ret = wmonitor.SetWorkerMaxNum(qos(2), 0);
+    wmonitor.WakeupSleep(QoS(5), true);
+    wmonitor.RollbackDestroy(QoS(5), false);
+
+    EXPECT_EQ(ret, -1);
+}
+
+HWTEST_F(CpuMonitorTest, total_count_test, TestSize.Level1)
+{
+    testing::NiceMock<MockWorkerManager> mWmanager;
+    SCPUMonitor wmonitor({
+        std::bind(&MockWorkerManager::IncWorker, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::WakeupWorkers, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::GetTaskCount, &mWmanager, std::placeholders::_1),
+        std::bind(&MockWorkerManager::GetWorkerCount, &mWmanager, std::placeholders::_1) });
+    
+    int ret = monitor.TotalCount(qos(2));
+
+    EXPECT_NE(ret, -1);
+}
+
 #endif

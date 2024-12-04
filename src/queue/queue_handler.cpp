@@ -349,7 +349,11 @@ void QueueHandler::RunTimeOutCallback(QueueTask* task)
         << task->label << "], execution time exceeds[" << timeout_ << "] us";
     FFRT_LOGE("%s", ss.str().c_str());
     if (timeoutCb_ != nullptr) {
-        timeoutCb_->exec(timeoutCb_);
+        delayedCbCnt_.fetch_add(1);
+        FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([this] {
+            timeoutCb_->exec(timeoutCb_);
+            delayedCbCnt_.fetch_sub(1);
+        });
     }
 }
 
@@ -513,9 +517,16 @@ void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
     }
 
     FFRT_LOGE("%s", ss.str().c_str());
-    ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-    if (func) {
-        func(GetQueueId(), ss.str().c_str(), ss.str().size());
+
+    uint32_t queueId = GetQueueId();
+    std::string ssStr = ss.str();
+    if (ffrt_task_timeout_get_cb()) {
+        FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([queueId, ssStr] {
+            ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+            if (func) {
+                func(queueId, ssStr.c_str(), ssStr.size());
+            }
+        });
     }
 }
 } //namespace ffrt

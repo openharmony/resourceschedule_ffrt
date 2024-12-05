@@ -306,3 +306,19 @@ HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level1)
 
     EXPECT_NE(ffrt_get_cur_cached_task_id(), 0);
 }
+
+/*
+* 测试用例名称：ffrt_submit_nullptr_task_handle
+* 测试用例描述：测试向ffrt提交空指针task_handle依赖
+* 预置条件    ：创建task_handle，赋值为空
+* 操作步骤    ：调用ffrt::submit接口，设置task_handle为输入依赖
+* 预期结果    ：任务正常执行，打印task_handle为空的错误日志
+*/
+HWTEST_F(CoreTest, ffrt_submit_nullptr_task_handle, TestSize.Level1)
+{
+    int x = 0;
+    ffrt::task_handle handle = nullptr;
+    ffrt::submit([&] { x++; }, {handle}, {});
+    ffrt::wait();
+    EXPECT_EQ(x, 1);
+}

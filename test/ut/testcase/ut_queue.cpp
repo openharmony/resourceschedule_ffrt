@@ -38,11 +38,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -347,7 +347,7 @@ HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
     int result = 0;
     std::function<void()>&& basicFunc = [&result]() {
         OnePlusForTest(static_cast<void*>(&result));
-        usleep(3000);
+        usleep(4000);
     };
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr);

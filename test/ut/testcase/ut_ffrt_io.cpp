@@ -56,13 +56,13 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerHandle_ = -1;

@@ -21,6 +21,7 @@
 #include "c/ffrt_dump.h"
 #endif
 #include "dfx/log/ffrt_log_api.h"
+#include "util/ffrt_facade.h"
 #include "util/slab.h"
 namespace {
 constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
@@ -99,10 +100,16 @@ namespace ffrt {
         ss << "parallel task gid=" << gid << " execution time exceeds " << timeout << " ms";
         std::string msg = ss.str();
         FFRT_LOGE("%s", msg.c_str());
-        ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-        if (func) {
-            func(gid, msg.c_str(), msg.size());
+
+        if (ffrt_task_timeout_get_cb()) {
+            FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([gid, msg] {
+                ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+                if (func) {
+                    func(gid, msg.c_str(), msg.size());
+                }
+            });
         }
+
         int sendCount = taskStatusMap[gid];
         if (sendCount >= SEND_COUNT_MAX) {
             FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than the max count", gid);

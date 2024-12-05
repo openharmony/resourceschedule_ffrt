@@ -29,15 +29,16 @@
 #include "util/name_manager.h"
 #include "sched/scheduler.h"
 namespace {
-    const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
-    const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
-    const int EPOLL_WAIT_TIMEOUT__MILISECONDS = 3 * 60 * 1000;
-    const int NS_PER_SEC = 1000 * 1000 * 1000;
-    const int FAKE_WAKE_UP_ERROR = 4;
-    const int WAIT_EVENT_SIZE = 5;
-    const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
-    const int DUMP_MAP_MAX_COUNT = 3;
-    constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
+const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
+const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
+const int EPOLL_WAIT_TIMEOUT__MILISECONDS = 3 * 60 * 1000;
+const int NS_PER_SEC = 1000 * 1000 * 1000;
+const int FAKE_WAKE_UP_ERROR = 4;
+const int WAIT_EVENT_SIZE = 5;
+const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
+const int DUMP_MAP_MAX_COUNT = 3;
+constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
+const char* ASYNC_TASK_QUEUE_NAME = "delayedWorkerAsyncTask";
 }
 
 namespace ffrt {
@@ -219,6 +220,9 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
 DelayedWorker::~DelayedWorker()
 {
     lock.lock();
+    if (asyncTaskQueue_ != nullptr) {
+        delete asyncTaskQueue_;
+    }
     toExit = true;
     lock.unlock();
     itimerspec its = { {0, 0}, {0, 1} };
@@ -323,5 +327,18 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
     }
 
     return false;
+}
+
+queue* DelayedWorker::GetAsyncTaskQueue()
+{
+    if (likely(asyncTaskQueue_ != nullptr)) {
+        return asyncTaskQueue_;
+    }
+
+    std::lock_guard<decltype(lock)> l(lock);
+    if (asyncTaskQueue_ == nullptr) {
+        asyncTaskQueue_ = new queue(ASYNC_TASK_QUEUE_NAME, ffrt::queue_attr().qos(qos_background));
+    }
+    return asyncTaskQueue_;
 }
 } // namespace ffrt

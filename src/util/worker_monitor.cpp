@@ -39,6 +39,7 @@ constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
+constexpr int BACKTRACE_TASK_QOS = 7;
 constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
@@ -193,8 +194,12 @@ void WorkerMonitor::CheckWorkerStatus()
         }
     }
 
-    for (const auto& timeoutFunction : timeoutFunctions) {
-        RecordSymbolAndBacktrace(timeoutFunction);
+    if (timeoutFunctions.size() > 0) {
+        FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([this, timeoutFunctions] {
+            for (const auto& timeoutFunction : timeoutFunctions) {
+                RecordSymbolAndBacktrace(timeoutFunction);
+            }
+        });
     }
 
     SubmitSamplingTask();

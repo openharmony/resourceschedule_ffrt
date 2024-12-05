@@ -20,6 +20,7 @@
 #include "c/ffrt_dump.h"
 #include "dfx/sysevent/sysevent.h"
 #include "internal_inc/osal.h"
+#include "util/ffrt_facade.h"
 
 namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
@@ -215,9 +216,14 @@ void QueueMonitor::CheckQueuesStatus()
                 TaskTimeoutReport(ss, processNameStr, senarioName);
             }
 #endif
-            ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-            if (func) {
-                func(taskId, ss.str().c_str(), ss.str().size());
+            std::string ssStr = ss.str();
+            if (ffrt_task_timeout_get_cb()) {
+                FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([taskId, ssStr] {
+                    ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+                    if (func) {
+                        func(taskId, ssStr.c_str(), ssStr.size());
+                    }
+                });
             }
             // reset timeout task timestamp for next warning
             ResetTaskTimestampAfterWarning(i, taskId);

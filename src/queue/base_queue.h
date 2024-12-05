@@ -39,7 +39,7 @@ enum QueueAction {
 
 class BaseQueue : public NonCopyable {
 public:
-    explicit BaseQueue();
+    BaseQueue();
     virtual ~BaseQueue() = default;
 
     virtual int Push(QueueTask* task) = 0;

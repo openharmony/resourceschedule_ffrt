@@ -43,12 +43,12 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
         ffrt_task_timeout_set_threshold(1);
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };

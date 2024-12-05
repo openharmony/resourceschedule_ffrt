@@ -48,11 +48,11 @@ protected:
 #endif
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -141,11 +141,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -172,11 +172,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };

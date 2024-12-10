@@ -84,7 +84,7 @@ FFRT_C_API bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size
  * @since 12
  * @version 1.0
  */
-FFRT_C_API void* ffrt_get_cur_task();
+FFRT_C_API void* ffrt_get_cur_task(void);
 
 /**
  * @brief Set the taskLocal flag in ffrt_task_attr.

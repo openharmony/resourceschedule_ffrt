@@ -493,7 +493,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_qos_t ffrt_this_task_get_qos()
+ffrt_qos_t ffrt_this_task_get_qos(void)
 {
     if (ffrt::ExecuteCtx::Cur()->task == nullptr) {
         FFRT_LOGW("task is nullptr");
@@ -579,7 +579,7 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_cur_task()
+void* ffrt_get_cur_task(void)
 {
     return ffrt::ExecuteCtx::Cur()->task;
 }

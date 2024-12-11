@@ -62,7 +62,7 @@ FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_
 FFRT_C_API void ffrt_wake_coroutine(void* task);
 
 // get
-FFRT_C_API void* ffrt_get_current_task();
+FFRT_C_API void* ffrt_get_current_task(void);
 
 /**
  * @brief Obtains current coroutine stack address and size.
@@ -122,5 +122,5 @@ FFRT_C_API pthread_t ffrt_task_get_tid(void* task_handle);
  * @return Returns the task id.
  * @version 1.0
  */
-FFRT_C_API uint64_t ffrt_get_cur_cached_task_id();
+FFRT_C_API uint64_t ffrt_get_cur_cached_task_id(void);
 #endif

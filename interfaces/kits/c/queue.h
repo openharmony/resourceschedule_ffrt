@@ -221,7 +221,7 @@ FFRT_C_API int ffrt_queue_cancel(ffrt_task_handle_t handle);
  * @since 12
  * @version 1.0
  */
-FFRT_C_API ffrt_queue_t ffrt_get_main_queue();
+FFRT_C_API ffrt_queue_t ffrt_get_main_queue(void);
 
 /**
  * @brief Get application worker(ArkTs) thread queue.
@@ -230,7 +230,7 @@ FFRT_C_API ffrt_queue_t ffrt_get_main_queue();
  * @since 12
  * @version 1.0
  */
-FFRT_C_API ffrt_queue_t ffrt_get_current_queue();
+FFRT_C_API ffrt_queue_t ffrt_get_current_queue(void);
 
 /**
  * @brief Get queue task count.

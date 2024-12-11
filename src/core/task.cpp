@@ -639,7 +639,7 @@ pthread_t ffrt_task_get_tid(void* task_handle)
 }
 
 API_ATTRIBUTE((visibility("default")))
-uint64_t ffrt_get_cur_cached_task_id()
+uint64_t ffrt_get_cur_cached_task_id(void)
 {
     uint64_t gid = ffrt_this_task_get_id();
     if (gid == 0) {

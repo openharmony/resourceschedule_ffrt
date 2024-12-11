@@ -272,7 +272,7 @@ void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandler)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_current_queue_eventhandler()
+void* ffrt_get_current_queue_eventhandler(void)
 {
     CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr || curTask->type != ffrt_queue_task) {
@@ -286,7 +286,7 @@ void* ffrt_get_current_queue_eventhandler()
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_queue_t ffrt_get_main_queue()
+ffrt_queue_t ffrt_get_main_queue(void)
 {
     FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetMainEventHandler == nullptr),
         return nullptr, "failed to load GetMainEventHandler Func.");
@@ -300,7 +300,7 @@ ffrt_queue_t ffrt_get_main_queue()
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_queue_t ffrt_get_current_queue()
+ffrt_queue_t ffrt_get_current_queue(void)
 {
     FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetCurrentEventHandler == nullptr),
         return nullptr, "failed to load GetCurrentEventHandler Func.");

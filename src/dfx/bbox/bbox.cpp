@@ -39,6 +39,7 @@
 
 using namespace ffrt;
 
+constexpr static size_t EACH_QUEUE_TASK_DUMP_SIZE = 64;
 static std::atomic<unsigned int> g_taskPendingCounter(0);
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 static CPUEUTask* g_cur_task;
@@ -419,6 +420,23 @@ __attribute__((destructor)) static void BBoxDeInit()
     SignalUnReg(SIGKILL);
 }
 
+static inline std::string FormatDateString(uint64_t timeStamp)
+{
+#if defined(__aarch64__)
+    return FormatDateString4CntCt(timeStamp, microsecond);
+#else
+    return FormatDateString4SteadyClock(timeStamp, microsecond);
+#endif
+}
+
+std::string GetDumpPreface(void)
+{
+    std::ostringstream ss;
+    ss << "|-> Launcher proc ffrt, now:" << FormatDateString(FFRTTraceRecord::TimeStamp()) << " pid:" << GetPid()
+        << std::endl;
+    return ss.str();
+}
+
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
 std::string SaveTaskCounterInfo(void)
@@ -440,15 +458,6 @@ std::string SaveTaskCounterInfo(void)
     return ss.str();
 }
 #endif // FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2
-
-static inline std::string FormatDateString(uint64_t timeStamp)
-{
-#if defined(__aarch64__)
-    return FormatDateString4CntCt(timeStamp, microsecond);
-#else
-    return FormatDateString4SteadyClock(timeStamp, microsecond);
-#endif
-}
 
 void AppendTaskInfo(std::ostringstream& oss, TaskBase* task)
 {
@@ -531,39 +540,6 @@ std::string SaveWorkerStatusInfo(void)
     return oss.str();
 }
 
-std::string SaveReadyQueueStatusInfo()
-{
-    std::ostringstream ss;
-    ss << "    |-> ready queue status" << std::endl;
-    for (int i = 0; i < QoS::MaxNum(); i++) {
-        auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(static_cast<int>(i));
-        std::lock_guard lg(*lock);
-
-        int nt = FFRTFacade::GetSchedInstance()->GetScheduler(i).RQSize();
-        if (!nt) {
-            continue;
-        }
-
-        for (int j = 1; j <= nt; j++) {
-            CPUEUTask* t = FFRTFacade::GetSchedInstance()->GetScheduler(i).PickNextTask();
-            if (t == nullptr) {
-                ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << ">"
-                   << " null" << std::endl;
-                continue;
-            }
-            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
-                ss << "        qos " << i << ": ready queue task <" << j << "/" << nt << "> task id "
-                    << t->gid << " name " << t->label.c_str();
-                AppendTaskInfo(ss, t);
-                ss << std::endl;
-            }
-
-            FFRTFacade::GetSchedInstance()->GetScheduler(i).WakeupTask(t);
-        }
-    }
-    return ss.str();
-}
-
 std::string SaveNormalTaskStatusInfo(void)
 {
     std::string ffrtStackInfo;
@@ -611,52 +587,86 @@ std::string SaveNormalTaskStatusInfo(void)
     apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
     });
+    apply("ready task", [](CPUEUTask* t) {
+        return t->state == TaskState::READY;
+    });
     TaskFactory::UnlockMem();
 
     return ffrtStackInfo;
 }
 
+void DumpQueueTaskInfo(std::string& ffrtStackInfo, const char* tag, const std::vector<QueueTask*>& tasks,
+    const std::function<bool(QueueTask*)>& filter, size_t limit = EACH_QUEUE_TASK_DUMP_SIZE)
+{
+    std::vector<QueueTask*> tmp;
+    for (auto t : tasks) {
+        if (tmp.size() < limit && filter(t)) {
+            tmp.emplace_back(t);
+        }
+    }
+    if (tmp.size() == 0) {
+        return;
+    }
+    std::ostringstream ss;
+    ss << "<<<=== " << tag << "===>>>" << std::endl;
+    ffrtStackInfo += ss.str();
+
+    size_t idx = 1;
+    for (auto t : tmp) {
+        ss.str("");
+        if (t->type == ffrt_queue_task) {
+            ss << "<" << idx++ << "/" << tmp.size() << ">" << "id " << t->gid << " qos "
+                << t->GetQos() << " name " << t->label.c_str();
+            AppendTaskInfo(ss, t);
+            ss << std::endl;
+        }
+        ffrtStackInfo += ss.str();
+        if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+            std::string dumpInfo;
+            DumpTask(reinterpret_cast<CPUEUTask*>(t), dumpInfo, 1);
+            ffrtStackInfo += dumpInfo;
+        }
+    }
+}
+
 std::string SaveQueueTaskStatusInfo()
 {
     std::string ffrtStackInfo;
-    std::ostringstream ss;
     std::lock_guard lk(SimpleAllocator<QueueTask>::Instance()->lock);
     auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
-    auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
-        std::vector<QueueTask*> tmp;
-        for (auto task : unfreeQueueTask) {
-            auto t = reinterpret_cast<QueueTask*>(task);
-            if (filter(t)) {
-                tmp.emplace_back(t);
-            }
-        }
+    if (unfreeQueueTask.size() == 0) {
+        return ffrtStackInfo;
+    }
 
-        if (tmp.size() > 0) {
-            ss << "<<<=== " << tag << "===>>>" << std::endl;
-            ffrtStackInfo += ss.str();
+    std::map<QueueHandler*, std::vector<QueueTask*>> taskMap;
+    for (auto t : unfreeQueueTask) {
+        auto task = reinterpret_cast<QueueTask*>(t);
+        if (task->type == ffrt_queue_task && task->GetFinishStatus() == false && task->GetHandler() != nullptr) {
+            taskMap[task->GetHandler()].push_back(task);
         }
-        size_t idx = 1;
-        for (auto t : tmp) {
-            ss.str("");
-            if (t->type == ffrt_queue_task) {
-                ss << "<" << idx++ << "/" << tmp.size() << ">" << "id" << t->gid << "qos"
-                    << t->GetQos() << "name" << t->label.c_str();
-                AppendTaskInfo(ss, t);
-                ss << std::endl;
-            }
-            ffrtStackInfo += ss.str();
-            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
-                std::string dumpInfo;
-                DumpTask(reinterpret_cast<CPUEUTask*>(t), dumpInfo, 1);
-                ffrtStackInfo += dumpInfo;
-            }
-        }
-    };
+    }
+    if (taskMap.empty()) {
+        return ffrtStackInfo;
+    }
 
-    applyqueue("queue task blocked by synchronization primitive(mutex etc)", [](QueueTask* t) {
-        return (t->GetFinishStatus() == false) && t->coRoutine &&
-            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
-    });
+    for (auto entry : taskMap) {
+        std::sort(entry.second.begin(), entry.second.end(), [](QueueTask* first, QueueTask* second) {
+            return first->GetUptime() < second->GetUptime();
+        });
+    }
+
+    for (auto entry : taskMap) {
+        ffrtStackInfo += "\n";
+        DumpQueueTaskInfo(ffrtStackInfo, "queue task blocked by synchronization primitive(mutex etc)", entry.second,
+            [](QueueTask* t) {
+                return (t->GetFinishStatus() == false) && t->coRoutine &&
+                    t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
+            });
+        DumpQueueTaskInfo(ffrtStackInfo, "queue task unFinished", entry.second, [](QueueTask* t) {
+            return (t->GetFinishStatus() == false && !(t->coRoutine &&
+                t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH)));
+        });
+    }
 
     return ffrtStackInfo;
 }

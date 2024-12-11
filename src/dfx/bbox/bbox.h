@@ -46,12 +46,12 @@ static inline void BboxCheckAndFreeze(void)
 bool FFRTIsWork(void);
 void RecordDebugInfo(void);
 
+std::string GetDumpPreface(void);
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
 std::string SaveTaskCounterInfo(void);
 #endif
 std::string SaveWorkerStatusInfo(void);
-std::string SaveReadyQueueStatusInfo(void);
 std::string SaveNormalTaskStatusInfo(void);
 std::string SaveQueueTaskStatusInfo(void);
 #endif

@@ -32,6 +32,7 @@
 #include "eu/blockaware.h"
 #endif
 
+#define FFRT_ADD_TASK_DELAY_TIME 5
 namespace {
 void InsertTask(void* task, int qos)
 {
@@ -202,6 +203,69 @@ void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)
 void CPUWorkerManager::NotifyWorkers(const QoS& qos, int number)
 {
     monitor->NotifyWorkers(qos, number);
+}
+
+void CPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
+{
+    pid_t pid = thread->Id();
+    int qos = static_cast<int>(thread->GetQos());
+
+    bool isEmptyQosThreads = false;
+    {
+        std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
+        thread->SetExited(true);
+        thread->Detach();
+        auto worker = std::move(groupCtl[qos].threads[thread]);
+        int ret = groupCtl[qos].threads.erase(thread);
+        if (ret != 1) {
+            FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
+        }
+        isEmptyQosThreads = groupCtl[qos].threads.empty();
+        WorkerLeaveTg(QoS(qos), pid);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (IsBlockAwareInit()) {
+            ret = BlockawareUnregister();
+            if (ret != 0) {
+                FFRT_LOGE("blockaware unregister fail, ret[%d]", ret);
+            }
+        }
+#endif
+        worker = nullptr;
+    }
+
+    // qos has no worker, start delay worker to monitor task
+    if (isEmptyQosThreads) {
+        FFRT_LOGI("qos has no worker, start delay worker to monitor task, qos %d", qos);
+        AddDelayedTask(qos);
+    }
+}
+
+void CPUWorkerManager::AddDelayedTask(int qos)
+{
+    weList[qos].tp = std::chrono::steady_clock::now() + std::chrono::seconds(FFRT_ADD_TASK_DELAY_TIME);
+    weList[qos].cb = ([this, qos](WaitEntry* we) {
+        (void)we;
+        int taskCount = GetTaskCount(QoS(qos));
+        std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
+        bool isEmpty = groupCtl[qos].threads.empty();
+        lck.unlock();
+
+        if (!isEmpty) {
+            FFRT_LOGW("qos[%d] has worker, no need add delayed task", qos);
+            return;
+        }
+
+        if (taskCount != 0) {
+            FFRT_LOGI("notify task, qos %d", qos);
+            ExecuteUnit::Instance().NotifyTaskAdded(QoS(qos));
+        } else {
+            AddDelayedTask(qos);
+        }
+    });
+
+    if (!DelayedWakeup(weList[qos].tp, &weList[qos], weList[qos].cb)) {
+        FFRT_LOGW("add delyaed task failed, qos %d", qos);
+    }
 }
 
 CPUWorkerManager::CPUWorkerManager()

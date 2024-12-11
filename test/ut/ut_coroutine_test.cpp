@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-#include<thread>
-#include<chrono>
-#include<gtest/gtest.h>
-#include"ffrt_inner.h"
+#include <thread>
+#include <chrono>
+#include <gtest/gtest.h>
+#include "ffrt_inner.h"
 
 using namespace std;
 using namespace ffrt;

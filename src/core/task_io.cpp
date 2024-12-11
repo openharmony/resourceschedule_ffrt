@@ -91,7 +91,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
 }
 
 API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_current_task()
+void* ffrt_get_current_task(void)
 {
     return reinterpret_cast<void*>(ffrt::ExecuteCtx::Cur()->exec_task);
 }

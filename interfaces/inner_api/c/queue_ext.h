@@ -126,6 +126,6 @@ FFRT_C_API void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandl
            returns a null pointer if the current task is not bound to an eventhandler.
  * @version 1.0
  */
-FFRT_C_API void* ffrt_get_current_queue_eventhandler();
+FFRT_C_API void* ffrt_get_current_queue_eventhandler(void);
 
 #endif

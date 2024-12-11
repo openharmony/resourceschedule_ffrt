@@ -98,7 +98,7 @@ int Poller::DelFdEvent(int fd) noexcept
     }
     auto delCntIter = m_delCntMap.find(fd);
     if (delCntIter != m_delCntMap.end()) {
-        int diff = wakeDataIter->second.size() - delCntIter->second;
+        int diff = static_cast<int>(wakeDataIter->second.size()) - delCntIter->second;
         if (diff == 0) {
             FFRT_LOGW("fd:%d, addCnt:%d, delCnt:%d has not been added to epoll, ignore", fd,
                 wakeDataIter->second.size(), delCntIter->second);

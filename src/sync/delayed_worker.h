@@ -58,6 +58,7 @@ public:
     bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
     bool remove(const TimePoint& to, WaitEntry* we);
     queue* GetAsyncTaskQueue();
+    std::once_flag asyncTaskQueueFlag_;
 
 private:
     DelayedWorker();

@@ -331,14 +331,9 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 
 queue* DelayedWorker::GetAsyncTaskQueue()
 {
-    if (likely(asyncTaskQueue_ != nullptr)) {
-        return asyncTaskQueue_;
-    }
-
-    std::lock_guard<decltype(lock)> l(lock);
-    if (asyncTaskQueue_ == nullptr) {
+    std::call_once(asyncTaskQueueFlag_, [this] {
         asyncTaskQueue_ = new queue(ASYNC_TASK_QUEUE_NAME, ffrt::queue_attr().qos(qos_background));
-    }
+    });
     return asyncTaskQueue_;
 }
 } // namespace ffrt

@@ -77,10 +77,12 @@ public:
     int SleepingWorkerNum(const QoS& qos);
     void NotifyWorkers(const QoS& qos, int number);
     void StartMonitor();
+    void SetEscapeEnable(bool enable);
 
     CpuMonitorOps ops;
     std::thread* monitorThread = nullptr;
     uint32_t monitorTid = 0;
+
 protected:
     WorkerCtrl ctrlQueue[QoS::MaxNum()];
     void Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
@@ -88,6 +90,7 @@ protected:
     {
         return ops;
     }
+
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool blockAwareInit = false;
     bool stopMonitor = false;
@@ -96,6 +99,8 @@ protected:
     BlockawareWakeupCond wakeupCond;
     BlockawareDomainInfoArea domainInfoMonitor;
 #endif
+    bool escapeEnable_ = true;
+
 private:
     void SetupMonitor();
     std::atomic<bool> setWorkerMaxNum[QoS::MaxNum()];

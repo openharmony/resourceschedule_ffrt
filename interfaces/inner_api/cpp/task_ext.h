@@ -85,5 +85,16 @@ static inline int64_t get_queue_id()
 {
     return ffrt_this_queue_get_id();
 }
+
+/**
+ * @brief Sets escape policy enable or disable.
+ *
+ * @param enable Indicates enable or disable the escape policy.
+ * @version 1.0
+ */
+static inline void set_escape_enable(bool enable)
+{
+    ffrt_set_escape_enable(enable);
+}
 } // namespace ffrt
 #endif

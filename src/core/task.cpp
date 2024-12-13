@@ -648,6 +648,13 @@ uint64_t ffrt_get_cur_cached_task_id(void)
 
     return gid;
 }
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_set_escape_enable(bool enable)
+{
+    ffrt::CPUMonitor* monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
+    return monitor->SetEscapeEnable(enable);
+}
 #ifdef __cplusplus
 }
 #endif

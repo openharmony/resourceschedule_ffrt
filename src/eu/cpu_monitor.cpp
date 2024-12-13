@@ -151,6 +151,11 @@ bool CPUMonitor::IsBlockAwareInit(void)
 }
 #endif
 
+void CPUMonitor::SetEscapeEnable(bool enable)
+{
+    escapeEnable_ = enable;
+}
+
 void CPUMonitor::TimeoutCount(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -281,7 +286,8 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
     if ((static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) && (runningNum < workerCtrl.maxConcurrency)) {
         workerCtrl.lock.unlock();
         ops.WakeupWorkers(qos);
-    } else if (((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) || (runningNum == 0)) {
+    } else if (((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) ||
+        (escapeEnable_ && (runningNum == 0))) {
         workerCtrl.executionNum++;
         FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
         workerCtrl.lock.unlock();

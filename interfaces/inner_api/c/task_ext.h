@@ -60,4 +60,12 @@ FFRT_C_API void ffrt_notify_workers(ffrt_qos_t qos, int number);
  * @version 1.0
  */
 FFRT_C_API int64_t ffrt_this_queue_get_id(void);
+
+/**
+ * @brief Sets escape policy enable or disable.
+ *
+ * @param enable Indicates enable or disable the escape policy.
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_set_escape_enable(bool enable);
 #endif

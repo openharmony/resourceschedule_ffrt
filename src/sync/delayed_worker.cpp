@@ -66,7 +66,7 @@ bool DelayedWorker::IsDelayerWorkerThread()
 
 bool IsDelayedWorkerPreserved()
 {
-    static std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
+    std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (whitelist.find(processName) != whitelist.end()) {

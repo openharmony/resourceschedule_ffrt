@@ -76,7 +76,6 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     FFRTFacade::GetWMInstance().SubmitTask();
 #endif
     FFRTTraceRecord::UseFfrt();
-    FFRT_LOGI("qos[%d]", workerQos);
     return true;
 }
 

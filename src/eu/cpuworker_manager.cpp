@@ -76,7 +76,6 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     FFRTFacade::GetWMInstance().SubmitTask();
 #endif
     FFRTTraceRecord::UseFfrt();
-    FFRT_LOGI("qos[%d]", workerQos);
     return true;
 }
 
@@ -127,6 +126,8 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
     CPUEUTask* task = sched.PickNextTask();
+
+#ifdef FFRT_LOCAL_QUEUE_ENABLE
     if (task == nullptr) {
         return nullptr;
     }
@@ -152,6 +153,7 @@ CPUEUTask* CPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 
         queue->PushTail(task2local);
     }
+#endif
 
     return task;
 }
@@ -162,11 +164,11 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         return 0;
     }
 
+    std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
 
-    std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     AddStealingWorker(thread->GetQos());
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
         groupCtl[thread->GetQos()].threads.begin();

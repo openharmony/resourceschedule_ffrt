@@ -65,7 +65,7 @@ bool DelayedWorker::IsDelayerWorkerThread()
 
 bool IsDelayedWorkerPreserved()
 {
-    static std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
+    std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (whitelist.find(processName) != whitelist.end()) {
@@ -258,7 +258,8 @@ int DelayedWorker::HandleWork()
                 DelayedWork w = cur->second;
                 map.erase(cur);
                 lock.unlock();
-                (*w.cb)(w.we);
+                std::function<void(WaitEntry*)> workCb(move(*w.cb));
+                (workCb)(w.we);
                 lock.lock();
                 FFRT_COND_DO_ERR(toExit, return -1, "HandleWork exit, map size:%d", map.size());
                 TimePoint endTp = std::chrono::steady_clock::now();

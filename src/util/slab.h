@@ -56,7 +56,6 @@ public:
     // NOTE: call destructor before FreeMem
     static void FreeMem(T* t)
     {
-        t->~T();
         // unlock()内部lck记录锁的状态为非持有状态，析构时访问状态变量为非持有状态，则不访问实际持有的mutex
         // return之前的lck析构不产生UAF问题，因为return之前随着root析构，锁的内存被释放
         Instance()->free(t);
@@ -118,7 +117,11 @@ private:
 
     void init()
     {
-        char* p = reinterpret_cast<char*>(operator new(MmapSz));
+        char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
+        if (p == nullptr) {
+            FFRT_LOGE("calloc failed");
+            std::terminate();
+        }
         count = MmapSz / TSize;
         primaryCache.reserve(count);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
@@ -133,7 +136,11 @@ private:
         T* t = nullptr;
         if (count == 0) {
             if (basePtr != nullptr) {
-                t = reinterpret_cast<T*>(::operator new(TSize));
+                t = reinterpret_cast<T*>(std::calloc(1, TSize));
+                if (t == nullptr) {
+                    FFRT_LOGE("calloc failed");
+                    std::terminate();
+                }
 #ifdef FFRT_BBOX_ENABLE
                 secondaryCache.insert(t);
 #endif
@@ -152,6 +159,7 @@ private:
     void free(T* t)
     {
         lock.lock();
+        t->~T();
         if (basePtr != nullptr &&
             basePtr <= t &&
             static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
@@ -162,7 +170,7 @@ private:
 #ifdef FFRT_BBOX_ENABLE
             secondaryCache.erase(t);
 #endif
-            ::operator delete(t);
+            std::free(t);
         }
         lock.unlock();
     }
@@ -192,10 +200,10 @@ private:
             FFRT_LOGE("clear allocator failed");
         }
         for (auto ite = secondaryCache.cbegin(); ite != secondaryCache.cend(); ite++) {
-            ::operator delete(*ite);
+            std::free(*ite);
         }
 #endif
-        ::operator delete(basePtr);
+        std::free(basePtr);
         FFRT_LOGI("destruct SimpleAllocator");
     }
 };

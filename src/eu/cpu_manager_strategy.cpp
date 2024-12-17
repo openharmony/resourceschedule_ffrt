@@ -55,9 +55,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
 
     if (strstr(processName, "CameraDaemon")) {
         // CameraDaemon customized strategy
-        ops.WorkerLooper = CPUWorker::WorkerLooperStandard;
 #ifdef OHOS_STANDARD_SYSTEM
-        ops.WaitForNewAction = [pIns] (const WorkerThread* thread) { return pIns->WorkerIdleActionSimplified(thread); };
         ops.WorkerRetired = [pIns] (WorkerThread* thread) { pIns->WorkerRetiredSimplified(thread); };
 #endif
     }

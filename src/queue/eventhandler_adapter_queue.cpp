@@ -171,7 +171,7 @@ int EventHandlerAdapterQueue::Push(QueueTask* task)
         whenMapVec_[taskPriority].insert({task->GetUptime(), task});
     }
     if (task == whenMapVec_[taskPriority].begin()->second) {
-        cond_.NotifyOne();
+        cond_.notify_one();
     }
 
     return SUCC;
@@ -186,7 +186,7 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     while (!WhenMapVecEmpty(whenMapVec_) && now < minMaptime && !isExit_) {
         uint64_t diff = minMaptime - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        cond_.WaitFor(lock, std::chrono::microseconds(diff));
+        cond_.wait_for(lock, std::chrono::microseconds(diff));
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
         minMaptime = GetMinMapTime(whenMapVec_);

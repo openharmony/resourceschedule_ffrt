@@ -34,6 +34,7 @@
 namespace {
 const size_t TIGGER_SUPPRESS_WORKER_COUNT = 4;
 const size_t TIGGER_SUPPRESS_EXECUTION_NUM = 2;
+const size_t MAX_ESCAPE_WORKER_NUM = 1024;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 constexpr int JITTER_DELAY_MS = 5;
 #endif
@@ -133,7 +134,9 @@ void CPUMonitor::MonitorMain()
         return;
     }
     for (int i = 0; i < qosMonitorMaxNum; i++) {
-        if (domainInfoMonitor.localinfo[i].nrRunning <= wakeupCond.local[i].low) {
+        auto& info = domainInfoMonitor.localinfo[i];
+        if (info.nrRunning <= wakeupCond.local[i].low &&
+            (info.nrRunning + info.nrBlocked + info.nrSleeping) < MAX_ESCAPE_WORKER_NUM) {
             Notify(i, TaskNotifyType::TASK_ESCAPED);
         }
     }
@@ -287,7 +290,7 @@ void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyT
         workerCtrl.lock.unlock();
         ops.WakeupWorkers(qos);
     } else if (((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) ||
-        (escapeEnable_ && (runningNum == 0))) {
+        ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM   ))) {
         workerCtrl.executionNum++;
         FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
         workerCtrl.lock.unlock();
@@ -390,6 +393,9 @@ void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotif
             monitor->ops.WakeupWorkers(qos);
         }
     } else {
+        if (workerCtrl.pollWaitFlag) {
+            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
+        }
         workerCtrl.lock.unlock();
     }
 }

@@ -187,7 +187,12 @@ static inline void SaveNormalTaskStatus()
             }
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))
                 && t != g_cur_task) {
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+                    std::string dumpInfo;
+                    DumpTask(t, dumpInfo, 1);
+#else
                 CoStart(t, GetCoEnv());
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
             }
         }
     };

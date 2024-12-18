@@ -33,7 +33,7 @@ const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_eventhandler_adapter, ffrt::CreateEventHandlerAdapterQueue },
 };
 
-void ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::RecordConditionVariable& cond)
+void ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::condition_variable& cond)
 {
     for (auto it = whenMap.begin(); it != whenMap.end(); it++) {
         if (it->second) {
@@ -43,7 +43,7 @@ void ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::Reco
         }
     }
     whenMap.clear();
-    cond.NotifyOne();
+    cond.notify_one();
 }
 }
 
@@ -135,18 +135,6 @@ bool BaseQueue::HasTask(const char* name, std::multimap<uint64_t, QueueTask*> wh
     auto iter = std::find_if(whenMap.cbegin(), whenMap.cend(),
         [name](const auto& pair) { return pair.second->IsMatch(name); });
     return iter != whenMap.cend();
-}
-
-void BaseQueue::PrintMutexOwner()
-{
-    MutexOwnerType type = mutex_.GetOwnerType();
-    if (type == MutexOwnerType::MUTEX_OWNER_TYPE_TASK) {
-        FFRT_LOGI("In queue %u, task %llu owns the lock for %llu us.",
-            queueId_, mutex_.GetOwnerId(), mutex_.GetDuration());
-    } else {
-        FFRT_LOGI("In queue %u, thread %llu owns the lock for %llu us.",
-            queueId_, mutex_.GetOwnerId(), mutex_.GetDuration());
-    }
 }
 
 std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr)

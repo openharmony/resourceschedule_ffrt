@@ -47,6 +47,12 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
         [pIns] () { return pIns->IsBlockAwareInit(); },
 #endif
     };
+    if (strstr(processName, "CameraDaemon")) {
+        // CameraDaemon customized strategy
+#ifdef OHOS_STANDARD_SYSTEM
+        ops.WorkerRetired = [pIns] (WorkerThread* thread) { pIns->WorkerRetiredSimplified(thread); };
+#endif
+    }
 
     return new (std::nothrow) CPUWorker(qos, std::move(ops), pIns);
 }

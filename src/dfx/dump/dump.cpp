@@ -121,7 +121,6 @@ int dump_info_all(char *buf, uint32_t len)
 #endif
         dumpInfo += SaveKeyInfo();
         dumpInfo += SaveWorkerStatusInfo();
-        dumpInfo += SaveReadyQueueStatusInfo();
         dumpInfo += SaveNormalTaskStatusInfo();
         dumpInfo += SaveQueueTaskStatusInfo();
         if (dumpInfo.length() > (len - 1)) {

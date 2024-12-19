@@ -25,6 +25,13 @@ void SCPUMonitor::IntoSleep(const QoS& qos)
     workerCtrl.lock.unlock();
 }
 
+void SCPUMonitor::IntoPollWait(const QoS& qos)
+{
+    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
+    std::lock_guard lk(workerCtrl.lock);
+    workerCtrl.pollWaitFlag = true;
+}
+
 void SCPUMonitor::Notify(const QoS& qos, TaskNotifyType notifyType)
 {
     GetOps().HandleTaskNotity(qos, this, notifyType);

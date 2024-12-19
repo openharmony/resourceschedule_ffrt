@@ -117,10 +117,10 @@ HWTEST_F(WorkerManagerTest, CPUWorkerStandardLoopTest, TestSize.Level1)
     CPUWorkerManager* manager = new SCPUWorkerManager();
 
     CpuWorkerOps ops {
-        CPUWorker::WorkerLooperStandard,
+        CPUWorker::WorkerLooperDefault,
         std::bind(&CPUWorkerManager::PickUpTaskFromGlobalQueue, manager, std::placeholders::_1),
         std::bind(&CPUWorkerManager::NotifyTaskPicked, manager, std::placeholders::_1),
-        std::bind(&CPUWorkerManager::WorkerIdleActionSimplified, manager, std::placeholders::_1),
+        std::bind(&CPUWorkerManager::WorkerIdleAction, manager, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerRetired, manager, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WorkerPrepare, manager, std::placeholders::_1),
     };

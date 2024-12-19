@@ -20,6 +20,7 @@
 namespace ffrt {
 #ifdef FFRT_SEND_EVENT
 void TaskTimeoutReport(std::stringstream& ss, const std::string& processNameStr, const std::string& senarioName);
+void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum);
 #endif
 }
 #endif

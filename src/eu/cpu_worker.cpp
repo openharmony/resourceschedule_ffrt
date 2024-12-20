@@ -304,37 +304,4 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
         }
     }
 }
-
-// work looper with standard procedure which could be strategical
-void CPUWorker::WorkerLooperStandard(WorkerThread* p)
-{
-    CPUWorker* worker = reinterpret_cast<CPUWorker*>(p);
-    auto mgr = reinterpret_cast<CPUWorkerManager*>(p->worker_mgr);
-    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(p->GetQos());
-    auto lock = mgr->GetSleepCtl(static_cast<int>(p->GetQos()));
-    ExecuteCtx* ctx = ExecuteCtx::Cur();
-    CoRoutineEnv* coRoutineEnv = GetCoEnv();
-    for (;;) {
-        // try get task
-        CPUEUTask* task = nullptr;
-        if (!mgr->tearDown) {
-            std::lock_guard lg(*lock);
-            task = sched.PickNextTask();
-        }
-
-        // if succ, notify picked and run task
-        if (task != nullptr) {
-            mgr->NotifyTaskPicked(worker);
-            RunTask(reinterpret_cast<ffrt_executor_task_t*>(task), worker, ctx, coRoutineEnv);
-            continue;
-        }
-        // otherwise, worker wait action
-        auto action = worker->ops.WaitForNewAction(worker);
-        if (action == WorkerAction::RETRY) {
-            continue;
-        } else if (action == WorkerAction::RETIRE) {
-            break;
-        }
-    }
-}
 } // namespace ffrt

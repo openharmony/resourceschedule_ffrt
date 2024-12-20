@@ -809,16 +809,3 @@ HWTEST_F(QueueTest, ffrt_queue_set_eventhand, TestSize.Level1)
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
-
-TEST_F(QueueTest, ffrt_queue_print_mutex_owner_info)
-{
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
-
-    std::unique_ptr<BaseQueue> queue = CreateQueue(ffrt_queue_serial, &queue_attr);
-    queue->PrintMutexOwner();
-    RecordMutex recordMutex;
-    (void)recordMutex.IsTimeout();
-
-    ffrt_queue_attr_destroy(&queue_attr);
-}

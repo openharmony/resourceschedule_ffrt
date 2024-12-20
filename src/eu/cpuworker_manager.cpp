@@ -109,11 +109,11 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         return 0;
     }
 
+    std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
 
-    std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     AddStealingWorker(thread->GetQos());
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
         groupCtl[thread->GetQos()].threads.begin();

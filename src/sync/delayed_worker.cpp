@@ -262,7 +262,8 @@ int DelayedWorker::HandleWork()
                 DelayedWork w = cur->second;
                 map.erase(cur);
                 lock.unlock();
-                (*w.cb)(w.we);
+                std::function<void(WaitEntry*)> workCb(move(*w.cb));
+                (workCb)(w.we);
                 lock.lock();
                 FFRT_COND_DO_ERR(toExit, return -1, "HandleWork exit, map size:%d", map.size());
                 TimePoint endTp = std::chrono::steady_clock::now();

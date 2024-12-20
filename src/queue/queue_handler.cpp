@@ -30,8 +30,6 @@ constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
-constexpr uint32_t CONGESTION_CNT = 5;
-constexpr uint32_t CONGESTION_TIMEOUT_US = 300000000; // 5min
 }
 
 namespace ffrt {
@@ -138,9 +136,6 @@ void QueueHandler::Submit(QueueTask* task)
     // work after that schedule timeout is set for queue
     if (task->GetSchedTimeout() > 0) {
         AddSchedDeadline(task);
-    }
-    if (we_ != nullptr) {
-        CheckOverload();
     }
 
     int ret = queue_->Push(task);
@@ -490,22 +485,6 @@ void QueueHandler::RemoveSchedDeadline(QueueTask* task)
 {
     std::unique_lock lock(mutex_);
     schedDeadline_.erase(task);
-}
-
-void QueueHandler::CheckOverload()
-{
-    if (queue_->GetMapSize() <= CONGESTION_CNT) {
-        return;
-    }
-
-    uint64_t expect = queue_->GetHeadUptime();
-    uint64_t now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count());
-    if (now > expect && now - expect > CONGESTION_TIMEOUT_US * overloadTimes_.load()) {
-        overloadTimes_.fetch_add(1);
-        std::vector<uint64_t> timeoutVec = {};
-        ReportTimeout(timeoutVec);
-    }
 }
 
 void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)

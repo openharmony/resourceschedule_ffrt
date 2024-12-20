@@ -15,6 +15,7 @@
 #ifdef FFRT_SEND_EVENT
 #include "sysevent.h"
 #include "hisysevent.h"
+#include "tm/task_base.h"
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
@@ -31,7 +32,12 @@ void TaskTimeoutReport(std::stringstream& ss, const std::string& processNameStr,
 
 void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum)
 {
-    std::string msg = "qos: " + std::to_string(qos) + ", worker num: " + std::to_string(totalNum);
+    time_t cur_time = time(nullptr);
+    size_t near_gid = s_gid.load(std::memory_order_acquire);
+    std::string msg = "report time: " + std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n"
+                    + ", qos: " + std::to_string(qos)
+                    + ", worker num: " + std::to_string(totalNum)
+                    + ", near gid:" + std::to_string((near_gid > 0) ? near_gid - 1 : 0);
     std::string eventName = "WORKER_ESCAPE";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", "Trigger_Escape",

@@ -173,19 +173,6 @@ void QueueMonitor::CheckQueuesStatus()
         queueRunningInfoSize = queuesRunningInfo_.size();
     }
 
-    // Displays information about queues that hold locks for a long time.
-    for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
-        if (queuesStructInfo_[i] == nullptr || queuesStructInfo_[i]->GetQueue() == nullptr) {
-            continue;
-        }
-
-        if (!queuesStructInfo_[i]->GetQueue()->HasLock() || !queuesStructInfo_[i]->GetQueue()->IsLockTimeout()) {
-            continue;
-        }
-
-        queuesStructInfo_[i]->GetQueue()->PrintMutexOwner();
-    }
-
     // Displays information about queues whose tasks time out.
     for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
         {

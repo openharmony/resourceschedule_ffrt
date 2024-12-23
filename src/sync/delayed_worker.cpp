@@ -28,6 +28,7 @@
 #include "internal_inc/assert.h"
 #include "util/name_manager.h"
 #include "sched/scheduler.h"
+#include "util/ffrt_facade.h"
 namespace {
 const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
 const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
@@ -220,9 +221,6 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
 DelayedWorker::~DelayedWorker()
 {
     lock.lock();
-    if (asyncTaskQueue_ != nullptr) {
-        delete asyncTaskQueue_;
-    }
     toExit = true;
     lock.unlock();
     itimerspec its = { {0, 0}, {0, 1} };
@@ -230,10 +228,14 @@ DelayedWorker::~DelayedWorker()
     if (delayWorker != nullptr && delayWorker->joinable()) {
         delayWorker->join();
     }
+    SetDelayedWorkerExitFlag();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ::close(monitorfd_);
 #endif
     ::close(timerfd_);
+    if (asyncTaskQueue_ != nullptr) {
+        delete asyncTaskQueue_;
+    }
 }
 
 DelayedWorker& DelayedWorker::GetInstance()

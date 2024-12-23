@@ -175,7 +175,8 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Stop();
-    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus() || isUsed_.load()) {
+    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus() ||
+        deliverCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
 }
@@ -263,11 +264,11 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
 void QueueHandler::Deliver()
 {
+    deliverCnt_.fetch_add(1);
     QueueTask* task = queue_->Pull();
+    deliverCnt_.fetch_sub(1);
     if (task != nullptr) {
         TransferTask(task);
-    } else if (!queue_->GetActiveStatus()) {
-        isUsed_.store(false);
     }
 }
 

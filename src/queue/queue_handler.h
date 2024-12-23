@@ -124,6 +124,7 @@ private:
     bool initSchedTimer_ = false;
     WaitUntilEntry* we_ = nullptr;
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
+    std::atomic_int deliverCnt_ = {0};
 };
 } // namespace ffrt
 

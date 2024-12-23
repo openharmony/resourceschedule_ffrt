@@ -195,11 +195,12 @@ void WorkerMonitor::CheckWorkerStatus()
     }
 
     if (timeoutFunctions.size() > 0) {
-        FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([this, timeoutFunctions] {
-            for (const auto& timeoutFunction : timeoutFunctions) {
+        auto asyncTaskQueue = FFRTFacade::GetDWInstance().GetAsyncTaskQueue();
+        for (const auto& timeoutFunction : timeoutFunctions) {
+            asyncTaskQueue->submit([this, timeoutFunction] {
                 RecordSymbolAndBacktrace(timeoutFunction);
-            }
-        });
+            });
+        }
     }
 
     SubmitSamplingTask();

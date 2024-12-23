@@ -18,6 +18,7 @@
 namespace {
 std::atomic<bool> g_exitFlag { false };
 std::shared_mutex g_exitMtx;
+std::atomic<bool> g_delayedWorkerExitFlag { false };
 }
 
 namespace ffrt {
@@ -29,6 +30,16 @@ bool GetExitFlag()
 std::shared_mutex& GetExitMtx()
 {
     return g_exitMtx;
+}
+
+bool GetDelayedWorkerExitFlag()
+{
+    return g_delayedWorkerExitFlag.load();
+}
+
+void SetDelayedWorkerExitFlag()
+{
+    g_delayedWorkerExitFlag.store(true);
 }
 
 class ProcessExitManager {

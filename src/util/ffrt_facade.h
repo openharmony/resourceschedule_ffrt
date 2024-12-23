@@ -28,6 +28,8 @@
 namespace ffrt {
 bool GetExitFlag();
 std::shared_mutex& GetExitMtx();
+bool GetDelayedWorkerExitFlag();
+void SetDelayedWorkerExitFlag();
 
 class FFRTFacade {
 public:

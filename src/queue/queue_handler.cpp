@@ -72,7 +72,7 @@ QueueHandler::~QueueHandler()
     // release callback resource
     if (timeout_ > 0) {
         // wait for all delayedWorker to complete.
-        while (delayedCbCnt_.load() > 0) {
+        while (delayedCbCnt_.load() > 0 && !GetDelayedWorkerExitFlag()) {
             this_task::sleep_for(std::chrono::microseconds(timeout_));
         }
 
@@ -318,8 +318,9 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     std::chrono::microseconds timeout(timeout_);
     auto now = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     we->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
-
+    delayedCbCnt_.fetch_add(1);
     if (!DelayedWakeup(we->tp, we, we->cb)) {
+        delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::FreeMem(we);
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
@@ -327,7 +328,6 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
         return;
     }
 
-    delayedCbCnt_.fetch_add(1);
     FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, name_.c_str());
 }
 

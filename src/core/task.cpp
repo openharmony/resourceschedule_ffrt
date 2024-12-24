@@ -655,6 +655,12 @@ void ffrt_set_escape_enable(bool enable)
     ffrt::CPUMonitor* monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
     return monitor->SetEscapeEnable(enable);
 }
+
+void ffrt_disable_worker_escape(void)
+{
+    ffrt::CPUMonitor* monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
+    return monitor->SetEscapeEnable(false);
+}
 #ifdef __cplusplus
 }
 #endif

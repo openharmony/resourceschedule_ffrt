@@ -62,10 +62,11 @@ FFRT_C_API void ffrt_notify_workers(ffrt_qos_t qos, int number);
 FFRT_C_API int64_t ffrt_this_queue_get_id(void);
 
 /**
- * @brief Sets escape policy enable or disable.
- *
+ * @brief Disable the worker escape function(When all the worker threads under a QoS level fully block, the system will
+ * temporarily exceed the limit on the number of worker threads and creat new worker threads to execute tasks).
  * @param enable Indicates enable or disable the escape policy.
  * @version 1.0
  */
 FFRT_C_API void ffrt_set_escape_enable(bool enable);
+FFRT_C_API void ffrt_disable_worker_escape(void);
 #endif

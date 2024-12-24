@@ -87,8 +87,8 @@ static inline int64_t get_queue_id()
 }
 
 /**
- * @brief Sets escape policy enable or disable.
- *
+ * @brief Disable the worker escape function(When all the worker threads under a QoS level fully block, the system will
+ * temporarily exceed the limit on the number of worker threads and creat new worker threads to execute tasks).
  * @param enable Indicates enable or disable the escape policy.
  * @version 1.0
  */
@@ -96,5 +96,11 @@ static inline void set_escape_enable(bool enable)
 {
     ffrt_set_escape_enable(enable);
 }
+
+static inline void disable_worker_escape()
+{
+    ffrt_disable_worker_escape();
+}
+
 } // namespace ffrt
 #endif

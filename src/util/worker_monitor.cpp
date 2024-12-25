@@ -92,7 +92,7 @@ WorkerMonitor::WorkerMonitor()
             }
             if (noWorkerThreads) {
                 CoRoutineReleaseMem();
-                samplingTaskExit_ = true;
+                memReleaseTaskExit_ = true;
                 return;
             }
         }

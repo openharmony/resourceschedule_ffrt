@@ -130,6 +130,21 @@ private:
     int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept;
     int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
 
+    inline void CacheDelFd(int fd, CPUEUTask *task) noexcept
+    {
+        m_delFdCacheMap.emplace(fd, task);
+    }
+
+    inline void CacheMaskWakeData(CPUEUTask* task, std::unique_ptr<struct WakeDataWithCb>& maskWakeData) noexcept
+    {
+        m_maskWakeDataWithCbMap[task].emplace_back(std::move(maskWakeData));
+    }
+
+    void CacheMaskFdAndEpollDel(int fd, CPUEUTask *task) noexcept;
+    int ClearMaskWakeDataWithCbCache(CPUEUTask *task) noexcept;
+    int ClearMaskWakeDataWithCbCacheWithFd(CPUEUTask *task, int fd) noexcept;
+    int ClearDelFdCache(int fd) noexcept;
+
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
 
@@ -143,14 +158,15 @@ private:
     std::unordered_map<CPUEUTask*, SyncData> m_waitTaskMap;
     std::unordered_map<CPUEUTask*, EventVec> m_cachedTaskEvents;
 
+    std::unordered_map<int, CPUEUTask*> m_delFdCacheMap;
+    std::unordered_map<CPUEUTask*, WakeDataList> m_maskWakeDataWithCbMap;
+
     std::unordered_map<int, TimerStatus> executedHandle_;
     std::multimap<TimePoint, TimerDataWithCb> timerMap_;
     std::atomic_bool fdEmpty_ {true};
     std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;
-    mutable spin_mutex timerMutex_;
-    
-    std::atomic_uint64_t lastPrintTimes_ = {0};
+    mutable spin_mutex timerMutex_;    
 };
 
 struct PollerProxy {

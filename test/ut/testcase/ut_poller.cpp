@@ -265,3 +265,116 @@ HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level1)
     th2.join();
     ffrt::wait({handle});
 }
+
+/*
+ * 测试用例名称 : fetch_cached_event_unmask DoTaskFdAdd
+ * 测试用例描述 : 遍历本地events缓存，并提出缓存event
+ * 预置条件     : 无
+ * 操作步骤     :
+ * 预期结果     :
+ */
+HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level1)
+{
+    Poller poller;
+    CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
+    int fd = 1001;
+    int fd1 = 1002;
+    poller.CacheDelFd(fd, currTask);
+    poller.CacheDelFd(fd1, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(fd, nullptr,
+        nullptr, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData1 = std::make_unique<WakeDataWithCb>(fd1, nullptr,
+        nullptr, currTask);
+    poller.CacheMaskWakeData(currTask, maskWakeData);
+    poller.CacheMaskWakeData(currTask, maskWakeData1);
+
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(2, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    poller.ClearMaskWakeDataWithCbCacheWithFd(currTask, fd);
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    poller.ClearMaskWakeDataWithCbCacheWithFd(currTask, fd1);
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    free(currTask);
+}
+
+/*
+ * 测试用例名称 : fetch_cached_event_unmask DoTaskFdAdd
+ * 测试用例描述 : 遍历本地events缓存，并提出缓存event
+ * 预置条件     : 无
+ * 操作步骤     :
+ * 预期结果     :
+ */
+HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level1)
+{
+    Poller poller;
+    CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
+    int fd = 1001;
+    int fd1 = 1002;
+    poller.m_delFdCacheMap.emplace(fd, currTask);
+    poller.m_delFdCacheMap.emplace(fd1, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(fd, nullptr,
+        nullptr, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData1 = std::make_unique<WakeDataWithCb>(fd1, nullptr,
+        nullptr, currTask);
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData));
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData1));
+
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(2, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    poller.ClearMaskWakeDataWithCbCache(currTask);
+
+    EXPECT_EQ(0, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    free(currTask);
+}
+
+/*
+ * 测试用例名称 : fetch_cached_event_unmask DoTaskFdAdd
+ * 测试用例描述 : 遍历本地events缓存，并提出缓存event
+ * 预置条件     : 无
+ * 操作步骤     :
+ * 预期结果     :
+ */
+HWTEST_F(PollerTest, TestCacheDelFd003, TestSize.Level1)
+{
+    Poller poller;
+    CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
+    int fd = 1001;
+    int fd1 = 1002;
+    poller.m_delFdCacheMap.emplace(fd, currTask);
+    poller.m_delFdCacheMap.emplace(fd1, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(fd, nullptr,
+        nullptr, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData1 = std::make_unique<WakeDataWithCb>(fd1, nullptr,
+        nullptr, currTask);
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData));
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData1));
+
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(2, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    poller.ClearDelFdCache(fd);
+    EXPECT_EQ(1, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    poller.ClearDelFdCache(fd1);
+    EXPECT_EQ(0, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap[currTask].size());
+
+    free(currTask);
+}

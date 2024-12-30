@@ -295,6 +295,19 @@ void RecordDebugInfo(void)
     FFRT_BBOX_LOG("<<<=== ffrt debug log finish ===>>>");
 }
 
+/**
+ * @brief BBOX信息记录，包括task、queue、worker相关信息
+ * 
+ * @param void
+ * @return void
+ * @约束：
+ *  1、FFRT模块收到信号，记录BBOX信息，支持信号如下：
+ *     SIGABRT、SIGBUS、SIGFPE、SIGILL、SIGSTKFLT、SIGSTOP、SIGSYS、SIGTRAP
+ * @规格：
+ *  1.调用时机：FFRT模块收到信号时
+ *  2.影响：1）FFRT功能不可用，FFRT任务不再执行
+ *          2）影响范围仅影响FFRT任务运行，不能造成处理过程中的空指针等异常，如ffrt处理过程造成进行Crash
+ */
 void SaveTheBbox()
 {
     if (g_bbox_called_times.fetch_add(1) == 0) { // only save once

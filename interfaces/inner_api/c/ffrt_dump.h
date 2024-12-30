@@ -24,6 +24,24 @@ typedef enum {
 
 typedef void(*ffrt_task_timeout_cb)(uint64_t gid, const char *msg, uint32_t size);
 
+/**
+ * @brief dump ffrt信息，包括task、queue、worker相关信息.
+ * 
+ * @param cmd 命令类型：
+ *            DUMP_INFO_ALL:表示输出所有信息
+ *            DUMP_TASK_STATISTIC_INFO:输出任务统计信息
+ * @param buf 指向需要写入的buffer
+ * @param len buffer大小
+ * @return 写入buffer的字符数，不包含字符串的结尾符号\0
+ *         负数：表示操作未成功
+ *         0 ： 未写入buffer
+ *         正数：成功写入buffer的字符数
+ * @约束：
+ *  1.buffer大小不足，ffrt记录信息不全(buffer用完则不再写入)
+ * @规格：
+ *  1.调用时机：业务、交互命令任意时机均可以调用
+ *  2.影响：该功能执行过程中、执行过后均不影响系统、业务功能
+ */
 FFRT_C_API int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len);
 FFRT_C_API ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void);
 FFRT_C_API void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb);

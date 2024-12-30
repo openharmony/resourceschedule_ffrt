@@ -26,7 +26,7 @@ typedef void(*ffrt_task_timeout_cb)(uint64_t gid, const char *msg, uint32_t size
 
 /**
  * @brief dump ffrt信息，包括task、queue、worker相关信息.
- * 
+ *
  * @param cmd 命令类型：
  *            DUMP_INFO_ALL:表示输出所有信息
  *            DUMP_TASK_STATISTIC_INFO:输出任务统计信息

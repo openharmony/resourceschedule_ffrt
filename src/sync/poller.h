@@ -166,7 +166,7 @@ private:
     std::atomic_bool fdEmpty_ {true};
     std::atomic_bool timerEmpty_ {true};
     mutable spin_mutex m_mapMutex;
-    mutable spin_mutex timerMutex_;    
+    mutable spin_mutex timerMutex_;
 };
 
 struct PollerProxy {

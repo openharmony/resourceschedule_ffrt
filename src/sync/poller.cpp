@@ -13,14 +13,9 @@
  * limitations under the License.
  */
 #include "poller.h"
-#include "ffrt_trace.h"
 #include "sched/execute_ctx.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
-
-namespace {
-    constexpr uint64_t POLER_PRINT_ERROR_LOG_US = 5000 * 1000; // 5s
-}
 
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
@@ -87,10 +82,60 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     return 0;
 }
 
+void Poller::CacheMaskFdAndEpollDel(int fd, CPUEUTask *task) noexcept
+{
+    auto maskWakeDataWithCb = m_maskWakeDataWithCbMap.find(task);
+    if (maskWakeDataWithCb != m_maskWakeDataWithCbMap.end()) {
+        if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
+            FFRT_LOGE("fd[%d] ffrt epoll ctl del fail errorno=%d", fd, errno);
+        }
+        CacheDelFd(fd, task);
+    }
+}
+
+int Poller::ClearMaskWakeDataWithCbCache(CPUEUTask *task) noexcept
+{
+    auto maskWakeDataWithCbIter = m_maskWakeDataWithCbMap.find(task);
+    if (maskWakeDataWithCbIter != m_maskWakeDataWithCbMap.end()) {
+        WakeDataList& wakeDataList = maskWakeDataWithCbIter->second;
+        for (auto iter = wakeDataList.begin(); iter != wakeDataList.end(); ++iter) {
+            WakeDataWithCb* ptr = iter->get();
+            m_delFdCacheMap.erase(ptr->fd);
+        }
+        m_maskWakeDataWithCbMap.erase(maskWakeDataWithCbIter);
+    }
+    return 0;
+}
+
+int Poller::ClearMaskWakeDataWithCbCacheWithFd(CPUEUTask *task, int fd) noexcept
+{
+    auto maskWakeDataWithCbIter = m_maskWakeDataWithCbMap.find(task);
+    if (maskWakeDataWithCbIter != m_maskWakeDataWithCbMap.end()) {
+        WakeDataList& wakeDataList = maskWakeDataWithCbIter->second;
+        auto pred = [fd](auto& value) { return value->fd == fd; };
+        wakeDataList.remove_if(pred);
+        if (wakeDataList.size() == 0) {
+            m_maskWakeDataWithCbMap.erase(maskWakeDataWithCbIter);
+        }
+    }
+    return 0;
+}
+
+int Poller::ClearDelFdCache(int fd) noexcept
+{
+    auto fdDelCacheIter = m_delFdCacheMap.find(fd);
+    if (fdDelCacheIter != m_delFdCacheMap.end()) {
+        CPUEUTask *task = fdDelCacheIter->second;
+        ClearMaskWakeDataWithCbCacheWithFd(task, fd);
+        m_delFdCacheMap.erase(fdDelCacheIter);
+    }
+    return 0;
+}
+
 int Poller::DelFdEvent(int fd) noexcept
 {
     std::unique_lock lock(m_mapMutex);
-
+    ClearDelFdCache(fd);
     auto wakeDataIter = m_wakeDataMap.find(fd);
     if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 0) {
         FFRT_LOGW("fd[%d] has not been added to epoll, ignore", fd);
@@ -138,6 +183,7 @@ void Poller::ClearCachedEvents(CPUEUTask* task) noexcept
         return;
     }
     m_cachedTaskEvents.erase(iter);
+    ClearMaskWakeDataWithCbCache(task);
 }
 
 int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept
@@ -157,7 +203,7 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
             fdCnt++;
         } else {
             // if seen, update event to newest
-            eventsVec[iter->second].events = eventInfo.events;
+            eventsVec[iter->second].events |= eventInfo.events;
             FFRT_LOGD("fd[%d] has mutilple cached events", currFd);
             continue;
         }
@@ -171,9 +217,18 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
 
         auto& wakeData = wakeDataIter->second.back();
         epoll_event ev = { .events = wakeData->monitorEvents, .data = { .ptr = static_cast<void*>(wakeData.get()) } };
-        if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &ev) != 0) {
-            FFRT_LOGE("fd[%d] epoll ctl mod fail, errorno=%d", currFd, errno);
-            continue;
+        auto fdDelCacheIter = m_delFdCacheMap.find(currFd);
+        if (fdDelCacheIter != m_delFdCacheMap.end()) {
+            ClearDelFdCache(currFd);
+            if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, currFd, &ev) != 0) {
+                FFRT_LOGE("fd[%d] epoll ctl add fail, errorno=%d", currFd, errno);
+                continue;
+            }
+        } else {
+            if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &ev) != 0) {
+                FFRT_LOGE("fd[%d] epoll ctl mod fail, errorno=%d", currFd, errno);
+                continue;
+            }
         }
     }
     return fdCnt;
@@ -277,17 +332,6 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
 {
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct WakeDataWithCb *data = reinterpret_cast<struct WakeDataWithCb *>(waitedEvents[i].data.ptr);
-        if (data == nullptr) {
-            uint64_t now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::steady_clock::now().time_since_epoch()).count());
-            if (now > lastPrintTimes_ + POLER_PRINT_ERROR_LOG_US) {
-                FFRT_LOGE("data is nullptr, events:[%d]", waitedEvents[i].events);
-                FFRT_TRACE_BEGIN("ProcessWaitedFds");
-                lastPrintTimes_ = now;
-                FFRT_TRACE_END();
-            }
-            continue;
-        }
         int currFd = data->fd;
         if (currFd == m_wakeData.fd) {
             uint64_t one = 1;
@@ -303,6 +347,9 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
         if (data->task != nullptr) {
             epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = currFd} };
             syncTaskEvents[data->task].push_back(ev);
+            if (waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) {
+                CacheMaskFdAndEpollDel(currFd, data->task);
+            }
         }
     }
 }
@@ -357,6 +404,23 @@ void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
         }
         struct epoll_event maskEv;
         maskEv.events = 0;
+
+        auto wakeDataIter = m_wakeDataMap.find(currFd);
+        if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 0) {
+            FFRT_LOGD("fd[%d] may be deleted", currFd);
+            continue;
+        }
+        auto& wakeData = wakeDataIter->second.back();
+        std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(currFd,
+            wakeData->data, wakeData->cb, wakeData->task);
+        void* ptr = static_cast<void*>(maskWakeData.get());
+        if (ptr == nullptr || maskWakeData == nullptr) {
+            FFRT_LOGE("CacheEventsAndDoMask Construct WakeDataWithCb instance failed! or wakeData is nullptr");
+            return;
+        }
+        maskWakeData->monitorEvents = 0;
+        CacheMaskWakeData(task, maskWakeData);
+        maskEv.data = {.ptr = ptr};
         if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
             // ENOENT indicate fd is not in epfd, may be deleted
             FFRT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
@@ -384,7 +448,6 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
             CacheEventsAndDoMask(currTask, taskEventPair.second);
             continue;
         }
-
         CopyEventsInfoToConsumer(iter->second, taskEventPair.second);
         auto timerHandle = iter->second.timerHandle;
         if (timerHandle > -1) {
@@ -450,7 +513,6 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     timerMutex_.unlock();
 
     pollerCount_++;
-
     std::array<epoll_event, EPOLL_EVENT_SIZE> waitedEvents;
     int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), realTimeout);
     flag_ = EpollStatus::WAKE;
@@ -460,7 +522,6 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         }
         return PollerRet::RET_NULL;
     }
-
     if (nfds == 0) {
         if (timerHandle != -1) {
             timerMutex_.lock();
@@ -478,7 +539,6 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     std::unordered_map<CPUEUTask*, EventVec> syncTaskEvents;
     ProcessWaitedFds(nfds, syncTaskEvents, waitedEvents);
     WakeSyncTask(syncTaskEvents);
-
     ReleaseFdWakeData();
     return PollerRet::RET_EPOLL;
 }

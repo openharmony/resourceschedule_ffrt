@@ -76,7 +76,7 @@ FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt
  * @param attr Indicates the qos of the task.
  * @return Returns success or failed.
  * @version 1.0
- * 
+ *
  */
 FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos);
 

@@ -21,12 +21,18 @@
 #include "type_def_ext.h"
 #include "c/timer.h"
 
+/**
+ * @brief Struct of the executor_task, also aligns with the base task class.
+ */
 typedef struct ffrt_executor_task {
     uintptr_t reserved[2];
     uintptr_t type; // 0: TaskCtx, 1~: Dynamicly Define Task, User Space Address: libuv work
     void* wq[2];
 } ffrt_executor_task_t;
 
+/**
+ * @brief The executor task types.
+ */
 typedef enum {
     ffrt_normal_task = 0,
     ffrt_io_task = 1,
@@ -36,32 +42,128 @@ typedef enum {
     ffrt_invalid_task,
 } ffrt_executor_task_type_t;
 
+/**
+ * @brief Function defined to be executed by the workers.
+ *
+ * @param data Indicates the args of the function defined by users.
+ * @param qos Indicates the qos of the task.
+ * @version 1.0
+ */
 typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t qos);
+
+/**
+ * @brief Registers a user-defined function for the workers to execute.
+ *
+ * @param func Indicates a user-defined function.
+ * @param type Indicatess which task type the function belongs to.
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
+
+/**
+ * @brief Submits a UV task or IO task.
+ *
+ * @param task Indicates a pointer to the task.
+ * @param attr Indicates a pointer to the task attribute.
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr);
+
+/**
+ * @brief Cancels a UV task or IO task.
+ *
+ * @param task Indicates a pointer to the task.
+ * @param attr Indicates the qos of the task.
+ * @return Returns success or failed.
+ * @version 1.0
+ * 
+ */
 FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos);
 
-// poller
+/**
+ * @brief Wakeups the ffrt poller.
+ *
+ * @param qos Indicates the qos of the poller.
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_poller_wakeup(ffrt_qos_t qos);
 
+/**
+ * @brief Gets the number of epoll operations performed.
+ *
+ * @param qos Indicates the qos of the poller.
+ * @version 1.0
+ */
 FFRT_C_API uint8_t ffrt_epoll_get_count(ffrt_qos_t qos);
 
+/**
+ * @brief Querys the ffrt timer.
+ *
+ * @param handler Indicates the handler of the timer.
+ * @version 1.0
+ */
 FFRT_C_API ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t handle);
 
+/**
+ * @brief Submits a fd event to the poller.
+ *
+ * @param qos Indicates the qos of the poller.
+ * @param op Indicates the option of the event.
+ * @param fd Indicates the fd of the event.
+ * @param events Indicates the events of the events.
+ * @param data Indicates the args of the event callback function.
+ * @param cb Indicates the callback function of the event.
+ * @version 1.0
+ */
 FFRT_C_API int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb);
 
+/**
+ * @brief Waits an epoll event.
+ *
+ * @param qos Indicates the qos of the poller.
+ * @param events Indicates the events of the event.
+ * @param max_events Indicates the max event value.
+ * @param timeout Indicates the time to timeout.
+ * @version 1.0
+ */
 FFRT_C_API int ffrt_epoll_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout);
 
+/**
+ * @brief Gets the time a task has waited in the poller.
+ *
+ * @param taskHandle Indicates the pointer of a task.
+ * @version 1.0
+ */
 FFRT_C_API uint64_t ffrt_epoll_get_wait_time(void* taskHandle);
 
-// ffrt_executor_task
+/**
+ * @brief Submit a coroutine IO task.
+ *
+ * @param co Indicates the args of a task executor function.
+ * @param exec Indicates a task executor function.
+ * @param destory Indicates the destory function of a task.
+ * @param in_deps Indicates a pointer to the input dependencies.
+ * @param out_deps Indicates a pointor to the output dependencies.
+ * @param attr Indicates a task attribute.
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,
     const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
-// waker
+/**
+ * @brief Wakeups a coroutine IO task.
+ *
+ * @param task Indicates a pointer to the task.
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_wake_coroutine(void* task);
 
-// get
+/**
+ * @brief Get the pointer of the current task.
+ *
+ * @return Returns a pointer.
+ * @version 1.0
+ */
 FFRT_C_API void* ffrt_get_current_task(void);
 
 /**

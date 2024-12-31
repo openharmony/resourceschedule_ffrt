@@ -598,13 +598,15 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
 
         timerMutex_.unlock();
         if (data.cb != nullptr) {
+            timerMutex_.unlock();
             data.cb(data.data);
+            timerMutex_.lock();
             executedHandle_[data.handle] = TimerStatus::EXECUTED;
         } else if (data.task != nullptr) {
+            timerMutex_.unlock();
             ProcessTimerDataCb(data.task);
+            timerMutex_.lock();
         }
-
-        timerMutex_.lock();
 
         if (data.repeat && (executedHandle_.find(data.handle) != executedHandle_.end())) {
             executedHandle_.erase(data.handle);
@@ -738,7 +740,13 @@ ffrt_timer_query_t Poller::GetTimerStatus(int handle) noexcept
     auto it = executedHandle_.find(handle);
     if (it != executedHandle_.end()) {
         while (it->second == TimerStatus::EXECUTING) {
+            timerMutex_.unlock();
             std::this_thread::yield();
+            timerMutex_.lock();
+            it = executedHandle_.find(handle);
+            if (it == executedHandle_.end()) {
+                break;
+            }
         }
         return ffrt_timer_executed;
     }

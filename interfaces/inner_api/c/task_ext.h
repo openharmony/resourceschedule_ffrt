@@ -30,9 +30,33 @@
  */
 FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 
-// config
+/**
+ * @brief Sets cgroup attribute.
+ *
+ * @param qos Indicates the Qos, only support for qos_defined_ive.
+ * @param attr Indicates the cgroup attribute.
+ * @return Returns <b>0</b> if cgroup attribute set success;
+ *         returns <b>-1</b> if cgroup attribute set fail.
+ * @version 1.0
+ */
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
+
+/**
+ * @brief Restore the ffrt threads attribute to the default value for all Qos.
+ *
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_restore_qos_config(void);
+
+/**
+ * @brief Sets the max num of ffrt threads in a QoS.
+ *
+ * @param qos Indicates the QoS.
+ * @param num Indicates the max num.
+ * @return Returns <b>0</b> if max num set success;
+ *         return <b>-1</b> if max num set fail;
+ * @version 1.0
+ */
 FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
 
 /**

@@ -244,6 +244,7 @@ int Poller::FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eve
 
     int nfds = FetchCachedEventAndDoUnmask(syncTaskIter->second, eventsVec);
     m_cachedTaskEvents.erase(syncTaskIter);
+    ClearMaskWakeDataWithCbCache(task);
     return nfds;
 }
 

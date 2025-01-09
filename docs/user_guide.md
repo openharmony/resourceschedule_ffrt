@@ -3048,7 +3048,7 @@ int ffrt_cond_destroy(ffrt_cond_t* cond);
 
 `time_point`
 
-- 指向指定等待时限时间的对象的指针, 超时时间为绝对值。如想通过这个函数设置最大超时为2500ms, 则可以参考如下例子；此外，clock_gettime目前只支持CLOCK_MONOTONIC
+- 指向指定等待时限时间的对象的指针, 时钟类型目前只支持CLOCK_MONOTONIC超时时间为绝对值；例如想通过这个函数设置超时为2500ms, 可以参考如下例子使用clock_gettime实现：
 
  ```c
 struct timespec start_tm;

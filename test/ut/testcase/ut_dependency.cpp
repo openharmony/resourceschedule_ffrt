@@ -174,7 +174,7 @@ HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
  * 测试用例名称 ：set_worker_min_num_test
  * 测试用例描述 ：测试传入0个线程的情况
  * 操作步骤     ：测试传入0个线程
- * 预期结果     ：预期失败 
+ * 预期结果     ：预期失败
  */
 HWTEST_F(DependencyTest, set_worker_min_num_test, TestSize.Level1)
 {
@@ -191,7 +191,7 @@ HWTEST_F(DependencyTest, set_worker_min_num_test, TestSize.Level1)
  * 测试用例名称 ：set_worker_max_num_test
  * 测试用例描述 ：测试传入超过最大线程数量的情况
  * 操作步骤     ：测试传入160个线程
- * 预期结果     ：预期失败 
+ * 预期结果     ：预期失败
  */
 HWTEST_F(DependencyTest, set_worker_max_num_test, TestSize.Level1)
 {

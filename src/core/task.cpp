@@ -415,7 +415,7 @@ void ffrt_restore_qos_config()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
-    if (num == 0 || > ffrt::QOS_WORKER_MAXNUM) {
+    if (num == 0 || num > ffrt::QOS_WORKER_MAXNUM) {
         FFRT_LOGE("FuncQosMap has not regist");
         return -1;
     }

@@ -561,7 +561,7 @@ void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_
 API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type)
 {
-    FFRT_COND_DO_ERR((handle == nullptr), return, "function handler should not be empty");
+    FFRT_COND_DO_ERR((func == nullptr), return, "function handler should not be empty");
     ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
     func_mg->insert(type, func);
 }

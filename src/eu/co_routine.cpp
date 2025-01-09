@@ -55,7 +55,8 @@ static inline void CoStackCheck(CoRoutine* co)
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_task_attr_set_stack_size'.\n");
         if (ExecuteCtx::Cur()->task != nullptr) {
             auto curTask = ExecuteCtx::Cur()->task;
-            FFRT_LOGE("task name[%s], gid[%lu], submit_tid[%d]", curTask->label.c_str(), curTask->gid, curTask->formTid);
+            FFRT_LOGE("task name[%s], gid[%lu], submit_tid[%d]",
+                curTask->label.c_str(), curTask->gid, curTask->formTid);
         }
         abort();
     }

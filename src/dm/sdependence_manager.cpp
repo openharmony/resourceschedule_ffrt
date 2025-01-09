@@ -358,8 +358,6 @@ void SDependenceManager::MapSignature2Deps(SCPUEUTask* task, const std::vector<c
 
 int SDependenceManager::onSkip(ffrt_task_handle_t handle)
 {
-    FFRT_COND_DO_ERR((handle == nullptr), return ffrt_error_inval, "input ffrt task handle is invalid.");
-
     ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,

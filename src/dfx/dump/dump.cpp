@@ -166,6 +166,7 @@ ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb)
 {
+    FFRT_COND_DO_ERR((cb == nullptr), return, "input invalid, cb is nullptr");
     ffrt::TimeoutCfg::Instance()->callback = cb;
 }
 

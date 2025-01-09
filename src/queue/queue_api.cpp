@@ -106,6 +106,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
+    FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, f == nullptr");
     ffrt::queue_attr_private* p = reinterpret_cast<ffrt::queue_attr_private*>(attr);
     ResetTimeoutCb(p);
     p->timeoutCb_ = f;
@@ -325,6 +326,10 @@ int ffrt_queue_dump(ffrt_queue_t queue, const char* tag, char* buf, uint32_t len
 API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_size_dump(ffrt_queue_t queue, ffrt_inner_queue_priority_t priority)
 {
+    if (priority > ffrt_inner_queue_priority_idle || priority < ffrt_inner_queue_priority_vip) {
+        FFRT_LOGE("priority:%d is not valid", priority);
+        return -1;
+    }
     FFRT_COND_DO_ERR((queue == nullptr), return -1, "input invalid, queue is nullptr");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
     return handler->DumpSize(priority);

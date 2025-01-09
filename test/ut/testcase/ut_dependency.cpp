@@ -170,6 +170,41 @@ HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
     EXPECT_EQ(ret1, -1);
 }
 
+/*
+ * 测试用例名称 ：set_worker_min_num_test
+ * 测试用例描述 ：测试传入0个线程的情况
+ * 操作步骤     ：测试传入0个线程
+ * 预期结果     ：预期失败 
+ */
+HWTEST_F(DependencyTest, set_worker_min_num_test, TestSize.Level1)
+{
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt::submit([] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+    });
+    int ret2 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 0);
+    EXPECT_EQ(ret2, -1);
+}
+
+/*
+ * 测试用例名称 ：set_worker_max_num_test
+ * 测试用例描述 ：测试传入超过最大线程数量的情况
+ * 操作步骤     ：测试传入160个线程
+ * 预期结果     ：预期失败 
+ */
+HWTEST_F(DependencyTest, set_worker_max_num_test, TestSize.Level1)
+{
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt::submit([] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+    });
+
+    int ret1 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 160);
+    EXPECT_EQ(ret1, -1);
+}
+
 HWTEST_F(DependencyTest, ffrt_task_attr_get_name_set_notify_test, TestSize.Level1)
 {
     int x = 0;

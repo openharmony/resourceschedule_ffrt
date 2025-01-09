@@ -94,7 +94,7 @@ void CPUMonitor::StartMonitor()
 #endif
 }
 
-int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
+int CPUMonitor::SetWorkerMaxNum(const QoS& qos, uint32_t num)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[qos()];
     workerCtrl.lock.lock();
@@ -103,12 +103,8 @@ int CPUMonitor::SetWorkerMaxNum(const QoS& qos, int num)
         workerCtrl.lock.unlock();
         return -1;
     }
-    if (num <= 0 || num > QOS_WORKER_MAXNUM) {
-        FFRT_LOGE("qos[%d] worker num[%d] is invalid.", qos(), num);
-        workerCtrl.lock.unlock();
-        return -1;
-    }
-    workerCtrl.hardLimit = num;
+
+    workerCtrl.hardLimit = static_cast<size_t>(num);
     setWorkerMaxNum[qos()] = true;
     workerCtrl.lock.unlock();
     return 0;

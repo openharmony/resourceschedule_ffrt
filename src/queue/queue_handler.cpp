@@ -83,8 +83,13 @@ QueueHandler::~QueueHandler()
     }
 
     if (we_ != nullptr) {
-        DelayedRemove(we_->tp, we_);
-        SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
+        std::shared_mutex& exitMtx = GetExitMtx();
+        exitMtx.lock_shared();
+        if (!GetExitFlag()) {
+            DelayedRemove(we_->tp, we_);
+            SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
+        }
+        exitMtx.unlock_shared();
     }
     FFRT_LOGI("destruct %s leave", name_.c_str());
 }

@@ -3048,8 +3048,28 @@ int ffrt_cond_destroy(ffrt_cond_t* cond);
 
 `time_point`
 
-- 指向指定等待时限时间的对象的指针
+- 指向指定等待时限时间的对象的指针, 时钟类型目前只支持CLOCK_MONOTONIC超时时间为绝对值；例如想通过这个函数设置超时为2500ms, 可以参考如下例子使用clock_gettime实现：
 
+ ```c
+struct timespec start_tm;
+struct timespec end_tm;
+int timeout_ms = 2500;
+
+clock_gettime(CLOCK_MONOTONIC, &start_tm);
+end_tm = ns_to_tm(tm_to_ns(start_tm) + timeout_ms*1000000);
+
+pthread_mutex_lock(&mtx);
+
+while (等待的条件) {
+    if (pthread_cond_timedwait(&cond, &mtx, &end_tm) == ETIMEDOUT) {
+        /*
+            * 如果超时则退出等待
+            */
+        ret = -1;
+        break;
+    }
+}
+```
 ##### 返回值
 
 - 若成功则为 `ffrt_success`，若在锁定互斥前抵达时限则为 `ffrt_error_timedout`

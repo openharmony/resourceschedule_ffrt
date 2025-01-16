@@ -25,6 +25,16 @@ ExecuteUnit::ExecuteUnit()
 {
 }
 
+ExecuteUnit::~ExecuteUnit()
+{
+    for (auto& w : wManager) {
+        if (w != nullptr) {
+            delete w;
+            w = nullptr;
+        }
+    }
+}
+
 ExecuteUnit& ExecuteUnit::Instance()
 {
     return SingletonRegister<ExecuteUnit>::Instance();
@@ -54,7 +64,7 @@ void ExecuteUnit::CreateWorkerManager()
 {
     ffrt::CoRoutineInstance(CoStackAttr::Instance()->size);
     auto create = [&](const DevType dev) {
-        std::unique_ptr<WorkerManager> manager;
+        WorkerManager* manager = nullptr;
         switch (dev) {
             case DevType::CPU:
                 manager = InitManager();
@@ -63,12 +73,12 @@ void ExecuteUnit::CreateWorkerManager()
                 break;
         }
 
-        if (!manager) {
+        if (manager == nullptr) {
             FFRT_LOGE("create workerManager fail, devType %d", static_cast<size_t>(dev));
             return;
         }
 
-        wManager[static_cast<size_t>(dev)] = std::move(manager);
+        wManager[static_cast<size_t>(dev)] = manager;
     };
 
     for (size_t dev = 0; dev < static_cast<size_t>(DevType::DEVMAX); ++dev) {

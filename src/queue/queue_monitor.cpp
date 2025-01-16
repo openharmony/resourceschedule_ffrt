@@ -191,8 +191,11 @@ void QueueMonitor::CheckQueuesStatus()
             GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
             ss << "Serial_Queue_Timeout, process name:[" << processName << "], serial queue qid:[" << i
                 << "], serial task gid:[" << taskId << "], execution:[" << timeoutUs_ << "] us.";
-            if (queuesStructInfo_[i] != nullptr) {
-                ss << queuesStructInfo_[i]->GetDfxInfo();
+            {
+                std::shared_lock lock(mutex_);
+                if (queuesStructInfo_[i] != nullptr) {
+                    ss << queuesStructInfo_[i]->GetDfxInfo();
+                }
             }
             FFRT_LOGE("%s", ss.str().c_str());
 #ifdef FFRT_SEND_EVENT

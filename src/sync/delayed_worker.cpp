@@ -39,7 +39,6 @@ const int WAIT_EVENT_SIZE = 5;
 const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
 const int DUMP_MAP_MAX_COUNT = 3;
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
-const char* ASYNC_TASK_QUEUE_NAME = "delayedWorkerAsyncTask";
 }
 
 namespace ffrt {
@@ -228,14 +227,10 @@ DelayedWorker::~DelayedWorker()
     if (delayWorker != nullptr && delayWorker->joinable()) {
         delayWorker->join();
     }
-    SetDelayedWorkerExitFlag();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ::close(monitorfd_);
 #endif
-    ::close(timerfd_);
-    if (asyncTaskQueue_ != nullptr) {
-        delete asyncTaskQueue_;
-    }
+    ffrt::wait({this});
 }
 
 DelayedWorker& DelayedWorker::GetInstance()
@@ -332,11 +327,8 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
     return false;
 }
 
-queue* DelayedWorker::GetAsyncTaskQueue()
+void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func)
 {
-    std::call_once(asyncTaskQueueFlag_, [this] {
-        asyncTaskQueue_ = new queue(ASYNC_TASK_QUEUE_NAME, ffrt::queue_attr().qos(qos_background));
-    });
-    return asyncTaskQueue_;
+    ffrt::submit(func, {}, {this}, ffrt::task_attr().qos(qos_background));
 }
 } // namespace ffrt

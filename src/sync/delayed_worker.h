@@ -43,8 +43,6 @@ class DelayedWorker {
     int monitorfd_{-1};
     CPUMonitor* monitor = nullptr;
 #endif
-    queue* asyncTaskQueue_ = nullptr;
-    std::once_flag asyncTaskQueueFlag_;
     int HandleWork(void);
     void ThreadInit();
 
@@ -58,7 +56,7 @@ public:
 
     bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
     bool remove(const TimePoint& to, WaitEntry* we);
-    queue* GetAsyncTaskQueue();
+    void SubmitAsyncTask(std::function<void()>&& func);
 
 private:
     DelayedWorker();

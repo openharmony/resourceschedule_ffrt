@@ -3058,10 +3058,10 @@ int timeout_ms = 2500;
 clock_gettime(CLOCK_MONOTONIC, &start_tm);
 end_tm = ns_to_tm(tm_to_ns(start_tm) + timeout_ms*1000000);
 
-pthread_mutex_lock(&mtx);
+ffrt_mutex_lock(&mtx);
 
 while (等待的条件) {
-    if (pthread_cond_timedwait(&cond, &mtx, &end_tm) == ETIMEDOUT) {
+    if (ffrt_cond_timedwait(&cond, &mtx, &end_tm) == ETIMEDOUT) {
         /*
             * 如果超时则退出等待
             */

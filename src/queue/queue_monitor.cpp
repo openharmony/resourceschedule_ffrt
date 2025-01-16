@@ -205,7 +205,7 @@ void QueueMonitor::CheckQueuesStatus()
 #endif
             std::string ssStr = ss.str();
             if (ffrt_task_timeout_get_cb()) {
-                FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([taskId, ssStr] {
+                FFRTFacade::GetDWInstance().SubmitAsyncTask([taskId, ssStr] {
                     ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
                     if (func) {
                         func(taskId, ssStr.c_str(), ssStr.size());

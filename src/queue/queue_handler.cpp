@@ -72,7 +72,7 @@ QueueHandler::~QueueHandler()
     // release callback resource
     if (timeout_ > 0) {
         // wait for all delayedWorker to complete.
-        while (delayedCbCnt_.load() > 0 && !GetDelayedWorkerExitFlag()) {
+        while (delayedCbCnt_.load() > 0) {
             this_task::sleep_for(std::chrono::microseconds(timeout_));
         }
 
@@ -83,13 +83,8 @@ QueueHandler::~QueueHandler()
     }
 
     if (we_ != nullptr) {
-        std::shared_mutex& exitMtx = GetExitMtx();
-        exitMtx.lock_shared();
-        if (!GetExitFlag()) {
-            DelayedRemove(we_->tp, we_);
-            SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
-        }
-        exitMtx.unlock_shared();
+        DelayedRemove(we_->tp, we_);
+        SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
     }
     FFRT_LOGI("destruct %s leave", name_.c_str());
 }
@@ -351,7 +346,7 @@ void QueueHandler::RunTimeOutCallback(QueueTask* task)
     FFRT_LOGE("%s", ss.str().c_str());
     if (timeoutCb_ != nullptr) {
         delayedCbCnt_.fetch_add(1);
-        FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([this] {
+        FFRTFacade::GetDWInstance().SubmitAsyncTask([this] {
             timeoutCb_->exec(timeoutCb_);
             delayedCbCnt_.fetch_sub(1);
         });
@@ -506,7 +501,7 @@ void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
     uint32_t queueId = GetQueueId();
     std::string ssStr = ss.str();
     if (ffrt_task_timeout_get_cb()) {
-        FFRTFacade::GetDWInstance().GetAsyncTaskQueue()->submit([queueId, ssStr] {
+        FFRTFacade::GetDWInstance().SubmitAsyncTask([queueId, ssStr] {
             ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
             if (func) {
                 func(queueId, ssStr.c_str(), ssStr.size());

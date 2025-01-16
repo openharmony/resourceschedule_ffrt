@@ -291,13 +291,13 @@ ffrt_queue_t ffrt_get_main_queue(void)
 {
     FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetMainEventHandler == nullptr),
         return nullptr, "failed to load GetMainEventHandler Func.");
-    void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
-    FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
-    QueueHandler *handler = new (std::nothrow) QueueHandler(
-        "main_queue", nullptr, ffrt_queue_eventhandler_interactive);
-    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct MainThreadQueueHandler");
-    handler->SetEventHandler(mainHandler);
-    return static_cast<ffrt_queue_t>(handler);
+    static QueueHandler handler = QueueHandler("main_queue", nullptr, ffrt_queue_eventhandler_interactive);
+    if (!handler.GetEventHandler()) {
+        void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
+        FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
+        handler.SetEventHandler(mainHandler);
+    }
+    return static_cast<ffrt_queue_t>(&handler);
 }
 
 API_ATTRIBUTE((visibility("default")))

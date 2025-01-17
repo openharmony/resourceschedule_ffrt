@@ -174,6 +174,14 @@ static void testfun(void* data)
 }
 void (*cb)(void*) = testfun;
 
+static void testSleepFun(void* data)
+{
+    usleep(100000);
+    *(int*)data += 1;
+    printf("%d, timeout callback\n", *(int*)data);
+}
+void (*sleepCb)(void*) = testSleepFun;
+
 HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_map_null, TestSize.Level1)
 {
     uint64_t timeout = 20;
@@ -464,8 +472,10 @@ HWTEST_F(ffrtIoTest, ffrt_timer_query_stop, TestSize.Level1)
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 
     ffrt_qos_t qos = ffrt_qos_default;
-    int handle = ffrt_timer_start(qos, timeout1, data, cb, false);
+    int handle = ffrt_timer_start(qos, timeout1, data, sleepCb, false);
     EXPECT_EQ(0, ffrt_timer_query(qos, handle));
+    usleep(500000);
+    EXPECT_EQ(1, ffrt_timer_query(qos, handle));
 
     ffrt_timer_stop(qos, handle);
     struct TestData testData {.fd = testFd, .expected = expected};

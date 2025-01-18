@@ -15,6 +15,9 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#ifndef WITH_NO_MOCKER
+#include <mockcpp/mockcpp.hpp>
+#endif
 #define private public
 #define protected public
 #include <eu/scpu_monitor.h>
@@ -165,6 +168,54 @@ HWTEST_F(CpuMonitorTest, CheckWorkerStatus_test, TestSize.Level1)
 
     EXPECT_EQ(workermonitor.skipSampling_, true);
 }
+
+#ifndef WITH_NO_MOCKER
+/*
+ * 测试用例名称 ；worker_escape_test
+ * 测试用例描述 ：测试逃生惩罚功能
+ * 预置条件     ：1、对CPUMonitor的IncWorker、WakeupWorkers、GetTaskCount方法进行打桩
+ *               2、对CPUMonitor的GetRunningNum方法进行打桩，使其始终返回0
+ *               3、将CPUMonitor的executionNum设置为16
+ * 操作步骤     ：1、调用enable_worker_escape传入非法入参
+ *               2、调用enable_worker_escape
+ *               3、再次调用enable_worker_escape
+ *               4、调用CPUMonitor的Poke方法
+ * 预期结果     ：1、传入非法入参返回错误码
+ *               2、重复调用返回错误码
+ *               3、逃生惩罚功能生效
+*/
+HWTEST_F(CpuMonitorTest, worker_escape_test, TestSize.Level1)
+{
+    int incWorkerNum = 0;
+    int wakedWorkerNum = 0;
+    testing::NiceMock<MockWorkerManager> mWmanager;
+    SCPUMonitor wmonitor({
+        [&] (const QoS& qos) { incWorkerNum++; return true; },
+        [&] (const QoS& qos) { wakedWorkerNum++; },
+        [] (const QoS& qos) { return 1; },
+        std::bind(&MockWorkerManager::GetWorkerCount, &mWmanager, std::placeholders::_1) });
+    MOCKER_CPP(&SCPUMonitor::GetRunningNum).stubs().will(returnValue(static_cast<size_t>(0)));
+
+    ffrt::disable_worker_escape();
+    // 非法入参
+    EXPECT_EQ(ffrt::enable_worker_escape(0), 1);
+    EXPECT_EQ(ffrt::enable_worker_escape(), 0);
+    // 不允许重复调用
+    EXPECT_EQ(ffrt::enable_worker_escape(), 1);
+
+    WorkerCtrl& workerCtrl = wmonitor.ctrlQueue[2];
+    workerCtrl.executionNum = 16;
+
+    wmonitor.Poke(2, 1, TaskNotifyType::TASK_ADDED);
+    usleep(100 * 1000);
+    EXPECT_EQ(incWorkerNum, 1);
+
+    wmonitor.ops.GetTaskCount = [&] (const QoS& qos) { workerCtrl.sleepingWorkerNum = 1; return 1; }
+    wmonitor.Poke(2, 1, TaskNotifyType::TASK_ADDED);
+    usleep(100 * 1000);
+    EXPECT_EQ(wakedWorkerNum, 1);
+}
+#endif
 
 #ifndef FFRT_GITEE
 /**

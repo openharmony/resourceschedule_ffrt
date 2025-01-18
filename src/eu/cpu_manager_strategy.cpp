@@ -72,7 +72,7 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
         [pIns] (const QoS& qos) { pIns-> WakeupWorkers(qos); },
         [pIns] (const QoS& qos) { return pIns->GetTaskCount(qos); },
         [pIns] (const QoS& qos) { return pIns->GetWorkerCount(qos); },
-        CPUMonitor::HandleTaskNotifyDefault,
+        SCPUMonitor::HandleTaskNotifyDefault,
     };
     return new SCPUMonitor(std::move(ops));
 }

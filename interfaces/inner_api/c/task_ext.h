@@ -86,11 +86,31 @@ FFRT_C_API void ffrt_notify_workers(ffrt_qos_t qos, int number);
 FFRT_C_API int64_t ffrt_this_queue_get_id(void);
 
 /**
- * @brief Disable the worker escape function(When all the worker threads under a QoS level fully block, the system will
+ * @brief Enable the worker escape function (When all the worker threads under a QoS level fully block, the system will
  * temporarily exceed the limit on the number of worker threads and creat new worker threads to execute tasks).
- * @param enable Indicates enable or disable the escape policy.
+ * Delay penalty is added for escape function. As the number of thread increases, the thread creation delay increases.
+ * Calling this function does not take effect when the escape function is enabled.
+ *
+ * @param one_stage_interval_ms Indicates the interval for creating threads in one-stage, default value is 10ms.
+ *                              If input parameter value is smaller than the default value, the setting fails.
+ * @param two_stage_interval_ms Indicates the interval for creating threads in two-stage, default value is 100ms.
+ *                              If input parameter value is smaller than the default value, the setting fails.
+ * @param three_stage_interval_ms Indicates the interval for creating threads in three-stage, default value is 1000ms.
+ *                              If input parameter value is smaller than the default value, the setting fails.
+ * @param one_stage_worker_num Indicates the number of workers in one-stage.
+ * @param two_stage_worker_num Indicates the number of workers in two-stage.
+ * @return Returns 0 if the parameters are valid and the escape function is enabled successfully;
+ *         returns 1 otherwise.
  * @version 1.0
  */
-FFRT_C_API void ffrt_set_escape_enable(bool enable);
+FFRT_C_API int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
+    uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num);
+
+/**
+ * @brief Disable the worker escape function (When all the worker threads under a QoS level fully block, the system will
+ * temporarily exceed the limit on the number of worker threads and creat new worker threads to execute tasks).
+ *
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_disable_worker_escape(void);
 #endif

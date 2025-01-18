@@ -23,17 +23,14 @@
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/sysevent/sysevent.h"
-#include "dfx/trace_record/ffrt_trace_record.h"
 #include "internal_inc/config.h"
 #include "internal_inc/osal.h"
 #include "util/name_manager.h"
 #include "sync/poller.h"
-#include "util/ffrt_facade.h"
 #include "util/spmc_queue.h"
 
 namespace {
-const size_t TIGGER_SUPPRESS_WORKER_COUNT = 4;
-const size_t TIGGER_SUPPRESS_EXECUTION_NUM = 2;
+const size_t PROCESS_NAME_LEN = 1024;
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 constexpr int JITTER_DELAY_MS = 5;
@@ -41,7 +38,8 @@ constexpr int JITTER_DELAY_MS = 5;
 }
 
 namespace ffrt {
-CPUMonitor::CPUMonitor(CpuMonitorOps&& ops) : ops(ops)
+CPUMonitor::CPUMonitor(CpuMonitorOps&& ops, const std::function<void(int, void*)>& executeEscapeFunc)
+    : ops(ops), escapeMgr_(executeEscapeFunc)
 {
     SetupMonitor();
 }
@@ -150,9 +148,16 @@ bool CPUMonitor::IsBlockAwareInit(void)
 }
 #endif
 
-void CPUMonitor::SetEscapeEnable(bool enable)
+int CPUMonitor::SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageIntervalMs,
+        uint64_t threeStageIntervalMs, uint64_t oneStageWorkerNum, uint64_t twoStageWorkerNum)
 {
-    escapeEnable_ = enable;
+    return escapeMgr_.SetEscapeEnable(oneStageIntervalMs, twoStageIntervalMs,
+        threeStageIntervalMs, oneStageWorkerNum, twoStageWorkerNum);
+}
+
+void CPUMonitor::SetEscapeDisable()
+{
+    escapeMgr_.SetEscapeDisable();
 }
 
 void CPUMonitor::TimeoutCount(const QoS& qos)
@@ -253,61 +258,6 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
     return deepSleepingWorkerNum * 2 > totalWorker;
 }
 
-void CPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType)
-{
-    WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-    size_t runningNum = workerCtrl.executionNum;
-    size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    /* There is no need to update running num when executionNum < maxConcurrency */
-    if (workerCtrl.executionNum >= workerCtrl.maxConcurrency) {
-        if (blockAwareInit) {
-            auto nrBlocked = BlockawareLoadSnapshotNrBlockedFast(keyPtr, qos());
-            if (workerCtrl.executionNum >= nrBlocked) {
-                /* nrRunning may not be updated in a timely manner */
-                runningNum = workerCtrl.executionNum - nrBlocked;
-            } else {
-                FFRT_LOGE("qos [%d] nrBlocked [%u] is larger than executionNum [%d].",
-                    qos(), nrBlocked, workerCtrl.executionNum);
-            }
-        }
-    }
-#endif
-
-    bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
-        (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
-
-    if (notifyType != TaskNotifyType::TASK_ADDED && notifyType != TaskNotifyType::TASK_ESCAPED && tiggerSuppression) {
-        workerCtrl.lock.unlock();
-        return;
-    }
-    if ((static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) && (runningNum < workerCtrl.maxConcurrency)) {
-        workerCtrl.lock.unlock();
-        ops.WakeupWorkers(qos);
-    } else if (((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) ||
-        ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM   ))) {
-        workerCtrl.executionNum++;
-        FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
-        workerCtrl.lock.unlock();
-        ops.IncWorker(qos);
-#ifdef FFRT_SEND_EVENT
-        if (!((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit))) {
-            constexpr int processNameLen = 1024;
-            static std::once_flag flag;
-            static char processName[processNameLen];
-            std::call_once(flag, []() { GetProcessName(processName, processNameLen); });
-            WorkerEscapeReport(processName, static_cast<int>(qos), totalNum);
-        }
-#endif
-    } else {
-        if (workerCtrl.pollWaitFlag) {
-            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
-        }
-        workerCtrl.lock.unlock();
-    }
-}
-
 void CPUMonitor::NotifyWorkers(const QoS& qos, int number)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
@@ -330,109 +280,35 @@ void CPUMonitor::NotifyWorkers(const QoS& qos, int number)
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 
-// default strategy which is kind of radical for poking workers
-void CPUMonitor::HandleTaskNotifyDefault(const QoS& qos, void* p, TaskNotifyType notifyType)
+size_t CPUMonitor::GetRunningNum(const QoS& qos)
 {
-    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
-    size_t taskCount = static_cast<size_t>(monitor->GetOps().GetTaskCount(qos));
-    switch (notifyType) {
-        case TaskNotifyType::TASK_ADDED:
-        case TaskNotifyType::TASK_PICKED:
-        case TaskNotifyType::TASK_ESCAPED:
-            if (taskCount > 0) {
-                monitor->Poke(qos, taskCount, notifyType);
-            }
-            break;
-        case TaskNotifyType::TASK_LOCAL:
-                monitor->Poke(qos, taskCount, notifyType);
-            break;
-        default:
-            break;
-    }
-}
+    WorkerCtrl& workerCtrl = ctrlQueue[qos()];
+    size_t runningNum = workerCtrl.executionNum;
 
-// conservative strategy for poking workers
-void CPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* p, TaskNotifyType notifyType)
-{
-    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
-    int taskCount = monitor->ops.GetTaskCount(qos);
-    if (taskCount == 0) {
-        // no available task in global queue, skip
-        return;
-    }
-    constexpr double thresholdTaskPick = 1.0;
-    WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
-
-    if (notifyType == TaskNotifyType::TASK_PICKED) {
-        int wakedWorkerCount = workerCtrl.executionNum;
-        double remainingLoadRatio = (wakedWorkerCount == 0) ? static_cast<double>(workerCtrl.maxConcurrency) :
-            static_cast<double>(taskCount) / static_cast<double>(wakedWorkerCount);
-        if (remainingLoadRatio <= thresholdTaskPick) {
-            // for task pick, wake worker when load ratio > 1
-            workerCtrl.lock.unlock();
-            return;
-        }
-    }
-
-    if (static_cast<uint32_t>(workerCtrl.executionNum) < workerCtrl.maxConcurrency) {
-        if (workerCtrl.sleepingWorkerNum == 0) {
-            FFRT_LOGI("begin to create worker, notifyType[%d]"
-                "execnum[%d], maxconcur[%d], slpnum[%d], dslpnum[%d]",
-                notifyType, workerCtrl.executionNum, workerCtrl.maxConcurrency,
-                workerCtrl.sleepingWorkerNum, workerCtrl.deepSleepingWorkerNum);
-            workerCtrl.executionNum++;
-            workerCtrl.lock.unlock();
-            monitor->ops.IncWorker(qos);
-        } else {
-            workerCtrl.lock.unlock();
-            monitor->ops.WakeupWorkers(qos);
-        }
-    } else {
-        if (workerCtrl.pollWaitFlag) {
-            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
-        }
-        workerCtrl.lock.unlock();
-    }
-}
-
-void CPUMonitor::HandleTaskNotifyUltraConservative(const QoS& qos, void* p, TaskNotifyType notifyType)
-{
-    (void)notifyType;
-    CPUMonitor* monitor = reinterpret_cast<CPUMonitor*>(p);
-    int taskCount = monitor->ops.GetTaskCount(qos);
-    if (taskCount == 0) {
-        // no available task in global queue, skip
-        return;
-    }
-
-    WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
-    std::lock_guard lock(workerCtrl.lock);
-
-    int runningNum = workerCtrl.executionNum;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    if (monitor->blockAwareInit) {
-        /* nrBlocked may not be updated in a timely manner */
-        auto nrBlocked = BlockawareLoadSnapshotNrBlockedFast(monitor->keyPtr, qos());
-        runningNum = workerCtrl.executionNum - nrBlocked;
-        if (!monitor->stopMonitor && taskCount == runningNum) {
-            BlockawareWake();
-            return;
+    /* There is no need to update running num when executionNum < maxConcurrency */
+    if (workerCtrl.executionNum >= workerCtrl.maxConcurrency && blockAwareInit) {
+        auto nrBlocked = BlockawareLoadSnapshotNrBlockedFast(keyPtr, qos());
+        if (workerCtrl.executionNum >= nrBlocked) {
+            /* nrRunning may not be updated in a timely manner */
+            runningNum = workerCtrl.executionNum - nrBlocked;
+        } else {
+            FFRT_LOGE("qos [%d] nrBlocked [%u] is larger than executionNum [%d].",
+                qos(), nrBlocked, workerCtrl.executionNum);
         }
     }
 #endif
 
-    if (taskCount < runningNum) {
-        return;
-    }
+    return runningNum;
+}
 
-    if (runningNum < static_cast<int>(workerCtrl.maxConcurrency)) {
-        if (workerCtrl.sleepingWorkerNum == 0) {
-            workerCtrl.executionNum++;
-            monitor->ops.IncWorker(qos);
-        } else {
-            monitor->ops.WakeupWorkers(qos);
-        }
-    }
+void CPUMonitor::ReportEscapeEvent(int qos, size_t totalNum)
+{
+#ifdef FFRT_SEND_EVENT
+    static std::once_flag flag;
+    static char processName[PROCESS_NAME_LEN];
+    std::call_once(flag, []() { GetProcessName(processName, PROCESS_NAME_LEN); });
+    WorkerEscapeReport(processName, qos, totalNum);
+#endif
 }
 }

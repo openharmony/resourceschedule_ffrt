@@ -210,7 +210,7 @@ HWTEST_F(CpuMonitorTest, worker_escape_test, TestSize.Level1)
     usleep(100 * 1000);
     EXPECT_EQ(incWorkerNum, 1);
 
-    wmonitor.ops.GetTaskCount = [&] (const QoS& qos) { workerCtrl.sleepingWorkerNum = 1; return 1; }
+    wmonitor.ops.GetTaskCount = [&] (const QoS& qos) { workerCtrl.sleepingWorkerNum = 1; return 1; };
     wmonitor.Poke(2, 1, TaskNotifyType::TASK_ADDED);
     usleep(100 * 1000);
     EXPECT_EQ(wakedWorkerNum, 1);

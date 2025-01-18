@@ -66,17 +66,17 @@ public:
         uint64_t threeStageIntervalMs, uint64_t oneStageWorkerNum, uint64_t twoStageWorkerNum)
     {
         if (enableEscape_) {
-            FFRT_LOW("Worker escape is enabled, the interface cannot be invoked repeatedly.");
+            FFRT_LOGW("Worker escape is enabled, the interface cannot be invoked repeatedly.");
             return 1;
         }
 
         if (oneStageIntervalMs < oneStageIntervalMs_ || twoStageIntervalMs < twoStageIntervalMs_ ||
             threeStageIntervalMs < threeStageIntervalMs_ || oneStageWorkerNum > twoStageWorkerNum) {
             FFRT_LOGE("Setting failed, each stage interval value [%lu, %lu, %lu] "
-            "cannot be smaller than default value [%lu, %lu, %lu], "
-            "and one-stage worker number [%lu] cannot be larger than two-stage worker number [%lu].",
-            oneStageIntervalMs, twoStageIntervalMs, threeStageIntervalMs, oneStageIntervalMs_,
-            twoStageIntervalMs_, threeStageIntervalMs_, oneStageWorkerNum, twoStageWorkerNum);
+                "cannot be smaller than default value [%lu, %lu, %lu], "
+                "and one-stage worker number [%lu] cannot be larger than two-stage worker number [%lu].",
+                oneStageIntervalMs, twoStageIntervalMs, threeStageIntervalMs, oneStageIntervalMs_,
+                twoStageIntervalMs_, threeStageIntervalMs_, oneStageWorkerNum, twoStageWorkerNum);
             return 1;
         }
 
@@ -136,7 +136,7 @@ public:
         }
 
         if (!DelayedWakeup(we_[qos]->tp, we_[qos], we_[qos]->cb)) {
-            FFRT_LOW("Failed to set qos %d escape task.", qos);
+            FFRT_LOGW("Failed to set qos %d escape task.", qos);
             return;
         }
 
@@ -151,8 +151,8 @@ private:
     uint64_t oneStageWorkerNum_ = 128;
     uint64_t twoStageWorkerNum_ = 256;
 
-    bool submittedDelayedTask_[Qos::MaxNum()] = {0};
-    WaitUntilEntry* we_[Qos::MaxNum()] = {nullptr};
+    bool submittedDelayedTask_[QoS::MaxNum()] = {0};
+    WaitUntilEntry* we_[QoS::MaxNum()] = {nullptr};
 
     std::function<void(int, void*)> executeEscapeFunc_;
 };

@@ -664,6 +664,7 @@ int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage
         three_stage_interval_ms, one_stage_worker_num, two_stage_worker_num);
 }
 
+API_ATTRIBUTE((visibility("default")))
 void ffrt_disable_worker_escape(void)
 {
     ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor()->SetEscapeDisable();

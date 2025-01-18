@@ -160,7 +160,6 @@ void SCPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notify
 
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
         (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
-
     if (notifyType != TaskNotifyType::TASK_ADDED && notifyType != TaskNotifyType::TASK_ESCAPED && tiggerSuppression) {
         workerCtrl.lock.unlock();
         return;
@@ -171,7 +170,7 @@ void SCPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notify
         ops.WakeupWorkers(qos);
     } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
         workerCtrl.executionNum++;
-        FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
+        FFRTTraceRecord::WorkRecord(qos(), workerCtrl.executionNum);
         workerCtrl.lock.unlock();
         ops.IncWorker(qos);
     } else if (escapeMgr_.IsEscapeEnable() && (runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
@@ -192,14 +191,14 @@ void SCPUMonitor::ExecuteEscape(int qos, void* monitorPtr)
         WorkerCtrl& workerCtrl = monitor->ctrlQueue[qos];
         workerCtrl.lock.lock();
 
-        size_t runningNum = GetRunningNum(qos);
+        size_t runningNum = monitor->GetRunningNum(qos);
         size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
-        if ((static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) && (runningNum < workerCtrl.maxConcurrency)) {
+        if ((workerCtrl.sleepingWorkerNum > 0) && (runningNum < workerCtrl.maxConcurrency)) {
             workerCtrl.lock.unlock();
             monitor->ops.WakeupWorkers(qos);
         } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
             workerCtrl.executionNum++;
-            FFRTTraceRecord::WorkRecord((int)qos, workerCtrl.executionNum);
+            FFRTTraceRecord::WorkRecord(qos, workerCtrl.executionNum);
             workerCtrl.lock.unlock();
             monitor->ops.IncWorker(qos);
             monitor->ReportEscapeEvent(qos, totalNum);

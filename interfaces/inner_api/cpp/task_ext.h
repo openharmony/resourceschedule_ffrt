@@ -88,8 +88,8 @@ static inline int64_t get_queue_id()
 
 /**
  * @brief Enable the worker escape function (When all the worker threads under a QoS level fully block, the system will
- * temporarily exceed the limit on the number of worker threads and creat new worker threads to execute tasks).
- * Delay penalty is added for escape function. As the number of thread increases, the thread creation delay increases.
+ * temporarily exceed the limit on the number of worker threads and create new worker threads to execute tasks).
+ * Delay penalty is added for escape function. As the number of threads increases, the thread creation delay increases.
  * Calling this function does not take effect when the escape function is enabled.
  *
  * @param one_stage_interval_ms Indicates the interval for creating threads in one-stage, default value is 10ms.
@@ -113,7 +113,7 @@ static inline int enable_worker_escape(uint64_t one_stage_interval_ms = 10, uint
 
 /**
  * @brief Disable the worker escape function (When all the worker threads under a QoS level fully block, the system will
- * temporarily exceed the limit on the number of worker threads and creat new worker threads to execute tasks).
+ * temporarily exceed the limit on the number of worker threads and create new worker threads to execute tasks).
  *
  * @version 1.0
  */

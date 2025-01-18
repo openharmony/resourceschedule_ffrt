@@ -69,7 +69,7 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
     // default strategy of monitor ops
     CpuMonitorOps ops {
         [pIns] (const QoS& qos) { return pIns->IncWorker(qos); },
-        [pIns] (const QoS& qos) { pIns-> WakeupWorkers(qos); },
+        [pIns] (const QoS& qos) { pIns->WakeupWorkers(qos); },
         [pIns] (const QoS& qos) { return pIns->GetTaskCount(qos); },
         [pIns] (const QoS& qos) { return pIns->GetWorkerCount(qos); },
         SCPUMonitor::HandleTaskNotifyDefault,

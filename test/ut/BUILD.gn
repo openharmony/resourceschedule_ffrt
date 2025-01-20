@@ -267,6 +267,7 @@ ohos_unittest("ut_cpumonitor") {
   include_dirs = [ "../testfunc" ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_cpumonitor.cpp" ]
   deps = ffrt_ut_base_deps

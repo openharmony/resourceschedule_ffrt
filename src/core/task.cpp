@@ -656,16 +656,18 @@ uint64_t ffrt_get_cur_cached_task_id(void)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_set_escape_enable(bool enable)
+int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
+    uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num)
 {
     ffrt::CPUMonitor* monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
-    return monitor->SetEscapeEnable(enable);
+    return monitor->SetEscapeEnable(one_stage_interval_ms, two_stage_interval_ms,
+        three_stage_interval_ms, one_stage_worker_num, two_stage_worker_num);
 }
 
+API_ATTRIBUTE((visibility("default")))
 void ffrt_disable_worker_escape(void)
 {
-    ffrt::CPUMonitor* monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
-    return monitor->SetEscapeEnable(false);
+    ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor()->SetEscapeDisable();
 }
 #ifdef __cplusplus
 }

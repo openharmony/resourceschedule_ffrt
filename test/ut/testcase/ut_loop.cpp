@@ -258,6 +258,7 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
  
     ffrt_loop_stop(loop);
     ffrt_loop_destroy(loop);
+    ffrt_queue_destroy(queue_handle);
  
 #ifndef WITH_NO_MOCKER
     GlobalMockObject::reset();

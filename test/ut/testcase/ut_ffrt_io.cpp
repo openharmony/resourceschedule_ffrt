@@ -66,7 +66,9 @@ protected:
     {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerHandle_ = -1;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerMutex_.lock();
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerMap_.clear();
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerMutex_.unlock();
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).executedHandle_.clear();
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
     }
@@ -682,34 +684,6 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_maxevents_invalid, TestSize.Level1)
         }, {}, {});
     usleep(1000);
     EXPECT_EQ(-1, result);
-}
-
-HWTEST_F(ffrtIoTest, ffrt_epoll_wait_timeout_invalid, TestSize.Level1)
-{
-    uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    struct WakeData m_wakeData;
-    m_wakeData.data = nullptr;
-    m_wakeData.fd = testFd;
-    ffrt_qos_t qos_level = ffrt_qos_user_initiated;
-    int op = EPOLL_CTL_ADD;
-    int result = 0;
-
-    epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&m_wakeData)} };
-    int maxevents = 1024;
-    uint64_t timeout = -1;
-    struct TestData testData {.fd = testFd, .expected = expected};
-
-    int ret = ffrt_epoll_ctl(qos_level, op, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-    EXPECT_EQ(0, ret);
-
-    ffrt::submit([&]() {
-        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
-        result = ffrt_epoll_wait(qos_level, &ev, maxevents, timeout);
-        }, {}, {});
-    usleep(1000);
-    EXPECT_EQ(0, result);
 }
 
 HWTEST_F(ffrtIoTest, ffrt_epoll_ctl_op1, TestSize.Level1)

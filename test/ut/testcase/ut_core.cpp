@@ -178,6 +178,7 @@ HWTEST_F(CoreTest, task_attr_set_timeout, TestSize.Level1)
     ffrt_task_attr_set_timeout(attr, 1000);
     uint64_t timeout = ffrt_task_attr_get_timeout(attr);
     EXPECT_EQ(timeout, 1000);
+    free(attr);
 }
 
 /**

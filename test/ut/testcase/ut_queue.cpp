@@ -202,6 +202,7 @@ HWTEST_F(QueueTest, serial_queue_task_create_destroy_fail, TestSize.Level1)
     EXPECT_EQ(task == nullptr, 0);
     ffrt_task_handle_destroy(task);
     ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
 }
 
 /*
@@ -358,6 +359,7 @@ HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
 
     ffrt_queue_wait(t1);
     ffrt_task_handle_destroy(t1);
+    ffrt_task_attr_destroy(&task_attr);
     EXPECT_EQ(result, 1);
     EXPECT_EQ(x, 1);
     ffrt_queue_destroy(queue_handle);
@@ -530,6 +532,8 @@ HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
     lock.unlock();
     ffrt_queue_wait(handle);
 
+    ffrt_task_handle_destroy(handle);
+    ffrt_task_attr_destroy(&task_attr);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -594,6 +598,8 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
     isIdle = ffrt_queue_is_idle(queue_handle);
     EXPECT_EQ(isIdle, true);
 
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -645,6 +651,9 @@ HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
         for (int i = 0; i < 10; i++) {
             handle = ffrt_queue_submit_h(queue_handle,
                 create_function_wrapper(priorityFuncs[prio], ffrt_function_kind_queue), &task_attr);
+            if (prio != 4 || i != 9) {
+                ffrt_task_handle_destroy(handle);
+            }
         }
     }
 
@@ -657,6 +666,8 @@ HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
     EXPECT_EQ(priorityCount[3], 10);
     EXPECT_EQ(priorityCount[4], 1);
 
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -716,6 +727,8 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     ffrt_queue_wait(handle);
     EXPECT_EQ(results, expectResults);
 
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -758,6 +771,7 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
 
     serialQueue->wait(handle);
     EXPECT_EQ(result, 1);
+    delete serialQueue;
 }
 
 HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
@@ -787,6 +801,7 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
     serialQueue->wait(handle);
 
     EXPECT_EQ(result, 1);
+    delete serialQueue;
 }
 
 /*

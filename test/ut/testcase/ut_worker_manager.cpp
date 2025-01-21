@@ -107,6 +107,9 @@ HWTEST_F(WorkerManagerTest, JoinTGTest, TestSize.Level1)
     QoS* qos1 = new QoS(ffrt::qos_user_interactive);
     ThreadGroup* tg1 = cm->JoinTG(*qos1);
     EXPECT_EQ(tg1, nullptr);
+    delete cm;
+    delete qos;
+    delete qos1;
 }
 
 HWTEST_F(WorkerManagerTest, LeaveTGTest, TestSize.Level1)
@@ -191,6 +194,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleNotifyConservativeTest, TestSize.Lev
     manager->monitor->ops = std::move(monitorOps);
 
     manager->NotifyTaskAdded(QoS(2)); // task notify event
+    delete manager;
 }
 
 int GetTaskCountStub(const QoS& qos)
@@ -222,6 +226,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyUltraConservativeTest, Tes
 
     manager->monitor->ctrlQueue[2].sleepingWorkerNum = 1;
     manager->NotifyTaskAdded(QoS(2)); // task notify event
+    delete manager;
 }
 
 HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest, TestSize.Level1)
@@ -280,6 +285,9 @@ HWTEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue, TestSize.Level1)
     auto pickTask = manager->PickUpTaskFromGlobalQueue(worker);
     EXPECT_NE(pickTask, nullptr);
 
+    manager->tearDown = true;
+    pthread_join(worker->GetThread(), nullptr);
+
     delete manager;
     delete worker;
     delete task;
@@ -308,6 +316,10 @@ HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
 
     EXPECT_NE(manager->PickUpTaskBatch(worker1), nullptr);
     EXPECT_NE(manager->PickUpTaskBatch(worker2), nullptr);
+
+    manager->tearDown = true;
+    pthread_join(worker1->GetThread(), nullptr);
+    pthread_join(worker2->GetThread(), nullptr);
 
     delete manager;
     delete worker1;
@@ -371,11 +383,11 @@ HWTEST_F(WorkerManagerTest, WakeupDeepSleep, TestSize.Level1)
 {
     CPUWorkerManager* manager = new SCPUWorkerManager();
     CPUManagerStrategy* strategy = new CPUManagerStrategy();
-    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
+    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(1)));
     CPUMonitor* monitor = manager->GetCPUMonitor();
 
-    auto worker = strategy->CreateCPUWorker(QoS(qos(0)), manager);
-    monitor->WakeupDeepSleep(QoS(qos(0)), true);
+    auto worker = strategy->CreateCPUWorker(QoS(qos(1)), manager);
+    monitor->WakeupDeepSleep(QoS(qos(1)), true);
     auto& sched = FFRTScheduler::Instance()->GetScheduler(worker->GetQoS());
 
     EXPECT_EQ(sched.WakeupTask(reinterpret_cast<CPUEUTask*>(task)), 1);

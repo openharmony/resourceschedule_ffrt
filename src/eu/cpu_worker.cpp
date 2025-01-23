@@ -31,6 +31,7 @@
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 #include "eu/cpuworker_manager.h"
+#include "dfx/sysevent/sysevent.h"
 namespace {
 int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
@@ -108,9 +109,28 @@ void* CPUWorker::WrapDispatch(void* worker)
 
 void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
 {
+#ifdef FFRT_SEND_EVENT
+    static bool isBetaVersion = IsBeta();
+    uint64_t startExecuteTime = 0;
+    bool isNotUv = false;
+    if (isBetaVersion) {
+        startExecuteTime = FFRTTraceRecord::TimeStamp();
+        CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
+        isNotUv = (curtask->type == ffrt_normal_task || curtask->type == ffrt_queue_task);
+        if (likely(isNotUv)) {
+            worker->cacheLabel = task->label;
+        }
+    }
+#endif
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     CoRoutineEnv* coRoutineEnv = GetCoEnv();
     RunTask(curtask, worker, ctx, coRoutineEnv);
+#ifdef FFRT_SEND_EVENT
+    if (isBetaVersion) {
+        uint64_t execDur = ((FFRTTraceRecord::TimeStamp() - startExecuteTime) >> worker->cacheBase);
+        TaskBlockInfoReport(execDur, isNotUv ? worker->cacheLabel : "uv_task", worker->cacheQos, worker->cacheBase);
+    }
+#endif
 }
 
 void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, ExecuteCtx* ctx, CoRoutineEnv* coRoutineEnv)

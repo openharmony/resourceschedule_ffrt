@@ -211,6 +211,7 @@ HWTEST_F(SyncTest, shared_mutex_lock_with_BlockThread, TestSize.Level1)
         }, {}, {}, ffrt::task_attr().name("t2"));
     
     ffrt::wait();
+    EXPECT_EQ(x, N);
 }
 
 /**

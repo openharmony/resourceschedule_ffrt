@@ -319,25 +319,32 @@ HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Leve
             int pingpong = i % BUFFER_NUM;
             // task A
             ffrt::submit(
-                [i, loop, stalls]() {
+                [i, loop, stalls, &x0, &x1]() {
                     FFRT_LOGI("%u", i);
+                    x1[i % BUFFER_NUM] = i;
                 },
                 {x0 + i}, {x1 + pingpong}, ffrt::task_attr().name(("UI" + std::to_string(i)).c_str()));
             // task B
             ffrt::submit(
-                [i, loop, stalls]() {
+                [i, loop, stalls, &x1, &x2]() {
                     FFRT_LOGI("%u", i);
+                    x2[i % BUFFER_NUM] = i;
                 },
                 {x1 + pingpong}, {x2 + pingpong}, ffrt::task_attr().name(("Render" + std::to_string(i)).c_str()));
             // task C
             ffrt::submit(
-                [i, loop, stalls]() {
+                [i, loop, stalls, &x2, &x3]() {
                     FFRT_LOGI("%u", i);
+                    x3[i] = i;
                 },
                 {x2 + pingpong}, {x3 + i}, ffrt::task_attr().name(("surfaceflinger" + std::to_string(i)).c_str()));
         }
         ffrt::wait();
         ffrt::qos_interval_end(it);
+
+        for (int i = 0; i < frame_num; i++) {
+            EXPECT_EQ(x3[i], i) << " Task C result is incorrect for frame " << i;
+        }
     }
 
     ffrt::qos_interval_destroy(it);

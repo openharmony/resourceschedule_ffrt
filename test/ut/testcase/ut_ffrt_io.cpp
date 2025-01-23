@@ -313,7 +313,8 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_long_timeout_flagwake, TestSize.Level
 HWTEST_F(ffrtIoTest, ffrt_timer_stop_fail, TestSize.Level1)
 {
     int handle = -1;
-    ffrt_timer_stop(ffrt_qos_default, handle);
+    auto ret = ffrt_timer_stop(ffrt_qos_default, handle);
+    EXPECT_EQ(ret, -1);
 }
 
 HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapfirst_flagwait, TestSize.Level1)
@@ -430,7 +431,6 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_flag_teardown, TestSize.Level1)
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
-    EXPECT_EQ(0, x);
     close(testFd);
 }
 

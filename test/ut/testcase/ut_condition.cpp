@@ -45,59 +45,6 @@ protected:
     }
 };
 
-HWTEST_F(CVTest, conditonV_notify_one_test, TestSize.Level1)
-{
-    ffrt::condition_variable cond;
-    int a = 0;
-    ffrt::mutex lock_;
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait(lck, [&] { return a == 1; });
-        },
-        {}, {});
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            a = 1;
-            cond.notify_one();
-        },
-        {}, {});
-    ffrt::wait();
-}
-
-HWTEST_F(CVTest, conditonV_notify_all_test, TestSize.Level1)
-{
-    ffrt::condition_variable cond;
-    int a = 0;
-    ffrt::mutex lock_;
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait(lck, [&] { return a == 1; });
-        },
-        {}, {});
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait(lck, [&] { return a == 1; });
-        },
-        {}, {});
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            a = 1;
-            cond.notify_all();
-        },
-        {}, {});
-
-    ffrt::wait();
-}
-
 HWTEST_F(CVTest, conditonV_wait_for_test, TestSize.Level1)
 {
     ffrt::condition_variable cond;

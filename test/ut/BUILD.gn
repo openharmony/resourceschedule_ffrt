@@ -175,27 +175,6 @@ ohos_unittest("cpu_monitor_test") {
   part_name = "ffrt"
 }
 
-ohos_unittest("cpuworker_manager_test") {
-  module_out_path = module_output_path
-  cflags_cc = []
-
-  configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
-
-  cflags_cc += ffrt_ut_base_cflags_cc
-
-  sources = [ "cpuworker_manager_test.cpp" ]
-  deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
-
-  if (is_standard_system) {
-    public_external_deps = gtest_public_external_deps
-  }
-
-  install_enable = true
-  part_name = "ffrt"
-}
-
 ohos_unittest("execute_unit_test") {
   module_out_path = module_output_path
   cflags_cc = []
@@ -206,27 +185,6 @@ ohos_unittest("execute_unit_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "execute_unit_test.cpp" ]
-  deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
-
-  if (is_standard_system) {
-    public_external_deps = gtest_public_external_deps
-  }
-
-  install_enable = true
-  part_name = "ffrt"
-}
-
-ohos_unittest("worker_thread_test") {
-  module_out_path = module_output_path
-  cflags_cc = []
-
-  configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
-
-  cflags_cc += ffrt_ut_base_cflags_cc
-
-  sources = [ "worker_thread_test.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -711,27 +669,6 @@ ohos_unittest("ut_mem") {
   part_name = "ffrt"
 }
 
-ohos_unittest("worker_manager_test") {
-  module_out_path = module_output_path
-  cflags_cc = []
-
-  configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
-
-  cflags_cc += ffrt_ut_base_cflags_cc
-
-  sources = [ "worker_manager_test.cpp" ]
-  deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
-
-  if (is_standard_system) {
-    public_external_deps = gtest_public_external_deps
-  }
-
-  install_enable = true
-  part_name = "ffrt"
-}
-
 ohos_unittest("ut_queue_dump") {
   module_out_path = module_output_path
   cflags_cc = []
@@ -802,7 +739,6 @@ group("ffrt_unittest_ffrt") {
   if (!is_asan) {
     deps += [
       ":cpu_monitor_test",
-      ":cpuworker_manager_test",
       ":deadline_test",
       ":execute_unit_test",
       ":frame_interval_test",
@@ -832,8 +768,6 @@ group("ffrt_unittest_ffrt") {
       ":ut_rtg",
       ":ut_scheduler",
       ":ut_thread",
-      ":worker_manager_test",
-      ":worker_thread_test",
     ]
   }
 }

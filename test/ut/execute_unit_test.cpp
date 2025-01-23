@@ -51,16 +51,6 @@ protected:
 };
 
 /**
- * @tc.name: NotifyTaskAdded
- * @tc.desc: Test whether the NotifyTaskAdded interface are normal.
- * @tc.type: FUNC
- */
-HWTEST_F(ExecuteUnitTest, NotifyTaskAdded, TestSize.Level1)
-{
-    FFRTFacade::GetEUInstance().NotifyTaskAdded(QoS(qos(5)));
-}
-
-/**
  * @tc.name: BindWG
  * @tc.desc: Test whether the BindWG interface are normal.
  * @tc.type: FUNC

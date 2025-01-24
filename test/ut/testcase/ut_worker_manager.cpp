@@ -60,7 +60,8 @@ HWTEST_F(WorkerManagerTest, IncWorkerTest, TestSize.Level1)
 {
     CPUWorkerManager* cm = new SCPUWorkerManager();
     QoS* qos = new QoS(-1);
-    cm->IncWorker(*qos);
+    bool iw = cm->IncWorker(*qos);
+    EXPECT_FALSE(iw);
 
     delete qos;
     delete cm;
@@ -71,7 +72,8 @@ HWTEST_F(WorkerManagerTest, IncWorkerTest2, TestSize.Level1)
     CPUWorkerManager* cm = new SCPUWorkerManager();
     QoS* qos = new QoS(-1);
     cm->tearDown = true;
-    cm->IncWorker(*qos);
+    bool iw2 = cm->IncWorker(*qos);
+    EXPECT_FALSE(iw2);
 
     delete qos;
     delete cm;
@@ -82,6 +84,7 @@ HWTEST_F(WorkerManagerTest, GetWorkerCountTest, TestSize.Level1)
     CPUWorkerManager* cm = new SCPUWorkerManager();
     QoS* qos = new QoS(2);
     cm->GetWorkerCount(*qos);
+    EXPECT_EQ(cm->GetWorkerCount(*qos), 0);
 
     delete qos;
     delete cm;
@@ -106,14 +109,17 @@ HWTEST_F(WorkerManagerTest, LeaveTGTest, TestSize.Level1)
 {
     CPUWorkerManager* cm = new SCPUWorkerManager();
     QoS* qos = new QoS(ffrt::qos_deadline_request);
-    cm->IncWorker(*qos);
+    bool ltg = cm->IncWorker(*qos);
+    EXPECT_TRUE(ltg);
 #ifndef WITH_NO_MOCKER
     MOCKER_CPP(&RTGCtrl::GetThreadGroup).stubs().will(returnValue(1));
     MOCKER_CPP(&RTGCtrl::PutThreadGroup).stubs().will(returnValue(true));
     MOCKER_CPP(&RTGCtrl::JoinThread).stubs().will(returnValue(true));
     MOCKER_CPP(&RTGCtrl::RemoveThread).stubs().will(returnValue(true));
 #endif
-    cm->JoinTG(*qos);
+    ThreadGroup* ltg1 = cm->JoinTG(*qos);
+    EXPECT_NE(ltg1, nullptr);
+
     cm->LeaveTG(*qos);
 
     delete qos;

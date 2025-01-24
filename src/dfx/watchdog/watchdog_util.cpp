@@ -77,7 +77,7 @@ namespace ffrt {
                 std::lock_guard<decltype(lock)> l(lock);
                 if (taskStatusMap.count(gid) > 0) {
                     int sendCount = taskStatusMap[gid];
-                    if (sendCount >= SEND_COUNT_MAX) {
+                    if (sendCount > SEND_COUNT_MAX) {
                         FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than %d times",
                             gid, SEND_COUNT_MAX);
                         SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));

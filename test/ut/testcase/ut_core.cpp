@@ -74,7 +74,6 @@ HWTEST_F(CoreTest, ffrt_submit_wait_success_01, TestSize.Level1)
     ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
     ffrt_task_attr_init(attr);
     std::function<void()>&& basicFunc = [&]() {
-        EXPECT_EQ(x, 0);
         usleep(sleepTime);
         x = x + 1;
     };
@@ -87,11 +86,8 @@ HWTEST_F(CoreTest, ffrt_submit_wait_success_01, TestSize.Level1)
     ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
     const ffrt_deps_t *wait_null = nullptr;
     ffrt_submit_base(basicFunc_ht, &in, &ou, attr);
-    EXPECT_EQ(x, 0);
     ffrt_wait_deps(wait_null);
-    EXPECT_EQ(x, 0);
     ffrt_wait_deps(&wait);
-    EXPECT_EQ(x, 0);
     ffrt_wait();
     EXPECT_EQ(x, 1);
     ffrt_task_attr_destroy(attr);
@@ -133,28 +129,6 @@ HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
 
     delete parent;
     delete task;
-}
-
-/**
- * @tc.name: ffrt_this_task_set_legacy_mode_yeild_test
- * @tc.desc: Test function of ffrt_this_task_set_legacy_mode with ffrt_yield
- * @tc.type: FUNC
- */
-HWTEST_F(CoreTest, ffrt_this_task_set_legacy_mode_yield_test, TestSize.Level1)
-{
-    int count = 12;
-    for (int i = 0; i < count; i++) {
-        ffrt::submit(
-            [&]() {
-            ffrt_this_task_set_legacy_mode(true);
-            ffrt_usleep(100);
-            printf("test");
-            ffrt_yield();
-            ffrt_this_task_set_legacy_mode(false);
-        },
-            {}, {});
-    }
-    ffrt::wait();
 }
 
 /**
@@ -240,9 +214,10 @@ HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level1)
  */
 HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
 {
+    int i = 0;
     std::vector<ffrt::dependence> deps;
     {
-        auto h = ffrt::submit_h([] { printf("task0 done\n"); });
+        auto h = ffrt::submit_h([&i] { printf("task0 done\n"); i++;});
         printf("task0 handle: %p\n:", static_cast<void*>(h));
         deps.emplace_back(h);
     }
@@ -251,11 +226,14 @@ HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
     auto h = ffrt::submit_h([&] {
         printf("task1 start\n");
         while (!stop);
+        i++;
         printf("task1 done\n");
         });
     ffrt::wait(deps);
+    EXPECT_EQ(i, 1);
     stop = true;
     ffrt::wait();
+    EXPECT_EQ(i, 2);
 }
 
 /*

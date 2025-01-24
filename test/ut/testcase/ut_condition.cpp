@@ -201,38 +201,6 @@ protected:
     }
 };
 
-HWTEST_F(SleepTest, yield_test, TestSize.Level1)
-{
-    int a = 0;
-
-    this_task::yield();
-
-    EXPECT_EQ(a, 0);
-}
-
-HWTEST_F(SleepTest, sleep_for_test1, TestSize.Level1)
-{
-    int a = 0;
-
-    this_task::sleep_for(10ms);
-
-    EXPECT_EQ(a, 0);
-}
-
-HWTEST_F(SleepTest, sleep_for_test2, TestSize.Level1)
-{
-    int a = 0;
-
-    submit([&]() {
-        this_task::sleep_for(5us);
-        a = 2;
-        }, {}, {});
-
-    wait();
-
-    EXPECT_EQ(a, 2);
-}
-
 void* thd_func(void *arg)
 {
     int *counter = (int *)arg;

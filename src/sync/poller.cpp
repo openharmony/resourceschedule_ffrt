@@ -755,7 +755,7 @@ ffrt_timer_query_t Poller::GetTimerStatus(int handle) noexcept
     return ffrt_timer_notfound;
 }
 
-uint8_t Poller::GetPollCount() noexcept
+uint64_t Poller::GetPollCount() noexcept
 {
     return pollerCount_;
 }

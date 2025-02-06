@@ -36,6 +36,7 @@ namespace {
 constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
+constexpr unsigned int RECORD_POLLER_INFO_FREQ = 120;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
@@ -44,6 +45,7 @@ constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60 };
+unsigned int g_sampling_task_count = 0;
 }
 
 namespace ffrt {
@@ -173,6 +175,10 @@ void WorkerMonitor::CheckWorkerStatus()
             samplingTaskExit_ = true;
             return;
         }
+    }
+
+    if (g_sampling_task_count++ % RECORD_POLLER_INFO_FREQ == 0) {
+        RecordPollerInfo();
     }
 
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
@@ -311,5 +317,21 @@ void WorkerMonitor::RecordKeyInfo(const std::string& dumpInfo)
     std::string keyInfo = SaveKeyInfo();
     FFRT_LOGW("%s", keyInfo.c_str());
 #endif
+}
+
+void WorkerMonitor::RecordPollerInfo()
+{
+    std::stringstream ss;
+    for (int qos = 0; qos < QoS::MaxNum(); qos++) {
+        uint64_t pollCount = FFRTFacade::GetPPInstance().GetPoller(qos).GetPollCount();
+        if (pollCount > 0) {
+            ss << qos << ":" << pollCount << ";";
+        }
+    }
+
+    std::string result = ss.str();
+    if (!result.empty()) {
+        FFRT_LOGW("%s", result.c_str());
+    }
 }
 }

@@ -81,7 +81,7 @@ uint8_t ffrt_epoll_get_count(ffrt_qos_t qos)
         return 0;
     }
 
-    return ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).GetPollCount();
+    return ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).GetPollCount() % UINT8_MAX;
 }
 
 API_ATTRIBUTE((visibility("default")))

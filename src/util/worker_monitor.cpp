@@ -45,7 +45,7 @@ constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60 };
-unsigned int g_sampling_task_count = 0;
+unsigned int g_samplingTaskCount = 0;
 }
 
 namespace ffrt {

@@ -177,7 +177,7 @@ void WorkerMonitor::CheckWorkerStatus()
         }
     }
 
-    if (g_sampling_task_count++ % RECORD_POLLER_INFO_FREQ == 0) {
+    if (g_samplingTaskCount++ % RECORD_POLLER_INFO_FREQ == 0) {
         RecordPollerInfo();
     }
 

@@ -349,6 +349,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
             epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = currFd} };
             syncTaskEvents[data->task].push_back(ev);
             if (waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) {
+                std::unique_lock lock(m_mapMutex);
                 CacheMaskFdAndEpollDel(currFd, data->task);
             }
         }

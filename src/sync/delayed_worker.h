@@ -43,6 +43,7 @@ class DelayedWorker {
     int monitorfd_{-1};
     CPUMonitor* monitor = nullptr;
 #endif
+    std::atomic<int> asyncTaskCnt_ {0};
     int HandleWork(void);
     void ThreadInit();
 

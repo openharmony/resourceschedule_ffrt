@@ -39,6 +39,7 @@ const int WAIT_EVENT_SIZE = 5;
 const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
 const int DUMP_MAP_MAX_COUNT = 3;
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
+constexpr int ASYNC_TASK_SLEEP_MS = 1;
 }
 
 namespace ffrt {
@@ -227,10 +228,12 @@ DelayedWorker::~DelayedWorker()
     if (delayWorker != nullptr && delayWorker->joinable()) {
         delayWorker->join();
     }
+    while (asyncTaskCnt_.load() > 0) {
+        std::this_thread::sleep_for(std::chrono::microseconds(ASYNC_TASK_SLEEP_MS));
+    }
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ::close(monitorfd_);
 #endif
-    ffrt::wait({this});
 }
 
 DelayedWorker& DelayedWorker::GetInstance()
@@ -329,6 +332,16 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 
 void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func)
 {
-    ffrt::submit(func, {}, {this}, ffrt::task_attr().qos(qos_background));
+    asyncTaskCnt_.fetch_add(1);
+    ffrt::submit([this, func = std::move(func)]() {
+        if (toExit) {
+            asyncTaskCnt_.fetch_sub(1);
+            return;
+        }
+
+        func();
+        asyncTaskCnt_.fetch_sub(1);
+        }, {}, {this},
+            ffrt::task_attr().qos(qos_background));
 }
 } // namespace ffrt

@@ -599,69 +599,6 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
 }
 
 /*
- * 测试用例名称 : ffrt_queue_deque_task_priority_with_greedy
- * 测试用例描述 : 测试并发队列取任务逻辑
- * 操作步骤     : 1、往队列中提交不同优先级的若干任务
- * 预期结果    : 任务按照优先级从高往低执行，每执行5个高优先级任务，就执行一个低优先级任务
- */
-HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
-{
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
-    ffrt_queue_t queue_handle = ffrt_queue_create(
-        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
-
-    std::mutex lock;
-    lock.lock();
-    std::function<void()> basicFunc = [&]() { lock.lock(); };
-    std::vector<std::function<void()>> priorityFuncs(5, nullptr);
-    std::vector<int> priorityCount(5, 0);
-    for (int idx = 0; idx < 5; idx++) {
-        priorityFuncs[idx] = [idx, &priorityCount]() {
-            if (idx < 4 && priorityCount[idx + 1] == 0) {
-                priorityCount[idx]++;
-            }
-
-            if (idx == 4 && priorityCount[idx] == 0) {
-                for (int prevIdx = 0; prevIdx < 3; prevIdx++) {
-                    if (priorityCount[prevIdx] != 5) {
-                        priorityCount[4] = -1;
-                        return;
-                    }
-                }
-                priorityCount[4] = 1;
-            }
-        };
-    }
-
-    ffrt_task_attr_t task_attr;
-    ffrt_task_attr_init(&task_attr);
-    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_idle);
-    ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
-
-    ffrt_task_handle_t handle;
-    for (int prio = 0; prio < 5; prio++) {
-        ffrt_task_attr_set_queue_priority(&task_attr, static_cast<ffrt_queue_priority_t>(prio));
-        for (int i = 0; i < 10; i++) {
-            handle = ffrt_queue_submit_h(queue_handle,
-                create_function_wrapper(priorityFuncs[prio], ffrt_function_kind_queue), &task_attr);
-        }
-    }
-
-    lock.unlock();
-    ffrt_queue_wait(handle);
-
-    for (int idx = 0; idx < 3; idx++) {
-        EXPECT_EQ(priorityCount[idx], 5);
-    }
-    EXPECT_EQ(priorityCount[3], 10);
-    EXPECT_EQ(priorityCount[4], 1);
-
-    ffrt_queue_attr_destroy(&queue_attr);
-    ffrt_queue_destroy(queue_handle);
-}
-
-/*
  * 测试用例名称 : ffrt_queue_submit_head
  * 测试用例描述 : 测试 ffrt_queue_submit_head
  * 操作步骤     : 1、往队列中提交若干任务

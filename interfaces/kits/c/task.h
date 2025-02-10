@@ -27,9 +27,10 @@
 
  /**
  * @file task.h
+ * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares the task interfaces in C.
- *
+ * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
@@ -161,6 +162,24 @@ FFRT_C_API void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t s
 FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
 
 /**
+ * @brief Set the task schedule timeout.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @param timeout_us task scheduler timeout.
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t timeout_us);
+
+/**
+ * @brief Get the task schedule timeout.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @return Returns the task schedule timeout.
+ * @version 1.0
+ */
+FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
+
+/**
  * @brief Updates the QoS of this task.
  *
  * @param qos Indicates the new QoS.
@@ -178,7 +197,7 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
  * @since 12
  * @version 1.0
  */
-FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos();
+FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
 
 /**
  * @brief Obtains the ID of this task.
@@ -283,4 +302,16 @@ FFRT_C_API void ffrt_wait(void);
  * @version 1.0
  */
 FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
+
+/**
+ * @brief get gid from task handle.
+ *
+ * @param handle Indicates a task handle.
+ * @return Return gid
+ * @since 10
+ * @version 1.0
+ */
+FFRT_C_API uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle);
+
 #endif
+/** @} */

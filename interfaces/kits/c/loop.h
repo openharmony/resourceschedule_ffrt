@@ -13,12 +13,39 @@
  * limitations under the License.
  */
 
+/**
+ * @addtogroup Ffrt
+ * @{
+ *
+ * @brief ffrt provides APIs.
+ *
+ *
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ *
+ * @since 12
+ */
+
+ /**
+ * @file loop.h
+ * @kit FunctionFlowRuntimeKit
+ *
+ * @brief Declares the loop interfaces in C.
+ * @library libffrt.z.so
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ * @since 12
+ * @version 1.0
+ */
 #ifndef FFRT_API_C_LOOP_H
 #define FFRT_API_C_LOOP_H
 
 #include "queue.h"
 #include "type_def.h"
 
+/**
+ * @brief Defines the ffrt loop type.
+ *
+ * @since 12
+ */
 typedef void* ffrt_loop_t;
 
 /**
@@ -107,3 +134,4 @@ FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(
 FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
 
 #endif
+/** @} */

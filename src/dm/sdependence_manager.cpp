@@ -37,21 +37,21 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
-    CoStackAttr::Instance();
+    QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
     PollerProxy::Instance();
     FFRTScheduler::Instance();
+#ifdef FFRT_WORKER_MONITOR
+    WorkerMonitor::GetInstance();
+#endif
+    QueueMonitor::GetInstance();
     ExecuteUnit::Instance();
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 
-#ifdef FFRT_WORKER_MONITOR
-    WorkerMonitor::GetInstance();
-#endif
 #ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif
-    QueueMonitor::GetInstance();
     DelayedWorker::GetInstance();
 }
 
@@ -358,8 +358,6 @@ void SDependenceManager::MapSignature2Deps(SCPUEUTask* task, const std::vector<c
 
 int SDependenceManager::onSkip(ffrt_task_handle_t handle)
 {
-    FFRT_COND_DO_ERR((handle == nullptr), return ffrt_error_inval, "input ffrt task handle is invalid.");
-
     ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,

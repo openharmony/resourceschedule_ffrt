@@ -43,11 +43,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -170,6 +170,70 @@ HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
     EXPECT_EQ(ret1, -1);
 }
 
+/*
+ * 测试用例名称 ：set_worker_min_num_test
+ * 测试用例描述 ：测试传入0个线程的情况
+ * 操作步骤     ：测试传入0个线程
+ * 预期结果     ：预期失败
+ */
+HWTEST_F(DependencyTest, set_worker_min_num_test, TestSize.Level1)
+{
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt::submit([] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+    });
+    int ret2 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 0);
+    EXPECT_EQ(ret2, -1);
+}
+
+/*
+ * 测试用例名称 ：set_worker_max_num_test
+ * 测试用例描述 ：测试传入超过最大线程数量的情况
+ * 操作步骤     ：测试传入160个线程
+ * 预期结果     ：预期失败
+ */
+HWTEST_F(DependencyTest, set_worker_max_num_test, TestSize.Level1)
+{
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt::submit([] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+    });
+
+    int ret1 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 160);
+    EXPECT_EQ(ret1, -1);
+}
+
+HWTEST_F(DependencyTest, ffrt_task_attr_get_name_set_notify_test, TestSize.Level1)
+{
+    int x = 0;
+    int ret = ffrt_task_attr_init(nullptr);
+    EXPECT_EQ(ret, -1);
+    ffrt_task_attr_t attr;
+    attr.storage[0] = 12345;
+    ffrt_task_attr_set_name(nullptr, "A");
+    ffrt_task_attr_get_name(&attr);
+    ffrt_task_attr_set_notify_worker(&attr, true);
+    ffrt_task_attr_set_notify_worker(nullptr, true);
+    ffrt_task_attr_set_qos(nullptr, static_cast<int>(ffrt::qos_user_initiated));
+    ffrt_task_attr_get_qos(nullptr);
+    ffrt_task_attr_destroy(nullptr);
+    ffrt_submit_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
+    ffrt::submit([&] {
+        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
+        printf("id is %" PRIu64 "\n", ffrt::this_task::get_id());
+        int ret1 = ffrt_this_task_update_qos(static_cast<int>(ffrt::qos_default));
+        EXPECT_EQ(ret1, 0);
+        x++;
+    });
+    ffrt_this_task_get_id();
+    ffrt::wait();
+    ffrt_set_cgroup_attr(static_cast<int>(ffrt::qos_user_initiated), nullptr);
+    EXPECT_EQ(x, 1);
+}
+
 HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level1)
 {
     ffrt_task_attr_t attr;
@@ -255,25 +319,32 @@ HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Leve
             int pingpong = i % BUFFER_NUM;
             // task A
             ffrt::submit(
-                [i, loop, stalls]() {
+                [i, loop, stalls, &x0, &x1]() {
                     FFRT_LOGI("%u", i);
+                    x1[i % BUFFER_NUM] = i;
                 },
                 {x0 + i}, {x1 + pingpong}, ffrt::task_attr().name(("UI" + std::to_string(i)).c_str()));
             // task B
             ffrt::submit(
-                [i, loop, stalls]() {
+                [i, loop, stalls, &x1, &x2]() {
                     FFRT_LOGI("%u", i);
+                    x2[i % BUFFER_NUM] = i;
                 },
                 {x1 + pingpong}, {x2 + pingpong}, ffrt::task_attr().name(("Render" + std::to_string(i)).c_str()));
             // task C
             ffrt::submit(
-                [i, loop, stalls]() {
+                [i, loop, stalls, &x2, &x3]() {
                     FFRT_LOGI("%u", i);
+                    x3[i] = i;
                 },
                 {x2 + pingpong}, {x3 + i}, ffrt::task_attr().name(("surfaceflinger" + std::to_string(i)).c_str()));
         }
         ffrt::wait();
         ffrt::qos_interval_end(it);
+
+        for (int i = 0; i < frame_num; i++) {
+            EXPECT_EQ(x3[i], i) << " Task C result is incorrect for frame " << i;
+        }
     }
 
     ffrt::qos_interval_destroy(it);

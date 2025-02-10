@@ -43,10 +43,16 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
         [pIns] (WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
         [pIns] (WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        [pIns] (const WorkerThread* thread) { return pIns->IsExceedRuningThreshold(thread); },
+        [pIns] (const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
         [pIns] () { return pIns->IsBlockAwareInit(); },
 #endif
     };
+    if (strstr(processName, "CameraDaemon")) {
+        // CameraDaemon customized strategy
+#ifdef OHOS_STANDARD_SYSTEM
+        ops.WorkerRetired = [pIns] (WorkerThread* thread) { pIns->WorkerRetiredSimplified(thread); };
+#endif
+    }
 
     return new (std::nothrow) CPUWorker(qos, std::move(ops), pIns);
 }
@@ -63,10 +69,10 @@ CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
     // default strategy of monitor ops
     CpuMonitorOps ops {
         [pIns] (const QoS& qos) { return pIns->IncWorker(qos); },
-        [pIns] (const QoS& qos) { pIns-> WakeupWorkers(qos); },
+        [pIns] (const QoS& qos) { pIns->WakeupWorkers(qos); },
         [pIns] (const QoS& qos) { return pIns->GetTaskCount(qos); },
         [pIns] (const QoS& qos) { return pIns->GetWorkerCount(qos); },
-        CPUMonitor::HandleTaskNotifyDefault,
+        SCPUMonitor::HandleTaskNotifyDefault,
     };
     return new SCPUMonitor(std::move(ops));
 }

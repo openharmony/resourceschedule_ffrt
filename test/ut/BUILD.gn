@@ -267,6 +267,7 @@ ohos_unittest("ut_cpumonitor") {
   include_dirs = [ "../testfunc" ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_cpumonitor.cpp" ]
   deps = ffrt_ut_base_deps
@@ -588,7 +589,9 @@ ohos_unittest("ut_loop") {
 
   sources = [ "testcase/ut_loop.cpp" ]
   deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
+  external_deps = []
+  external_deps += ffrt_ut_base_external_deps
+  external_deps += [ "googletest:gmock" ]
 
   if (is_standard_system) {
     public_external_deps = gtest_public_external_deps
@@ -771,6 +774,27 @@ ohos_unittest("ut_dump") {
   part_name = "ffrt"
 }
 
+ohos_unittest("ut_qos_convert") {
+  module_out_path = module_output_path
+  cflags_cc = []
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc += ffrt_ut_base_cflags_cc
+
+  sources = [ "testcase/ut_qos_convert.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
 group("ffrt_unittest_ffrt") {
   testonly = true
 
@@ -802,6 +826,7 @@ group("ffrt_unittest_ffrt") {
       ":ut_interval",
       ":ut_loop",
       ":ut_mem",
+      ":ut_qos_convert",
       ":ut_queue",
       ":ut_queue_dump",
       ":ut_rtg",

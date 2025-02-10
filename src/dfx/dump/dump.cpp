@@ -115,13 +115,12 @@ int dump_info_all(char *buf, uint32_t len)
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     if (FFRTIsWork()) {
         std::string dumpInfo;
-        dumpInfo += "|-> Launcher proc ffrt, pid:" + std::to_string(GetPid()) + "\n";
+        dumpInfo += GetDumpPreface();
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         dumpInfo += SaveTaskCounterInfo();
 #endif
         dumpInfo += SaveKeyInfo();
         dumpInfo += SaveWorkerStatusInfo();
-        dumpInfo += SaveReadyQueueStatusInfo();
         dumpInfo += SaveNormalTaskStatusInfo();
         dumpInfo += SaveQueueTaskStatusInfo();
         if (dumpInfo.length() > (len - 1)) {
@@ -167,6 +166,7 @@ ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb)
 {
+    FFRT_COND_DO_ERR((cb == nullptr), return, "input invalid, cb is nullptr");
     ffrt::TimeoutCfg::Instance()->callback = cb;
 }
 

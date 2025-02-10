@@ -37,11 +37,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -130,5 +130,6 @@ HWTEST_F(DeadlineTest, sched_deadline_test, TestSize.Level1)
     TaskLoadTracking::End(ctx);
 
     uint64_t load = TaskLoadTracking::GetLoad(ctx);
+    EXPECT_EQ(load, 0);
 }
 

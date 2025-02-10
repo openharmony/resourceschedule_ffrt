@@ -28,16 +28,17 @@
 #include "internal_inc/assert.h"
 #include "util/name_manager.h"
 #include "sched/scheduler.h"
+#include "util/ffrt_facade.h"
 namespace {
-    const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
-    const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
-    const int EPOLL_WAIT_TIMEOUT__MILISECONDS = 3 * 60 * 1000;
-    const int NS_PER_SEC = 1000 * 1000 * 1000;
-    const int FAKE_WAKE_UP_ERROR = 4;
-    const int WAIT_EVENT_SIZE = 5;
-    const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
-    const int DUMP_MAP_MAX_COUNT = 3;
-    constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
+const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
+const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
+const int EPOLL_WAIT_TIMEOUT__MILISECONDS = 3 * 60 * 1000;
+const int NS_PER_SEC = 1000 * 1000 * 1000;
+const int FAKE_WAKE_UP_ERROR = 4;
+const int WAIT_EVENT_SIZE = 5;
+const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
+const int DUMP_MAP_MAX_COUNT = 3;
+constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 }
 
 namespace ffrt {
@@ -65,7 +66,7 @@ bool DelayedWorker::IsDelayerWorkerThread()
 
 bool IsDelayedWorkerPreserved()
 {
-    static std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
+    std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
     char processName[PROCESS_NAME_BUFFER_LENGTH];
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (whitelist.find(processName) != whitelist.end()) {
@@ -91,7 +92,7 @@ void DelayedWorker::DumpMap()
 
     int count = 0;
     std::stringstream ss;
-    unsigned int printCount = map.size() < DUMP_MAP_MAX_COUNT ? map.size() : DUMP_MAP_MAX_COUNT;
+    int printCount = map.size() < DUMP_MAP_MAX_COUNT ? map.size() : DUMP_MAP_MAX_COUNT;
     for (auto it = map.begin(); it != map.end() && count < DUMP_MAP_MAX_COUNT; ++it, ++count) {
         ss << it->first.time_since_epoch().count();
         if (count < printCount - 1) {
@@ -136,7 +137,7 @@ void DelayedWorker::ThreadInit()
             if (result == 0) {
                 uint64_t ns = map.begin()->first.time_since_epoch().count();
                 itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
-                int ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
+                ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
                 if (ret != 0) {
                     FFRT_LOGE("timerfd_settime error,ns=%lu,ret= %d.", ns, ret);
                 }
@@ -147,7 +148,7 @@ void DelayedWorker::ThreadInit()
                     break;
                 }
                 itimerspec its = { {0, 0}, {FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS, 0} };
-                int ret = timerfd_settime(timerfd_, 0, &its, nullptr);
+                ret = timerfd_settime(timerfd_, 0, &its, nullptr);
                 if (ret != 0) {
                     FFRT_LOGE("timerfd_settime error, ret= %d.", ret);
                 }
@@ -229,7 +230,7 @@ DelayedWorker::~DelayedWorker()
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ::close(monitorfd_);
 #endif
-    ::close(timerfd_);
+    ffrt::wait({this});
 }
 
 DelayedWorker& DelayedWorker::GetInstance()
@@ -258,7 +259,8 @@ int DelayedWorker::HandleWork()
                 DelayedWork w = cur->second;
                 map.erase(cur);
                 lock.unlock();
-                (*w.cb)(w.we);
+                std::function<void(WaitEntry*)> workCb(move(*w.cb));
+                (workCb)(w.we);
                 lock.lock();
                 FFRT_COND_DO_ERR(toExit, return -1, "HandleWork exit, map size:%d", map.size());
                 TimePoint endTp = std::chrono::steady_clock::now();
@@ -323,5 +325,10 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
     }
 
     return false;
+}
+
+void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func)
+{
+    ffrt::submit(func, {}, {this}, ffrt::task_attr().qos(qos_background));
 }
 } // namespace ffrt

@@ -23,6 +23,8 @@
 #include "base_queue.h"
 
 namespace {
+// 0预留为非法值
+std::atomic_uint32_t g_queueId(1);
 using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(const ffrt_queue_attr_t*);
 const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_serial, ffrt::CreateSerialQueue },
@@ -30,43 +32,68 @@ const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_eventhandler_interactive, ffrt::CreateEventHandlerInteractiveQueue },
     { ffrt_queue_eventhandler_adapter, ffrt::CreateEventHandlerAdapterQueue },
 };
+
+void ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::condition_variable& cond)
+{
+    for (auto it = whenMap.begin(); it != whenMap.end(); it++) {
+        if (it->second) {
+            it->second->Notify();
+            it->second->Destroy();
+            it->second = nullptr;
+        }
+    }
+    whenMap.clear();
+    cond.notify_one();
+}
 }
 
 namespace ffrt {
-// 0预留为非法值
-std::atomic_uint32_t BaseQueue::queueId(1);
+BaseQueue::BaseQueue() : queueId_(g_queueId++) {}
+
 void BaseQueue::Stop()
 {
     std::unique_lock lock(mutex_);
-    isExit_ = true;
-
-    ClearWhenMap();
-
+    Stop(whenMap_);
     FFRT_LOGI("clear [queueId=%u] succ", queueId_);
+}
+
+void BaseQueue::Stop(std::multimap<uint64_t, QueueTask*>& whenMap)
+{
+    isExit_ = true;
+    ClearWhenMap(whenMap, cond_);
 }
 
 void BaseQueue::Remove()
 {
     std::unique_lock lock(mutex_);
+    Remove(whenMap_);
+}
+
+void BaseQueue::Remove(std::multimap<uint64_t, QueueTask*>& whenMap)
+{
     FFRT_COND_DO_ERR(isExit_, return, "cannot remove task, [queueId=%u] is exiting", queueId_);
 
-    ClearWhenMap();
-
+    ClearWhenMap(whenMap, cond_);
     FFRT_LOGD("cancel [queueId=%u] all tasks succ", queueId_);
 }
 
 int BaseQueue::Remove(const char* name)
 {
     std::unique_lock lock(mutex_);
+    return Remove(name, whenMap_);
+}
+
+int BaseQueue::Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whenMap)
+{
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot remove task, [queueId=%u] is exiting", queueId_);
 
     int removedCount = 0;
-    for (auto iter = whenMap_.begin(); iter != whenMap_.end();) {
+    for (auto iter = whenMap.begin(); iter != whenMap.end();) {
         if (iter->second->IsMatch(name)) {
             FFRT_LOGD("cancel task[%llu] %s succ", iter->second->gid, iter->second->label.c_str());
             iter->second->Notify();
             iter->second->Destroy();
-            iter = whenMap_.erase(iter);
+            iter = whenMap.erase(iter);
             removedCount++;
         } else {
             ++iter;
@@ -79,12 +106,17 @@ int BaseQueue::Remove(const char* name)
 int BaseQueue::Remove(const QueueTask* task)
 {
     std::unique_lock lock(mutex_);
+    return Remove(task, whenMap_);
+}
+
+int BaseQueue::Remove(const QueueTask* task, std::multimap<uint64_t, QueueTask*>& whenMap)
+{
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot remove task, [queueId=%u] is exiting", queueId_);
 
-    auto range = whenMap_.equal_range(task->GetUptime());
+    auto range = whenMap.equal_range(task->GetUptime());
     for (auto it = range.first; it != range.second; it++) {
         if (it->second == task) {
-            whenMap_.erase(it);
+            whenMap.erase(it);
             return SUCC;
         }
     }
@@ -95,34 +127,14 @@ int BaseQueue::Remove(const QueueTask* task)
 bool BaseQueue::HasTask(const char* name)
 {
     std::unique_lock lock(mutex_);
-    auto iter = std::find_if(whenMap_.cbegin(), whenMap_.cend(),
+    return HasTask(name, whenMap_);
+}
+
+bool BaseQueue::HasTask(const char* name, std::multimap<uint64_t, QueueTask*> whenMap)
+{
+    auto iter = std::find_if(whenMap.cbegin(), whenMap.cend(),
         [name](const auto& pair) { return pair.second->IsMatch(name); });
-    return iter != whenMap_.cend();
-}
-
-void BaseQueue::PrintMutexOwner()
-{
-    MutexOwnerType type = mutex_.GetOwnerType();
-    if (type == MutexOwnerType::MUTEX_OWNER_TYPE_TASK) {
-        FFRT_LOGI("In queue %u, task %llu owns the lock for %llu us.",
-            queueId_, mutex_.GetOwnerId(), mutex_.GetDuration());
-    } else {
-        FFRT_LOGI("In queue %u, thread %llu owns the lock for %llu us.",
-            queueId_, mutex_.GetOwnerId(), mutex_.GetDuration());
-    }
-}
-
-void BaseQueue::ClearWhenMap()
-{
-    for (auto it = whenMap_.begin(); it != whenMap_.end(); it++) {
-        if (it->second) {
-            it->second->Notify();
-            it->second->Destroy();
-            it->second = nullptr;
-        }
-    }
-    whenMap_.clear();
-    cond_.NotifyOne();
+    return iter != whenMap.cend();
 }
 
 std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr)

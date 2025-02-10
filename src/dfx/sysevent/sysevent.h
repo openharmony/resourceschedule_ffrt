@@ -15,11 +15,13 @@
 
 #ifndef __FFRT_SYSEVENT_H__
 #define __FFRT_SYSEVENT_H__
-#include <sstream>
 #include <string>
+#include "dfx/trace_record/ffrt_trace_record.h"
 namespace ffrt {
 #ifdef FFRT_SEND_EVENT
-void TaskTimeoutReport(std::stringstream& ss, std::string& processNameStr, std::string& senarioName);
+bool IsBeta();
+void TaskBlockInfoReport(const long long passed, const std::string& task_label, int qos, int base);
+void TaskTimeoutReport(std::stringstream& ss, const std::string& processNameStr, const std::string& senarioName);
 void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum);
 #endif
 }

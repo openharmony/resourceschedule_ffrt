@@ -28,16 +28,10 @@ uint64_t FIB_NUM = 0;
 
 #define CLOCK std::chrono::steady_clock::now()
 #define TIME_BEGIN(t) auto __##t##_start = CLOCK
-#define TIME_END(t) \
-    do { \
-        decltype(__##t##_start) __##t##_cur = CLOCK; \
-        ("%-12s:%-4d %6lu us\n", __FILE__, __LINE__, \
-            long(std::chrono::duration_cast<std::chrono::microseconds>(__##t##_cur - __##t##_start).count())); \
-    } while (0)
 #define TIME_END_INFO(t, info) \
     do { \
         decltype(__##t##_start) __##t##_cur = CLOCK; \
-        printf("%-12s:%-4d %s %6lu us\n", __FILE__, __LINE__, info, \
+        printf("%-4d %s %6lu us\n", __LINE__, info, \
             long(std::chrono::duration_cast<std::chrono::microseconds>(__##t##_cur - __##t##_start).count())); \
     } while (0)
 

@@ -33,6 +33,12 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #define FFRT_STACK_SIZE (1 << 20)
 #endif
 
+#ifdef ASAN_MODE
+extern "C" void __sanitizer_start_switch_fiber(void **fake_stack_save, const void *bottom, size_t size);
+extern "C" void __sanitizer_finish_switch_fiber(void *fake_stack_save, const void **bottom_old, size_t *size_old);
+extern "C" void __asan_handle_no_return();
+#endif
+
 namespace ffrt {
 class CPUEUTask;
 struct WaitEntry;
@@ -55,8 +61,14 @@ enum class BlockType {
     BLOCK_THREAD
 };
 
+enum class CoWakeType {
+    TIMEOUT_WAKE,
+    NO_TIMEOUT_WAKE
+};
+
 constexpr uint64_t STACK_SIZE = FFRT_STACK_SIZE;
 constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
+constexpr uint64_t STACK_MEM_SIZE = 8;
 
 using CoCtx = struct co2_context;
 
@@ -71,16 +83,22 @@ struct CoRoutineEnv {
 struct StackMem {
     uint64_t size;
     size_t magic;
-    uint8_t stk[8];
+    uint8_t stk[STACK_MEM_SIZE];
 };
 
 struct CoRoutine {
     std::atomic_int status;
     CoRoutineEnv* thEnv;
     ffrt::CPUEUTask* task;
+#ifdef ASAN_MODE
+    void *asanFakeStack = nullptr;  // not finished, need further verification
+    const void *asanFiberAddr = nullptr;
+    size_t asanFiberSize = 0;
+#endif
     CoCtx ctx;
     uint64_t allocatedSize; // CoRoutine allocated size
     bool isTaskDone = false;
+    /* do not add item after stkMem */
     StackMem stkMem;
 };
 
@@ -106,13 +124,13 @@ public:
 
 class CoRoutineFactory {
 public:
-    using CowakeCB = std::function<void (ffrt::CPUEUTask*, bool)>;
+    using CowakeCB = std::function<void (ffrt::CPUEUTask*, CoWakeType)>;
 
     static CoRoutineFactory &Instance();
 
-    static void CoWakeFunc(ffrt::CPUEUTask* task, bool timeOut)
+    static void CoWakeFunc(ffrt::CPUEUTask* task, CoWakeType type)
     {
-        return Instance().cowake_(task, timeOut);
+        return Instance().cowake_(task, type);
     }
 
     static void RegistCb(const CowakeCB &cowake)
@@ -130,9 +148,14 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv);
 void CoYield(void);
 
 void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
-void CoWake(ffrt::CPUEUTask* task, bool timeOut);
+void CoWake(ffrt::CPUEUTask* task, CoWakeType type);
 
 CoRoutineEnv* GetCoEnv(void);
+
+inline void* GetCoStackAddr(CoRoutine* co)
+{
+    return static_cast<void*>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - STACK_MEM_SIZE);
+}
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
 void TaskTsdDeconstruct(ffrt::CPUEUTask* task);

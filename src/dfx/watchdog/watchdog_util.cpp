@@ -21,6 +21,7 @@
 #include "c/ffrt_dump.h"
 #endif
 #include "dfx/log/ffrt_log_api.h"
+#include "util/ffrt_facade.h"
 #include "util/slab.h"
 namespace {
 constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
@@ -71,9 +72,29 @@ namespace ffrt {
         WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
         // set dealyedworker callback
         we->cb = ([gid, timeout_ms](WaitEntry* we) {
-            std::lock_guard<decltype(lock)> l(lock);
-            if (taskStatusMap.count(gid) > 0) {
+            bool taskFinished = true;
+            {
+                std::lock_guard<decltype(lock)> l(lock);
+                if (taskStatusMap.count(gid) > 0) {
+                    int sendCount = taskStatusMap[gid];
+                    if (sendCount > SEND_COUNT_MAX) {
+                        FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than %d times",
+                            gid, SEND_COUNT_MAX);
+                        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
+                        return;
+                    }
+                    taskStatusMap[gid] = (++sendCount);
+                    taskFinished = false;
+                }
+            }
+
+            if (!taskFinished) {
                 RunTimeOutCallback(gid, timeout_ms);
+                if (!SendTimeoutWatchdog(gid, timeout_ms * CONVERT_TIME_UNIT, 0)) {
+                    FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);
+                    SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
+                    return;
+                };
             } else {
                 FFRT_LOGI("task gid=%llu has finished", gid);
             }
@@ -99,20 +120,15 @@ namespace ffrt {
         ss << "parallel task gid=" << gid << " execution time exceeds " << timeout << " ms";
         std::string msg = ss.str();
         FFRT_LOGE("%s", msg.c_str());
-        ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-        if (func) {
-            func(gid, msg.c_str(), msg.size());
+
+        if (ffrt_task_timeout_get_cb()) {
+            FFRTFacade::GetDWInstance().SubmitAsyncTask([gid, msg] {
+                ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+                if (func) {
+                    func(gid, msg.c_str(), msg.size());
+                }
+            });
         }
-        int sendCount = taskStatusMap[gid];
-        if (sendCount >= SEND_COUNT_MAX) {
-            FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than the max count", gid);
-            return;
-        }
-        if (!SendTimeoutWatchdog(gid, timeout * CONVERT_TIME_UNIT, 0)) {
-            FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);
-            return;
-        };
-        taskStatusMap[gid] = (++sendCount);
 #endif
     }
 }

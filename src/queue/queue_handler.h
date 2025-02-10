@@ -14,7 +14,7 @@
  */
 #ifndef FFRT_QUEUE_HANDLER_H
 #define FFRT_QUEUE_HANDLER_H
- 
+
 #include <atomic>
 #include <memory>
 #include <string>
@@ -47,21 +47,21 @@ public:
 
     bool SetLoop(Loop* loop);
     bool ClearLoop();
-	
+
     QueueTask* PickUpTask();
-	
-	inline bool IsValidForLoop()
+
+    inline bool IsValidForLoop()
     {
         return !isUsed_.load() && (queue_->GetQueueType() == ffrt_queue_concurrent
-				|| queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
+               || queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
     }
-	
-	inline std::string GetName()
+
+    inline std::string GetName()
     {
         return name_;
     }
-	
-	inline uint32_t GetQueueId()
+
+    inline uint32_t GetQueueId()
     {
         FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "queue construct failed");
         return queue_->GetQueueId();
@@ -102,7 +102,6 @@ private:
     void SetTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
-    void CheckOverload();
     void ReportTimeout(const std::vector<uint64_t>& timeoutTaskId);
     void CheckSchedDeadline();
     void SendSchedTimer(TimePoint delay);
@@ -124,8 +123,8 @@ private:
     std::mutex mutex_;
     bool initSchedTimer_ = false;
     WaitUntilEntry* we_ = nullptr;
-    std::atomic_uint32_t overloadTimes_ = {1};
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
+    std::atomic_int deliverCnt_ = {0};
 };
 } // namespace ffrt
 

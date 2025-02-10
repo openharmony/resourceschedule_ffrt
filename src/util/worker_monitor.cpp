@@ -39,6 +39,7 @@ constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
+constexpr int BACKTRACE_TASK_QOS = 7;
 constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
@@ -52,12 +53,12 @@ WorkerMonitor::WorkerMonitor()
     char processName[PROCESS_NAME_BUFFER_LENGTH] = "";
     GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
     if (strlen(processName) == 0) {
-        FFRT_LOGW("Get process name failed, skip worker monitor");
+        FFRT_LOGW("Get process name failed, skip worker monitor.");
         skipSampling_ = true;
         return;
     }
 
-    // 从配置文件读取黑名单
+    // 从配置文件读取黑名单比对
     std::string skipProcess;
     std::ifstream file(CONF_FILEPATH);
     if (file.is_open()) {
@@ -70,10 +71,40 @@ WorkerMonitor::WorkerMonitor()
     } else {
         FFRT_LOGW("worker_monitor.conf does not exist or file permission denied");
     }
+
+    watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
+    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
+        std::lock_guard lock(mutex_);
+        if (skipSampling_) {
+            return;
+        }
+
+        WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
+        {
+            bool noWorkerThreads = true;
+            std::lock_guard submitTaskLock(submitTaskMutex_);
+            for (int i = 0; i < QoS::MaxNum(); i++) {
+                std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
+                if (!workerGroup[i].threads.empty()) {
+                    noWorkerThreads = false;
+                    break;
+                }
+            }
+            if (noWorkerThreads) {
+                CoRoutineReleaseMem();
+                memReleaseTaskExit_ = true;
+                return;
+            }
+        }
+
+        CoRoutineReleaseMem();
+        SubmitMemReleaseTask();
+    });
 }
 
 WorkerMonitor::~WorkerMonitor()
 {
+    FFRT_LOGW("WorkerMonitor destruction enter");
     std::lock_guard lock(mutex_);
     skipSampling_ = true;
 }
@@ -104,7 +135,6 @@ void WorkerMonitor::SubmitTask()
 void WorkerMonitor::SubmitSamplingTask()
 {
     watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
-    watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
     if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
@@ -116,33 +146,6 @@ void WorkerMonitor::SubmitMemReleaseTask()
         return;
     }
     memReleaseWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
-    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
-        std::lock_guard lock(mutex_);
-        if (skipSampling_) {
-            return;
-        }
-
-        WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
-        {
-            bool noWorkerThreads = true;
-            std::lock_guard submitTaskLock(submitTaskMutex_);
-            for (int i = 0; i < QoS::MaxNum(); i++) {
-                std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-                if (!workerGroup[i].threads.empty()) {
-                    noWorkerThreads = false;
-                    break;
-                }
-            }
-            if (noWorkerThreads) {
-                CoRoutineReleaseMem();
-                samplingTaskExit_ = true;
-                return;
-            }
-        }
-
-        CoRoutineReleaseMem();
-        SubmitMemReleaseTask();
-    });
     if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
@@ -171,6 +174,7 @@ void WorkerMonitor::CheckWorkerStatus()
             return;
         }
     }
+
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
         int executionNum = FFRTFacade::GetEUInstance().GetCPUMonitor()->WakedWorkerNum(i);
@@ -190,8 +194,12 @@ void WorkerMonitor::CheckWorkerStatus()
         }
     }
 
-    for (const auto& timeoutFunction : timeoutFunctions) {
-        RecordSymbolAndBacktrace(timeoutFunction);
+    if (timeoutFunctions.size() > 0) {
+        FFRTFacade::GetDWInstance().SubmitAsyncTask([this, timeoutFunctions] {
+            for (const auto& timeoutFunction : timeoutFunctions) {
+                RecordSymbolAndBacktrace(timeoutFunction);
+            }
+        });
     }
 
     SubmitSamplingTask();
@@ -291,5 +299,17 @@ void WorkerMonitor::RecordIpcInfo(const std::string& dumpInfo, int tid)
     }
 
     transactionFile.close();
+}
+
+void WorkerMonitor::RecordKeyInfo(const std::string& dumpInfo)
+{
+    if (dumpInfo.find(IPC_STACK_NAME) == std::string::npos || dumpInfo.find("libpower") == std::string::npos) {
+        return;
+    }
+
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+    std::string keyInfo = SaveKeyInfo();
+    FFRT_LOGW("%s", keyInfo.c_str());
+#endif
 }
 }

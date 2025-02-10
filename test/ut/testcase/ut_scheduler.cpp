@@ -47,11 +47,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -174,27 +174,42 @@ HWTEST_F(SchedulerTest, taskstateCount_test, TestSize.Level1)
     SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
     EXPECT_NE(task2, nullptr);
     TaskManager::Instance().TaskStateCount(task2);
+    delete task1;
+    delete task2;
 }
 
 HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level1)
 {
     ffrt::FIFOQueue *fifoqueue = new ffrt::FIFOQueue();
     int aimnum = 10;
+    SCPUEUTask task(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
     for (int i = 0; i < aimnum ; i++) {
-        SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
-        fifoqueue->EnQueue(task);
+        fifoqueue->EnQueue(&task);
     }
     EXPECT_EQ(fifoqueue->Size(), aimnum);
     EXPECT_EQ(fifoqueue->Empty(), false);
+    delete fifoqueue;
 }
 
 HWTEST_F(SchedulerTest, ffrt_scheduler_test, TestSize.Level1)
 {
-    ffrt::SFFRTScheduler *sffrtscheduler = new ffrt::SFFRTScheduler();
-    LinkedList* node = new LinkedList();
+    ffrt::FFRTScheduler* sffrtscheduler = ffrt::FFRTScheduler::Instance();
     QoS qos;
-    EXPECT_EQ(sffrtscheduler->InsertNode(node, qos), true);
-    EXPECT_EQ(sffrtscheduler->RemoveNode(node, qos), true);
+    ffrt::IOTaskExecutor* task = new (std::nothrow) ffrt::IOTaskExecutor(qos);
+    LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
+    EXPECT_EQ(sffrtscheduler->InsertNode(reinterpret_cast<LinkedList*>(node), qos), true);
+    EXPECT_EQ(sffrtscheduler->RemoveNode(reinterpret_cast<LinkedList*>(node), qos), true);
 
-    delete node;
+    delete task;
+}
+
+HWTEST_F(SchedulerTest, set_cur_state_test, TestSize.Level1)
+{
+    SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
+    SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
+    EXPECT_NE(task2, nullptr);
+    task2->state.SetCurState(ffrt::TaskState::RUNNING);
+    TaskManager::Instance().TaskStateCount(task2);
+    delete task2;
+    delete task1;
 }

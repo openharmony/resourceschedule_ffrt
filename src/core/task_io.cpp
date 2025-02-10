@@ -72,6 +72,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR((exec == nullptr), return, "input invalid, exec == nullptr");
+    FFRT_COND_DO_ERR((destroy == nullptr), return, "input invalid, destroy == nullptr");
     pthread_once(&ffrt::once, ffrt::InitIOTaskExecutor);
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
@@ -91,7 +92,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
 }
 
 API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_current_task()
+void* ffrt_get_current_task(void)
 {
     return reinterpret_cast<void*>(ffrt::ExecuteCtx::Cur()->exec_task);
 }

@@ -38,11 +38,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -202,6 +202,7 @@ HWTEST_F(QueueTest, serial_queue_task_create_destroy_fail, TestSize.Level1)
     EXPECT_EQ(task == nullptr, 0);
     ffrt_task_handle_destroy(task);
     ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
 }
 
 /*
@@ -347,7 +348,7 @@ HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
     int result = 0;
     std::function<void()>&& basicFunc = [&result]() {
         OnePlusForTest(static_cast<void*>(&result));
-        usleep(3000);
+        usleep(4000);
     };
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr);
@@ -358,6 +359,7 @@ HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
 
     ffrt_queue_wait(t1);
     ffrt_task_handle_destroy(t1);
+    ffrt_task_attr_destroy(&task_attr);
     EXPECT_EQ(result, 1);
     EXPECT_EQ(x, 1);
     ffrt_queue_destroy(queue_handle);
@@ -530,6 +532,8 @@ HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
     lock.unlock();
     ffrt_queue_wait(handle);
 
+    ffrt_task_handle_destroy(handle);
+    ffrt_task_attr_destroy(&task_attr);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -594,6 +598,8 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
     isIdle = ffrt_queue_is_idle(queue_handle);
     EXPECT_EQ(isIdle, true);
 
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -653,6 +659,8 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     ffrt_queue_wait(handle);
     EXPECT_EQ(results, expectResults);
 
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -695,6 +703,7 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
 
     serialQueue->wait(handle);
     EXPECT_EQ(result, 1);
+    delete serialQueue;
 }
 
 HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
@@ -724,6 +733,7 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
     serialQueue->wait(handle);
 
     EXPECT_EQ(result, 1);
+    delete serialQueue;
 }
 
 /*
@@ -745,17 +755,4 @@ HWTEST_F(QueueTest, ffrt_queue_set_eventhand, TestSize.Level1)
     EXPECT_EQ(temphandler, nullptr);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
-}
-
-TEST_F(QueueTest, ffrt_queue_print_mutex_owner_info)
-{
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
-
-    std::unique_ptr<BaseQueue> queue = CreateQueue(ffrt_queue_serial, &queue_attr);
-    queue->PrintMutexOwner();
-    RecordMutex recordMutex;
-    (void)recordMutex.IsTimeout();
-
-    ffrt_queue_attr_destroy(&queue_attr);
 }

@@ -80,7 +80,7 @@ public:
     void WorkerJoinTg(const QoS& qos, pid_t pid);
 
     CPUMonitor* monitor = nullptr;
-    bool tearDown = false;
+    std::atomic_bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::MaxNum()];
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
     uint8_t polling_[QoS::MaxNum()] = {0};
@@ -102,7 +102,6 @@ public:
 
     /* strategy options for worker wait action */
     virtual WorkerAction WorkerIdleAction(const WorkerThread* thread) = 0;
-    virtual WorkerAction WorkerIdleActionSimplified(const WorkerThread* thread) = 0;
 
     void WorkerSetup(WorkerThread* thread);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);

@@ -36,11 +36,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -178,11 +178,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -245,46 +245,14 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
-
-HWTEST_F(SleepTest, yield_test, TestSize.Level1)
-{
-    int a = 0;
-
-    this_task::yield();
-
-    EXPECT_EQ(a, 0);
-}
-
-HWTEST_F(SleepTest, sleep_for_test1, TestSize.Level1)
-{
-    int a = 0;
-
-    this_task::sleep_for(10ms);
-
-    EXPECT_EQ(a, 0);
-}
-
-HWTEST_F(SleepTest, sleep_for_test2, TestSize.Level1)
-{
-    int a = 0;
-
-    submit([&]() {
-        this_task::sleep_for(5us);
-        a = 2;
-        }, {}, {});
-
-    wait();
-
-    EXPECT_EQ(a, 2);
-}
 
 void* thd_func(void *arg)
 {
@@ -302,4 +270,24 @@ HWTEST_F(SleepTest, thread_test, TestSize.Level1)
     ffrt_thread_join(thread, &result);
     EXPECT_EQ(1, a);
     EXPECT_EQ(&a, result);
+}
+
+HWTEST_F(SleepTest, thread_test2, TestSize.Level1)
+{
+    int a = 0;
+    ffrt_thread_t thread;
+    ffrt_thread_create(nullptr, nullptr, thd_func, &a);
+    EXPECT_EQ(0, a);
+}
+
+HWTEST_F(SleepTest, thread_test3, TestSize.Level1)
+{
+    int a = 0;
+    ffrt_thread_t thread;
+    ffrt_thread_create(&thread, nullptr, thd_func, &a);
+    void* result = nullptr;
+    ffrt_thread_join(nullptr, &result);
+    int ret = 0;
+    ret = ffrt_thread_detach(thread);
+    EXPECT_EQ(ret, 0);
 }

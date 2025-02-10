@@ -52,11 +52,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -108,6 +108,8 @@ HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
     usleep(100000);
     EXPECT_EQ(co1.count, 4);
     EXPECT_EQ(co2.count, 4);
+
+    ffrt_wake_coroutine(nullptr);
 }
 
 HWTEST_F(CoroutineTest, coroutine_submit_fail, TestSize.Level1)

@@ -93,7 +93,7 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
         push_back(task->wue);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
         wqlock.unlock();
-        // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
+        // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
         return true;
     });
     delete task->wue;
@@ -120,13 +120,14 @@ bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
     return toWake;
 }
 
-bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept
+int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept
 {
-    bool ret = false;
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     CPUEUTask* task = ctx->task;
+    int ret = ffrt_success;
     if (ThreadWaitMode(task)) {
-        return ThreadWaitUntil(&ctx->wn, lk, tp, LegacyMode(task), task);
+        ret = ThreadWaitUntil(&ctx->wn, lk, tp, LegacyMode(task), task) ? ffrt_error_timedout : ffrt_success;
+        return ret;
     }
     task->wue = new WaitUntilEntry(task);
     task->wue->hasWaitTime = true;
@@ -141,7 +142,7 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         }
         wqlock.unlock();
         FFRT_LOGD("task(%d) time is up", task->gid);
-        CoRoutineFactory::CoWakeFunc(task, true);
+        CoRoutineFactory::CoWakeFunc(task, CoWakeType::TIMEOUT_WAKE);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
     CoWait([&](CPUEUTask* task) -> bool {
@@ -151,32 +152,32 @@ bool WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexc
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
         if (DelayedWakeup(we->tp, we, we->cb)) {
             wqlock.unlock();
-            // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
+            // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
             return true;
         } else {
             if (!WeTimeoutProc(this, we)) {
                 wqlock.unlock();
-                // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
+                // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
                 return true;
             }
-            task->wakeupTimeOut = true;
+            task->coWakeType = CoWakeType::TIMEOUT_WAKE;
             wqlock.unlock();
-            // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed any more.
+            // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
             return false;
         }
     });
-    ret = task->wakeupTimeOut;
+    ret = task->coWakeType == CoWakeType::NO_TIMEOUT_WAKE ? ffrt_success : ffrt_error_timedout;
     task->wue = nullptr;
-    task->wakeupTimeOut = false;
+    task->coWakeType = CoWakeType::NO_TIMEOUT_WAKE;
     lk->lock();
     return ret;
 }
 
-bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
+void WaitQueue::WeNotifyProc(WaitUntilEntry* we)
 {
     if (!we->hasWaitTime) {
         // For wait task without timeout, we will be deleted after the wait task wakes up.
-        return true;
+        return;
     }
 
     WaitEntry* dwe = static_cast<WaitEntry*>(we);
@@ -189,17 +190,15 @@ bool WaitQueue::WeNotifyProc(WaitUntilEntry* we)
         }
         wqlock.lock();
     }
-
     delete we;
-    return true;
 }
 
 void WaitQueue::Notify(bool one) noexcept
 {
-    // the caller should assure the WaitQueue life time.
+    // the caller should assure the WaitQueue lifetime.
     // this function should assure the WaitQueue do not be access after the wqlock is empty(),
-    // that mean the last wait thread/co may destory the WaitQueue.
-    // all the break out should assure the wqlock is in unlock state.
+    // that mean the last wait thread/co may destroy the WaitQueue.
+    // all the break-out should assure the wqlock is in unlock state.
     // the continue should assure the wqlock is in lock state.
     wqlock.lock();
     for (; ;) {
@@ -224,11 +223,9 @@ void WaitQueue::Notify(bool one) noexcept
             wqlock.unlock();
             we->cv.notify_one();
         } else {
-            if (!WeNotifyProc(we)) {
-                continue;
-            }
+            WeNotifyProc(we);
             wqlock.unlock();
-            CoRoutineFactory::CoWakeFunc(task, false);
+            CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
         }
         if (isEmpty || one) {
             break;

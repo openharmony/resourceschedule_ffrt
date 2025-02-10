@@ -37,11 +37,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -78,4 +78,14 @@ HWTEST_F(DelayWorkDeinitTest, delay_work_thread_para_01, TestSize.Level1)
     SendDelayedWorker(timeoutUs);
     sleep(1);
     EXPECT_EQ(false, DelayedWorker::IsDelayerWorkerThread());
+}
+
+HWTEST_F(DelayWorkDeinitTest, delay_work_thread_para_02, TestSize.Level1)
+{
+    const uint64_t timeoutUs = 100;
+    DelayedWorker::ThreadEnvCreate();
+    SendDelayedWorker(timeoutUs);
+    sleep(1);
+    bool ret = DelayedWorker::IsDelayerWorkerThread();
+    EXPECT_EQ(ret, false);
 }

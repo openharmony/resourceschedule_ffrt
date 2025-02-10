@@ -20,11 +20,7 @@
 #include "eu/cpu_worker.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/scpu_monitor.h"
-#ifdef FFRT_GITEE
-#include "eu/cpu_manager_interface.h"
-#else
 #include "eu/cpu_manager_strategy.h"
-#endif
 #include "eu/worker_thread.h"
 #include "qos.h"
 #include "common.h"
@@ -53,11 +49,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -136,7 +132,7 @@ HWTEST_F(CpuMonitorTest, Notify, TestSize.Level1)
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, it, std::placeholders::_1),
-        CPUMonitor::HandleTaskNotifyDefault});
+        SCPUMonitor::HandleTaskNotifyDefault});
 
     cpu.Notify(QoS(5), TaskNotifyType(1));
 }

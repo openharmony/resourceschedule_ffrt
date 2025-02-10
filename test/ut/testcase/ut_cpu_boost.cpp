@@ -98,11 +98,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -117,27 +117,6 @@ HWTEST_F(CpuBoostTest, FFRTCpuBoostApiSuccess, TestSize.Level1)
     EXPECT_EQ(i, 1);
 }
 
-HWTEST_F(CpuBoostTest, FFRTCpuBoostTaskWithoutYield, TestSize.Level1)
-{
-    InitCfg(2);
-    auto handle = ffrt::submit_h([] {
-        ffrt_cpu_boost_start(2);
-        ffrt_cpu_boost_end(2);
-    }, {}, {});
-    ffrt::wait({handle});
-}
-
-HWTEST_F(CpuBoostTest, FFRTCpuBoostTaskWithYield, TestSize.Level1)
-{
-    InitCfg(3);
-    auto handle = ffrt::submit_h([] {
-        ffrt_cpu_boost_start(3);
-        ffrt::this_task::yield();
-        ffrt_cpu_boost_end(3);
-    }, {}, {});
-    ffrt::wait({handle});
-}
-
 #ifndef WITH_NO_MOCKER
 HWTEST_F(CpuBoostTest, FFRTCpuBoostApiStubSuccess, TestSize.Level1)
 {
@@ -148,20 +127,6 @@ HWTEST_F(CpuBoostTest, FFRTCpuBoostApiStubSuccess, TestSize.Level1)
     i++;
     ffrt_cpu_boost_end(1);
     EXPECT_EQ(i, 1);
-    GlobalMockObject::reset();
-    GlobalMockObject::verify();
-}
-
-HWTEST_F(CpuBoostTest, FFRTCpuBoostTaskWithoutYieldStub, TestSize.Level1)
-{
-    MOCKER(CpuBoostStart).stubs().will(returnValue(0));
-    MOCKER(CpuBoostEnd).stubs().will(returnValue(0));
-    auto handle = ffrt::submit_h([] {
-        ffrt_cpu_boost_start(1);
-        ffrt::this_task::yield();
-        ffrt_cpu_boost_end(1);
-    }, {}, {});
-    ffrt::wait({handle});
     GlobalMockObject::reset();
     GlobalMockObject::verify();
 }

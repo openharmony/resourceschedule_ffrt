@@ -106,6 +106,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
+    FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, f == nullptr");
     ffrt::queue_attr_private* p = reinterpret_cast<ffrt::queue_attr_private*>(attr);
     ResetTimeoutCb(p);
     p->timeoutCb_ = f;
@@ -272,7 +273,7 @@ void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandler)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_current_queue_eventhandler()
+void* ffrt_get_current_queue_eventhandler(void)
 {
     CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr || curTask->type != ffrt_queue_task) {
@@ -286,21 +287,21 @@ void* ffrt_get_current_queue_eventhandler()
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_queue_t ffrt_get_main_queue()
+ffrt_queue_t ffrt_get_main_queue(void)
 {
     FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetMainEventHandler == nullptr),
         return nullptr, "failed to load GetMainEventHandler Func.");
-    void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
-    FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
-    QueueHandler *handler = new (std::nothrow) QueueHandler(
-        "main_queue", nullptr, ffrt_queue_eventhandler_interactive);
-    FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "failed to construct MainThreadQueueHandler");
-    handler->SetEventHandler(mainHandler);
-    return static_cast<ffrt_queue_t>(handler);
+    static QueueHandler handler = QueueHandler("main_queue", nullptr, ffrt_queue_eventhandler_interactive);
+    if (!handler.GetEventHandler()) {
+        void* mainHandler = EventHandlerAdapter::Instance()->GetMainEventHandler();
+        FFRT_COND_DO_ERR((mainHandler == nullptr), return nullptr, "failed to get main queue.");
+        handler.SetEventHandler(mainHandler);
+    }
+    return static_cast<ffrt_queue_t>(&handler);
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_queue_t ffrt_get_current_queue()
+ffrt_queue_t ffrt_get_current_queue(void)
 {
     FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetCurrentEventHandler == nullptr),
         return nullptr, "failed to load GetCurrentEventHandler Func.");
@@ -325,6 +326,10 @@ int ffrt_queue_dump(ffrt_queue_t queue, const char* tag, char* buf, uint32_t len
 API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_size_dump(ffrt_queue_t queue, ffrt_inner_queue_priority_t priority)
 {
+    if (priority > ffrt_inner_queue_priority_idle || priority < ffrt_inner_queue_priority_vip) {
+        FFRT_LOGE("priority:%d is not valid", priority);
+        return -1;
+    }
     FFRT_COND_DO_ERR((queue == nullptr), return -1, "input invalid, queue is nullptr");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
     return handler->DumpSize(priority);

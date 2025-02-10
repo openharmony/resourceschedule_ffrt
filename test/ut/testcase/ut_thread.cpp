@@ -50,11 +50,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 
@@ -73,11 +73,19 @@ int simple_thd_func(void *)
     return 0;
 }
 
+void* MyFunc(void * arg)
+{
+    int *cnter = (int *)arg;
+    (*cnter)++;
+    return arg;
+}
+
 HWTEST_F(ThreadTest, IdleTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
     bool ret = wt->Idle();
     EXPECT_FALSE(ret);
+    delete wt;
 }
 
 HWTEST_F(ThreadTest, SetIdleTest, TestSize.Level1)
@@ -86,6 +94,7 @@ HWTEST_F(ThreadTest, SetIdleTest, TestSize.Level1)
     bool var = false;
     wt->SetIdle(var);
     EXPECT_FALSE(wt->idle);
+    delete wt;
 }
 
 HWTEST_F(ThreadTest, ExitedTest, TestSize.Level1)
@@ -93,6 +102,7 @@ HWTEST_F(ThreadTest, ExitedTest, TestSize.Level1)
     WorkerThread* wt = new WorkerThread(QoS(6));
     bool ret = wt->Exited();
     EXPECT_FALSE(ret);
+    delete wt;
 }
 
 HWTEST_F(ThreadTest, SetExitedTest, TestSize.Level1)
@@ -101,6 +111,7 @@ HWTEST_F(ThreadTest, SetExitedTest, TestSize.Level1)
     bool var = false;
     wt->SetExited(var);
     EXPECT_FALSE(wt->exited);
+    delete wt;
 }
 
 HWTEST_F(ThreadTest, GetQosTest, TestSize.Level1)
@@ -108,6 +119,7 @@ HWTEST_F(ThreadTest, GetQosTest, TestSize.Level1)
     WorkerThread* wt = new WorkerThread(QoS(6));
     EXPECT_NE(wt, nullptr);
     QoS ret = wt->GetQos();
+    delete wt;
 }
 
 HWTEST_F(ThreadTest, JoinTest, TestSize.Level1)
@@ -115,6 +127,7 @@ HWTEST_F(ThreadTest, JoinTest, TestSize.Level1)
     WorkerThread* wt = new WorkerThread(QoS(6));
     EXPECT_NE(wt, nullptr);
     wt->Join();
+    delete wt;
 }
 
 HWTEST_F(ThreadTest, DetachTest, TestSize.Level1)
@@ -122,6 +135,7 @@ HWTEST_F(ThreadTest, DetachTest, TestSize.Level1)
     WorkerThread* wt = new WorkerThread(QoS(6));
     EXPECT_NE(wt, nullptr);
     wt->Detach();
+    delete wt;
 }
 
 HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
@@ -135,11 +149,11 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     EXPECT_EQ(inc, 1);
     delete wt;
 
-    ffrt_error_t ret = ffrt_set_worker_stack_size(6, 10);
+    ffrt_error_t ret = ffrt_set_worker_stack_size(5, 10);
     EXPECT_EQ(ret, ffrt_error_inval);
 
-    ret = ffrt_set_worker_stack_size(6, 10 * 1024 * 1024);
-    wt = new WorkerThread(QoS(6));
+    ret = ffrt_set_worker_stack_size(5, WORKER_STACK_SIZE);
+    wt = new WorkerThread(QoS(5));
     wt->NativeConfig();
     wt->Start(MockStart, &inc);
     wt->Join();
@@ -157,8 +171,25 @@ HWTEST_F(ThreadTest, c_api_thread_simple_test, TestSize.Level1)
     ffrt_thread_join(nullptr, nullptr);
 }
 
+HWTEST_F(ThreadTest, c_api_thread_simple_test2, TestSize.Level1)
+{
+    ffrt_thread_t thread;
+    ffrt_thread_attr_t attr;
+    attr.storage[0] = 12345;
+    int a = 0;
+    ffrt_thread_create(&thread, &attr, MyFunc, &a);
+    ffrt_thread_detach(nullptr);
+    ffrt_thread_join(nullptr, nullptr);
+}
+
 HWTEST_F(ThreadTest, wait_queue_test, TestSize.Level1)
 {
+    std::vector<TaskState::State> queueStatus;
+    auto setStateOps = [&](CPUEUTask* task) {
+        queueStatus.emplace_back(task->state());
+        return true;
+    };
+    TaskState::RegisterOps(TaskState::READY, setStateOps);
     ffrt::submit([]{
         TaskWithNode node = TaskWithNode();
         EXPECT_NE(node.task, nullptr);

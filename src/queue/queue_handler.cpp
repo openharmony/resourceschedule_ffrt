@@ -30,8 +30,6 @@ constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
-constexpr uint32_t CONGESTION_CNT = 5;
-constexpr uint32_t CONGESTION_TIMEOUT_US = 300000000; // 5min
 }
 
 namespace ffrt {
@@ -135,12 +133,9 @@ void QueueHandler::Submit(QueueTask* task)
     }
 #endif
 
-    // worker after that schedule timeout is set for queue
+    // work after that schedule timeout is set for queue
     if (task->GetSchedTimeout() > 0) {
         AddSchedDeadline(task);
-    }
-    if (we_ != nullptr) {
-        CheckOverload();
     }
 
     int ret = queue_->Push(task);
@@ -180,7 +175,8 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Stop();
-    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus()) {
+    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus() ||
+        deliverCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
 }
@@ -206,7 +202,7 @@ int QueueHandler::Cancel(QueueTask* task)
     if (task->GetSchedTimeout() > 0) {
         RemoveSchedDeadline(task);
     }
-	
+
     int ret = queue_->Remove(task);
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
@@ -268,7 +264,9 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
 void QueueHandler::Deliver()
 {
+    deliverCnt_.fetch_add(1);
     QueueTask* task = queue_->Pull();
+    deliverCnt_.fetch_sub(1);
     if (task != nullptr) {
         TransferTask(task);
     }
@@ -320,8 +318,9 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     std::chrono::microseconds timeout(timeout_);
     auto now = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     we->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
-
+    delayedCbCnt_.fetch_add(1);
     if (!DelayedWakeup(we->tp, we, we->cb)) {
+        delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::FreeMem(we);
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
@@ -329,7 +328,6 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
         return;
     }
 
-    delayedCbCnt_.fetch_add(1);
     FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, name_.c_str());
 }
 
@@ -347,7 +345,11 @@ void QueueHandler::RunTimeOutCallback(QueueTask* task)
         << task->label << "], execution time exceeds[" << timeout_ << "] us";
     FFRT_LOGE("%s", ss.str().c_str());
     if (timeoutCb_ != nullptr) {
-        timeoutCb_->exec(timeoutCb_);
+        delayedCbCnt_.fetch_add(1);
+        FFRTFacade::GetDWInstance().SubmitAsyncTask([this] {
+            timeoutCb_->exec(timeoutCb_);
+            delayedCbCnt_.fetch_sub(1);
+        });
     }
 }
 
@@ -459,7 +461,7 @@ void QueueHandler::CheckSchedDeadline()
 
 void QueueHandler::AddSchedDeadline(QueueTask* task)
 {
-    // sched timeout only support serial queues, other queue types will be supported based on service requirments.
+    // sched timeout only support serial queues, other queue types will be supported based on service requirements.
     if (queue_->GetQueueType() != ffrt_queue_serial) {
         return;
     }
@@ -470,7 +472,7 @@ void QueueHandler::AddSchedDeadline(QueueTask* task)
     if (!initSchedTimer_) {
         if (we_ == nullptr) {
             we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
-            we_->cb = ([this](WaitEntry* we_) { CheckSchedDeadline(); });
+            we_->cb = ([this](WaitEntry* we) { CheckSchedDeadline(); });
         }
         std::chrono::microseconds timeout(schedDeadline_[task]);
         TimePoint tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(
@@ -486,22 +488,6 @@ void QueueHandler::RemoveSchedDeadline(QueueTask* task)
     schedDeadline_.erase(task);
 }
 
-void QueueHandler::CheckOverload()
-{
-    if (queue_->GetMapSize() <= CONGESTION_CNT) {
-        return;
-    }
-
-    uint64_t expect = queue_->GetHeadUptime();
-    uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count();
-    if (now > expect && now - expect > CONGESTION_TIMEOUT_US * overloadTimes_.load()) {
-        overloadTimes_.fetch_add(1);
-        std::vector<uint64_t> timeoutVec = {};
-        ReportTimeout(timeoutVec);
-    }
-}
-
 void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
 {
     std::stringstream ss;
@@ -511,9 +497,16 @@ void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
     }
 
     FFRT_LOGE("%s", ss.str().c_str());
-    ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-    if (func) {
-        func(GetQueueId(), ss.str().c_str(), ss.str().size());
+
+    uint32_t queueId = GetQueueId();
+    std::string ssStr = ss.str();
+    if (ffrt_task_timeout_get_cb()) {
+        FFRTFacade::GetDWInstance().SubmitAsyncTask([queueId, ssStr] {
+            ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+            if (func) {
+                func(queueId, ssStr.c_str(), ssStr.size());
+            }
+        });
     }
 }
 } //namespace ffrt

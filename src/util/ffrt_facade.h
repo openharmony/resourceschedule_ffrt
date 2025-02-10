@@ -33,56 +33,47 @@ class FFRTFacade {
 public:
     static inline ExecuteUnit& GetEUInstance()
     {
-        static ExecuteUnit& inst = Instance().GetEUInstanceImpl();
-        return inst;
+        return Instance().GetEUInstanceImpl();
     }
 
     static inline DependenceManager& GetDMInstance()
     {
-        static DependenceManager& inst = Instance().GetDMInstanceImpl();
-        return inst;
+        return Instance().GetDMInstanceImpl();
     }
 
     static inline PollerProxy& GetPPInstance()
     {
-        static PollerProxy& inst = Instance().GetPPInstanceImpl();
-        return inst;
+        return Instance().GetPPInstanceImpl();
     }
 
     static inline DelayedWorker& GetDWInstance()
     {
-        static DelayedWorker& inst = Instance().GetDWInstanceImpl();
-        return inst;
+        return Instance().GetDWInstanceImpl();
     }
 
     static inline FFRTScheduler* GetSchedInstance()
     {
-        static FFRTScheduler* inst = Instance().GetSchedInstanceImpl();
-        return inst;
+        return Instance().GetSchedInstanceImpl();
     }
 
     static inline IOPoller& GetIoPPInstance()
     {
-        static IOPoller& inst = Instance().GetIoPPInstanceImpl();
-        return inst;
+        return Instance().GetIoPPInstanceImpl();
     }
 
     static inline CoStackAttr* GetCSAInstance()
     {
-        static CoStackAttr* inst = Instance().GetCSAInstanceImpl();
-        return inst;
+        return Instance().GetCSAInstanceImpl();
     }
 
     static inline QueueMonitor& GetQMInstance()
     {
-        static QueueMonitor& inst = Instance().GetQMInstanceImpl();
-        return inst;
+        return Instance().GetQMInstanceImpl();
     }
 
     static inline WorkerMonitor& GetWMInstance()
     {
-        static WorkerMonitor& inst = Instance().GetWMInstanceImpl();
-        return inst;
+        return Instance().GetWMInstanceImpl();
     }
 
 private:

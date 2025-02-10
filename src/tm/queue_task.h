@@ -104,6 +104,7 @@ public:
     {
         return schedTimeout_;
     }
+
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 
 private:

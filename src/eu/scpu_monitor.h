@@ -23,11 +23,21 @@ namespace ffrt {
 
 class SCPUMonitor : public CPUMonitor {
 public:
-    SCPUMonitor(CpuMonitorOps&& ops) : CPUMonitor(std::move(ops)) {};
+    SCPUMonitor(CpuMonitorOps&& ops) : CPUMonitor(std::move(ops), ExecuteEscape) {}
     void IntoSleep(const QoS& qos) override;
     void IntoPollWait(const QoS& qos) override;
     void Notify(const QoS& qos, TaskNotifyType notifyType) override;
     void WorkerInit() override;
+
+    /* strategy options for handling task notify events */
+    static void HandleTaskNotifyDefault(const QoS& qos, void* monitorPtr, TaskNotifyType notifyType);
+    static void HandleTaskNotifyConservative(const QoS& qos, void* monitorPtr, TaskNotifyType notifyType);
+    static void HandleTaskNotifyUltraConservative(const QoS& qos, void* monitorPtr, TaskNotifyType notifyType);
+
+private:
+    void Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
+
+    static void ExecuteEscape(int qos, void* monitorPtr);
 };
 }
 #endif /* SCPU_MONITOR_H */

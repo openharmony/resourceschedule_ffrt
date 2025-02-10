@@ -20,6 +20,7 @@
 #include "c/ffrt_dump.h"
 #include "dfx/sysevent/sysevent.h"
 #include "internal_inc/osal.h"
+#include "util/ffrt_facade.h"
 
 namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
@@ -172,19 +173,6 @@ void QueueMonitor::CheckQueuesStatus()
         queueRunningInfoSize = queuesRunningInfo_.size();
     }
 
-    // Displays information about queues that hold locks for a long time.
-    for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
-        if (queuesStructInfo_[i] == nullptr || queuesStructInfo_[i]->GetQueue() == nullptr) {
-            continue;
-        }
-
-        if (!queuesStructInfo_[i]->GetQueue()->HasLock() || !queuesStructInfo_[i]->GetQueue()->IsLockTimeout()) {
-            continue;
-        }
-
-        queuesStructInfo_[i]->GetQueue()->PrintMutexOwner();
-    }
-
     // Displays information about queues whose tasks time out.
     for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
         {
@@ -203,8 +191,11 @@ void QueueMonitor::CheckQueuesStatus()
             GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
             ss << "Serial_Queue_Timeout, process name:[" << processName << "], serial queue qid:[" << i
                 << "], serial task gid:[" << taskId << "], execution:[" << timeoutUs_ << "] us.";
-            if (queuesStructInfo_[i] != nullptr) {
-                ss << queuesStructInfo_[i]->GetDfxInfo();
+            {
+                std::shared_lock lock(mutex_);
+                if (queuesStructInfo_[i] != nullptr) {
+                    ss << queuesStructInfo_[i]->GetDfxInfo();
+                }
             }
             FFRT_LOGE("%s", ss.str().c_str());
 #ifdef FFRT_SEND_EVENT
@@ -215,9 +206,14 @@ void QueueMonitor::CheckQueuesStatus()
                 TaskTimeoutReport(ss, processNameStr, senarioName);
             }
 #endif
-            ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-            if (func) {
-                func(taskId, ss.str().c_str(), ss.str().size());
+            std::string ssStr = ss.str();
+            if (ffrt_task_timeout_get_cb()) {
+                FFRTFacade::GetDWInstance().SubmitAsyncTask([taskId, ssStr] {
+                    ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+                    if (func) {
+                        func(taskId, ssStr.c_str(), ssStr.size());
+                    }
+                });
             }
             // reset timeout task timestamp for next warning
             ResetTaskTimestampAfterWarning(i, taskId);

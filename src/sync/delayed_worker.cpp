@@ -234,6 +234,7 @@ DelayedWorker::~DelayedWorker()
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ::close(monitorfd_);
 #endif
+    ::close(timerfd_);
 }
 
 DelayedWorker& DelayedWorker::GetInstance()

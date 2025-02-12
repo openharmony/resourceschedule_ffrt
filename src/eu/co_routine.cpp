@@ -53,6 +53,12 @@ static inline void CoStackCheck(CoRoutine* co)
         FFRT_LOGE("sp offset:%p.\n", co->stkMem.stk +
             co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
         FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_task_attr_set_stack_size'.\n");
+        if (ExecuteCtx::Cur()->task != nullptr) {
+            auto curTask = ExecuteCtx::Cur()->task;
+            FFRT_LOGE("task name[%s], gid[%lu], submit_tid[%d]",
+                curTask->label.c_str(), curTask->gid, curTask->fromTid);
+        }
+        abort();
     }
 }
 
@@ -226,6 +232,7 @@ static inline void CoExit(CoRoutine* co, bool isNormalTask)
     /* clear remaining shadow stack */
     __asan_handle_no_return();
 #endif
+    /* co switch to thread, and do not switch back again */
     CoSwitch(&co->ctx, &co->thEnv->schCtx);
 }
 
@@ -234,7 +241,7 @@ static inline void CoStartEntry(void* arg)
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
 #ifdef ASAN_MODE
     /* thread to co finish first */
-    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
+    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
     ffrt::CPUEUTask* task = co->task;
     bool isNormalTask = false;
@@ -271,9 +278,9 @@ static void CoSetStackProt(CoRoutine* co, int prot)
     uint64_t mp = reinterpret_cast<uint64_t>(co->stkMem.stk);
     mp = (mp + p_size - 1) / p_size * p_size;
     int ret = mprotect(reinterpret_cast<void *>(static_cast<uintptr_t>(mp)), p_size, prot);
-    FFRT_UNLIKELY_COND_DO_ABORT(ret < 0, "coroutine size:%lu, mp:0x%lx, page_size:%zu, result:%d, prot:%d, err:%d, %s",
-        static_cast<unsigned long>(sizeof(struct CoRoutine)), static_cast<unsigned long>(mp),
-        p_size, ret, prot, errno, strerror(errno));
+    FFRT_UNLIKELY_COND_DO_ABORT(ret < 0, "coroutine size:%lu, mp:0x%lx, page_size:%zu,result:%d,prot:%d, err:%d,%s",
+                                static_cast<unsigned long>(sizeof(struct CoRoutine)), static_cast<unsigned long>(mp),
+                                p_size, ret, prot, errno, strerror(errno));
 }
 
 static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
@@ -389,12 +396,14 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
 
 static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
 {
+#ifdef OHOS_STANDARD_SYSTEM
     if (task->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
         for (auto& name : task->traceTag) {
             FFRT_TRACE_BEGIN(name.c_str());
         }
     }
     FFRT_FAKE_TRACE_MARKER(task->gid);
+#endif
 
     if (task->cpuBoostCtxId >= 0) {
         CpuBoostRestore(task->cpuBoostCtxId);
@@ -403,11 +412,14 @@ static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
 
 static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
 {
+#ifdef OHOS_STANDARD_SYSTEM
     FFRT_FAKE_TRACE_MARKER(task->gid);
     int traceTagNum = static_cast<int>(task->traceTag.size());
     for (int i = 0; i < traceTagNum; ++i) {
         FFRT_TRACE_END();
     }
+#endif
+
     if (task->cpuBoostCtxId >= 0) {
         CpuBoostSave(task->cpuBoostCtxId);
     }
@@ -453,13 +465,14 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
         SwitchTsdToTask(co->task);
 #endif
 #ifdef ASAN_MODE
-    /* thread to co start */
-    __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
+        /* thread to co start */
+        __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
 #endif
+        /* thread switch to co */
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
 #ifdef ASAN_MODE
-    /* co to thread finish */
-    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
+        /* co to thread finish */
+		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
@@ -514,7 +527,7 @@ void CoYield(void)
     CoSwitch(&co->ctx, &GetCoEnv()->schCtx);
 #ifdef ASAN_MODE
     /* thread to co finish */
-    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
+    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #else
     while (GetBboxEnableState() != 0) {
         if (GetBboxEnableState() != gettid()) {

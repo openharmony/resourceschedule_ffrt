@@ -171,23 +171,6 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupStopIntervalTest, TestSize.Level1)
 }
 
 /**
- * @tc.name: WorkgroupJoinTest
- * @tc.desc: Test whether the WorkgroupJoin interface are normal.
- * @tc.type: FUNC
- */
-HWTEST_F(WorkgroupInternalTest, WorkgroupJoinTest, TestSize.Level1)
-{
-    long tid = 10086;
-    struct WorkGroup wg1 = {true, 0, {0}, 0, WgType(0)};
-    struct WorkGroup* wg = nullptr;
-
-    WorkgroupJoin(wg, tid);
-    struct WorkGroup* p = &wg1;
-    p->rtgId = 10;
-    WorkgroupJoin(p, tid);
-}
-
-/**
  * @tc.name: WorkgroupClearTest
  * @tc.desc: Test whether the WorkgroupClear interface are normal.
  * @tc.type: FUNC

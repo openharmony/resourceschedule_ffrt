@@ -189,7 +189,7 @@ void EmptyCallback(void* data) {}
 /*
  * 测试用例名称: multi_timer_dependency
  * 测试用例描述: poller批量超时回调依赖测试
- * 预置条件    : 构造三个超时时间相同的timer， 回调A依赖回调B执行完成，回调B依赖timer C取消成功，三者并发
+ * 预置条件    : 构造三个超时时间相同的timer，回调A依赖回调B执行完成，回调B依赖timer C取消成功，三者并发
  * 操作步骤    : 1、调用PollOnce接口
  * 预期结果    : 1、三个回调执行完成，没有卡死现象
  */
@@ -226,11 +226,11 @@ HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level1)
 }
 
 /*
- * 测试用例名称 : multi_timer_dependency_unregister_self
- * 测试用例描述 : poller批量超时回调,解注册自身依赖测试
- * 预置条件     : 构造两个超时时间相同的timer， 回调A依赖回调B执行完成，回调B依赖另一个线程的timer A取消成功，三者并发
- * 操作步骤     : 1、调用PollOnce接口
- * 预期结果     : 1、三个回调执行完成，没有卡死现象
+ * 测试用例名称:  multi_timer_dependency_unregister_self
+ * 测试用例描述:  poller批量超时回调,解注册自身依赖测试
+ * 预置条件    : 构造两个超时时间相同的timer，回调A依赖回调B执行完成，回调B依赖另一个线程的timer A取消成功，三者并发
+ * 操作步骤    : 1、调用PollOnce接口
+ * 预期结果    : 1、三个回调执行完成，没有卡死现象
  */
 HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level1)
 {

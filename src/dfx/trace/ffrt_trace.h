@@ -187,7 +187,6 @@ static bool _IsTagEnabled(uint64_t label)
             func(label, tag, tid); \
         } \
     } while (0)
-
 #define _TraceCount(label, tag, value) \
     do { \
         auto func = GET_TRACE_FUNC(CountTrace); \
@@ -230,13 +229,13 @@ static bool _IsTagEnabled(uint64_t label)
     do { \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag "|" + std::to_string(gid)).c_str(), -1); \
-            FFRT_TRACE_END(); \
+        FFRT_TRACE_END(); \
     } while (false)
 #define FFRT_WAKE_TRACER(gid) \
     do { \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _StartTrace(HITRACE_TAG_FFRT, ("FFWK|" + std::to_string(gid)).c_str(), -1); \
-            FFRT_TRACE_END(); \
+        FFRT_TRACE_END(); \
     } while (false)
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
     do { \
@@ -315,6 +314,7 @@ static bool _IsTagEnabled(uint64_t label)
     { \
         FFRT_TRACE_END(); \
     }
+
 // DFX Trace for FFRT Serial Queue Task
 #define FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(gid) \
     { \

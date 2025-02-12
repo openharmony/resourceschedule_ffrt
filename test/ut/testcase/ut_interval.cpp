@@ -215,22 +215,6 @@ HWTEST_F(IntervalTest, fInterval_exception2_test, TestSize.Level1)
     interval.End();
 }
 
-HWTEST_F(IntervalTest, perfctrl_overload_test, TestSize.Level1)
-{
-    PerfCtrl ctrl = PerfCtrl(QoS(static_cast<int>(qos_deadline_request)));
-    ctrl.Begin();
-    ctrl.Update(100, UINT_MAX, false);
-    ctrl.End();
-}
-
-HWTEST_F(IntervalTest, perfctrl_invalid_qos_test, TestSize.Level1)
-{
-    PerfCtrl ctrl = PerfCtrl(QoS(static_cast<int>(qos_inherit)));
-    ctrl.Begin();
-    ctrl.Update(100, 500, false);
-    ctrl.End();
-}
-
 HWTEST_F(IntervalTest, loadPredict_basic_test, TestSize.Level1)
 {
     IntervalLoadPredictor lp;

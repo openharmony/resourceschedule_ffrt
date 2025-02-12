@@ -17,7 +17,17 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "tm/queue_task.h"
 
+namespace {
+constexpr uint32_t MIN_OVERLOAD_INTERVAL = 16;
+constexpr uint32_t MAX_OVERLOAD_INTERVAL = 128;
+}
 namespace ffrt {
+SerialQueue::SerialQueue()
+{
+    dequeFunc_ = QueueStrategy<QueueTask>::DequeBatch;
+    overloadThreshold_ = MIN_OVERLOAD_INTERVAL;
+}
+
 SerialQueue::~SerialQueue()
 {
     FFRT_LOGI("destruct serial queueId=%u leave", queueId_);
@@ -50,7 +60,7 @@ int SerialQueue::Push(QueueTask* task)
 
     if (whenMap_.size() >= overloadThreshold_) {
         FFRT_LOGW("[queueId=%u] overload warning, size=%llu", queueId_, whenMap_.size());
-        overloadThreshold_ += overloadThreshold_;
+        overloadThreshold_ += std::min(overloadThreshold_, MAX_OVERLOAD_INTERVAL);
     }
 
     return SUCC;
@@ -77,6 +87,9 @@ QueueTask* SerialQueue::Pull()
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
+    if (overloadThreshold_ > MAX_OVERLOAD_INTERVAL && whenMap_.size() < MAX_OVERLOAD_INTERVAL) {
+        overloadThreshold_ = MAX_OVERLOAD_INTERVAL;
+    }
     // dequeue due tasks in batch
     return dequeFunc_(queueId_, now, &whenMap_, nullptr);
 }

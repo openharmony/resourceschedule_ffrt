@@ -35,7 +35,7 @@ namespace {
  * The stack canary is saved or restored during coroutine switch-out and switch-in,
  * currently, only the stack canary used by the ohos compiler stack protection is global
  * and is not affected by worker destruction.
-*/
+ */
 #if !defined(SUPPORT_WORKER_DESTRUCT)
 constexpr int waiting_seconds = 10;
 #else
@@ -227,7 +227,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
             (polling_[thread->GetQos()] == 0);
         return tearDown || taskExistence || needPoll;
-    })) {
+        })) {
         monitor->WakeupSleep(thread->GetQos());
         FFRT_PERF_WORKER_AWAKE(static_cast<int>(thread->GetQos()));
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -272,4 +272,3 @@ void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
     FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
 }
 } // namespace ffrt
-

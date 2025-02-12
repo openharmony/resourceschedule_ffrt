@@ -191,7 +191,7 @@ static inline void SaveNormalTaskStatus()
                     std::string dumpInfo;
                     DumpTask(t, dumpInfo, 1);
 #else
-                CoStart(t, GetCoEnv());
+                    CoStart(t, GetCoEnv());
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
             }
         }

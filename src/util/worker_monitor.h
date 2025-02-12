@@ -62,8 +62,8 @@ struct TimeoutFunctionInfo {
         : coWorkerInfo_(coWorkerInfo), workerInfo_(workerInfo), executionTime_(executionTime)
     {
         if (workerInfo_.workerTaskType_ != ffrt_normal_task && workerInfo_.workerTaskType_ != ffrt_queue_task) {
-            workerInfo_.gid_ = UINT64_MAX; //该task type 没有 gid
-            workerInfo_.label_ = "Unsupport_Task_type"; //该task type 没有 label
+            workerInfo_.gid_ = UINT64_MAX; // 该task type 没有 gid
+            workerInfo_.label_ = "Unsupport_Task_type"; // 该task type 没有 label
         }
     }
 };

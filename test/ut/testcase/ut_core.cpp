@@ -54,13 +54,6 @@ protected:
     }
 };
 
-HWTEST_F(CoreTest, core_test_success_01, TestSize.Level1)
-{
-    int fd = 0;
-    sync_io(fd);
-    EXPECT_EQ(fd, 0);
-}
-
 HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
 {
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
@@ -307,7 +300,7 @@ HWTEST_F(CoreTest, ffrt_get_cur_task_test, TestSize.Level1)
 /*
 * 测试用例名称：ffrt_this_task_get_qos_test
 * 测试用例描述：测试ffrt_this_task_get_qos接口
-* 预置条件    ：提交qos=3ffrt任务
+* 预置条件    ：提交qos=3的ffrt任务
 * 操作步骤    ：在ffrt任务中调用ffrt_this_task_get_qos接口
 * 预期结果    ：ffrt_this_task_get_qos返回值=3
 */

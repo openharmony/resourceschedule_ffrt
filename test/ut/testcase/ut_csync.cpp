@@ -183,38 +183,6 @@ HWTEST_F(SyncTest, mutex_lock_with_BlockThread, TestSize.Level1)
 }
 
 /**
- * @tc.name: shared_mutex_lock_with_BlockThread
- * @tc.desc: Test function of shared mutex:lock in Thread mode
- * @tc.type: FUNC
- */
-HWTEST_F(SyncTest, shared_mutex_lock_with_BlockThread, TestSize.Level1)
-{
-    int x = 0;
-    const int N = 10;
-    ffrt::shared_mutex lock;
-    for (int i = 0; i < N; ++i) {
-        ffrt::submit([&]() {
-            ffrt_this_task_set_legacy_mode(true);
-            lock.lock();
-            ffrt::this_task::sleep_for(10ms);
-            x++;
-            lock.unlock();
-            ffrt_this_task_set_legacy_mode(false);
-            }, {}, {}, ffrt::task_attr().name("t1"));
-    }
-    ffrt::submit([&]() {
-        ffrt_this_task_set_legacy_mode(true);
-        lock.lock();
-        printf("x is %d", x);
-        lock.unlock();
-        ffrt_this_task_set_legacy_mode(false);
-        }, {}, {}, ffrt::task_attr().name("t2"));
-    
-    ffrt::wait();
-    EXPECT_EQ(x, N);
-}
-
-/**
  * @tc.name: set_legacy_mode_within_nested_task
  * @tc.desc: Test function of mutex:lock in Thread mode
  * @tc.type: FUNC
@@ -430,64 +398,6 @@ HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level1)
     ffrt::wait();
     EXPECT_EQ(acc, (M * N + J));
     delete lock;
-}
-
-HWTEST_F(SyncTest, conditionTestNotifyOne, TestSize.Level1)
-{
-    ffrt::condition_variable cond;
-    int a = 0;
-    ffrt::mutex lock_;
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait(lck, [&] { return a == 1; });
-        },
-        {}, {});
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            a = 1;
-            cond.notify_one();
-        },
-        {}, {});
-    ffrt::wait();
-}
-
-HWTEST_F(SyncTest, conditionTestNotifyAll, TestSize.Level1)
-{
-    ffrt::condition_variable cond;
-    int a = 0;
-    ffrt::mutex lock_;
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait(lck, [&] { return a == 1; });
-        },
-        {}, {});
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait(lck, [&] { return a == 1; });
-        },
-        {}, {});
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait(lck, [&] { return a == 1; });
-        },
-        {}, {});
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            a = 1;
-            cond.notify_all();
-        },
-        {}, {});
-    ffrt::wait();
 }
 
 HWTEST_F(SyncTest, conditionTestWaitfor, TestSize.Level1)

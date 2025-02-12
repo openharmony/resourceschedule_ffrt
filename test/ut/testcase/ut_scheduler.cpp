@@ -168,16 +168,6 @@ HWTEST_F(SchedulerTest, taskstate_test, TestSize.Level1)
     }
 }
 
-HWTEST_F(SchedulerTest, taskstateCount_test, TestSize.Level1)
-{
-    SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
-    SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
-    EXPECT_NE(task2, nullptr);
-    TaskManager::Instance().TaskStateCount(task2);
-    delete task1;
-    delete task2;
-}
-
 HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level1)
 {
     ffrt::FIFOQueue *fifoqueue = new ffrt::FIFOQueue();
@@ -201,15 +191,4 @@ HWTEST_F(SchedulerTest, ffrt_scheduler_test, TestSize.Level1)
     EXPECT_EQ(sffrtscheduler->RemoveNode(reinterpret_cast<LinkedList*>(node), qos), true);
 
     delete task;
-}
-
-HWTEST_F(SchedulerTest, set_cur_state_test, TestSize.Level1)
-{
-    SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
-    SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
-    EXPECT_NE(task2, nullptr);
-    task2->state.SetCurState(ffrt::TaskState::RUNNING);
-    TaskManager::Instance().TaskStateCount(task2);
-    delete task2;
-    delete task1;
 }

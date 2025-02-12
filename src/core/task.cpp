@@ -416,11 +416,11 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
     if (num == 0 || num > ffrt::QOS_WORKER_MAXNUM) {
-        FFRT_LOGE("qos[%d] worker num[%d] is valid.", qos, num);
+        FFRT_LOGE("qos[%d] worker num[%u] is invalid.", qos, num);
         return -1;
     }
     if (ffrt::GetFuncQosMap() == nullptr) {
-        FFRT_LOGE("FuncQosMap has not regist");
+        FFRT_LOGE("qos[%d] worker num[%u] is invalid.", qos, num);
         return -1;
     }
     ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
@@ -539,7 +539,7 @@ int64_t ffrt_this_queue_get_id()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_skip(ffrt_task_handle_t handle)
 {
-    FFRT_COND_DO_ERR((handle == nullptr), return ffrt_error_inval, "input ffrt task handle is invalid");
+    FFRT_COND_DO_ERR((handle == nullptr), return ffrt_error_inval, "input ffrt task handle is invalid.");
     return ffrt::FFRTFacade::GetDMInstance().onSkip(handle);
 }
 
@@ -561,7 +561,7 @@ void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_
 API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type)
 {
-    FFRT_COND_DO_ERR((func == nullptr), return, "function handler should not be empty");
+    FFRT_COND_DO_ERR((func == nullptr), return, "function handler should not be empty.");
     ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
     func_mg->insert(type, func);
 }

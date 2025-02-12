@@ -598,7 +598,6 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
         timerMap_.erase(iter);
         timerEmpty_.store(timerMap_.empty());
 
-        timerMutex_.unlock();
         if (data.cb != nullptr) {
             timerMutex_.unlock();
             data.cb(data.data);

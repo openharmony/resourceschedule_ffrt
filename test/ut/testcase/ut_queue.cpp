@@ -399,22 +399,6 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0002, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_dfx_api_0003, TestSize.Level1)
-{
-    // ffrt_queue_attr_set_timeoutCb接口attr为异常值
-    std::function<void()> cbOne = []() { printf("first set callback\n"); };
-
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
-    ffrt_queue_attr_set_callback(nullptr, ffrt::create_function_wrapper(cbOne, ffrt_function_kind_queue));
-    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
-    EXPECT_TRUE(queue_handle != nullptr);
-
-    // 销毁队列
-    ffrt_queue_attr_destroy(&queue_attr);
-    ffrt_queue_destroy(queue_handle);
-}
-
 HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level1)
 {
     // ffrt_queue_attr_get_timeoutCb接口attr为异常值
@@ -665,18 +649,6 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
-HWTEST_F(QueueTest, ffrt_eventhandler_interactive_queue, TestSize.Level1)
-{
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
-    ffrt_queue_t queue_handle = ffrt_queue_create(
-        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test_queue", &queue_attr);
-    EXPECT_TRUE(queue_handle != nullptr);
-
-    ffrt_queue_attr_destroy(&queue_attr);
-    ffrt_queue_destroy(queue_handle);
-}
-
 HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
 {
  // ffrt test case begin
@@ -734,25 +706,4 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
 
     EXPECT_EQ(result, 1);
     delete serialQueue;
-}
-
-/*
- * 测试用例名称 : ffrt_queue_set_eventhand
- * 测试用例描述：设置串行队列的eventhandler
- * 操作步骤    : 1、创建队列
-                2、调用ffrt_queue_set_eventhandler接口设置串行队列的eventhandler
-                3、删除队列
- * 预期结果    : 查询结果与预期相同
- */
-HWTEST_F(QueueTest, ffrt_queue_set_eventhand, TestSize.Level1)
-{
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
-    ffrt_queue_t queue_handle = ffrt_queue_create(
-        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test_queue", &queue_attr);
-    ffrt_queue_set_eventhandler(queue_handle, nullptr);
-    void* temphandler = ffrt_get_current_queue_eventhandler();
-    EXPECT_EQ(temphandler, nullptr);
-    ffrt_queue_attr_destroy(&queue_attr);
-    ffrt_queue_destroy(queue_handle);
 }

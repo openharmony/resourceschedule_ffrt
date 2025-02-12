@@ -343,7 +343,7 @@ HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Leve
         ffrt::qos_interval_end(it);
 
         for (int i = 0; i < frame_num; i++) {
-            EXPECT_EQ(x3[i], i) << " Task C result is incorrect for frame " << i;
+            EXPECT_EQ(x3[i], i) << "Task C result is incorrect for frame " << i;
         }
     }
 

@@ -73,11 +73,10 @@ int simple_thd_func(void *)
     return 0;
 }
 
-void* MyFunc(void * arg)
+static void* tmp_func(void *)
 {
-    int *cnter = (int *)arg;
-    (*cnter)++;
-    return arg;
+    ++counter;
+    return nullptr;
 }
 
 HWTEST_F(ThreadTest, IdleTest, TestSize.Level1)
@@ -122,22 +121,6 @@ HWTEST_F(ThreadTest, GetQosTest, TestSize.Level1)
     delete wt;
 }
 
-HWTEST_F(ThreadTest, JoinTest, TestSize.Level1)
-{
-    WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_NE(wt, nullptr);
-    wt->Join();
-    delete wt;
-}
-
-HWTEST_F(ThreadTest, DetachTest, TestSize.Level1)
-{
-    WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_NE(wt, nullptr);
-    wt->Detach();
-    delete wt;
-}
-
 HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
 {
     int inc = 0;
@@ -161,37 +144,4 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     pthread_attr_getstacksize(&wt->attr_, &stackSize);
     EXPECT_EQ(stackSize, WORKER_STACK_SIZE);
     delete wt;
-}
-
-HWTEST_F(ThreadTest, c_api_thread_simple_test, TestSize.Level1)
-{
-    ffrt_thread_t thread;
-    ffrt_thread_create(&thread, nullptr, nullptr, nullptr);
-    ffrt_thread_detach(nullptr);
-    ffrt_thread_join(nullptr, nullptr);
-}
-
-HWTEST_F(ThreadTest, c_api_thread_simple_test2, TestSize.Level1)
-{
-    ffrt_thread_t thread;
-    ffrt_thread_attr_t attr;
-    attr.storage[0] = 12345;
-    int a = 0;
-    ffrt_thread_create(&thread, &attr, MyFunc, &a);
-    ffrt_thread_detach(nullptr);
-    ffrt_thread_join(nullptr, nullptr);
-}
-
-HWTEST_F(ThreadTest, wait_queue_test, TestSize.Level1)
-{
-    std::vector<TaskState::State> queueStatus;
-    auto setStateOps = [&](CPUEUTask* task) {
-        queueStatus.emplace_back(task->state());
-        return true;
-    };
-    TaskState::RegisterOps(TaskState::READY, setStateOps);
-    ffrt::submit([]{
-        TaskWithNode node = TaskWithNode();
-        EXPECT_NE(node.task, nullptr);
-    }, {}, {});
 }

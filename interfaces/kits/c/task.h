@@ -306,7 +306,7 @@ FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_
  * @brief get gid from task handle.
  *
  * @param handle Indicates a task handle.
- * @return Return gid
+ * @return Return gid.
  * @since 10
  * @version 1.0
  */

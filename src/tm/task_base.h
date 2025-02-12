@@ -24,6 +24,7 @@
 
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
+static constexpr uint64_t cacheline_size = 64;
 class TaskBase {
 public:
     uintptr_t reserved = 0;
@@ -42,10 +43,10 @@ public:
     }
 
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
-    uint64_t createTime;
-    uint64_t executeTime;
+    uint64_t createTime {0};
+    uint64_t executeTime {0};
 #endif
-    int32_t fromTid;
+    int32_t fromTid {0};
 };
 
 class CoTask : public TaskBase, public TaskDeleter {
@@ -56,7 +57,8 @@ public:
 
     std::string label;
     std::vector<std::string> traceTag;
-    bool wakeupTimeOut = false;
+    CoWakeType coWakeType { CoWakeType::NO_TIMEOUT_WAKE };
+    int cpuBoostCtxId = -1;
     WaitUntilEntry* wue = nullptr;
     // lifecycle connection between task and coroutine is shown as below:
     // |*task pending*|*task ready*|*task executing*|*task done*|*task release*|

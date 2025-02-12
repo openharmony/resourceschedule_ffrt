@@ -19,6 +19,7 @@
 
 #include "internal_inc/osal.h"
 #include "tm/task_factory.h"
+#include "util/ffrt_facade.h"
 #include "util/slab.h"
 
 namespace {
@@ -43,7 +44,7 @@ void CPUEUTask::SetQos(const QoS& newQos)
 void CPUEUTask::FreeMem()
 {
     BboxCheckAndFreeze();
-    PollerProxy::Instance().GetPoller(qos).ClearCachedEvents(this);
+    FFRTFacade::GetPPInstance().GetPoller(qos).ClearCachedEvents(this);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif
@@ -79,7 +80,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         label = attr->name_;
     } else if (IsRoot()) {
         label = "root";
-    } else if (parent->IsRoot()) {
+    } else if ((parent != nullptr) && parent->IsRoot()) {
         label = "t" + std::to_string(rank);
     } else {
         label = parent->label + "." + std::to_string(rank);
@@ -102,6 +103,5 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
     if (attr) {
         stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
     }
-    FFRT_LOGD("create task name:%s gid=%lu taskLocal:%d", label.c_str(), gid, taskLocal);
 }
 } /* namespace ffrt */

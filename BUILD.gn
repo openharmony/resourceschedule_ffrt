@@ -23,10 +23,7 @@ config("ffrt_config") {
   ]
 
   ffrt_defaults_cflags = [
-    "-g",
-    "-D_FORTIFY_SOURCE=2",
-    "-O2",
-    "-fPIC",
+    "-fstack-protector-all",
     "-Wno-unused-variable",
     "-Wno-unused-function",
     "-Wno-unused-value",
@@ -36,17 +33,13 @@ config("ffrt_config") {
     "-Wno-float-equal",
     "-Wno-unused-parameter",
     "-fno-common",
-    "-DOHOS_STANDARD_SYSTEM",
-    "-DTASKSTAT_LOG_ENABLE=0",
-    "-DIDLE_WORKER_DESTRUCT",
-    "-DUSE_OHOS_QOS",
-    "-DFFRT_PTHREAD_ENABLE",
-    "-DFFRT_OH_WATCHDOG_ENABLE",
-    "-DQOS_WORKER_FRAME_RTG",
   ]
 
   cflags = ffrt_defaults_cflags
-  cflags_c = [ "-fno-common" ]
+  cflags_c = [
+    "-fstack-protector-all",
+    "-fno-common",
+  ]
   cflags_cc = ffrt_defaults_cflags
 
   ffrt_debug_defines = [
@@ -59,6 +52,7 @@ config("ffrt_config") {
     "FFRT_TRACE_RECORD_LEVEL=1",
     "FFRT_SEND_EVENT",
     "FFRT_ALLOCATOR_MMAP_SIZE=${ffrt_allocator_mmap_size}",
+    "FFRT_STACK_SIZE=${ffrt_stack_size}",
   ]
 
   #ffrt_release_defines = [
@@ -67,6 +61,10 @@ config("ffrt_config") {
   #]
 
   defines += ffrt_debug_defines
+
+  if (is_asan && !use_hwasan) {
+    defines += [ "ASAN_MODE" ]
+  }
 
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
@@ -100,7 +98,21 @@ config("ffrt_inner_config") {
     ]
   }
 
-  cflags_cc = [ "-std=c++17" ]
+  ffrt_inner_cflags = [
+    "-std=c++17",
+    "-g",
+    "-D_FORTIFY_SOURCE=2",
+    "-O2",
+    "-fPIC",
+    "-DFFRT_PTHREAD_ENABLE",
+    "-DFFRT_OH_WATCHDOG_ENABLE",
+    "-DQOS_WORKER_FRAME_RTG",
+    "-DUSE_OHOS_QOS",
+    "-DOHOS_STANDARD_SYSTEM",
+    "-DTASKSTAT_LOG_ENABLE=0",
+  ]
+
+  cflags_cc = ffrt_inner_cflags
 }
 
 ohos_shared_library("libffrt") {
@@ -128,6 +140,7 @@ ohos_shared_library("libffrt") {
       "src/eu/co2_context.c",
       "src/eu/co_routine.cpp",
       "src/eu/co_routine_factory.cpp",
+      "src/eu/cpu_manager_strategy.cpp",
       "src/eu/cpu_monitor.cpp",
       "src/eu/cpu_worker.cpp",
       "src/eu/cpuworker_manager.cpp",
@@ -182,6 +195,9 @@ ohos_shared_library("libffrt") {
       "src/tm/queue_task.cpp",
       "src/tm/scpu_task.cpp",
       "src/tm/task_factory.cpp",
+      "src/util/cpu_boost_wrapper.cpp",
+      "src/util/ffrt_cpu_boost.cpp",
+      "src/util/ffrt_facade.cpp",
       "src/util/graph_check.cpp",
       "src/util/init.cpp",
       "src/util/spmc_queue.cpp",
@@ -202,7 +218,7 @@ ohos_shared_library("libffrt") {
     defines = []
 
     if (ffrt_async_stack_enable) {
-      defines += [ "ASYNC_STACKTRACE" ]
+      defines += [ "FFRT_ASYNC_STACKTRACE" ]
       sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
     }
 

@@ -20,6 +20,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "task_client_adapter.h"
 
+
 #if (defined(QOS_WORKER_FRAME_RTG) || defined(QOS_FRAME_RTG))
 constexpr int HWC_UID = 3039;
 constexpr int ROOT_UID = 0;
@@ -27,7 +28,7 @@ constexpr int RS_RTG_ID = 10;
 
 namespace ffrt {
 static int wgId = -1;
-static WorkGroup *rsWorkGroup = nullptr;
+static WorkGroup* rsWorkGroup = nullptr;
 static int wgCount = 0;
 static std::mutex wgLock;
 
@@ -65,20 +66,13 @@ bool InsertThreadInWorkGroup(WorkGroup *workGroup, int tid)
         FFRT_LOGE("[RSWorkGroup] join thread %{public}d into workGroup failed, workGroup is null", tid);
         return false;
     }
-    int targetIndex = -1;
     for (int i = 0; i < MAX_WG_THREADS; i++) {
         if (workGroup->tids[i] == -1) {
             workGroup->tids[i] = tid;
-            targetIndex = i;
             return true;
         }
     }
-    if (targetIndex == -1) {
-        FFRT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed, max_thread_num: %{public}d",
-            tid, MAX_WG_THREADS);
-        return false;
-    }
-    return true;
+    return false;
 }
 
 WorkGroup* CreateRSWorkGroup(uint64_t interval)
@@ -115,7 +109,7 @@ bool LeaveRSWorkGroup(int tid)
     if (existIndex != -1) {
         rsWorkGroup->tids[existIndex] = -1;
     }
-    FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup ,tid:%{public}d,existIndex:%{public}d", tid, existIndex);
+    FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup ,tid: %{public}d, existIndex: %{public}d", tid, existIndex);
     return true;
 }
 
@@ -165,7 +159,6 @@ bool JoinWG(int tid)
         }
         return false;
     }
-
     int uid = getuid();
     if (uid == RS_UID) {
         return JoinRSWorkGroup(tid);
@@ -203,7 +196,7 @@ struct WorkGroup* WorkgroupCreate(uint64_t interval)
         FFRT_LOGE("[WorkGroup] create rtg group %d failed", rtgId);
         return nullptr;
     }
-    FFRT_LOGI("[WorkGroup] create rtg group %{public}d success", rtgId);
+    FFRT_LOGI("[WorkGroup] create rtg group %d success", rtgId);
 
     WorkGroup* wg = nullptr;
     wg = new struct WorkGroup();
@@ -225,7 +218,6 @@ int WorkgroupClear(struct WorkGroup* wg)
     if (uid == RS_UID) {
         return DestoryRSWorkGroup();
     }
-
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup] input workgroup is null");
         return 0;
@@ -306,6 +298,7 @@ void WorkgroupJoin(struct WorkGroup* wg, int tid)
         FFRT_LOGE("[WorkGroup] join fail with %{public}d threads for %{public}d", addRet, tid);
     }
 }
+
 #endif /* QOS_FRAME_RTG */
 }
 

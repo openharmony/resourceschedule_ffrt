@@ -184,13 +184,13 @@ uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t *attr)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_ms)
+void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_us)
 {
     if (unlikely(!attr)) {
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_ms;
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_us;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -356,6 +356,13 @@ void ffrt_task_handle_destroy(ffrt_task_handle_t handle)
     ffrt_task_handle_dec_ref(handle);
 }
 
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle)
+{
+    FFRT_COND_DO_ERR((handle == nullptr), return 0, "input task handle is invalid");
+    return static_cast<ffrt::TaskBase*>(handle)->gid;
+}
+
 // wait
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wait_deps(const ffrt_deps_t *deps)
@@ -408,6 +415,10 @@ void ffrt_restore_qos_config()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
 {
+    if (num == 0 || num > ffrt::QOS_WORKER_MAXNUM) {
+        FFRT_LOGE("qos[%d] worker num[%d] is valid.", qos, num);
+        return -1;
+    }
     if (ffrt::GetFuncQosMap() == nullptr) {
         FFRT_LOGE("FuncQosMap has not regist");
         return -1;
@@ -486,7 +497,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
 }
 
 API_ATTRIBUTE((visibility("default")))
-ffrt_qos_t ffrt_this_task_get_qos()
+ffrt_qos_t ffrt_this_task_get_qos(void)
 {
     if (ffrt::ExecuteCtx::Cur()->task == nullptr) {
         FFRT_LOGW("task is nullptr");
@@ -503,8 +514,10 @@ uint64_t ffrt_this_task_get_id()
         return 0;
     }
 
-    if (curTask->type == ffrt_normal_task || curTask->type == ffrt_queue_task) {
+    if (curTask->type == ffrt_normal_task) {
         return curTask->gid;
+    } else if (curTask->type == ffrt_queue_task) {
+        return reinterpret_cast<ffrt::QueueTask*>(curTask)->GetHandler()->GetExecTaskId();
     }
 
     return 0;
@@ -526,18 +539,8 @@ int64_t ffrt_this_queue_get_id()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_skip(ffrt_task_handle_t handle)
 {
-    if (!handle) {
-        FFRT_LOGE("input ffrt task handle is invalid.");
-        return -1;
-    }
-    ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
-    auto exp = ffrt::SkipStatus::SUBMITTED;
-    if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
-        __ATOMIC_RELAXED)) {
-        return 0;
-    }
-    FFRT_LOGW("skip task [%lu] failed, because the task is executing now or has finished.", task->gid);
-    return 1;
+    FFRT_COND_DO_ERR((handle == nullptr), return ffrt_error_inval, "input ffrt task handle is invalid");
+    return ffrt::FFRTFacade::GetDMInstance().onSkip(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -558,6 +561,7 @@ void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_
 API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type)
 {
+    FFRT_COND_DO_ERR((func == nullptr), return, "function handler should not be empty");
     ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
     func_mg->insert(type, func);
 }
@@ -581,7 +585,7 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_cur_task()
+void* ffrt_get_cur_task(void)
 {
     return ffrt::ExecuteCtx::Cur()->task;
 }
@@ -601,7 +605,7 @@ bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
         auto co = curTask->coRoutine;
         if (co) {
             *size = co->stkMem.size;
-            *stack_addr = static_cast<void*>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - 8);
+            *stack_addr = GetCoStackAddr(co);
             return true;
         }
     }
@@ -641,7 +645,7 @@ pthread_t ffrt_task_get_tid(void* task_handle)
 }
 
 API_ATTRIBUTE((visibility("default")))
-uint64_t ffrt_get_cur_cached_task_id()
+uint64_t ffrt_get_cur_cached_task_id(void)
 {
     uint64_t gid = ffrt_this_task_get_id();
     if (gid == 0) {
@@ -649,6 +653,21 @@ uint64_t ffrt_get_cur_cached_task_id()
     }
 
     return gid;
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
+    uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num)
+{
+    ffrt::CPUMonitor* monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
+    return monitor->SetEscapeEnable(one_stage_interval_ms, two_stage_interval_ms,
+        three_stage_interval_ms, one_stage_worker_num, two_stage_worker_num);
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_disable_worker_escape(void)
+{
+    ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor()->SetEscapeDisable();
 }
 #ifdef __cplusplus
 }

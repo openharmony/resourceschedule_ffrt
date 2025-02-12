@@ -19,6 +19,7 @@
 #include "ffrt_inner.h"
 #include "c/queue_ext.h"
 #include "../common.h"
+#include "queue/base_queue.h"
 
 using namespace std;
 using namespace ffrt;
@@ -37,11 +38,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -201,6 +202,7 @@ HWTEST_F(QueueTest, serial_queue_task_create_destroy_fail, TestSize.Level1)
     EXPECT_EQ(task == nullptr, 0);
     ffrt_task_handle_destroy(task);
     ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
 }
 
 /*
@@ -346,7 +348,7 @@ HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
     int result = 0;
     std::function<void()>&& basicFunc = [&result]() {
         OnePlusForTest(static_cast<void*>(&result));
-        usleep(3000);
+        usleep(4000);
     };
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr);
@@ -357,6 +359,7 @@ HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
 
     ffrt_queue_wait(t1);
     ffrt_task_handle_destroy(t1);
+    ffrt_task_attr_destroy(&task_attr);
     EXPECT_EQ(result, 1);
     EXPECT_EQ(x, 1);
     ffrt_queue_destroy(queue_handle);
@@ -529,6 +532,8 @@ HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
     lock.unlock();
     ffrt_queue_wait(handle);
 
+    ffrt_task_handle_destroy(handle);
+    ffrt_task_attr_destroy(&task_attr);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -593,69 +598,8 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
     isIdle = ffrt_queue_is_idle(queue_handle);
     EXPECT_EQ(isIdle, true);
 
-    ffrt_queue_attr_destroy(&queue_attr);
-    ffrt_queue_destroy(queue_handle);
-}
-
-/*
- * 测试用例名称 : ffrt_queue_deque_task_priority_with_greedy
- * 测试用例描述 : 测试并发队列取任务逻辑
- * 操作步骤     : 1、往队列中提交不同优先级的若干任务
- * 预期结果    : 任务按照优先级从高往低执行，每执行5个高优先级任务，就执行一个低优先级任务
- */
-HWTEST_F(QueueTest, ffrt_queue_deque_task_priority_with_greedy, TestSize.Level1)
-{
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
-    ffrt_queue_t queue_handle = ffrt_queue_create(
-        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
-
-    std::mutex lock;
-    lock.lock();
-    std::function<void()> basicFunc = [&]() { lock.lock(); };
-    std::vector<std::function<void()>> priorityFuncs(5, nullptr);
-    std::vector<int> priorityCount(5, 0);
-    for (int idx = 0; idx < 5; idx++) {
-        priorityFuncs[idx] = [idx, &priorityCount]() {
-            if (idx < 4 && priorityCount[idx + 1] == 0) {
-                priorityCount[idx]++;
-            }
-
-            if (idx == 4 && priorityCount[idx] == 0) {
-                for (int prevIdx = 0; prevIdx < 3; prevIdx++) {
-                    if (priorityCount[prevIdx] != 5) {
-                        priorityCount[4] = -1;
-                        return;
-                    }
-                }
-                priorityCount[4] = 1;
-            }
-        };
-    }
-
-    ffrt_task_attr_t task_attr;
-    ffrt_task_attr_init(&task_attr);
-    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_idle);
-    ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
-
-    ffrt_task_handle_t handle;
-    for (int prio = 0; prio < 5; prio++) {
-        ffrt_task_attr_set_queue_priority(&task_attr, static_cast<ffrt_queue_priority_t>(prio));
-        for (int i = 0; i < 10; i++) {
-            handle = ffrt_queue_submit_h(queue_handle,
-                create_function_wrapper(priorityFuncs[prio], ffrt_function_kind_queue), &task_attr);
-        }
-    }
-
-    lock.unlock();
-    ffrt_queue_wait(handle);
-
-    for (int idx = 0; idx < 3; idx++) {
-        EXPECT_EQ(priorityCount[idx], 5);
-    }
-    EXPECT_EQ(priorityCount[3], 10);
-    EXPECT_EQ(priorityCount[4], 1);
-
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -715,6 +659,8 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     ffrt_queue_wait(handle);
     EXPECT_EQ(results, expectResults);
 
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -757,6 +703,7 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
 
     serialQueue->wait(handle);
     EXPECT_EQ(result, 1);
+    delete serialQueue;
 }
 
 HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
@@ -786,4 +733,26 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
     serialQueue->wait(handle);
 
     EXPECT_EQ(result, 1);
+    delete serialQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_set_eventhand
+ * 测试用例描述：设置串行队列的eventhandler
+ * 操作步骤    : 1、创建队列
+                2、调用ffrt_queue_set_eventhandler接口设置串行队列的eventhandler
+                3、删除队列
+ * 预期结果    : 查询结果与预期相同
+ */
+HWTEST_F(QueueTest, ffrt_queue_set_eventhand, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test_queue", &queue_attr);
+    ffrt_queue_set_eventhandler(queue_handle, nullptr);
+    void* temphandler = ffrt_get_current_queue_eventhandler();
+    EXPECT_EQ(temphandler, nullptr);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
 }

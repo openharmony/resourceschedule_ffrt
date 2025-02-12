@@ -18,7 +18,7 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
-    bool IsValidTimeout(uint64_t gid, uint64_t timeout_ms);
+    bool IsValidTimeout(uint64_t gid, uint64_t timeout_us);
     void AddTaskToWatchdog(uint64_t gid);
     void RemoveTaskFromWatchdog(uint64_t gid);
     bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout, uint64_t delay);

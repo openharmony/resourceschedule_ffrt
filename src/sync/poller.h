@@ -86,6 +86,7 @@ struct SyncData {
     int maxEvents = 0;
     int* nfdsPtr = nullptr;
     TimePoint waitTP;
+    int timerHandle = -1;
 };
 
 using EventVec = typename std::vector<epoll_event>;
@@ -129,18 +130,36 @@ private:
     int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept;
     int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
 
+    inline void CacheDelFd(int fd, CPUEUTask *task) noexcept
+    {
+        m_delFdCacheMap.emplace(fd, task);
+    }
+
+    inline void CacheMaskWakeData(CPUEUTask* task, std::unique_ptr<struct WakeDataWithCb>& maskWakeData) noexcept
+    {
+        m_maskWakeDataWithCbMap[task].emplace_back(std::move(maskWakeData));
+    }
+
+    void CacheMaskFdAndEpollDel(int fd, CPUEUTask *task) noexcept;
+    int ClearMaskWakeDataWithCbCache(CPUEUTask *task) noexcept;
+    int ClearMaskWakeDataWithCbCacheWithFd(CPUEUTask *task, int fd) noexcept;
+    int ClearDelFdCache(int fd) noexcept;
+
     bool IsFdExist() noexcept;
     bool IsTimerReady() noexcept;
 
     int m_epFd;
-    uint8_t pollerCount_ = 0;
+    std::atomic<uint8_t> pollerCount_ = 0;
     int timerHandle_ = -1;
-    EpollStatus flag_ = EpollStatus::WAKE;
+    std::atomic<EpollStatus> flag_ = EpollStatus::WAKE;
     struct WakeDataWithCb m_wakeData;
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
     std::unordered_map<CPUEUTask*, SyncData> m_waitTaskMap;
     std::unordered_map<CPUEUTask*, EventVec> m_cachedTaskEvents;
+
+    std::unordered_map<int, CPUEUTask*> m_delFdCacheMap;
+    std::unordered_map<CPUEUTask*, WakeDataList> m_maskWakeDataWithCbMap;
 
     std::unordered_map<int, TimerStatus> executedHandle_;
     std::multimap<TimePoint, TimerDataWithCb> timerMap_;

@@ -21,6 +21,7 @@
 #include "internal_inc/assert.h"
 #include "internal_inc/types.h"
 #include "tm/scpu_task.h"
+#include "util/ffrt_facade.h"
 #include "util/name_manager.h"
 
 namespace ffrt {
@@ -28,6 +29,7 @@ constexpr unsigned int DEFAULT_CPUINDEX_LIMIT = 7;
 struct IOPollerInstance: public IOPoller {
     IOPollerInstance() noexcept: m_runner([&] { RunForever(); })
     {
+        DependenceManager::Instance();
         pthread_setname_np(m_runner.native_handle(), IO_POLLER_NAME);
     }
 
@@ -167,8 +169,13 @@ void IOPoller::PollOnce(int timeout) noexcept
             }
             reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
         } else {
-            CoRoutineFactory::CoWakeFunc(task, false);
+            CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
         }
     }
 }
+}
+
+void ffrt_wait_fd(int fd)
+{
+    ffrt::FFRTFacade::GetIoPPInstance().WaitFdEvent(fd);
 }

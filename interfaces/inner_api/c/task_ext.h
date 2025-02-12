@@ -30,28 +30,34 @@
  */
 FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 
-// config
+/**
+ * @brief Sets cgroup attribute.
+ *
+ * @param qos Indicates the Qos, only support for qos_defined_ive.
+ * @param attr Indicates the cgroup attribute.
+ * @return Returns <b>0</b> if cgroup attribute set success;
+ *         returns <b>-1</b> if cgroup attribute set fail.
+ * @version 1.0
+ */
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
+
+/**
+ * @brief Restore the ffrt threads attribute to the default value for all Qos.
+ *
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_restore_qos_config(void);
+
+/**
+ * @brief Sets the max num of ffrt threads in a QoS.
+ *
+ * @param qos Indicates the QoS.
+ * @param num Indicates the max num.
+ * @return Returns <b>0</b> if max num set success;
+ *         return <b>-1</b> if max num set fail;
+ * @version 1.0
+ */
 FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
-
-/**
- * @brief Set the task execution timeout.
- *
- * @param attr Indicates a pointer to the task attribute.
- * @param timeout_ms task execution timeout.
- * @version 1.0
- */
-FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t timeout_ms);
-
-/**
- * @brief Get the task execution timeout.
- *
- * @param attr Indicates a pointer to the task attribute.
- * @return Returns the task execution timeout.
- * @version 1.0
- */
-FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
 
 /**
  * @brief Sets whether the task notifies worker, only support for normal task.
@@ -78,4 +84,33 @@ FFRT_C_API void ffrt_notify_workers(ffrt_qos_t qos, int number);
  * @version 1.0
  */
 FFRT_C_API int64_t ffrt_this_queue_get_id(void);
+
+/**
+ * @brief Enable the worker escape function (When all the worker threads under a QoS level fully block, the system will
+ * temporarily exceed the limit on the number of worker threads and create new worker threads to execute tasks).
+ * Delay penalty is added for escape function. As the number of threads increases, the thread creation delay increases.
+ * Calling this function does not take effect when the escape function is enabled.
+ *
+ * @param one_stage_interval_ms Indicates the interval for creating threads in one-stage, default value is 10ms.
+ *                              If input parameter value is smaller than the default value, the setting fails.
+ * @param two_stage_interval_ms Indicates the interval for creating threads in two-stage, default value is 100ms.
+ *                              If input parameter value is smaller than the default value, the setting fails.
+ * @param three_stage_interval_ms Indicates the interval for creating threads in three-stage, default value is 1000ms.
+ *                              If input parameter value is smaller than the default value, the setting fails.
+ * @param one_stage_worker_num Indicates the number of workers in one-stage.
+ * @param two_stage_worker_num Indicates the number of workers in two-stage.
+ * @return Returns 0 if the parameters are valid and the escape function is enabled successfully;
+ *         returns 1 otherwise.
+ * @version 1.0
+ */
+FFRT_C_API int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
+    uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num);
+
+/**
+ * @brief Disable the worker escape function (When all the worker threads under a QoS level fully block, the system will
+ * temporarily exceed the limit on the number of worker threads and create new worker threads to execute tasks).
+ *
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_disable_worker_escape(void);
 #endif

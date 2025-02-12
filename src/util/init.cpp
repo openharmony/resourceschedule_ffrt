@@ -39,12 +39,15 @@ __attribute__((constructor)) static void ffrt_init()
         },
         [] (ffrt::CPUEUTask* task) {
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
-    });
+        },
+        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::LockMem,
+        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::UnlockMem);
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::TaskScheduler{new ffrt::FIFOQueue()}; },
         [] (ffrt::TaskScheduler* schd) { delete schd; });
     CoRoutineFactory::RegistCb(
-        [] (ffrt::CPUEUTask* task, bool timeOut) -> void {CoWake(task, timeOut);});
+        [] (ffrt::CPUEUTask* task, CoWakeType type) -> void {CoWake(task, type);});
     ffrt::DependenceManager::RegistInsCb(ffrt::SDependenceManager::Instance);
     ffrt::ExecuteUnit::RegistInsCb(ffrt::SExecuteUnit::Instance);
     ffrt::FFRTScheduler::RegistInsCb(ffrt::SFFRTScheduler::Instance);
@@ -56,6 +59,10 @@ __attribute__((destructor)) static void FfrtDeinit(void)
 #ifdef FFRT_ASYNC_STACKTRACE
     ffrt::CloseAsyncStackLibHandle();
 #endif
+}
+void ffrt_child_init(void)
+{
+    ffrt_init();
 }
 #ifdef __cplusplus
 }

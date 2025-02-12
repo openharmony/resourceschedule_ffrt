@@ -28,23 +28,26 @@ namespace ffrt {
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
+    // control construct sequences of singletons
 #ifdef FFRT_OH_TRACE_ENABLE
     TraceAdapter::Instance();
 #endif
-    // control construct sequences of singletons
     SimpleAllocator<CPUEUTask>::Instance();
+    SimpleAllocator<SCPUEUTask>::Instance();
     SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
+    QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
     PollerProxy::Instance();
     FFRTScheduler::Instance();
+#ifdef FFRT_WORKER_MONITOR
+    WorkerMonitor::GetInstance();
+#endif
+    QueueMonitor::GetInstance();
     ExecuteUnit::Instance();
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 
-#ifdef FFRT_WORKER_MONITOR
-    WorkerMonitor::GetInstance();
-#endif
 #ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);
@@ -93,13 +96,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
     FFRT_TRACE_BEGIN(("submit|" + std::to_string(task->gid)).c_str());
-    FFRT_LOGD("submit task[%lu], name[%s]", task->gid, task->label.c_str());
 #ifdef FFRT_ASYNC_STACKTRACE
     {
         task->stackId = FFRTCollectAsyncStack();
     }
 #endif
-
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos, &(task->createTime), &(task->fromTid));
 
@@ -125,10 +126,9 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         */
     task->IncChildRef();
 
-    std::vector<std::pair<VersionCtx*, NestType>> inDatas;
-    std::vector<std::pair<VersionCtx*, NestType>> outDatas;
-
     if (!(insNoDup.empty() && outsNoDup.empty())) {
+        std::vector<std::pair<VersionCtx*, NestType>> inDatas;
+        std::vector<std::pair<VersionCtx*, NestType>> outDatas;
         // 3 Put the submitted task into Entity
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
 
@@ -153,12 +153,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             return;
         }
     }
-    
+
     if (attr != nullptr) {
         task->notifyWorker_ = attr->notifyWorker_;
     }
 
-    FFRT_LOGD("Submit completed, enter ready queue, task[%lu], name[%s]", task->gid, task->label.c_str());
     task->UpdateState(TaskState::READY);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     FFRT_TRACE_END();
@@ -264,7 +263,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     CoWait(pendDataDepFun);
 }
 
-int SDependenceManager::onExecResults(const ffrt_deps_t *deps)
+int SDependenceManager::onExecResults(ffrt_task_handle_t handle)
 {
     return 0;
 }
@@ -355,5 +354,18 @@ void SDependenceManager::MapSignature2Deps(SCPUEUTask* task, const std::vector<c
     add_outversion:
         outVersions.push_back({version, type});
     }
+}
+
+int SDependenceManager::onSkip(ffrt_task_handle_t handle)
+{
+    ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
+    auto exp = ffrt::SkipStatus::SUBMITTED;
+    if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
+        __ATOMIC_RELAXED)) {
+        return ffrt_success;
+    }
+
+    FFRT_LOGE("skip task [%lu] failed", task->gid);
+    return ffrt_error;
 }
 } // namespace ffrt

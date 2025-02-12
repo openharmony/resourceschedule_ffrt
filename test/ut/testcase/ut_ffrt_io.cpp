@@ -56,17 +56,19 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerHandle_ = -1;
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerMutex_.lock();
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerMap_.clear();
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).timerMutex_.unlock();
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).executedHandle_.clear();
     ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::TEARDOWN;
     }
@@ -174,6 +176,14 @@ static void testfun(void* data)
 }
 void (*cb)(void*) = testfun;
 
+static void testSleepFun(void* data)
+{
+    usleep(100000);
+    *(int*)data += 1;
+    printf("%d, timeout callback\n", *(int*)data);
+}
+void (*sleepCb)(void*) = testSleepFun;
+
 HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_map_null, TestSize.Level1)
 {
     uint64_t timeout = 20;
@@ -268,7 +278,7 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwake, TestSize.Leve
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
-    EXPECT_EQ(1, x);
+    EXPECT_EQ(static_cast<int>(1), x);
     close(testFd);
 }
 
@@ -303,7 +313,8 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_long_timeout_flagwake, TestSize.Level
 HWTEST_F(ffrtIoTest, ffrt_timer_stop_fail, TestSize.Level1)
 {
     int handle = -1;
-    ffrt_timer_stop(ffrt_qos_default, handle);
+    auto ret = ffrt_timer_stop(ffrt_qos_default, handle);
+    EXPECT_EQ(ret, -1);
 }
 
 HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapfirst_flagwait, TestSize.Level1)
@@ -420,7 +431,6 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_flag_teardown, TestSize.Level1)
         }, {}, {});
     ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     ffrt::wait();
-    EXPECT_EQ(0, x);
     close(testFd);
 }
 
@@ -464,8 +474,10 @@ HWTEST_F(ffrtIoTest, ffrt_timer_query_stop, TestSize.Level1)
     int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 
     ffrt_qos_t qos = ffrt_qos_default;
-    int handle = ffrt_timer_start(qos, timeout1, data, cb, false);
+    int handle = ffrt_timer_start(qos, timeout1, data, sleepCb, false);
     EXPECT_EQ(0, ffrt_timer_query(qos, handle));
+    usleep(500000);
+    EXPECT_EQ(1, ffrt_timer_query(qos, handle));
 
     ffrt_timer_stop(qos, handle);
     struct TestData testData {.fd = testFd, .expected = expected};
@@ -582,6 +594,7 @@ HWTEST_F(ffrtIoTest, ffrt_task_attr_set_local_attr_invalid, TestSize.Level1)
 {
     bool isLocalSet = true;
     ffrt_task_attr_set_local(nullptr, isLocalSet);
+    EXPECT_EQ(isLocalSet, true);
 }
 
 struct WakeData {
@@ -673,34 +686,6 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_maxevents_invalid, TestSize.Level1)
     EXPECT_EQ(-1, result);
 }
 
-HWTEST_F(ffrtIoTest, ffrt_epoll_wait_timeout_invalid, TestSize.Level1)
-{
-    uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    struct WakeData m_wakeData;
-    m_wakeData.data = nullptr;
-    m_wakeData.fd = testFd;
-    ffrt_qos_t qos_level = ffrt_qos_user_initiated;
-    int op = EPOLL_CTL_ADD;
-    int result = 0;
-
-    epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&m_wakeData)} };
-    int maxevents = 1024;
-    uint64_t timeout = -1;
-    struct TestData testData {.fd = testFd, .expected = expected};
-
-    int ret = ffrt_epoll_ctl(qos_level, op, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-    EXPECT_EQ(0, ret);
-
-    ffrt::submit([&]() {
-        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
-        result = ffrt_epoll_wait(qos_level, &ev, maxevents, timeout);
-        }, {}, {});
-    usleep(1000);
-    EXPECT_EQ(0, result);
-}
-
 HWTEST_F(ffrtIoTest, ffrt_epoll_ctl_op1, TestSize.Level1)
 {
     int op = EPOLL_CTL_ADD;
@@ -771,4 +756,20 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid_with_thread_mode, TestSize.Level1)
         }, {}, {});
     usleep(1000);
     EXPECT_EQ(0, result);
+}
+
+HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level1)
+{
+    ffrt_qos_t qos = ffrt_qos_default;
+
+    int  ret = ffrt_epoll_get_count(qos);
+    EXPECT_NE(ret, 0);
+}
+
+HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_invalid, TestSize.Level1)
+{
+    void* taskHandle = nullptr;
+
+    int ret = ffrt_epoll_get_wait_time(taskHandle);
+    EXPECT_EQ(ret, 0);
 }

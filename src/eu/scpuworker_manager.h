@@ -23,11 +23,11 @@ public:
     SCPUWorkerManager();
     ~SCPUWorkerManager() override;
     WorkerAction WorkerIdleAction(const WorkerThread* thread) override;
-    void WorkerPrepare(WorkerThread* thread) override;
-    void WakeupWorkers(const QoS& qos) override;
     CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread) override;
     CPUEUTask* PickUpTaskBatch(WorkerThread* thread) override;
-    friend class CPUManagerStrategy;
+    void WorkerRetiredSimplified(WorkerThread* thread) override;
+    void WorkerPrepare(WorkerThread* thread) override;
+    void WakeupWorkers(const QoS& qos) override;
 private:
     void AddDelayedTask(int qos);
 };

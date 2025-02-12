@@ -48,8 +48,7 @@ private:
     std::shared_mutex mutex_;
     std::vector<std::pair<uint64_t, TimePoint>> queuesRunningInfo_;
     std::vector<QueueHandler*> queuesStructInfo_;
-    std::atomic_bool exit_ { false };
-    std::atomic_bool abortSendTimer_ { false };
+    std::atomic_bool exit_ { true };
     std::vector<uint64_t> lastReportedTask_;
 };
 } // namespace ffrt

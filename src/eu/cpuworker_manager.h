@@ -19,7 +19,7 @@
 #include "eu/worker_manager.h"
 #include "eu/cpu_worker.h"
 #include "eu/cpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
 #include "tm/cpu_task.h"
@@ -72,7 +72,6 @@ public:
         return monitor;
     }
 
-protected:
     virtual void WorkerPrepare(WorkerThread* thread) = 0;
     virtual void WakeupWorkers(const QoS& qos) = 0;
     bool IncWorker(const QoS& qos) override;
@@ -81,7 +80,7 @@ protected:
     void WorkerJoinTg(const QoS& qos, pid_t pid);
 
     CPUMonitor* monitor = nullptr;
-    bool tearDown = false;
+    std::atomic_bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::MaxNum()];
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
     uint8_t polling_[QoS::MaxNum()] = {0};
@@ -92,10 +91,10 @@ protected:
     bool IsBlockAwareInit(void);
 #endif
 
-private:
     bool WorkerTearDown();
     bool DecWorker() override
     {return false;}
+    virtual void WorkerRetiredSimplified(WorkerThread* thread) = 0;
     void NotifyTaskPicked(const WorkerThread* thread);
     /* strategy options for task pick up */
     virtual CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread) = 0;

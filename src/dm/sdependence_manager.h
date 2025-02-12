@@ -38,9 +38,11 @@ public:
     void onWait(const ffrt_deps_t* deps) override;
 #endif
 
-    int onExecResults(const ffrt_deps_t *deps) override;
+    int onExecResults(ffrt_task_handle_t handle) override;
 
     void onTaskDone(CPUEUTask* task) override;
+
+    int onSkip(ffrt_task_handle_t handle) override;
 
 private:
     SDependenceManager();

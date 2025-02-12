@@ -14,8 +14,8 @@
  */
 
 #include <gtest/gtest.h>
-#include "ffrt_inner.h"
 #include <cstdlib>
+#include "ffrt_inner.h"
 #include "../common.h"
 
 using namespace testing;
@@ -33,11 +33,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };

@@ -20,6 +20,7 @@
 #include "c/ffrt_dump.h"
 #include "dfx/sysevent/sysevent.h"
 #include "internal_inc/osal.h"
+#include "util/ffrt_facade.h"
 
 namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
@@ -28,7 +29,6 @@ constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 constexpr uint64_t QUEUE_INFO_INITIAL_CAPACITY = 64;
 constexpr uint64_t ALLOW_TIME_ACC_ERROR_US = 500;
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000;
-constexpr uint64_t DESTRUCT_TRY_COUNT = 100;
 
 inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayUs)
 {
@@ -51,24 +51,13 @@ QueueMonitor::QueueMonitor()
         return;
     }
     timeoutUs_ = timeout;
-    SendDelayedWorker(GetDelayedTimeStamp(timeoutUs_));
     FFRT_LOGI("queue monitor ctor leave, watchdog timeout %llu us", timeoutUs_);
 }
 
 QueueMonitor::~QueueMonitor()
 {
-    exit_.store(true);
-    FFRT_LOGI("destruction of QueueMonitor enter");
-    int tryCnt = DESTRUCT_TRY_COUNT;
-    // 取消定时器成功，或者中断了发送定时器，则释放we完成析构
-    while (!DelayedRemove(we_->tp, we_) && !abortSendTimer_.load()) {
-        if (--tryCnt < 0) {
-            break;
-        }
-        usleep(MIN_TIMEOUT_THRESHOLD_US);
-    }
+    FFRT_LOGI("destruction of QueueMonitor");
     SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
-    FFRT_LOGI("destruction of QueueMonitor leave");
 }
 
 QueueMonitor& QueueMonitor::GetInstance()
@@ -128,7 +117,6 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
     TimePoint now = std::chrono::steady_clock::now();
     queuesRunningInfo_[queueId] = {taskId, now};
     if (exit_.exchange(false)) {
-        abortSendTimer_.store(false);
         SendDelayedWorker(now + std::chrono::microseconds(timeoutUs_));
     }
 }
@@ -143,10 +131,6 @@ uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
 
 void QueueMonitor::SendDelayedWorker(TimePoint delay)
 {
-    FFRT_COND_DO_ERR(exit_.load(), abortSendTimer_.store(true);
-        return;,
-        "exit_.load() is true");
-
     we_->tp = delay;
     we_->cb = ([this](WaitEntry* we_) { CheckQueuesStatus(); });
 
@@ -189,19 +173,6 @@ void QueueMonitor::CheckQueuesStatus()
         queueRunningInfoSize = queuesRunningInfo_.size();
     }
 
-    // Displays information about queues that hold locks for a long time.
-    for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
-        if (queuesStructInfo_[i] == nullptr || queuesStructInfo_[i]->GetQueue() == nullptr) {
-            continue;
-        }
-
-        if (!queuesStructInfo_[i]->GetQueue()->HasLock() || !queuesStructInfo_[i]->GetQueue()->IsLockTimeout()) {
-            continue;
-        }
-
-        queuesStructInfo_[i]->GetQueue()->PrintMutexOwner();
-    }
-
     // Displays information about queues whose tasks time out.
     for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
         {
@@ -220,8 +191,11 @@ void QueueMonitor::CheckQueuesStatus()
             GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
             ss << "Serial_Queue_Timeout, process name:[" << processName << "], serial queue qid:[" << i
                 << "], serial task gid:[" << taskId << "], execution:[" << timeoutUs_ << "] us.";
-            if (queuesStructInfo_[i] != nullptr) {
-                ss << queuesStructInfo_[i]->GetDfxInfo();
+            {
+                std::shared_lock lock(mutex_);
+                if (queuesStructInfo_[i] != nullptr) {
+                    ss << queuesStructInfo_[i]->GetDfxInfo();
+                }
             }
             FFRT_LOGE("%s", ss.str().c_str());
 #ifdef FFRT_SEND_EVENT
@@ -232,9 +206,14 @@ void QueueMonitor::CheckQueuesStatus()
                 TaskTimeoutReport(ss, processNameStr, senarioName);
             }
 #endif
-            ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-            if (func) {
-                func(taskId, ss.str().c_str(), ss.str().size());
+            std::string ssStr = ss.str();
+            if (ffrt_task_timeout_get_cb()) {
+                FFRTFacade::GetDWInstance().SubmitAsyncTask([taskId, ssStr] {
+                    ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
+                    if (func) {
+                        func(taskId, ssStr.c_str(), ssStr.size());
+                    }
+                });
             }
             // reset timeout task timestamp for next warning
             ResetTaskTimestampAfterWarning(i, taskId);

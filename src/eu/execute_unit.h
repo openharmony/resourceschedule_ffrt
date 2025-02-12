@@ -71,15 +71,15 @@ public:
         return wManager[static_cast<size_t>(DevType::CPU)]->GetCPUMonitor();
     }
 
-    virtual std::unique_ptr<WorkerManager> InitManager() = 0;
+    virtual WorkerManager* InitManager() = 0;
     
     void CreateWorkerManager();
 
 protected:
     ExecuteUnit();
-    virtual ~ExecuteUnit() = default;
+    virtual ~ExecuteUnit();
 
-    std::array<std::unique_ptr<WorkerManager>, static_cast<size_t>(DevType::DEVMAX)> wManager;
+    std::array<WorkerManager*, static_cast<size_t>(DevType::DEVMAX)> wManager;
 };
 
 } // namespace ffrt

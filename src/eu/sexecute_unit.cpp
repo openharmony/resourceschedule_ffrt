@@ -21,9 +21,9 @@
 #include "eu/co_routine_factory.h"
 
 namespace ffrt {
-std::unique_ptr<WorkerManager> SExecuteUnit::InitManager()
+WorkerManager* SExecuteUnit::InitManager()
 {
-    return std::unique_ptr<WorkerManager>(new (std::nothrow) SCPUWorkerManager());
+    return new (std::nothrow) SCPUWorkerManager();
 }
 SExecuteUnit::SExecuteUnit()
 {

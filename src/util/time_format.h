@@ -35,7 +35,7 @@ static std::string FormatDateString(const std::chrono::system_clock::time_point&
     constexpr int UsPerSecond = 1000 * 1000;
 
     std::string remainder;
-    if (timeUnit == microsecond) {
+    if (microsecond == timeUnit) {
         auto tp = std::chrono::time_point_cast<std::chrono::microseconds>(timePoint);
         auto us = tp.time_since_epoch().count() % UsPerSecond;
         remainder = std::to_string(us);

@@ -60,7 +60,7 @@ void DumpHistoryTaskInfo(const char* tag, const std::vector<ffrt::HistoryTask>& 
 }
 
 void DumpUnexecutedTaskInfo(const char* tag,
-    const std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, std::ostringstream& oss)
+    const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec, std::ostringstream& oss)
 {
     static std::pair<ffrt_inner_queue_priority_t, std::string> priorityPairArr[] = {
         {ffrt_inner_queue_priority_immediate, "Immediate"}, {ffrt_inner_queue_priority_high, "High"},
@@ -71,8 +71,10 @@ void DumpUnexecutedTaskInfo(const char* tag,
     uint32_t dumpSize = MAX_DUMP_SIZE;
 
     std::multimap<ffrt_inner_queue_priority_t, ffrt::QueueTask*> priorityMap;
-    for (auto it = whenMap.begin(); it != whenMap.end(); it++) {
-        priorityMap.insert({static_cast<ffrt_inner_queue_priority_t>(it->second->GetPriority()), it->second});
+    for (int idx = 0; idx <= ffrt_inner_queue_priority_idle; idx++) {
+        for (auto it = whenMapVec[idx].begin(); it != whenMapVec[idx].end(); it++) {
+            priorityMap.insert({static_cast<ffrt_inner_queue_priority_t>(idx), it->second});
+        }
     }
 
     auto taskDumpFun = [&](int n, ffrt::QueueTask* task) {
@@ -100,6 +102,31 @@ void DumpUnexecutedTaskInfo(const char* tag,
     }
     oss << tag << " Total event size : " << total << "\n";
 }
+
+uint64_t GetMinMapTime(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
+{
+    uint64_t minTime = std::numeric_limits<uint64_t>::max();
+
+    for (int idx = 0; idx <= ffrt_inner_queue_priority_idle; idx++) {
+        if (!whenMapVec[idx].empty()) {
+            auto it = whenMapVec[idx].begin();
+            if (it->first < minTime) {
+                minTime = it->first;
+            }
+        }
+    }
+    return minTime;
+}
+
+bool WhenMapVecEmpty(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
+{
+    for (int idx = 0; idx <= ffrt_inner_queue_priority_idle; idx++) {
+        if (!whenMapVec[idx].empty()) {
+            return false;
+        }
+    }
+    return true;
+}
 }
 
 namespace ffrt {
@@ -115,26 +142,36 @@ EventHandlerAdapterQueue::~EventHandlerAdapterQueue()
     FFRT_LOGI("destruct eventhandler adapter queueId=%u leave", queueId_);
 }
 
+void EventHandlerAdapterQueue::Stop()
+{
+    std::unique_lock lock(mutex_);
+    for (auto& currentMap : whenMapVec_) {
+        BaseQueue::Stop(currentMap);
+    }
+    FFRT_LOGI("clear [queueId=%u] succ", queueId_);
+}
+
 int EventHandlerAdapterQueue::Push(QueueTask* task)
 {
     std::unique_lock lock(mutex_);
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot push task, [queueId=%u] is exiting", queueId_);
 
+    int taskPriority = task->GetPriority();
     if (!isActiveState_.load()) {
-        pulledTaskCount_[task->GetPriority()]++;
+        pulledTaskCount_[taskPriority]++;
         isActiveState_.store(true);
         return INACTIVE;
     }
 
     if (task->InsertHead()) {
         std::multimap<uint64_t, QueueTask*> tmpWhenMap {{0, task}};
-        tmpWhenMap.insert(whenMap_.begin(), whenMap_.end());
-        whenMap_.swap(tmpWhenMap);
+        tmpWhenMap.insert(whenMapVec_[taskPriority].begin(), whenMapVec_[taskPriority].end());
+        whenMapVec_[taskPriority].swap(tmpWhenMap);
     } else {
-        whenMap_.insert({task->GetUptime(), task});
+        whenMapVec_[taskPriority].insert({task->GetUptime(), task});
     }
-    if (task == whenMap_.begin()->second) {
-        cond_.NotifyOne();
+    if (task == whenMapVec_[taskPriority].begin()->second) {
+        cond_.notify_one();
     }
 
     return SUCC;
@@ -145,16 +182,18 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     std::unique_lock lock(mutex_);
     // wait for delay task
     uint64_t now = GetNow();
-    while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
-        uint64_t diff = whenMap_.begin()->first - now;
+    uint64_t minMaptime = GetMinMapTime(whenMapVec_);
+    while (!WhenMapVecEmpty(whenMapVec_) && now < minMaptime && !isExit_) {
+        uint64_t diff = minMaptime - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        cond_.WaitFor(lock, std::chrono::microseconds(diff));
+        cond_.wait_for(lock, std::chrono::microseconds(diff));
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
+        minMaptime = GetMinMapTime(whenMapVec_);
     }
 
     // abort dequeue in abnormal scenarios
-    if (whenMap_.empty()) {
+    if (WhenMapVecEmpty(whenMapVec_)) {
         FFRT_LOGD("[queueId=%u] switch into inactive", queueId_);
         isActiveState_.store(false);
         return nullptr;
@@ -162,15 +201,58 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue due tasks in batch
-    return dequeFunc_(queueId_, now, whenMap_, &pulledTaskCount_);
+    return dequeFunc_(queueId_, now, whenMapVec_, &pulledTaskCount_);
+}
+
+void EventHandlerAdapterQueue::Remove()
+{
+    std::unique_lock lock(mutex_);
+    for (auto& currentMap : whenMapVec_) {
+        BaseQueue::Remove(currentMap);
+    }
+}
+
+int EventHandlerAdapterQueue::Remove(const char* name)
+{
+    std::unique_lock lock(mutex_);
+    int count = 0;
+    for (auto& currentMap : whenMapVec_) {
+        count += BaseQueue::Remove(name, currentMap);
+    }
+    return count;
+}
+
+int EventHandlerAdapterQueue::Remove(const QueueTask* task)
+{
+    std::unique_lock lock(mutex_);
+    int count = 0;
+    for (auto& currentMap : whenMapVec_) {
+        count += BaseQueue::Remove(task, currentMap);
+    }
+    return count;
+}
+
+bool EventHandlerAdapterQueue::HasTask(const char* name)
+{
+    std::unique_lock lock(mutex_);
+    for (auto& currentMap : whenMapVec_) {
+        if (BaseQueue::HasTask(name, currentMap)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool EventHandlerAdapterQueue::IsIdle()
 {
     std::unique_lock lock(mutex_);
-    int nonIdleNum = std::count_if(whenMap_.cbegin(), whenMap_.cend(),
-        [](const auto& pair) { return pair.second->GetPriority() <= ffrt_queue_priority_idle; });
-    return nonIdleNum == 0;
+
+    for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
+        if (!whenMapVec_[idx].empty()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 int EventHandlerAdapterQueue::Dump(const char* tag, char* buf, uint32_t len, bool historyInfo)
@@ -181,16 +263,14 @@ int EventHandlerAdapterQueue::Dump(const char* tag, char* buf, uint32_t len, boo
         DumpRunningTaskInfo(tag, currentRunningTask_, oss);
         DumpHistoryTaskInfo(tag, historyTasks_, oss);
     }
-    DumpUnexecutedTaskInfo(tag, whenMap_, oss);
+    DumpUnexecutedTaskInfo(tag, whenMapVec_, oss);
     return snprintf_s(buf, len, len - 1, "%s", oss.str().c_str());
 }
 
 int EventHandlerAdapterQueue::DumpSize(ffrt_inner_queue_priority_t priority)
 {
     std::unique_lock lock(mutex_);
-    return std::count_if(whenMap_.begin(), whenMap_.end(), [=](const auto& pair) {
-        return static_cast<ffrt_inner_queue_priority_t>(pair.second->GetPriority()) == priority;
-    });
+    return static_cast<int>(whenMapVec_[priority].size());
 }
 
 void EventHandlerAdapterQueue::SetCurrentRunningTask(QueueTask* task)

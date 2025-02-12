@@ -34,19 +34,19 @@ void RecordMutex::LoadInfo()
         owner_.id = ExecuteCtx::Cur()->task->gid;
         owner_.type = MutexOwnerType::MUTEX_OWNER_TYPE_TASK;
     } else {
-        owner_.id = gettid();
+        owner_.id = static_cast<uint64_t>(gettid());
         owner_.type = MutexOwnerType::MUTEX_OWNER_TYPE_THREAD;
     }
 
-    owner_.timestamp = std::chrono::steady_clock::now();
+    owner_.timestamp = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
 }
 
 uint64_t RecordMutex::GetDuration()
 {
-    uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-    uint64_t past = std::chrono::duration_cast<std::chrono::microseconds>(
-        owner_.timestamp.time_since_epoch()).count();
+    uint64_t now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
+    uint64_t past = owner_.timestamp;
     return (now > past) ? now - past : 0;
 }
 }

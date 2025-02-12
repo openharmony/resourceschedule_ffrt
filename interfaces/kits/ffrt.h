@@ -28,5 +28,6 @@
 #include "c/sleep.h"
 #include "c/queue.h"
 #include "c/timer.h"
+#include "c/loop.h"
 #endif
 #endif

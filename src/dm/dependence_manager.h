@@ -64,7 +64,7 @@ inline void InsDedup(std::vector<CPUEUTask*> &in_handles, std::vector<const void
 {
     for (uint32_t i = 0; i < ins->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), ins->items[i].ptr) == outsNoDup.end()) {
-            if ((ins->items[i].type) == ffrt_dependence_task) {
+            if ((ins->items[i].type == ffrt_dependence_task) && (ins->items[i].ptr != nullptr)) {
                 static_cast<ffrt::CPUEUTask*>(const_cast<void*>(ins->items[i].ptr))->IncDeleteRef();
                 in_handles.emplace_back(static_cast<ffrt::CPUEUTask*>(const_cast<void*>(ins->items[i].ptr)));
             }
@@ -82,20 +82,7 @@ public:
     virtual void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
         const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
-    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
-    {
-        FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
-        FFRT_TRACE_SCOPE(1, onSubmitUV);
-        QoS qos = ((attr == nullptr || attr->qos_ == qos_inherit) ? QoS() : QoS(attr->qos_));
-        FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(qos);
-        LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
-        FFRTScheduler* sch = FFRTScheduler::Instance();
-        if (!sch->InsertNode(node, qos)) {
-            FFRT_LOGE("Submit UV task failed!");
-            return;
-        }
-        FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(qos);
-    }
+    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr);
 
     virtual void onWait() = 0;
 #ifdef QOS_DEPENDENCY
@@ -104,9 +91,11 @@ public:
     virtual void onWait(const ffrt_deps_t* deps) = 0;
 #endif
 
-    virtual int onExecResults(const ffrt_deps_t *deps) = 0;
+    virtual int onExecResults(ffrt_task_handle_t handle) = 0;
 
     virtual void onTaskDone(CPUEUTask* task) = 0;
+
+    virtual int onSkip(ffrt_task_handle_t handle) = 0;
 
     static inline CPUEUTask* Root()
     {

@@ -103,7 +103,7 @@ static inline int BlockawareLeaveSleeping(void)
 {
     unsigned long *slot_ptr = curr_thread_tls_blockaware_slot_of();
     int err = 0;
- 
+
     if (*slot_ptr == 0) {
         err = -EINVAL;
     } else {
@@ -149,7 +149,7 @@ static inline int BlockawareLeaveSleeping(void)
 {
     unsigned long *slot_ptr = curr_thread_tls_blockaware_slot_of();
     int err = 0;
- 
+
     if (*slot_ptr == 0) {
         err = -EINVAL;
     } else {
@@ -232,6 +232,18 @@ static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDom
         memcpy_s(infoArea, sizeof(BlockawareDomainInfoArea), &kinfoPage->infoArea, sizeof(BlockawareDomainInfoArea));
     } while (!seqlock_check(&kinfoPage->seq, seq));
     return 0;
+}
+
+static inline unsigned int BlockawareLoadSnapshotNrRunningFast(unsigned long key, int domainId)
+{
+    BlockawareKinfoPageS* kinfoPage = reinterpret_cast<BlockawareKinfoPageS*>(key);
+    return kinfoPage->infoArea.localinfo[domainId].nrRunning;
+}
+
+static inline unsigned int BlockawareLoadSnapshotNrBlockedFast(unsigned long key, int domainId)
+{
+    BlockawareKinfoPageS* kinfoPage = reinterpret_cast<BlockawareKinfoPageS*>(key);
+    return kinfoPage->infoArea.localinfo[domainId].nrBlocked;
 }
 
 static inline int BlockawareWaitCond(struct BlockawareWakeupCond *cond)

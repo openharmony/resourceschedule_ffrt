@@ -14,6 +14,7 @@
  */
 
 #include "shared_mutex_private.h"
+#include "dfx/log/ffrt_log_api.h"
 #include "ffrt_trace.h"
 
 #include "internal_inc/osal.h"
@@ -136,7 +137,7 @@ void SharedMutexPrivate::NotifyOne(LinkedList& wList)
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoRoutineFactory::CoWakeFunc(task, false);
+            CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
         }
     }
 }
@@ -157,7 +158,7 @@ void SharedMutexPrivate::NotifyAll(LinkedList& wList)
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoRoutineFactory::CoWakeFunc(task, false);
+            CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
         }
 
         if (we->wtType == SharedMutexWaitType::READ) {

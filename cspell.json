@@ -1,0 +1,22 @@
+{
+    "enabledLanguageIds": [
+        "c",
+        "cpp",
+        "markdown"
+    ],
+    "languageSettings": [
+        {
+            "languageId": "markdown",
+            "dictionaries": [
+                "cpp"
+            ],
+            "ignoreRegExpList": [
+                "/^```(?:.|\\s)+?^```/mig"
+            ]
+        }
+    ],
+    "words": [
+        "ffrt",
+        "libffrt"
+    ]
+}

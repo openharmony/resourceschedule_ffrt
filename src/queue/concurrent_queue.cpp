@@ -61,7 +61,7 @@ int ConcurrentQueue::Push(QueueTask* task)
 
     whenMap_.insert({task->GetUptime(), task});
     if (task == whenMap_.begin()->second) {
-        cond_.NotifyAll();
+        cond_.notify_all();
     }
 
     return SUCC;
@@ -74,7 +74,7 @@ QueueTask* ConcurrentQueue::Pull()
     uint64_t now = GetNow();
     if (loop_ != nullptr) {
         if (!whenMap_.empty() && now >= whenMap_.begin()->first && !isExit_) {
-            return dequeFunc_(queueId_, now, whenMap_, nullptr);
+            return dequeFunc_(queueId_, now, &whenMap_, nullptr);
         }
         return nullptr;
     }
@@ -82,22 +82,21 @@ QueueTask* ConcurrentQueue::Pull()
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        cond_.WaitFor(lock, std::chrono::microseconds(diff));
+        cond_.wait_for(lock, std::chrono::microseconds(diff));
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
     }
 
     // abort dequeue in abnormal scenarios
     if (whenMap_.empty()) {
-        uint32_t queueId = queueId_;
         int oldValue = concurrency_.fetch_sub(1); // 取不到后继的task，当前这个task正式退出
-        FFRT_LOGD("concurrency[%d] - 1 [queueId=%u] switch into inactive", oldValue, queueId);
+        FFRT_LOGD("concurrency[%d] - 1 [queueId=%u] switch into inactive", oldValue, queueId_);
         return nullptr;
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue next expired task by priority
-    return dequeFunc_(queueId_, now, whenMap_, nullptr);
+    return dequeFunc_(queueId_, now, &whenMap_, nullptr);
 }
 
 void ConcurrentQueue::Stop()
@@ -113,7 +112,7 @@ void ConcurrentQueue::Stop()
     }
     whenMap_.clear();
     if (loop_ == nullptr) {
-        cond_.NotifyAll();
+        cond_.notify_all();
     }
 
     FFRT_LOGI("clear [queueId=%u] succ", queueId_);

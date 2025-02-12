@@ -24,8 +24,12 @@
 #include "c/executor_task.h"
 #include "ffrt_inner.h"
 #include "eu/cpu_monitor.h"
+#include "eu/cpu_worker.h"
+#include "eu/co_routine.h"
+#include "eu/scpuworker_manager.h"
 #include "sched/scheduler.h"
 #include "../common.h"
+#include "tm/scpu_task.h"
 
 using namespace std;
 using namespace ffrt;
@@ -48,11 +52,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -104,6 +108,8 @@ HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
     usleep(100000);
     EXPECT_EQ(co1.count, 4);
     EXPECT_EQ(co2.count, 4);
+
+    ffrt_wake_coroutine(nullptr);
 }
 
 HWTEST_F(CoroutineTest, coroutine_submit_fail, TestSize.Level1)

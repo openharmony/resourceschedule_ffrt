@@ -17,6 +17,7 @@
 
 #include <vector>
 #include "tm/queue_task.h"
+#include "base_queue.h"
 #include "eventhandler_interactive_queue.h"
 
 namespace ffrt {
@@ -63,18 +64,13 @@ public:
         return ffrt_queue_eventhandler_adapter;
     }
 
-    int Remove(const QueueTask* task) override
-    {
-        return BaseQueue::Remove(task);
-    }
-
-    void Stop() override
-    {
-        return BaseQueue::Stop();
-    }
+    void Stop() override;
+    bool HasTask(const char* name) override;
+    void Remove() override;
+    int Remove(const char* name) override;
+    int Remove(const QueueTask* task) override;
 
     bool IsIdle();
-
     int Dump(const char* tag, char* buf, uint32_t len, bool historyInfo = true);
     int DumpSize(ffrt_inner_queue_priority_t priority);
 
@@ -86,6 +82,7 @@ private:
     std::vector<HistoryTask> historyTasks_;
     std::atomic_uint8_t historyTaskIndex_ {0};
     std::vector<int> pulledTaskCount_;
+    std::multimap<uint64_t, QueueTask*> whenMapVec_[5];
 };
 
 std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr);

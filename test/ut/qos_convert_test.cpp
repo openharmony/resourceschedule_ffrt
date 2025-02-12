@@ -71,11 +71,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -119,7 +119,7 @@ static int QosTransfer(int qos)
     }
 }
 
-#ifndef APP_USE_ARM
+#ifndef FFRT_GITEE
 HWTEST_F(QosConvertTest, GetStaticQos1, TestSize.Level1)
 {
     for (int i = 1; i <= NR_QOS_LEVEL; i++) {
@@ -171,7 +171,7 @@ HWTEST_F(QosConvertTest, GetDynamicQos, TestSize.Level1)
 #endif
 }
 
-#ifndef APP_USE_ARM
+#ifndef FFRT_GITEE
 HWTEST_F(QosConvertTest, FFRTQosGetInterface, TestSize.Level1)
 {
     SetRssQos(8);

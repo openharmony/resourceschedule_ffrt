@@ -18,10 +18,12 @@
 #include <atomic>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include "c/queue.h"
 #include "c/queue_ext.h"
 #include "cpp/task.h"
 #include "base_queue.h"
+#include "sched/execute_ctx.h"
 
 namespace ffrt {
 class QueueTask;
@@ -65,10 +67,21 @@ public:
         return queue_->GetQueueId();
     }
 
+    inline uint32_t GetExecTaskId() const
+    {
+        return execTaskId_.load();
+    }
+
     inline bool HasTask(const char* name)
     {
         FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
         return queue_->HasTask(name);
+    }
+
+    inline uint64_t GetTaskCnt()
+    {
+        FFRT_COND_DO_ERR((queue_ == nullptr), return false, "[queueId=%u] constructed failed", GetQueueId());
+        return queue_->GetMapSize();
     }
 
     bool IsIdle();
@@ -89,16 +102,29 @@ private:
     void SetTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
+    void ReportTimeout(const std::vector<uint64_t>& timeoutTaskId);
+    void CheckSchedDeadline();
+    void SendSchedTimer(TimePoint delay);
+    void AddSchedDeadline(QueueTask* task);
+    void RemoveSchedDeadline(QueueTask* task);
+
     // queue info
     std::string name_;
     int qos_ = qos_default;
     std::unique_ptr<BaseQueue> queue_ = nullptr;
     std::atomic_bool isUsed_ = false;
+    std::atomic_uint64_t execTaskId_ = 0;
 
     // for timeout watchdog
     uint64_t timeout_ = 0;
     std::atomic_int delayedCbCnt_ = {0};
     ffrt_function_header_t* timeoutCb_ = nullptr;
+
+    std::mutex mutex_;
+    bool initSchedTimer_ = false;
+    WaitUntilEntry* we_ = nullptr;
+    std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
+    std::atomic_int deliverCnt_ = {0};
 };
 } // namespace ffrt
 

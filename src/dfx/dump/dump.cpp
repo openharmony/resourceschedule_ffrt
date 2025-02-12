@@ -115,16 +115,16 @@ int dump_info_all(char *buf, uint32_t len)
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     if (FFRTIsWork()) {
         std::string dumpInfo;
-        dumpInfo += "|-> Launcher proc ffrt, pid:" + std::to_string(GetPid()) + "\n";
+        dumpInfo += GetDumpPreface();
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         dumpInfo += SaveTaskCounterInfo();
 #endif
+        dumpInfo += SaveKeyInfo();
         dumpInfo += SaveWorkerStatusInfo();
-        dumpInfo += SaveReadyQueueStatusInfo();
         dumpInfo += SaveNormalTaskStatusInfo();
         dumpInfo += SaveQueueTaskStatusInfo();
         if (dumpInfo.length() > (len - 1)) {
-            FFRT_LOGW("dumpInfo exceeds the buffer length, length:%d", dumpInfo.length());
+            FFRT_LOGW("dumpInfo exceeds the buffer length, info length:%d, input len:%u", dumpInfo.length(), len);
         }
         return snprintf_s(buf, len, len - 1, "%s", dumpInfo.c_str());
     } else {
@@ -138,6 +138,7 @@ int dump_info_all(char *buf, uint32_t len)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len)
 {
+    FFRT_COND_RETURN_ERROR(buf == nullptr || len < 1, -1, "buf is nullptr or len is less than 1, len %u", len);
     switch (cmd) {
         case DUMP_INFO_ALL: {
             return dump_info_all(buf, len);
@@ -165,6 +166,7 @@ ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb)
 {
+    FFRT_COND_DO_ERR((cb == nullptr), return, "input invalid, cb is nullptr");
     ffrt::TimeoutCfg::Instance()->callback = cb;
 }
 

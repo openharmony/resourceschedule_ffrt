@@ -21,6 +21,14 @@ module_output_path = "ffrttest/"
 
 gtest_public_external_deps = [ "googletest:gtest_main" ]
 
+ffrt_ut_base_cflags_cc = [
+  "-frtti",
+  "-Xclang",
+  "-fcxx-exceptions",
+  "-std=c++11",
+  "-DFFRT_PERF_EVENT_ENABLE",
+]
+
 ffrt_ut_base_deps = [ "../..:libffrt" ]
 
 ffrt_ut_base_external_deps = [
@@ -64,12 +72,19 @@ config("ffrt_test_config") {
     "ATRACE_DURATION_LOG_ENABLE=0",
     "FFRT_RELEASE",
     "DISABLE_MONITOR",
+    "FFRT_GITEE",
+    "FFRT_PTHREAD_ENABLE",
+    "FFRT_OH_WATCHDOG_ENABLE",
+    "QOS_WORKER_FRAME_RTG",
+    "USE_OHOS_QOS",
+    "OHOS_STANDARD_SYSTEM",
+    "TASKSTAT_LOG_ENABLE=0",
   ]
   if (use_musl) {
     defines += [ "TDD_MUSL" ]
   }
   if (ffrt_async_stack_enable) {
-    defines += [ "ASYNC_STACKTRACE" ]
+    defines += [ "FFRT_ASYNC_STACKTRACE" ]
   }
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
@@ -78,17 +93,12 @@ config("ffrt_test_config") {
 
 ohos_unittest("frame_interval_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "frame_interval_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -104,17 +114,12 @@ ohos_unittest("frame_interval_test") {
 
 ohos_unittest("deadline_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "deadline_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -130,17 +135,12 @@ ohos_unittest("deadline_test") {
 
 ohos_unittest("task_ctx_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "task_ctx_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -156,17 +156,12 @@ ohos_unittest("task_ctx_test") {
 
 ohos_unittest("cpu_monitor_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "cpu_monitor_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -182,17 +177,12 @@ ohos_unittest("cpu_monitor_test") {
 
 ohos_unittest("cpuworker_manager_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "cpuworker_manager_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -208,17 +198,12 @@ ohos_unittest("cpuworker_manager_test") {
 
 ohos_unittest("execute_unit_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "execute_unit_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -234,17 +219,12 @@ ohos_unittest("execute_unit_test") {
 
 ohos_unittest("worker_thread_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "worker_thread_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -260,17 +240,12 @@ ohos_unittest("worker_thread_test") {
 
 ohos_unittest("ut_coroutine") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_coroutine.cpp" ]
   deps = ffrt_ut_base_deps
@@ -286,17 +261,13 @@ ohos_unittest("ut_coroutine") {
 
 ohos_unittest("ut_cpumonitor") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_cpumonitor.cpp" ]
   deps = ffrt_ut_base_deps
@@ -314,17 +285,12 @@ ohos_unittest("ut_cpumonitor") {
 
 ohos_unittest("inherit_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/inherit_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -340,17 +306,12 @@ ohos_unittest("inherit_test") {
 
 ohos_unittest("multi_workgroup_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "multi_workgroup_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -366,17 +327,12 @@ ohos_unittest("multi_workgroup_test") {
 
 ohos_unittest("qos_convert_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "qos_convert_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -391,17 +347,12 @@ ohos_unittest("qos_convert_test") {
 
 ohos_unittest("qos_interface_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "qos_interface_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -417,18 +368,13 @@ ohos_unittest("qos_interface_test") {
 
 ohos_unittest("ut_cgroup_qos") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-    "-DWITH_NO_MOCKER",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_cgroup_qos.cpp" ]
   deps = ffrt_ut_base_deps
@@ -444,17 +390,12 @@ ohos_unittest("ut_cgroup_qos") {
 
 ohos_unittest("ut_condition") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_condition.cpp" ]
   deps = ffrt_ut_base_deps
@@ -470,17 +411,12 @@ ohos_unittest("ut_condition") {
 
 ohos_unittest("ut_core") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_core.cpp" ]
   deps = ffrt_ut_base_deps
@@ -496,17 +432,12 @@ ohos_unittest("ut_core") {
 
 ohos_unittest("ut_csync") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_csync.cpp" ]
   deps = ffrt_ut_base_deps
@@ -522,17 +453,12 @@ ohos_unittest("ut_csync") {
 
 ohos_unittest("ut_deadline") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_deadline.cpp" ]
   deps = ffrt_ut_base_deps
@@ -548,17 +474,12 @@ ohos_unittest("ut_deadline") {
 
 ohos_unittest("ut_dependency") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_dependency.cpp" ]
   deps = ffrt_ut_base_deps
@@ -574,17 +495,12 @@ ohos_unittest("ut_dependency") {
 
 ohos_unittest("ut_execute_unit") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_execute_unit.cpp" ]
   deps = ffrt_ut_base_deps
@@ -600,17 +516,12 @@ ohos_unittest("ut_execute_unit") {
 
 ohos_unittest("ut_ffrt_io") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_ffrt_io.cpp" ]
   deps = ffrt_ut_base_deps
@@ -626,17 +537,12 @@ ohos_unittest("ut_ffrt_io") {
 
 ohos_unittest("ut_graphCheck") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_graphCheck.cpp" ]
   deps = ffrt_ut_base_deps
@@ -652,17 +558,12 @@ ohos_unittest("ut_graphCheck") {
 
 ohos_unittest("ut_interval") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_interval.cpp" ]
   deps = ffrt_ut_base_deps
@@ -678,22 +579,19 @@ ohos_unittest("ut_interval") {
 
 ohos_unittest("ut_loop") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-    "-DWITH_NO_MOCKER",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_loop.cpp" ]
   deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
+  external_deps = []
+  external_deps += ffrt_ut_base_external_deps
+  external_deps += [ "googletest:gmock" ]
 
   if (is_standard_system) {
     public_external_deps = gtest_public_external_deps
@@ -705,17 +603,12 @@ ohos_unittest("ut_loop") {
 
 ohos_unittest("ut_queue") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_queue.cpp" ]
   deps = ffrt_ut_base_deps
@@ -731,17 +624,12 @@ ohos_unittest("ut_queue") {
 
 ohos_unittest("ut_rtg") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_rtg.cpp" ]
   deps = ffrt_ut_base_deps
@@ -757,17 +645,12 @@ ohos_unittest("ut_rtg") {
 
 ohos_unittest("ut_scheduler") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_scheduler.cpp" ]
   deps = ffrt_ut_base_deps
@@ -783,17 +666,12 @@ ohos_unittest("ut_scheduler") {
 
 ohos_unittest("ut_thread") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_thread.cpp" ]
   deps = ffrt_ut_base_deps
@@ -809,17 +687,13 @@ ohos_unittest("ut_thread") {
 
 ohos_unittest("ut_mem") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DUSE_GTEST" ]
 
   sources = [
     "../testfunc/func_pool.cpp",
@@ -839,17 +713,12 @@ ohos_unittest("ut_mem") {
 
 ohos_unittest("worker_manager_test") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "worker_manager_test.cpp" ]
   deps = ffrt_ut_base_deps
@@ -865,19 +734,56 @@ ohos_unittest("worker_manager_test") {
 
 ohos_unittest("ut_queue_dump") {
   module_out_path = module_output_path
+  cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
   include_dirs = [ "../testfunc" ]
 
-  cflags_cc = [
-    "-frtti",
-    "-Xclang",
-    "-fcxx-exceptions",
-    "-std=c++11",
-    "-DFFRT_PERF_EVENT_ENABLE",
-  ]
+  cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_queue_dump.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
+ohos_unittest("ut_dump") {
+  module_out_path = module_output_path
+  cflags_cc = []
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc += ffrt_ut_base_cflags_cc
+
+  sources = [ "testcase/ut_dump.cpp" ]
+  deps = ffrt_ut_base_deps
+  external_deps = ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
+ohos_unittest("ut_qos_convert") {
+  module_out_path = module_output_path
+  cflags_cc = []
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc += ffrt_ut_base_cflags_cc
+
+  sources = [ "testcase/ut_qos_convert.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -913,12 +819,14 @@ group("ffrt_unittest_ffrt") {
       ":ut_csync",
       ":ut_deadline",
       ":ut_dependency",
+      ":ut_dump",
       ":ut_execute_unit",
       ":ut_ffrt_io",
       ":ut_graphCheck",
       ":ut_interval",
       ":ut_loop",
       ":ut_mem",
+      ":ut_qos_convert",
       ":ut_queue",
       ":ut_queue_dump",
       ":ut_rtg",

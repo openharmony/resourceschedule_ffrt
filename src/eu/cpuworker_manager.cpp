@@ -17,15 +17,16 @@
 #include <sys/stat.h>
 #include "qos.h"
 #include "dfx/perf/ffrt_perf.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "eu/cpu_monitor.h"
-#include "eu/cpu_manager_interface.h"
+#include "eu/cpu_manager_strategy.h"
 #include "sched/scheduler.h"
 #include "sched/workgroup_internal.h"
 #include "eu/qos_interface.h"
 #include "eu/cpuworker_manager.h"
 #include "util/ffrt_facade.h"
 #ifdef FFRT_WORKER_MONITOR
-#include "util/worker_monitor.h"
+#include "util/ffrt_facade.h"
 #endif
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
@@ -72,8 +73,9 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     FFRT_PERF_WORKER_WAKE(workerQos);
     lock.unlock();
 #ifdef FFRT_WORKER_MONITOR
-    WorkerMonitor::GetInstance().SubmitTask();
+    FFRTFacade::GetWMInstance().SubmitTask();
 #endif
+    FFRTTraceRecord::UseFfrt();
     return true;
 }
 
@@ -107,11 +109,11 @@ unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)
         return 0;
     }
 
+    std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     if (GetStealingWorkers(thread->GetQos()) > groupCtl[thread->GetQos()].threads.size() / 2) {
         return 0;
     }
 
-    std::shared_lock<std::shared_mutex> lck(groupCtl[thread->GetQos()].tgMutex);
     AddStealingWorker(thread->GetQos());
     std::unordered_map<WorkerThread*, std::unique_ptr<WorkerThread>>::iterator iter =
         groupCtl[thread->GetQos()].threads.begin();

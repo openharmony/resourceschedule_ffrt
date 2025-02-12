@@ -75,19 +75,15 @@ template <typename R>
 struct shared_state : public shared_state_base<shared_state<R>> {
     void set_value(const R& value) noexcept
     {
-        {
-            std::unique_lock<mutex> lk(this->m_mtx);
-            m_res.emplace(value);
-        }
+        std::unique_lock<mutex> lk(this->m_mtx);
+        m_res.emplace(value);
         this->m_cv.notify_all();
     }
 
     void set_value(R&& value) noexcept
     {
-        {
-            std::unique_lock<mutex> lk(this->m_mtx);
-            m_res.emplace(std::move(value));
-        }
+        std::unique_lock<mutex> lk(this->m_mtx);
+        m_res.emplace(std::move(value));
         this->m_cv.notify_all();
     }
 
@@ -111,10 +107,8 @@ template <>
 struct shared_state<void> : public shared_state_base<shared_state<void>> {
     void set_value() noexcept
     {
-        {
-            std::unique_lock<mutex> lk(this->m_mtx);
-            m_hasValue = true;
-        }
+        std::unique_lock<mutex> lk(this->m_mtx);
+        m_hasValue = true;
         this->m_cv.notify_all();
     }
 

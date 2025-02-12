@@ -34,7 +34,7 @@
 namespace ffrt {
 constexpr int PTHREAD_CREATE_NO_MEM_CODE = 11;
 constexpr int FFRT_RETRY_MAX_COUNT = 12;
-const std::vector<uint64_t> FFRT_RETRY_CYCLE_LIST = {
+    const std::vector<uint64_t> FFRT_RETRY_CYCLE_LIST = {
     10 * 1000, 50 * 1000, 100 * 1000, 200 * 1000, 500 * 1000, 1000 * 1000, 2 * 1000 * 1000,
     5 * 1000 * 1000, 10 * 1000 * 1000, 50 * 1000 * 1000, 100 * 1000 * 1000, 500 * 1000 * 1000
 };
@@ -44,8 +44,8 @@ public:
     CPUEUTask* curTask = nullptr;
 
     uintptr_t curTaskType_ = ffrt_invalid_task;
-    std::string curTaskLabel_ = "";
-    uint64_t curTaskGid_ = UINT64_MAX; //仅当TaskType为normal task或者queue task时，label和gid才能正常读取
+    std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CACHE_NAMEID才会赋值
+    uint64_t curTaskGid_ = UINT64_MAX;
     explicit WorkerThread(const QoS& qos);
 
     virtual ~WorkerThread()
@@ -69,7 +69,7 @@ public:
             }
 #endif
         }
-        FFRT_LOGW("WorkerThread enter destruction");
+        FFRT_LOGI("to exit, qos[%d]", qos());
         Detach();
     }
 
@@ -125,6 +125,7 @@ public:
             }
         }
         if (ret != 0) {
+            FFRT_LOGE("pthread_create failed, ret = %d", ret);
             exited = true;
         }
         pthread_attr_destroy(&attr_);
@@ -189,6 +190,7 @@ public:
 
     void WorkerSetup(WorkerThread* wthread);
     void NativeConfig();
+    void* worker_mgr;
 
 private:
     std::atomic_bool exited;

@@ -15,7 +15,6 @@
 
 #include <gtest/gtest.h>
 #include "ffrt_inner.h"
-#include "../common.h"
 #include "dfx/bbox/bbox.h"
 #include "c/queue_ext.h"
 #include "../common.h"
@@ -39,11 +38,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };

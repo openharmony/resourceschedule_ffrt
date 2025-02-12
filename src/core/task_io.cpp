@@ -72,6 +72,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR((exec == nullptr), return, "input invalid, exec == nullptr");
+    FFRT_COND_DO_ERR((destroy == nullptr), return, "input invalid, destroy == nullptr");
     pthread_once(&ffrt::once, ffrt::InitIOTaskExecutor);
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
@@ -79,7 +80,9 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
 
     (void)in_deps;
     (void)out_deps;
-    ffrt::IOTaskExecutor* task = new ffrt::IOTaskExecutor(qos);
+    ffrt::IOTaskExecutor* task = new (std::nothrow) ffrt::IOTaskExecutor(qos);
+    FFRT_COND_RETURN_VOID(task == nullptr, "new IOTaskExecutor failed");
+
     task->work.exec = exec;
     task->work.destroy = destroy;
     task->work.data = co;
@@ -89,7 +92,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
 }
 
 API_ATTRIBUTE((visibility("default")))
-void* ffrt_get_current_task()
+void* ffrt_get_current_task(void)
 {
     return reinterpret_cast<void*>(ffrt::ExecuteCtx::Cur()->exec_task);
 }
@@ -110,6 +113,7 @@ void ffrt_wake_coroutine(void* task)
     ffrt::IOTaskExecutor* wakedTask = static_cast<ffrt::IOTaskExecutor*>(task);
     wakedTask->status = ffrt::ExecTaskStatus::ET_READY;
 
+#ifdef FFRT_LOCAL_QUEUE_ENABLE
     // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yeild function
     bool selfWakeup = (ffrt::ExecuteCtx::Cur()->exec_task == task);
     if (!selfWakeup) {
@@ -125,6 +129,7 @@ void ffrt_wake_coroutine(void* task)
             }
         }
     }
+#endif
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&wakedTask->wq);
     if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, wakedTask->qos)) {
@@ -134,4 +139,3 @@ void ffrt_wake_coroutine(void* task)
 #ifdef __cplusplus
 }
 #endif
-

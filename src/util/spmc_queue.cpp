@@ -89,23 +89,6 @@ int SpmcQueue::PushTail(void* object)
     return -1;
 }
 
-bool SpmcQueue::FindElement(void* target)
-{
-    if (buf_ == nullptr) {
-        return false;
-    }
-    unsigned int head = head_.load();
-    unsigned int tail = tail_.load();
-    while (head != tail) {
-        void* element = buf_[head % capacity_];
-        if (target == element) {
-            return true;
-        }
-        head++;
-    }
-    return false;
-}
-
 unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum, int qos, PushFunc func)
 {
     if (elementNum == 0) {

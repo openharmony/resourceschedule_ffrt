@@ -18,6 +18,7 @@
 #include "c/ffrt_dump.h"
 #include "sync/delayed_worker.h"
 #include "../common.h"
+#include "util/ffrt_facade.h"
 
 using namespace std;
 using namespace ffrt;
@@ -36,11 +37,11 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
@@ -59,7 +60,7 @@ void SendDelayedWorker(uint64_t timeoutUs)
 
     g_delayWorkerThreadTestWe.tp = delay;
     g_delayWorkerThreadTestWe.cb = ([](ffrt::WaitEntry* we) { CheckCallBackThreadName(); });
-    DelayedWorker::GetInstance().dispatch(g_delayWorkerThreadTestWe.tp,
+    FFRTFacade::GetDWInstance().dispatch(g_delayWorkerThreadTestWe.tp,
         &g_delayWorkerThreadTestWe, g_delayWorkerThreadTestWe.cb);
 }
 
@@ -77,4 +78,14 @@ HWTEST_F(DelayWorkDeinitTest, delay_work_thread_para_01, TestSize.Level1)
     SendDelayedWorker(timeoutUs);
     sleep(1);
     EXPECT_EQ(false, DelayedWorker::IsDelayerWorkerThread());
+}
+
+HWTEST_F(DelayWorkDeinitTest, delay_work_thread_para_02, TestSize.Level1)
+{
+    const uint64_t timeoutUs = 100;
+    DelayedWorker::ThreadEnvCreate();
+    SendDelayedWorker(timeoutUs);
+    sleep(1);
+    bool ret = DelayedWorker::IsDelayerWorkerThread();
+    EXPECT_EQ(ret, false);
 }

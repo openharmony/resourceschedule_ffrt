@@ -36,28 +36,32 @@ class DelayedWorker {
     std::atomic_bool toExit = false;
     std::unique_ptr<std::thread> delayWorker = nullptr;
     int noTaskDelayCount_{0};
-    bool exited_ = false;
+    bool exited_ = true;
     int epollfd_{-1};
     int timerfd_{-1};
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     int monitorfd_{-1};
-    CPUMonitor* monitor;
+    CPUMonitor* monitor = nullptr;
 #endif
+    std::atomic<int> asyncTaskCnt_ {0};
     int HandleWork(void);
     void ThreadInit();
 
 public:
     static DelayedWorker &GetInstance();
+    static void ThreadEnvCreate();
+    static bool IsDelayerWorkerThread();
 
     DelayedWorker(DelayedWorker const&) = delete;
     void operator=(DelayedWorker const&) = delete;
 
     bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
     bool remove(const TimePoint& to, WaitEntry* we);
+    void SubmitAsyncTask(std::function<void()>&& func);
 
 private:
     DelayedWorker();
-
+    void DumpMap();
     ~DelayedWorker();
 };
 } // namespace ffrt

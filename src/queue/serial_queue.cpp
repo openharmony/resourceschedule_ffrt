@@ -33,9 +33,24 @@ int SerialQueue::Push(QueueTask* task)
         return INACTIVE;
     }
 
-    whenMap_.insert({task->GetUptime(), task});
+    if (task->InsertHead() && !whenMap_.empty()) {
+        FFRT_LOGD("head insert task=%u in [queueId=%u]", task->gid, queueId_);
+        uint64_t headTime = (whenMap_.begin()->first > 0) ? whenMap_.begin()->first - 1 : 0;
+        whenMap_.insert({std::min(headTime, task->GetUptime()), task});
+    } else {
+        whenMap_.insert({task->GetUptime(), task});
+    }
+
     if (task == whenMap_.begin()->second) {
-        cond_.NotifyOne();
+        cond_.notify_one();
+    } else if ((whenMap_.begin()->second->GetDelay() > 0) && (GetNow() > whenMap_.begin()->first)) {
+        FFRT_LOGI("push task notify cond_wait.");
+        cond_.notify_one();
+    }
+
+    if (whenMap_.size() >= overloadThreshold_) {
+        FFRT_LOGW("[queueId=%u] overload warning, size=%llu", queueId_, whenMap_.size());
+        overloadThreshold_ += overloadThreshold_;
     }
 
     return SUCC;
@@ -49,7 +64,7 @@ QueueTask* SerialQueue::Pull()
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        cond_.WaitFor(lock, std::chrono::microseconds(diff));
+        cond_.wait_for(lock, std::chrono::microseconds(diff));
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
     }
@@ -63,7 +78,7 @@ QueueTask* SerialQueue::Pull()
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue due tasks in batch
-    return dequeFunc_(queueId_, now, whenMap_, nullptr);
+    return dequeFunc_(queueId_, now, &whenMap_, nullptr);
 }
 
 std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr)

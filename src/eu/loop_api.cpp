@@ -77,6 +77,7 @@ API_ATTRIBUTE((visibility("default")))
 ffrt_timer_t ffrt_loop_timer_start(ffrt_loop_t loop, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
 {
     FFRT_COND_DO_ERR((loop == nullptr), return -1, "input invalid, loop is nullptr");
+    FFRT_COND_DO_ERR((cb == nullptr), return -1, "input invalid, cb is nullptr");
     Loop* innerLoop = static_cast<Loop*>(loop);
     return innerLoop->TimerStart(timeout, data, cb, repeat);
 }

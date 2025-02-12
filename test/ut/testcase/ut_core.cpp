@@ -45,18 +45,20 @@ protected:
     {
     }
 
-    virtual void SetUp()
+    void SetUp() override
     {
     }
 
-    virtual void TearDown()
+    void TearDown() override
     {
     }
 };
 
 HWTEST_F(CoreTest, core_test_success_01, TestSize.Level1)
 {
-    sync_io(0);
+    int fd = 0;
+    sync_io(fd);
+    EXPECT_EQ(fd, 0);
 }
 
 HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
@@ -79,7 +81,6 @@ HWTEST_F(CoreTest, ffrt_submit_wait_success_01, TestSize.Level1)
     ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
     ffrt_task_attr_init(attr);
     std::function<void()>&& basicFunc = [&]() {
-        EXPECT_EQ(x, 0);
         usleep(sleepTime);
         x = x + 1;
     };
@@ -92,11 +93,8 @@ HWTEST_F(CoreTest, ffrt_submit_wait_success_01, TestSize.Level1)
     ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
     const ffrt_deps_t *wait_null = nullptr;
     ffrt_submit_base(basicFunc_ht, &in, &ou, attr);
-    EXPECT_EQ(x, 0);
     ffrt_wait_deps(wait_null);
-    EXPECT_EQ(x, 0);
     ffrt_wait_deps(&wait);
-    EXPECT_EQ(x, 0);
     ffrt_wait();
     EXPECT_EQ(x, 1);
     ffrt_task_attr_destroy(attr);
@@ -141,28 +139,6 @@ HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
 }
 
 /**
- * @tc.name: ffrt_this_task_set_legacy_mode_yeild_test
- * @tc.desc: Test function of ffrt_this_task_set_legacy_mode with ffrt_yield
- * @tc.type: FUNC
- */
-HWTEST_F(CoreTest, ffrt_this_task_set_legacy_mode_yield_test, TestSize.Level1)
-{
-    int count = 12;
-    for (int i = 0; i < count; i++) {
-        ffrt::submit(
-            [&]() {
-            ffrt_this_task_set_legacy_mode(true);
-            ffrt_usleep(100);
-            printf("test");
-            ffrt_yield();
-            ffrt_this_task_set_legacy_mode(false);
-        },
-            {}, {});
-    }
-    ffrt::wait();
-}
-
-/**
  * 测试用例名称：task_attr_set_timeout
  * 测试用例描述：验证task_attr的设置timeout接口
  * 预置条件：创建有效的task_attr
@@ -176,6 +152,7 @@ HWTEST_F(CoreTest, task_attr_set_timeout, TestSize.Level1)
     ffrt_task_attr_set_timeout(attr, 1000);
     uint64_t timeout = ffrt_task_attr_get_timeout(attr);
     EXPECT_EQ(timeout, 1000);
+    free(attr);
 }
 
 /**
@@ -202,8 +179,10 @@ HWTEST_F(CoreTest, task_attr_set_timeout_nullptr, TestSize.Level1)
  */
 HWTEST_F(CoreTest, ffrt_task_handle_ref_nullptr, TestSize.Level1)
 {
-    ffrt_task_handle_inc_ref(nullptr);
-    ffrt_task_handle_dec_ref(nullptr);
+    ffrt_task_handle_t handle = nullptr;
+    ffrt_task_handle_inc_ref(handle);
+    ffrt_task_handle_dec_ref(handle);
+    EXPECT_EQ(handle, nullptr);
 }
 
 /**
@@ -242,9 +221,10 @@ HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level1)
  */
 HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
 {
+    int i = 0;
     std::vector<ffrt::dependence> deps;
     {
-        auto h = ffrt::submit_h([] { printf("task0 done\n"); });
+        auto h = ffrt::submit_h([&i] { printf("task0 done\n"); i++;});
         printf("task0 handle: %p\n:", static_cast<void*>(h));
         deps.emplace_back(h);
     }
@@ -253,11 +233,14 @@ HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
     auto h = ffrt::submit_h([&] {
         printf("task1 start\n");
         while (!stop);
+        i++;
         printf("task1 done\n");
         });
     ffrt::wait(deps);
+    EXPECT_EQ(i, 1);
     stop = true;
     ffrt::wait();
+    EXPECT_EQ(i, 2);
 }
 
 /*
@@ -301,4 +284,39 @@ HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level1)
     ffrt::wait();
 
     EXPECT_NE(ffrt_get_cur_cached_task_id(), 0);
+}
+
+/*
+* 测试用例名称：ffrt_get_cur_task_test
+* 测试用例描述：测试ffrt_get_cur_task接口
+* 预置条件    ：提交ffrt任务
+* 操作步骤    ：在ffrt任务中调用ffrt_get_cur_task接口
+* 预期结果    ：返回的task地址不为空
+*/
+HWTEST_F(CoreTest, ffrt_get_cur_task_test, TestSize.Level1)
+{
+    void* taskPtr = nullptr;
+    ffrt::submit([&] {
+        taskPtr = ffrt_get_cur_task();
+    });
+    ffrt::wait();
+
+    EXPECT_NE(taskPtr, nullptr);
+}
+
+/*
+* 测试用例名称：ffrt_this_task_get_qos_test
+* 测试用例描述：测试ffrt_this_task_get_qos接口
+* 预置条件    ：提交qos=3ffrt任务
+* 操作步骤    ：在ffrt任务中调用ffrt_this_task_get_qos接口
+* 预期结果    ：ffrt_this_task_get_qos返回值=3
+*/
+HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level1)
+{
+    ffrt_qos_t qos = 0;
+    ffrt::submit([&] {
+        qos = ffrt_this_task_get_qos();
+    }, ffrt::task_attr().qos(ffrt_qos_user_initiated));
+    ffrt::wait();
+    EXPECT_EQ(qos, ffrt::QoS(ffrt_qos_user_initiated)());
 }

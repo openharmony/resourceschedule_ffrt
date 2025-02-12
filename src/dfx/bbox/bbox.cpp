@@ -551,7 +551,7 @@ void DumpThreadTaskInfo(WorkerThread* thread, int qos, std::ostringstream& ss)
         default: {
             ss << "        qos " << qos << ": worker tid " << tid << " uv task is running" << std::endl;
             return;
-        }               
+        }
     }
 }
 

@@ -27,9 +27,10 @@
 
  /**
  * @file task.h
+ * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares the task interfaces in C.
- *
+ * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
@@ -196,7 +197,7 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
  * @since 12
  * @version 1.0
  */
-FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
+FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos();
 
 /**
  * @brief Obtains the ID of this task.
@@ -313,3 +314,4 @@ FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_
 FFRT_C_API uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle);
 
 #endif
+/** @} */

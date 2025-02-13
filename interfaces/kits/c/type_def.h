@@ -30,7 +30,7 @@
  * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares common types.
- *
+ * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
@@ -65,6 +65,7 @@ typedef enum {
 /**
  * @brief Enumerates the task QoS types.
  *
+ * @since 10
  */
 typedef enum {
     /** Inheritance. */
@@ -85,6 +86,7 @@ typedef void(*ffrt_function_t)(void*);
 /**
  * @brief Defines a task executor.
  *
+ * @since 10
  */
 typedef struct {
     /** Function used to execute a task. */
@@ -98,6 +100,7 @@ typedef struct {
 /**
  * @brief Defines the storage size of multiple types of structs.
  *
+ * @since 10
  */
 typedef enum {
     /** Task attribute storage size. */
@@ -115,6 +118,7 @@ typedef enum {
 /**
  * @brief Enumerates the task types.
  *
+ * @since 10
  */
 typedef enum {
     /** General task. */
@@ -126,6 +130,7 @@ typedef enum {
 /**
  * @brief dependency type.
  *
+ * @since 10
  */
 typedef enum {
     /** Data dependency type. */
@@ -137,6 +142,7 @@ typedef enum {
 /**
  * @brief dependency data structure.
  *
+ * @since 10
  */
 typedef struct {
     /** Dependency type. */
@@ -148,6 +154,7 @@ typedef struct {
 /**
  * @brief Defines the dependency struct.
  *
+ * @since 10
  */
 typedef struct {
     /** Number of dependencies. */
@@ -244,3 +251,4 @@ using qos = int;
 }
 #endif
 #endif
+/** @} */

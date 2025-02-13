@@ -27,9 +27,10 @@
 
 /**
  * @file queue.h
+ * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares the queue interfaces in C.
- *
+ * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
@@ -71,7 +72,7 @@ FFRT_C_API void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
  * @brief Sets the QoS for a queue attribute.
  *
  * @param attr Indicates a pointer to the queue attribute.
- * @param attr Indicates the QoS.
+ * @param qos Indicates the QoS.
  * @since 10
  * @version 1.0
  */
@@ -221,7 +222,7 @@ FFRT_C_API int ffrt_queue_cancel(ffrt_task_handle_t handle);
  * @since 12
  * @version 1.0
  */
-FFRT_C_API ffrt_queue_t ffrt_get_main_queue(void);
+FFRT_C_API ffrt_queue_t ffrt_get_main_queue();
 
 /**
  * @brief Get application worker(ArkTs) thread queue.
@@ -229,8 +230,9 @@ FFRT_C_API ffrt_queue_t ffrt_get_main_queue(void);
  * @return Returns application worker(ArkTs) thread queue.
  * @since 12
  * @version 1.0
+ * @deprecated since 15
  */
-FFRT_C_API ffrt_queue_t ffrt_get_current_queue(void);
+FFRT_C_API ffrt_queue_t ffrt_get_current_queue();
 
 /**
  * @brief Get queue task count.
@@ -266,3 +268,4 @@ FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_head_h(
     ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
 
 #endif // FFRT_API_C_QUEUE_H
+/** @} */

@@ -24,12 +24,13 @@
  *
  * @since 10
  */
- 
+
 /**
  * @file mutex.h
+ * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares the mutex interfaces in C.
- *
+ * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
@@ -41,7 +42,6 @@
 /**
  * @brief Initializes mutex attr.
  *
- * @param mutex Indicates a pointer to the mutex.
  * @param attr Indicates a pointer to the mutex attribute.
  * @return {@link ffrt_success} 0 - success
  *         {@link ffrt_error_inval} 22 - if attr is null.
@@ -90,8 +90,8 @@ FFRT_C_API int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr);
  *
  * @param mutex Indicates a pointer to the mutex.
  * @param attr Indicates a pointer to the mutex attribute.
- * @return Returns <b>ffrt_thrd_success</b> if the mutex is initialized;
-           returns <b>ffrt_thrd_error</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the mutex is initialized;
+           returns <b>ffrt_error</b> otherwise.
  * @since 10
  * @version 1.0
  */
@@ -101,8 +101,8 @@ FFRT_C_API int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr
  * @brief Locks a mutex.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_thrd_success</b> if the mutex is locked;
-           returns <b>ffrt_thrd_error</b> or blocks the calling thread otherwise.
+ * @return Returns <b>ffrt_success</b> if the mutex is locked;
+           returns <b>ffrt_error</b> or blocks the calling thread otherwise.
  * @since 10
  * @version 1.0
  */
@@ -112,8 +112,8 @@ FFRT_C_API int ffrt_mutex_lock(ffrt_mutex_t* mutex);
  * @brief Unlocks a mutex.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_thrd_success</b> if the mutex is unlocked;
-           returns <b>ffrt_thrd_error</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the mutex is unlocked;
+           returns <b>ffrt_error</b> otherwise.
  * @since 10
  * @version 1.0
  */
@@ -123,8 +123,8 @@ FFRT_C_API int ffrt_mutex_unlock(ffrt_mutex_t* mutex);
  * @brief Attempts to lock a mutex.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_thrd_success</b> if the mutex is locked;
-           returns <b>ffrt_thrd_error</b> or <b>ffrt_thrd_busy</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the mutex is locked;
+           returns <b>ffrt_error</b> or <b>ffrt_error_busy</b> otherwise.
  * @since 10
  * @version 1.0
  */
@@ -134,10 +134,11 @@ FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
  * @brief Destroys a mutex.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_thrd_success</b> if the mutex is destroyed;
-           returns <b>ffrt_thrd_error</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the mutex is destroyed;
+           returns <b>ffrt_error</b> otherwise.
  * @since 10
  * @version 1.0
  */
 FFRT_C_API int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 #endif
+/** @} */

@@ -507,6 +507,54 @@ std::string SaveKeyInfo(void)
     return oss.str();
 }
 
+void DumpThreadTaskInfo(WorkerThread* thread, int qos, std::ostringstream& ss)
+{
+    CPUEUTask* t = thread->curTask;
+    pid_t tid = thread->Id();
+    if (t == nullptr) {
+        ss << "        qos " << qos << ": worker tid " << tid << " is running nothing" << std::endl;
+        return;
+    }
+
+    switch (thread->curTaskType_) {
+        case ffrt_normal_task: {
+            TaskFactory::LockMem();
+            if ((!TaskFactory::HasBeenFreed(t)) && (t->state != TaskState::EXITED)) {
+                ss << "        qos " << qos << ": worker tid " << tid << " normal task is running, task id "
+                    << t->gid << " name " << t->label.c_str();
+                AppendTaskInfo(ss, t);
+            }
+            TaskFactory::UnlockMem();
+            ss << std::endl;
+            return;
+        }
+        case ffrt_queue_task: {
+            {
+                std::lock_guard lk(SimpleAllocator<QueueTask>::Instance()->lock);
+                auto queueTask = reinterpret_cast<QueueTask*>(t);
+                if ((!SimpleAllocator<QueueTask>::HasBeenFreed(queueTask)) && (!queueTask->GetFinishStatus())) {
+                    ss << "        qos " << qos << ": worker tid " << tid << " queue task is running, task id "
+                        << t->gid << " name " << t->label.c_str();
+                    AppendTaskInfo(ss, t);
+                }
+            }
+            ss << std::endl;
+            return;
+        }
+        case ffrt_io_task: {
+            ss << "        qos " << qos << ": worker tid " << tid << " io task is running" << std::endl;
+            return;
+        }
+        case ffrt_invalid_task: {
+            return;
+        }
+        default: {
+            ss << "        qos " << qos << ": worker tid " << tid << " uv task is running" << std::endl;
+            return;
+        }
+    }
+}
+
 std::string SaveWorkerStatusInfo(void)
 {
     std::ostringstream ss;
@@ -518,28 +566,8 @@ std::string SaveWorkerStatusInfo(void)
         std::vector<int> tidArr;
         std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
-            CPUEUTask* t = thread.first->curTask;
             tidArr.push_back(thread.first->Id());
-            if (t == nullptr) {
-                ss << "        qos " << i << ": worker tid " << thread.first->Id()
-                   << " is running nothing" << std::endl;
-                continue;
-            }
-            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
-                ss << "        qos " << i << ": worker tid " << thread.first->Id()
-                    << " is running, task id " << t->gid << " name " << t->label.c_str();
-                AppendTaskInfo(ss, t);
-                ss << std::endl;
-            }
-            if (t->type != ffrt_normal_task && t->type != ffrt_queue_task && t->type != ffrt_invalid_task) {
-                ss << "        qos " << i << ": worker tid " << thread.first->Id();
-                if (t->type == ffrt_io_task) {
-                    ss << " io task is running";
-                } else {
-                    ss << " uv task is running";
-                }
-                ss << std::endl;
-            }
+            DumpThreadTaskInfo(thread.first, i, ss);
         }
         if (tidArr.size() == 0) {
             continue;

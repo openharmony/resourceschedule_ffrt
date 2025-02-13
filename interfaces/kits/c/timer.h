@@ -27,9 +27,10 @@
 
  /**
  * @file timer.h
+ * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares the timer interfaces in C.
- *
+ * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 12
  * @version 1.0
@@ -66,3 +67,4 @@ FFRT_C_API ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void*
  */
 FFRT_C_API int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);
 #endif
+/** @} */

@@ -72,9 +72,11 @@ HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
         std::bind(&CPUWorkerManager::IncWorker, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::WakeupWorkers, it, std::placeholders::_1),
         std::bind(&CPUWorkerManager::GetTaskCount, it, std::placeholders::_1)});
+
     WorkerCtrl& workerCtrl = cpu.ctrlQueue[5];
     EXPECT_EQ(workerCtrl.executionNum, 0);
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, 0);
+
     cpu.IntoSleep(QoS(5));
 
     EXPECT_EQ(workerCtrl.executionNum, -1);
@@ -103,10 +105,10 @@ HWTEST_F(CpuMonitorTest, WakeupSleep, TestSize.Level1)
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, 0);
 
     cpu.WakeupSleep(QoS(5));
+
     EXPECT_EQ(workerCtrl.executionNum, 1);
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, -1);
 }
-
 
 /**
  * @tc.name: TimeoutCount

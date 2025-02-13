@@ -222,7 +222,6 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, 1);
 }
 
-
 HWTEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue, TestSize.Level1)
 {
     CPUWorkerManager* manager = new SCPUWorkerManager();

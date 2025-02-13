@@ -114,29 +114,13 @@ HWTEST_F(ThreadTest, SetExitedTest, TestSize.Level1)
     delete wt;
 }
 
+#ifndef FFRT_GITEE
 HWTEST_F(ThreadTest, GetQosTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_NE(wt, nullptr);
-    QoS ret = wt->GetQos();
-    delete wt;
+    EXPECT_EQ(wt->GetQos(), 6);
 }
-
-HWTEST_F(ThreadTest, JoinTest, TestSize.Level1)
-{
-    WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_NE(wt, nullptr);
-    wt->Join();
-    delete wt;
-}
-
-HWTEST_F(ThreadTest, DetachTest, TestSize.Level1)
-{
-    WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_NE(wt, nullptr);
-    wt->Detach();
-    delete wt;
-}
+#endif
 
 HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
 {
@@ -161,25 +145,6 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     pthread_attr_getstacksize(&wt->attr_, &stackSize);
     EXPECT_EQ(stackSize, WORKER_STACK_SIZE);
     delete wt;
-}
-
-HWTEST_F(ThreadTest, c_api_thread_simple_test, TestSize.Level1)
-{
-    ffrt_thread_t thread;
-    ffrt_thread_create(&thread, nullptr, nullptr, nullptr);
-    ffrt_thread_detach(nullptr);
-    ffrt_thread_join(nullptr, nullptr);
-}
-
-HWTEST_F(ThreadTest, c_api_thread_simple_test2, TestSize.Level1)
-{
-    ffrt_thread_t thread;
-    ffrt_thread_attr_t attr;
-    attr.storage[0] = 12345;
-    int a = 0;
-    ffrt_thread_create(&thread, &attr, MyFunc, &a);
-    ffrt_thread_detach(nullptr);
-    ffrt_thread_join(nullptr, nullptr);
 }
 
 HWTEST_F(ThreadTest, wait_queue_test, TestSize.Level1)

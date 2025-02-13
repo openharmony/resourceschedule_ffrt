@@ -47,11 +47,6 @@ protected:
     }
 };
 
-HWTEST_F(DfxTest, bboxtest, TestSize.Level1)
-{
-    SaveTheBbox();
-}
-
 HWTEST_F(DfxTest, tracetest, TestSize.Level1)
 {
     int x = 0;

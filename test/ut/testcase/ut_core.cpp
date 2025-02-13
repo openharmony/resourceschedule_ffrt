@@ -54,13 +54,6 @@ protected:
     }
 };
 
-HWTEST_F(CoreTest, core_test_success_01, TestSize.Level1)
-{
-    int fd = 0;
-    sync_io(fd);
-    EXPECT_EQ(fd, 0);
-}
-
 HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
 {
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});

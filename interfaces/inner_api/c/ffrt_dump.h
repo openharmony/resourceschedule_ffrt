@@ -17,10 +17,22 @@
 #include <stdint.h>
 #include "type_def_ext.h"
 
+#define MAX_TASK_NAME_LENGTH (64)
+#define TASK_STAT_LENGTH (88)
+
 typedef enum {
     DUMP_INFO_ALL = 0,
-    DUMP_TASK_STATISTIC_INFO
+    DUMP_TASK_STATISTIC_INFO,
+    DUMP_START_STAT,
+    DUMP_STOP_STAT
 } ffrt_dump_cmd_t;
+
+typedef struct ffrt_stat {
+    char taskName[MAX_TASK_NAME_LENGTH];
+    uint64_t funcPtr;
+    uint64_t startTime;
+    uint64_t endTime;
+} ffrt_stat;
 
 typedef void(*ffrt_task_timeout_cb)(uint64_t gid, const char *msg, uint32_t size);
 

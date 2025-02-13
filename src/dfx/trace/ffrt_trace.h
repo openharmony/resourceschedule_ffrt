@@ -221,21 +221,22 @@ static bool _IsTagEnabled(uint64_t label)
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _TraceCount(HITRACE_TAG_FFRT, tag, value); \
     } while (false)
+#define FFRT_SUBMIT_MARKER(gid) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) { \
+            _StartTrace(HITRACE_TAG_FFRT, ("P " + std::to_string(gid)).c_str(), -1); \
+        } \
+    } while (false)
 #define FFRT_TASK_BEGIN(tag, gid) \
     do { \
-        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) { \
             _StartTrace(HITRACE_TAG_FFRT, ("FFRT" + (tag) + "|" + std::to_string(gid)).c_str(), -1); \
+        } \
     } while (false)
 #define FFRT_BLOCK_TRACER(gid, tag) \
     do { \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
-            _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag "|" + std::to_string(gid)).c_str(), -1); \
-            FFRT_TRACE_END(); \
-    } while (false)
-#define FFRT_WAKE_TRACER(gid) \
-    do { \
-        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
-            _StartTrace(HITRACE_TAG_FFRT, ("FFWK|" + std::to_string(gid)).c_str(), -1); \
+            _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag), -1); \
             FFRT_TRACE_END(); \
     } while (false)
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
@@ -259,9 +260,9 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_TRACE_ASYNC_END(tag, tid)
 #define FFRT_TRACE_COUNT(tag, value)
 #define FFRT_TRACE_SCOPE(level, tag)
+#define FFRT_SUBMIT_MARKER(gid)
 #define FFRT_TASK_BEGIN(tag, gid)
 #define FFRT_BLOCK_TRACER(gid, tag)
-#define FFRT_WAKE_TRACER(gid)
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr)
 #define FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(qid, gid)
 #endif
@@ -269,10 +270,6 @@ static bool _IsTagEnabled(uint64_t label)
 // DFX Trace for FFRT Normal Task
 #define FFRT_WORKER_IDLE_BEGIN_MARKER()
 #define FFRT_WORKER_IDLE_END_MARKER()
-#define FFRT_SUBMIT_MARKER(tag, gid) \
-    { \
-        FFRT_TRACE_ASYNC_END("P", gid); \
-    }
 #define FFRT_READY_MARKER(gid) \
     { \
         FFRT_TRACE_ASYNC_END("R", gid); \
@@ -285,10 +282,6 @@ static bool _IsTagEnabled(uint64_t label)
     { \
         FFRT_TRACE_ASYNC_END("F", gid); \
     }
-#define FFRT_FAKE_TRACE_MARKER(gid) \
-    { \
-        FFRT_TRACE_ASYNC_END("Co", gid); \
-    }
 #define FFRT_TASK_END() \
     { \
         FFRT_TRACE_END(); \
@@ -298,10 +291,6 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_EXECUTOR_TASK_SUBMIT_MARKER(ptr) \
     { \
         FFRT_TRACE_ASYNC_END("P", ((reinterpret_cast<uintptr_t>(ptr)) & 0x7fffffff)); \
-    }
-#define FFRT_EXECUTOR_TASK_READY_MARKER(ptr) \
-    { \
-        FFRT_TRACE_ASYNC_END("R", ((reinterpret_cast<uintptr_t>(ptr)) & 0x7fffffff)); \
     }
 #define FFRT_EXECUTOR_TASK_BLOCK_MARKER(ptr) \
     { \
@@ -314,14 +303,5 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_EXECUTOR_TASK_END() \
     { \
         FFRT_TRACE_END(); \
-    }
-// DFX Trace for FFRT Serial Queue Task
-#define FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(gid) \
-    { \
-        FFRT_TRACE_ASYNC_END("E", gid); \
-    }
-#define FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid) \
-    { \
-        FFRT_TRACE_ASYNC_END("D", gid); \
     }
 #endif

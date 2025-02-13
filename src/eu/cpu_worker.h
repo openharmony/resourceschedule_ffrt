@@ -60,8 +60,8 @@ public:
     unsigned int budget = 10;
 
 public:
-    /* strategy options for worklooper function */
-    static void WorkerLooperDefault(WorkerThread* p);
+    static void WorkerLooperDefault(CPUWorker* worker);
+    static void WorkerLooperStandard(WorkerThread* p);
     static void Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker);
 
 private:

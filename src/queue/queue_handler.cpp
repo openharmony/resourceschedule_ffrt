@@ -125,7 +125,6 @@ void QueueHandler::Submit(QueueTask* task)
     }
 
     uint64_t gid = task->gid;
-    FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(GetQueueId(), gid);
     FFRTTraceRecord::TaskSubmit(&(task->createTime), &(task->fromTid));
 #if (FFRT_TRACE_RECORD_LEVEL < FFRT_TRACE_RECORD_LEVEL_1)
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
@@ -226,7 +225,6 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         // run user task
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-        FFRT_SERIAL_QUEUE_TASK_EXECUTE_MARKER(task->gid);
         FFRTTraceRecord::TaskExecute(&(task->executeTime));
         if (task->GetSchedTimeout() > 0) {
             RemoveSchedDeadline(task);
@@ -239,7 +237,9 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         }
 
         f->exec(f);
-        FFRTTraceRecord::TaskDone<ffrt_queue_task>(task->GetQos(), task);
+        if (task->createTime != 0) {
+            FFRTTraceRecord::TaskDone<ffrt_queue_task>(task->GetQos(), task);
+        }
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
             uint64_t completeTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());

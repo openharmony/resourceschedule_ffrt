@@ -22,6 +22,8 @@
 #include <cstring>
 
 namespace ffrt {
+std::array<sched_mode_type, QoS::MaxNum()> CPUManagerStrategy::schedMode {};
+
 WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
 {
     constexpr int processNameLen = 32;
@@ -33,8 +35,6 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
     CPUWorkerManager* pIns = reinterpret_cast<CPUWorkerManager*>(manager);
     // default strategy of worker ops
     CpuWorkerOps ops {
-        CPUWorker::WorkerLooperDefault,
-        [pIns] (WorkerThread* thread) { return pIns->PickUpTaskFromGlobalQueue(thread); },
         [pIns] (const WorkerThread* thread) { pIns->NotifyTaskPicked(thread); },
         [pIns] (const WorkerThread* thread) { return pIns->WorkerIdleAction(thread); },
         [pIns] (WorkerThread* thread) { pIns->WorkerRetired(thread); },
@@ -42,6 +42,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
         [pIns] (const WorkerThread* thread, int timeout) { return pIns->TryPoll(thread, timeout); },
         [pIns] (WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
         [pIns] (WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
+        [pIns] (const QoS& qos) {return pIns->GetTaskCount(qos); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         [pIns] (const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
         [pIns] () { return pIns->IsBlockAwareInit(); },

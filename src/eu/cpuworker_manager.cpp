@@ -70,7 +70,6 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         FFRT_LOGE("qos:%d worker insert fail:%d", workerQos, result.second);
         return false;
     }
-    FFRT_PERF_WORKER_WAKE(workerQos);
     lock.unlock();
 #ifdef FFRT_WORKER_MONITOR
     FFRTFacade::GetWMInstance().SubmitTask();
@@ -89,18 +88,6 @@ int CPUWorkerManager::GetWorkerCount(const QoS& qos)
 {
     std::shared_lock<std::shared_mutex> lck(groupCtl[qos()].tgMutex);
     return groupCtl[qos()].threads.size();
-}
-
-// pick task from local queue (per worker)
-CPUEUTask* CPUWorkerManager::PickUpTaskFromLocalQueue(WorkerThread* thread)
-{
-    if (tearDown) {
-        return nullptr;
-    }
-
-    CPUWorker* worker = reinterpret_cast<CPUWorker*>(thread);
-    void* task = worker->localFifo.PopHead();
-    return reinterpret_cast<CPUEUTask*>(task);
 }
 
 unsigned int CPUWorkerManager::StealTaskBatch(WorkerThread* thread)

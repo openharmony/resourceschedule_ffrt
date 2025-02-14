@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "dfx/trace_record/ffrt_trace_record.h"
 #include <securec.h>
 #include <sstream>
 #include <fcntl.h>
@@ -20,6 +19,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include "dfx/bbox/bbox.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 
 namespace ffrt {
 const int COLUMN_WIDTH_3 = 3;
@@ -32,6 +32,8 @@ const int COLUMN_WIDTH_18 = 18;
 const int COLUMN_WIDTH_19 = 19;
 const int COLUMN_WIDTH_22 = 22;
 bool FFRTTraceRecord::ffrt_be_used_ = false;
+bool FFRTTraceRecord::stat_enable_ = false;
+std::unique_ptr<FFRTRingBuffer> FFRTTraceRecord::ringBuffer_ = nullptr;
 int FFRTTraceRecord::g_recordMaxWorkerNumber_[QoS::MaxNum()] = {};
 ffrt_record_task_counter_t FFRTTraceRecord::g_recordTaskCounter_[FFRTTraceRecord::TASK_TYPE_NUM][QoS::MaxNum()] = {};
 ffrt_record_task_time_t FFRTTraceRecord::g_recordTaskTime_[FFRTTraceRecord::TASK_TYPE_NUM][QoS::MaxNum()] = {};

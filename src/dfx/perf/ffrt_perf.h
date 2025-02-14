@@ -57,24 +57,6 @@ struct PerfEU {
         "qos13_tsk",
         "qos14_tsk"
     };
-
-    static inline const char* worker_wake_tag[qos_max] = {
-        "qos0_wake",
-        "qos1_wake",
-        "qos2_wake",
-        "qos3_wake",
-        "qos4_wake",
-        "qos5_wake",
-        "qos6_wake",
-        "qos7_wake",
-        "qos8_wake",
-        "qos9_wake",
-        "qos10_wake",
-        "qos11_wake",
-        "qos12_wake",
-        "qos13_wake",
-        "qos14_wake"
-    };
 };
 
 inline void FFRTPerfWorkerIdle(int qos)
@@ -93,13 +75,6 @@ inline void FFRTPerfWorkerAwake(int qos)
     }
 }
 
-inline void FFRTPerfWorkerWake(int qos)
-{
-    if (qos >= 0 && qos < static_cast<int>(PerfEU::qos_max)) {
-        FFRT_TRACE_COUNT(PerfEU::worker_wake_tag[qos], 0);
-    }
-}
-
 inline void FFRTPerfTaskNum(int qos, int taskn)
 {
     if (qos >= 0 && qos < static_cast<int>(PerfEU::qos_max)) {
@@ -109,12 +84,10 @@ inline void FFRTPerfTaskNum(int qos, int taskn)
 
 #define FFRT_PERF_WORKER_IDLE(qos) FFRTPerfWorkerIdle(qos)
 #define FFRT_PERF_WORKER_AWAKE(qos) FFRTPerfWorkerAwake(qos)
-#define FFRT_PERF_WORKER_WAKE(qos) FFRTPerfWorkerWake(qos)
 #define FFRT_PERF_TASK_NUM(qos, taskn) FFRTPerfTaskNum(qos, taskn)
 #else
 #define FFRT_PERF_WORKER_IDLE(qos)
 #define FFRT_PERF_WORKER_AWAKE(qos)
-#define FFRT_PERF_WORKER_WAKE(qos)
 #define FFRT_PERF_TASK_NUM(qos, taskn)
 #endif
 

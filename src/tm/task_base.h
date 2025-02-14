@@ -42,10 +42,8 @@ public:
         return qos_default;
     }
 
-#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
     uint64_t createTime {0};
     uint64_t executeTime {0};
-#endif
     int32_t fromTid {0};
 };
 
@@ -56,7 +54,6 @@ public:
     virtual void Execute() = 0;
 
     std::string label;
-    std::vector<std::string> traceTag;
     CoWakeType coWakeType { CoWakeType::NO_TIMEOUT_WAKE };
     int cpuBoostCtxId = -1;
     WaitUntilEntry* wue = nullptr;
@@ -71,16 +68,15 @@ public:
     std::mutex mutex_; // used in coroute
     std::condition_variable waitCond_; // cv for thread wait
 
+    // !deprecated
     void SetTraceTag(const char* name)
     {
-        traceTag.emplace_back(name);
+        (void)name;
     }
 
+    // !deprecated
     void ClearTraceTag()
     {
-        if (!traceTag.empty()) {
-            traceTag.pop_back();
-        }
     }
 };
 }

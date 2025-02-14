@@ -396,15 +396,6 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
 
 static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
 {
-#ifdef OHOS_STANDARD_SYSTEM
-    if (task->coRoutine->status == static_cast<int>(CoStatus::CO_NOT_FINISH)) {
-        for (auto& name : task->traceTag) {
-            FFRT_TRACE_BEGIN(name.c_str());
-        }
-    }
-    FFRT_FAKE_TRACE_MARKER(task->gid);
-#endif
-
     if (task->cpuBoostCtxId >= 0) {
         CpuBoostRestore(task->cpuBoostCtxId);
     }
@@ -412,14 +403,6 @@ static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
 
 static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
 {
-#ifdef OHOS_STANDARD_SYSTEM
-    FFRT_FAKE_TRACE_MARKER(task->gid);
-    int traceTagNum = static_cast<int>(task->traceTag.size());
-    for (int i = 0; i < traceTagNum; ++i) {
-        FFRT_TRACE_END();
-    }
-#endif
-
     if (task->cpuBoostCtxId >= 0) {
         CpuBoostSave(task->cpuBoostCtxId);
     }
@@ -499,7 +482,6 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
             // And the task cannot be accessed any more.
             return 0;
         }
-        FFRT_WAKE_TRACER(task->gid); // fast path wk
         coRoutineEnv->runningCo = co;
     }
 }
@@ -556,7 +538,6 @@ void CoWake(ffrt::CPUEUTask* task, CoWakeType type)
     }
     // Fast path: state transition without lock
     task->coWakeType = type;
-    FFRT_WAKE_TRACER(task->gid);
     switch (task->type) {
         case ffrt_normal_task: {
             task->UpdateState(ffrt::TaskState::READY);

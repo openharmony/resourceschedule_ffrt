@@ -155,7 +155,7 @@ void DelayedWorker::ThreadInit()
                 }
             }
             lk.unlock();
-            FFRT_TRACE_BEGIN("epoll");
+
             int nfds = epoll_wait(epollfd_, waitedEvents.data(), waitedEvents.size(),
                 EPOLL_WAIT_TIMEOUT__MILISECONDS);
             if (nfds == 0) {
@@ -175,9 +175,7 @@ void DelayedWorker::ThreadInit()
                     char buffer;
                     size_t n = ::read(monitorfd_, &buffer, sizeof buffer);
                     if (n == 1) {
-                        FFRT_TRACE_BEGIN("monitor");
                         monitor->MonitorMain();
-                        FFRT_TRACE_END();
                     } else {
                         FFRT_LOGE("monitor read fail:%d, %s", n, errno);
                     }

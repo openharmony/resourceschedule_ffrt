@@ -36,8 +36,6 @@ enum class TaskNotifyType {
 };
 
 struct CpuWorkerOps {
-    std::function<void (WorkerThread*)> WorkerLooper;
-    std::function<CPUEUTask* (WorkerThread*)> PickUpTask;
     std::function<void (const WorkerThread*)> NotifyTaskPicked;
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;
     std::function<void (WorkerThread*)> WorkerRetired;
@@ -45,6 +43,7 @@ struct CpuWorkerOps {
     std::function<PollerRet (const WorkerThread*, int timeout)> TryPoll;
     std::function<unsigned int (WorkerThread*)> StealTaskBatch;
     std::function<CPUEUTask* (WorkerThread*)> PickUpTaskBatch;
+    std::function<int (const QoS&)> GetTaskCount; // Obtain the number of tasks corresponding to the QoS
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     std::function<bool (WorkerThread*)> IsExceedRunningThreshold;
     std::function<bool (void)> IsBlockAwareInit;
@@ -64,6 +63,17 @@ class CPUManagerStrategy {
 public:
     static WorkerThread* CreateCPUWorker(const QoS& qos, void* manager);
     static CPUMonitor* CreateCPUMonitor(void* manager);
+    static inline void SetSchedMode(const QoS qos, const sched_mode_type mode)
+    {
+        schedMode[qos] = mode;
+    }
+
+    static inline const sched_mode_type& GetSchedMode(const QoS qos)
+    {
+        return schedMode[qos];
+    }
+private:
+    static std::array<sched_mode_type, QoS::MaxNum()> schedMode;
 };
 }
 #endif

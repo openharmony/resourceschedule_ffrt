@@ -44,7 +44,10 @@ void CPUEUTask::SetQos(const QoS& newQos)
 void CPUEUTask::FreeMem()
 {
     BboxCheckAndFreeze();
-    FFRTFacade::GetPPInstance().GetPoller(qos).ClearCachedEvents(this);
+    // only tasks which called ffrt_poll_ctl may have cached events
+    if (pollerEnable) {
+        FFRTFacade::GetPPInstance().GetPoller(qos).ClearCachedEvents(this);
+    }
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif
@@ -84,9 +87,6 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         label = "t" + std::to_string(rank);
     } else {
         label = parent->label + "." + std::to_string(rank);
-    }
-    if (!IsRoot()) {
-        FFRT_SUBMIT_MARKER(label, gid);
     }
 
     taskLocal = false;

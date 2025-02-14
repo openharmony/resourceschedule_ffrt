@@ -174,6 +174,9 @@ void CPUMonitor::WakeupSleep(const QoS& qos, bool irqWake)
     if (irqWake) {
         workerCtrl.irqEnable = false;
     }
+    if (workerCtrl.pendingWakeCnt > 0) {
+        workerCtrl.pendingWakeCnt--;
+    }
     workerCtrl.sleepingWorkerNum--;
     workerCtrl.executionNum++;
 }

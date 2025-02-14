@@ -34,6 +34,10 @@ struct WorkerCtrl {
     alignas(cacheline_size) int executionNum = 0;
     alignas(cacheline_size) int sleepingWorkerNum = 0;
     alignas(cacheline_size) bool irqEnable = false;
+    /* used for performance mode */
+    alignas(cacheline_size) bool fastWakeEnable = false; // directly wakeup first worker by futex
+    alignas(cacheline_size) int pendingWakeCnt = 0; // number of workers waking but not waked-up yet
+    alignas(cacheline_size) int pendingTaskCnt = 0; // number of tasks submitted to RTB but not picked-up yet
     size_t hardLimit = 0;
     size_t maxConcurrency = 0;
     bool pollWaitFlag = false;

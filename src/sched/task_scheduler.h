@@ -37,7 +37,6 @@ public:
     CPUEUTask* PickNextTask()
     {
         CPUEUTask* task = que->DeQueue();
-        FFRT_PERF_TASK_NUM(qos, RQSize());
         return task;
     }
 
@@ -48,7 +47,6 @@ public:
             que->EnQueue(task);
             ret = true;
         }
-        FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
     }
 
@@ -59,13 +57,11 @@ public:
             que->EnQueueNode(node);
             ret = true;
         }
-        FFRT_PERF_TASK_NUM(qos, RQSize());
         return ret;
     }
 
     bool RemoveNode(LinkedList* node)
     {
-        FFRT_PERF_TASK_NUM(qos, RQSize());
         bool ret = false;
         {
             que->RmQueueNode(node);

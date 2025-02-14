@@ -222,30 +222,6 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, 1);
 }
 
-HWTEST_F(WorkerManagerTest, PickUpTaskFromGlobalQueue, TestSize.Level1)
-{
-    CPUWorkerManager* manager = new SCPUWorkerManager();
-    CPUManagerStrategy* strategy = new CPUManagerStrategy();
-    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));
-
-    auto worker = strategy->CreateCPUWorker(QoS(qos(0)), manager);
-    auto& sched = FFRTScheduler::Instance()->GetScheduler(worker->GetQos());
-
-    int ret = sched.WakeupTask(reinterpret_cast<CPUEUTask*>(task));
-    EXPECT_EQ(ret, 1);
-
-    auto pickTask = manager->PickUpTaskFromGlobalQueue(worker);
-    EXPECT_NE(pickTask, nullptr);
-
-    manager->tearDown = true;
-    pthread_join(worker->GetThread(), nullptr);
-
-    delete manager;
-    delete worker;
-    delete task;
-    delete strategy;
-}
-
 HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
 {
     CPUWorkerManager* manager = new SCPUWorkerManager();

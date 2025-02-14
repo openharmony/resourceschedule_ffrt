@@ -656,6 +656,16 @@ uint64_t ffrt_get_cur_cached_task_id(void)
 }
 
 API_ATTRIBUTE((visibility("default")))
+void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
+{
+    if (mode == ffrt_sched_energy_saving_mode) {
+        FFRT_LOGE("Currently, the energy saving mode is unavailable.");
+        return;
+    }
+    ffrt::CPUManagerStrategy::SetSchedMode(ffrt::QoS(qos), (ffrt::sched_mode_type)mode);
+}
+
+API_ATTRIBUTE((visibility("default")))
 int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
     uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num)
 {

@@ -96,9 +96,6 @@ public:
     {return false;}
     virtual void WorkerRetiredSimplified(WorkerThread* thread) = 0;
     void NotifyTaskPicked(const WorkerThread* thread);
-    /* strategy options for task pick up */
-    virtual CPUEUTask* PickUpTaskFromGlobalQueue(WorkerThread* thread) = 0;
-    CPUEUTask* PickUpTaskFromLocalQueue(WorkerThread* thread);
 
     /* strategy options for worker wait action */
     virtual WorkerAction WorkerIdleAction(const WorkerThread* thread) = 0;

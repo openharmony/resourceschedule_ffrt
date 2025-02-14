@@ -46,9 +46,6 @@ bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
         offsetof(ffrt_executor_task_t, wq));
     uintptr_t taskType = task->type;
 
-    if (taskType == ffrt_uv_task || taskType == ffrt_io_task) {
-        FFRT_EXECUTOR_TASK_READY_MARKER(task); // uv/io task ready to enque
-    }
     auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
     lock->lock();
     fifoQue[static_cast<unsigned short>(level)]->WakeupNode(node);

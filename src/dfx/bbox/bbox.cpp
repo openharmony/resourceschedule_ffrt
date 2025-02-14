@@ -479,7 +479,6 @@ std::string SaveTaskCounterInfo(void)
 
 void AppendTaskInfo(std::ostringstream& oss, TaskBase* task)
 {
-#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_1)
     if (task->fromTid) {
         oss << " fromTid " << task->fromTid;
     }
@@ -489,7 +488,6 @@ void AppendTaskInfo(std::ostringstream& oss, TaskBase* task)
     if (task->executeTime) {
         oss << " executeTime " << FormatDateString(task->executeTime);
     }
-#endif
 }
 
 std::string SaveKeyInfo(void)

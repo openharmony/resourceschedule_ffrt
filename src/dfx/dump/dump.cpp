@@ -19,7 +19,6 @@
 #include "backtrace_local.h"
 #endif
 #include <securec.h>
-#include "c/ffrt_dump.h"
 #include "dfx/bbox/bbox.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -149,6 +148,12 @@ int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len)
 #else
             return -1;
 #endif
+        }
+        case DUMP_START_STAT: {
+            return ffrt::FFRTTraceRecord::StatEnable(buf, len);
+        }
+        case DUMP_STOP_STAT: {
+            return ffrt::FFRTTraceRecord::StatsDisable(buf);
         }
         default: {
             FFRT_LOGE("ffrt_dump unsupport cmd[%d]", cmd);

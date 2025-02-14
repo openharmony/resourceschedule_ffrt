@@ -66,6 +66,7 @@ public:
 
     QoS qos;
 
+    bool pollerEnable = false; // set true if task call ffrt_epoll_ctl
     int GetQos() const override
     {
         return qos;

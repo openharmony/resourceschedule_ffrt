@@ -123,19 +123,6 @@ void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
     }
 }
 
-// pick task from global queue (per qos)
-CPUEUTask* SCPUWorkerManager::PickUpTaskFromGlobalQueue(WorkerThread* thread)
-{
-    if (tearDown) {
-        return nullptr;
-    }
-
-    auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(thread->GetQos());
-    auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
-    std::lock_guard lg(*lock);
-    return sched.PickNextTask();
-}
-
 CPUEUTask* SCPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
@@ -218,7 +205,6 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     auto& ctl = sleepCtl[thread->GetQos()];
     std::unique_lock lk(ctl.mutex);
     monitor->IntoSleep(thread->GetQos());
-    FFRT_PERF_WORKER_IDLE(static_cast<int>(thread->GetQos()));
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     BlockawareEnterSleeping();
 #endif
@@ -229,7 +215,6 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         return tearDown || taskExistence || needPoll;
     })) {
         monitor->WakeupSleep(thread->GetQos());
-        FFRT_PERF_WORKER_AWAKE(static_cast<int>(thread->GetQos()));
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         BlockawareLeaveSleeping();
 #endif
@@ -269,7 +254,6 @@ void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
 
     auto& ctl = sleepCtl[qos()];
     ctl.cv.notify_one();
-    FFRT_PERF_WORKER_WAKE(static_cast<int>(qos));
 }
 } // namespace ffrt
 

@@ -116,6 +116,12 @@ typedef struct {
     uint32_t storage[(ffrt_rwlock_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_rwlock_t;
 
+typedef enum {
+    ffrt_sched_default_mode = 0,
+    ffrt_sched_performance_mode,
+    ffrt_sched_energy_saving_mode,
+} ffrt_sched_mode;
+
 #ifdef __cplusplus
 namespace ffrt {
 enum qos_inner_default {
@@ -127,6 +133,12 @@ enum qos_inner_default {
 enum class stack_protect {
     weak = ffrt_stack_protect_weak,
     strong = ffrt_stack_protect_strong,
+};
+
+enum class sched_mode_type : uint8_t {
+    sched_default_mode = ffrt_sched_default_mode,
+    sched_performance_mode = ffrt_sched_performance_mode,
+    sched_energy_saving_mode = ffrt_sched_energy_saving_mode,
 };
 }
 #endif

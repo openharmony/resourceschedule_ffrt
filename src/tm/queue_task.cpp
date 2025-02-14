@@ -71,7 +71,6 @@ void QueueTask::Destroy()
 
 void QueueTask::Notify()
 {
-    FFRT_SERIAL_QUEUE_TASK_FINISH_MARKER(gid);
     std::unique_lock lock(mutex_);
     isFinished_.store(true);
     if (onWait_) {

@@ -250,15 +250,15 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_LOGI("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
 #endif
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
-    worker->ops.WorkerLooper(worker);
+    WorkerLooperDefault(worker);
     CoWorkerExit();
     worker->ops.WorkerRetired(worker);
 }
 
 // work looper which inherited from history
-void CPUWorker::WorkerLooperDefault(WorkerThread* p)
+void CPUWorker::WorkerLooperDefault(CPUWorker* worker)
 {
-    CPUWorker* worker = reinterpret_cast<CPUWorker*>(p);
+    const sched_mode_type& schedMode = CPUManagerStrategy::GetSchedMode(worker->GetQos());
     for (;;) {
         // get task in the order of priority -> local queue -> global queue
         void* local_task = GetTask(worker);
@@ -267,15 +267,24 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
             if (worker->tick % TRY_POLL_FREQ == 0) {
                 worker->ops.TryPoll(worker, 0);
             }
-            ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(local_task);
-            RunTaskLifo(work, worker);
-            continue;
+            goto run_task;
         }
 
-        PollerRet ret = TryPoll(worker, 0);
-        if (ret != PollerRet::RET_NULL) {
-            continue;
+        if (schedMode == sched_mode_type::sched_default_mode) {
+            goto poll_once;
+        } else {
+            // direct to pollwait when no task available
+            goto poll_wait;
         }
+
+run_task:
+    RunTaskLifo(reinterpret_cast<ffrt_executor_task_t*>(local_task), worker);
+    continue;
+
+poll_once:
+    if (TryPoll(worker, 0) != PollerRet::RET_NULL) {
+        continue;
+    }
 
 #ifdef FFRT_LOCAL_QUEUE_ENABLE
         // pick up tasks from global queue
@@ -308,15 +317,17 @@ void CPUWorker::WorkerLooperDefault(WorkerThread* p)
         }
 #endif
 
+poll_wait:
         // enable a worker to enter the epoll wait -1 state and continuously listen to fd or timer events
         // only one worker enters this state at a QoS level
-        ret = TryPoll(worker, -1);
-        if (ret != PollerRet::RET_NULL) {
+        if (TryPoll(worker, -1) != PollerRet::RET_NULL) {
             continue;
         }
 
+        FFRT_PERF_WORKER_IDLE(static_cast<int>(worker->qos));
         auto action = worker->ops.WaitForNewAction(worker);
         if (action == WorkerAction::RETRY) {
+            FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->qos));
             worker->tick = 0;
             continue;
         } else if (action == WorkerAction::RETIRE) {

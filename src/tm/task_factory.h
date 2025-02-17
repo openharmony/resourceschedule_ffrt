@@ -16,26 +16,27 @@
 #ifndef TASK_FACTORY_HPP
 #define TASK_FACTORY_HPP
 
-#include "tm/cpu_task.h"
+#include "tm/task_base.h"
 #include "util/cb_func.h"
+#include "util/slab.h"
 
 namespace ffrt {
-
+template <typename T>
 class TaskFactory {
 public:
-    static TaskFactory &Instance();
+    static TaskFactory<T>& Instance();
 
-    static CPUEUTask *Alloc()
+    static T* Alloc()
     {
         return Instance().alloc_();
     }
 
-    static void Free(CPUEUTask *task)
+    static void Free(T* task)
     {
         Instance().free_(task);
     }
 
-    static std::vector<void *> GetUnfreedMem()
+    static std::vector<void*> GetUnfreedMem()
     {
         if (Instance().getUnfreedMem_ != nullptr) {
             return Instance().getUnfreedMem_();
@@ -43,7 +44,7 @@ public:
         return {};
     }
 
-    static bool HasBeenFreed(CPUEUTask *task)
+    static bool HasBeenFreed(T* task)
     {
         if (Instance().hasBeenFreed_ != nullptr) {
             return Instance().hasBeenFreed_(task);
@@ -55,16 +56,19 @@ public:
     {
         return Instance().lockMem_();
     }
+
     static void UnlockMem()
     {
         return Instance().unlockMem_();
     }
 
-    static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&free,
-        TaskAllocCB<CPUEUTask>::GetUnfreedMem &&getUnfreedMem = nullptr,
-        TaskAllocCB<CPUEUTask>::HasBeenFreed &&hasBeenFreed = nullptr,
-        TaskAllocCB<CPUEUTask>::LockMem &&lockMem = nullptr,
-        TaskAllocCB<CPUEUTask>::UnlockMem &&unlockMem = nullptr)
+    static void RegistCb(
+        typename TaskAllocCB<T>::Alloc &&alloc,
+        typename TaskAllocCB<T>::Free &&free,
+        typename TaskAllocCB<T>::GetUnfreedMem &&getUnfreedMem = nullptr,
+        typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed = nullptr,
+        typename TaskAllocCB<T>::LockMem &&lockMem = nullptr,
+        typename TaskAllocCB<T>::UnlockMem &&unlockMem = nullptr)
     {
         Instance().alloc_ = std::move(alloc);
         Instance().free_ = std::move(free);
@@ -75,14 +79,13 @@ public:
     }
 
 private:
-    TaskAllocCB<CPUEUTask>::Free free_;
-    TaskAllocCB<CPUEUTask>::Alloc alloc_;
-    TaskAllocCB<CPUEUTask>::GetUnfreedMem getUnfreedMem_;
-    TaskAllocCB<CPUEUTask>::HasBeenFreed hasBeenFreed_;
-    TaskAllocCB<CPUEUTask>::LockMem lockMem_;
-    TaskAllocCB<CPUEUTask>::UnlockMem unlockMem_;
+    typename TaskAllocCB<T>::Free free_;
+    typename TaskAllocCB<T>::Alloc alloc_;
+    typename TaskAllocCB<T>::GetUnfreedMem getUnfreedMem_;
+    typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed_;
+    typename TaskAllocCB<T>::LockMem lockMem_;
+    typename TaskAllocCB<T>::UnlockMem unlockMem_;
 };
-
 } // namespace ffrt
 
 #endif

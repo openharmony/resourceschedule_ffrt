@@ -103,7 +103,7 @@ public:
     void WorkerSetup(WorkerThread* thread);
     PollerRet TryPoll(const WorkerThread* thread, int timeout = -1);
     unsigned int StealTaskBatch(WorkerThread* thread);
-    virtual CPUEUTask* PickUpTaskBatch(WorkerThread* thread) = 0;
+    virtual TaskBase* PickUpTaskBatch(WorkerThread* thread) = 0;
     std::atomic_uint64_t stealWorkers[QoS::MaxNum()] = {0};
     friend class CPUManagerStrategy;
 };

@@ -51,6 +51,7 @@ const int TIMEOUT_DONE = 2;
 } // namespace we_status
 
 class CPUEUTask;
+class TaskBase;
 
 struct WaitEntry {
     WaitEntry() : prev(this), next(this), task(nullptr), weType(0), wtType(SharedMutexWaitType::NORMAL) {
@@ -85,7 +86,7 @@ struct ExecuteCtx {
     ExecuteCtx();
     virtual ~ExecuteCtx();
 
-    ffrt_executor_task_t* exec_task = nullptr;
+    TaskBase* exec_task = nullptr;
     void** priority_task_ptr = nullptr;
     SpmcQueue* localFifo = nullptr;
     QoS qos;
@@ -94,13 +95,13 @@ struct ExecuteCtx {
     uint64_t lastGid_ = 0;
     pid_t tid;
 
-    inline bool PushTaskToPriorityStack(ffrt_executor_task_t* executorTask)
+    inline bool PushTaskToPriorityStack(TaskBase* executorTask)
     {
         if (priority_task_ptr == nullptr) {
             return false;
         }
         if (*priority_task_ptr == nullptr) {
-            *priority_task_ptr = executorTask;
+            *priority_task_ptr = reinterpret_cast<void*>(executorTask);
             return true;
         }
         return false;

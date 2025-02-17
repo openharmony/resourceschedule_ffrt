@@ -13,12 +13,19 @@
  * limitations under the License.
  */
 #include "task_factory.h"
+#include "tm/cpu_task.h"
+#include "tm/queue_task.h"
+#include "tm/io_task.h"
 
 namespace ffrt {
-
-TaskFactory& TaskFactory::Instance()
+template <typename T>
+TaskFactory<T>& TaskFactory<T>::Instance()
 {
-    static TaskFactory fac;
+    static TaskFactory<T> fac;
     return fac;
 }
+
+template class TaskFactory<CPUEUTask>;
+template class TaskFactory<QueueTask>;
+template class TaskFactory<IOTask>;
 } // namespace ffrt

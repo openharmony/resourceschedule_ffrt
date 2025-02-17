@@ -35,7 +35,7 @@ namespace {
  * The stack canary is saved or restored during coroutine switch-out and switch-in,
  * currently, only the stack canary used by the ohos compiler stack protection is global
  * and is not affected by worker destruction.
-*/
+ */
 #if !defined(SUPPORT_WORKER_DESTRUCT)
 constexpr int waiting_seconds = 10;
 #else
@@ -123,7 +123,7 @@ void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
     }
 }
 
-CPUEUTask* SCPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
+TaskBase* SCPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
 {
     if (tearDown) {
         return nullptr;
@@ -132,7 +132,7 @@ CPUEUTask* SCPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
     auto& sched = FFRTFacade::GetSchedInstance()->GetScheduler(thread->GetQos());
     auto lock = GetSleepCtl(static_cast<int>(thread->GetQos()));
     std::lock_guard lg(*lock);
-    CPUEUTask* task = sched.PickNextTask();
+    TaskBase* task = sched.PickNextTask();
 
 #ifdef FFRT_LOCAL_QUEUE_ENABLE
     if (task == nullptr) {
@@ -153,7 +153,7 @@ CPUEUTask* SCPUWorkerManager::PickUpTaskBatch(WorkerThread* thread)
             return task;
         }
 
-        CPUEUTask* task2local = sched.PickNextTask();
+        TaskBase* task2local = sched.PickNextTask();
         if (task2local == nullptr) {
             return task;
         }

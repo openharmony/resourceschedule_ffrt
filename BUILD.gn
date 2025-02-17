@@ -192,6 +192,7 @@ ohos_shared_library("libffrt") {
       "src/sync/timer_api.cpp",
       "src/sync/wait_queue.cpp",
       "src/tm/cpu_task.cpp",
+      "src/tm/io_task.cpp",
       "src/tm/queue_task.cpp",
       "src/tm/scpu_task.cpp",
       "src/tm/task_factory.cpp",

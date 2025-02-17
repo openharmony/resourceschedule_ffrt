@@ -41,7 +41,7 @@ constexpr int FFRT_RETRY_MAX_COUNT = 12;
 
 class WorkerThread {
 public:
-    CPUEUTask* curTask = nullptr;
+    TaskBase* curTask = nullptr;
 
     uintptr_t curTaskType_ = ffrt_invalid_task;
     std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CACHE_NAMEID才会赋值

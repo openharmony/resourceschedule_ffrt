@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include <cinttypes>
+#include <random>
 #include "ffrt_inner.h"
 #include "util.h"
 #include "c/deadline.h"
@@ -262,6 +263,66 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_02, TestSize.Level1)
     int cancelled = ffrt_executor_task_cancel(&work, static_cast<int>(ffrt::qos_user_initiated));
     EXPECT_EQ(cancelled, 0);
 
+    ffrt_task_attr_destroy(&attr);
+}
+
+static std::atomic_int uv_sleep = 0;
+void ffrt_work_sleep(ffrt_executor_task_t* data, ffrt_qos_t qos)
+{
+    usleep(1000);
+    uv_sleep++;
+}
+
+static void init_once_sleep(void)
+{
+    uv_sleep = 0;
+    ffrt_executor_task_register_func(ffrt_work_sleep, ffrt_uv_task);
+}
+
+/*
+* 测试用例名称：executor_task_submit_cancel_03
+* 测试用例描述：uv任务正确取消
+* 预置条件    ：无
+* 操作步骤    ：1、调用注册接口，给uv任务注册一个耗时函数
+               2、提交taskCount个任务
+               3、随机取消taskCount次任务
+* 预期结果    ：1、能够取消至少一个uv任务
+               2、取消的任务数+已执行的任务数=总提交任务数
+               3、取消的任务数>0，已执行的任务数<总提交任务数
+*/
+HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level1)
+{
+    int taskCount = 10000;
+    ffrt_task_attr_t attr;
+    ffrt_task_attr_init(&attr);
+    ffrt_executor_task_t work[taskCount];
+    init_once_sleep();
+    std::atomic_int cancelCount {0};
+    ffrt::task_attr task_attr;
+    task_attr.qos(ffrt::qos_background);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, taskCount - 1);
+    ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
+    auto tryCancel = [&]() {
+        for (int i = taskCount - 1; i >= 0; --i) {
+            ffrt::submit([&]() {
+                cancelCount += ffrt_executor_task_cancel(&work[dis(gen)], static_cast<int>(ffrt::qos_user_initiated));
+            }, {}, {}, task_attr);
+        }
+        ffrt::wait();
+    };
+    for (int i = 0; i < taskCount; i++) {
+        work[i].type = ffrt_uv_task;
+        ffrt_executor_task_submit(&work[i], &attr);
+    }
+    ffrt::submit(tryCancel);
+    ffrt::submit(tryCancel);
+    ffrt::wait();
+    sleep(2);
+    EXPECT_LT(uv_sleep, taskCount);
+    EXPECT_GT(uv_sleep, 0);
+    EXPECT_EQ(uv_sleep + cancelCount, taskCount);
     ffrt_task_attr_destroy(&attr);
 }
 

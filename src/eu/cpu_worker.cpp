@@ -27,79 +27,14 @@
 #include "util/ffrt_facade.h"
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"
-#ifdef FFRT_ASYNC_STACKTRACE
-#include "dfx/async_stack/ffrt_async_stack.h"
-#endif
 #include "eu/cpuworker_manager.h"
 #include "dfx/sysevent/sysevent.h"
 namespace {
 int PLACE_HOLDER = 0;
 const unsigned int TRY_POLL_FREQ = 51;
-constexpr int CO_CREATE_RETRY_INTERVAL = 500 * 1000;
 }
 
 namespace ffrt {
-void CPUWorker::Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker)
-{
-    if constexpr(USE_COROUTINE) {
-        while (CoStart(task, coRoutineEnv) != 0) {
-            usleep(CO_CREATE_RETRY_INTERVAL);
-        }
-        return;
-    }
-
-    switch (task->type) {
-        case ffrt_normal_task: {
-#ifdef FFRT_ASYNC_STACKTRACE
-            FFRTSetStackId(task->stackId);
-#endif
-            task->Execute();
-            break;
-        }
-        case ffrt_queue_task: {
-            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
-#ifdef FFRT_ASYNC_STACKTRACE
-            FFRTSetStackId(sTask->stackId);
-#endif
-            sTask->IncDeleteRef();
-            sTask->Execute();
-            sTask->DecDeleteRef();
-            break;
-        }
-        default: {
-            FFRT_LOGE("run unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->label.c_str());
-            break;
-        }
-    }
-}
-
-void CPUWorker::Run(ffrt_executor_task_t* task, ffrt_qos_t qos)
-{
-    if (task == nullptr) {
-        FFRT_LOGE("task is nullptr");
-        return;
-    }
-    ffrt_executor_task_func func = nullptr;
-    ffrt_executor_task_type_t type = static_cast<ffrt_executor_task_type_t>(task->type);
-    if (type == ffrt_io_task) {
-        func = FuncManager::Instance()->getFunc(ffrt_io_task);
-    } else {
-        func = FuncManager::Instance()->getFunc(ffrt_uv_task);
-    }
-    if (func == nullptr) {
-        FFRT_LOGE("Static func is nullptr");
-        return;
-    }
-    FFRTTraceRecord::TaskExecute<ffrt_uv_task>(qos);
-    FFRT_EXECUTOR_TASK_BEGIN(task);
-    func(task, qos);
-    FFRT_EXECUTOR_TASK_END();
-    if (type != ffrt_io_task) {
-        FFRT_EXECUTOR_TASK_FINISH_MARKER(task); // task finish marker for uv task
-    }
-    FFRTTraceRecord::TaskDone<ffrt_uv_task>(qos);
-}
-
 void* CPUWorker::WrapDispatch(void* worker)
 {
     reinterpret_cast<CPUWorker*>(worker)->NativeConfig();
@@ -107,24 +42,33 @@ void* CPUWorker::WrapDispatch(void* worker)
     return nullptr;
 }
 
-void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
+void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 {
+    bool isNotUv = task->type == ffrt_normal_task || task->type == ffrt_queue_task;
 #ifdef FFRT_SEND_EVENT
     static bool isBetaVersion = IsBeta();
     uint64_t startExecuteTime = 0;
-    bool isNotUv = false;
     if (isBetaVersion) {
         startExecuteTime = FFRTTraceRecord::TimeStamp();
-        CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
-        isNotUv = (curtask->type == ffrt_normal_task || curtask->type == ffrt_queue_task);
+        CPUEUTask* cpu_task = reinterpret_cast<CPUEUTask*>(task);
         if (likely(isNotUv)) {
-            worker->cacheLabel = task->label;
+            worker->cacheLabel = cpu_task->label;
         }
     }
 #endif
-    ExecuteCtx* ctx = ExecuteCtx::Cur();
-    CoRoutineEnv* coRoutineEnv = GetCoEnv();
-    RunTask(curtask, worker, ctx, coRoutineEnv);
+    worker->curTask = task;
+    worker->curTaskType_ = task->type;
+#ifdef WORKER_CACHE_TASKNAMEID
+    if (isNotUv) {
+        worker->curTaskLabel_ = task->GetLabel();
+        worker->curTaskGid_ = task->gid;
+    }
+#endif
+
+    ExecuteTask(task, worker->GetQos());
+
+    worker->curTask = nullptr;
+    worker->curTaskType_ = ffrt_invalid_task;
 #ifdef FFRT_SEND_EVENT
     if (isBetaVersion) {
         uint64_t execDur = ((FFRTTraceRecord::TimeStamp() - startExecuteTime) >> worker->cacheBase);
@@ -133,43 +77,14 @@ void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker)
 #endif
 }
 
-void CPUWorker::RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, ExecuteCtx* ctx, CoRoutineEnv* coRoutineEnv)
-{
-    CPUEUTask* task = reinterpret_cast<CPUEUTask*>(curtask);
-    worker->curTask = task;
-    worker->curTaskType_ = task->type;
-    switch (curtask->type) {
-        case ffrt_normal_task:
-        case ffrt_queue_task: {
-#ifdef WORKER_CACHE_TASKNAMEID
-            worker->curTaskLabel_ = task->label;
-            worker->curTaskGid_ = task->gid;
-#endif
-            ctx->task = task;
-            ctx->lastGid_ = task->gid;
-            Run(task, coRoutineEnv, worker);
-            ctx->task = nullptr;
-            break;
-        }
-        default: {
-            ctx->exec_task = curtask;
-            Run(curtask, static_cast<ffrt_qos_t>(worker->GetQos()));
-            ctx->exec_task = nullptr;
-            break;
-        }
-    }
-    worker->curTask = nullptr;
-    worker->curTaskType_ = ffrt_invalid_task;
-}
-
-void CPUWorker::RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker)
+void CPUWorker::RunTaskLifo(TaskBase* task, CPUWorker* worker)
 {
     RunTask(task, worker);
 
     unsigned int lifoCount = 0;
     while (worker->priority_task != nullptr && worker->priority_task != &PLACE_HOLDER) {
         lifoCount++;
-        ffrt_executor_task_t* priorityTask = reinterpret_cast<ffrt_executor_task_t*>(worker->priority_task);
+        TaskBase* priorityTask = reinterpret_cast<TaskBase*>(worker->priority_task);
         // set a placeholder to prevent the task from being placed in the priority again
         worker->priority_task = (lifoCount > worker->budget) ? &PLACE_HOLDER : nullptr;
 
@@ -183,13 +98,9 @@ void* CPUWorker::GetTask(CPUWorker* worker)
     // periodically pick up tasks from the global queue to prevent global queue starvation
     if (worker->tick % worker->global_interval == 0) {
         worker->tick = 0;
-        CPUEUTask* task = worker->ops.PickUpTaskBatch(worker);
+        TaskBase* task = static_cast<TaskBase*>(worker->ops.PickUpTaskBatch(worker));
         // the worker is not notified when the task attribute is set not to notify worker
-        if (task != nullptr) {
-            if (task->type == ffrt_normal_task && !task->notifyWorker_) {
-                task->notifyWorker_ = true;
-                return task;
-            }
+        if (NeedNotifyWorker(task)) {
             worker->ops.NotifyTaskPicked(worker);
         }
         return task;
@@ -206,7 +117,7 @@ void* CPUWorker::GetTask(CPUWorker* worker)
 
     return worker->localFifo.PopHead();
 #else
-    CPUEUTask* task = worker->ops.PickUpTaskBatch(worker);
+    TaskBase* task = worker->ops.PickUpTaskBatch(worker);
     if (task != nullptr) {
         worker->ops.NotifyTaskPicked(worker);
     }
@@ -261,7 +172,7 @@ void CPUWorker::WorkerLooperDefault(CPUWorker* worker)
     const sched_mode_type& schedMode = CPUManagerStrategy::GetSchedMode(worker->GetQos());
     for (;;) {
         // get task in the order of priority -> local queue -> global queue
-        void* local_task = GetTask(worker);
+        TaskBase* local_task = reinterpret_cast<TaskBase*>(GetTask(worker));
         worker->tick++;
         if (local_task) {
             if (worker->tick % TRY_POLL_FREQ == 0) {
@@ -278,7 +189,7 @@ void CPUWorker::WorkerLooperDefault(CPUWorker* worker)
         }
 
 run_task:
-    RunTaskLifo(reinterpret_cast<ffrt_executor_task_t*>(local_task), worker);
+    RunTaskLifo(local_task, worker);
     continue;
 
 poll_once:
@@ -288,22 +199,18 @@ poll_once:
 
 #ifdef FFRT_LOCAL_QUEUE_ENABLE
         // pick up tasks from global queue
-        CPUEUTask* task = worker->ops.PickUpTaskBatch(worker);
+        local_task = static_cast<TaskBase*>(worker->ops.PickUpTaskBatch(worker));
         // the worker is not notified when the task attribute is set not to notify worker
-        if (task != nullptr) {
-            if (task->type == ffrt_normal_task && !task->notifyWorker_) {
-                task->notifyWorker_ = true;
-            } else {
+        if (local_task != nullptr) {
+            if (NeedNotifyWorker(local_task)) {
                 worker->ops.NotifyTaskPicked(worker);
             }
-            ffrt_executor_task_t* work = reinterpret_cast<ffrt_executor_task_t*>(task);
-            RunTask(work, worker);
+            RunTask(local_task, worker);
             continue;
         }
 
         // check the epoll status again to prevent fd or timer events from being missed
-        ret = TryPoll(worker, 0);
-        if (ret != PollerRet::RET_NULL) {
+        if (TryPoll(worker, 0) != PollerRet::RET_NULL) {
             continue;
         }
 

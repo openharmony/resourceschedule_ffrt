@@ -82,7 +82,7 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
 {
     FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
 
-    int qosLevel = task->qos();
+    int qosLevel = task->qos_();
     if (qosLevel == qos_inherit) {
         FFRT_LOGE("qos inhert not support wake up task[%lu], type[%d], name[%s]",
             task->gid, task->type, task->label.c_str());

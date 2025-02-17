@@ -95,8 +95,8 @@ private:
             return;
         }
         auto node = readyTasks.extract(it);
-        task->qos.deadline.relative += deadline - task->qos.deadline.absolute;
-        task->qos.deadline.absolute = deadline;
+        task->qos_.deadline.relative += deadline - task->qos_.deadline.absolute;
+        task->qos_.deadline.absolute = deadline;
         readyTasks.insert(std::move(node));
     }
     void updateTask(CPUEUTask* task, int64_t deadline)

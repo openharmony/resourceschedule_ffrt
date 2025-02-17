@@ -84,6 +84,8 @@ public:
 
     void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr);
 
+    void onSubmitIO(const ffrt_io_callable_t &work, const task_attr_private *attr);
+
     virtual void onWait() = 0;
 #ifdef QOS_DEPENDENCY
     virtual void onWait(const ffrt_deps_t* deps, int64_t deadline = -1) = 0;

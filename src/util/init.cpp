@@ -23,6 +23,9 @@
 #include "util/singleton_register.h"
 #include "util/slab.h"
 #include "tm/task_factory.h"
+#include "tm/io_task.h"
+#include "tm/queue_task.h"
+#include "util/slab.h"
 #include "qos.h"
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
@@ -31,9 +34,37 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+void RegistCommonTaskFactory()
+{
+    ffrt::TaskFactory<ffrt::QueueTask>::RegistCb(
+        [] () -> ffrt::QueueTask* {
+            return ffrt::SimpleAllocator<ffrt::QueueTask>::AllocMem();
+        },
+        [] (ffrt::QueueTask* task) {
+            ffrt::SimpleAllocator<ffrt::QueueTask>::FreeMem(task);
+        },
+        ffrt::SimpleAllocator<ffrt::QueueTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<ffrt::QueueTask>::HasBeenFreed,
+        ffrt::SimpleAllocator<ffrt::QueueTask>::LockMem,
+        ffrt::SimpleAllocator<ffrt::QueueTask>::UnlockMem);
+
+    ffrt::TaskFactory<ffrt::IOTask>::RegistCb(
+        [] () -> ffrt::IOTask* {
+            return ffrt::SimpleAllocator<ffrt::IOTask>::AllocMem();
+        },
+        [] (ffrt::IOTask* task) {
+            ffrt::SimpleAllocator<ffrt::IOTask>::FreeMem(task);
+        },
+        ffrt::SimpleAllocator<ffrt::IOTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<ffrt::IOTask>::HasBeenFreed,
+        ffrt::SimpleAllocator<ffrt::IOTask>::LockMem,
+        ffrt::SimpleAllocator<ffrt::IOTask>::UnlockMem);
+}
+
 __attribute__((constructor)) static void ffrt_init()
 {
-    ffrt::TaskFactory::RegistCb(
+    RegistCommonTaskFactory();
+    ffrt::TaskFactory<ffrt::CPUEUTask>::RegistCb(
         [] () -> ffrt::CPUEUTask* {
             return static_cast<ffrt::CPUEUTask*>(ffrt::SimpleAllocator<ffrt::SCPUEUTask>::AllocMem());
         },
@@ -63,6 +94,7 @@ __attribute__((destructor)) static void FfrtDeinit(void)
     ffrt::CloseAsyncStackLibHandle();
 #endif
 }
+
 void ffrt_child_init(void)
 {
     ffrt_init();

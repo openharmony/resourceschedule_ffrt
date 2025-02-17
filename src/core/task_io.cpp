@@ -14,6 +14,7 @@
  */
 #include <pthread.h>
 #include <random>
+#include "tm/io_task.h"
 #include "core/task_io.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
@@ -28,42 +29,6 @@ namespace {
 const int INSERT_GLOBAL_QUEUE_FREQ = 5;
 }
 
-namespace ffrt {
-static void work_finish_callable(IOTaskExecutor* task)
-{
-    task->status = ExecTaskStatus::ET_FINISH;
-    task->work.destroy(task->work.data);
-    delete task;
-}
-
-static void ExecuteIOTask(ffrt_executor_task_t* data, ffrt_qos_t qos)
-{
-    IOTaskExecutor* task = static_cast<IOTaskExecutor*>(data);
-    task->status = ExecTaskStatus::ET_EXECUTING;
-    (void)qos;
-    ffrt_coroutine_ptr_t coroutine = task->work.exec;
-    ffrt_coroutine_ret_t ret = coroutine(task->work.data);
-    if (ret == ffrt_coroutine_ready) {
-        FFRT_EXECUTOR_TASK_FINISH_MARKER(task);
-        work_finish_callable(task);
-        return;
-    }
-
-    FFRT_EXECUTOR_TASK_BLOCK_MARKER(task);
-    task->status = ffrt::ExecTaskStatus::ET_PENDING;
-#ifdef FFRT_BBOX_ENABLE
-    TaskPendingCounterInc();
-#endif
-}
-
-static pthread_once_t once = PTHREAD_ONCE_INIT;
-
-static void InitIOTaskExecutor()
-{
-    ffrt_executor_task_register_func(ExecuteIOTask, ffrt_io_task);
-}
-} /* namespace ffrt */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -73,22 +38,20 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
 {
     FFRT_COND_DO_ERR((exec == nullptr), return, "input invalid, exec == nullptr");
     FFRT_COND_DO_ERR((destroy == nullptr), return, "input invalid, destroy == nullptr");
-    pthread_once(&ffrt::once, ffrt::InitIOTaskExecutor);
 
     ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
-    ffrt::QoS qos = (p == nullptr ? ffrt::QoS() : ffrt::QoS(p->qos_));
 
     (void)in_deps;
     (void)out_deps;
-    ffrt::IOTaskExecutor* task = new (std::nothrow) ffrt::IOTaskExecutor(qos);
-    FFRT_COND_RETURN_VOID(task == nullptr, "new IOTaskExecutor failed");
-
-    task->work.exec = exec;
-    task->work.destroy = destroy;
-    task->work.data = co;
-    task->status = ffrt::ExecTaskStatus::ET_READY;
-
-    ffrt_executor_task_submit(dynamic_cast<ffrt_executor_task_t*>(task), attr);
+    ffrt::ffrt_io_callable_t work;
+    work.exec = exec;
+    work.destroy = destroy;
+    work.data = co;
+    if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
+        ffrt::FFRTFacade::GetDMInstance().onSubmitIO(work, p);
+        return;
+    }
+    FFRT_LOGE("io function does not support delay");
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -110,7 +73,7 @@ void ffrt_wake_coroutine(void* task)
     TaskWakeCounterInc();
 #endif
 
-    ffrt::IOTaskExecutor* wakedTask = static_cast<ffrt::IOTaskExecutor*>(task);
+    ffrt::IOTask* wakedTask = static_cast<ffrt::IOTask*>(task);
     wakedTask->status = ffrt::ExecTaskStatus::ET_READY;
 
 #ifdef FFRT_LOCAL_QUEUE_ENABLE
@@ -124,15 +87,14 @@ void ffrt_wake_coroutine(void* task)
         if (rand() % INSERT_GLOBAL_QUEUE_FREQ) {
             if (ffrt::ExecuteCtx::Cur()->localFifo != nullptr &&
                 ffrt::ExecuteCtx::Cur()->localFifo->PushTail(task) == 0) {
-                ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(wakedTask->qos);
+                ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(wakedTask->qos_);
                 return;
             }
         }
     }
 #endif
 
-    ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&wakedTask->wq);
-    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, wakedTask->qos)) {
+    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(&wakedTask->fq_we.node, wakedTask->qos_)) {
         FFRT_LOGE("Submit io task failed!");
     }
 }

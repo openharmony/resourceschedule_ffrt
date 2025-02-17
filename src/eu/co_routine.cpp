@@ -236,28 +236,9 @@ static inline void CoStartEntry(void* arg)
     /* thread to co finish first */
     __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
-    ffrt::CPUEUTask* task = co->task;
-    bool isNormalTask = false;
-    switch (task->type) {
-        case ffrt_normal_task: {
-            isNormalTask = true;
-            task->Execute();
-            break;
-        }
-        case ffrt_queue_task: {
-            QueueTask* sTask = reinterpret_cast<QueueTask*>(task);
-            // Before the batch execution is complete, head node cannot be released.
-            sTask->IncDeleteRef();
-            sTask->Execute();
-            sTask->DecDeleteRef();
-            break;
-        }
-        default: {
-            FFRT_LOGE("CoStart unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->label.c_str());
-            break;
-        }
-    }
-
+    ffrt::CoTask* task = co->task;
+    bool isNormalTask = task->type == ffrt_normal_task;
+    task->Execute();
     co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
     CoExit(co, isNormalTask);
 }

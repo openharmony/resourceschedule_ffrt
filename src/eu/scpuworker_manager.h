@@ -23,7 +23,7 @@ public:
     SCPUWorkerManager();
     ~SCPUWorkerManager() override;
     WorkerAction WorkerIdleAction(const WorkerThread* thread) override;
-    CPUEUTask* PickUpTaskBatch(WorkerThread* thread) override;
+    TaskBase* PickUpTaskBatch(WorkerThread* thread) override;
     void WorkerRetiredSimplified(WorkerThread* thread) override;
     void WorkerPrepare(WorkerThread* thread) override;
     void WakeupWorkers(const QoS& qos) override;

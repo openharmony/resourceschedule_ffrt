@@ -19,6 +19,7 @@
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
 #include "tm/queue_task.h"
+#include "tm/io_task.h"
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
@@ -35,6 +36,7 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     SimpleAllocator<CPUEUTask>::Instance();
     SimpleAllocator<SCPUEUTask>::Instance();
     SimpleAllocator<QueueTask>::Instance();
+    SimpleAllocator<IOTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
     QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);

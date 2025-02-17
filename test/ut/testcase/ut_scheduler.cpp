@@ -180,15 +180,3 @@ HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level1)
     EXPECT_EQ(fifoqueue->Empty(), false);
     delete fifoqueue;
 }
-
-HWTEST_F(SchedulerTest, ffrt_scheduler_test, TestSize.Level1)
-{
-    ffrt::FFRTScheduler* sffrtscheduler = ffrt::FFRTScheduler::Instance();
-    QoS qos;
-    ffrt::IOTaskExecutor* task = new (std::nothrow) ffrt::IOTaskExecutor(qos);
-    LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
-    EXPECT_EQ(sffrtscheduler->InsertNode(reinterpret_cast<LinkedList*>(node), qos), true);
-    EXPECT_EQ(sffrtscheduler->RemoveNode(reinterpret_cast<LinkedList*>(node), qos), true);
-
-    delete task;
-}

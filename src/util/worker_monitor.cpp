@@ -190,7 +190,7 @@ void WorkerMonitor::CheckWorkerStatus()
         CoWorkerInfo coWorkerInfo(i, workerGroup[i].threads.size(), executionNum, sleepingWorkerNum);
         for (auto& thread : workerGroup[i].threads) {
             WorkerThread* worker = thread.first;
-            CPUEUTask* workerTask = worker->curTask;
+            CPUEUTask* workerTask = static_cast<CPUEUTask*>(worker->curTask);
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
                 continue;

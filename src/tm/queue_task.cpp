@@ -17,6 +17,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "c/task.h"
 #include "util/slab.h"
+#include "tm/task_factory.h"
 
 namespace {
 constexpr uint64_t MIN_SCHED_TIMEOUT = 100000; // 0.1s
@@ -80,6 +81,7 @@ void QueueTask::Notify()
 
 void QueueTask::Execute()
 {
+    IncDeleteRef();
     FFRT_LOGD("Execute stask[%lu], name[%s]", gid, label.c_str());
     if (isFinished_.load()) {
         FFRT_LOGE("task [gid=%llu] is complete, no need to execute again", gid);
@@ -88,6 +90,7 @@ void QueueTask::Execute()
 
     handler_->Dispatch(this);
     FFRT_TASKDONE_MARKER(gid);
+    DecDeleteRef();
 }
 
 void QueueTask::Wait()
@@ -101,7 +104,7 @@ void QueueTask::Wait()
 
 void QueueTask::FreeMem()
 {
-    SimpleAllocator<QueueTask>::FreeMem(this);
+    TaskFactory<QueueTask>::Free(this);
 }
 
 uint32_t QueueTask::GetQueueId() const

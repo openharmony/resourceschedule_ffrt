@@ -17,7 +17,6 @@
 
 #include <atomic>
 #include <regex>
-#include "util/task_deleter.h"
 #include "cpu_task.h"
 #include "queue/queue_attr_private.h"
 #include "queue/queue_handler.h"
@@ -39,14 +38,9 @@ public:
 
     uint32_t GetQueueId() const;
 
-    inline int GetQos() const override
-    {
-        return qos_;
-    }
-
     inline void SetQos(int qos)
     {
-        qos_ = qos;
+        this->qos_ = qos;
     }
 
     inline uint64_t GetDelay() const
@@ -114,7 +108,6 @@ private:
     bool insertHead_ = false;
     uint64_t delay_ = 0;
     uint64_t schedTimeout_ = 0;
-    int qos_ = qos_inherit;
 
     QueueTask* nextTask_ = nullptr;
     std::atomic_bool isFinished_ = {false};

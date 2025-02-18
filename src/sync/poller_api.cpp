@@ -93,5 +93,5 @@ uint64_t ffrt_epoll_get_wait_time(void* taskHandle)
     }
 
     auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
-    return ffrt::FFRTFacade::GetPPInstance().GetPoller(task->qos).GetTaskWaitTime(task);
+    return ffrt::FFRTFacade::GetPPInstance().GetPoller(task->qos_).GetTaskWaitTime(task);
 }

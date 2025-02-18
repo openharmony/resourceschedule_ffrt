@@ -21,6 +21,7 @@
 #include "tm/task_factory.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
+#include "eu/func_manager.h"
 
 namespace {
 const int TSD_SIZE = 128;
@@ -31,13 +32,13 @@ void CPUEUTask::SetQos(const QoS& newQos)
 {
     if (newQos == qos_inherit) {
         if (!this->IsRoot()) {
-            this->qos = parent->qos;
+            this->qos_ = parent->qos_;
         } else {
-            this->qos = QoS();
+            this->qos_ = QoS();
         }
-        FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos());
+        FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos_());
     } else {
-        this->qos = newQos;
+        this->qos_ = newQos;
     }
 }
 
@@ -46,12 +47,12 @@ void CPUEUTask::FreeMem()
     BboxCheckAndFreeze();
     // only tasks which called ffrt_poll_ctl may have cached events
     if (pollerEnable) {
-        FFRTFacade::GetPPInstance().GetPoller(qos).ClearCachedEvents(this);
+        FFRTFacade::GetPPInstance().GetPoller(qos_).ClearCachedEvents(this);
     }
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif
-    ffrt::TaskFactory::Free(this);
+    TaskFactory<CPUEUTask>::Free(this);
 }
 
 void CPUEUTask::Execute()
@@ -76,8 +77,9 @@ void CPUEUTask::Execute()
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
     const QoS &qos)
-    : parent(parent), rank(id), qos(qos)
+    : parent(parent), rank(id)
 {
+    this->qos_ = qos;
     fq_we.task = this;
     if (attr && !attr->name_.empty()) {
         label = attr->name_;
@@ -103,5 +105,58 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
     if (attr) {
         stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
     }
+}
+
+void ExecuteUVTask(TaskBase* task, QoS qos)
+{
+    ffrt_executor_task_func func = FuncManager::Instance()->getFunc(ffrt_uv_task);
+    if (func == nullptr) {
+        FFRT_LOGE("Static func is nullptr");
+        return;
+    }
+    ffrt_executor_task_t* uv_work = reinterpret_cast<ffrt_executor_task_t *>(task);
+    FFRTTraceRecord::TaskExecute<ffrt_uv_task>(qos);
+    FFRT_EXECUTOR_TASK_BEGIN(uv_work);
+    func(uv_work, qos);
+    FFRT_EXECUTOR_TASK_END();
+    FFRT_EXECUTOR_TASK_FINISH_MARKER(uv_work); // task finish marker for uv task
+    FFRTTraceRecord::TaskDone<ffrt_uv_task>(qos);
+}
+
+void ExecuteTask(TaskBase* task, QoS qos)
+{
+    bool isCoTask = IsCoTask(task);
+
+    // set current task info to context
+    ExecuteCtx* ctx = ExecuteCtx::Cur();
+    if (isCoTask) {
+        ctx->task = reinterpret_cast<CPUEUTask *>(task);
+        ctx->lastGid_ = task->gid;
+    } else {
+        ctx->exec_task = task; // for ffrt_wake_coroutine
+    }
+
+    // run Task with coroutine
+    if (USE_COROUTINE && isCoTask) {
+        while (CoStart(static_cast<CPUEUTask*>(task), GetCoEnv()) != 0) {
+            usleep(CO_CREATE_RETRY_INTERVAL);
+        }
+    } else {
+    // run task on thread
+#ifdef FFRT_ASYNC_STACKTRACE
+        if (isCoTask) {
+            FFRTSetStackId(task->stackId);
+        }
+#endif
+        if (task->type < ffrt_invalid_task && task->type != ffrt_uv_task) {
+            task->Execute();
+        } else {
+            ExecuteUVTask(task, qos);
+        }
+    }
+
+    // reset task info in context
+    ctx->task = nullptr;
+    ctx->exec_task = nullptr;
 }
 } /* namespace ffrt */

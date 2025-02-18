@@ -16,6 +16,7 @@
 #ifndef FFRT_FUNC_MANAGER_HPP
 #define FFRT_FUNC_MANAGER_HPP
 
+#include <unordered_map>
 #include "ffrt_inner.h"
 #include "c/executor_task.h"
 

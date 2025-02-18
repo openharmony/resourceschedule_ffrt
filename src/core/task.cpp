@@ -270,9 +270,9 @@ API_ATTRIBUTE((visibility("default")))
 void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind)
 {
     if (kind == ffrt_function_kind_general) {
-        return ffrt::TaskFactory::Alloc()->func_storage;
+        return ffrt::TaskFactory<ffrt::CPUEUTask>::Alloc()->func_storage;
     }
-    return ffrt::SimpleAllocator<ffrt::QueueTask>::AllocMem()->func_storage;
+    return ffrt::TaskFactory<ffrt::QueueTask>::Alloc()->func_storage;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -485,7 +485,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
     }
 
     FFRT_COND_DO_ERR((curTask->type != ffrt_normal_task), return 1, "update qos task type invalid");
-    if (_qos() == curTask->qos) {
+    if (_qos() == curTask->qos_) {
         FFRT_LOGW("the target qos is equal to current qos, no need update");
         return 0;
     }

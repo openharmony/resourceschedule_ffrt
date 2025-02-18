@@ -48,7 +48,7 @@ struct CpuWorkerOps {
     std::function<void (WorkerThread*)> WorkerPrepare;
     std::function<PollerRet (const WorkerThread*, int timeout)> TryPoll;
     std::function<unsigned int (WorkerThread*)> StealTaskBatch;
-    std::function<CPUEUTask* (WorkerThread*)> PickUpTaskBatch;
+    std::function<TaskBase* (WorkerThread*)> PickUpTaskBatch;
     std::function<int (const QoS&)> GetTaskCount; // Obtain the number of tasks corresponding to the QoS
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     std::function<bool (WorkerThread*)> IsExceedRunningThreshold;

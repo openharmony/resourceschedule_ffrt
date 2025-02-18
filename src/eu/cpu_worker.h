@@ -21,7 +21,7 @@
 #include "c/executor_task.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
-#include "tm/cpu_task.h"
+#include "tm/task_base.h"
 
 namespace ffrt {
 const unsigned int LOCAL_QUEUE_SIZE = 128;
@@ -67,10 +67,8 @@ public:
 private:
     static void* WrapDispatch(void* worker);
     static void Dispatch(CPUWorker* worker);
-    static void Run(ffrt_executor_task_t* task, ffrt_qos_t qos);
-    static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker);
-    static void RunTask(ffrt_executor_task_t* curtask, CPUWorker* worker, ExecuteCtx* ctx, CoRoutineEnv* coRoutineEnv);
-    static void RunTaskLifo(ffrt_executor_task_t* task, CPUWorker* worker);
+    static void RunTask(TaskBase* task, CPUWorker* worker);
+    static void RunTaskLifo(TaskBase* task, CPUWorker* worker);
     static void* GetTask(CPUWorker* worker);
     static PollerRet TryPoll(CPUWorker* worker, int timeout);
     static bool LocalEmpty(CPUWorker* worker);

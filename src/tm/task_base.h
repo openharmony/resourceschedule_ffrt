@@ -20,12 +20,12 @@
 #include "eu/co_routine.h"
 #include "qos.h"
 #include "sched/execute_ctx.h"
-#include "util/task_deleter.h"
+#include "internal_inc/non_copyable.h"
 
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
 static constexpr uint64_t cacheline_size = 64;
-class TaskBase {
+class TaskBase : private NonCopyable {
 public:
     uintptr_t reserved = 0;
     uintptr_t type = 0;
@@ -33,25 +33,47 @@ public:
     TaskBase(): gid(++s_gid) {}
     virtual ~TaskBase() = default;
     const uint64_t gid; // global unique id in this process
+    QoS qos_ = qos_inherit;
+    std::atomic_uint32_t rc = 1; // reference count for delete
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
 #endif
 
-    virtual int GetQos() const
+    inline int GetQos() const
     {
-        return qos_default;
+        return qos_();
     }
+
+    virtual std::string GetLabel() const = 0;
+
+    virtual void Execute() = 0;
 
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
+
+    virtual void FreeMem() = 0;
+
+    inline uint32_t IncDeleteRef()
+    {
+        auto v = rc.fetch_add(1);
+        return v;
+    }
+
+    inline uint32_t DecDeleteRef()
+    {
+        auto v = rc.fetch_sub(1);
+        if (v == 1) {
+            FreeMem();
+        }
+        return v;
+    }
 };
 
-class CoTask : public TaskBase, public TaskDeleter {
+class CoTask : public TaskBase {
 public:
     CoTask() = default;
     ~CoTask() override = default;
-    virtual void Execute() = 0;
 
     std::string label;
     CoWakeType coWakeType { CoWakeType::NO_TIMEOUT_WAKE };
@@ -78,6 +100,11 @@ public:
     void ClearTraceTag()
     {
     }
+
+    std::string GetLabel() const override
+    {
+        return label;
+    }
 };
-}
+} // namespace ffrt
 #endif

@@ -25,20 +25,22 @@
 #include <set>
 #include <list>
 #include <memory>
+#include <unistd.h>
 #include "task_base.h"
 #include "sched/task_state.h"
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"
 #include "core/task_io.h"
-#include "util/task_deleter.h"
+#include "dfx/log/ffrt_log_api.h"
+#include "eu/func_manager.h"
+#ifdef FFRT_ASYNC_STACKTRACE
+#include "dfx/async_stack/ffrt_async_stack.h"
+#endif
 
 namespace ffrt {
+constexpr int CO_CREATE_RETRY_INTERVAL = 500 * 1000;
 struct VersionCtx;
 class SCPUEUTask;
-class UserDefinedTask : public TaskBase {
-    ffrt_io_callable_t work;
-    ExecTaskStatus status;
-};
 
 class CPUEUTask : public CoTask {
 public:
@@ -64,13 +66,7 @@ public:
     void** tsd = nullptr;
     bool taskLocal = false;
 
-    QoS qos;
-
     bool pollerEnable = false; // set true if task call ffrt_epoll_ctl
-    int GetQos() const override
-    {
-        return qos;
-    }
 
     void SetQos(const QoS& newQos);
     uint64_t reserved[8];
@@ -140,5 +136,26 @@ inline bool ThreadNotifyMode(CPUEUTask* task)
     }
     return false;
 }
+
+inline bool IsCoTask(TaskBase* task)
+{
+    return task->type == ffrt_normal_task || task->type == ffrt_queue_task;
+}
+
+inline bool NeedNotifyWorker(TaskBase* task)
+{
+    if (task == nullptr) {
+        return false;
+    }
+    bool needNotify = true;
+    if (task->type == ffrt_normal_task) {
+        CPUEUTask* cpuTask = static_cast<CPUEUTask*>(task);
+        needNotify = cpuTask->notifyWorker_;
+        cpuTask->notifyWorker_ = true;
+    }
+    return needNotify;
+}
+
+void ExecuteTask(TaskBase* task, QoS qos);
 } /* namespace ffrt */
 #endif

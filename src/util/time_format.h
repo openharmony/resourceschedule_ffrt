@@ -25,7 +25,7 @@ typedef enum {
     microsecond,
 } time_unit_t;
 
-static std::string FormatDateString(const std::chrono::system_clock::time_point& timePoint,
+static std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
     time_unit_t timeUnit = millisecond)
 {
     constexpr int MaxMsLength = 3;
@@ -64,12 +64,12 @@ static std::string FormatDateString(const std::chrono::system_clock::time_point&
 
 static std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, time_unit_t timeUnit = millisecond)
 {
-    static uint64_t globalTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
+    uint64_t referenceTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
-    static auto globalTp = std::chrono::system_clock::now();
+    auto referenceTp = std::chrono::system_clock::now();
 
-    std::chrono::microseconds us((int64_t)(steadyClockTimeStamp - globalTimeStamp));
-    return FormatDateString(globalTp + us, timeUnit);
+    std::chrono::microseconds us((int64_t)(steadyClockTimeStamp - referenceTimeStamp));
+    return FormatDateString4SystemClock(referenceTp + us, timeUnit);
 }
 
 static inline uint64_t Arm64CntFrq(void)
@@ -90,14 +90,14 @@ static std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t t
 {
     constexpr int Ratio = 1000 * 1000;
 
-    static int64_t globalFreq = Arm64CntFrq();
-    if (globalFreq == 0) {
+    int64_t referenceFreq = Arm64CntFrq();
+    if (referenceFreq == 0) {
         return "";
     }
-    static uint64_t globalCntCt = Arm64CntCt();
-    static auto globalTp = std::chrono::system_clock::now();
-    std::chrono::microseconds us((int64_t)(cntCtTimeStamp - globalCntCt) * Ratio / globalFreq);
-    return FormatDateString(globalTp + us, timeUnit);
+    uint64_t referenceCntCt = Arm64CntCt();
+    auto globalTp = std::chrono::system_clock::now();
+    std::chrono::microseconds us((int64_t)(cntCtTimeStamp - referenceCntCt) * Ratio / referenceFreq);
+    return FormatDateString4SystemClock(globalTp + us, timeUnit);
 }
 }
 #endif // UTIL_TIME_FORAMT_H

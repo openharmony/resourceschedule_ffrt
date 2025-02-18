@@ -106,7 +106,7 @@ public:
     int UnregisterTimer(int handle) noexcept;
     ffrt_timer_query_t GetTimerStatus(int handle) noexcept;
 
-    uint8_t GetPollCount() noexcept;
+    uint64_t GetPollCount() noexcept;
 
     uint64_t GetTaskWaitTime(CPUEUTask* task) noexcept;
 
@@ -133,7 +133,7 @@ private:
     bool IsTimerReady() noexcept;
 
     int m_epFd;
-    uint8_t pollerCount_ = 0;
+    uint64_t pollerCount_ = 0;
     int timerHandle_ = -1;
     EpollStatus flag_ = EpollStatus::WAKE;
     struct WakeDataWithCb m_wakeData;

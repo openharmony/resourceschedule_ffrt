@@ -245,10 +245,6 @@ HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
     EXPECT_NE(manager->PickUpTaskBatch(worker1), nullptr);
     EXPECT_NE(manager->PickUpTaskBatch(worker2), nullptr);
 
-    manager->tearDown = true;
-    pthread_join(worker1->GetThread(), nullptr);
-    pthread_join(worker2->GetThread(), nullptr);
-
     delete manager;
     delete worker1;
     delete worker2;

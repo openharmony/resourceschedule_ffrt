@@ -417,6 +417,8 @@ public:
     enum qos qos() const; // get qos
     task_attr& name(const char* name); // set name
     const char* name() const; // get name
+    task_attr& stack_size(uint64_t stack_size); // set task stack size
+    const uint64_t stack_size() const; // get task stack size
 };
 }
 ```
@@ -428,11 +430,15 @@ public:
 - qos 设定的枚举类型
 - inherent 是一个 qos 设定策略，代表即将 submit 的 task 的 qos 继承当前 task 的 qos
 
-##### 返回值
+`stack_size`
+
+* 为task 指定执行栈的大小(字节为单位)
+
+#### 返回值
 
 - 不涉及
 
-##### 描述
+###### 描述
 
 - 约定
   - 在 submit 时，如果不通过 task_attr 设定 qos，那么默认该提交的 task 的 qos 为`qos_default`
@@ -440,6 +446,12 @@ public:
   - 其他情况下，该提交的 task 的 qos 被设定为指定的值
 
 - qos 级别从上到下依次递增，`qos_user_interactive` 拥有最高优先级
+- stack_size 约定
+  - 绝大多数情况下无需设定task 的栈大小，将使用系统默认的task 栈大小(如某些平台是1MB)
+  - 需要调整task 栈大小时，请谨慎设置栈大小，过小的栈可能导致栈溢出，过大的栈可能消耗更多的内存资源
+  - 与pthread_attr_setstacksize类似，stack_size 有下限值没有上限值。当设定值小于下限值(如某些平台是32KB时)，默认使用下限值；理论上你可以设置很大的值，但请合理设置栈大小
+  - 由于栈保护机制等原因，实际可用的栈大小是略小于您的设定值的(如某些平台上会比设定值小4KB)，这取决于内部实现
+  - 接口上对设定值没有对齐要求，在某些平台上会将设定值向上对齐到4KB的整数倍，这取决于内部实现
 
 ##### 样例
 
@@ -734,7 +746,7 @@ task_handle queue::submit_h(std::function<void()>&& func, const task_attr& attr)
 - 描述：提交一个任务到队列中调度执行，并返回一个句柄
 - 参数：
   `func`：可被 `std::function` 接收的一切 CPU 可执行体，可以为 C++ 定义的 Lambda 函数闭包，函数指针，甚至是函数对象
-  `attr`：该参数时可选的，用于描述 task 的属性，如 `qos`、`delay`、`timeout` 等，详见[task_attr](#task_attr)章节
+  `attr`：该参数是可选的，用于描述 task 的属性，如 `qos`、`delay`、`timeout` 等，详见[task_attr](#task_attr)章节
 - 返回值：
   `task_handle`：task 的句柄，该句柄可以用于建立 task 之间的依赖
 
@@ -823,6 +835,9 @@ public:
     queue_attr& operator=(const queue_attr&) = delete;
 
     queue_attr& qos(qos qos_);
+    int qos() const;
+
+    queue_attr& timeout(uint64_t timeout_us);
     uint64_t timeout() const;
 
     queue_attr& callback(const std::function<void()>& func);
@@ -2122,8 +2137,7 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
 ###### ffrt_queue_submit_h
 
 ```c
-ffrt_task_handle_t ffrt_queue_submit_h(
-    ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
 ```
 
 - 描述：提交一个任务到队列中调度执行，并返回任务句柄
@@ -3048,28 +3062,28 @@ int ffrt_cond_destroy(ffrt_cond_t* cond);
 
 `time_point`
 
-- 指向指定等待时限时间的对象的指针, 时钟类型目前只支持CLOCK_MONOTONIC超时时间为绝对值；例如想通过这个函数设置超时为2500ms, 可以参考如下例子使用clock_gettime实现：
+- 指向指定等待时限时间的对象的指针, 时钟类型目前只支持CLOCK_MONOTONIC, 超时时间为绝对值；例如想通过这个函数设置超时为2500ms, 可以参考如下例子使用clock_gettime实现：
 
- ```c
+```c
 struct timespec start_tm;
 struct timespec end_tm;
 int timeout_ms = 2500;
 
 clock_gettime(CLOCK_MONOTONIC, &start_tm);
 end_tm = ns_to_tm(tm_to_ns(start_tm) + timeout_ms*1000000);
-
 ffrt_mutex_lock(&mtx);
 
 while (等待的条件) {
     if (ffrt_cond_timedwait(&cond, &mtx, &end_tm) == ETIMEDOUT) {
         /*
-            * 如果超时则退出等待
-            */
+        * 如果超时则退出等待
+        */
         ret = -1;
         break;
     }
 }
 ```
+
 ##### 返回值
 
 - 若成功则为 `ffrt_success`，若在锁定互斥前抵达时限则为 `ffrt_error_timedout`

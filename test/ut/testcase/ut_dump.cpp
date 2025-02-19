@@ -43,7 +43,7 @@ protected:
 };
 
 /*
- * 测试用例名称：dump_succ
+ * 测试用例名称 ：dump_succ
  * 测试用例描述：获取dump info失败
  * 操作步骤    ：1、调用函数ffrt_dump获取dump info
  * 预期结果    ：获取失败
@@ -60,8 +60,8 @@ HWTEST_F(DumpTest, dump_succ, TestSize.Level1)
 }
 
 /*
- * 测试用例名称：dump_cb_succ
- * 测试用例描述：设置与获取task_timeout_cb成功
+ * 测试用例名称 ：dump_cb_succ
+ * 测试用例描述：设置与获取task_timout_cb成功
  * 预期结果    ：设置与获取成功
  */
 HWTEST_F(DumpTest, dump_cb_succ, TestSize.Level1)
@@ -72,8 +72,8 @@ HWTEST_F(DumpTest, dump_cb_succ, TestSize.Level1)
 }
 
 /*
- * 测试用例名称：dump_threshold_succ
- * 测试用例描述：设置与获取task_timeout_threshold成功
+ * 测试用例名称 ：dump_threshold_succ
+ * 测试用例描述：设置与获取task_timout_threshold成功
  * 预期结果    ：设置与获取成功
  */
 HWTEST_F(DumpTest, dump_thre_succ, TestSize.Level1)

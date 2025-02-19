@@ -153,7 +153,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyUltraConservativeTest, Tes
         },
         std::bind(&GetTaskCountStub, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
-        SCPUMonitor::HandleTaskNotifyUltraConservative,
+        CPUMonitor::HandleTaskNotifyUltraConservative,
     };
     manager->monitor->ops = std::move(monitorOps);
     WorkerCtrl& workerCtrl = manager->monitor->ctrlQueue[2];
@@ -180,7 +180,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest, TestSize
         },
         std::bind(&GetTaskCountStub, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
-        SCPUMonitor::HandleTaskNotifyUltraConservative,
+        CPUMonitor::HandleTaskNotifyConservative,
     };
     manager->monitor->ops = std::move(monitorOps);
     WorkerCtrl& workerCtrl = manager->monitor->ctrlQueue[2];

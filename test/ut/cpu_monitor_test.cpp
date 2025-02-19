@@ -110,7 +110,6 @@ HWTEST_F(CpuMonitorTest, WakeupSleep, TestSize.Level1)
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, -1);
 }
 
-
 /**
  * @tc.name: TimeoutCount
  * @tc.desc: Test whether the TimeoutCount interface are normal.

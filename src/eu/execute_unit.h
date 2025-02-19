@@ -72,7 +72,7 @@ public:
     }
 
     virtual WorkerManager* InitManager() = 0;
-    
+
     void CreateWorkerManager();
 
 protected:

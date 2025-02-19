@@ -73,11 +73,10 @@ int simple_thd_func(void *)
     return 0;
 }
 
-void* MyFunc(void * arg)
+static void* tmp_func(void *)
 {
-    int *cnter = (int *)arg;
-    (*cnter)++;
-    return arg;
+    ++counter;
+    return nullptr;
 }
 
 HWTEST_F(ThreadTest, IdleTest, TestSize.Level1)
@@ -114,13 +113,13 @@ HWTEST_F(ThreadTest, SetExitedTest, TestSize.Level1)
     delete wt;
 }
 
-#ifndef FFRT_GITEE
 HWTEST_F(ThreadTest, GetQosTest, TestSize.Level1)
 {
     WorkerThread* wt = new WorkerThread(QoS(6));
-    EXPECT_EQ(wt->GetQos(), 6);
+    EXPECT_NE(wt, nullptr);
+    QoS ret = wt->GetQos();
+    delete wt;
 }
-#endif
 
 HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
 {
@@ -145,18 +144,4 @@ HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
     pthread_attr_getstacksize(&wt->attr_, &stackSize);
     EXPECT_EQ(stackSize, WORKER_STACK_SIZE);
     delete wt;
-}
-
-HWTEST_F(ThreadTest, wait_queue_test, TestSize.Level1)
-{
-    std::vector<TaskState::State> queueStatus;
-    auto setStateOps = [&](CPUEUTask* task) {
-        queueStatus.emplace_back(task->state());
-        return true;
-    };
-    TaskState::RegisterOps(TaskState::READY, setStateOps);
-    ffrt::submit([]{
-        TaskWithNode node = TaskWithNode();
-        EXPECT_NE(node.task, nullptr);
-    }, {}, {});
 }

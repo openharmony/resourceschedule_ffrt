@@ -20,10 +20,7 @@
 namespace ffrt {
 class SerialQueue : public BaseQueue {
 public:
-    explicit SerialQueue()
-    {
-        dequeFunc_ = QueueStrategy<QueueTask>::DequeBatch;
-    }
+    SerialQueue();
     ~SerialQueue() override;
 
     int Push(QueueTask* task) override;
@@ -40,8 +37,8 @@ public:
         return ffrt_queue_serial;
     }
 
-    // initial value of overload threshold is 16
-    uint32_t overloadThreshold_ = 16;
+private:
+    uint32_t overloadThreshold_;
 };
 
 std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr);

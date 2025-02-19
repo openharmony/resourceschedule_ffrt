@@ -213,7 +213,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
         bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
             (polling_[thread->GetQos()] == 0);
         return tearDown || taskExistence || needPoll;
-    })) {
+        })) {
         monitor->WakeupSleep(thread->GetQos());
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         BlockawareLeaveSleeping();
@@ -256,4 +256,3 @@ void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
     ctl.cv.notify_one();
 }
 } // namespace ffrt
-

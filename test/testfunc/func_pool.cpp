@@ -36,7 +36,8 @@ void NestedFib(int num, int &count)
     if (num <= 1) {
         count = 0;
     } else {
-        int val1, val2;
+        int val1;
+        int val2;
         ffrt::submit([&]() { NestedFib(num - 1, val1); }, {}, { &val1 });
         ffrt::submit([&]() { NestedFib(num - 2, val2); }, {}, { &val2 });
         ffrt::wait({ &val1, &val2 });
@@ -58,7 +59,18 @@ void NestedAddOne(int deepth, int &val)
 
 void NestedWhile(uint64_t count)
 {
-    int x = 1, y0, y1, y2, y3, y4, y5, y6, y7, y8, y9, i = 1;
+    int x = 1;
+    int y0;
+    int y1;
+    int y2;
+    int y3;
+    int y4;
+    int y5;
+    int y6;
+    int y7;
+    int y8;
+    int y9;
+    int i = 1;
     while (count--) {
         ffrt::submit(
             [&]() {

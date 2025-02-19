@@ -35,12 +35,6 @@ enum class TaskNotifyType {
     TASK_ESCAPED,
 };
 
-enum class SleepType {
-    SLEEP_UNTIL_WAKEUP = 0,
-    SLEEP_UNTIL_INTERRUPT,
-    SLEEP_BREAK,
-};
-
 struct CpuWorkerOps {
     std::function<void (const WorkerThread*)> NotifyTaskPicked;
     std::function<WorkerAction (const WorkerThread*)> WaitForNewAction;

@@ -45,7 +45,6 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance();
 #endif
-    QueueMonitor::GetInstance();
     ExecuteUnit::Instance();
     TaskState::RegisterOps(TaskState::EXITED,
         [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });

@@ -97,7 +97,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
 #ifdef ENABLE_HITRACE_CHAIN
-    if (HiTraceChainGetId().isvalid == HITRACE_ID_VALID) {
+    if (HiTraceChainGetId().valid == HITRACE_ID_VALID) {
         task->traceId_ = HiTraceChainCreateSpan();
     }
 #endif

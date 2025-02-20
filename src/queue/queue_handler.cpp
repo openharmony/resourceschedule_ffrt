@@ -120,7 +120,7 @@ void QueueHandler::Submit(QueueTask* task)
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
 #ifdef ENABLE_HITRACE_CHAIN
-    if (HiTraceChainGetId().isvalid == HITRACE_ID_VALID) {
+    if (HiTraceChainGetId().valid == HITRACE_ID_VALID) {
         task->traceId_ = HiTraceChainCreateSpan();
     }
 #endif

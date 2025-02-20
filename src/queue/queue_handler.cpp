@@ -119,6 +119,11 @@ void QueueHandler::Submit(QueueTask* task)
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
+#ifdef ENABLE_HITRACE_CHAIN
+    if (HiTraceChainGetId().isvalid == HITRACE_ID_VALID) {
+        task->traceId_ = HiTraceChainCreateSpan();
+    }
+#endif
     // if qos not specified, qos of the queue is inherited by task
     if (task->GetQos() == qos_inherit || task->GetQos() == qos_default) {
         task->SetQos(qos_);

@@ -96,6 +96,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(SCPUEUTask, func_storage)));
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
+#ifdef ENABLE_HITRACE_CHAIN
+    if (HiTraceChainGetId().isvalid == HITRACE_ID_VALID) {
+        task->traceId_ = HiTraceChainCreateSpan();
+    }
+#endif
     FFRT_SUBMIT_MARKER(task->gid);
 #ifdef FFRT_ASYNC_STACKTRACE
     {

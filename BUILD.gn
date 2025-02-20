@@ -110,6 +110,7 @@ config("ffrt_inner_config") {
     "-DUSE_OHOS_QOS",
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
+    "-DENABLE_HITRACE_CHAIN",
   ]
 
   cflags_cc = ffrt_inner_cflags
@@ -214,6 +215,7 @@ ohos_shared_library("libffrt") {
       "faultloggerd:libunwinder",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
+      "hitrace:libhitracechain",
     ]
 
     defines = []

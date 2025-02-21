@@ -26,21 +26,17 @@
 namespace ffrt {
 const unsigned int LOCAL_QUEUE_SIZE = 128;
 const unsigned int STEAL_BUFFER_SIZE = LOCAL_QUEUE_SIZE / 2;
-constexpr uint64_t SEC_TO_NANO_FACTOR = 1000000000;
-constexpr uint8_t SEC_TO_NANO_BIT = 20;
 
 class CPUWorker : public WorkerThread {
 public:
     CPUWorker(const QoS& qos, CpuWorkerOps&& ops, void* worker_mgr) : WorkerThread(qos), ops(ops)
     {
 #ifdef FFRT_SEND_EVENT
-        uint64_t freq = 0;
+        uint64_t freq = 1000000;
 #if defined(__aarch64__)
         asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
 #endif
-        if (freq == SEC_TO_NANO_FACTOR) {
-            this->cacheBase = SEC_TO_NANO_BIT;
-        }
+        this->cacheFreq = freq;
         this->cacheQos = static_cast<int>(qos);
 #endif
         this->worker_mgr = worker_mgr;
@@ -75,7 +71,7 @@ private:
 #ifdef FFRT_SEND_EVENT
     int cacheQos; // cache int qos
     std::string cacheLabel; // cache string label
-    uint8_t cacheBase = 0; // cache bit num
+    uint64_t cacheFreq = 1000000; // cache cpu freq
 #endif
 };
 } // namespace ffrt

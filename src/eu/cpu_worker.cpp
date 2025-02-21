@@ -71,8 +71,8 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     worker->curTaskType_ = ffrt_invalid_task;
 #ifdef FFRT_SEND_EVENT
     if (isBetaVersion) {
-        uint64_t execDur = ((FFRTTraceRecord::TimeStamp() - startExecuteTime) >> worker->cacheBase);
-        TaskBlockInfoReport(execDur, isNotUv ? worker->cacheLabel : "uv_task", worker->cacheQos, worker->cacheBase);
+        uint64_t execDur = ((FFRTTraceRecord::TimeStamp() - startExecuteTime) / worker->cacheFreq);
+        TaskBlockInfoReport(execDur, isNotUv ? worker->cacheLabel : "uv_task", worker->cacheQos, worker->cacheFreq);
     }
 #endif
 }

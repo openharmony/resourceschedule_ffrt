@@ -126,6 +126,7 @@ private:
     WaitUntilEntry* we_ = nullptr;
     std::atomic_uint32_t overloadTimes_ = {1};
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
+    std::atomic_int deliverCnt_ = {0};
 };
 } // namespace ffrt
 

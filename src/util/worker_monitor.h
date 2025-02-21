@@ -89,7 +89,6 @@ private:
     void RecordIpcInfo(const std::string& dumpInfo, int tid);
     void RecordKeyInfo(const std::string& dumpInfo);
     void RecordPollerInfo();
-
 private:
     std::mutex mutex_;
     std::mutex submitTaskMutex_;

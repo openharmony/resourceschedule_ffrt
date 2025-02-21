@@ -112,6 +112,7 @@ void ffrt_wake_coroutine(void* task)
     ffrt::IOTaskExecutor* wakedTask = static_cast<ffrt::IOTaskExecutor*>(task);
     wakedTask->status = ffrt::ExecTaskStatus::ET_READY;
 
+#ifdef FFRT_LOCAL_QUEUE_ENABLE
     // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yeild function
     bool selfWakeup = (ffrt::ExecuteCtx::Cur()->exec_task == task);
     if (!selfWakeup) {
@@ -127,6 +128,7 @@ void ffrt_wake_coroutine(void* task)
             }
         }
     }
+#endif
 
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&wakedTask->wq);
     if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, wakedTask->qos)) {

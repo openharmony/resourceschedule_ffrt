@@ -32,7 +32,7 @@ extern "C" {
 #define BLOCKAWARE_SUBOPS_UNREG     0x3
 #define BLOCKAWARE_SUBOPS_WAIT      0x4
 #define BLOCKAWARE_SUBOPS_WAKE      0x5
-#define BLOCKAWARE_SUBOPS_MONITORFD 0x6
+#define BLOCKAWARE_SUBOPS_MONITORFD 0X6
 
 struct BlockawareDomainInfo {
     unsigned int nrRunning;
@@ -103,7 +103,7 @@ static inline int BlockawareLeaveSleeping(void)
 {
     unsigned long *slot_ptr = curr_thread_tls_blockaware_slot_of();
     int err = 0;
- 
+
     if (*slot_ptr == 0) {
         err = -EINVAL;
     } else {
@@ -149,7 +149,7 @@ static inline int BlockawareLeaveSleeping(void)
 {
     unsigned long *slot_ptr = curr_thread_tls_blockaware_slot_of();
     int err = 0;
- 
+
     if (*slot_ptr == 0) {
         err = -EINVAL;
     } else {
@@ -234,6 +234,18 @@ static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDom
     return 0;
 }
 
+static inline unsigned int BlockawareLoadSnapshotNrRunningFast(unsigned long key, int domainId)
+{
+    BlockawareKinfoPageS* kinfoPage = reinterpret_cast<BlockawareKinfoPageS*>(key);
+    return kinfoPage->infoArea.localinfo[domainId].nrRunning;
+}
+
+static inline unsigned int BlockawareLoadSnapshotNrBlockedFast(unsigned long key, int domainId)
+{
+    BlockawareKinfoPageS* kinfoPage = reinterpret_cast<BlockawareKinfoPageS*>(key);
+    return kinfoPage->infoArea.localinfo[domainId].nrBlocked;
+}
+
 static inline int BlockawareWaitCond(struct BlockawareWakeupCond *cond)
 {
     int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_WAIT, reinterpret_cast<unsigned long>(cond));
@@ -250,9 +262,8 @@ static inline int BlockawareMonitorfd(int fd, struct BlockawareWakeupCond *cond)
 {
     int rc = prctl(HM_PR_SILK_BLOCKAWARE_OPS, BLOCKAWARE_SUBOPS_MONITORFD,
         static_cast<unsigned long>(fd), reinterpret_cast<unsigned long>(cond));
-    return (rc == 0) ? rc : -errno;
+    return (rc >= 0) ? rc : -errno;
 }
-
 
 #ifdef __cplusplus
 }

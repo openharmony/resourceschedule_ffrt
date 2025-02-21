@@ -67,10 +67,40 @@ WorkerMonitor::WorkerMonitor()
     } else {
         FFRT_LOGW("worker_monitor.conf does not exist or file permission denied");
     }
+
+    watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
+    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
+        std::lock_guard lock(mutex_);
+        if (skipSampling_) {
+            return;
+        }
+
+        WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
+        {
+            bool noWorkerThreads = true;
+            std::lock_guard submitTaskLock(submitTaskMutex_);
+            for (int i = 0; i < QoS::MaxNum(); i++) {
+                std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
+                if (!workerGroup[i].threads.empty()) {
+                    noWorkerThreads = false;
+                    break;
+                }
+            }
+            if (noWorkerThreads) {
+                CoRoutineReleaseMem();
+                samplingTaskExit_ = true;
+                return;
+            }
+        }
+
+        CoRoutineReleaseMem();
+        SubmitMemReleaseTask();
+    });
 }
 
 WorkerMonitor::~WorkerMonitor()
 {
+    FFRT_LOGW("WorkerMonitor destruction enter");
     std::lock_guard lock(mutex_);
     skipSampling_ = true;
 }
@@ -101,7 +131,6 @@ void WorkerMonitor::SubmitTask()
 void WorkerMonitor::SubmitSamplingTask()
 {
     watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
-    watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
     if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
@@ -110,33 +139,6 @@ void WorkerMonitor::SubmitSamplingTask()
 void WorkerMonitor::SubmitMemReleaseTask()
 {
     memReleaseWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
-    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
-        std::lock_guard lock(mutex_);
-        if (skipSampling_) {
-            return;
-        }
-
-        WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
-        {
-            bool noWorkerThreads = true;
-            std::lock_guard submitTaskLock(submitTaskMutex_);
-            for (int i = 0; i < QoS::MaxNum(); i++) {
-                std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-                if (!workerGroup[i].threads.empty()) {
-                    noWorkerThreads = false;
-                    break;
-                }
-            }
-            if (noWorkerThreads) {
-                CoRoutineReleaseMem();
-                samplingTaskExit_ = true;
-                return;
-            }
-        }
-
-        CoRoutineReleaseMem();
-        SubmitMemReleaseTask();
-    });
     if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
     }

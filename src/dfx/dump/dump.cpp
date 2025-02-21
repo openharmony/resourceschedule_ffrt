@@ -115,7 +115,7 @@ int dump_info_all(char *buf, uint32_t len)
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     if (FFRTIsWork()) {
         std::string dumpInfo;
-        dumpInfo += "|-> Launcher proc ffrt, pid:" + std::to_string(GetPid()) + "\n";
+        dumpInfo += GetDumpPreface();
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         dumpInfo += SaveTaskCounterInfo();
 #endif

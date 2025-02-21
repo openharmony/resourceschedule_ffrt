@@ -23,9 +23,9 @@
 
 namespace {
 constexpr int PROCESS_NAME_LEN = 1024;
-constexpr long long lONG_TASK_TIME_LIMIT = 1000; // 1s == 1000ms
-constexpr long long lONG_TASK_REPORT_FRE = 1000 * 60; // 1min == 1000ms * 60
-constexpr uint64_t FISRT_CALL_TIME_LIMIT = 1000 * 60 * 5; // 5min == 1000ms * 60 * 5
+constexpr long long lONG_TASK_TIME_LIMIT = 1; // 1s
+constexpr long long lONG_TASK_REPORT_FRE = 30 * 60; // 30min == 30 * 60s
+constexpr uint64_t FISRT_CALL_TIME_LIMIT = 5 * 60; // 5min == 5 * 60s
 constexpr const char* BEGETUTIL_LIB_PATH = "libbegetutil.z.so";
 }
 
@@ -113,25 +113,25 @@ bool IsBeta()
     return false;
 }
 
-void TaskBlockInfoReport(const long long passed, const std::string& task_label, int qos, int base)
+void TaskBlockInfoReport(const long long passed, const std::string& task_label, int qos, uint64_t freq)
 {
     static std::once_flag firstCallFlag;
-    static uint64_t firstCallTime = 0;
-    static uint64_t lastEventTime = 0;
     if (unlikely(passed > lONG_TASK_TIME_LIMIT)) {
-        std::string eventName = "TASK_TIMEOUT";
-        std::string buffer = "task:" + task_label + ", passed: "
-            + std::to_string(passed) + " ms, qos:" + std::to_string(qos);
         uint64_t now = FFRTTraceRecord::TimeStamp();
         {
             std::lock_guard<std::mutex> lock(mtx);
+            static uint64_t firstCallTime = 0;
+            static uint64_t lastEventTime = 0;
             std::call_once(firstCallFlag, [&]() {
                 firstCallTime = now;
                 lastEventTime = now;
             });
             uint64_t diff = now - firstCallTime;
-            if ((diff >> base) > FISRT_CALL_TIME_LIMIT) {
-                if (now >= lastEventTime && unlikely(((now - lastEventTime) >> base) > lONG_TASK_REPORT_FRE)) {
+            if ((diff / freq) > FISRT_CALL_TIME_LIMIT) {
+                if (now >= lastEventTime && unlikely(((now - lastEventTime) / freq) > lONG_TASK_REPORT_FRE)) {
+                    std::string eventName = "TASK_TIMEOUT";
+                    std::string buffer = "task:" + task_label + ", passed: "
+                        + std::to_string(passed) + " s, qos:" + std::to_string(qos);
                     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT,
                         eventName, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
                         "SENARIO", "Long_Task", "PROCESS_NAME", std::string(processName), "MSG", buffer);

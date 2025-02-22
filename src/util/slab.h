@@ -67,6 +67,11 @@ public:
         return Instance()->getUnfreed();
     }
 
+    static bool HasBeenFreed(T* t)
+    {
+        return Instance()->BeenFreed(t);
+    }
+
     static void LockMem()
     {
         return Instance()->SimpleAllocatorLock();
@@ -108,6 +113,25 @@ private:
     void SimpleAllocatorLock()
     {
         lock.lock();
+    }
+
+    bool BeenFreed(T* t)
+    {
+#ifdef FFRT_BBOX_ENABLE
+        if (t == nullptr) {
+            return true;
+        }
+
+        if (basePtr != nullptr &&
+            basePtr <= t &&
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
+            (static_cast<size_t>(reinterpret_cast<uintptr_t>(basePtr)) + MmapSz)) {
+                return std::find(primaryCache.begin(), primaryCache.end(), t) != primaryCache.end();
+            } else {
+                return secondaryCache.find(t) == secondaryCache.end();
+            }
+#endif
+        return true;
     }
 
     void SimpleAllocatorUnLock()

@@ -43,6 +43,14 @@ public:
         return {};
     }
 
+    static bool HasBeenFreed(CPUEUTask *task)
+    {
+        if (Instance().hasBeenFreed_ != nullptr) {
+            return Instance().hasBeenFreed_(task);
+        }
+        return true;
+    }
+
     static void LockMem()
     {
         return Instance().lockMem_();
@@ -54,12 +62,14 @@ public:
 
     static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&free,
         TaskAllocCB<CPUEUTask>::GetUnfreedMem &&getUnfreedMem = nullptr,
+        TaskAllocCB<CPUEUTask>::HasBeenFreed &&hasBeenFreed = nullptr,
         TaskAllocCB<CPUEUTask>::LockMem &&lockMem = nullptr,
         TaskAllocCB<CPUEUTask>::UnlockMem &&unlockMem = nullptr)
     {
         Instance().alloc_ = std::move(alloc);
         Instance().free_ = std::move(free);
         Instance().getUnfreedMem_ = std::move(getUnfreedMem);
+        Instance().hasBeenFreed_ = std::move(hasBeenFreed);
         Instance().lockMem_ = std::move(lockMem);
         Instance().unlockMem_ = std::move(unlockMem);
     }
@@ -68,6 +78,7 @@ private:
     TaskAllocCB<CPUEUTask>::Free free_;
     TaskAllocCB<CPUEUTask>::Alloc alloc_;
     TaskAllocCB<CPUEUTask>::GetUnfreedMem getUnfreedMem_;
+    TaskAllocCB<CPUEUTask>::HasBeenFreed hasBeenFreed_;
     TaskAllocCB<CPUEUTask>::LockMem lockMem_;
     TaskAllocCB<CPUEUTask>::UnlockMem unlockMem_;
 };

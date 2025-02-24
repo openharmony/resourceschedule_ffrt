@@ -25,8 +25,8 @@ public:
     std::unordered_set<VersionCtx*> ins;
     std::unordered_set<VersionCtx*> outs;
 
-    std::mutex denpenceStatusLock;
-    Denpence denpenceStatus {Denpence::DEPENCE_INIT};
+    std::mutex dependenceStatusLock;
+    Dependence dependenceStatus {Dependence::DEPENDENCE_INIT};
 
     union {
         std::atomic_uint64_t submitDep; // dependency refcnt during task submit
@@ -51,7 +51,7 @@ public:
         ++dataRefCnt.waitDep;
     }
     void DecWaitDataRef();
-    void MultiDepenceAdd(Denpence depType);
+    void MultiDependenceAdd(Dependence depType);
     void RecycleTask() override;
 };
 

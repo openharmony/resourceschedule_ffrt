@@ -177,7 +177,7 @@ void SDependenceManager::onWait()
 
     if (ThreadWaitMode(task)) {
         std::unique_lock<std::mutex> lck(task->mutex_);
-        task->MultiDepenceAdd(Denpence::CALL_DEPENCE);
+        task->MultiDependenceAdd(Dependence::CALL_DEPENDENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
         if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
@@ -192,7 +192,7 @@ void SDependenceManager::onWait()
         if (sTask->childRefCnt == 0) {
             return false;
         }
-        sTask->MultiDepenceAdd(Denpence::CALL_DEPENCE);
+        sTask->MultiDependenceAdd(Dependence::CALL_DEPENDENCE);
         sTask->UpdateState(ffrt::TaskState::BLOCKED);
         return true;
     };
@@ -244,7 +244,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     if (ThreadWaitMode(task)) {
         dataDepFun();
         std::unique_lock<std::mutex> lck(task->mutex_);
-        task->MultiDepenceAdd(Denpence::DATA_DEPENCE);
+        task->MultiDependenceAdd(Dependence::DATA_DEPENDENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
         if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
@@ -261,7 +261,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         if (sTask->dataRefCnt.waitDep == 0) {
             return false;
         }
-        sTask->MultiDepenceAdd(Denpence::DATA_DEPENCE);
+        sTask->MultiDependenceAdd(Dependence::DATA_DEPENDENCE);
         sTask->UpdateState(ffrt::TaskState::BLOCKED);
         return true;
     };

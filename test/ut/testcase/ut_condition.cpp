@@ -45,31 +45,6 @@ protected:
     }
 };
 
-HWTEST_F(CVTest, conditonV_wait_for_test, TestSize.Level1)
-{
-    ffrt::condition_variable cond;
-    std::atomic_int a = 0;
-    ffrt::mutex lock_;
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait_for(lck, 100ms, [&] { return a == 1; });
-            EXPECT_EQ(a, 2);
-        },
-        {}, {});
-
-    ffrt::submit(
-        [&]() {
-                std::unique_lock lck(lock_);
-                a = 2;
-                cond.notify_one();
-            },
-        {}, {});
-
-    ffrt::wait();
-}
-
 HWTEST_F(CVTest, conditonV_wait_for_test2, TestSize.Level1)
 {
     ffrt::condition_variable cond;

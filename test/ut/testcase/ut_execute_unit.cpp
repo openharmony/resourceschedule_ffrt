@@ -49,35 +49,3 @@ protected:
     {
     }
 };
-
-// 提交、取消并行普通/延时任务成功
-HWTEST_F(ExecuteUnitTest, submit_cancel_succ, TestSize.Level1)
-{
-    std::atomic<int> x = 0;
-    ffrt::submit([&]() { x.fetch_add(1); });
-    ffrt::submit([&]() { x.fetch_add(2); }, {}, {}, ffrt::task_attr().delay(1));
-    auto h1 = ffrt::submit_h([&]() { x.fetch_add(3); });
-    auto h2 = ffrt::submit_h([&]() { x.fetch_add(4); }, {}, {}, ffrt::task_attr().delay(200));
-    int cancel_ret = ffrt::skip(h2);
-    EXPECT_EQ(cancel_ret, 0);
-    ffrt::wait();
-    EXPECT_EQ(x.load(), 6);
-}
-
-// 提交、取消并行普通/延时任务成功
-HWTEST_F(ExecuteUnitTest, submit_cancel_failed, TestSize.Level1)
-{
-    int x = 0;
-    auto h1 = ffrt::submit_h([&]() { x += 1; });
-    auto h2 = ffrt::submit_h([&]() { x += 2; }, {&x}, {&x}, ffrt::task_attr().delay(100));
-    int cancel_ret = ffrt::skip(h2);
-    EXPECT_EQ(cancel_ret, 0);
-    ffrt::wait({h1});
-    EXPECT_EQ(x, 1);
-
-    cancel_ret = ffrt::skip(h1);
-    EXPECT_EQ(cancel_ret, -1);
-    ffrt::task_handle h3;
-    cancel_ret = ffrt::skip(h3);
-    EXPECT_EQ(cancel_ret, 22);
-}

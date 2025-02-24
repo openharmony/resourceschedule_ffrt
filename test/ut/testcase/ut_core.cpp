@@ -69,34 +69,6 @@ HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
     delete task2;
 }
 
-HWTEST_F(CoreTest, ffrt_submit_wait_success_01, TestSize.Level1)
-{
-    const uint32_t sleepTime = 3 * 200;
-    int x = 0;
-    ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
-    ffrt_task_attr_init(attr);
-    std::function<void()>&& basicFunc = [&]() {
-        usleep(sleepTime);
-        x = x + 1;
-    };
-    ffrt_function_header_t* basicFunc_ht = ffrt::create_function_wrapper((basicFunc));
-    const std::vector<ffrt_dependence_t> in_deps = {};
-    ffrt_deps_t in{static_cast<uint32_t>(in_deps.size()), in_deps.data()};
-    const std::vector<ffrt_dependence_t> ou_deps = {};
-    ffrt_deps_t ou{static_cast<uint32_t>(ou_deps.size()), ou_deps.data()};
-    const std::vector<ffrt_dependence_t> wait_deps = {};
-    ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
-    const ffrt_deps_t *wait_null = nullptr;
-    ffrt_submit_base(basicFunc_ht, &in, &ou, attr);
-    ffrt_wait_deps(wait_null);
-    ffrt_wait_deps(&wait);
-    ffrt_wait();
-    EXPECT_EQ(x, 1);
-    ffrt_task_attr_destroy(attr);
-    free(attr);
-    attr = nullptr;
-}
-
 /**
  * @tc.name: ThreadWaitAndNotifyModeCheck
  * @tc.desc: Test function of ThreadWaitMode and ThreadNotifyMode

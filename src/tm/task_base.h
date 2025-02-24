@@ -21,6 +21,7 @@
 #include "qos.h"
 #include "sched/execute_ctx.h"
 #include "internal_inc/non_copyable.h"
+#include "hitrace/hitracechainc.h"
 
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
@@ -37,6 +38,9 @@ public:
     std::atomic_uint32_t rc = 1; // reference count for delete
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
+#endif
+#ifdef ENABLE_HITRACE_CHAIN
+    struct HiTraceIdStruct traceId_;
 #endif
 
     inline int GetQos() const

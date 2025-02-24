@@ -38,6 +38,7 @@ ffrt_ut_base_external_deps = [
   "googletest:gtest",
   "hilog:libhilog",
   "hisysevent:libhisysevent",
+  "hitrace:libhitracechain",
 ]
 
 config("ffrt_test_config") {

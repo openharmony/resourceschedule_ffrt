@@ -420,6 +420,11 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 #ifdef FFRT_ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
 #endif
+#ifdef ENABLE_HITRACE_CHAIN
+        if (task->traceId_.valid == HITRACE_ID_VALID) {
+            HiTraceChainRestoreId(&task->traceId_);
+        }
+#endif
         FFRT_TASK_BEGIN(task->label, task->gid);
         if (task->type == ffrt_normal_task) {
             task->UpdateState(ffrt::TaskState::RUNNING);
@@ -439,6 +444,12 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
+#ifdef ENABLE_HITRACE_CHAIN
+        task->traceId_ = HiTraceChainGetId();
+        if (task->traceId_.valid == HITRACE_ID_VALID) {
+            HiTraceChainClearId();
+        }
+#endif
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
         CoStackCheck(co);
 

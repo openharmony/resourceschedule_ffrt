@@ -31,7 +31,7 @@ constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
 constexpr uint32_t CONGESTION_CNT = 5;
-constexpr uint32_t CONGESTION_TIMEOUT_US = 300000000; // 5min
+constexpr uint32_t CONGESTION_TIMEOUT_US = 300000000; //5min
 }
 
 namespace ffrt {
@@ -180,7 +180,8 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Stop();
-    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus() || isUsed_.load()) {
+    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus() ||
+        deliverCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
 }
@@ -268,11 +269,11 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
 void QueueHandler::Deliver()
 {
+    deliverCnt_.fetch_add(1);
     QueueTask* task = queue_->Pull();
+    deliverCnt_.fetch_sub(1);
     if (task != nullptr) {
         TransferTask(task);
-    } else if (!queue_->GetActiveStatus()) {
-        isUsed_.store(false);
     }
 }
 
@@ -429,7 +430,7 @@ void QueueHandler::CheckSchedDeadline()
         std::unique_lock lock(mutex_);
         uint64_t threshold = std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count() + SCHED_TIME_ACC_ERROR_US;
-        
+
         auto it = schedDeadline_.begin();
         uint64_t nextDeadline = UINT64_MAX;
         while (it != schedDeadline_.end()) {
@@ -452,7 +453,7 @@ void QueueHandler::CheckSchedDeadline()
             SendSchedTimer(tp);
         }
     }
-    
+
     // Reporting Timeout Information
     if (!timeoutTaskId.empty()) {
         ReportTimeout(timeoutTaskId);
@@ -496,7 +497,7 @@ void QueueHandler::CheckOverload()
 
     uint64_t expect = queue_->GetHeadUptime();
     uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count();
+            std::chrono::steady_clock::now().time_since_epoch()).count();
     if (now > expect && now - expect > CONGESTION_TIMEOUT_US * overloadTimes_.load()) {
         overloadTimes_.fetch_add(1);
         std::vector<uint64_t> timeoutVec = {};
@@ -515,7 +516,7 @@ void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
     FFRT_LOGE("%s", ss.str().c_str());
     ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
     if (func) {
-        func(GetQueueId(), ss.str().c_str(), ss.str().size());
+    func(GetQueueId(), ss.str().c_str(), ss.str().size());
     }
 }
 

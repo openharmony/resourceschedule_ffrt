@@ -80,7 +80,7 @@ public:
     void WorkerJoinTg(const QoS& qos, pid_t pid);
 
     CPUMonitor* monitor = nullptr;
-    bool tearDown = false;
+    std::atomic_bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::MaxNum()];
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
     uint8_t polling_[QoS::MaxNum()] = {0};

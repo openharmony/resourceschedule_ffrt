@@ -543,7 +543,7 @@ int ffrt_skip(ffrt_task_handle_t handle)
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
         __ATOMIC_RELAXED)) {
-        return 0;
+            return 0;
     }
     return 1;
 }
@@ -609,7 +609,7 @@ bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
         auto co = curTask->coRoutine;
         if (co) {
             *size = co->stkMem.size;
-            *stack_addr = static_cast<void*>(reinterpret_cast<char*>(co) + sizeof(CoRoutine) - 8);
+            *stack_addr = GetCoStackAddr(co);
             return true;
         }
     }

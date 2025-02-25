@@ -57,8 +57,7 @@ public:
 
     static inline FFRTScheduler* GetSchedInstance()
     {
-        static FFRTScheduler* inst = Instance().GetSchedInstanceImpl();
-        return inst;
+        return Instance().GetSchedInstanceImpl();
     }
 
     static inline IOPoller& GetIoPPInstance()
@@ -69,8 +68,7 @@ public:
 
     static inline CoStackAttr* GetCSAInstance()
     {
-        static CoStackAttr* inst = Instance().GetCSAInstanceImpl();
-        return inst;
+        return Instance().GetCSAInstanceImpl();
     }
 
     static inline QueueMonitor& GetQMInstance()

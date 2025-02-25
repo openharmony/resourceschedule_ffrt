@@ -143,7 +143,7 @@ void DelayedWorker::ThreadInit()
                     FFRT_LOGE("timerfd_settime error,ns=%lu,ret= %d.", ns, ret);
                 }
             } else if ((result == 1) && (!preserved)) {
-                if (++noTaskDelayCount_ > 1) {
+                if (++noTaskDelayCount_ > 1 && ffrt::FFRTFacade::GetEUInstance().GetWorkerNum() == 0) {
                     exited_ = true;
                     FFRT_LOGW("delayedWorker exit");
                     break;

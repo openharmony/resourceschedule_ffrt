@@ -66,6 +66,11 @@ public:
         return wManager[static_cast<size_t>(DevType::CPU)]->GetGroupCtl();
     }
 
+    uint64_t GetWorkerNum()
+    {
+        return wManager[static_cast<size_t>(DevType::CPU)]->GetWorkerNum();
+    }
+
     CPUMonitor* GetCPUMonitor()
     {
         return wManager[static_cast<size_t>(DevType::CPU)]->GetCPUMonitor();

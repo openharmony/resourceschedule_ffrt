@@ -40,6 +40,11 @@ struct WorkerGroupCtl {
 
 class WorkerManager {
 public:
+    uint64_t GetWorkerNum()
+    {
+        return workerNum.load();
+    }
+
     virtual ~WorkerManager()
     {
     };
@@ -63,6 +68,7 @@ public:
 protected:
     ThreadGroup tg;
     WorkerGroupCtl groupCtl[QoS::MaxNum()];
+    std::atomic_uint64_t workerNum = 0;
 };
 } // namespace ffrt
 #endif

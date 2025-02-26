@@ -41,8 +41,8 @@
  *
  * @param rwlock Indicates a pointer to the rwlock.
  * @param attr Indicates a pointer to the rwlock attribute.
- * @return Returns <b>ffrt_thrd_success</b> if the rwlock is initialized;
-           returns <b>ffrt_thrd_error</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the rwlock is initialized;
+           returns <b>ffrt_error</b> otherwise.
  * @version 1.0
  */
 FFRT_C_API int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* attr);
@@ -51,8 +51,8 @@ FFRT_C_API int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* 
  * @brief Locks a write lock.
  *
  * @param rwlock Indicates a pointer to the rwlock.
- * @return Returns <b>ffrt_thrd_success</b> if the rwlock is locked;
-           returns <b>ffrt_thrd_error</b> or blocks the calling thread otherwise.
+ * @return Returns <b>ffrt_success</b> if the rwlock is locked;
+           returns <b>ffrt_error</b> or blocks the calling thread otherwise.
  * @version 1.0
  */
 FFRT_C_API int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
@@ -61,8 +61,8 @@ FFRT_C_API int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
  * @brief Attempts to lock a write lock.
  *
  * @param rwlock Indicates a pointer to the rwlock.
- * @return Returns <b>ffrt_thrd_success</b> if the rwlock is locked;
-           returns <b>ffrt_thrd_error</b> or <b>ffrt_thrd_busy</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the rwlock is locked;
+           returns <b>ffrt_error</b> or <b>ffrt_error_busy</b> otherwise.
  * @version 1.0
  */
 FFRT_C_API int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
@@ -71,8 +71,8 @@ FFRT_C_API int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
  * @brief Locks a read lock.
  *
  * @param rwlock Indicates a pointer to the rwlock.
- * @return Returns <b>ffrt_thrd_success</b> if the rwlock is locked;
-           returns <b>ffrt_thrd_error</b> or blocks the calling thread otherwise.
+ * @return Returns <b>ffrt_success</b> if the rwlock is locked;
+           returns <b>ffrt_error</b> or blocks the calling thread otherwise.
  * @version 1.0
  */
 FFRT_C_API int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
@@ -81,8 +81,8 @@ FFRT_C_API int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
  * @brief Attempts to lock a read lock.
  *
  * @param rwlock Indicates a pointer to the rwlock.
- * @return Returns <b>ffrt_thrd_success</b> if the rwlock is locked;
-           returns <b>ffrt_thrd_error</b> or <b>ffrt_thrd_busy</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the rwlock is locked;
+           returns <b>ffrt_error</b> or <b>ffrt_error_busy</b> otherwise.
  * @version 1.0
  */
 FFRT_C_API int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
@@ -91,8 +91,8 @@ FFRT_C_API int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
  * @brief Unlocks a rwlock.
  *
  * @param rwlock Indicates a pointer to the rwlock.
- * @return Returns <b>ffrt_thrd_success</b> if the rwlock is unlocked;
-           returns <b>ffrt_thrd_error</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the rwlock is unlocked;
+           returns <b>ffrt_error</b> otherwise.
  * @version 1.0
  */
 FFRT_C_API int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
@@ -101,8 +101,8 @@ FFRT_C_API int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
  * @brief Destroys a rwlock.
  *
  * @param rwlock Indicates a pointer to the rwlock.
- * @return Returns <b>ffrt_thrd_success</b> if the rwlock is destroyed;
-           returns <b>ffrt_thrd_error</b> otherwise.
+ * @return Returns <b>ffrt_success</b> if the rwlock is destroyed;
+           returns <b>ffrt_error</b> otherwise.
  * @version 1.0
  */
 FFRT_C_API int ffrt_rwlock_destroy(ffrt_rwlock_t* rwlock);

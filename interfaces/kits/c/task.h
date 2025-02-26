@@ -197,7 +197,7 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
  * @since 12
  * @version 1.0
  */
-FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos();
+FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
 
 /**
  * @brief Obtains the ID of this task.

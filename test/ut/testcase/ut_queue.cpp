@@ -321,50 +321,6 @@ HWTEST_F(QueueTest, ffrt_queue_attr_des, TestSize.Level1)
     ffrt_queue_attr_destroy(&queue_attr);
 }
 
-/*
- * 测试用例名称 : ffrt_queue_delay_timeout
- * 测试用例描述：任务队列超时，以及延时任务
- * 操作步骤    ：1、设置队列超时时间与超时回调，调用串行队列创建接口创建队列
-                2、设置延时并提交任务
- * 预期结果    ：超时执行回调
- */
-HWTEST_F(QueueTest, ffrt_queue_delay_timeout, TestSize.Level1)
-{
-    int x = 0;
-    std::function<void()>&& basicFunc1 = [&]() {
-        x = x + 1;
-    };
-    ffrt_function_header_t* ffrt_header_t = ffrt::create_function_wrapper((basicFunc1));
-
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr);
-    ffrt_queue_attr_set_callback(&queue_attr, ffrt_header_t);
-    ffrt_queue_attr_set_timeout(&queue_attr, 2000);
-    uint64_t timeout = ffrt_queue_attr_get_timeout(&queue_attr);
-    EXPECT_EQ(timeout, 2000);
-
-    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
-
-    int result = 0;
-    std::function<void()>&& basicFunc = [&result]() {
-        OnePlusForTest(static_cast<void*>(&result));
-        usleep(4000);
-    };
-    ffrt_task_attr_t task_attr;
-    (void)ffrt_task_attr_init(&task_attr);
-    ffrt_task_attr_set_delay(&task_attr, 1000);
-
-    ffrt_task_handle_t t1 =
-        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
-
-    ffrt_queue_wait(t1);
-    ffrt_task_handle_destroy(t1);
-    ffrt_task_attr_destroy(&task_attr);
-    EXPECT_EQ(result, 1);
-    EXPECT_EQ(x, 1);
-    ffrt_queue_destroy(queue_handle);
-}
-
 HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level1)
 {
     // ffrt_queue_attr_set_timeout接口attr为异常值

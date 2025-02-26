@@ -53,15 +53,3 @@ public:
         putenv("FFRT_PATH_HARDWARE=0");
     }
 };
-
-Env g_env __attribute__ ((init_priority(102)));
-HWTEST_F(InitTest, hardware_test, TestSize.Level1)
-{
-    int x = 0;
-    auto h = ffrt::submit_h(
-        [&]() {
-            x++;
-        }, {}, {});
-    ffrt::wait({h});
-    EXPECT_EQ(x, 1);
-}

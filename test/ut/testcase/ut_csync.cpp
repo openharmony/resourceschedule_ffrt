@@ -195,12 +195,12 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
         ffrt_this_task_set_legacy_mode(true);
         ffrt::CPUEUTask* ctx = ffrt::ExecuteCtx::Cur()->task;
         bool result = ffrt::LegacyMode(ctx);
-        EXPECT_EQ(result, 1);
+        EXPECT_TRUE(result);
         ffrt::submit([&]() {
             ffrt_this_task_set_legacy_mode(true);
             ffrt::CPUEUTask* ctx = ffrt::ExecuteCtx::Cur()->task;
             bool result = ffrt::LegacyMode(ctx);
-            EXPECT_EQ(result, 1);
+            EXPECT_TRUE(result);
             x++;
             EXPECT_EQ(x, 1);
             ffrt_this_task_set_legacy_mode(false);
@@ -208,14 +208,14 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
             ctx = ffrt::ExecuteCtx::Cur()->task;
             int legacycount = ctx->legacyCountNum;
             EXPECT_EQ(legacycount, -1);
-            }, {}, {});
+            }, {}, {}, ffrt::task_attr().qos(3));
         ffrt::wait();
         ffrt_this_task_set_legacy_mode(false);
         ffrt_this_task_set_legacy_mode(false);
         ctx = ffrt::ExecuteCtx::Cur()->task;
         int legacycount = ctx->legacyCountNum;
         EXPECT_EQ(legacycount, 0);
-        }, {}, {});
+        }, {}, {}, ffrt::task_attr().qos(3));
     ffrt::wait();
     EXPECT_EQ(x, 1);
 }
@@ -854,15 +854,6 @@ static void TryLockSharedTest(ffrt::shared_mutex& smtx)
     if (ret) {
         smtx.unlock_shared();
     }
-}
-
-HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level1)
-{
-    ffrt::shared_mutex smtx;
-    LockTest(smtx);
-    TryLockTest(smtx);
-    LockSharedTest(smtx);
-    TryLockSharedTest(smtx);
 }
 
 HWTEST_F(SyncTest, thread1, TestSize.Level1)

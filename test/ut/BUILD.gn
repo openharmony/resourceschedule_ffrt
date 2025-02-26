@@ -27,6 +27,7 @@ ffrt_ut_base_cflags_cc = [
   "-fcxx-exceptions",
   "-std=c++11",
   "-DFFRT_PERF_EVENT_ENABLE",
+  "-DENABLE_HITRACE_CHAIN",
 ]
 
 ffrt_ut_base_deps = [ "../..:libffrt" ]

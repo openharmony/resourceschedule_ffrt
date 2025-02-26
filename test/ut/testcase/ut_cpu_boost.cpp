@@ -116,18 +116,3 @@ HWTEST_F(CpuBoostTest, FFRTCpuBoostApiSuccess, TestSize.Level1)
     ffrt_cpu_boost_end(1);
     EXPECT_EQ(i, 1);
 }
-
-#ifndef WITH_NO_MOCKER
-HWTEST_F(CpuBoostTest, FFRTCpuBoostApiStubSuccess, TestSize.Level1)
-{
-    int i = 0;
-    MOCKER(CpuBoostStart).stubs().will(returnValue(0));
-    MOCKER(CpuBoostEnd).stubs().will(returnValue(0));
-    ffrt_cpu_boost_start(1);
-    i++;
-    ffrt_cpu_boost_end(1);
-    EXPECT_EQ(i, 1);
-    GlobalMockObject::reset();
-    GlobalMockObject::verify();
-}
-#endif

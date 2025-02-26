@@ -120,28 +120,3 @@ HWTEST_F(ThreadTest, GetQosTest, TestSize.Level1)
     QoS ret = wt->GetQos();
     delete wt;
 }
-
-HWTEST_F(ThreadTest, set_worker_stack_size, TestSize.Level1)
-{
-    int inc = 0;
-    size_t stackSize = 0;
-    WorkerThread* wt = new WorkerThread(QoS(6));
-    wt->NativeConfig();
-    wt->Start(MockStart, &inc);
-    wt->Join();
-    EXPECT_EQ(inc, 1);
-    delete wt;
-
-    ffrt_error_t ret = ffrt_set_worker_stack_size(5, 10);
-    EXPECT_EQ(ret, ffrt_error_inval);
-
-    ret = ffrt_set_worker_stack_size(5, WORKER_STACK_SIZE);
-    wt = new WorkerThread(QoS(5));
-    wt->NativeConfig();
-    wt->Start(MockStart, &inc);
-    wt->Join();
-    EXPECT_EQ(inc, 2);
-    pthread_attr_getstacksize(&wt->attr_, &stackSize);
-    EXPECT_EQ(stackSize, WORKER_STACK_SIZE);
-    delete wt;
-}

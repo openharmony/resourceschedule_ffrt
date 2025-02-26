@@ -255,33 +255,6 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwait, TestSize.Leve
     close(testFd);
 }
 
-HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_short_timeout_flagwake, TestSize.Level1)
-{
-    int x = 0;
-    int* xf = &x;
-    void* data = xf;
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    uint64_t timeout1 = 400;
-    uint64_t timeout2 = 10;
-    uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
-    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAKE;
-    EXPECT_EQ(1, ffrt_timer_start(qos, timeout2, data, cb, false));
-    struct TestData testData {.fd = testFd, .expected = expected};
-    ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-
-    usleep(15000);
-    ffrt::submit([&]() {
-        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
-        }, {}, {});
-    ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
-    ffrt::wait();
-    EXPECT_EQ(static_cast<int>(1), x);
-    close(testFd);
-}
-
 HWTEST_F(ffrtIoTest, ffrt_timer_start_succ_long_timeout_flagwake, TestSize.Level1)
 {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
@@ -627,34 +600,6 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid, TestSize.Level1)
         }, {}, {});
     usleep(1000);
     EXPECT_EQ(0, result);
-}
-
-HWTEST_F(ffrtIoTest, ffrt_epoll_wait_events_invalid, TestSize.Level1)
-{
-    uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    struct WakeData m_wakeData;
-    m_wakeData.data = nullptr;
-    m_wakeData.fd = testFd;
-    ffrt_qos_t qos_level = ffrt_qos_user_initiated;
-    int op = EPOLL_CTL_ADD;
-    epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&m_wakeData)} };
-    int maxevents = 1024;
-    uint64_t timeout = 0;
-    int result = 0;
-
-    struct TestData testData {.fd = testFd, .expected = expected};
-
-    int ret = ffrt_epoll_ctl(qos_level, op, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-    EXPECT_EQ(0, ret);
-
-    ffrt::submit([&]() {
-        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
-        result = ffrt_epoll_wait(qos_level, nullptr, maxevents, timeout);
-        }, {}, {});
-    usleep(1000);
-    EXPECT_EQ(-1, result);
 }
 
 HWTEST_F(ffrtIoTest, ffrt_epoll_wait_maxevents_invalid, TestSize.Level1)

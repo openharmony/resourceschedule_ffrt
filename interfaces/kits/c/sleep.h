@@ -14,29 +14,28 @@
  */
 
 /**
- * @addtogroup Ffrt
+ * @addtogroup FFRT
  * @{
  *
- * @brief ffrt provides APIs.
- *
- *
- * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ * @brief Provides FFRT C APIs.
  *
  * @since 10
  */
 
 /**
  * @file sleep.h
- * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares the sleep and yield interfaces in C.
+ *
  * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
+
 #ifndef FFRT_API_C_SLEEP_H
 #define FFRT_API_C_SLEEP_H
+
 #include <stdint.h>
 #include "type_def.h"
 
@@ -58,5 +57,6 @@ FFRT_C_API int ffrt_usleep(uint64_t usec);
  * @version 1.0
  */
 FFRT_C_API void ffrt_yield(void);
-#endif
+
+#endif // FFRT_API_C_SLEEP_H
 /** @} */

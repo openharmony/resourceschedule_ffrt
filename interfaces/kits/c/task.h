@@ -14,29 +14,28 @@
  */
 
 /**
- * @addtogroup Ffrt
+ * @addtogroup FFRT
  * @{
  *
- * @brief ffrt provides APIs.
- *
- *
- * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ * @brief Provides FFRT C APIs.
  *
  * @since 10
  */
 
- /**
+/**
  * @file task.h
- * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares the task interfaces in C.
+ *
  * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
+
 #ifndef FFRT_API_C_TASK_H
 #define FFRT_API_C_TASK_H
+
 #include <stdint.h>
 #include "type_def.h"
 
@@ -52,7 +51,7 @@
 FFRT_C_API int ffrt_task_attr_init(ffrt_task_attr_t* attr);
 
 /**
- * @brief Sets a task name.
+ * @brief Sets the name of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param name Indicates a pointer to the task name.
@@ -62,7 +61,7 @@ FFRT_C_API int ffrt_task_attr_init(ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_attr_set_name(ffrt_task_attr_t* attr, const char* name);
 
 /**
- * @brief Obtains a task name.
+ * @brief Gets the name of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns a non-null pointer to the task name if the name is obtained;
@@ -73,7 +72,7 @@ FFRT_C_API void ffrt_task_attr_set_name(ffrt_task_attr_t* attr, const char* name
 FFRT_C_API const char* ffrt_task_attr_get_name(const ffrt_task_attr_t* attr);
 
 /**
- * @brief Destroys a task attribute.
+ * @brief Destroys a task attribute, the user needs to invoke this interface.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @since 10
@@ -82,7 +81,7 @@ FFRT_C_API const char* ffrt_task_attr_get_name(const ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_attr_destroy(ffrt_task_attr_t* attr);
 
 /**
- * @brief Sets the QoS for a task attribute.
+ * @brief Sets the QoS of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param qos Indicates the QoS.
@@ -92,7 +91,7 @@ FFRT_C_API void ffrt_task_attr_destroy(ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_attr_set_qos(ffrt_task_attr_t* attr, ffrt_qos_t qos);
 
 /**
- * @brief Obtains the QoS of a task attribute.
+ * @brief Gets the QoS of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns the QoS, which is <b>ffrt_qos_default</b> by default.
@@ -102,7 +101,7 @@ FFRT_C_API void ffrt_task_attr_set_qos(ffrt_task_attr_t* attr, ffrt_qos_t qos);
 FFRT_C_API ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t* attr);
 
 /**
- * @brief Sets the task delay time.
+ * @brief Sets the delay time of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param delay_us Indicates the delay time, in microseconds.
@@ -112,7 +111,7 @@ FFRT_C_API ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_us);
 
 /**
- * @brief Obtains the task delay time.
+ * @brief Gets the delay time of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns the delay time.
@@ -122,7 +121,7 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
 FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 
 /**
- * @brief Sets the task priority.
+ * @brief Sets the priority of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param priority Indicates the execute priority of concurrent queue task.
@@ -132,7 +131,7 @@ FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_queue_priority_t priority);
 
 /**
- * @brief Obtains the task priority.
+ * @brief Gets the priority of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns the priority of concurrent queue task.
@@ -142,7 +141,7 @@ FFRT_C_API void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_q
 FFRT_C_API ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_task_attr_t* attr);
 
 /**
- * @brief Sets the task stack size.
+ * @brief Sets the stack size of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param size Indicates the task stack size, unit is byte.
@@ -152,7 +151,7 @@ FFRT_C_API ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_ta
 FFRT_C_API void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t size);
 
 /**
- * @brief Obtains the task stack size.
+ * @brief Gets the stack size of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns the task stack size, unit is byte.
@@ -162,7 +161,7 @@ FFRT_C_API void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t s
 FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
 
 /**
- * @brief Set the task schedule timeout.
+ * @brief Sets the schedule timeout of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param timeout_us task scheduler timeout.
@@ -171,7 +170,7 @@ FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
 FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t timeout_us);
 
 /**
- * @brief Get the task schedule timeout.
+ * @brief Gets the schedule timeout of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @return Returns the task schedule timeout.
@@ -191,7 +190,7 @@ FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
 FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
 
 /**
- * @brief Obtains the qos of this task.
+ * @brief Gets the QoS of this task.
  *
  * @return Returns the task qos.
  * @since 12
@@ -200,7 +199,7 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
 FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
 
 /**
- * @brief Obtains the ID of this task.
+ * @brief Gets the ID of this task.
  *
  * @return Returns the task ID.
  * @since 10
@@ -209,7 +208,7 @@ FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
 FFRT_C_API uint64_t ffrt_this_task_get_id(void);
 
 /**
- * @brief Applies for memory for the function execution structure.
+ * @brief Applies memory for the function execution structure.
  *
  * @param kind Indicates the type of the function execution structure, which can be common or queue.
  * @return Returns a non-null pointer if the memory is allocated;
@@ -248,27 +247,27 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, cons
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 /**
- * @brief increase reference count of task handle.
+ * @brief Increases reference count of a task.
  *
  * @param handle Indicates a task handle.
- * @return return the task handle original reference count.
+ * @return Returns the task handle original reference count.
  * @since 12
  * @version 1.0
  */
 FFRT_C_API uint32_t ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
 
 /**
- * @brief decrease reference count of task handle.
+ * @brief Decreases reference count of a task.
  *
  * @param handle Indicates a task handle.
- * @return return the task handle original reference count.
+ * @return Returns the task handle original reference count.
  * @since 12
  * @version 1.0
  */
 FFRT_C_API uint32_t ffrt_task_handle_dec_ref(ffrt_task_handle_t handle);
 
 /**
- * @brief Destroys a task handle.
+ * @brief Destroys a task handle, the user needs to invoke this interface.
  *
  * @param handle Indicates a task handle.
  * @since 10
@@ -304,14 +303,14 @@ FFRT_C_API void ffrt_wait(void);
 FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
 
 /**
- * @brief get gid from task handle.
+ * @brief Gets gid of a task.
  *
  * @param handle Indicates a task handle.
- * @return Return gid.
+ * @return Returns gid.
  * @since 10
  * @version 1.0
  */
 FFRT_C_API uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle);
 
-#endif
+#endif // FFRT_API_C_TASK_H
 /** @} */

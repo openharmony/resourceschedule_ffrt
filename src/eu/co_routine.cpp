@@ -445,7 +445,10 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 #endif
         FFRT_TASK_END();
 #ifdef ENABLE_HITRACE_CHAIN
-        HiTraceChainClearId();
+        task->traceId_ = HiTraceChainGetId();
+        if (task->traceId_.valid == HITRACE_ID_VALID) {
+            HiTraceChainClearId();
+        }
 #endif
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
         CoStackCheck(co);

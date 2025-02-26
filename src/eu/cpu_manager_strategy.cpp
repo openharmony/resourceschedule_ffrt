@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -42,7 +42,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
         [pIns] (const WorkerThread* thread, int timeout) { return pIns->TryPoll(thread, timeout); },
         [pIns] (WorkerThread* thread) { return pIns->StealTaskBatch(thread); },
         [pIns] (WorkerThread* thread) { return pIns->PickUpTaskBatch(thread); },
-        [pIns] (const QoS& qos) {return pIns->GetTaskCount(qos); },
+        [pIns] (const QoS& qos) { return pIns->GetTaskCount(qos); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         [pIns] (const WorkerThread* thread) { return pIns->IsExceedRunningThreshold(thread); },
         [pIns] () { return pIns->IsBlockAwareInit(); },

@@ -121,6 +121,5 @@ static inline void disable_worker_escape()
 {
     ffrt_disable_worker_escape();
 }
-
 } // namespace ffrt
 #endif

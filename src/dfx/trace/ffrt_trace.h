@@ -236,7 +236,7 @@ static bool _IsTagEnabled(uint64_t label)
     do { \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
             _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag), -1); \
-            FFRT_TRACE_END(); \
+        FFRT_TRACE_END(); \
     } while (false)
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
     do { \

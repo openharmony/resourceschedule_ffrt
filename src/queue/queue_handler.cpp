@@ -323,6 +323,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     std::chrono::microseconds timeout(timeout_);
     auto now = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     we->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
+
     delayedCbCnt_.fetch_add(1);
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         delayedCbCnt_.fetch_sub(1);

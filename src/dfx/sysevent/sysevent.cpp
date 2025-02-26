@@ -133,9 +133,9 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
                     std::string buffer = "task:" + task_label + ", passed: "
                         + std::to_string(passed) + " s, qos:" + std::to_string(qos);
                     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT,
-                        eventName, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
-                        "SENARIO", "Long_Task", "PROCESS_NAME", std::string(processName), "MSG", buffer);
-                lastEventTime = now;
+                                    eventName, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+                                    "SENARIO", "Long_Task", "PROCESS_NAME", std::string(processName), "MSG", buffer);
+                    lastEventTime = now;
                 }
             }
         }
@@ -161,7 +161,7 @@ void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum
                     + ", qos: " + std::to_string(qos)
                     + ", worker num: " + std::to_string(totalNum)
                     + ", near gid:" + std::to_string((near_gid > 0) ? near_gid - 1 : 0);
-    std::string eventName = "WORKER_ESCAPE";
+    std::string eventName = "TASK_TIMEOUT";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", "Trigger_Escape",
         "PROCESS_NAME", processName, "MSG", msg);

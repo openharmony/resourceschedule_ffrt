@@ -189,13 +189,13 @@ void CPUWorker::WorkerLooperDefault(CPUWorker* worker)
         }
 
 run_task:
-    RunTaskLifo(local_task, worker);
-    continue;
+        RunTaskLifo(local_task, worker);
+        continue;
 
 poll_once:
-    if (TryPoll(worker, 0) != PollerRet::RET_NULL) {
-        continue;
-    }
+        if (TryPoll(worker, 0) != PollerRet::RET_NULL) {
+            continue;
+        }
 
 #ifdef FFRT_LOCAL_QUEUE_ENABLE
         // pick up tasks from global queue

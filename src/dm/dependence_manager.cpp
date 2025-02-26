@@ -46,7 +46,6 @@ void DependenceManager::onSubmitUV(ffrt_executor_task_t *task, const task_attr_p
 
 void DependenceManager::onSubmitIO(const ffrt_io_callable_t& work, const task_attr_private* attr)
 {
-    FFRT_EXECUTOR_TASK_SUBMIT_MARKER(&work);
     FFRT_TRACE_SCOPE(1, onSubmitIO);
     IOTask* ioTask = TaskFactory<IOTask>::Alloc();
     new (ioTask) IOTask(work, attr);

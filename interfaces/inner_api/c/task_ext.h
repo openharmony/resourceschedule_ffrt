@@ -103,16 +103,8 @@ FFRT_C_API int64_t ffrt_this_queue_get_id(void);
  *         returns 1 otherwise.
  * @version 1.0
  */
- FFRT_C_API int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
-     uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num);
-
-/**
- * @brief Set the sched mode of the QoS.
- *
- * @return
- * @version 1.0
- */
-FFRT_C_API void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode);
+FFRT_C_API int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
+    uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num);
 
 /**
  * @brief Disable the worker escape function (When all the worker threads under a QoS level fully block, the system will
@@ -121,4 +113,12 @@ FFRT_C_API void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode);
  * @version 1.0
  */
 FFRT_C_API void ffrt_disable_worker_escape(void);
+
+/**
+ * @brief Set the sched mode of the QoS.
+ *
+ * @return
+ * @version 1.0
+ */
+FFRT_C_API void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode);
 #endif

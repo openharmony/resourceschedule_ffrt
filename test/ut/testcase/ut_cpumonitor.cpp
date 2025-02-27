@@ -293,7 +293,7 @@ HWTEST_F(CpuMonitorTest, total_count_test, TestSize.Level1)
         std::bind(&MockWorkerManager::GetTaskCount, &mWmanager, std::placeholders::_1),
         std::bind(&MockWorkerManager::GetWorkerCount, &mWmanager, std::placeholders::_1) });
 
-    int ret = monitor.TotalCount(qos(2));
+    int ret = wmonitor.TotalCount(qos(2));
 
     EXPECT_NE(ret, -1);
 }

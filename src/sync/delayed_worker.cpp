@@ -161,7 +161,6 @@ void DelayedWorker::ThreadInit()
             if (nfds == 0) {
                 DumpMap();
             }
-            FFRT_TRACE_END();
 
             if (nfds < 0) {
                 if (errno != FAKE_WAKE_UP_ERROR) {
@@ -340,7 +339,6 @@ void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func)
 
         func();
         asyncTaskCnt_.fetch_sub(1);
-        }, {}, {this},
-            ffrt::task_attr().qos(qos_background));
+        }, {}, {this}, ffrt::task_attr().qos(qos_background));
 }
 } // namespace ffrt

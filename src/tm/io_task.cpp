@@ -39,7 +39,7 @@ void IOTask::Execute()
     FFRT_EXECUTOR_TASK_BEGIN(this);
     status = ExecTaskStatus::ET_EXECUTING;
     ffrt_coroutine_ptr_t coroutine = work.exec;
-    ffrt_coroutine_ret_t  ret = coroutine(work.data);
+    ffrt_coroutine_ret_t ret = coroutine(work.data);
     if (ret == ffrt_coroutine_ready) {
         status = ExecTaskStatus::ET_FINISH;
         work.destroy(work.data);

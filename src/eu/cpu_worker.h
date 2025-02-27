@@ -57,8 +57,6 @@ public:
 
 public:
     static void WorkerLooperDefault(CPUWorker* worker);
-    static void WorkerLooperStandard(WorkerThread* p);
-    static void Run(CPUEUTask* task, CoRoutineEnv* coRoutineEnv, CPUWorker* worker);
 
 private:
     static void* WrapDispatch(void* worker);

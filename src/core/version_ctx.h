@@ -18,7 +18,6 @@
 #include <unordered_set>
 #include <vector>
 #include <string>
-#include <utility>
 
 #include "internal_inc/types.h"
 #include "tm/scpu_task.h"

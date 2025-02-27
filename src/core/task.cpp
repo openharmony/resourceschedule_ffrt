@@ -420,7 +420,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
         return -1;
     }
     if (ffrt::GetFuncQosMap() == nullptr) {
-        FFRT_LOGE("qos[%d] worker num[%u] is invalid.", qos, num);
+        FFRT_LOGE("FuncQosMap has not regist");
         return -1;
     }
     ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
@@ -656,16 +656,6 @@ uint64_t ffrt_get_cur_cached_task_id(void)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
-{
-    if (mode == ffrt_sched_energy_saving_mode) {
-        FFRT_LOGE("Currently, the energy saving mode is unavailable.");
-        return;
-    }
-    ffrt::CPUManagerStrategy::SetSchedMode(ffrt::QoS(qos), (ffrt::sched_mode_type)mode);
-}
-
-API_ATTRIBUTE((visibility("default")))
 int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
     uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num)
 {
@@ -678,6 +668,16 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_disable_worker_escape(void)
 {
     ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor()->SetEscapeDisable();
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
+{
+    if (mode == ffrt_sched_energy_saving_mode) {
+        FFRT_LOGE("Currently, the energy saving mode is unavailable.");
+        return;
+    }
+    ffrt::CPUManagerStrategy::SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));
 }
 #ifdef __cplusplus
 }

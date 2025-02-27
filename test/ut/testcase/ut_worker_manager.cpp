@@ -24,6 +24,7 @@
 #define protected public
 #include "eu/worker_manager.h"
 #include "eu/scpuworker_manager.h"
+#include "eu/scpu_monitor.h"
 #include "sched/task_scheduler.h"
 #include "tm/scpu_task.h"
 #include "sched/scheduler.h"
@@ -153,7 +154,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyUltraConservativeTest, Tes
         },
         std::bind(&GetTaskCountStub, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
-        CPUMonitor::HandleTaskNotifyUltraConservative,
+        SCPUMonitor::HandleTaskNotifyUltraConservative,
     };
     manager->monitor->ops = std::move(monitorOps);
     WorkerCtrl& workerCtrl = manager->monitor->ctrlQueue[2];
@@ -180,7 +181,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest, TestSize
         },
         std::bind(&GetTaskCountStub, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
-        CPUMonitor::HandleTaskNotifyConservative,
+        SCPUMonitor::HandleTaskNotifyConservative,
     };
     manager->monitor->ops = std::move(monitorOps);
     WorkerCtrl& workerCtrl = manager->monitor->ctrlQueue[2];
@@ -207,7 +208,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
         },
         std::bind(&GetTaskCountStub, std::placeholders::_1),
         std::bind(&SCPUWorkerManager::GetWorkerCount, manager, std::placeholders::_1),
-        std::bind(&CPUMonitor::HandleTaskNotifyConservative,
+        std::bind(&SCPUMonitor::HandleTaskNotifyConservative,
             std::placeholders::_1, std::placeholders::_2, TaskNotifyType::TASK_PICKED),
     };
     manager->monitor->ops = std::move(monitorOps);

@@ -64,7 +64,6 @@ HWTEST_F(QosConvertTest, GetStaticQosTest, TestSize.Level1)
 
 HWTEST_F(QosConvertTest, IsDelayerWorkerThreadTest, TestSize.Level1)
 {
-    const uint64_t timeoutUs = 100;
     DelayedWorker::ThreadEnvCreate();
     sleep(1);
     bool ret = DelayedWorker::IsDelayerWorkerThread();

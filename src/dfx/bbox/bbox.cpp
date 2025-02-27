@@ -521,7 +521,7 @@ void DumpThreadTaskInfo(WorkerThread* thread, int qos, std::ostringstream& ss)
             auto cpuTask = reinterpret_cast<CPUEUTask*>(t);
             if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->state != TaskState::EXITED)) {
                 ss << "        qos " << qos << ": worker tid " << tid << " normal task is running, task id "
-                    << t->gid << " name " << t->GetLabel().c_str();
+                   << t->gid << " name " << t->GetLabel().c_str();
                 AppendTaskInfo(ss, t);
             }
             TaskFactory<CPUEUTask>::UnlockMem();
@@ -534,7 +534,7 @@ void DumpThreadTaskInfo(WorkerThread* thread, int qos, std::ostringstream& ss)
                 auto queueTask = reinterpret_cast<QueueTask*>(t);
                 if ((!SimpleAllocator<QueueTask>::HasBeenFreed(queueTask)) && (!queueTask->GetFinishStatus())) {
                     ss << "        qos " << qos << ": worker tid " << tid << " queue task is running, task id "
-                        << t->gid << " name " << t->GetLabel().c_str();
+                       << t->gid << " name " << t->GetLabel().c_str();
                     AppendTaskInfo(ss, t);
                 }
                 TaskFactory<QueueTask>::UnlockMem();

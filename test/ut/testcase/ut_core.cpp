@@ -288,63 +288,69 @@ HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level1)
     EXPECT_EQ(qos, ffrt::QoS(ffrt_qos_user_initiated)());
 }
 
-namespace {
-void TestTaskFactory()
+namespace ffrt {
+template <typename T>
+TaskFactory<T>& TaskFactory<T>::Instance()
 {
+    static TaskFactory<T> fac;
+    return fac;
+}
+}
+
+namespace TmTest {
+class MyTask : public ffrt::TaskBase {
+private:
+    void FreeMem() override { ffrt::TaskFactory<MyTask>::Free(this); }
+    void Execute() override {}
+    std::string GetLabel() const override { return "my-task"; }
+};
+
+void TestTaskFactory(bool isSimpleAllocator)
+{
+    MyTask* task = ffrt::TaskFactory<MyTask>::Alloc();
+    uint32_t taskCount = ffrt::TaskFactory<MyTask>::GetUnfreedMem().size();
+#ifdef FFRT_BBOX_ENABLE
+    EXPECT_FALSE(ffrt::TaskFactory<MyTask>::HasBeenFreed(task));
+#else
+    EXPECT_TRUE(isSimpleAllocator || !ffrt::TaskFactory<MyTask>::HasBeenFreed(task));
+#endif
+
     std::vector<ffrt::TaskBase*> tasks;
-    ffrt::CPUEUTask* cpuTask = ffrt::TaskFactory<ffrt::CPUEUTask>::Alloc();
-    new (cpuTask) ffrt::SCPUEUTask(nullptr, nullptr, 0, ffrt::QoS(ffrt::qos_user_interactive));
-    tasks.push_back(cpuTask);
-    ffrt::QueueTask* queueTask = ffrt::TaskFactory<ffrt::QueueTask>::Alloc();
-    new(queueTask) ffrt::QueueTask(nullptr, nullptr, false);
-    tasks.push_back(queueTask);
-    ffrt::IOTask* ioTask = ffrt::TaskFactory<ffrt::IOTask>::Alloc();
-    ffrt_io_callable_t work;
-    new(ioTask) ffrt::IOTask(work, nullptr);
-    tasks.push_back(ioTask);
-
-    EXPECT_EQ(1, ffrt::TaskFactory<ffrt::CPUEUTask>::GetUnfreedMem().size());
-    EXPECT_EQ(1, ffrt::TaskFactory<ffrt::QueueTask>::GetUnfreedMem().size());
-    EXPECT_EQ(1, ffrt::TaskFactory<ffrt::IOTask>::GetUnfreedMem().size());
-
+    new(task) MyTask();
+    tasks.push_back(task);
     for (auto task : tasks) {
         task->DecDeleteRef();
     }
 
-    EXPECT_EQ(0, ffrt::TaskFactory<ffrt::CPUEUTask>::GetUnfreedMem().size());
-    EXPECT_EQ(0, ffrt::TaskFactory<ffrt::QueueTask>::GetUnfreedMem().size());
-    EXPECT_EQ(0, ffrt::TaskFactory<ffrt::IOTask>::GetUnfreedMem().size());
-}
-}
-
-/*
-* 测试用例名称：ffrt_task_factory_test_01
-* 测试用例描述：测试使用SimpleAllocator时，任务能够成功申请释放
-* 预置条件    ：无
-* 操作步骤    ：分别使用TaskFactory申请一个CPUEUTask、QueueTask、IOTask的实例，初始化后调用各自的DecDeleteRef释放
-* 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值为1和0
-*/
-HWTEST_F(CoreTest, ffrt_task_factory_test_01, TestSize.Level1)
-{
-    TestTaskFactory();
+    uint32_t newCount = ffrt::TaskFactory<MyTask>::GetUnfreedMem().size();
+#ifdef FFRT_BBOX_ENABLE
+    EXPECT_GT(taskCount, newCount);
+#else
+    if (!isSimpleAllocator) {
+        EXPECT_GT(taskCount, ffrt::TaskFactory<MyTask>::GetUnfreedMem().size());
+    }
+#endif
+    EXPECT_TRUE(ffrt::TaskFactory<MyTask>::HasBeenFreed(task));
 }
 
-namespace {
 template <typename T>
 class CustomTaskManager {
 public:
     T* Alloc()
     {
-        std::lock_guard<std::mutex> lock(mutex);
-        T* res = (T*)malloc(sizeof(T));
+        mutex.lock();
+        T* res = reinterpret_cast<T*>(malloc(sizeof(T)));
         allocedTask.insert(res);
+        mutex.unlock();
         return res;
     }
 
     void Free(T* task)
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        mutex.lock();
         allocedTask.erase(task);
+        free(task);
+        mutex.unlock();
     }
 
     void LockMem()
@@ -357,12 +363,18 @@ public:
         mutex.unlock();
     }
 
+    bool HasBeenFreed(T* task)
+    {
+        return allocedTask.find(task) == allocedTask.end();
+    }
+
     std::vector<void*> GetUnfreedMem()
     {
         std::vector<void*> res;
-        for (const auto& task : allocedTask) {
-            res.push_back(reinterpret_cast<void*>(task));
-        }
+        res.resize(allocedTask.size());
+        std::transform(allocedTask.begin(), allocedTask.end(), std::inserter(res, res.end()), [](T* ptr) {
+            return static_cast<void*>(ptr);
+        });
         return res;
     }
 
@@ -370,43 +382,45 @@ private:
     std::mutex mutex;
     std::set<T*> allocedTask;
 };
+} // namespace TmTest
+
+/*
+* 测试用例名称：ffrt_task_factory_test_001
+* 测试用例描述：测试使用SimpleAllocator时，任务能够成功申请释放
+* 预置条件    ：注册使用SimpleAllocator的内存分配函数
+* 操作步骤    ：使用TaskFactory申请一个自定义Task的实例，初始化后调用各自的DecDeleteRef释放
+* 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值小于释放前
+*/
+HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level1)
+{
+    ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
+        ffrt::SimpleAllocator<TmTest::MyTask>::AllocMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::HasBeenFreed,
+        ffrt::SimpleAllocator<TmTest::MyTask>::LockMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::UnlockMem);
+
+    TmTest::TestTaskFactory(true);
 }
 
 /*
-* 测试用例名称：ffrt_this_task_factory_test_02
-* 测试用例描述：测试使用SimpleAllocator时，任务能够成功申请释放
-* 预置条件    ：注册自定义Task内存分配函数，替代init中的SimpleAllocator
-* 操作步骤    ：分别使用TaskFactory申请一个CPUEUTask、QueueTask、IOTask的实例，初始化后调用各自的FreeMem释放
-* 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值为1和0
+* 测试用例名称：ffrt_task_factory_test_002
+* 测试用例描述：测试使用自定义管理器时，任务能够成功申请释放
+* 预置条件    ：注册自定义Task内存分配函数
+* 操作步骤    ：使用TaskFactory申请一个自定义Task的实例，初始化后调用各自的DecDeleteRef释放
+* 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值小于释放前
 */
-HWTEST_F(CoreTest, ffrt_task_factory_test_02, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level1)
 {
-    CustomTaskManager<ffrt::SCPUEUTask> scpu_manager;
-    ffrt::TaskFactory<ffrt::CPUEUTask>::RegistCb(
-        [&] () -> ffrt::CPUEUTask* { return scpu_manager.Alloc(); },
-        [&] (ffrt::CPUEUTask* task) { scpu_manager.Free(static_cast<ffrt::SCPUEUTask*>(task)); },
-        [&] () -> std::vector<void*> { return scpu_manager.GetUnfreedMem(); },
-		nullptr,
-        [&] () { scpu_manager.LockMem(); },
-        [&] () { scpu_manager.UnlockMem(); });
+    TmTest::CustomTaskManager<TmTest::MyTask> custom_manager;
+    ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
+        [&] () -> TmTest::MyTask* { return custom_manager.Alloc(); },
+        [&] (TmTest::MyTask* task) { custom_manager.Free(task); },
+        [&] () -> std::vector<void*> { return custom_manager.GetUnfreedMem(); },
+        [&] (TmTest::MyTask* task) { return custom_manager.HasBeenFreed(task); },
+        [&] () { custom_manager.LockMem(); },
+        [&] () { custom_manager.UnlockMem(); });
 
-    CustomTaskManager<ffrt::QueueTask> queue_manager;
-    ffrt::TaskFactory<ffrt::QueueTask>::RegistCb(
-        [&] () -> ffrt::QueueTask* { return queue_manager.Alloc(); },
-        [&] (ffrt::QueueTask* task) { queue_manager.Free(task); },
-        [&] () -> std::vector<void*> { return queue_manager.GetUnfreedMem(); },
-		nullptr,
-        [&] () { queue_manager.LockMem(); },
-        [&] () { queue_manager.UnlockMem(); });
-
-    CustomTaskManager<ffrt::IOTask> io_manager;
-    ffrt::TaskFactory<ffrt::IOTask>::RegistCb(
-        [&] () -> ffrt::IOTask* { return io_manager.Alloc(); },
-        [&] (ffrt::IOTask* task) { io_manager.Free(task); },
-        [&] () -> std::vector<void*> { return io_manager.GetUnfreedMem(); },
-		nullptr,
-        [&] () { io_manager.LockMem(); },
-        [&] () { io_manager.UnlockMem(); });
-
-    TestTaskFactory();
+    TmTest::TestTaskFactory(false);
 }

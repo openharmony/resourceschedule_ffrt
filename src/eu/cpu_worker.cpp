@@ -23,7 +23,6 @@
 #include "dm/dependence_manager.h"
 #include "dfx/perf/ffrt_perf.h"
 #include "sync/poller.h"
-#include "util/spmc_queue.h"
 #include "util/ffrt_facade.h"
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"

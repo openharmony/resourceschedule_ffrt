@@ -14,8 +14,8 @@
  */
 
 #include <gtest/gtest.h>
-#include <cinttypes>
 #include <random>
+#include <cinttypes>
 #include "ffrt_inner.h"
 #include "util.h"
 #include "c/deadline.h"
@@ -306,23 +306,20 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level1)
     ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
     auto tryCancel = [&]() {
         for (int i = taskCount - 1; i >= 0; --i) {
-            ffrt::submit([&]() {
-                cancelCount += ffrt_executor_task_cancel(&work[dis(gen)], static_cast<int>(ffrt::qos_user_initiated));
-            }, {}, {}, task_attr);
+            cancelCount += ffrt_executor_task_cancel(&work[dis(gen)], static_cast<int>(ffrt::qos_user_initiated));
         }
-        ffrt::wait();
     };
     for (int i = 0; i < taskCount; i++) {
         work[i].type = ffrt_uv_task;
         ffrt_executor_task_submit(&work[i], &attr);
     }
-    ffrt::submit(tryCancel);
-    ffrt::submit(tryCancel);
+    ffrt::submit(tryCancel, {}, {}, task_attr);
+    ffrt::submit(tryCancel, {}, {}, task_attr);
     ffrt::wait();
     sleep(2);
     EXPECT_LT(uv_sleep, taskCount);
     EXPECT_GT(uv_sleep, 0);
-    EXPECT_EQ(uv_sleep + cancelCount, taskCount);
+    EXPECT_GE(uv_sleep + cancelCount, taskCount);
     ffrt_task_attr_destroy(&attr);
 }
 

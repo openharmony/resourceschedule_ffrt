@@ -64,7 +64,7 @@ static std::string FormatDateString4SystemClock(const std::chrono::system_clock:
 
 static std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, time_unit_t timeUnit = millisecond)
 {
-    uint64_t referenceTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
+    auto referenceTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
     auto referenceTp = std::chrono::system_clock::now();
 
@@ -90,7 +90,7 @@ static std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t t
 {
     constexpr int Ratio = 1000 * 1000;
 
-    int64_t referenceFreq = Arm64CntFrq();
+    auto referenceFreq = Arm64CntFrq();
     if (referenceFreq == 0) {
         return "";
     }

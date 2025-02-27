@@ -58,12 +58,15 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         return false;
     }
 
+    workerNum.fetch_add(1);
     auto worker = CPUManagerStrategy::CreateCPUWorker(localQos, this);
     auto uniqueWorker = std::unique_ptr<WorkerThread>(worker);
     if (uniqueWorker == nullptr || uniqueWorker->Exited()) {
+        workerNum.fetch_sub(1);
         FFRT_LOGE("IncWorker failed: worker is nullptr or has exited\n");
         return false;
     }
+
     uniqueWorker->WorkerSetup(worker);
     auto result = groupCtl[workerQos].threads.emplace(worker, std::move(uniqueWorker));
     if (!result.second) {
@@ -178,6 +181,7 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
 #endif
         worker = nullptr;
     }
+    workerNum.fetch_sub(1);
 }
 
 void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)

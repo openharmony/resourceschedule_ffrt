@@ -53,3 +53,5 @@ public:
         putenv("FFRT_PATH_HARDWARE=0");
     }
 };
+
+Env g_env __attribute__ ((init_priority(102)));

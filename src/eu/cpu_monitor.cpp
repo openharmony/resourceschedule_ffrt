@@ -27,10 +27,10 @@
 #include "internal_inc/osal.h"
 #include "util/name_manager.h"
 #include "sync/poller.h"
+#include "util/ffrt_facade.h"
 #include "util/spmc_queue.h"
 
 namespace {
-const size_t PROCESS_NAME_LEN = 1024;
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 constexpr int JITTER_DELAY_MS = 5;
@@ -308,10 +308,7 @@ size_t CPUMonitor::GetRunningNum(const QoS& qos)
 void CPUMonitor::ReportEscapeEvent(int qos, size_t totalNum)
 {
 #ifdef FFRT_SEND_EVENT
-    static std::once_flag flag;
-    static char processName[PROCESS_NAME_LEN];
-    std::call_once(flag, []() { GetProcessName(processName, PROCESS_NAME_LEN); });
-    WorkerEscapeReport(processName, qos, totalNum);
+    WorkerEscapeReport(GetCurrentProcessName(), qos, totalNum);
 #endif
 }
 }

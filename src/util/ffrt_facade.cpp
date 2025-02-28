@@ -14,10 +14,14 @@
  */
 #include "util/ffrt_facade.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "internal_inc/osal.h"
 
 namespace {
+constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
+char g_processName[PROCESS_NAME_BUFFER_LENGTH] {};
 std::atomic<bool> g_exitFlag { false };
 std::shared_mutex g_exitMtx;
+std::once_flag g_processNameInitFlag;
 }
 
 namespace ffrt {
@@ -29,6 +33,17 @@ bool GetExitFlag()
 std::shared_mutex& GetExitMtx()
 {
     return g_exitMtx;
+}
+
+const char* GetCurrentProcessName()
+{
+    std::call_once(g_processNameInitFlag, []() {
+        GetProcessName(g_processName, PROCESS_NAME_BUFFER_LENGTH);
+        if (strlen(g_processName) == 0) {
+            FFRT_LOGW("Get process name failed");
+        }
+    });
+    return g_processName;
 }
 
 class ProcessExitManager {

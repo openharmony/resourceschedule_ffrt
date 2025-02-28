@@ -26,7 +26,6 @@
 #include "sched/scheduler.h"
 
 namespace {
-constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
@@ -340,12 +339,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
 void QueueHandler::RunTimeOutCallback(QueueTask* task)
 {
     std::stringstream ss;
-    static std::once_flag flag;
-    static char processName[PROCESS_NAME_BUFFER_LENGTH];
-    std::call_once(flag, []() {
-        GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-    });
-    std::string processNameStr = std::string(processName);
+    std::string processNameStr = std::string(GetCurrentProcessName());
     ss << "[Serial_Queue_Timeout_Callback] process name:[" << processNameStr << "], serial queue:[" <<
         name_ << "], queueId:[" << GetQueueId() << "], serial task gid:[" << task->gid << "], task name:["
         << task->label << "], execution time exceeds[" << timeout_ << "] us";

@@ -23,7 +23,6 @@
 #include "util/ffrt_facade.h"
 
 namespace {
-constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr uint32_t INVALID_TASK_ID = 0;
 constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 constexpr uint64_t QUEUE_INFO_INITIAL_CAPACITY = 64;
@@ -188,9 +187,8 @@ void QueueMonitor::CheckQueuesStatus()
 
         if (taskTimestamp < startThreshold) {
             std::stringstream ss;
-            char processName[PROCESS_NAME_BUFFER_LENGTH];
-            GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-            ss << "Serial_Queue_Timeout, process name:[" << processName << "], serial queue qid:[" << i
+            std::string processNameStr = std::string(GetCurrentProcessName());
+            ss << "Serial_Queue_Timeout, process name:[" << processNameStr << "], serial queue qid:[" << i
                 << "], serial task gid:[" << taskId << "], execution:[" << timeoutUs_ << "] us.";
             {
                 std::shared_lock lock(mutex_);
@@ -202,7 +200,7 @@ void QueueMonitor::CheckQueuesStatus()
 #ifdef FFRT_SEND_EVENT
             if (lastReportedTask_[i] != taskId) {
                 lastReportedTask_[i] = taskId;
-                std::string processNameStr = std::string(processName);
+
                 std::string senarioName = "Serial_Queue_Timeout";
                 TaskTimeoutReport(ss, processNameStr, senarioName);
             }

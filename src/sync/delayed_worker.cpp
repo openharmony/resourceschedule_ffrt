@@ -38,7 +38,6 @@ const int FAKE_WAKE_UP_ERROR = 4;
 const int WAIT_EVENT_SIZE = 5;
 const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
 const int DUMP_MAP_MAX_COUNT = 3;
-constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr int ASYNC_TASK_SLEEP_MS = 1;
 }
 
@@ -68,9 +67,7 @@ bool DelayedWorker::IsDelayerWorkerThread()
 bool IsDelayedWorkerPreserved()
 {
     std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
-    char processName[PROCESS_NAME_BUFFER_LENGTH];
-    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-    if (whitelist.find(processName) != whitelist.end()) {
+    if (whitelist.find(GetCurrentProcessName()) != whitelist.end()) {
         return true;
     }
 

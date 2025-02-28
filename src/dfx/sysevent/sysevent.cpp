@@ -20,9 +20,9 @@
 #include "tm/task_base.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
+#include "util/ffrt_facade.h"
 
 namespace {
-constexpr int PROCESS_NAME_LEN = 1024;
 constexpr long long lONG_TASK_TIME_LIMIT = 1; // 1s
 constexpr long long lONG_TASK_REPORT_FRE = 30 * 60; // 30min == 30 * 60s
 constexpr uint64_t FISRT_CALL_TIME_LIMIT = 5 * 60; // 5min == 5 * 60s
@@ -30,7 +30,6 @@ constexpr const char* BEGETUTIL_LIB_PATH = "libbegetutil.z.so";
 }
 
 namespace ffrt {
-static char processName[PROCESS_NAME_LEN];
 std::mutex mtx;
 class LibbegetutilAdapter {
 public:
@@ -98,7 +97,6 @@ private:
 bool IsBeta()
 {
     LibbegetutilAdapter* adapter = LibbegetutilAdapter::Instance();
-    GetProcessName(processName, PROCESS_NAME_LEN); // exce only one
     constexpr int versionTypeLen = 32;
     char retValue[versionTypeLen] = {0};
     if (adapter->GetParameter != nullptr) {
@@ -134,7 +132,8 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
                         + std::to_string(passed) + " s, qos:" + std::to_string(qos);
                     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT,
                                     eventName, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
-                                    "SENARIO", "Long_Task", "PROCESS_NAME", std::string(processName), "MSG", buffer);
+                                    "SENARIO", "Long_Task", "PROCESS_NAME", std::string(GetCurrentProcessName()),
+                                    "MSG", buffer);
                     lastEventTime = now;
                 }
             }

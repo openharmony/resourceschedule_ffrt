@@ -18,7 +18,7 @@
 #include "eu/cpuworker_manager.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/scpu_monitor.h"
-
+#include "util/ffrt_facade.h"
 #include <cstring>
 
 namespace ffrt {
@@ -26,12 +26,6 @@ std::array<sched_mode_type, QoS::MaxNum()> CPUManagerStrategy::schedMode {};
 
 WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
 {
-    constexpr int processNameLen = 32;
-    static std::once_flag flag;
-    static char processName[processNameLen];
-    std::call_once(flag, []() {
-        GetProcessName(processName, processNameLen);
-    });
     CPUWorkerManager* pIns = reinterpret_cast<CPUWorkerManager*>(manager);
     // default strategy of worker ops
     CpuWorkerOps ops {
@@ -48,7 +42,7 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
         [pIns] () { return pIns->IsBlockAwareInit(); },
 #endif
     };
-    if (strstr(processName, "CameraDaemon")) {
+    if (strstr(GetCurrentProcessName(), "CameraDaemon")) {
         // CameraDaemon customized strategy
 #ifdef OHOS_STANDARD_SYSTEM
         ops.WorkerRetired = [pIns] (WorkerThread* thread) { pIns->WorkerRetiredSimplified(thread); };
@@ -60,12 +54,6 @@ WorkerThread* CPUManagerStrategy::CreateCPUWorker(const QoS& qos, void* manager)
 
 CPUMonitor* CPUManagerStrategy::CreateCPUMonitor(void* manager)
 {
-    constexpr int processNameLen = 32;
-    static std::once_flag flag;
-    static char processName[processNameLen];
-    std::call_once(flag, []() {
-        GetProcessName(processName, processNameLen);
-    });
     SCPUWorkerManager* pIns = reinterpret_cast<SCPUWorkerManager*>(manager);
     // default strategy of monitor ops
     CpuMonitorOps ops {

@@ -28,6 +28,7 @@
 namespace ffrt {
 bool GetExitFlag();
 std::shared_mutex& GetExitMtx();
+const char* GetCurrentProcessName();
 
 class FFRTFacade {
 public:

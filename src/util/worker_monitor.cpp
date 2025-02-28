@@ -34,7 +34,6 @@
 
 namespace {
 constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
-constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
 constexpr unsigned int RECORD_POLLER_INFO_FREQ = 120;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
@@ -52,8 +51,7 @@ namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
     // 获取当前进程名称
-    char processName[PROCESS_NAME_BUFFER_LENGTH] = "";
-    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
+    const char* processName = GetCurrentProcessName();
     if (strlen(processName) == 0) {
         FFRT_LOGW("Get process name failed, skip worker monitor.");
         skipSampling_ = true;
@@ -248,9 +246,8 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, 
 void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction)
 {
     std::stringstream ss;
-    char processName[PROCESS_NAME_BUFFER_LENGTH];
-    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-    ss << "Task_Sch_Timeout: process name:[" << processName << "], Tid:[" << timeoutFunction.workerInfo_.tid_ <<
+    std::string processNameStr = std::string(GetCurrentProcessName());
+    ss << "Task_Sch_Timeout: process name:[" << processNameStr << "], Tid:[" << timeoutFunction.workerInfo_.tid_ <<
         "], Worker QoS Level:[" << timeoutFunction.coWorkerInfo_.qosLevel_ << "], Concurrent Worker Count:[" <<
         timeoutFunction.coWorkerInfo_.coWorkerCount_ << "], Execution Worker Number:[" <<
         timeoutFunction.coWorkerInfo_.executionNum_ << "], Sleeping Worker Number:[" <<
@@ -279,7 +276,6 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
 #endif
 #ifdef FFRT_SEND_EVENT
     if (timeoutFunction.executionTime_ == HISYSEVENT_TIMEOUT_SEC) {
-        std::string processNameStr = std::string(processName);
         std::string senarioName = "Task_Sch_Timeout";
         TaskTimeoutReport(ss, processNameStr, senarioName);
     }

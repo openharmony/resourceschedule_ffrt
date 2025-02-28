@@ -68,7 +68,7 @@ static std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, t
         std::chrono::steady_clock::now().time_since_epoch()).count();
     auto referenceTp = std::chrono::system_clock::now();
 
-    std::chrono::microseconds us((int64_t)(steadyClockTimeStamp - referenceTimeStamp));
+    std::chrono::microseconds us(static_cast<int64_t>(steadyClockTimeStamp - referenceTimeStamp));
     return FormatDateString4SystemClock(referenceTp + us, timeUnit);
 }
 
@@ -96,7 +96,7 @@ static std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t t
     }
     uint64_t referenceCntCt = Arm64CntCt();
     auto globalTp = std::chrono::system_clock::now();
-    std::chrono::microseconds us((int64_t)(cntCtTimeStamp - referenceCntCt) * Ratio / referenceFreq);
+    std::chrono::microseconds us(static_cast<int64_t>(cntCtTimeStamp - referenceCntCt) * Ratio / referenceFreq);
     return FormatDateString4SystemClock(globalTp + us, timeUnit);
 }
 }

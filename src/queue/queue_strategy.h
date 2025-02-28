@@ -21,7 +21,6 @@
 #include "c/type_def.h"
 #include "c/queue_ext.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
 template<typename T>

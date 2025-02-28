@@ -22,7 +22,6 @@
 #include "ffrt_trace.h"
 #include "tm/cpu_task.h"
 #include "tm/task_factory.h"
-#include "dfx/perf/ffrt_perf.h"
 
 namespace ffrt {
 class TaskScheduler {

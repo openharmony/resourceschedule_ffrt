@@ -1,9 +1,9 @@
 {
-    "enabledLanguageIds": [
-        "c",
-        "cpp",
-        "markdown"
-    ],
+    "enabledFileTypes": {
+        "*": false,
+        "cpp": true,
+        "markdown": true
+    },
     "languageSettings": [
         {
             "languageId": "markdown",
@@ -11,11 +11,14 @@
                 "cpp"
             ],
             "ignoreRegExpList": [
-                "/^```(?:.|\\s)+?^```/mig"
+                "/`(?:.)+?`/ig",
+                "/\\[(?:.)+?\\]/ig",
+                "/\\s+```(?:.|\\s)+?\\s+```/mig"
             ]
         }
     ],
     "words": [
+        "resourceschedule",
         "ffrt",
         "libffrt"
     ]

@@ -449,6 +449,7 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
 
     m_mapMutex.unlock();
     if (timerHandlesToRemove.size() > 0) {
+        std::lock_guard lock(timerMutex_);
         for (auto it = timerMap_.begin(); it != timerMap_.end();) {
             if (timerHandlesToRemove.find(it->second.handle) != timerHandlesToRemove.end()) {
                 it = timerMap_.erase(it);

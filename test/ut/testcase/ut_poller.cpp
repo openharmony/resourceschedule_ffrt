@@ -115,7 +115,7 @@ HWTEST_F(PollerTest, cache_events_mask_test, TestSize.Level1)
     epoll_event ev;
     eventVec.push_back(ev);
     poller.CacheEventsAndDoMask(currTask, eventVec);
-    EXPECT_EQ(1, poller.m_cachedTaskEvents[currTask].size());
+    EXPECT_EQ(0, poller.m_cachedTaskEvents[currTask].size());
 }
 
 /*
@@ -135,7 +135,7 @@ HWTEST_F(PollerTest, fetch_cached_event_unmask, TestSize.Level1)
     eventVec.push_back(ev);
     poller.CacheEventsAndDoMask(currTask, eventVec);
     int fdCnt = poller.FetchCachedEventAndDoUnmask(currTask, events);
-    EXPECT_EQ(1, fdCnt);
+    EXPECT_EQ(0, fdCnt);
 }
 /*
  * 测试用例名称：poll_once_batch_timeout

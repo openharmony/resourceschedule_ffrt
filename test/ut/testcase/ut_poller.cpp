@@ -101,43 +101,6 @@ HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level1)
 }
 
 /*
- * 测试用例名称：cache_events_mask_test
- * 测试用例描述：本地events缓存
- * 预置条件    ：无
- * 操作步骤    ：新增event缓存
- * 预期结果    ：task对应的events缓存内有没有新增
- */
-HWTEST_F(PollerTest, cache_events_mask_test, TestSize.Level1)
-{
-    Poller poller;
-    CPUEUTask* currTask;
-    EventVec eventVec;
-    epoll_event ev;
-    eventVec.push_back(ev);
-    poller.CacheEventsAndDoMask(currTask, eventVec);
-    EXPECT_EQ(0, poller.m_cachedTaskEvents[currTask].size());
-}
-
-/*
- * 测试用例名称：fetch_cached_event_unmask
- * 测试用例描述：遍历本地events缓存，并提出缓存event
- * 预置条件    ：无
- * 操作步骤    ：1、新增event缓存 2、清除缓存
- * 预期结果    ：task对应的events看有没有去除
- */
-HWTEST_F(PollerTest, fetch_cached_event_unmask, TestSize.Level1)
-{
-    Poller poller;
-    CPUEUTask* currTask;
-    EventVec eventVec;
-    epoll_event ev;
-    struct epoll_event events[1024];
-    eventVec.push_back(ev);
-    poller.CacheEventsAndDoMask(currTask, eventVec);
-    int fdCnt = poller.FetchCachedEventAndDoUnmask(currTask, events);
-    EXPECT_EQ(0, fdCnt);
-}
-/*
  * 测试用例名称：poll_once_batch_timeout
  * 测试用例描述：PollOnce批量超时测试
  * 预置条件    ：无

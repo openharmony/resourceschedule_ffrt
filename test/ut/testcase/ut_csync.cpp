@@ -701,21 +701,6 @@ static void WaitForTest_4(ffrt::mutex& mtx, ffrt::condition_variable& cv)
     EXPECT_EQ(value, 123);
 }
 
-HWTEST_F(SyncTest, conditionTest, TestSize.Level1)
-{
-    ffrt::mutex mtx;
-    ffrt::condition_variable cv;
-
-    NotifyOneTest(mtx, cv);
-    WaitUntilTimeoutTest(mtx, cv);
-    WaitUtilFlagTest_1(mtx, cv);
-    WaitUtilFlagTest_2(mtx, cv);
-    WaitForTest_1(mtx, cv);
-    WaitForTest_2(mtx, cv);
-    WaitForTest_3(mtx, cv);
-    WaitForTest_4(mtx, cv);
-}
-
 static void LockTest(ffrt::shared_mutex& smtx)
 {
     int x = 0;

@@ -14,7 +14,6 @@
  */
 
 #include <vector>
-#include <cmath>
 #include <thread>
 #include <mutex>
 #include <chrono>
@@ -71,7 +70,7 @@ void NestedWhile(uint64_t count)
     int y8;
     int y9;
     int i = 1;
-    while (count--) {
+    while (count-- > 0) {
         ffrt::submit(
             [&]() {
                 ffrt::submit(

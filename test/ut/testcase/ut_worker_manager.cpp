@@ -31,12 +31,22 @@
 #undef private
 #undef protected
 #include "../common.h"
+#include "cpp/ffrt_dynamic_graph.h"
+#include "c/ffrt_dynamic_graph.h"
 
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
 using namespace ffrt;
+
+namespace {
+// 返回当前环境是软化还是硬化
+bool CheckSoftwareEnv()
+{
+    return (ffrt_hcs_get_capability(FFRT_HW_DYNAMIC_XPU_NORMAL) == 0) ? true : false;
+}
+}
 
 class WorkerManagerTest : public testing::Test {
 protected:
@@ -225,6 +235,10 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
 
 HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
 {
+    if (!CheckSoftwareEnv()) {
+        return;
+    }
+
     CPUWorkerManager* manager = new SCPUWorkerManager();
     CPUManagerStrategy* strategy = new CPUManagerStrategy();
     SCPUEUTask* task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(qos(0)));

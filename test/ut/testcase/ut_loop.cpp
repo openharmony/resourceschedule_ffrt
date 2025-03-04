@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #include <thread>
 #include <chrono>
 #include <gtest/gtest.h>
@@ -112,6 +112,11 @@ HWTEST_F(LoopTest, loop_concurrent_queue_create_succ, TestSize.Level1)
     auto loop = ffrt_loop_create(queue_handle);
     EXPECT_NE(loop, nullptr);
 
+    int timerHandle = ffrt_loop_timer_start(loop, 10 * 1000, nullptr, [] (void* data) {}, false);
+    EXPECT_NE(timerHandle, -1);
+
+    EXPECT_NE(ffrt_loop_timer_stop(loop, timerHandle), -1);
+
     int ret = ffrt_loop_destroy(loop);
     EXPECT_EQ(ret, 0);
 
@@ -201,12 +206,12 @@ HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
- 
+
 struct TestData {
     int fd;
     uint64_t expected;
 };
- 
+
 static void TestCallBack(void* token, uint32_t event)
 {
     struct TestData* testData = reinterpret_cast<TestData*>(token);
@@ -215,17 +220,17 @@ static void TestCallBack(void* token, uint32_t event)
     EXPECT_EQ(n, sizeof(value));
     EXPECT_EQ(value, testData->expected);
 }
- 
+
 int AddFdListener(void* handler, uint32_t fd, uint32_t event, void* data, ffrt_poller_cb cb)
 {
     return 0;
 }
- 
+
 int RemoveFdListener(void* handler, uint32_t fd)
 {
     return 0;
 }
- 
+
 HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
@@ -235,10 +240,10 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
 #ifndef WITH_NO_MOCKER
     MOCKER(ffrt_get_main_queue).stubs().will(returnValue(queue_handle));
 #endif
- 
+
     EventHandlerAdapter::Instance()->AddFdListener = AddFdListener;
     EventHandlerAdapter::Instance()->RemoveFdListener = RemoveFdListener;
- 
+
     ffrt_queue_t mainQueue = ffrt_get_main_queue();
     auto loop = ffrt_loop_create(mainQueue);
     EXPECT_TRUE(loop != nullptr);
@@ -252,14 +257,14 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
     ssize_t n = write(testFd, &expected, sizeof(uint64_t));
     EXPECT_EQ(n, sizeof(uint64_t));
     usleep(25000);
- 
+
     ret = ffrt_loop_epoll_ctl(loop, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
     EXPECT_EQ(ret, 0);
- 
+
     ffrt_loop_stop(loop);
     ffrt_loop_destroy(loop);
     ffrt_queue_destroy(queue_handle);
- 
+
 #ifndef WITH_NO_MOCKER
     GlobalMockObject::reset();
     GlobalMockObject::verify();

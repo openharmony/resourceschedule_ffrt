@@ -733,6 +733,32 @@ ohos_unittest("ut_qos_convert") {
   part_name = "ffrt"
 }
 
+ohos_unittest("ut_cpu_boost") {
+  module_out_path = module_output_path
+  configs = []
+  include_dirs = []
+  cflags_cc = []
+  deps = []
+  external_deps = []
+
+  configs = [ ":ffrt_test_config" ]
+  include_dirs = [ "../testfunc" ]
+
+  cflags_cc += ffrt_ut_base_cflags_cc
+  cflags_cc += [ "-DWITH_NO_MOCKER" ]
+
+  sources = [ "testcase/ut_cpu_boost.cpp" ]
+  deps += ffrt_ut_base_deps
+  external_deps += ffrt_ut_base_external_deps
+
+  if (is_standard_system) {
+    public_external_deps = gtest_public_external_deps
+  }
+
+  install_enable = true
+  part_name = "ffrt"
+}
+
 group("ffrt_unittest_ffrt") {
   testonly = true
 
@@ -752,6 +778,7 @@ group("ffrt_unittest_ffrt") {
       ":ut_condition",
       ":ut_core",
       ":ut_coroutine",
+      ":ut_cpu_boost",
       ":ut_cpumonitor",
       ":ut_csync",
       ":ut_deadline",

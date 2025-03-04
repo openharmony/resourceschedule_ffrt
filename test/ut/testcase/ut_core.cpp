@@ -138,6 +138,23 @@ HWTEST_F(CoreTest, task_attr_set_timeout_nullptr, TestSize.Level1)
 }
 
 /**
+ * 测试用例名称：task_attr_set_stack_size
+ * 测试用例描述：验证task_attr的设置stack_size接口
+ * 预置条件：创建有效的task_attr
+ * 操作步骤：设置stack_size值，通过get接口与设置值对比
+ * 预期结果：设置成功
+ */
+HWTEST_F(CoreTest, task_attr_set_stack_size, TestSize.Level1)
+{
+    ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
+    ffrt_task_attr_init(attr);
+    ffrt_task_attr_set_stack_size(attr, 1024 * 1024);
+    uint64_t stackSize = ffrt_task_attr_get_stack_size(attr);
+    EXPECT_EQ(stackSize, 1024 * 1024);
+    free(attr);
+}
+
+/**
  * 测试用例名称：ffrt_task_handle_ref_nullptr
  * 测试用例描述：验证task_handle的增加、消减引用计数接口的异常场景
  * 预置条件：针对nullptr进行设置
@@ -168,6 +185,7 @@ HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level1)
     ffrt_task_attr_set_delay(&taskAttr, 10000); // 延时10ms执行
     std::function<void()>&& OnePlusFunc = [&result]() { result += 1; };
     ffrt_task_handle_t handle = ffrt_submit_h_base(ffrt::create_function_wrapper(OnePlusFunc), {}, {}, &taskAttr);
+    EXPECT_GT(ffrt_task_handle_get_id(handle), 0);
     auto task = static_cast<ffrt::CPUEUTask*>(handle);
     EXPECT_EQ(task->rc.load(), 2); // task还未执行完成，所以task和handle各计数一次
     ffrt_task_handle_inc_ref(handle);
@@ -193,7 +211,9 @@ HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
     {
         auto h = ffrt::submit_h([&i] { printf("task0 done\n"); i++;});
         printf("task0 handle: %p\n:", static_cast<void*>(h));
-        deps.emplace_back(h);
+        ffrt::dependence d(h);
+        ffrt::dependence dep = d;
+        deps.emplace_back(dep);
     }
     usleep(1000);
     std::atomic_bool stop = false;

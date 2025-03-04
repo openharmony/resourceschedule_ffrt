@@ -1065,14 +1065,46 @@ HWTEST_F(SyncTest, future_wait, TestSize.Level1)
     ffrt::future<int> f2 = ffrt::async([] { return 8; });
 
     ffrt::promise<int> p;
-    ffrt::future<int> f3 = p.get_future();
-    ffrt::thread([&p] { p.set_value(9); }).detach();
+    ffrt::promise<int> p1;
+    p1 = std::move(p);
+    ffrt::future<int> f3 = p1.get_future();
+    ffrt::future<int> f4;
+    f4 = std::move(f3);
+    ffrt::thread([&p1] { p1.set_value(9); }).detach();
 
     std::cout << "Waiting..." << std::flush;
     f1.wait();
     f2.wait();
-    f3.wait();
+    f4.wait();
     std::cout << "Done!\nResults are: "
-              << f1.get() << ' ' << f2.get() << ' ' << f3.get() << '\n';
+              << f1.get() << ' ' << f2.get() << ' ' << f4.get() << '\n';
     t.join();
+}
+
+HWTEST_F(SyncTest, future_wait_void, TestSize.Level1)
+{
+    vector<int> result(3, 0);
+    ffrt::packaged_task<void()> task([&] { result[0] = 1; });
+    ffrt::future<void> f1 = task.get_future();
+    ffrt::thread t(std::move(task));
+    ffrt::thread t1;
+    t1 = std::move(t);
+
+    ffrt::future<void> f2 = ffrt::async([&] { result[1] = 2; });
+
+    ffrt::promise<void> p;
+    ffrt::future<void> f3 = p.get_future();
+    ffrt::promise<void> p1;
+    ffrt::future<void> f4;
+    p1 = std::move(p);
+    f4 = std::move(f3);
+    ffrt::thread([&] { result[2] = 3; p1.set_value(); }).detach();
+
+    f1.wait();
+    f2.wait();
+    f4.wait();
+    EXPECT_EQ(result[0], 1);
+    EXPECT_EQ(result[1], 2);
+    EXPECT_EQ(result[2], 3);
+    t1.join();
 }

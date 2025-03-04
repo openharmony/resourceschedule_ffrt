@@ -28,10 +28,9 @@ namespace ffrt {
 void SCPUMonitor::IntoSleep(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
     workerCtrl.sleepingWorkerNum++;
     workerCtrl.executionNum--;
-    workerCtrl.lock.unlock();
 }
 
 void SCPUMonitor::IntoPollWait(const QoS& qos)
@@ -83,7 +82,7 @@ void SCPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* monitorPtr,
     }
     constexpr double thresholdTaskPick = 1.0;
     WorkerCtrl& workerCtrl = monitor->ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::unique_lock lock(workerCtrl.lock);
 
     if (notifyType == TaskNotifyType::TASK_PICKED) {
         int wakedWorkerCount = workerCtrl.executionNum;
@@ -91,7 +90,6 @@ void SCPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* monitorPtr,
             static_cast<double>(taskCount) / static_cast<double>(wakedWorkerCount);
         if (remainingLoadRatio <= thresholdTaskPick) {
             // for task pick, wake worker when load ratio > 1
-            workerCtrl.lock.unlock();
             return;
         }
     }
@@ -103,17 +101,16 @@ void SCPUMonitor::HandleTaskNotifyConservative(const QoS& qos, void* monitorPtr,
                 notifyType, workerCtrl.executionNum, workerCtrl.maxConcurrency,
                 workerCtrl.sleepingWorkerNum, workerCtrl.deepSleepingWorkerNum);
             workerCtrl.executionNum++;
-            workerCtrl.lock.unlock();
+            lock.unlock();
             monitor->ops.IncWorker(qos);
         } else {
-            workerCtrl.lock.unlock();
+            lock.unlock();
             monitor->ops.WakeupWorkers(qos);
         }
     } else {
         if (workerCtrl.pollWaitFlag) {
             FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
         }
-        workerCtrl.lock.unlock();
     }
 }
 
@@ -154,33 +151,30 @@ void SCPUMonitor::HandleTaskNotifyUltraConservative(const QoS& qos, void* monito
 void SCPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::unique_lock lock(workerCtrl.lock);
     size_t runningNum = GetRunningNum(qos);
     size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
 
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
         (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
     if (notifyType != TaskNotifyType::TASK_ADDED && notifyType != TaskNotifyType::TASK_ESCAPED && tiggerSuppression) {
-        workerCtrl.lock.unlock();
         return;
     }
 
     if ((static_cast<uint32_t>(workerCtrl.sleepingWorkerNum) > 0) && (runningNum < workerCtrl.maxConcurrency)) {
-        workerCtrl.lock.unlock();
+        lock.unlock();
         ops.WakeupWorkers(qos);
     } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
         workerCtrl.executionNum++;
         FFRTTraceRecord::WorkRecord(qos(), workerCtrl.executionNum);
-        workerCtrl.lock.unlock();
+        lock.unlock();
         ops.IncWorker(qos);
     } else if (escapeMgr_.IsEscapeEnable() && (runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
         escapeMgr_.SubmitEscape(qos, totalNum, this);
-        workerCtrl.lock.unlock();
     } else {
         if (workerCtrl.pollWaitFlag) {
             FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
         }
-        workerCtrl.lock.unlock();
     }
 }
 
@@ -189,24 +183,23 @@ void SCPUMonitor::ExecuteEscape(int qos, void* monitorPtr)
     SCPUMonitor* monitor = reinterpret_cast<SCPUMonitor*>(monitorPtr);
     if (monitor->escapeMgr_.IsEscapeEnable() && monitor->ops.GetTaskCount(qos) > 0) {
         WorkerCtrl& workerCtrl = monitor->ctrlQueue[qos];
-        workerCtrl.lock.lock();
+        std::unique_lock lock(workerCtrl.lock);
 
         size_t runningNum = monitor->GetRunningNum(qos);
         size_t totalNum = static_cast<size_t>(workerCtrl.sleepingWorkerNum + workerCtrl.executionNum);
         if ((workerCtrl.sleepingWorkerNum > 0) && (runningNum < workerCtrl.maxConcurrency)) {
-            workerCtrl.lock.unlock();
+            lock.unlock();
             monitor->ops.WakeupWorkers(qos);
         } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
             workerCtrl.executionNum++;
             FFRTTraceRecord::WorkRecord(qos, workerCtrl.executionNum);
-            workerCtrl.lock.unlock();
+            lock.unlock();
             monitor->ops.IncWorker(qos);
             monitor->ReportEscapeEvent(qos, totalNum);
         } else {
             if (workerCtrl.pollWaitFlag) {
                 FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
             }
-            workerCtrl.lock.unlock();
         }
     }
 }

@@ -30,7 +30,7 @@ typedef struct {
     ffrt_queue_t queue;     // 任务队列
 } logger_t;
 
-// 全局 Logger 变量
+// 全局Logger变量
 logger_t* g_logger = NULL;
 
 // 初始化日志系统
@@ -113,13 +113,13 @@ void logger_log(logger_t *logger, const char *message)
 
 int main()
 {
-    // 初始化全局 logger
+    // 初始化全局logger
     g_logger = logger_create("log_c.txt");
     if (!g_logger) {
         return -1;
     }
 
-    // 使用全局 logger 添加日志任务
+    // 使用全局logger添加日志任务
     logger_log(g_logger, "Log message 1");
     logger_log(g_logger, "Log message 2");
     logger_log(g_logger, "Log message 3");
@@ -127,7 +127,7 @@ int main()
     // 模拟主线程继续执行其他任务
     sleep(1);
 
-    // 销毁全局 logger
+    // 销毁全局logger
     logger_destroy(g_logger);
     g_logger = NULL;
     return 0;
@@ -177,7 +177,7 @@ static inline ffrt_function_header_t *ffrt_create_function_wrapper(const ffrt_fu
 }
 ```
 
-## 接口介绍
+## 接口说明
 
 上述样例中涉及到的FFRT的接口包括：
 

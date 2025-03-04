@@ -80,7 +80,7 @@ int main()
 }
 ```
 
-## 接口介绍
+## 接口说明
 
 上述样例中涉及到的FFRT的接口包括：
 
@@ -89,7 +89,7 @@ int main()
 | class [queue](ffrt-api-guideline-cpp.md#queue)   | 队列类。       |
 | [sleep_for](ffrt-api-guideline-cpp.md#sleep_for) | 延迟一定时间。 |
 
-> 提醒
+> **说明：**
 >
 > 如何使用FFRT C++ API详见：[C++接口使用指导](ffrt-development-guideline.md#using-ffrt-c-api-1)
 

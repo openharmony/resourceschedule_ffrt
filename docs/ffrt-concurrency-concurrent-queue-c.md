@@ -12,9 +12,9 @@ FFRT并发队列提供了设置任务优先级（Priority）和队列并发度�
 举例实现一个银行服务系统，每个客户向系统提交一个服务请求，可以区分普通用户和VIP用户，VIP用户的服务请求可以优先得到执行。
 银行系统中有2个窗口，可以并行取出用户提交的服务请求办理。可以利用FFRT的并行队列范式做如下建模：
 
-- **排队逻辑**：并行队列
-- **服务窗口**：并行队列的并发度，同时也对应FFRT Worker数量
-- **用户等级**：并行队列任务优先级
+- **排队逻辑**：并行队列。
+- **服务窗口**：并行队列的并发度，同时也对应FFRT Worker数量。
+- **用户等级**：并行队列任务优先级。
 
 实现代码如下所示：
 
@@ -22,12 +22,17 @@ FFRT并发队列提供了设置任务优先级（Priority）和队列并发度�
 #include <stdio.h>
 #include <string.h>
 #include <ffrt.h>
+
 ffrt_queue_t create_bank_system(const char *name, int concurrency)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_attr_set_max_concurrency(&queue_attr, 4);
+
+    // 创建一个并发队列
     ffrt_queue_t queue = ffrt_queue_create(ffrt_queue_concurrent, name, &queue_attr);
+
+    // 队列创建完后需要销毁队列属性
     ffrt_queue_attr_destroy(&queue_attr);
     if (!queue) {
         printf("create queue failed\n");
@@ -51,6 +56,7 @@ void bank_business(void *arg)
     printf("saving or withdraw for %s\n", data);
 }
 
+// 封装提交队列任务函数
 ffrt_task_handle_t commit_request(ffrt_queue_t bank, void (*func)(void *), char *name, ffrt_queue_priority_t level, int delay)
 {
     ffrt_task_attr_t task_attr;
@@ -62,6 +68,7 @@ ffrt_task_handle_t commit_request(ffrt_queue_t bank, void (*func)(void *), char 
     return ffrt_queue_submit_h(bank, ffrt_create_function_wrapper(func, NULL, name), &task_attr);
 }
 
+// 封装取消队列任务函数
 int cancel_request(ffrt_task_handle_t request)
 {
     return ffrt_queue_cancel(request);
@@ -72,6 +79,7 @@ int get_bank_queue_size(ffrt_queue_t bank)
     return ffrt_queue_get_task_cnt(bank);
 }
 
+// 封装等待队列任务函数
 void wait_for_request(ffrt_task_handle_t task)
 {
     ffrt_queue_wait(task);
@@ -89,17 +97,18 @@ int main()
     commit_request(bank, bank_business, "customer3", ffrt_queue_priority_low, 0);
     commit_request(bank, bank_business, "customer4", ffrt_queue_priority_low, 0);
 
-    // vip could enjoy service prefered
+    // VIP享受更优先的服务
     commit_request(bank, bank_business, "VIP", ffrt_queue_priority_high, 0);
 
     ffrt_task_handle_t task = commit_request(bank, bank_business, "customer5", ffrt_queue_priority_low, 0);
     ffrt_task_handle_t task_last = commit_request(bank, bank_business, "customer6", ffrt_queue_priority_low, 0);
 
-    // cancel service for customer5
+    // 取消客户5的服务
     cancel_request(task);
 
     printf("bank current serving for %d customers\n", get_bank_queue_size(bank));
-    // waiting for all the customers served
+
+    // 等待所有的客户服务完成
     wait_for_request(task_last);
     destory_bank_system(bank);
 
@@ -150,16 +159,16 @@ static inline ffrt_function_header_t *ffrt_create_function_wrapper(const ffrt_fu
 }
 ```
 
-## 接口介绍
+## 接口说明
 
 上述样例中涉及到的FFRT的接口包括：
 
-| 名称                                                                                               | 描述                 |
-| -------------------------------------------------------------------------------------------------- | -------------------- |
-| [ffrt_queue_create](ffrt-api-guideline-c.md#ffrt_queue_create)                                     | 创建队列。           |
-| [ffrt_queue_destroy](ffrt-api-guideline-c.md#ffrt_queue_destroy)                                   | 销毁队列。           |
-| [ffrt_task_attr_set_queue_priority](ffrt-api-guideline-c.md#ffrt_task_attr_set_queue_priority)     | 设置队列任务优先级   |
-| [ffrt_queue_attr_set_max_concurrency](ffrt-api-guideline-c.md#ffrt_queue_attr_set_max_concurrency) | 设置并发队列的并发度 |
+| 名称                                                                                               | 描述                   |
+| -------------------------------------------------------------------------------------------------- | ---------------------- |
+| [ffrt_queue_create](ffrt-api-guideline-c.md#ffrt_queue_create)                                     | 创建队列。             |
+| [ffrt_queue_destroy](ffrt-api-guideline-c.md#ffrt_queue_destroy)                                   | 销毁队列。             |
+| [ffrt_task_attr_set_queue_priority](ffrt-api-guideline-c.md#ffrt_task_attr_set_queue_priority)     | 设置队列任务优先级。   |
+| [ffrt_queue_attr_set_max_concurrency](ffrt-api-guideline-c.md#ffrt_queue_attr_set_max_concurrency) | 设置并发队列的并发度。 |
 
 ## 约束限制
 

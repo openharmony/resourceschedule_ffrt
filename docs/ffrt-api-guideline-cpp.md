@@ -24,11 +24,11 @@ inline task_attr& task_attr::name(const char* name)
 
 参数
 
-- `name`：用户指定的任务名称
+- `name`：用户指定的任务名称。
 
 返回值
 
-- `task_attr`对象的引用
+- `task_attr`对象的引用。
 
 描述
 
@@ -42,11 +42,11 @@ inline const char* task_attr::name() const
 
 返回值
 
-- 任务的名称
+- 任务的名称。
 
 描述
 
-- 获取设置的任务名称
+- 获取设置的任务名称。
 
 ##### set task qos
 
@@ -56,11 +56,11 @@ inline task_attr& task_attr::qos(qos qos_)
 
 参数
 
-- `qos_`：QoS等级
+- `qos_`：QoS等级。
 
 返回值
 
-- `task_attr`对象的引用
+- `task_attr`对象的引用。
 
 描述
 
@@ -74,11 +74,11 @@ inline int task_attr::qos() const
 
 返回值
 
-- QoS等级
+- QoS等级。
 
 描述
 
-- 获取设置的QoS等级
+- 获取设置的QoS等级。
 
 ##### set task delay
 
@@ -88,11 +88,11 @@ inline task_attr& task_attr::delay(uint64_t delay_us)
 
 参数
 
-- `delay_us`：调度时延，单位为微秒
+- `delay_us`：调度时延，单位为微秒。
 
 返回值
 
-- `task_attr`对象的引用
+- `task_attr`对象的引用。
 
 描述
 
@@ -106,11 +106,11 @@ inline uint64_t task_attr::delay() const
 
 返回值
 
-- 调度时延
+- 调度时延。
 
 描述
 
-- 获取设置的调度时延
+- 获取设置的调度时延。
 
 ##### set task priority
 
@@ -120,11 +120,11 @@ inline task_attr& task_attr::priority(ffrt_queue_priority_t prio)
 
 参数
 
-- `prio`：任务优先级
+- `prio`：任务优先级。
 
 返回值
 
-- `task_attr`对象的引用
+- `task_attr`对象的引用。
 
 描述
 
@@ -138,11 +138,11 @@ inline ffrt_queue_priority_t task_attr::priority() const
 
 返回值
 
-- 任务优先级
+- 任务优先级。
 
 描述
 
-- 获取设置的优先级
+- 获取设置的优先级。
 
 ##### set task stack_size
 
@@ -152,11 +152,11 @@ inline task_attr& task_attr::stack_size(uint64_t size)
 
 参数
 
-- `size`：协程栈大小，单位为Byte
+- `size`：协程栈大小，单位为字节。
 
 返回值
 
-- `task_attr`对象的引用
+- `task_attr`对象的引用。
 
 描述
 
@@ -170,11 +170,11 @@ inline uint64_t task_attr::stack_size() const
 
 返回值
 
-- 协程栈大小
+- 协程栈大小。
 
 描述
 
-- 获取设置的协程栈大小
+- 获取设置的协程栈大小。
 
 ##### set task timeout
 
@@ -184,11 +184,11 @@ inline task_attr& task_attr::timeout(uint64_t timeout_us)
 
 参数
 
-- `timeout_us`：任务的调度超时时间，单位为微秒
+- `timeout_us`：任务的调度超时时间，单位为微秒。
 
 返回值
 
-- `task_attr`对象的引用
+- `task_attr`对象的引用。
 
 描述
 
@@ -202,11 +202,11 @@ inline uint64_t task_attr::timeout() const
 
 返回值
 
-- 调度超时时间
+- 调度超时时间。
 
 描述
 
-- 获取设置的超时时间
+- 获取设置的超时时间。
 
 #### 样例
 
@@ -231,8 +231,8 @@ class task_handle;
 
 任务的句柄，其作用包括：
 
-- 任务生命周期管理，句柄绑定的任务，在句柄存在的生命周期内，都是有效的
-- 配合入参为`task_handle`的方法使用，例如任务同步、任务取消、任务查询等
+- 任务生命周期管理，句柄绑定的任务，在句柄存在的生命周期内，都是有效的。
+- 配合入参为`task_handle`的方法使用，例如任务同步、任务取消、任务查询等。
 
 #### 方法
 
@@ -244,11 +244,11 @@ inline uint64_t task_handle::get_id() const
 
 返回值
 
-- 任务的id标识
+- 任务的id标识。
 
 描述
 
-- 获取`task_handle`对应任务的id
+- 获取`task_handle`对应任务的id。
 
 #### 样例
 
@@ -279,8 +279,8 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func, ffrt_function_k
 
 #### 参数
 
-- `func`：任务执行的函数闭包
-- `kind`：提交普通任务选择`ffrt_function_kind_general`，提交队列任务选择`ffrt_function_kind_queue`
+- `func`：任务执行的函数闭包。
+- `kind`：提交普通任务选择`ffrt_function_kind_general`，提交队列任务选择`ffrt_function_kind_queue`。
 
 #### 返回值
 
@@ -292,7 +292,7 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func, ffrt_function_k
 
 #### 样例
 
-具体样例参见[开发步骤](ffrt-development-guideline.md#开发步骤)
+具体样例参见[开发步骤](ffrt-development-guideline.md#开发步骤)。
 
 ### submit
 
@@ -313,10 +313,10 @@ static inline void submit(const std::function<void()>& func, const std::vector<d
 
 #### 参数
 
-- `func`：任务执行的函数闭包
-- `in_deps`：任务的输入数据依赖。支持初始化列表和`vector`形式。输入数据依赖通常以实际数据的地址表达，也支持`task_handle`作为一种特殊输入依赖
-- `out_deps`：任务的输出数据依赖。支持初始化列表和`vector`形式。输出数据依赖通常以实际数据的地址表达，不支持`task_handle`
-- `attr`：任务的属性设置
+- `func`：任务执行的函数闭包。
+- `in_deps`：任务的输入数据依赖。支持初始化列表和`vector`形式。输入数据依赖通常以实际数据的地址表达，也支持`task_handle`作为一种特殊输入依赖。
+- `out_deps`：任务的输出数据依赖。支持初始化列表和`vector`形式。输出数据依赖通常以实际数据的地址表达，不支持`task_handle`。
+- `attr`：任务的属性设置。
 
 #### 描述
 
@@ -380,18 +380,18 @@ static inline task_handle submit_h(const std::function<void()>& func, const std:
 
 #### 参数
 
-- `func`：任务执行的函数闭包
-- `in_deps`：任务的输入数据依赖。支持初始化列表和`vector`形式。输入数据依赖通常以实际数据的地址表达，也支持`task_handle`作为一种特殊输入依赖
-- `out_deps`：任务的输出数据依赖。支持初始化列表和`vector`形式。输出数据依赖通常以实际数据的地址表达，不支持`task_handle`
-- `attr`：任务的属性设置
+- `func`：任务执行的函数闭包。
+- `in_deps`：任务的输入数据依赖。支持初始化列表和`vector`形式。输入数据依赖通常以实际数据的地址表达，也支持`task_handle`作为一种特殊输入依赖。
+- `out_deps`：任务的输出数据依赖。支持初始化列表和`vector`形式。输出数据依赖通常以实际数据的地址表达，不支持`task_handle`。
+- `attr`：任务的属性设置。
 
 #### 返回值
 
-- 任务的句柄`task_handle`
+- 任务的句柄`task_handle`。
 
 #### 描述
 
-相比于`submit`接口，增加了任务句柄的返回值
+相比于`submit`接口，增加了任务句柄的返回值。
 
 #### 样例
 
@@ -425,8 +425,8 @@ static inline void wait(const std::vector<dependence>& deps);
 
 `wait`函数分为多种重载形式：
 
-1. 不带参数的`wait`函数，表示同步等待所有前序提交的同级任务完成
-2. 带`deps`参数的`wait`函数，表示同步对应的任务依赖解除
+1. 不带参数的`wait`函数，表示同步等待所有前序提交的同级任务完成。
+2. 带`deps`参数的`wait`函数，表示同步对应的任务依赖解除。
 
 #### 样例
 
@@ -482,12 +482,12 @@ static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size);
 
 #### 参数
 
-- `qos_`：QoS等级
-- `stack_size`：Worker线程栈大小，单位是Byte
+- `qos_`：QoS等级。
+- `stack_size`：Worker线程栈大小，单位是字节。
 
 #### 返回值
 
-- 错误码，可参考`ffrt_error_t`枚举
+- 错误码，可参考`ffrt_error_t`枚举。
 
 #### 描述
 
@@ -510,11 +510,11 @@ static inline int this_task::update_qos(qos qos_);
 
 #### 参数
 
-- `qos_`：QoS等级
+- `qos_`：QoS等级。
 
 #### 返回值
 
-- 0表示成功，1表示失败
+- 0表示成功，1表示失败。
 
 #### 描述
 
@@ -541,7 +541,7 @@ static inline uint64_t this_task::get_id();
 
 #### 返回值
 
-- 当前任务的id
+- 当前任务的id。
 
 #### 描述
 
@@ -878,7 +878,7 @@ static inline queue* queue::get_main_queue()
 
 返回值
 
-- 主线程队列
+- 主线程队列。
 
 描述
 
@@ -921,8 +921,8 @@ class mutex;
 
 #### 描述
 
-- FFRT提供的类似`std::mutex`的性能实现
-- 该功能能够避免传统的`std::mutex`在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
+- FFRT提供的类似`std::mutex`的性能实现。
+- 该功能能够避免传统的`std::mutex`在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能。
 
 #### 方法
 
@@ -934,11 +934,11 @@ inline bool mutex::try_lock();
 
 返回值
 
-- 获取锁是否成功
+- 获取锁是否成功。
 
 描述
 
-- 尝试获取FFRT互斥锁
+- 尝试获取FFRT互斥锁。
 
 ##### lock
 
@@ -948,7 +948,7 @@ inline void mutex::lock();
 
 描述
 
-- 获取FFRT互斥锁
+- 获取FFRT互斥锁。
 
 ##### unlock
 
@@ -958,7 +958,7 @@ inline void mutex::unlock();
 
 描述
 
-- 释放FFRT互斥锁
+- 释放FFRT互斥锁。
 
 #### 样例
 
@@ -1016,8 +1016,8 @@ class recursive_mutex;
 
 #### 描述
 
-- FFRT提供的类似`std::recursive_mutex`的性能实现
-- 该功能能够避免传统的`std::recursive_mutex`在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能
+- FFRT提供的类似`std::recursive_mutex`的性能实现。
+- 该功能能够避免传统的`std::recursive_mutex`在抢不到锁时陷入内核的问题，在使用得当的条件下将会有更好的性能。
 
 #### 方法
 
@@ -1029,11 +1029,11 @@ inline bool recursive_mutex::try_lock();
 
 返回值
 
-- 获取锁是否成功
+- 获取锁是否成功。
 
 描述
 
-- 尝试获取FFRT递归锁
+- 尝试获取FFRT递归锁。
 
 ##### lock
 
@@ -1043,7 +1043,7 @@ inline void recursive_mutex::lock();
 
 描述
 
-- 获取FFRT递归锁
+- 获取FFRT递归锁。
 
 ##### unlock
 
@@ -1053,7 +1053,7 @@ inline bool recursive_mutex::unlock();
 
 描述
 
-- 释放FFRT递归锁
+- 释放FFRT递归锁。
 
 #### 样例
 
@@ -1091,9 +1091,9 @@ class condition_variable;
 
 #### 描述
 
-- FFRT 提供的类似`std::condition_variable`的性能实现
-- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为
-- 该功能能够避免传统的`std::condition_variable`在条件不满足时陷入内核的问题，在使用得当的条件下将会有更好的性能
+- FFRT 提供的类似`std::condition_variable`的性能实现。
+- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
+- 该功能能够避免传统的`std::condition_variable`在条件不满足时陷入内核的问题，在使用得当的条件下将会有更好的性能。
 
 #### 方法
 
@@ -1106,17 +1106,17 @@ bool condition_variable::wait_until(std::unique_lock<mutex>& lk, const std::chro
 
 参数
 
-- `lk`：mutex互斥量
-- `tp`：等待时间
-- `pred`：检查是否等待函数
+- `lk`：mutex互斥量。
+- `tp`：等待时间。
+- `pred`：检查是否等待函数。
 
 返回值
 
-- 是否满足判断条件
+- 是否满足判断条件。
 
 描述
 
-- 该方法用于在指定时间点之前，阻塞当前任务并等待一个条件变量的通知，直到满足给定的谓词（Predicate）或者超时
+- 该方法用于在指定时间点之前，阻塞当前任务并等待一个条件变量的通知，直到满足给定的谓词（Predicate）或者超时。
 
 ##### wait_for
 
@@ -1127,17 +1127,17 @@ bool condition_variable::wait_for(std::unique_lock<mutex>& lk, const std::chrono
 
 参数
 
-- `lk`：mutex互斥量
-- `sleepTime`：等待时间
-- `pred`：检查是否等待函数
+- `lk`：mutex互斥量。
+- `sleepTime`：等待时间。
+- `pred`：检查是否等待函数。
 
 返回值
 
-- 是否满足判断条件
+- 是否满足判断条件。
 
 描述
 
-- 该方法用于在指定时间点之前，阻塞当前任务并等待一个条件变量的通知，直到满足给定的谓词（Predicate）或者超时
+- 该方法用于在指定时间点之前，阻塞当前任务并等待一个条件变量的通知，直到满足给定的谓词（Predicate）或者超时。
 
 ##### wait
 
@@ -1148,12 +1148,12 @@ void condition_variable::wait(std::unique_lock<mutex>& lk, Pred&& pred);
 
 参数
 
-- `lk`：mutex互斥量
-- `pred`：检查是否等待函数
+- `lk`：mutex互斥量。
+- `pred`：检查是否等待函数。
 
 描述
 
-- 该方法用于等待某个条件变量的通知，直到满足给定的谓词（Predicate）
+- 该方法用于等待某个条件变量的通知，直到满足给定的谓词（Predicate）。
 
 ##### notify_one
 
@@ -1222,10 +1222,10 @@ void ffrt_condition_variable_test()
 
 #### 描述
 
-- FFRT提供的类似`std::this_thread::sleep_for`和`std::this_thread::sleep_until`的性能实现
-- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为
-- 该功能能够避免传统的`std::this_thread::sleep_for`睡眠时陷入内核的问题，在使用得当的条件下将会有更好的性能
-- 该接口调用后实际睡眠时长不小于配置值
+- FFRT提供的类似`std::this_thread::sleep_for`和`std::this_thread::sleep_until`的性能实现。
+- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
+- 该功能能够避免传统的`std::this_thread::sleep_for`睡眠时陷入内核的问题，在使用得当的条件下将会有更好的性能。
+- 该接口调用后实际睡眠时长不小于配置值。
 
 #### 方法
 
@@ -1238,11 +1238,11 @@ inline void this_task::sleep_for(const std::chrono::duration<_Rep, _Period>& d);
 
 参数
 
-- `d`：要休眠的持续时间
+- `d`：要休眠的持续时间。
 
 描述
 
-- 该方法用于让当前任务休眠指定的持续时间
+- 该方法用于让当前任务休眠指定的持续时间。
 
 ##### sleep_until
 
@@ -1254,11 +1254,11 @@ inline void this_task::sleep_until(
 
 参数
 
-- `abs_time`：绝对时间点，表示任务应该被唤醒的目标时间
+- `abs_time`：绝对时间点，表示任务应该被唤醒的目标时间。
 
 描述
 
-- 该方法用于让当前任务休眠直到指定的绝对时间点
+- 该方法用于让当前任务休眠直到指定的绝对时间点。
 
 #### 样例
 
@@ -1287,9 +1287,9 @@ static inline void this_task::yield();
 
 #### 描述
 
-- 当前任务主动让出CPU执行资源，让其他可以被执行的任务先执行，如果没有其他可被执行的任务，`yield`无效
-- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为
-- 此函数的确切行为取决于实现，特别是使用中的FFRT调度程序的机制和系统状态
+- 当前任务主动让出CPU执行资源，让其他可以被执行的任务先执行，如果没有其他可被执行的任务，`yield`无效。
+- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
+- 此函数的确切行为取决于实现，特别是使用中的FFRT调度程序的机制和系统状态。
 
 #### 样例
 

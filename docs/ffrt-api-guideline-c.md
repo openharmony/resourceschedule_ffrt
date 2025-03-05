@@ -25,14 +25,14 @@ typedef struct {
 
 #### 参数
 
-- `len`：数据依赖个数
-- `items`：数据依赖数组，数据长度等于`len`
-- `ptr`：数据地址
-- `type`：区分数据和`task_handle`
+- `len`：数据依赖个数。
+- `items`：数据依赖数组，数据长度等于`len`。
+- `ptr`：数据地址。
+- `type`：区分数据和`task_handle`。
 
 #### 描述
 
-`ffrt_dependence_t`作用等同C++的`dependence`，`ffrt_deps_t`作用等同C++的`std::vector<dependence>`
+`ffrt_dependence_t`作用等同C++的`dependence`，`ffrt_deps_t`作用等同C++的`std::vector<dependence>`。
 
 #### 样例
 
@@ -68,7 +68,7 @@ typedef struct {
 
 #### 描述
 
-任务的属性描述，在提交普通任务或者队列任务时，可以通过`ffrt_task_attr_t`来配置其属性。(对应C++的`task_attr`类型)
+任务的属性描述，在提交普通任务或者队列任务时，可以通过`ffrt_task_attr_t`来配置其属性。
 
 #### 方法
 
@@ -80,15 +80,15 @@ FFRT_C_API int ffrt_task_attr_init(ffrt_task_attr_t* attr);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 返回值
 
-- 0表示成功，-1表示失败
+- 0表示成功，-1表示失败。
 
 描述
 
-- 初始化一个`ffrt_task_attr_t`对象
+- 初始化一个`ffrt_task_attr_t`对象。
 
 ##### ffrt_task_attr_destroy
 
@@ -98,11 +98,11 @@ FFRT_C_API void ffrt_task_attr_destroy(ffrt_task_attr_t* attr);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 描述
 
-- 去初始化一个`ffrt_task_attr_t`对象
+- 去初始化一个`ffrt_task_attr_t`对象。
 
 ##### ffrt_task_attr_set_name
 
@@ -112,8 +112,8 @@ FFRT_C_API void ffrt_task_attr_set_name(ffrt_task_attr_t* attr, const char* name
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
-- `name`：任务的名称
+- `attr`：`ffrt_task_attr_t`对象指针。
+- `name`：任务的名称。
 
 描述
 
@@ -127,15 +127,15 @@ FFRT_C_API const char* ffrt_task_attr_get_name(const ffrt_task_attr_t* attr);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 返回值
 
-- 任务的名称
+- 任务的名称。
 
 描述
 
-- 获取设置的任务名称
+- 获取设置的任务名称。
 
 ##### ffrt_task_attr_set_qos
 
@@ -145,8 +145,8 @@ FFRT_C_API void ffrt_task_attr_set_qos(ffrt_task_attr_t* attr, ffrt_qos_t qos);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
-- `qos`：QoS等级
+- `attr`：`ffrt_task_attr_t`对象指针。
+- `qos`：QoS等级。
 
 描述
 
@@ -160,15 +160,15 @@ FFRT_C_API ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t* attr);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 返回值
 
-- QoS等级
+- QoS等级。
 
 描述
 
-- 获取设置的QoS等级
+- 获取设置的QoS等级。
 
 ##### ffrt_task_attr_set_delay
 
@@ -178,8 +178,8 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
-- `delay_us`：调度时延，单位为微秒
+- `attr`：`ffrt_task_attr_t`对象指针。
+- `delay_us`：调度时延，单位为微秒。
 
 描述
 
@@ -193,15 +193,15 @@ FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 返回值
 
-- 调度时延
+- 调度时延。
 
 描述
 
-- 获取设置的调度时延
+- 获取设置的调度时延。
 
 ##### ffrt_task_attr_set_queue_priority
 
@@ -211,8 +211,8 @@ FFRT_C_API void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_q
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
-- `priority`：任务优先级
+- `attr`：`ffrt_task_attr_t`对象指针。
+- `priority`：任务优先级。
 
 描述
 
@@ -226,15 +226,15 @@ FFRT_C_API ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_ta
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 返回值
 
-- 任务优先级
+- 任务优先级。
 
 描述
 
-- 获取设置的优先级
+- 获取设置的优先级。
 
 ##### ffrt_task_attr_set_stack_size
 
@@ -244,8 +244,8 @@ FFRT_C_API void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t s
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
-- `size`：协程栈大小，单位为Byte
+- `attr`：`ffrt_task_attr_t`对象指针。
+- `size`：协程栈大小，单位为字节。
 
 描述
 
@@ -259,15 +259,15 @@ FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 返回值
 
-- 协程栈大小
+- 协程栈大小。
 
 描述
 
-- 获取设置的协程栈大小
+- 获取设置的协程栈大小。
 
 ##### ffrt_task_attr_set_timeout
 
@@ -277,8 +277,8 @@ FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t time
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
-- `timeout_us`：任务的调度超时时间，单位为微秒
+- `attr`：`ffrt_task_attr_t`对象指针。
+- `timeout_us`：任务的调度超时时间，单位为微秒。
 
 描述
 
@@ -292,15 +292,15 @@ FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
 
 参数
 
-- `attr`：`ffrt_task_attr_t`对象指针
+- `attr`：`ffrt_task_attr_t`对象指针。
 
 返回值
 
-- 调度超时时间
+- 调度超时时间。
 
 描述
 
-- 获取设置的超时时间
+- 获取设置的超时时间。
 
 #### 样例
 
@@ -338,14 +338,14 @@ FFRT_C_API void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kin
 
 #### 参数
 
-- `kind`：提交普通任务选择`ffrt_function_kind_general`，提交队列任务选择`ffrt_function_kind_queue`
-- `exec`：任务实际执行调用的函数指针
-- `destroy`：任务完成后调用的函数指针，可用于资源清理等用途
-- `reserve`：内部预留空间，用户请勿使用该成员
+- `kind`：提交普通任务选择`ffrt_function_kind_general`，提交队列任务选择`ffrt_function_kind_queue`。
+- `exec`：任务实际执行调用的函数指针。
+- `destroy`：任务完成后调用的函数指针，可用于资源清理等用途。
+- `reserve`：内部预留空间，用户请勿使用该成员。
 
 #### 返回值
 
-- 返回存储用户任务执行体的指针
+- 返回存储用户任务执行体的指针。
 
 #### 描述
 
@@ -353,7 +353,7 @@ FFRT_C_API void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kin
 
 #### 样例
 
-- 样例1：生成一个不带参数和返回值的任务执行体
+- 样例1：生成一个不带参数和返回值的任务执行体：
 
     ```c
     void foo(void* data)
@@ -380,7 +380,7 @@ FFRT_C_API void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kin
     }
     ```
 
-- 样例2：生成一个带参数和返回值的任务执行体
+- 样例2：生成一个带参数和返回值的任务执行体：
 
     ```c
     int foo(int x, int y)
@@ -436,18 +436,18 @@ FFRT_C_API void ffrt_submit_base(ffrt_function_header_t* f, const ffrt_deps_t* i
 
 #### 参数
 
-- `f`：用户的任务执行体，可以是原生的`ffrt_function_header_t`类型，也可以基于`ffrt_function_header_t`自定义拓展类型
-- `in_deps`：任务的输入数据依赖。输入数据依赖通常以实际数据的地址表达，也支持`ffrt_task_handle_t`作为一种特殊输入依赖
-- `out_deps`：任务的输出数据依赖。输出数据依赖通常以实际数据的地址表达，不支持`ffrt_task_handle_t`
-- `attr`：任务的属性设置
+- `f`：用户的任务执行体，可以是原生的`ffrt_function_header_t`类型，也可以基于`ffrt_function_header_t`自定义拓展类型。
+- `in_deps`：任务的输入数据依赖。输入数据依赖通常以实际数据的地址表达，也支持`ffrt_task_handle_t`作为一种特殊输入依赖。
+- `out_deps`：任务的输出数据依赖。输出数据依赖通常以实际数据的地址表达，不支持`ffrt_task_handle_t`。
+- `attr`：任务的属性设置。
 
 #### 描述
 
-提交一个普通任务，任务支持相关属性设置，在输入依赖解除后任务可调度执行，任务执行完成后解除输出依赖。（作用等同C++的`submit`接口）
+提交一个普通任务，任务支持相关属性设置，在输入依赖解除后任务可调度执行，任务执行完成后解除输出依赖。
 
 #### 样例
 
-- 样例1：提交带属性的任务
+- 样例1：提交带属性的任务：
 
     ```c
     void foo(void* data)
@@ -474,7 +474,7 @@ FFRT_C_API void ffrt_submit_base(ffrt_function_header_t* f, const ffrt_deps_t* i
     ffrt_submit_base(func, NULL, NULL, &attr);
     ```
 
-- 样例2：提交带数据依赖的任务
+- 样例2：提交带数据依赖的任务：
 
     ```c
     // 提交两个带数据依赖的任务，任务间存在Read-After-Write依赖关系
@@ -567,18 +567,18 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, cons
 
 #### 参数
 
-- `f`：用户的任务执行体，可以是原生的`ffrt_function_header_t`类型，也可以基于`ffrt_function_header_t`自定义拓展类型
-- `in_deps`：任务的输入数据依赖。输入数据依赖通常以实际数据的地址表达，也支持`ffrt_task_handle_t`作为一种特殊输入依赖
-- `out_deps`：任务的输出数据依赖。输出数据依赖通常以实际数据的地址表达，不支持`ffrt_task_handle_t`
-- `attr`：任务的属性设置
+- `f`：用户的任务执行体，可以是原生的`ffrt_function_header_t`类型，也可以基于`ffrt_function_header_t`自定义拓展类型。
+- `in_deps`：任务的输入数据依赖。输入数据依赖通常以实际数据的地址表达，也支持`ffrt_task_handle_t`作为一种特殊输入依赖。
+- `out_deps`：任务的输出数据依赖。输出数据依赖通常以实际数据的地址表达，不支持`ffrt_task_handle_t`。
+- `attr`：任务的属性设置。
 
 #### 返回值
 
-- `ffrt_task_handle_t`任务的句柄
+- `ffrt_task_handle_t`任务的句柄。
 
 #### 描述
 
-相比于`ffrt_submit_base`接口，增加了任务句柄的返回值。（作用等同C++的`submit_h`接口）
+相比于`ffrt_submit_base`接口，增加了任务句柄的返回值。
 
 #### 样例
 
@@ -602,11 +602,11 @@ FFRT_C_API uint32_t ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
 
 #### 参数
 
-- `handle`：任务句柄
+- `handle`：任务句柄。
 
 #### 返回值
 
-- 任务的引用计数
+- 任务的引用计数。
 
 #### 描述
 
@@ -622,11 +622,11 @@ FFRT_C_API uint32_t ffrt_task_handle_dec_ref(ffrt_task_handle_t handle);
 
 #### 参数
 
-- `handle`：任务句柄
+- `handle`：任务句柄。
 
 #### 返回值
 
-- 任务的引用计数
+- 任务的引用计数。
 
 #### 描述
 
@@ -642,7 +642,7 @@ FFRT_C_API void ffrt_task_handle_destroy(ffrt_task_handle_t handle);
 
 #### 参数
 
-- `handle`：任务句柄
+- `handle`：任务句柄。
 
 #### 描述
 
@@ -658,7 +658,7 @@ FFRT_C_API void ffrt_wait(void);
 
 #### 描述
 
-同步等待所有前序提交的同级任务完成。（作用等同C++的不带参数的`wait`接口）
+同步等待所有前序提交的同级任务完成。
 
 #### 样例
 
@@ -680,11 +680,11 @@ FFRT_C_API void ffrt_wait_deps(const ffrt_deps_t* deps);
 
 #### 参数
 
-- `deps`：需要同步的数据依赖
+- `deps`：需要同步的数据依赖。
 
 #### 描述
 
-同步对应的数据依赖解除。（作用等同C++带参数的`wait`接口）
+同步对应的数据依赖解除。
 
 #### 样例
 
@@ -715,8 +715,8 @@ FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_
 
 #### 参数
 
-- `qos`：QoS等级
-- `stack_size`：Worker线程栈大小，单位是Byte
+- `qos`：QoS等级。
+- `stack_size`：Worker线程栈大小，单位是字节。
 
 #### 返回值
 
@@ -724,7 +724,7 @@ FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_
 
 #### 描述
 
-在开始提交任务前，设置某一组QoS的Worker线程栈大小（Worker线程按QoS分组，组间互不影响，组内线程属性相同）。通常该接口用于用户提交非协程任务且函数栈超过默认上限的场景，不设置时线程栈和OS默认规格一致。（作用等同C++的`set_worker_stack_size`接口）
+在开始提交任务前，设置某一组QoS的Worker线程栈大小（Worker线程按QoS分组，组间互不影响，组内线程属性相同）。通常该接口用于用户提交非协程任务且函数栈超过默认上限的场景，不设置时线程栈和OS默认规格一致。
 
 #### 样例
 
@@ -743,15 +743,15 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
 
 #### 参数
 
-- `qos`：QoS等级
+- `qos`：QoS等级。
 
 #### 返回值
 
-- 0表示成功，1表示失败
+- 0表示成功，1表示失败。
 
 #### 描述
 
-在任务执行过程中，动态修改任务的QoS等级。注意该接口在任务的函数闭包内使用，修改的是当前正在执行的任务的QoS等级，接口调用会使任务先挂起一次再恢复执行。（作用等同C++的`update_qos`接口）
+在任务执行过程中，动态修改任务的QoS等级。注意该接口在任务的函数闭包内使用，修改的是当前正在执行的任务的QoS等级，接口调用会使任务先挂起一次再恢复执行。
 
 #### 样例
 
@@ -774,11 +774,11 @@ FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
 
 #### 返回值
 
-- QoS等级
+- QoS等级。
 
 #### 描述
 
-获取当前正在执行任务的QoS等级
+获取当前正在执行任务的QoS等级。
 
 #### 样例
 
@@ -802,11 +802,11 @@ FFRT_C_API uint64_t ffrt_this_task_get_id(void);
 
 #### 返回值
 
-- 任务的id
+- 任务的id。
 
 #### 描述
 
-获取当前正在执行任务的id
+获取当前正在执行任务的id。
 
 #### 样例
 
@@ -830,15 +830,15 @@ FFRT_C_API uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle);
 
 #### 参数
 
-- `handle`：任务句柄
+- `handle`：任务句柄。
 
 #### 返回值
 
-- 任务的id
+- 任务的id。
 
 #### 描述
 
-获取任务句柄对应的任务id
+获取任务句柄对应的任务id。
 
 #### 样例
 
@@ -911,7 +911,7 @@ void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 参数
 
 - `attr`：队列属性指针。
-- `qos`：QoS等级
+- `qos`：QoS等级。
 
 描述
 
@@ -1086,7 +1086,7 @@ ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const f
 
 参数
 
-- `type`：队列类型（如`ffrt_queue_serial`或`ffrt_queue_concurrent`）
+- `type`：队列类型（如`ffrt_queue_serial`或`ffrt_queue_concurrent`）。
 - `name`：队列名称。
 - `attr`：队列属性。
 
@@ -1338,7 +1338,7 @@ int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr);
 
 #### 描述
 
-- FFRT提供的类似pthread mutexattr的性能实现
+- FFRT提供的类似pthread mutexattr的性能实现。
 
 #### 方法
 
@@ -1350,15 +1350,15 @@ FFRT_C_API int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
 
 参数
 
-- `attr`：FFRT锁属性
+- `attr`：FFRT锁属性。
 
 返回值
 
-- `attr`不为空返回`ffrt_success`，否则返回`ffrt_error_inval`
+- `attr`不为空返回`ffrt_success`，否则返回`ffrt_error_inval`。
 
 描述
 
-- 初始化`mutexattr`
+- 初始化`mutexattr`。
 
 ##### ffrt_mutexattr_destroy
 
@@ -1368,15 +1368,15 @@ FFRT_C_API int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr);
 
 参数
 
-- `attr`：FFRT锁属性
+- `attr`：FFRT锁属性。
 
 返回值
 
-- `attr`不为空返回`ffrt_success`，否则返回`ffrt_error_inval`
+- `attr`不为空返回`ffrt_success`，否则返回`ffrt_error_inval`。
 
 描述
 
-- 销毁mutexattr
+- 销毁mutexattr。
 
 ##### ffrt_mutexattr_settype
 
@@ -1386,16 +1386,16 @@ FFRT_C_API int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type);
 
 参数
 
-- `attr`：FFRT锁属性
-- `type`：FFRT锁类型，当前仅支持互斥锁`ffrt_mutex_normal`和递归锁`ffrt_mutex_recursive`
+- `attr`：FFRT锁属性。
+- `type`：FFRT锁类型，当前仅支持互斥锁`ffrt_mutex_normal`和递归锁`ffrt_mutex_recursive`。
 
 返回值
 
-- `attr`不为空且`type`有效返回`ffrt_success`，否则返回`ffrt_error_inval`
+- `attr`不为空且`type`有效返回`ffrt_success`，否则返回`ffrt_error_inval`。
 
 描述
 
-- 设置FFRT锁属性
+- 设置FFRT锁属性。
 
 ##### ffrt_mutexattr_gettype
 
@@ -1405,15 +1405,15 @@ FFRT_C_API int ffrt_mutexattr_gettype(ffrt_mutexattr_t* attr, int* type);
 
 参数
 
-- 详见[ffrt_mutexattr_settype](#ffrt_mutexattr_settype)章节
+- 详见[ffrt_mutexattr_settype](#ffrt_mutexattr_settype)章节。
 
 返回值
 
-- `attr`和`type`均不为空返回`ffrt_success`，否则返回`ffrt_error_inval`
+- `attr`和`type`均不为空返回`ffrt_success`，否则返回`ffrt_error_inval`。
 
 描述
 
-- 获取FFRT锁属性
+- 获取FFRT锁属性。
 
 #### 样例
 
@@ -1433,7 +1433,7 @@ void ffrt_c_mutexattr_test()
 
 ### ffrt_mutex_t
 
-- FFRT 提供的类似 pthread mutex 的性能实现，但不支持类似PTHREAD_MUTEX_INITIALIZER的初始化
+- FFRT 提供的类似pthread mutex的性能实现，但不支持类似`PTHREAD_MUTEX_INITIALIZER`的初始化。
 
 #### 声明
 
@@ -1460,14 +1460,14 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 
 #### 描述
 
-- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用
-- 该接口能够避免pthread传统的`pthread_mutex_t`在抢不到锁时陷入内核态的问题，在使用得当的条件下将会有更好的性能
-- C API 中的`ffrt_mutexattr_t`需要用户调用`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`显示创建和销毁，否则其行为是未定义的
-- C API 中的`ffrt_mutex_t`需要用户调用`ffrt_mutex_init`和`ffrt_mutex_destroy`显式创建和销毁，否则其行为是未定义的
-- C API 中的`ffrt_mutex_t`对象的置空和销毁由用户完成，对同一个`ffrt_mutex_t`仅能调用一次`ffrt_mutex_destroy`，重复对同一个 ffrt_mutex_t 调用`ffrt_mutex_destroy`，其行为是未定义的
-- C API 中的同一个`ffrt_mutexattr_t`只能调用一次`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`，重复调用其行为是未定义的
-- 用户需要在调用`ffrt_mutex_init`之后和调用`ffrt_mutex_destroy`之前显示调用`ffrt_mutexattr_destroy`
-- 在`ffrt_mutex_destroy`之后再对`ffrt_mutex_t`进行访问，其行为是未定义的
+- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
+- 该接口能够避免pthread传统的`pthread_mutex_t`在抢不到锁时陷入内核态的问题，在使用得当的条件下将会有更好的性能。
+- C API 中的`ffrt_mutexattr_t`需要用户调用`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`显示创建和销毁，否则其行为是未定义的。
+- C API 中的`ffrt_mutex_t`需要用户调用`ffrt_mutex_init`和`ffrt_mutex_destroy`显式创建和销毁，否则其行为是未定义的。
+- C API 中的`ffrt_mutex_t`对象的置空和销毁由用户完成，对同一个`ffrt_mutex_t`仅能调用一次`ffrt_mutex_destroy`，重复对同一个 ffrt_mutex_t 调用`ffrt_mutex_destroy`，其行为是未定义的。
+- C API 中的同一个`ffrt_mutexattr_t`只能调用一次`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`，重复调用其行为是未定义的。
+- 用户需要在调用`ffrt_mutex_init`之后和调用`ffrt_mutex_destroy`之前显示调用`ffrt_mutexattr_destroy`。
+- 在`ffrt_mutex_destroy`之后再对`ffrt_mutex_t`进行访问，其行为是未定义的。
 
 #### 方法
 
@@ -1479,7 +1479,7 @@ FFRT_C_API int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr
 
 参数
 
-- `mutex`：指向所操作的锁指针
+- `mutex`：指向所操作的锁指针。
 - `attr`：FFRT锁属性，attr的有效值范围是：空指针或等于`ffrt_mutex_normal`代表互斥锁，`ffrt_mutex_recursive`代表递归锁。
 
 返回值
@@ -1488,7 +1488,7 @@ FFRT_C_API int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr
 
 描述
 
-- 初始化FFRT锁
+- 初始化FFRT锁。
 
 ##### ffrt_mutex_destroy
 
@@ -1498,7 +1498,7 @@ FFRT_C_API int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 
 参数
 
-- `mutex`：指向所操作的锁指针
+- `mutex`：指向所操作的锁指针。
 
 返回值
 
@@ -1506,7 +1506,7 @@ FFRT_C_API int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 
 描述
 
-- 对指定的互斥锁/递归锁进行销毁操作
+- 对指定的互斥锁/递归锁进行销毁操作。
 
 ##### ffrt_mutex_lock
 
@@ -1516,7 +1516,7 @@ FFRT_C_API int ffrt_mutex_lock(ffrt_mutex_t* mutex);
 
 参数
 
-- `mutex`：指向所操作的锁指针
+- `mutex`：指向所操作的锁指针。
 
 返回值
 
@@ -1534,7 +1534,7 @@ FFRT_C_API int ffrt_mutex_unlock(ffrt_mutex_t* mutex);
 
 参数
 
-- `mutex`：指向所操作的锁指针
+- `mutex`：指向所操作的锁指针。
 
 返回值
 
@@ -1542,7 +1542,7 @@ FFRT_C_API int ffrt_mutex_unlock(ffrt_mutex_t* mutex);
 
 描述
 
-- 对指定的互斥锁/递归锁进行解锁操作
+- 对指定的互斥锁/递归锁进行解锁操作。
 
 ##### ffrt_mutex_trylock
 
@@ -1552,7 +1552,7 @@ FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
 
 参数
 
-- `mutex`：指向所操作的锁指针
+- `mutex`：指向所操作的锁指针。
 
 返回值
 
@@ -1560,7 +1560,7 @@ FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
 
 描述
 
-- 对指定的互斥锁/递归锁进行尝试加锁操作
+- 对指定的互斥锁/递归锁进行尝试加锁操作。
 
 #### 样例
 
@@ -1604,7 +1604,7 @@ void ffrt_c_mutex_test()
 
 ### ffrt_cond_t
 
-- FFRT提供的类似pthread信号量的性能实现，但不支持类似`PTHREAD_COND_INITIALIZER`的初始化
+- FFRT提供的类似pthread信号量的性能实现，但不支持类似`PTHREAD_COND_INITIALIZER`的初始化。
 
 #### 声明
 
@@ -1632,11 +1632,11 @@ int ffrt_cond_destroy(ffrt_cond_t* cond);
 
 #### 描述
 
-- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用
-- 该功能能够避免传统的`pthread_cond_t`在条件不满足时陷入内核的问题，在使用得当的条件下将会有更好的性能
-- 注意：C API 中的`ffrt_cond_t`需要用户调用`ffrt_cond_init`和`ffrt_cond_destroy`显式创建和销毁，而C++ API 中依赖构造和析构自动完成
-- 注意：C API 中的`ffrt_cond_t`对象的置空和销毁由用户完成，对同一个`ffrt_cond_t`仅能调用一次`ffrt_cond_destroy`，重复对同一个`ffrt_cond_t`调用`ffrt_cond_destroy`，其行为是未定义的
-- 注意：在`ffrt_cond_destroy`之后再对`ffrt_cond_t`进行访问，其行为是未定义的
+- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
+- 该功能能够避免传统的`pthread_cond_t`在条件不满足时陷入内核的问题，在使用得当的条件下将会有更好的性能。
+- 注意：C API 中的`ffrt_cond_t`需要用户调用`ffrt_cond_init`和`ffrt_cond_destroy`显式创建和销毁，而C++ API 中依赖构造和析构自动完成。
+- 注意：C API 中的`ffrt_cond_t`对象的置空和销毁由用户完成，对同一个`ffrt_cond_t`仅能调用一次`ffrt_cond_destroy`，重复对同一个`ffrt_cond_t`调用`ffrt_cond_destroy`，其行为是未定义的。
+- 注意：在`ffrt_cond_destroy`之后再对`ffrt_cond_t`进行访问，其行为是未定义的。
 
 #### 方法
 
@@ -1648,8 +1648,8 @@ FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
 
 参数
 
-- `cond`：指向所操作的信号量的指针
-- `attr`：属性设定，空指针表示使用默认属性
+- `cond`：指向所操作的信号量的指针。
+- `attr`：属性设定，空指针表示使用默认属性。
 
 返回值
 
@@ -1657,7 +1657,7 @@ FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
 
 描述
 
-- 初始化FFRT条件变量
+- 初始化FFRT条件变量。
 
 ##### ffrt_cond_destroy
 
@@ -1667,7 +1667,7 @@ FFRT_C_API int ffrt_cond_destroy(ffrt_cond_t* cond);
 
 参数
 
-- `cond`：指向所操作的信号量的指针
+- `cond`：指向所操作的信号量的指针。
 
 返回值
 
@@ -1675,7 +1675,7 @@ FFRT_C_API int ffrt_cond_destroy(ffrt_cond_t* cond);
 
 描述
 
-- 销毁FFRT条件变量
+- 销毁FFRT条件变量。
 
 ##### ffrt_cond_signal
 
@@ -1685,7 +1685,7 @@ FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
 
 参数
 
-- `cond`：指向所操作的信号量的指针
+- `cond`：指向所操作的信号量的指针。
 
 返回值
 
@@ -1693,7 +1693,7 @@ FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
 
 描述
 
-- 该方法用于唤醒一个等待条件变量的任务
+- 该方法用于唤醒一个等待条件变量的任务。
 
 ##### ffrt_cond_broadcast
 
@@ -1703,7 +1703,7 @@ FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
 
 参数
 
-- `cond`：指向所操作的信号量的指针
+- `cond`：指向所操作的信号量的指针。
 
 返回值
 
@@ -1711,7 +1711,7 @@ FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
 
 描述
 
-- 该方法用于唤醒所有等待条件变量的任务
+- 该方法用于唤醒所有等待条件变量的任务。
 
 ##### ffrt_cond_wait
 
@@ -1721,8 +1721,8 @@ FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
 
 参数
 
-- `cond`：指向所操作的信号量的指针
-- `mutex`：指向要在阻塞期间解锁的互斥锁的指针
+- `cond`：指向所操作的信号量的指针。
+- `mutex`：指向要在阻塞期间解锁的互斥锁的指针。
 
 返回值
 
@@ -1730,7 +1730,7 @@ FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
 
 描述
 
-- 方法用于在条件变量上等待。任务在调用该方法时会释放传入的互斥量，并进入等待状态，直到另一个任务通知条件变量，才会重新获取互斥量并继续执行；
+- 方法用于在条件变量上等待。任务在调用该方法时会释放传入的互斥量，并进入等待状态，直到另一个任务通知条件变量，才会重新获取互斥量并继续执行。
 - 此方法通常与`ffrt_mutex_lock`或`ffrt_mutex_trylock`一起使用，确保在进入等待状态之前已经持有互斥量。
 
 ##### ffrt_cond_timedwait
@@ -1741,9 +1741,9 @@ FFRT_C_API int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const
 
 参数
 
-- `cond`：指向所操作的信号量的指针
-- `mutex`：指向要在阻塞期间解锁的互斥锁的指针
-- `time_point`：指向指定等待时限时间的对象的指针
+- `cond`：指向所操作的信号量的指针。
+- `mutex`：指向要在阻塞期间解锁的互斥锁的指针。
+- `time_point`：指向指定等待时限时间的对象的指针。
 
 返回值
 
@@ -1810,14 +1810,14 @@ FFRT_C_API int ffrt_usleep(uint64_t usec);
 
 #### 参数
 
-- `usec`：睡眠的微秒数
+- `usec`：睡眠的微秒数。
 
 #### 描述
 
-- FFRT提供的类似C11 sleep和Linux usleep的性能实现
-- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为
-- 该接口睡眠精度为微妙
-- 该功能能够避免传统的`sleep`睡眠时陷入内核的问题，在使用得当的条件下将会有更好的性能
+- FFRT提供的类似C11 sleep和Linux usleep的性能实现。
+- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
+- 该接口睡眠精度为微秒。
+- 该功能能够避免传统的`sleep`睡眠时陷入内核的问题，在使用得当的条件下将会有更好的性能。
 
 #### 样例
 
@@ -1843,9 +1843,9 @@ FFRT_C_API void ffrt_yield();
 
 #### 描述
 
-- 当前任务主动让出CPU执行资源，允许其他可执行的任务运行，如果没有其他可执行的任务，`yield`无效
-- 该接口只能在 FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为
-- 此函数的确切行为取决于实现，特别是使用中的FFRT调度程序的机制和系统状态
+- 当前任务主动让出CPU执行资源，允许其他可执行的任务运行，如果没有其他可执行的任务，`yield`无效。
+- 该接口只能在 FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
+- 此函数的确切行为取决于实现，特别是使用中的FFRT调度程序的机制和系统状态。
 
 #### 样例
 
@@ -1895,15 +1895,15 @@ FFRT_C_API ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void*
 
 参数
 
-- `qos`：QoS等级
-- `timeout`：定时器时间，单位是毫秒
-- `cb`：到期后的回调函数
-- `data`：回调函数的输入参数
-- `repeat`：是否循环定时器
+- `qos`：QoS等级。
+- `timeout`：定时器时间，单位是毫秒。
+- `cb`：到期后的回调函数。
+- `data`：回调函数的输入参数。
+- `repeat`：是否循环定时器。
 
 返回值
 
-- `ffrt_timer_t`定时器句柄
+- `ffrt_timer_t`定时器句柄。
 
 描述
 
@@ -1919,20 +1919,20 @@ FFRT_C_API int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);
 
 参数
 
-- `qos`：QoS等级
-- `handle`：定时器句柄
+- `qos`：QoS等级。
+- `handle`：定时器句柄。
 
 返回值
 
-- 0表示成功，-1表示失败
+- 0表示成功，-1表示失败。
 
 描述
 
-- 取消一个定时器，和`ffrt_timer_start`配对使用
+- 取消一个定时器，和`ffrt_timer_start`配对使用。
 
 #### 样例
 
-- 样例1：使用单次定时器
+- 样例1：使用单次定时器：
 
     ```c
     #include <stdint.h>
@@ -1961,7 +1961,7 @@ FFRT_C_API int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);
     }
     ```
 
-- 样例2：使用循环定时器
+- 样例2：使用循环定时器：
 
     ```c
     #include <stdint.h>
@@ -2016,11 +2016,11 @@ FFRT_C_API ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
 
 参数
 
-- `queue`：loop需要绑定一个FFRT并发队列使用
+- `queue`：loop需要绑定一个FFRT并发队列使用。
 
 返回值
 
-- `ffrt_loop_t`对象
+- `ffrt_loop_t`对象。
 
 描述
 
@@ -2036,11 +2036,11 @@ FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
 
 参数
 
-- `loop`：loop对象
+- `loop`：loop对象。
 
 返回值
 
-- 0表示成功，-1表示失败
+- 0表示成功，-1表示失败。
 
 描述
 
@@ -2056,11 +2056,11 @@ FFRT_C_API int ffrt_loop_run(ffrt_loop_t loop);
 
 参数
 
-- `loop`：loop对象
+- `loop`：loop对象。
 
 返回值
 
-- 0表示成功，-1表示失败
+- 0表示成功，-1表示失败。
 
 描述
 
@@ -2076,7 +2076,7 @@ FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
 
 参数
 
-- `loop`：loop对象
+- `loop`：loop对象。
 
 描述
 
@@ -2092,20 +2092,20 @@ int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void 
 
 参数
 
-- `loop`：loop对象
-- `op`：fd操作符，参考epoll_ctl的操作类型
-- `fd`：事件描述符
-- `events`：事件，参考epoll_ctl的事件类型
-- `data`：回调函数的入参
-- `cb`：回调函数
+- `loop`：loop对象。
+- `op`：fd操作符，参考epoll_ctl的操作类型。
+- `fd`：事件描述符。
+- `events`：事件，参考epoll_ctl的事件类型。
+- `data`：回调函数的入参。
+- `cb`：回调函数。
 
 返回值
 
-- 0表示成功，-1表示失败
+- 0表示成功，-1表示失败。
 
 描述
 
-- 管理loop上的监听fd事件，事件的监听和回调执行在loop线程上处理
+- 管理loop上的监听fd事件，事件的监听和回调执行在loop线程上处理。
 
 ##### ffrt_loop_timer_start
 
@@ -2117,19 +2117,19 @@ FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(ffrt_loop_t loop, uint64_t timeout
 
 参数
 
-- `loop`：loop对象
-- `timeout`：定时器时间，单位是毫秒
-- `cb`：到期后的回调函数
-- `data`：回调函数的输入参数
-- `repeat`：是否循环定时器
+- `loop`：loop对象。
+- `timeout`：定时器时间，单位是毫秒。
+- `cb`：到期后的回调函数。
+- `data`：回调函数的输入参数。
+- `repeat`：是否循环定时器。
 
 返回值
 
-- `ffrt_timer_t`定时器句柄
+- `ffrt_timer_t`定时器句柄。
 
 描述
 
-- 在loop上启动一个定时器，用法和`ffrt_timer_start`一致，只是定时器的监听和回调执行在loop线程上处理
+- 在loop上启动一个定时器，用法和`ffrt_timer_start`一致，只是定时器的监听和回调执行在loop线程上处理。
 
 ##### ffrt_loop_timer_stop
 
@@ -2141,20 +2141,20 @@ FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
 
 参数
 
-- `loop`：loop对象
-- `handle`：定时器句柄
+- `loop`：loop对象。
+- `handle`：定时器句柄。
 
 返回值
 
-- 0表示成功，-1表示失败
+- 0表示成功，-1表示失败。
 
 描述
 
-- 取消一个定时器，用法和`ffrt_timer_stop`一致
+- 取消一个定时器，用法和`ffrt_timer_stop`一致。
 
 #### 样例
 
-- 样例1：循环与并发队列
+- 样例1：循环与并发队列：
 
     ```c
     #include <pthread.h>
@@ -2196,7 +2196,7 @@ FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
     }
     ```
 
-- 样例2：循环、并发队列和定时器
+- 样例2：循环、并发队列和定时器：
 
     ```c
     #include <pthread.h>

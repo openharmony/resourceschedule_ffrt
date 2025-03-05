@@ -16,7 +16,7 @@ FFRT提供开发者队列级和任务级超时维测机制，用来监控用户�
 - 当队列中任务发生超时，FFRT打印告警日志并通过回调接口通知到业务。
 - 当任务发生超时，FFRT打印告警日志并调用进程级回调函数。
 
-> 注意
+> **注意：**
 >
 > 任务超时时执行的回调函数进程范围内唯一，需要在任务提交之前由业务方配置到FFRT中，不支持在提交任务或任务超时检测过程中配置。
 
@@ -171,7 +171,7 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
 
 #### 机制
 
-- FFRT默认不开启Debug级别的日志，用户可以通过命令的方式打开，以获取更丰富的维测信息支撑开发阶段的问题定位
+- FFRT默认不开启Debug级别的日志，用户可以通过命令的方式打开，以获取更丰富的维测信息支撑开发阶段的问题定位。
 - 打开FFRT Debug日志开关：
 
     ```shell
@@ -199,13 +199,13 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
 
 以下步骤描述了如何使用FFRT提供的Native API接口，创建并行任务和串行队列任务以及销毁相应资源。
 
-1. 在项目`CMakeLists.txt`中添加动态链接库
+1. 在项目`CMakeLists.txt`中添加动态链接库：
 
     ```txt
     libffrt.z.so
     ```
 
-2. 在项目中包含对应的头文件
+2. 在项目中包含对应的头文件：
 
     ```cpp
     #include "ffrt/task.h"
@@ -218,7 +218,7 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
     #include "ffrt/timer.h"
     ```
 
-3. 对执行的函数进行封装
+3. 对执行的函数进行封装：
 
     ```cpp
     // 第一种使用模板，支持C++
@@ -305,7 +305,7 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
     }
     ```
 
-4. 设置任务属性值，包括QoS等级、任务名称等，具体可以参考接口文档
+4. 设置任务属性值，包括QoS等级、任务名称等，具体可以参考接口文档。
 
     ```cpp
     // ******初始化并行任务属性******
@@ -335,7 +335,7 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
     queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
     ```
 
-5. 提交任务
+5. 提交任务。
 
     ```cpp
     int a = 0;
@@ -362,7 +362,7 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
     ffrt_queue_wait(handle);
     ```
 
-6. 任务提交完成后销毁相应资源
+6. 任务提交完成后销毁相应资源。
 
     ```cpp
     // ******销毁并行任务******
@@ -416,7 +416,7 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
 
 ### 建议5: 推荐使用C++接口
 
-- FFRT的C++接口是基于C接口实现，在使用API接口时可以手动添加C++相关头文件后配套使用
+- FFRT的C++接口是基于C接口实现，在使用API接口时可以手动添加C++相关头文件后配套使用。
 
 ## 约束限制
 
@@ -424,13 +424,13 @@ FFRT任务的调度和执行过程中，利用了OH系统的Trace打点能力，
 
 FFRT Task中使用线程局部变量存在风险，说明如下：
 
-- 线程局部变量包括C/C++语言提供的`thread_local`定义的变量和使用`pthread_key_create`创建的变量
-- FFRT支持任务调度，任务被调度到哪个线程是随机的，进而使用线程局部变量是有风险的，这一点和所有其他支持任务并发调度的框架一致
-- FFRT的任务默认以协程的方式运行，任务执行过程中可能发生协程退出，恢复执行时，执行该任务的线程可能发生变更
+- 线程局部变量包括C/C++语言提供的`thread_local`定义的变量和使用`pthread_key_create`创建的变量。
+- FFRT支持任务调度，任务被调度到哪个线程是随机的，进而使用线程局部变量是有风险的，这一点和所有其他支持任务并发调度的框架一致。
+- FFRT的任务默认以协程的方式运行，任务执行过程中可能发生协程退出，恢复执行时，执行该任务的线程可能发生变更。
 
 ### 线程绑定使用约束
 
-- FFRT支持任务调度，任务调度到哪个线程是随机的，thread_idx/线程优先级/线程亲和性等与线程绑定的行为禁止在任务中使用
+- FFRT支持任务调度，任务调度到哪个线程是随机的，thread_idx/线程优先级/线程亲和性等与线程绑定的行为禁止在任务中使用。
 
 ### 标准库同步原语使用约束
 
@@ -459,8 +459,8 @@ FFRT任务中使用标准库的互斥锁可能发生死锁，需要更换为FFRT
 
 ### C API中初始化FFRT对象后，对象的置空与销毁由用户负责
 
-- 为保证较高的性能，FFRT的C API中内部不包含对对象的销毁状态的标记，用户需要合理地进行资源的释放，重复调用各个对象的销毁操作，其结果是未定义的
-- 错误示例1，重复调用销毁函数可能造成不可预知的数据损坏
+- 为保证较高的性能，FFRT的C API中内部不包含对对象的销毁状态的标记，用户需要合理地进行资源的释放，重复调用各个对象的销毁操作，其结果是未定义的。
+- 错误示例1，重复调用销毁函数可能造成不可预知的数据损坏：
 
     ```cpp
     #include "ffrt.h"
@@ -469,11 +469,11 @@ FFRT任务中使用标准库的互斥锁可能发生死锁，需要更换为FFRT
         ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
         // ...
         ffrt_task_handle_destroy(h);
-        ffrt_task_handle_destroy(h); // double free
+        ffrt_task_handle_destroy(h); // 重复释放
     }
     ```
 
-- 错误示例2，未调用销毁函数会造成内存泄漏
+- 错误示例2，未调用销毁函数会造成内存泄漏：
 
     ```cpp
     #include "ffrt.h"
@@ -481,11 +481,11 @@ FFRT任务中使用标准库的互斥锁可能发生死锁，需要更换为FFRT
     {
         ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
         // ...
-        // memory leak
+        // 内存泄露
     }
     ```
 
-- 建议示例，仅调用一次销毁函数，如有必要可进行置空
+- 建议示例，仅调用一次销毁函数，如有必要可进行置空：
 
     ```cpp
     #include "ffrt.h"
@@ -494,14 +494,14 @@ FFRT任务中使用标准库的互斥锁可能发生死锁，需要更换为FFRT
         ffrt_task_handle_t h = ffrt_submit_h([](){printf("Test task running...\n");}, NULL, NULL, NULL, NULL, NULL);
         // ...
         ffrt_task_handle_destroy(h);
-        h = nullptr; // if necessary
+        h = nullptr; // 必要时置空任务句柄变量
     }
     ```
 
 ### 变量生命周期错误
 
-- FFRT提交任务中应注意对象或资源在其生命周期内可能出现的误用，这些错误会导致程序崩溃、数据损坏或者难以调试的问题
-- 错误示例1，变量生命周期已结束导致的UAF问题
+- FFRT提交任务中应注意对象或资源在其生命周期内可能出现的误用，这些错误会导致程序崩溃、数据损坏或者难以调试的问题。
+- 错误示例1，变量生命周期已结束导致的UAF问题：
 
     ```cpp
     #include "ffrt.h"
@@ -515,7 +515,7 @@ FFRT任务中使用标准库的互斥锁可能发生死锁，需要更换为FFRT
     }
     ```
 
-- 错误示例2，互斥锁生命周期已结束继续使用导致功能异常
+- 错误示例2，互斥锁生命周期已结束继续使用导致功能异常：
 
     ```cpp
     #include "ffrt.h"
@@ -555,9 +555,9 @@ FFRT的部署依赖FFRT动态库`libffrt.so`和一组头文件，其中动态库
 
 ![image](figures/ffrt_figure7.png)
 
-如果要使用FFRT C++ API，需要使用OpenHarmony FFRT三方库[@ppd/ffrt](https://ohpm.openharmony.cn/#/cn/detail/@ppd%2Fffrt)，该三方库是由FFRT官方维护的FFRT C++ API库。
+如果要使用FFRT C++ API，需要使用FFRT三方库[@ppd/ffrt](https://ohpm.openharmony.cn/#/cn/detail/@ppd%2Fffrt)，该三方库是由FFRT官方维护的FFRT C++ API库。
 
-在模块目录下执行三方库安装命令
+在模块目录下执行三方库安装命令：
 
 ```shell
 ohpm install @ppd/ffrt
@@ -565,13 +565,13 @@ ohpm install @ppd/ffrt
 
 也可以直接在`oh-package.json5`文件中配置对应的依赖，由IDE自动进行三方库下载安装。
 
-同时在模块`CMakeLists.txt`文件中添加依赖
+同时在模块`CMakeLists.txt`文件中添加依赖：
 
 ```txt
 target_link_libraries(<target_name> PUBLIC libffrt.z.so ffrt::ffrtapi)
 ```
 
-至此就可以在代码中使用FFRT C++接口。
+至此就可以在代码中使用FFRT C++接口：
 
 ```cpp
 #include "ffrt/cpp/task.h"

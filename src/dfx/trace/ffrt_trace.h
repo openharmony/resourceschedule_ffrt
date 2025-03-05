@@ -235,7 +235,7 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_BLOCK_TRACER(gid, tag) \
     do { \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
-            _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag), -1); \
+            _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag "|" + std::to_string(gid)).c_str(), -1); \
         FFRT_TRACE_END(); \
     } while (false)
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \

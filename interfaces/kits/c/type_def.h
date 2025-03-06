@@ -14,29 +14,28 @@
  */
 
 /**
- * @addtogroup Ffrt
+ * @addtogroup FFRT
  * @{
  *
- * @brief ffrt provides APIs.
- *
- *
- * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ * @brief Provides FFRT C APIs.
  *
  * @since 10
  */
 
- /**
+/**
  * @file type_def.h
- * @kit FunctionFlowRuntimeKit
  *
  * @brief Declares common types.
+ *
  * @library libffrt.z.so
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
+
 #ifndef FFRT_API_C_TYPE_DEF_H
 #define FFRT_API_C_TYPE_DEF_H
+
 #include <stdint.h>
 #include <errno.h>
 
@@ -52,13 +51,13 @@
  * @since 12
  */
 typedef enum {
-    /** should be distributed at once if possible, handle time equals to send time, prior to high level */
+    /** Should be distributed at once if possible, handle time equals to send time, prior to high level. */
     ffrt_queue_priority_immediate = 0,
-    /** high priority, sorted by handle time, prior to low level. */
+    /** High priority, sorted by handle time, prior to low level. */
     ffrt_queue_priority_high,
-    /** low priority, sorted by handle time, prior to idle level. */
+    /** Low priority, sorted by handle time, prior to idle level. */
     ffrt_queue_priority_low,
-    /** lowest priority, sorted by handle time, only distribute when there is no other level inside queue. */
+    /** Lowest priority, sorted by handle time, only distribute when there is no other level inside queue. */
     ffrt_queue_priority_idle,
 } ffrt_queue_priority_t;
 
@@ -79,8 +78,19 @@ typedef enum {
     /** User initiated. */
     ffrt_qos_user_initiated,
 } ffrt_qos_default_t;
+
+/**
+ * @brief Defines the QoS type.
+ *
+ * @since 10
+ */
 typedef int ffrt_qos_t;
 
+/**
+ * @brief Defines the task function pointer type.
+ *
+ * @since 10
+ */
 typedef void(*ffrt_function_t)(void*);
 
 /**
@@ -128,7 +138,7 @@ typedef enum {
 } ffrt_function_kind_t;
 
 /**
- * @brief dependency type.
+ * @brief Enumerates the dependency types.
  *
  * @since 10
  */
@@ -140,7 +150,7 @@ typedef enum {
 } ffrt_dependence_type_t;
 
 /**
- * @brief dependency data structure.
+ * @brief Defines the dependency data structure.
  *
  * @since 10
  */
@@ -152,46 +162,86 @@ typedef struct {
 } ffrt_dependence_t;
 
 /**
- * @brief Defines the dependency struct.
+ * @brief Defines the dependency structure.
  *
  * @since 10
  */
 typedef struct {
     /** Number of dependencies. */
     uint32_t len;
-    /** Dependent data. */
+    /** Dependency data. */
     const ffrt_dependence_t* items;
 } ffrt_deps_t;
 
+/**
+ * @brief Defines the task attribute structure.
+ *
+ * @since 10
+ */
 typedef struct {
+    /** An array of uint32_t used to store the task attribute. */
     uint32_t storage[(ffrt_task_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_task_attr_t;
 
+/**
+ * @brief Defines the queue attribute structure.
+ *
+ * @since 10
+ */
 typedef struct {
+    /** An array of uint32_t used to store the queue attribute. */
     uint32_t storage[(ffrt_queue_attr_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_queue_attr_t;
 
+/**
+ * @brief Defines the task handle, which identifies different tasks.
+ *
+ * @since 10
+ */
 typedef void* ffrt_task_handle_t;
 
+/**
+ * @brief Enumerates the ffrt error codes.
+ *
+ * @since 10
+ */
 typedef enum {
+    /** A generic error. */
     ffrt_error = -1,
+    /** Success. */
     ffrt_success = 0,
+    /** An out of memory error. */
     ffrt_error_nomem = ENOMEM,
+    /** A timeout error. */
     ffrt_error_timedout = ETIMEDOUT,
+    /** A busy error. */
     ffrt_error_busy = EBUSY,
+    /** A invalid value error. */
     ffrt_error_inval = EINVAL
 } ffrt_error_t;
 
+/**
+ * @brief Defines the condition variable attribute structure.
+ *
+ * @since 10
+ */
 typedef struct {
+    /** A long integer used to store the condition variable attribute. */
     long storage;
 } ffrt_condattr_t;
 
+/**
+ * @brief Defines the mutex attribute structure.
+ *
+ * @since 10
+ */
 typedef struct {
+    /** A long integer used to store the mutex attribute. */
     long storage;
 } ffrt_mutexattr_t;
 
 /**
- * @brief ffrt mutex type enum
+ * @brief Enumerates the mutex types.
  *
  * Describes the mutex type, ffrt_mutex_normal is normal mutex;
  * ffrt_mutex_recursive is recursive mutex, ffrt_mutex_default is normal mutex.
@@ -199,56 +249,85 @@ typedef struct {
  * @since 12
  */
 typedef enum {
-    /** ffrt normal mutex type */
+    /** Normal mutex type. */
     ffrt_mutex_normal = 0,
-    /** ffrt recursive mutex type */
+    /** Recursive mutex type. */
     ffrt_mutex_recursive = 2,
-    /** ffrt default mutex type */
+    /** Default mutex type. */
     ffrt_mutex_default = ffrt_mutex_normal
 } ffrt_mutex_type;
 
+/**
+ * @brief Defines the mutex structure.
+ *
+ * @since 10
+ */
 typedef struct {
+    /** An array of uint32_t used to store the mutex. */
     uint32_t storage[(ffrt_mutex_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_mutex_t;
 
+/**
+ * @brief Defines the condition variable structure.
+ *
+ * @since 10
+ */
 typedef struct {
+    /** An array of uint32_t used to store the condition variable. */
     uint32_t storage[(ffrt_cond_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_cond_t;
 
 /**
- * @brief poller callback.
+ * @brief Defines the poller callback function type.
  *
  * @since 12
  */
 typedef void (*ffrt_poller_cb)(void* data, uint32_t event);
 
 /**
- * @brief timer callback.
+ * @brief Defines the timer callback function type.
  *
  * @since 12
  */
 typedef void (*ffrt_timer_cb)(void* data);
 
 /**
- * @brief timer handler.
+ * @brief Defines the timer handler.
  *
  * @since 12
  */
 typedef int ffrt_timer_t;
 
-
 #ifdef __cplusplus
 namespace ffrt {
+
+/**
+ * @brief Enumerates the task QoS types.
+ *
+ * @since 10
+ */
 enum qos_default {
+    /** Inheritance. */
     qos_inherit = ffrt_qos_inherit,
+    /** Background task. */
     qos_background = ffrt_qos_background,
+    /** Real-time tool. */
     qos_utility = ffrt_qos_utility,
+    /** Default type. */
     qos_default = ffrt_qos_default,
+    /** User initiated. */
     qos_user_initiated = ffrt_qos_user_initiated,
 };
+
+/**
+ * @brief Defines the QoS type.
+ *
+ * @since 10
+ */
 using qos = int;
 
 }
-#endif
-#endif
+
+#endif // __cplusplus
+#endif // FFRT_API_C_TYPE_DEF_H
 /** @} */

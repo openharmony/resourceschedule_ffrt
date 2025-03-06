@@ -55,7 +55,7 @@ typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t q
  * @brief Registers a user-defined function for the workers to execute.
  *
  * @param func Indicates a user-defined function.
- * @param type Indicatess which task type the function belongs to.
+ * @param type Indicates which task type the function belongs to.
  * @version 1.0
  */
 FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
@@ -141,9 +141,9 @@ FFRT_C_API uint64_t ffrt_epoll_get_wait_time(void* taskHandle);
  *
  * @param co Indicates the args of a task executor function.
  * @param exec Indicates a task executor function.
- * @param destory Indicates the destory function of a task.
+ * @param destroy Indicates the destroy function of a task.
  * @param in_deps Indicates a pointer to the input dependencies.
- * @param out_deps Indicates a pointor to the output dependencies.
+ * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @version 1.0
  */

@@ -21,7 +21,9 @@
 #include "qos.h"
 #include "sched/execute_ctx.h"
 #include "internal_inc/non_copyable.h"
+#ifdef ENABLE_HITRACE_CHAIN
 #include "hitrace/hitracechainc.h"
+#endif
 
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);

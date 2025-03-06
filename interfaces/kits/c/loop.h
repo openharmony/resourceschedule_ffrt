@@ -28,6 +28,7 @@
  * @brief Declares the loop interfaces in C.
  *
  * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 12
  * @version 1.0

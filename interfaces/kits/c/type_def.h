@@ -28,6 +28,7 @@
  * @brief Declares common types.
  *
  * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
@@ -117,7 +118,7 @@ typedef enum {
     ffrt_task_attr_storage_size = 128,
     /** Task executor storage size. */
     ffrt_auto_managed_function_storage_size = 64 + sizeof(ffrt_function_header_t),
-    /* Mutex storage size. */
+    /** Mutex storage size. */
     ffrt_mutex_storage_size = 64,
     /** Condition variable storage size. */
     ffrt_cond_storage_size = 64,

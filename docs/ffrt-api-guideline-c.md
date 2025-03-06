@@ -1,4 +1,4 @@
-# FFRT C API开发指导
+# Function Flow Runtime C API
 
 ## 任务管理
 
@@ -1405,7 +1405,8 @@ FFRT_C_API int ffrt_mutexattr_gettype(ffrt_mutexattr_t* attr, int* type);
 
 参数
 
-- 详见[ffrt_mutexattr_settype](#ffrt_mutexattr_settype)章节。
+- `attr`：FFRT锁属性。
+- `type`：FFRT锁类型指针。
 
 返回值
 

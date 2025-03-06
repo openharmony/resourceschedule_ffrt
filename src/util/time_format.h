@@ -72,6 +72,8 @@ static std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, t
     return FormatDateString4SystemClock(referenceTp + us, timeUnit);
 }
 
+#if defined(__aarch64__)
+
 static inline uint64_t Arm64CntFrq(void)
 {
     uint64_t freq = 1;
@@ -99,5 +101,6 @@ static std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t t
     std::chrono::microseconds us(static_cast<int64_t>(cntCtTimeStamp - referenceCntCt) * Ratio / referenceFreq);
     return FormatDateString4SystemClock(globalTp + us, timeUnit);
 }
+#endif //  __aarch64__
 }
 #endif // UTIL_TIME_FORAMT_H

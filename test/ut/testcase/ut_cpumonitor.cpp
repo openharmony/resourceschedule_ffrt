@@ -28,12 +28,27 @@
 #include "qos.h"
 #include "../common.h"
 
+#ifndef FFRT_GITEE
+#include "cpp/ffrt_dynamic_graph.h"
+#include "c/ffrt_dynamic_graph.h"
+#endif
+
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
 using namespace ffrt;
 using ::testing::Return;
+
+#ifndef FFRT_GITEE
+namespace {
+// 返回当前环境是软化还是硬化
+bool CheckSoftwareEnv()
+{
+    return (ffrt_hcs_get_capability(FFRT_HW_DYNAMIC_XPU_NORMAL) == 0) ? true : false;
+}
+}
+#endif
 
 class WorkerManager {
 public:
@@ -86,6 +101,34 @@ protected:
     {
     }
 };
+
+/**
+ * 测试用例名称：set_sched_mode
+ * 测试用例描述：验证设置EU调度模式的接口
+ * 预置条件：
+ * 操作步骤：设置不同的调度模式，并通过get接口与设置值对比
+ * 预期结果：设置成功
+ */
+#ifndef FFRT_GITEE
+HWTEST_F(CpuMonitorTest, set_sched_mode, TestSize.Level1)
+{
+    if (CheckSoftwareEnv()) {
+        return;
+    }
+    ffrt::sched_mode_type sched_type = ffrt::CPUManagerStrategy::GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
+
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_energy_saving_mode);
+    sched_type = ffrt::CPUManagerStrategy::GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
+
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_performance_mode);
+    sched_type = ffrt::CPUManagerStrategy::GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_performance_mode));
+
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_default_mode);
+}
+#endif
 
 HWTEST_F(CpuMonitorTest, monitor_notify_test, TestSize.Level1)
 {
@@ -140,6 +183,8 @@ HWTEST_F(CpuMonitorTest, monitor_notify_workers_test, TestSize.Level1)
     wmonitor.ctrlQueue[qos_default].sleepingWorkerNum = 4;
     wmonitor.NotifyWorkers(qosDefault, 5);
     EXPECT_EQ(wmonitor.ctrlQueue[qos_default].executionNum, 4);
+
+    notify_workers(qos_default, 1);
 }
 
 HWTEST_F(CpuMonitorTest, SubmitTask_test, TestSize.Level1)
@@ -169,7 +214,6 @@ HWTEST_F(CpuMonitorTest, CheckWorkerStatus_test, TestSize.Level1)
     EXPECT_EQ(workermonitor.skipSampling_, true);
 }
 
-#ifndef WITH_NO_MOCKER
 /*
  * 测试用例名称 ；worker_escape_test
  * 测试用例描述 ：测试逃生惩罚功能
@@ -186,6 +230,15 @@ HWTEST_F(CpuMonitorTest, CheckWorkerStatus_test, TestSize.Level1)
 */
 HWTEST_F(CpuMonitorTest, worker_escape_test, TestSize.Level1)
 {
+#ifdef WITH_NO_MOCKER
+    ffrt::disable_worker_escape();
+
+    // 非法入参
+    EXPECT_EQ(ffrt::enable_worker_escape(0), 1);
+    EXPECT_EQ(ffrt::enable_worker_escape(), 0);
+    // 不允许重复调用
+    EXPECT_EQ(ffrt::enable_worker_escape(), 1);
+#else
     int incWorkerNum = 0;
     int wakedWorkerNum = 0;
     testing::NiceMock<MockWorkerManager> mWmanager;
@@ -214,8 +267,8 @@ HWTEST_F(CpuMonitorTest, worker_escape_test, TestSize.Level1)
     wmonitor.Poke(2, 1, TaskNotifyType::TASK_ADDED);
     usleep(100 * 1000);
     EXPECT_EQ(wakedWorkerNum, 1);
-}
 #endif
+}
 
 #ifndef FFRT_GITEE
 /**

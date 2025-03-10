@@ -31,6 +31,8 @@ endif()
 # Project name
 project(ffrt)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 #cmake build type settings,release or debug
 if(CMAKE_BUILD_TYPE STREQUAL Release)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFFRT_RELEASE -DFFRT_LOG_LEVEL=0")
@@ -44,7 +46,8 @@ set(FFRT_INNER_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/inner_api)
 set(FFRT_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/kits)
 set(FFRT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
 set(ROOT_PATH ${PROJECT_SOURCE_DIR}/../)
-set(SECUREC_PATH ${ROOT_PATH}/third_party/bounds_checking_function)
+set(SECUREC_PATH ${ROOT_PATH}/third_party/bounds_checking_function CACHE PATH
+    "Path to securec")
 set(TRACE_PATH ${FFRT_CODE_PATH}/dfx/trace)
 set(QOS_PATH ${FFRT_CODE_PATH}/sched/)
 set(securec_includes ${SECUREC_PATH}/include)

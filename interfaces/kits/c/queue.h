@@ -28,6 +28,7 @@
  * @brief Declares the queue interfaces in C.
  *
  * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0

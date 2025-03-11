@@ -41,6 +41,10 @@ public:
 
     void Stop() override;
     bool SetLoop(Loop* loop);
+    void Remove() override;
+    int Remove(const char* name) override;
+    int Remove(const QueueTask* task) override;
+    bool HasTask(const char* name) override;
 
     inline bool ClearLoop()
     {
@@ -65,6 +69,7 @@ private:
 
     int maxConcurrency_ {1};
     std::atomic_int concurrency_ {0};
+    std::multimap<uint64_t, QueueTask*> whenMapVec_[4];
 };
 
 std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr);

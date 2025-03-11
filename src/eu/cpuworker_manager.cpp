@@ -52,7 +52,7 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         FFRT_LOGE("IncWorker qos:%d is invaild", workerQos);
         return false;
     }
-
+    std::unique_lock<std::shared_mutex> lock(groupCtl[workerQos].tgMutex);
     if (tearDown) {
         FFRT_LOGE("CPU Worker Manager exit");
         return false;
@@ -66,17 +66,13 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
         FFRT_LOGE("IncWorker failed: worker is nullptr or has exited\n");
         return false;
     }
-
     uniqueWorker->WorkerSetup(worker);
-    {
-        std::lock_guard<std::shared_mutex> lock(groupCtl[workerQos].tgMutex);
-        auto result = groupCtl[workerQos].threads.emplace(worker, std::move(uniqueWorker));
-        if (!result.second) {
-            FFRT_LOGE("qos:%d worker insert fail:%d", workerQos, result.second);
-            return false;
-        }
+    auto result = groupCtl[workerQos].threads.emplace(worker, std::move(uniqueWorker));
+    if (!result.second) {
+        FFRT_LOGE("qos:%d worker insert fail:%d", workerQos, result.second);
+        return false;
     }
-
+    lock.unlock();
 #ifdef FFRT_WORKER_MONITOR
     FFRTFacade::GetWMInstance().SubmitTask();
 #endif

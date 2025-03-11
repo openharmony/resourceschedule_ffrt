@@ -395,31 +395,32 @@ void CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
 
 void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
 {
+    auto& syncTaskEvents = m_cachedTaskEvents[task];
     for (size_t i = 0; i < eventVec.size(); i++) {
         int currFd = eventVec[i].data.fd;
-        auto delIter = m_delCntMap.find(currFd);
-        if (delIter != m_delCntMap.end()) {
-            unsigned int delCnt = static_cast<unsigned int>(delIter->second);
-            auto& WakeDataList = m_wakeDataMap[currFd];
-            if (WakeDataList.size() == delCnt) {
-                continue;
-            }
-        }
-        struct epoll_event maskEv;
-        maskEv.events = 0;
-
         auto wakeDataIter = m_wakeDataMap.find(currFd);
-        if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 0) {
+        if (wakeDataIter == m_wakeDataMap.end() ||
+            wakeDataIter->second.size() == 0 ||
+            wakeDataIter->second.back()->task != task) {
             FFRT_LOGD("fd[%d] may be deleted", currFd);
             continue;
         }
+
+        auto delIter = m_delCntMap.find(currFd);
+        if (delIter != m_delCntMap.end() && wakeDataIter->second.size() == static_cast<size_t>(delIter->second)) {
+            FFRT_LOGD("fd[%d] may be deleted", currFd);
+            continue;
+        }
+
+        struct epoll_event maskEv;
+        maskEv.events = 0;
         auto& wakeData = wakeDataIter->second.back();
         std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(currFd,
             wakeData->data, wakeData->cb, wakeData->task);
         void* ptr = static_cast<void*>(maskWakeData.get());
         if (ptr == nullptr || maskWakeData == nullptr) {
             FFRT_LOGE("CacheEventsAndDoMask Construct WakeDataWithCb instance failed! or wakeData is nullptr");
-            return;
+            continue;
         }
         maskWakeData->monitorEvents = 0;
         CacheMaskWakeData(task, maskWakeData);
@@ -430,10 +431,8 @@ void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
             FFRT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
         }
         FFRT_LOGD("fd[%d] event has no consumer, so cache it", currFd);
+        syncTaskEvents.push_back(eventVec[i]);
     }
-    auto& syncTaskEvents = m_cachedTaskEvents[task];
-    syncTaskEvents.insert(syncTaskEvents.end(),
-        std::make_move_iterator(eventVec.begin()), std::make_move_iterator(eventVec.end()));
 }
 
 void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept
@@ -463,10 +462,11 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
     m_mapMutex.unlock();
     if (timerHandlesToRemove.size() > 0) {
         std::lock_guard lock(timerMutex_);
-        for (auto cur = timerMap_.begin(); cur != timerMap_.end(); cur++) {
-            if (timerHandlesToRemove.find(cur->second.handle) != timerHandlesToRemove.end()) {
-                timerMap_.erase(cur);
-                break;
+        for (auto it = timerMap_.begin(); it != timerMap_.end();) {
+            if (timerHandlesToRemove.find(it->second.handle) != timerHandlesToRemove.end()) {
+                it = timerMap_.erase(it);
+            } else {
+                ++it;
             }
         }
         timerEmpty_.store(timerMap_.empty());

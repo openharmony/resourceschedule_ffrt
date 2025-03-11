@@ -52,7 +52,7 @@ PollerProxy& PollerProxy::Instance()
 int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
 {
     auto wakeData = std::make_unique<WakeDataWithCb>(fd, data, cb, ExecuteCtx::Cur()->task);
-    if (ExecuteCtx::Cur()->task && ExecuteCtx::Cur()->task->type == ffrt_normal_task) {
+    if (ExecuteCtx::Cur()->task) {
         ExecuteCtx::Cur()->task->pollerEnable = true;
     }
     void* ptr = static_cast<void*>(wakeData.get());

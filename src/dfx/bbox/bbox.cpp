@@ -190,6 +190,9 @@ static inline void SaveNormalTaskStatus()
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
                     std::string dumpInfo;
                     DumpTask(t, dumpInfo, 1);
+                    if (!dumpInfo.empty()) {
+                        FFRT_BBOX_LOG("%s", dumpInfo.c_str());
+                    }
 #else
                     CoStart(t, GetCoEnv());
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE

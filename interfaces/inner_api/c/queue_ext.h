@@ -20,6 +20,8 @@
 #include "c/queue.h"
 
 typedef enum {
+    /* Allows users to submit tasks to the eventhandler through this type of queue.
+    (for example, submitting tasks to the main thread and JS Worker thread) */
     ffrt_queue_eventhandler_interactive = 3,
     ffrt_queue_eventhandler_adapter = 4,
     ffrt_queue_inner_max,

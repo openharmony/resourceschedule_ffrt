@@ -474,6 +474,7 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
             // And the task cannot be accessed any more.
             return 0;
         }
+        FFRT_WAKE_TRACER(task->gid); // fast path wk
         coRoutineEnv->runningCo = co;
     }
 }
@@ -530,6 +531,7 @@ void CoWake(ffrt::CPUEUTask* task, CoWakeType type)
     }
     // Fast path: state transition without lock
     task->coWakeType = type;
+    FFRT_WAKE_TRACER(task->gid);
     switch (task->type) {
         case ffrt_normal_task: {
             task->UpdateState(ffrt::TaskState::READY);

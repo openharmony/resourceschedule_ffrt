@@ -54,25 +54,28 @@ public:
     }
 
     static T* DequeSingleByPriority(const uint32_t queueId,
-        const uint64_t now, std::multimap<uint64_t, T*>* whenMapIn, void* args)
+        const uint64_t now, std::multimap<uint64_t, T*>* whenMapVec, void* args)
     {
         (void)args;
-        auto& whenMap = *whenMapIn;
         // dequeue next expired task by priority
-        auto iterTarget = whenMap.begin();
-        for (auto ite = whenMap.begin(); ite != whenMap.end() && ite->first < now; ite++) {
-            if (iterTarget->second->GetPriority() == ffrt_queue_priority_immediate) {
+        int index = 0;
+        auto iterTarget = whenMapVec[0].begin();
+        for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
+            if (!whenMapVec[idx].empty() && whenMapVec[idx].begin()->first < now) {
+                iterTarget = whenMapVec[idx].begin();
+                index = idx;
                 break;
             }
-            if (ite->second->GetPriority() < iterTarget->second->GetPriority()) {
-                iterTarget = ite;
-            }
         }
-
         T* head = iterTarget->second;
-        whenMap.erase(iterTarget);
+        whenMapVec[index].erase(iterTarget);
 
-        FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ", head->gid, whenMap.size(), queueId);
+        size_t mapCount = 0;
+        for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
+            auto& currentMap = whenMapVec[idx];
+            mapCount += currentMap.size();
+        }
+        FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ", head->gid, mapCount, queueId);
         return head;
     }
 

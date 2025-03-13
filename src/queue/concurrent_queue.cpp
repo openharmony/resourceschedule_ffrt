@@ -24,7 +24,7 @@ uint64_t GetMinMapTime(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapV
 {
     uint64_t minTime = std::numeric_limits<uint64_t>::max();
 
-    for (int idx = 0; idx < ffrt_queue_priority_idle; idx++) {
+    for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
         if (!whenMapVec[idx].empty()) {
             auto it = whenMapVec[idx].begin();
             if (it->first < minTime) {
@@ -37,7 +37,7 @@ uint64_t GetMinMapTime(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapV
 
 bool WhenMapVecEmpty(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
 {
-    for (int idx = 0; idx < ffrt_queue_priority_idle; idx++) {
+    for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
         if (!whenMapVec[idx].empty()) {
             return false;
         }
@@ -64,6 +64,7 @@ int ConcurrentQueue::Push(QueueTask* task)
     ffrt_queue_priority_t taskPriority = task->GetPriority();
     if (taskPriority > ffrt_queue_priority_idle) {
         task->SetPriority(ffrt_queue_priority_low);
+        taskPriority = task->GetPriority();
     }
 
     if (loop_ != nullptr) {
@@ -134,7 +135,7 @@ void ConcurrentQueue::Stop()
     std::unique_lock lock(mutex_);
     isExit_ = true;
 
-    for (int idx = 0; idx < ffrt_queue_priority_idle; idx++) {
+    for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
         for (auto it = whenMapVec_[idx].begin(); it != whenMapVec_[idx].end(); it++) {
             if (it->second) {
                 it->second->Notify();

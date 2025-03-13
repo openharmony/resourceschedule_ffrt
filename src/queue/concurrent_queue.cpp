@@ -200,11 +200,12 @@ int ConcurrentQueue::Remove(const char* name)
 int ConcurrentQueue::Remove(const QueueTask* task)
 {
     std::unique_lock lock(mutex_);
-    int count = 0;
     for (auto& currentMap : whenMapVec_) {
-        count += BaseQueue::Remove(task, currentMap);
+        if (BaseQueue::Remove(task, currentMap) == SUCC) {
+            return SUCC;
+        }
     }
-    return count > 0 ? SUCC : FAILED;
+    return FAILED;
 }
 
 bool ConcurrentQueue::HasTask(const char* name)

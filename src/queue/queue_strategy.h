@@ -60,7 +60,7 @@ public:
         // dequeue next expired task by priority
         int index = 0;
         auto iterTarget = whenMapVec[0].begin();
-        for (int idx = 0; idx < ffrt_queue_priority_idle; idx++) {
+        for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
             if (!whenMapVec[idx].empty() && whenMapVec[idx].begin()->first < now) {
                 iterTarget = whenMapVec[idx].begin();
                 index = idx;
@@ -71,14 +71,15 @@ public:
         whenMapVec[index].erase(iterTarget);
 
         size_t mapCount = 0;
-        for (int idx = 0; idx < ffrt_queue_priority_idle; idx++) {
+        for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
             auto& currentMap = whenMapVec[idx];
             mapCount += currentMap.size();
         }
         FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ", head->gid, mapCount, queueId);
         return head;
     }
-    static T* DequeSingleAgainstStarvation(const uint32_t queueId,
+
+    static T* DequeSingleAgainstStarvation(const uint32_t queueId,
         const uint64_t now, std::multimap<uint64_t, T*>* whenMapVec, void* args)
     {
         // dequeue in descending order of priority

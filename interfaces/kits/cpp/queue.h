@@ -113,16 +113,20 @@ public:
     queue(const queue_type type, const char* name, const queue_attr& attr = {})
     {
         queue_handle = ffrt_queue_create(ffrt_queue_type_t(type), name, &attr);
+        deleter = ffrt_queue_destroy;
     }
 
     queue(const char* name, const queue_attr& attr = {})
     {
         queue_handle = ffrt_queue_create(ffrt_queue_serial, name, &attr);
+        deleter = ffrt_queue_destroy;
     }
 
     ~queue()
     {
-        ffrt_queue_destroy(queue_handle);
+        if (deleter) {
+            deleter(queue_handle);
+        }
     }
 
     queue(queue const&) = delete;
@@ -281,8 +285,31 @@ public:
         return ffrt_queue_get_task_cnt(queue_handle);
     }
 
+    /**
+    * @brief Get application main thread queue.
+    *
+    * @return Returns application main thread queue.
+    * @since 12
+    * @version 1.0
+    */
+    static inline queue* get_main_queue()
+    {
+        ffrt_queue_t q = ffrt_get_main_queue();
+        // corner case: main queue is not ready.
+        if (q == nullptr) {
+            return nullptr;
+        }
+        static queue main_queue(q);
+        return &main_queue;
+    }
+
 private:
+    using QueueDeleter = void (*)(ffrt_queue_t);
+ 
+    queue(ffrt_queue_t queue_handle, QueueDeleter deleter = nullptr) : queue_handle(queue_handle), deleter(deleter) {}
+ 
     ffrt_queue_t queue_handle = nullptr;
+    QueueDeleter deleter = nullptr;
 };
 } // namespace ffrt
 

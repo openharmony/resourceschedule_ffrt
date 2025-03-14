@@ -43,6 +43,9 @@ void RegistCommonTaskFactory()
         [] (ffrt::QueueTask* task) {
             ffrt::SimpleAllocator<ffrt::QueueTask>::FreeMem(task);
         },
+        [] (ffrt::QueueTask* task) {
+            ffrt::SimpleAllocator<ffrt::QueueTask>::FreeMem_(task);
+        },
         ffrt::SimpleAllocator<ffrt::QueueTask>::getUnfreedMem,
         ffrt::SimpleAllocator<ffrt::QueueTask>::HasBeenFreed,
         ffrt::SimpleAllocator<ffrt::QueueTask>::LockMem,
@@ -54,6 +57,9 @@ void RegistCommonTaskFactory()
         },
         [] (ffrt::IOTask* task) {
             ffrt::SimpleAllocator<ffrt::IOTask>::FreeMem(task);
+        },
+        [] (ffrt::IOTask* task) {
+            ffrt::SimpleAllocator<ffrt::IOTask>::FreeMem_(task);
         },
         ffrt::SimpleAllocator<ffrt::IOTask>::getUnfreedMem,
         ffrt::SimpleAllocator<ffrt::IOTask>::HasBeenFreed,
@@ -70,6 +76,10 @@ __attribute__((constructor)) static void ffrt_init()
         },
         [] (ffrt::CPUEUTask* task) {
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
+        },
+        [] (ffrt::CPUEUTask* task) {
+            ffrt::SimpleAllocator<ffrt::SCPUEUTask>::
+                FreeMem_(static_cast<ffrt::SCPUEUTask*>(task));
         },
         ffrt::SimpleAllocator<ffrt::SCPUEUTask>::getUnfreedMem,
         [] (ffrt::CPUEUTask* task) {

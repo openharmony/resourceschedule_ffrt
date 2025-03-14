@@ -36,6 +36,13 @@ public:
         Instance().free_(task);
     }
 
+    static void Free_(T* task)
+    {
+        if (Instance().free__ != nullptr) {
+            Instance().free__(task);
+        }
+    }
+
     static std::vector<void*> GetUnfreedMem()
     {
         if (Instance().getUnfreedMem_ != nullptr) {
@@ -65,6 +72,7 @@ public:
     static void RegistCb(
         typename TaskAllocCB<T>::Alloc &&alloc,
         typename TaskAllocCB<T>::Free &&free,
+        typename TaskAllocCB<T>::Free_ &&free_ = nullptr,
         typename TaskAllocCB<T>::GetUnfreedMem &&getUnfreedMem = nullptr,
         typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed = nullptr,
         typename TaskAllocCB<T>::LockMem &&lockMem = nullptr,
@@ -72,6 +80,7 @@ public:
     {
         Instance().alloc_ = std::move(alloc);
         Instance().free_ = std::move(free);
+        Instance().free__ = std::move(free_);
         Instance().getUnfreedMem_ = std::move(getUnfreedMem);
         Instance().hasBeenFreed_ = std::move(hasBeenFreed);
         Instance().lockMem_ = std::move(lockMem);
@@ -79,8 +88,9 @@ public:
     }
 
 private:
-    typename TaskAllocCB<T>::Free free_;
     typename TaskAllocCB<T>::Alloc alloc_;
+    typename TaskAllocCB<T>::Free free_;
+    typename TaskAllocCB<T>::Free_ free__;
     typename TaskAllocCB<T>::GetUnfreedMem getUnfreedMem_;
     typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed_;
     typename TaskAllocCB<T>::LockMem lockMem_;

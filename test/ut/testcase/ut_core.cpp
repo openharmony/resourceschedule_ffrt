@@ -416,6 +416,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level1)
     ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
         ffrt::SimpleAllocator<TmTest::MyTask>::AllocMem,
         ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem_,
         ffrt::SimpleAllocator<TmTest::MyTask>::getUnfreedMem,
         ffrt::SimpleAllocator<TmTest::MyTask>::HasBeenFreed,
         ffrt::SimpleAllocator<TmTest::MyTask>::LockMem,
@@ -436,6 +437,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level1)
     TmTest::CustomTaskManager<TmTest::MyTask> custom_manager;
     ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
         [&] () -> TmTest::MyTask* { return custom_manager.Alloc(); },
+        [&] (TmTest::MyTask* task) { custom_manager.Free(task); },
         [&] (TmTest::MyTask* task) { custom_manager.Free(task); },
         [&] () -> std::vector<void*> { return custom_manager.GetUnfreedMem(); },
         [&] (TmTest::MyTask* task) { return custom_manager.HasBeenFreed(task); },

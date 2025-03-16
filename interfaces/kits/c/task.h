@@ -298,7 +298,6 @@ FFRT_C_API void ffrt_wait(void);
  *
  * @param qos Indicates the QoS.
  * @param stack_size Indicates worker thread stack size.
- * @since 10
  * @version 1.0
  */
 FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
@@ -308,7 +307,6 @@ FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_
  *
  * @param handle Indicates a task handle.
  * @return Returns gid.
- * @since 10
  * @version 1.0
  */
 FFRT_C_API uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle);

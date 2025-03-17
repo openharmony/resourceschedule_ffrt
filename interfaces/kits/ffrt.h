@@ -26,11 +26,11 @@
 #else
 #include "c/task.h"
 #include "c/mutex.h"
+#include "c/shared_mutex.h"
 #include "c/condition_variable.h"
 #include "c/sleep.h"
 #include "c/queue.h"
 #include "c/timer.h"
 #include "c/loop.h"
-#include "c/shared_mutex.h"
 #endif
 #endif

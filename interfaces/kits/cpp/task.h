@@ -13,43 +13,90 @@
  * limitations under the License.
  */
 
+/**
+ * @addtogroup FFRT
+ * @{
+ *
+ * @brief Provides FFRT C++ APIs.
+ *
+ * @since 10
+ */
+
  /**
  * @file task.h
  *
  * @brief Declares the task interfaces in C++.
  *
+ * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
+
 #ifndef FFRT_API_CPP_TASK_H
 #define FFRT_API_CPP_TASK_H
+
 #include <string>
 #include <vector>
 #include <functional>
 #include "c/task.h"
 
 namespace ffrt {
+/**
+ * @class task_attr
+ * @brief Represents the attributes of a task, such as its name, QoS level, delay, priority, and timeout.
+ *
+ * @since 10
+ */
 class task_attr : public ffrt_task_attr_t {
 public:
 #if __has_builtin(__builtin_FUNCTION)
+    /**
+     * @brief Constructs a task_attr object with an optional function name as its name.
+     *
+     * If supported, the function name is automatically set as the task name.
+     *
+     * @since 10
+     * @version 1.0
+     */
     task_attr(const char* func = __builtin_FUNCTION())
     {
         ffrt_task_attr_init(this);
         ffrt_task_attr_set_name(this, func);
     }
 #else
+    /**
+     * @brief Constructs a task_attr object.
+     *
+     * @since 10
+     * @version 1.0
+     */
     task_attr()
     {
         ffrt_task_attr_init(this);
     }
 #endif
 
+    /**
+     * @brief Destroys the task_attr object, releasing its resources.
+     *
+     * @since 10
+     * @version 1.0
+     */
     ~task_attr()
     {
         ffrt_task_attr_destroy(this);
     }
 
+    /**
+     * @brief Deleted copy constructor to prevent copying of the task_attr object.
+     */
     task_attr(const task_attr&) = delete;
+
+    /**
+     * @brief Deleted copy assignment operator to prevent assignment of the task_attr object.
+     */
     task_attr& operator=(const task_attr&) = delete;
 
     /**
@@ -181,7 +228,6 @@ public:
      * @brief Sets the task schedule timeout.
      *
      * @param timeout_us task scheduler timeout.
-     * @since 12
      * @version 1.0
      */
     inline task_attr& timeout(uint64_t timeout_us)
@@ -194,7 +240,6 @@ public:
      * @brief Obtains the task schedule timeout.
      *
      * @return Returns task scheduler timeout.
-     * @since 12
      * @version 1.0
      */
     inline uint64_t timeout() const
@@ -203,15 +248,42 @@ public:
     }
 };
 
+/**
+ * @class task_handle
+ * @brief Represents a handle for a submitted task, allowing operations such as
+ *        querying task IDs and managing task resources.
+ *
+ * @since 10
+ */
 class task_handle {
 public:
+    /**
+     * @brief Default constructor for task_handle.
+     *
+     * @since 10
+     * @version 1.0
+     */
     task_handle() : p(nullptr)
     {
     }
+
+    /**
+     * @brief Constructs a task_handle object from a raw task handle pointer.
+     *
+     * @param p The raw task handle pointer.
+     * @since 10
+     * @version 1.0
+     */
     task_handle(ffrt_task_handle_t p) : p(p)
     {
     }
 
+    /**
+     * @brief Destroys the task_handle object, releasing any associated resources.
+     *
+     * @since 10
+     * @version 1.0
+     */
     ~task_handle()
     {
         if (p) {
@@ -219,9 +291,23 @@ public:
         }
     }
 
+    /**
+     * @brief Deleted copy constructor to prevent copying of the task_handle object.
+     */
     task_handle(task_handle const&) = delete;
+
+    /**
+     * @brief Deleted copy assignment operator to prevent assignment of the task_handle object.
+     */
     task_handle& operator=(task_handle const&) = delete;
 
+    /**
+     * @brief Move constructor for task_handle.
+     *
+     * @param h The task_handle object to move from.
+     * @since 10
+     * @version 1.0
+     */
     inline task_handle(task_handle&& h)
     {
         *this = std::move(h);
@@ -231,7 +317,6 @@ public:
      * @brief get gid from task handle.
      *
      * @return Return gid.
-     * @since 10
      * @version 1.0
      */
     inline uint64_t get_id() const
@@ -239,6 +324,14 @@ public:
         return ffrt_task_handle_get_id(p);
     }
 
+    /**
+     * @brief Move assignment operator for task_handle.
+     *
+     * @param h The task_handle object to move from.
+     * @return Returns the current task_handle object.
+     * @since 10
+     * @version 1.0
+     */
     inline task_handle& operator=(task_handle&& h)
     {
         if (this != &h) {
@@ -251,6 +344,13 @@ public:
         return *this;
     }
 
+    /**
+     * @brief Implicit conversion to a void pointer.
+     *
+     * @return Returns the raw task handle pointer.
+     * @since 10
+     * @version 1.0
+     */
     inline operator void* () const
     {
         return p;
@@ -260,12 +360,31 @@ private:
     ffrt_task_handle_t p = nullptr;
 };
 
+/**
+ * @struct dependence
+ * @brief Represents a dependency for a task, which can either be a data dependency or a task dependency.
+ */
 struct dependence : ffrt_dependence_t {
+    /**
+     * @brief Constructs a data dependency.
+     *
+     * @param d A pointer to the data dependency.
+     * @since 10
+     * @version 1.0
+     */
     dependence(const void* d)
     {
         type = ffrt_dependence_data;
         ptr = d;
     }
+
+    /**
+     * @brief Constructs a task dependency.
+     *
+     * @param h A reference to a task_handle representing the dependency.
+     * @since 10
+     * @version 1.0
+     */
     dependence(const task_handle& h)
     {
         type = ffrt_dependence_task;
@@ -273,16 +392,38 @@ struct dependence : ffrt_dependence_t {
         ffrt_task_handle_inc_ref(const_cast<ffrt_task_handle_t>(ptr));
     }
 
+    /**
+     * @brief Copy constructor for dependence.
+     *
+     * @param other The dependence object to copy from.
+     * @since 10
+     * @version 1.0
+     */
     dependence(const dependence& other)
     {
         (*this) = other;
     }
 
+    /**
+     * @brief Move constructor for dependence.
+     *
+     * @param other The dependence object to move from.
+     * @since 10
+     * @version 1.0
+     */
     dependence(dependence&& other)
     {
         (*this) = std::move(other);
     }
 
+    /**
+     * @brief Copy assignment operator for dependence.
+     *
+     * @param other The dependence object to copy from.
+     * @return Returns the current dependence object.
+     * @since 10
+     * @version 1.0
+     */
     dependence& operator=(const dependence& other)
     {
         if (this != &other) {
@@ -295,6 +436,14 @@ struct dependence : ffrt_dependence_t {
         return *this;
     }
 
+    /**
+     * @brief Move assignment operator for dependence.
+     *
+     * @param other The dependence object to move from.
+     * @return Returns the current dependence object.
+     * @since 10
+     * @version 1.0
+     */
     dependence& operator=(dependence&& other)
     {
         if (this != &other) {
@@ -305,6 +454,12 @@ struct dependence : ffrt_dependence_t {
         return *this;
     }
 
+    /**
+     * @brief Destructor for dependence.
+     *
+     * @since 10
+     * @version 1.0
+     */
     ~dependence()
     {
         if (type == ffrt_dependence_task && ptr) {
@@ -313,12 +468,31 @@ struct dependence : ffrt_dependence_t {
     }
 };
 
+/**
+ * @struct function
+ * @brief Represents a function wrapper for task execution.
+ *
+ * This template struct is used to wrap a function closure for task execution.
+ *
+ * @tparam T The type of the function closure.
+ * @since 10
+ */
 template<class T>
 struct function {
     ffrt_function_header_t header;
     T closure;
 };
 
+/**
+ * @brief Executes a function wrapper.
+ *
+ * This function is used to execute a function wrapper.
+ *
+ * @tparam T The type of the function closure.
+ * @param t A pointer to the function wrapper.
+ * @since 10
+ * @version 1.0
+ */
 template<class T>
 void exec_function_wrapper(void* t)
 {
@@ -326,6 +500,16 @@ void exec_function_wrapper(void* t)
     f->closure();
 }
 
+/**
+ * @brief Destroys a function wrapper.
+ *
+ * This function is used to destroy a function wrapper.
+ *
+ * @tparam T The type of the function closure.
+ * @param t A pointer to the function wrapper.
+ * @since 10
+ * @version 1.0
+ */
 template<class T>
 void destroy_function_wrapper(void* t)
 {
@@ -333,6 +517,18 @@ void destroy_function_wrapper(void* t)
     f->closure = nullptr;
 }
 
+/**
+ * @brief Creates a function wrapper.
+ *
+ * This function is used to create a function wrapper for task submission.
+ *
+ * @tparam T The type of the function closure.
+ * @param func The function closure.
+ * @param kind The function kind (optional).
+ * @return Returns a pointer to the function wrapper header.
+ * @since 10
+ * @version 1.0
+ */
 template<class T>
 inline ffrt_function_header_t* create_function_wrapper(T&& func,
     ffrt_function_kind_t kind = ffrt_function_kind_general)
@@ -738,7 +934,6 @@ static inline void wait(const std::vector<dependence>& deps)
  * @return Returns ffrt_success if the stack size set success;
            returns ffrt_error_inval if qos_ or stack_size invalid;
            returns ffrt_error otherwise.
- * @since 10
  * @version 1.0
  */
 static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size)
@@ -746,7 +941,19 @@ static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size)
     return ffrt_set_worker_stack_size(qos_, stack_size);
 }
 
+/**
+ * @brief Contains utility functions for the currently executing task.
+ */
 namespace this_task {
+/**
+ * @namespace this_task
+ * @brief Updates the QoS level of the currently executing task.
+ *
+ * @param qos_ The new QoS level.
+ * @return Returns the updated QoS level.
+ * @since 10
+ * @version 1.0
+ */
 static inline int update_qos(qos qos_)
 {
     return ffrt_this_task_update_qos(qos_);
@@ -765,4 +972,6 @@ static inline uint64_t get_id()
 }
 } // namespace this_task
 } // namespace ffrt
-#endif
+
+#endif // FFRT_API_CPP_TASK_H
+/** @} */

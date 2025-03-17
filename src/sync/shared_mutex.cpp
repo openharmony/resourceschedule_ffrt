@@ -188,7 +188,7 @@ int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* attr)
     }
     if (attr != nullptr) {
         FFRT_LOGE("only support normal rwlock");
-        return ffrt_error;
+        return ffrt_error_inval;
     }
     static_assert(sizeof(ffrt::SharedMutexPrivate) <= ffrt_rwlock_storage_size,
         "size must be less than ffrt_rwlock_storage_size");

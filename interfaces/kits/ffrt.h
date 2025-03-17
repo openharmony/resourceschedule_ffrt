@@ -21,6 +21,7 @@
 #include "cpp/sleep.h"
 #include "cpp/queue.h"
 #include "c/timer.h"
+#include "c/loop.h"
 #else
 #include "c/task.h"
 #include "c/mutex.h"

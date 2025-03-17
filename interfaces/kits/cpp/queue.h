@@ -14,13 +14,26 @@
  */
 
 /**
+ * @addtogroup FFRT
+ * @{
+ *
+ * @brief Provides FFRT C++ APIs.
+ *
+ * @since 10
+ */
+
+/**
  * @file queue.h
  *
  * @brief Declares the queue interfaces in C++.
  *
+ * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
  * @version 1.0
  */
+
 #ifndef FFRT_API_CPP_QUEUE_H
 #define FFRT_API_CPP_QUEUE_H
 
@@ -28,25 +41,59 @@
 #include "task.h"
 
 namespace ffrt {
+/**
+ * @enum queue_type
+ * @brief Defines the types of queues supported.
+ *
+ * @since 12
+ */
 enum queue_type {
-    queue_serial = ffrt_queue_serial,
-    queue_concurrent = ffrt_queue_concurrent,
-    queue_max = ffrt_queue_max,
+    queue_serial = ffrt_queue_serial,         /**< A serial queue that processes tasks sequentially. */
+    queue_concurrent = ffrt_queue_concurrent, /**< A concurrent queue that processes tasks in parallel. */
+    queue_max = ffrt_queue_max,               /**< Defines the maximum type for validation. */
 };
 
+/**
+ * @class queue_attr
+ * @brief Represents attributes for configuring a queue.
+ *
+ * This class provides methods to set and retrieve queue attributes such as QoS,
+ * timeout values, callback functions, and maximum concurrency.
+ *
+ * @since 10
+ */
 class queue_attr : public ffrt_queue_attr_t {
 public:
+    /**
+     * @brief Constructs a queue_attr object with default values.
+     *
+     * @since 10
+     * @version 1.0
+     */
     queue_attr()
     {
         ffrt_queue_attr_init(this);
     }
 
+    /**
+     * @brief Destroys the queue_attr object and releases its resources.
+     *
+     * @since 10
+     * @version 1.0
+     */
     ~queue_attr()
     {
         ffrt_queue_attr_destroy(this);
     }
 
+    /**
+     * @brief Deleted copy constructor to prevent copying of queue_attr object.
+     */
     queue_attr(const queue_attr&) = delete;
+
+    /**
+     * @brief Deleted copy assignment operator to prevent assignment of queue_attr object.
+     */
     queue_attr& operator=(const queue_attr&) = delete;
 
     /**
@@ -62,66 +109,142 @@ public:
         return *this;
     }
 
-    // get qos
+    /**
+     * @brief Gets the QoS level of this queue attribute.
+     *
+     * @return Returns the QoS level.
+     * @since 10
+     * @version 1.0
+     */
     inline int qos() const
     {
         return ffrt_queue_attr_get_qos(this);
     }
 
-    // set timeout
+    /**
+     * @brief Sets the timeout value for this queue attribute.
+     *
+     * @param timeout_us Indicates the timeout value in microseconds.
+     * @return Returns the current queue_attr object for chaining.
+     * @since 10
+     * @version 1.0
+     */
     inline queue_attr& timeout(uint64_t timeout_us)
     {
         ffrt_queue_attr_set_timeout(this, timeout_us);
         return *this;
     }
 
-    // get timeout
+    /**
+     * @brief Gets the timeout value of this queue attribute.
+     *
+     * @return Returns the timeout value in microseconds.
+     * @since 10
+     * @version 1.0
+     */
     inline uint64_t timeout() const
     {
         return ffrt_queue_attr_get_timeout(this);
     }
 
-    // set timeout callback
+    /**
+     * @brief Sets the timeout callback function for this queue attribute.
+     *
+     * @param func Indicates the callback function.
+     * @return Returns the current queue_attr object for chaining.
+     * @since 10
+     * @version 1.0
+     */
     inline queue_attr& callback(const std::function<void()>& func)
     {
         ffrt_queue_attr_set_callback(this, create_function_wrapper(func, ffrt_function_kind_queue));
         return *this;
     }
 
-    // get timeout callback
+    /**
+     * @brief Gets the timeout callback function of this queue attribute.
+     *
+     * @return Returns a pointer to the callback function header.
+     * @since 10
+     * @version 1.0
+     */
     inline ffrt_function_header_t* callback() const
     {
         return ffrt_queue_attr_get_callback(this);
     }
 
-    // set max concurrency of queue
+    /**
+     * @brief Sets the maximum concurrency level for this queue attribute.
+     *
+     * @param max_concurrency Indicates the maximum concurrency level.
+     * @return Returns the current queue_attr object for chaining.
+     * @since 12
+     * @version 1.0
+     */
     inline queue_attr& max_concurrency(const int max_concurrency)
     {
         ffrt_queue_attr_set_max_concurrency(this, max_concurrency);
         return *this;
     }
 
-    // get max concurrency of queue
+    /**
+     * @brief Gets the maximum concurrency level of this queue attribute.
+     *
+     * @return Returns the maximum concurrency level.
+     * @since 12
+     * @version 1.0
+     */
     inline int max_concurrency() const
     {
         return ffrt_queue_attr_get_max_concurrency(this);
     }
 };
 
+/**
+ * @class queue
+ * @brief Represents a task queue for managing and submitting tasks.
+ *
+ * This class provides methods to submit tasks, cancel tasks, wait for completion,
+ * and retrieve the number of pending tasks in the queue.
+ *
+ * @since 10
+ */
 class queue {
 public:
+    /**
+     * @brief Constructs a queue object with the specified type, name, and attributes.
+     *
+     * @param type Indicates the type of queue.
+     * @param name Indicates the name of the queue.
+     * @param attr Specifies the attributes for the queue.
+     * @since 10
+     * @version 1.0
+     */
     queue(const queue_type type, const char* name, const queue_attr& attr = {})
     {
         queue_handle = ffrt_queue_create(ffrt_queue_type_t(type), name, &attr);
         deleter = ffrt_queue_destroy;
     }
 
+    /**
+     * @brief Constructs a serial queue object with the specified name and attributes.
+     *
+     * @param name Indicates the name of the queue.
+     * @param attr Specifies the attributes for the queue.
+     * @since 10
+     * @version 1.0
+     */
     queue(const char* name, const queue_attr& attr = {})
     {
         queue_handle = ffrt_queue_create(ffrt_queue_serial, name, &attr);
         deleter = ffrt_queue_destroy;
     }
 
+    /**
+     * @brief Destroys the queue object and releases its resources.
+     * @since 10
+     * @version 1.0
+     */
     ~queue()
     {
         if (deleter) {
@@ -129,7 +252,14 @@ public:
         }
     }
 
+    /**
+     * @brief Deleted copy constructor to prevent copying of the queue object.
+     */
     queue(queue const&) = delete;
+
+    /**
+     * @brief Deleted copy assignment operator to prevent assignment of the queue object.
+     */
     void operator=(queue const&) = delete;
 
     /**
@@ -194,7 +324,6 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @since 10
      * @version 1.0
      */
     inline void submit_head(const std::function<void()>& func, const task_attr& attr = {})
@@ -207,7 +336,6 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @since 10
      * @version 1.0
      */
     inline void submit_head(std::function<void()>&& func, const task_attr& attr = {})
@@ -222,7 +350,6 @@ public:
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
                returns a null pointer otherwise.
-     * @since 10
      * @version 1.0
      */
     inline task_handle submit_head_h(const std::function<void()>& func, const task_attr& attr = {})
@@ -237,7 +364,6 @@ public:
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
                returns a null pointer otherwise.
-     * @since 10
      * @version 1.0
      */
     inline task_handle submit_head_h(std::function<void()>&& func, const task_attr& attr = {})
@@ -277,7 +403,6 @@ public:
      *
      * @param queue Indicates a queue handle.
      * @return Returns the queue task count.
-     * @since 10
      * @version 1.0
     */
     inline uint64_t get_task_cnt()
@@ -305,12 +430,13 @@ public:
 
 private:
     using QueueDeleter = void (*)(ffrt_queue_t);
- 
+
     queue(ffrt_queue_t queue_handle, QueueDeleter deleter = nullptr) : queue_handle(queue_handle), deleter(deleter) {}
- 
+
     ffrt_queue_t queue_handle = nullptr;
     QueueDeleter deleter = nullptr;
 };
 } // namespace ffrt
 
 #endif // FFRT_API_CPP_QUEUE_H
+/** @} */

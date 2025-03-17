@@ -17,12 +17,12 @@
 #ifdef __cplusplus
 #include "cpp/task.h"
 #include "cpp/mutex.h"
+#include "cpp/shared_mutex.h"
 #include "cpp/condition_variable.h"
 #include "cpp/sleep.h"
 #include "cpp/queue.h"
 #include "c/timer.h"
 #include "c/loop.h"
-#include "cpp/shared_mutex.h"
 #else
 #include "c/task.h"
 #include "c/mutex.h"

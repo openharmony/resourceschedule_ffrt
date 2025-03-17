@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <climits>
 #include <memory>
 #include <vector>
 

@@ -283,7 +283,6 @@ typedef struct {
 /**
  * @brief Defines the rwlock structure.
  *
- *
  * @since 15
  */
 typedef struct {

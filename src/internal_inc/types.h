@@ -76,11 +76,11 @@ typedef enum {
     ET_FINISH, // executor_task 执行完成，准备执行回调+销毁
 } ExecTaskStatus;
 
-enum class Denpence {
-    DEPENCE_INIT,
-    DATA_DEPENCE,
-    CALL_DEPENCE,
-    CONDITION_DEPENCE,
+enum class Dependence {
+    DEPENDENCE_INIT,
+    DATA_DEPENDENCE,
+    CALL_DEPENDENCE,
+    CONDITION_DEPENDENCE,
 };
 
 enum class SpecTaskType {

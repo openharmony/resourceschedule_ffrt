@@ -95,16 +95,14 @@ void CPUMonitor::StartMonitor()
 int CPUMonitor::SetWorkerMaxNum(const QoS& qos, uint32_t num)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[qos()];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
     if (setWorkerMaxNum[qos()]) {
         FFRT_LOGE("qos[%d] worker num can only been setup once", qos());
-        workerCtrl.lock.unlock();
         return -1;
     }
 
     workerCtrl.hardLimit = static_cast<size_t>(num);
     setWorkerMaxNum[qos()] = true;
-    workerCtrl.lock.unlock();
     return 0;
 }
 
@@ -184,9 +182,8 @@ void CPUMonitor::WakeupSleep(const QoS& qos, bool irqWake)
 int CPUMonitor::TotalCount(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
     int total = workerCtrl.sleepingWorkerNum + workerCtrl.executionNum;
-    workerCtrl.lock.unlock();
     return total;
 }
 
@@ -211,7 +208,7 @@ bool CPUMonitor::TryDestroy(const QoS& qos)
 int CPUMonitor::SleepingWorkerNum(const QoS& qos)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    std::unique_lock lk(workerCtrl.lock);
+    std::lock_guard lk(workerCtrl.lock);
     return workerCtrl.sleepingWorkerNum;
 }
 
@@ -264,7 +261,7 @@ bool CPUMonitor::IsExceedDeepSleepThreshold()
 void CPUMonitor::NotifyWorkers(const QoS& qos, int number)
 {
     WorkerCtrl& workerCtrl = ctrlQueue[static_cast<int>(qos)];
-    workerCtrl.lock.lock();
+    std::lock_guard lk(workerCtrl.lock);
 
     int increasableNumber = static_cast<int>(workerCtrl.maxConcurrency) -
         (workerCtrl.executionNum + workerCtrl.sleepingWorkerNum);
@@ -279,7 +276,6 @@ void CPUMonitor::NotifyWorkers(const QoS& qos, int number)
         ops.IncWorker(qos);
     }
 
-    workerCtrl.lock.unlock();
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 

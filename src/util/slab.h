@@ -61,6 +61,11 @@ public:
         Instance()->free(t);
     }
 
+    static void FreeMem_(T* t)
+    {
+        Instance()->free_(t);
+    }
+
     // only used for BBOX
     static std::vector<void *> getUnfreedMem()
     {
@@ -187,6 +192,22 @@ private:
         if (basePtr != nullptr &&
             basePtr <= t &&
             static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(basePtr)) + MmapSz) {
+            primaryCache.push_back(t);
+            count++;
+        } else {
+#ifdef FFRT_BBOX_ENABLE
+            secondaryCache.erase(t);
+#endif
+            std::free(t);
+        }
+        lock.unlock();
+    }
+
+    void free_(T* t)
+    {
+        lock.lock();
+        if (basePtr != nullptr && basePtr <= t && static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
             static_cast<size_t>(reinterpret_cast<uintptr_t>(basePtr)) + MmapSz) {
             primaryCache.push_back(t);
             count++;

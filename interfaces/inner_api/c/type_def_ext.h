@@ -49,8 +49,6 @@ typedef enum {
 
 typedef enum {
     ffrt_thread_attr_storage_size = 64,
-    /* Rwlock storage size. */
-    ffrt_rwlock_storage_size = 64,
 } ffrt_inner_storage_size_t;
 
 typedef struct {
@@ -66,16 +64,6 @@ typedef struct {
     int vip_prio;
     char cpumap[MAX_CPUMAP_LENGTH];
 } ffrt_os_sched_attr;
-
-/**
- * @brief Defines the rwlock attribute structure.
- *
- * @since 15
- */
-typedef struct {
-    /** A long integer used to store the rwlock attribute. */
-    long storage;
-} ffrt_rwlockattr_t;
 
 typedef void* ffrt_thread_t;
 
@@ -117,17 +105,6 @@ typedef enum {
     ffrt_timer_not_executed = 0,
     ffrt_timer_executed = 1,
 } ffrt_timer_query_t;
-
-/**
- * @brief Defines the rwlock structure.
- *
- *
- * @since 15
- */
-typedef struct {
-    /** An array of uint32_t used to store the rwlock. */
-    uint32_t storage[(ffrt_rwlock_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
-} ffrt_rwlock_t;
 
 typedef enum {
     ffrt_sched_default_mode = 0,

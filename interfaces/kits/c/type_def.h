@@ -124,6 +124,8 @@ typedef enum {
     ffrt_cond_storage_size = 64,
     /** Queue storage size. */
     ffrt_queue_attr_storage_size = 128,
+    /* Rwlock storage size. */
+    ffrt_rwlock_storage_size = 64,
 } ffrt_storage_size_t;
 
 /**
@@ -242,6 +244,16 @@ typedef struct {
 } ffrt_mutexattr_t;
 
 /**
+ * @brief Defines the rwlock attribute structure.
+ *
+ * @since 15
+ */
+typedef struct {
+    /** A long integer used to store the rwlock attribute. */
+    long storage;
+} ffrt_rwlockattr_t;
+
+/**
  * @brief Enumerates the mutex types.
  *
  * Describes the mutex type, ffrt_mutex_normal is normal mutex;
@@ -267,6 +279,16 @@ typedef struct {
     /** An array of uint32_t used to store the mutex. */
     uint32_t storage[(ffrt_mutex_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
 } ffrt_mutex_t;
+
+/**
+ * @brief Defines the rwlock structure.
+ *
+ * @since 15
+ */
+typedef struct {
+    /** An array of uint32_t used to store the rwlock. */
+    uint32_t storage[(ffrt_rwlock_storage_size + sizeof(uint32_t) - 1) / sizeof(uint32_t)];
+} ffrt_rwlock_t;
 
 /**
  * @brief Defines the condition variable structure.

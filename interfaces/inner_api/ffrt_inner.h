@@ -23,13 +23,11 @@
 #include "cpp/task_ext.h"
 #include "cpp/deadline.h"
 #include "cpp/qos_convert.h"
-#include "cpp/shared_mutex.h"
 #else
 #include "c/task_ext.h"
 #include "c/queue_ext.h"
 #include "c/thread.h"
 #include "c/executor_task.h"
-#include "c/shared_mutex.h"
 #include "c/ffrt_dump.h"
 #include "c/deadline.h"
 #include "c/ffrt_cpu_boost.h"

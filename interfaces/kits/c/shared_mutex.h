@@ -37,7 +37,7 @@
 #ifndef FFRT_API_C_SHARED_MUTEX_H
 #define FFRT_API_C_SHARED_MUTEX_H
 
-#include "type_def_ext.h"
+#include "type_def.h"
 
 /**
  * @brief Initializes a rwlock.

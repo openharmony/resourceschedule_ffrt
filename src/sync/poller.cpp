@@ -159,6 +159,20 @@ int Poller::DelFdEvent(int fd) noexcept
         return -1;
     }
 
+    for (auto it = m_cachedTaskEvents.begin(); it != m_cachedTaskEvents.end();) {
+        auto& events = it->second;
+        events.erase(std::remove_if(events.begin(), events.end(),
+            [fd](const epoll_event& event) {
+                return event.data.fd == fd;
+            }), events.end());
+
+        if (events.empty()) {
+            it = m_cachedTaskEvents.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
     m_delCntMap[fd]++;
     WakeUp();
     return 0;

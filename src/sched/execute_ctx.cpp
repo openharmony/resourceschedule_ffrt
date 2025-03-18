@@ -46,7 +46,7 @@ ExecuteCtx::~ExecuteCtx()
 {
 }
 
-ExecuteCtx* ExecuteCtx::Cur()
+ExecuteCtx* ExecuteCtx::Cur(bool init)
 {
     ExecuteCtx* ctx = nullptr;
     pthread_once(&g_executeCtxKeyOnce, MakeExecuteCtxTlsKey);
@@ -54,7 +54,7 @@ ExecuteCtx* ExecuteCtx::Cur()
     void *curTls = pthread_getspecific(g_executeCtxTlsKey);
     if (curTls != nullptr) {
         ctx = reinterpret_cast<ExecuteCtx *>(curTls);
-    } else {
+    } else if (init) {
         ctx = new (std::nothrow) ExecuteCtx();
         pthread_setspecific(g_executeCtxTlsKey, ctx);
     }

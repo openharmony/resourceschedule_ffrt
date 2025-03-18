@@ -162,7 +162,7 @@ FFRT_C_API void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t s
 FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
 
 /**
- * @brief Sets the schedule timeout of a task attribute.
+ * @brief Set the task schedule timeout. (The lower limit is 1ms, if the value less than 1ms, it will be set to 1ms)
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param timeout_us task scheduler timeout.

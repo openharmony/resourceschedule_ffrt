@@ -101,7 +101,8 @@ FFRT_C_API void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 FFRT_C_API ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
 
 /**
- * @brief Sets the execution timeout of a serial queue attribute.
+ * @brief Set the serial queue task execution timeout.
+    (The lower limit is 1ms, if the value less than 1ms, it will be set to 1ms)
  *
  * @param attr Serial queue attribute pointer.
  * @param timeout_us Serial queue task execution timeout.

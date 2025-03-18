@@ -37,6 +37,7 @@
 #include "util/spmc_queue.h"
 #include "tm/task_factory.h"
 #include "tm/queue_task.h"
+#include "util/common_const.h"
 
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
@@ -206,6 +207,10 @@ void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_us)
 {
     if (unlikely(!attr)) {
         FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    if (timeout_us < ONE_THOUSAND) {
+        (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = ONE_THOUSAND;
         return;
     }
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_us;

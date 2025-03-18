@@ -58,5 +58,14 @@ FFRT_C_API int ffrt_dump(ffrt_dump_cmd_t cmd, char *buf, uint32_t len);
 FFRT_C_API ffrt_task_timeout_cb ffrt_task_timeout_get_cb(void);
 FFRT_C_API void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb);
 FFRT_C_API uint32_t ffrt_task_timeout_get_threshold(void);
+/**
+ * @brief Set the ffrt task callback timeout.(Default value: 30s,
+ * The lower limit is 1s, if the value less than 1s, it will be set to 1s,
+ * The timeout value setting by this interface will take effect when the next timeout task is detected.
+ *
+ * @param threshold_ms ffrt task callback timeout.
+ * @since 10
+ * @version 1.0
+ */
 FFRT_C_API void ffrt_task_timeout_set_threshold(uint32_t threshold_ms);
 #endif /* FFRT_API_C_FFRT_DUMP_H */

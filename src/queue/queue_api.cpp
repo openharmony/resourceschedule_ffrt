@@ -18,6 +18,7 @@
 #include "dm/dependence_manager.h"
 #include "tm/queue_task.h"
 #include "queue_handler.h"
+#include "util/common_const.h"
 
 using namespace std;
 using namespace ffrt;
@@ -91,6 +92,10 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
+    if (timeout_us < ONE_THOUSAND) {
+        (reinterpret_cast<ffrt::queue_attr_private*>(attr))->timeout_ = ONE_THOUSAND;
+        return;
+    }
     (reinterpret_cast<ffrt::queue_attr_private*>(attr))->timeout_ = timeout_us;
 }
 

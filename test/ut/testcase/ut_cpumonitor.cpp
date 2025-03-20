@@ -205,6 +205,15 @@ HWTEST_F(CpuMonitorTest, SubmitMemReleaseTask_test, TestSize.Level1)
     EXPECT_EQ(workermonitor.skipSampling_, true);
 }
 
+HWTEST_F(CpuMonitorTest, RecordKeyInfo_test, TestSize.Level1)
+{
+    WorkerMonitor workermonitor;
+    const std::string& dumpInfo = "";
+    workermonitor.RecordKeyInfo(dumpInfo);
+
+    EXPECT_EQ(workermonitor.skipSampling_, false);
+}
+
 HWTEST_F(CpuMonitorTest, CheckWorkerStatus_test, TestSize.Level1)
 {
     WorkerMonitor workermonitor;
@@ -212,6 +221,14 @@ HWTEST_F(CpuMonitorTest, CheckWorkerStatus_test, TestSize.Level1)
     workermonitor.CheckWorkerStatus();
 
     EXPECT_EQ(workermonitor.skipSampling_, true);
+}
+
+HWTEST_F(CpuMonitorTest, qosmap_test, TestSize.Level1)
+{
+    int qos = -1;
+    EXPECT_EQ(-1, QoSMap(qos));
+
+    qos = 300;
 }
 
 /*
@@ -256,6 +273,7 @@ HWTEST_F(CpuMonitorTest, worker_escape_test, TestSize.Level1)
     // 不允许重复调用
     EXPECT_EQ(ffrt::enable_worker_escape(), 1);
 
+    wmonitor.escapeMgr_.enableEscape_ = true;
     WorkerCtrl& workerCtrl = wmonitor.ctrlQueue[2];
     workerCtrl.executionNum = 16;
 

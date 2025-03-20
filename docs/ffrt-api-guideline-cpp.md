@@ -702,8 +702,7 @@ int queue_attr::max_concurrency() const
 #### 样例
 
 ```cpp
-#include <stdio.h>
-#include "ffrt.h"
+#include "ffrt/cpp/queue.h"
 
 int main()
 {
@@ -713,7 +712,7 @@ int main()
     };
 
     // 创建队列，可设置队列优先级，默认为 default 等级
-    ffrt::queue que1("test_1", queue_attr().qos(qos_utility));
+    ffrt::queue que1("test_1", ffrt::queue_attr().qos(ffrt::qos_utility));
     // 创建队列，可通过设置 timeout 打开队列任务超时监测（默认关闭）
     // 超时会打印 Error 日志并执行用户设置的 callback（可选）
     ffrt::queue que2("test_2", ffrt::queue_attr().timeout(1000).callback(callbackFunc));
@@ -887,7 +886,7 @@ static inline queue* queue::get_main_queue()
 #### 样例
 
 ```cpp
-#include "ffrt.h"
+#include "ffrt/cpp/queue.h"
 
 int main()
 {
@@ -963,7 +962,12 @@ inline void mutex::unlock();
 #### 样例
 
 ```cpp
-#include "ffrt.h"
+#include "ffrt/cpp/sleep.h"
+#include "ffrt/cpp/mutex.h"
+#include "ffrt/cpp/task.h"
+#include <thread>
+#include <chrono>
+#include <gtest/gtest.h>
 
 void ffrt_mutex_test()
 {
@@ -971,9 +975,10 @@ void ffrt_mutex_test()
     int y = 0;
     int i = 1;
     ffrt::mutex lock;
+
     auto thread1Func = [&]() {
         ffrt::submit([&]() {
-            ffrt::this_task::sleep_for(10);
+            ffrt::this_task::sleep_for(std::chrono::milliseconds(10));
             while (true) {
                 if (lock.try_lock()) {
                     EXPECT_EQ(x, 1);
@@ -982,7 +987,7 @@ void ffrt_mutex_test()
                 } else {
                     y++;
                     EXPECT_EQ(y, (i++));
-                    ffrt::this_task::sleep_for(10);
+                    ffrt::this_task::sleep_for(std::chrono::milliseconds(10));
                 }
             }
             }, {}, {}, ffrt::task_attr().name("t2"));
@@ -992,7 +997,7 @@ void ffrt_mutex_test()
     auto thread2Func = [&]() {
         ffrt::submit([&]() {
             lock.lock();
-            ffrt::this_task::sleep_for(50);
+            ffrt::this_task::sleep_for(std::chrono::milliseconds(50));
             x++;
             lock.unlock();
             }, {}, {}, ffrt::task_attr().name("t1"));
@@ -1058,7 +1063,10 @@ inline bool recursive_mutex::unlock();
 #### 样例
 
 ```cpp
-#include "ffrt.h"
+#include "ffrt/cpp/mutex.h"
+#include "ffrt/cpp/task.h"
+#include <gtest/gtest.h>
+
 void ffrt_recursive_mutex_test()
 {
     ffrt::recursive_mutex lock;
@@ -1178,13 +1186,18 @@ void condition_variable::notify_all() noexcept;
 #### 样例
 
 ```cpp
-#include "ffrt.h"
+#include "ffrt/cpp/condition_variable.h"
+#include "ffrt/cpp/mutex.h"
+#include "ffrt/cpp/task.h"
+#include <unistd.h>
+#include <thread>
+#include <gtest/gtest.h>
 
 void ffrt_condition_variable_test()
 {
     const int sleepTime = 50 * 1000;
     const int checkDelayTime = 10 * 1000;
-    const std::chrono::milliseconds waitTime = 100ms;
+    const std::chrono::milliseconds waitTime = std::chrono::milliseconds(100);
     ffrt::condition_variable cond;
     ffrt::mutex lock_;
     int val = 0;
@@ -1192,7 +1205,7 @@ void ffrt_condition_variable_test()
     const int lastVal = 2;
 
     auto threadWaitFunc = [&]() {
-        std::unique_lock lck(lock_);
+        std::unique_lock<ffrt::mutex> lck(lock_); // 使用 std::mutex
         bool ret = cond.wait_until(lck, std::chrono::steady_clock::now() + waitTime, [&] { return predVal == 1; });
         EXPECT_EQ(val, 1);
         EXPECT_EQ(predVal, 1);
@@ -1263,13 +1276,13 @@ inline void this_task::sleep_until(
 #### 样例
 
 ```cpp
-#include <chrono>
-#include "ffrt.h"
+#include "ffrt/cpp/sleep.h"
+#include "ffrt/cpp/task.h"
 
 void ffrt_sleep_test()
 {
     ffrt::submit([] {
-        ffrt::this_task::sleep_for(2000);
+        ffrt::this_task::sleep_for(std::chrono::milliseconds(2000));
     });
     ffrt::wait();
 }
@@ -1294,12 +1307,12 @@ static inline void this_task::yield();
 #### 样例
 
 ```cpp
-#include <chrono>
-#include "ffrt.h"
+#include "ffrt/cpp/sleep.h"
+#include "ffrt/cpp/task.h"
 
 void ffrt_yield_test()
 {
-    const std::chrono::milliseconds setTime = 5ms;
+    const std::chrono::milliseconds setTime = std::chrono::milliseconds(5);
     ffrt::submit([&]() {
         ffrt::this_task::yield();
         ffrt::this_task::sleep_for(setTime);

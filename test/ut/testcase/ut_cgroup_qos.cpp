@@ -162,7 +162,7 @@ HWTEST_F(QosTest, QosConfig_test, TestSize.Level1)
 #endif
 }
 
-class QosInterfaceTest_2 : public testing::Test {
+class QosInterfaceTest2 : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -181,7 +181,7 @@ protected:
     }
 };
 
-HWTEST_F(QosInterfaceTest_2, QosPolicyTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, QosPolicyTest, TestSize.Level1)
 {
     struct QosPolicyData qp = {0, 0, 0, 0, 0};
     struct QosPolicyDatas policyDatas = {0, 0, {qp}};
@@ -190,14 +190,14 @@ HWTEST_F(QosInterfaceTest_2, QosPolicyTest, TestSize.Level1)
     EXPECT_NE(ret, 0);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTEnableRtgTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTEnableRtgTest, TestSize.Level1)
 {
     bool flag = false;
     FFRTEnableRtg(flag);
     EXPECT_EQ(flag, false);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTAuthEnableTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTAuthEnableTest, TestSize.Level1)
 {
     unsigned int uid = 3039;
     unsigned int uaFlag = 0x1fff;
@@ -206,7 +206,7 @@ HWTEST_F(QosInterfaceTest_2, FFRTAuthEnableTest, TestSize.Level1)
     EXPECT_EQ(status, 3);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTAuthSwitchTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTAuthSwitchTest, TestSize.Level1)
 {
     unsigned int uid = 3039;
     unsigned int rtgFlag = 0x1fff;
@@ -216,14 +216,14 @@ HWTEST_F(QosInterfaceTest_2, FFRTAuthSwitchTest, TestSize.Level1)
     EXPECT_EQ(status, 3);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTAuthDeleteTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTAuthDeleteTest, TestSize.Level1)
 {
     unsigned int uid = 3039;
     FFRTAuthDelete(uid);
     EXPECT_EQ(uid, 3039);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTAuthPauseTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTAuthPauseTest, TestSize.Level1)
 {
     unsigned int uid = 3039;
     unsigned int uaFlag = 0x1fff;
@@ -233,7 +233,7 @@ HWTEST_F(QosInterfaceTest_2, FFRTAuthPauseTest, TestSize.Level1)
     EXPECT_EQ(uid, 3039);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTAuthGetTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTAuthGetTest, TestSize.Level1)
 {
     unsigned int uid = 3039;
     unsigned int uaFlag = 0x1fff;
@@ -249,7 +249,7 @@ HWTEST_F(QosInterfaceTest_2, FFRTAuthGetTest, TestSize.Level1)
     }
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTQosApplyTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTQosApplyTest, TestSize.Level1)
 {
     unsigned int level = 1;
 
@@ -257,7 +257,7 @@ HWTEST_F(QosInterfaceTest_2, FFRTQosApplyTest, TestSize.Level1)
     EXPECT_EQ(level, 1);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTQosApplyForOtherTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTQosApplyForOtherTest, TestSize.Level1)
 {
     unsigned int level = 1;
     int tid = 0;
@@ -266,13 +266,13 @@ HWTEST_F(QosInterfaceTest_2, FFRTQosApplyForOtherTest, TestSize.Level1)
     EXPECT_EQ(level, 1);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTQosLeaveTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTQosLeaveTest, TestSize.Level1)
 {
     int ret = FFRTQosLeave();
     EXPECT_EQ(ret, 0);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTQosLeaveForOtherTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTQosLeaveForOtherTest, TestSize.Level1)
 {
     unsigned int level = 1;
     int tid = 0;
@@ -282,7 +282,7 @@ HWTEST_F(QosInterfaceTest_2, FFRTQosLeaveForOtherTest, TestSize.Level1)
     EXPECT_EQ(level, 1);
 }
 
-HWTEST_F(QosInterfaceTest_2, FFRTQosConvertInt, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTQosConvertInt, TestSize.Level1)
 {
     QoS qos1 = 1;
     QoS qos2 = 2;

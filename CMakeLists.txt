@@ -113,3 +113,8 @@ endif()
 if(FFRT_BENCHMARKS STREQUAL ON)
   add_subdirectory(benchmarks)
 endif()
+
+# ffrt unit tests
+if(FFRT_TEST_ENABLE STREQUAL ON)
+  add_subdirectory(test)
+endif()

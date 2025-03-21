@@ -188,7 +188,7 @@ public:
     }
 #endif
 
-    void WorkerSetup(WorkerThread* wthread);
+    void WorkerSetup();
     void NativeConfig();
     void* worker_mgr;
 

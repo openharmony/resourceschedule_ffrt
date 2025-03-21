@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 12
- * @version 1.0
  */
 
 #ifndef FFRT_API_C_LOOP_H
@@ -54,7 +53,6 @@ typedef void* ffrt_loop_t;
  * @return Returns a non-null loop handle if the loop is created;
            returns a null pointer otherwise.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
 
@@ -65,7 +63,6 @@ FFRT_C_API ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
  * @return Returns 0 if the loop is destroyed;
            returns -1 otherwise.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
 
@@ -76,7 +73,6 @@ FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
  * @return Returns -1 if loop run fail;
            returns 0 otherwise.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API int ffrt_loop_run(ffrt_loop_t loop);
 
@@ -85,7 +81,6 @@ FFRT_C_API int ffrt_loop_run(ffrt_loop_t loop);
  *
  * @param loop Indicates a loop handle.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
 
@@ -101,7 +96,6 @@ FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
  * @return Returns 0 if success;
            returns -1 otherwise.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb);
 
@@ -115,7 +109,6 @@ FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t ev
  * @param repeat Indicates whether to repeat this timer.
  * @return Returns a timer handle.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(
     ffrt_loop_t loop, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
@@ -128,7 +121,6 @@ FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(
  * @return Returns 0 if success;
            returns -1 otherwise.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
 

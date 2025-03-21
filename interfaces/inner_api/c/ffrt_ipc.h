@@ -21,7 +21,6 @@
  *
  * @param mode Indicates wheather use legacy mode.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API void ffrt_this_task_set_legacy_mode(bool mode);
 

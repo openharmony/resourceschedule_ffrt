@@ -19,7 +19,6 @@
  * @brief Declares the task inner interfaces in C++.
  *
  * @since 10
- * @version 1.0
  */
 #ifndef FFRT_INNER_API_CPP_TASK_H
 #define FFRT_INNER_API_CPP_TASK_H
@@ -35,7 +34,6 @@ namespace ffrt {
  * @return Returns <b>0</b> if the task is skipped;
            returns <b>-1</b> otherwise.
  * @since 10
- * @version 1.0
  */
 static inline int skip(task_handle &handle)
 {
@@ -68,7 +66,6 @@ static inline int set_cpu_worker_max_num(qos qos_, uint32_t num)
  *
  * @param qos_ Indicates the QoS.
  * @param number Indicates the number of workers to be notified.
- * @version 1.0
  */
 static inline void notify_workers(qos qos_, int number)
 {
@@ -79,7 +76,6 @@ static inline void notify_workers(qos qos_, int number)
  * @brief Obtains the ID of this queue.
  *
  * @return Returns the queue ID.
- * @version 1.0
  */
 static inline int64_t get_queue_id()
 {
@@ -102,7 +98,6 @@ static inline int64_t get_queue_id()
  * @param two_stage_worker_num Indicates the number of workers in two-stage.
  * @return Returns 0 if the parameters are valid and the escape function is enabled successfully;
  *         returns 1 otherwise.
- * @version 1.0
  */
 static inline int enable_worker_escape(uint64_t one_stage_interval_ms = 10, uint64_t two_stage_interval_ms = 100,
     uint64_t three_stage_interval_ms = 1000, uint64_t one_stage_worker_num = 128, uint64_t two_stage_worker_num = 256)
@@ -115,7 +110,6 @@ static inline int enable_worker_escape(uint64_t one_stage_interval_ms = 10, uint
  * @brief Disable the worker escape function (When all the worker threads under a QoS level fully block, the system will
  * temporarily exceed the limit on the number of worker threads and create new worker threads to execute tasks).
  *
- * @version 1.0
  */
 static inline void disable_worker_escape()
 {

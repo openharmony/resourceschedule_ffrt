@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_CPP_SLEEP_H
@@ -52,7 +51,6 @@ namespace this_task {
  * This function allows other tasks or threads to be scheduled by yielding the current task's execution.
  *
  * @since 10
- * @version 1.0
  */
 static inline void yield()
 {
@@ -67,7 +65,6 @@ static inline void yield()
  * @tparam _Period The period of the duration (e.g., milliseconds, microseconds).
  * @param d The duration for which the task should be suspended.
  * @since 10
- * @version 1.0
  */
 template <class _Rep, class _Period>
 inline void sleep_for(const std::chrono::duration<_Rep, _Period>& d)
@@ -83,7 +80,6 @@ inline void sleep_for(const std::chrono::duration<_Rep, _Period>& d)
  * @tparam _Duration The duration type for the time point.
  * @param abs_time The absolute time point at which the task should resume.
  * @since 10
- * @version 1.0
  */
 template<class _Clock, class _Duration>
 inline void sleep_until(

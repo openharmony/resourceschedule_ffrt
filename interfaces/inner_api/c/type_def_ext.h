@@ -19,7 +19,6 @@
  * @brief Declares common types.
  *
  * @since 10
- * @version 1.0
  */
 #ifndef FFRT_INNER_API_C_TYPE_DEF_H
 #define FFRT_INNER_API_C_TYPE_DEF_H

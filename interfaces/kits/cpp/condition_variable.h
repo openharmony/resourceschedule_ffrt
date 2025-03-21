@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_CPP_CONDITION_VARIABLE_H
@@ -69,7 +68,6 @@ public:
      * @brief Constructs a new condition_variable object.
      *
      * @since 10
-     * @version 1.0
      */
     condition_variable()
     {
@@ -80,7 +78,6 @@ public:
      * @brief Destroys the condition_variable object.
      *
      * @since 10
-     * @version 1.0
      */
     ~condition_variable() noexcept
     {
@@ -108,7 +105,6 @@ public:
      * @param pred The predicate to be satisfied.
      * @return true if the predicate was satisfied before the timeout, false otherwise.
      * @since 10
-     * @version 1.0
      */
     template <typename Clock, typename Duration, typename Pred>
     bool wait_until(
@@ -131,7 +127,6 @@ public:
      * @param tp The time point when the wait should time out.
      * @return A cv_status value indicating whether the wait ended due to a timeout or a condition.
      * @since 10
-     * @version 1.0
      */
     template <typename Clock, typename Duration>
     cv_status wait_until(std::unique_lock<mutex>& lk, const std::chrono::time_point<Clock, Duration>& tp) noexcept
@@ -148,7 +143,6 @@ public:
      * @param sleep_time The duration to wait for.
      * @return A cv_status value indicating whether the wait ended due to a timeout or a condition.
      * @since 10
-     * @version 1.0
      */
     template <typename Rep, typename Period>
     cv_status wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleep_time) noexcept
@@ -167,7 +161,6 @@ public:
      * @param pred The predicate to be satisfied.
      * @return true if the predicate was satisfied before the timeout, false otherwise.
      * @since 10
-     * @version 1.0
      */
     template <typename Rep, typename Period, typename Pred>
     bool wait_for(
@@ -183,7 +176,6 @@ public:
      * @param lk A unique lock on the associated mutex.
      * @param pred The predicate to be satisfied.
      * @since 10
-     * @version 1.0
      */
     template <typename Pred>
     void wait(std::unique_lock<mutex>& lk, Pred&& pred)
@@ -198,7 +190,6 @@ public:
      *
      * @param lk A unique lock on the associated mutex.
      * @since 10
-     * @version 1.0
      */
     void wait(std::unique_lock<mutex>& lk)
     {
@@ -209,7 +200,6 @@ public:
      * @brief Notifies one thread waiting on the condition variable.
      *
      * @since 10
-     * @version 1.0
      */
     void notify_one() noexcept
     {
@@ -220,7 +210,6 @@ public:
      * @brief Notifies all threads waiting on the condition variable.
      *
      * @since 10
-     * @version 1.0
      */
     void notify_all() noexcept
     {
@@ -237,7 +226,6 @@ private:
      * @param dur The duration to wait for.
      * @return A cv_status value indicating whether the wait ended due to a timeout or a condition.
      * @since 10
-     * @version 1.0
      */
     template <typename Rep, typename Period>
     cv_status _wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& dur) noexcept

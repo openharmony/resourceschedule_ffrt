@@ -231,6 +231,7 @@ void mutexPrivate::wait()
         }
         wlock.unlock();
         ctx->wn.cv.wait(lk);
+        ctx->wn.task = nullptr;
         return;
     } else {
         FFRT_BLOCK_TRACER(task->gid, mtx);

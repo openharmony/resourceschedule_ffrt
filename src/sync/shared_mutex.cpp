@@ -109,6 +109,7 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
         std::unique_lock<std::mutex> lk(ctx->wn.wl);
         mut.unlock();
         ctx->wn.cv.wait(lk);
+        ctx->wn.task = nullptr;
     } else {
         FFRT_BLOCK_TRACER(task->gid, smx);
         CoWait([&](CPUEUTask* task) -> bool {

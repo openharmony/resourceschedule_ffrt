@@ -1450,22 +1450,12 @@ void ffrt_c_mutexattr_test()
 
 ### ffrt_mutex_t
 
-- FFRT 提供的类似pthread mutex的性能实现，但不支持类似`PTHREAD_MUTEX_INITIALIZER`的初始化。
+- FFRT提供的类似`pthread_mutex_t`的性能实现，但不支持类似`PTHREAD_MUTEX_INITIALIZER`的初始化。
 
 #### 声明
 
 ```c
-typedef enum {
-    ffrt_error = -1,
-    ffrt_success = 0,
-    ffrt_error_nomem = ENOMEM,
-    ffrt_error_timedout = ETIMEDOUT,
-    ffrt_error_busy = EBUSY,
-    ffrt_error_inval = EINVAL
-} ffrt_error_t;
-
 struct ffrt_mutex_t;
-
 struct ffrt_mutexattr_t;
 
 int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr);
@@ -1479,10 +1469,10 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 
 - 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
 - 该接口能够避免pthread传统的`pthread_mutex_t`在抢不到锁时陷入内核态的问题，在使用得当的条件下将会有更好的性能。
-- C API 中的`ffrt_mutexattr_t`需要用户调用`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`显示创建和销毁，否则其行为是未定义的。
-- C API 中的`ffrt_mutex_t`需要用户调用`ffrt_mutex_init`和`ffrt_mutex_destroy`显式创建和销毁，否则其行为是未定义的。
-- C API 中的`ffrt_mutex_t`对象的置空和销毁由用户完成，对同一个`ffrt_mutex_t`仅能调用一次`ffrt_mutex_destroy`，重复对同一个 ffrt_mutex_t 调用`ffrt_mutex_destroy`，其行为是未定义的。
-- C API 中的同一个`ffrt_mutexattr_t`只能调用一次`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`，重复调用其行为是未定义的。
+- C API中的`ffrt_mutexattr_t`需要用户调用`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`显示创建和销毁，否则其行为是未定义的。
+- C API中的`ffrt_mutex_t`需要用户调用`ffrt_mutex_init`和`ffrt_mutex_destroy`显式创建和销毁，否则其行为是未定义的。
+- C API中的`ffrt_mutex_t`对象的置空和销毁由用户完成，对同一个`ffrt_mutex_t`仅能调用一次`ffrt_mutex_destroy`，重复对同一个`ffrt_mutex_t`调用`ffrt_mutex_destroy`，其行为是未定义的。
+- C API中的同一个`ffrt_mutexattr_t`只能调用一次`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`，重复调用其行为是未定义的。
 - 用户需要在调用`ffrt_mutex_init`之后和调用`ffrt_mutex_destroy`之前显示调用`ffrt_mutexattr_destroy`。
 - 在`ffrt_mutex_destroy`之后再对`ffrt_mutex_t`进行访问，其行为是未定义的。
 
@@ -1619,6 +1609,214 @@ void ffrt_c_mutex_test()
 
     ffrt_mutexattr_destroy(&attr);
     ffrt_mutex_destroy(&lock);
+}
+```
+
+### ffrt_rwlock_t
+
+- FFRT提供的类似`pthread_rwlock_t`的性能实现。
+
+#### 声明
+
+```c
+struct ffrt_rwlock_t;
+struct ffrt_rwlockattr_t;
+
+int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* attr);
+int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
+int ffrt_rwlock_destroy(ffrt_rwlock_t* rwlock);
+```
+
+#### 描述
+
+- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
+- 该接口能够避免pthread传统的`pthread_rwlock_t`在ffrt使用场景下睡眠不释放线程的问题，在使用得当的条件下将会有更好的性能。
+- C API中的`ffrt_rwlock_t`需要用户调用`ffrt_rwlock_init`和`ffrt_rwlock_destroy`显式创建和销毁，否则其行为是未定义的。
+- C API中的`ffrt_rwlockattr_t`需要用户调用`ffrt_rwlock_init`时此参数传参必须为空指针。
+- C API中的`ffrt_rwlock_t`对象的置空和销毁由用户完成，对同一个`ffrt_rwlock_t`仅能调用一次`ffrt_rwlock_destroy`，重复对同一个`ffrt_rwlock_t`调用`ffrt_rwlock_destroy`，其行为是未定义的。
+- 在`ffrt_rwlock_destroy`之后再对`ffrt_rwlock_t`进行访问，其行为是未定义的。
+
+#### 方法
+
+##### ffrt_rwlock_init
+
+```c
+FFRT_C_API int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* attr);
+```
+
+参数
+
+- `rwlock`：指向所操作的读写锁指针。
+- `attr`：指向所操作的读写锁属性指针。
+
+返回值
+
+- `rwlock`和`attr`都不为空返回`ffrt_success`，否则返回`ffrt_error_inval`或者阻塞当前任务。
+
+描述
+
+- 初始化读写锁。
+
+##### ffrt_rwlock_wrlock
+
+```c
+FFRT_C_API int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
+```
+
+参数
+
+- `rwlock`：指向所操作的读写锁指针。
+
+返回值
+
+- `rwlock`不为空返回`ffrt_success`，否则返回`ffrt_error_inval`。
+
+描述
+
+- 对指定读写锁加写锁操作。
+
+##### ffrt_rwlock_rdlock
+
+```c
+FFRT_C_API int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
+```
+
+参数
+
+- `rwlock`：指向所操作的读写锁指针。
+
+返回值
+
+- `rwlock`不为空返回`ffrt_success`，否则返回`ffrt_error_inval。
+
+描述
+
+- 对指定读写锁加读锁操作。
+
+##### ffrt_rwlock_trywrlock
+
+```c
+FFRT_C_API int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
+```
+
+参数
+
+- `rwlock`：指向所操作的读写锁指针。
+
+返回值
+
+- `rwlock`不为空且没有其他线程持有读写锁返回`ffrt_success`，否则返回`ffrt_error_inval`。
+
+描述
+
+- 对指定的读写锁进行尝试加写锁操作。
+
+##### ffrt_rwlock_tryrdlock
+
+```c
+FFRT_C_API int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
+```
+
+参数
+
+- `rwlock`：指向所操作的读写锁指针。
+
+返回值
+
+- `rwlock`不为空且没有其他线程持有写锁则返回`ffrt_success`，否则返回`ffrt_error_inval`。
+
+描述
+
+- 对指定的读写锁进行尝试加读锁操作。
+
+##### ffrt_rwlock_unlock
+
+```c
+FFRT_C_API int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
+```
+
+参数
+
+- `rwlock`：指向所操作的读写锁指针。
+
+返回值
+
+- `rwlock`不为空返回`ffrt_success`，否则返回`ffrt_error_inval`。
+
+描述
+
+- 对指定的读写锁进行解锁操作。
+
+##### ffrt_rwlock_destroy
+
+```c
+FFRT_C_API int ffrt_rwlock_destroy(ffrt_rwlock_t* rwlock);
+```
+
+参数
+
+- `rwlock`：指向所操作的读写锁指针。
+
+返回值
+
+- `rwlock`不为空返回`ffrt_success`，否则返回`ffrt_error_inval`。
+
+描述
+
+- 对指定的读写锁进行销毁操作。
+
+#### 样例
+
+```c
+#include "ffrt/shared_mutex.h"
+#include "ffrt/sleep.h"
+#include "ffrt/cpp/task.h"
+
+void ffrt_c_shared_mutex_test()
+{
+    ffrt_rwlock_t rwlock;
+    int x = 0;
+    int ret = ffrt_rwlock_init(&rwlock, nullptr);
+    EXPECT_EQ(ret, ffrt_success);
+    ffrt::submit([&]() {
+        ffrt_rwlock_wrlock(&rwlock);
+        ffrt_usleep(10);
+        x++;
+        EXPECT_EQ(x,1);
+        ffrt_rwlock_unlock(&rwlock);
+    },{},{});
+
+    ffrt::submit([&]() {
+        ffrt_usleep(2);
+        ffrt_rwlock_rdlock(&rwlock);
+        EXPECT_EQ(x,1);
+        ffrt_rwlock_unlock(&rwlock);
+    },{},{});
+
+    ffrt::submit([&]() {
+        ffrt_usleep(2);
+        if(ffrt_rwlock_trywrlock(&wrlock)){
+            x++;
+            ffrt_rwlock_unlock(&rwlock);
+        }
+        EXPECT_EQ(x,0);
+    },{},{});
+
+    ffrt::submit([&]() {
+        ffrt_usleep(2);
+        if(ffrt_rwlock_tryrdlock(&wrlock)){
+            ffrt_rwlock_unlock(&rwlock);
+        }
+        EXPECT_EQ(x,0);
+    },{},{});
+
+    ffrt::wait();
+
+    ffrt_rwlock_destroy(&rwlock);
 }
 ```
 

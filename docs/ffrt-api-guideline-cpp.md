@@ -1011,6 +1011,137 @@ void ffrt_mutex_test()
 }
 ```
 
+### shared_mutex
+
+#### 声明
+
+```cpp
+class shared_mutex;
+```
+
+#### 描述
+
+- FFRT提供类似`std::shared_mutex`的性能实现，在使用中要区分读锁和写锁。
+- 该功能能够避免传统的`std::shared_mutex`在进入睡眠后不释放线程的问题，在使用得当的条件下将会有更好的性能。
+
+#### 方法
+
+##### try_lock
+
+```cpp
+inline bool shared_mutex::try_lock();
+```
+
+返回值
+
+- 获取锁是否成功。
+
+描述
+
+- 尝试获取FFRT写锁。
+
+##### lock
+
+```cpp
+inline void shared_mutex::lock();
+```
+
+描述
+
+- 获取FFRT写锁。
+
+##### unlock
+
+```cpp
+inline void shared_mutex::unlock();
+```
+
+描述
+
+- 释放FFRT写锁。
+
+##### lock_shared
+
+```cpp
+inline void shared_mutex::lock_shared();
+```
+
+描述
+
+- 获取FFRT读锁。
+
+##### try_lock_shared
+
+```cpp
+inline void shared_mutex::try_lock_shared();
+```
+
+描述
+
+- 尝试获取FFRT读锁。
+
+##### unlock_shared
+
+```cpp
+inline void shared_mutex::unlock_shared();
+```
+
+描述
+
+- 释放FFRT读锁。
+
+#### 样例
+
+```cpp
+#include "ffrt.h"
+
+void ffrt_shared_mutex_test()
+{
+    int x = 0;
+    ffrt::shared_mutex smut;
+
+    ffrt::submit(
+        [&]() {
+            smut.lock();
+            ffrt::this_task::sleep_for(10ms);
+            x++;
+            EXPECT_EQ(x,1);
+            smut.unlock();
+        },
+        {},{});
+
+    ffrt::submit(
+        [&]() {
+            ffrt::this_task::sleep_for(2ms);
+            smut.lock_shared();
+            EXPECT_EQ(x,1);
+            smut.unlock();
+        },
+        {},{});
+
+    ffrt::submit(
+        [&]() {
+            ffrt::this_task::sleep_for(2ms);
+            if(smut.try_lock()){
+                x++:
+                smut.unlock();
+            }
+            EXPECT_EQ(x,0);
+        },
+        {},{});
+
+    ffrt::submit(
+        [&]() {
+            ffrt::this_task::sleep_for(2ms);
+            if(smut.try_lock_shared()){
+                smut.unlock_shared();
+            }
+            EXPECT_EQ(x,0);
+        },
+        {},{});
+}
+```
+
 ### recursive_mutex
 
 #### 声明

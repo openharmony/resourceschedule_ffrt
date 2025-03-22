@@ -962,18 +962,16 @@ inline void mutex::unlock();
 #### 样例
 
 ```cpp
+#include <chrono>
+#include <thread>
 #include "ffrt/cpp/sleep.h"
 #include "ffrt/cpp/mutex.h"
 #include "ffrt/cpp/task.h"
-#include <thread>
-#include <chrono>
-#include <gtest/gtest.h>
 
-void ffrt_mutex_test()
+int main()
 {
     int x = 0;
     int y = 0;
-    int i = 1;
     ffrt::mutex lock;
 
     auto thread1Func = [&]() {
@@ -981,12 +979,10 @@ void ffrt_mutex_test()
             ffrt::this_task::sleep_for(std::chrono::milliseconds(10));
             while (true) {
                 if (lock.try_lock()) {
-                    EXPECT_EQ(x, 1);
                     lock.unlock();
                     return;
                 } else {
                     y++;
-                    EXPECT_EQ(y, (i++));
                     ffrt::this_task::sleep_for(std::chrono::milliseconds(10));
                 }
             }
@@ -1008,6 +1004,8 @@ void ffrt_mutex_test()
     std::thread t2(thread2Func);
     t1.join();
     t2.join();
+
+    return 0;
 }
 ```
 
@@ -1093,52 +1091,45 @@ inline void shared_mutex::unlock_shared();
 #### 样例
 
 ```cpp
-#include "ffrt.h"
+#include <chrono>
+#include "ffrt/cpp/task.h"
+#include "ffrt/cpp/shared_mutex.h"
+#include "ffrt/cpp/sleep.h"
 
-void ffrt_shared_mutex_test()
+int main()
 {
     int x = 0;
     ffrt::shared_mutex smut;
 
-    ffrt::submit(
-        [&]() {
-            smut.lock();
-            ffrt::this_task::sleep_for(10ms);
-            x++;
-            EXPECT_EQ(x,1);
+    ffrt::submit([&]() {
+        smut.lock();
+        ffrt::this_task::sleep_for(std::chrono::milliseconds(10));
+        x++;
+        smut.unlock();
+        }, {},{});
+
+    ffrt::submit([&]() {
+        ffrt::this_task::sleep_for(std::chrono::milliseconds(2));
+        smut.lock_shared();
+        smut.unlock();
+        }, {},{});
+
+    ffrt::submit([&]() {
+        ffrt::this_task::sleep_for(std::chrono::milliseconds(2));
+        if(smut.try_lock()){
+            x++:
             smut.unlock();
-        },
-        {},{});
+        }
+        }, {},{});
 
-    ffrt::submit(
-        [&]() {
-            ffrt::this_task::sleep_for(2ms);
-            smut.lock_shared();
-            EXPECT_EQ(x,1);
-            smut.unlock();
-        },
-        {},{});
+    ffrt::submit([&]() {
+        ffrt::this_task::sleep_for(std::chrono::milliseconds(2));
+        if(smut.try_lock_shared()){
+            smut.unlock_shared();
+        }
+        }, {},{});
 
-    ffrt::submit(
-        [&]() {
-            ffrt::this_task::sleep_for(2ms);
-            if(smut.try_lock()){
-                x++:
-                smut.unlock();
-            }
-            EXPECT_EQ(x,0);
-        },
-        {},{});
-
-    ffrt::submit(
-        [&]() {
-            ffrt::this_task::sleep_for(2ms);
-            if(smut.try_lock_shared()){
-                smut.unlock_shared();
-            }
-            EXPECT_EQ(x,0);
-        },
-        {},{});
+    return 0;
 }
 ```
 
@@ -1196,18 +1187,17 @@ inline bool recursive_mutex::unlock();
 ```cpp
 #include "ffrt/cpp/mutex.h"
 #include "ffrt/cpp/task.h"
-#include <gtest/gtest.h>
 
-void ffrt_recursive_mutex_test()
+int main()
 {
     ffrt::recursive_mutex lock;
     int sum = 0;
     ffrt::submit([&]() {
         lock.lock();
-        EXPECT_EQ(lock.try_lock(), true);
+        lock.try_lock();
         sum++;
         lock.lock();
-        EXPECT_EQ(lock.try_lock(), true);
+        lock.try_lock();
         sum++;
         lock.unlock();
         lock.unlock();
@@ -1215,6 +1205,7 @@ void ffrt_recursive_mutex_test()
         lock.unlock();
         }, {}, {});
     ffrt::wait();
+    return 0;
 }
 ```
 
@@ -1317,14 +1308,14 @@ void condition_variable::notify_all() noexcept;
 #### 样例
 
 ```cpp
+#include <chrono>
+#include <unistd.h>
+#include <thread>
 #include "ffrt/cpp/condition_variable.h"
 #include "ffrt/cpp/mutex.h"
 #include "ffrt/cpp/task.h"
-#include <unistd.h>
-#include <thread>
-#include <gtest/gtest.h>
 
-void ffrt_condition_variable_test()
+int main()
 {
     const int sleepTime = 50 * 1000;
     const int checkDelayTime = 10 * 1000;
@@ -1337,11 +1328,8 @@ void ffrt_condition_variable_test()
 
     auto threadWaitFunc = [&]() {
         std::unique_lock<ffrt::mutex> lck(lock_); // 使用 std::mutex
-        bool ret = cond.wait_until(lck, std::chrono::steady_clock::now() + waitTime, [&] { return predVal == 1; });
-        EXPECT_EQ(val, 1);
-        EXPECT_EQ(predVal, 1);
+        cond.wait_until(lck, std::chrono::steady_clock::now() + waitTime, [&] { return predVal == 1; });
         val = lastVal;
-        EXPECT_EQ(ret, true);
     };
 
     auto threadNotifyFunc = [&]() {
@@ -1356,7 +1344,7 @@ void ffrt_condition_variable_test()
     tWait.join();
     tNotify.join();
     usleep(checkDelayTime);
-    EXPECT_EQ(val, lastVal);
+    return 0;
 }
 ```
 
@@ -1410,12 +1398,13 @@ inline void this_task::sleep_until(
 #include "ffrt/cpp/sleep.h"
 #include "ffrt/cpp/task.h"
 
-void ffrt_sleep_test()
+int main()
 {
     ffrt::submit([] {
         ffrt::this_task::sleep_for(std::chrono::milliseconds(2000));
     });
     ffrt::wait();
+    return 0;
 }
 ```
 
@@ -1441,7 +1430,7 @@ static inline void this_task::yield();
 #include "ffrt/cpp/sleep.h"
 #include "ffrt/cpp/task.h"
 
-void ffrt_yield_test()
+int main()
 {
     const std::chrono::milliseconds setTime = std::chrono::milliseconds(5);
     ffrt::submit([&]() {
@@ -1460,5 +1449,6 @@ void ffrt_yield_test()
         }, {}, {});
 
     ffrt::wait();
+    return 0;
 }
 ```

@@ -215,9 +215,7 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
 
 DelayedWorker::~DelayedWorker()
 {
-    lock.lock();
     toExit = true;
-    lock.unlock();
     itimerspec its = { {0, 0}, {0, 1} };
     timerfd_settime(timerfd_, 0, &its, nullptr);
     if (delayedWorker != nullptr && delayedWorker->joinable()) {

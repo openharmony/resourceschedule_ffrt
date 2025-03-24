@@ -89,8 +89,34 @@ protected:
     }
 };
 
-int TmpFun()
+int tmpFun()
 {
-    int ret = 6;
-    return ret;
+    return 6;
+}
+
+HWTEST_F(CgroupQosTest, SchedAttrTest, TestSize.Level1)
+{
+    ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};
+    static FuncQosMax funcQosMax = tmpFun;
+    OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 8);
+    OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 1);
+    OSAttrManager::Instance()->CheckSchedAttrPara("test", 5, 10, 15);
+    int ret = 0;
+#ifndef FFRT_GITEE
+    ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(qos_defined_ive)), &attr);
+    EXPECT_EQ(ret, 0);
+#endif
+}
+
+HWTEST_F(CgroupQosTest, SetTidToCGroupPrivateTest, TestSize.Level1)
+{
+    ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};
+    std::string value = "1";
+    int num = 0xfffff;
+    int ret = 0;
+#ifndef FFRT_GITEE
+    ret = OSAttrManager::Instance()->UpdateSchedAttr(QoS(static_cast<int>(qos_defined_ive)), &attr);
+    OSAttrManager::Instance()->SetTidToCGroupPrivate(value, num);
+    EXPECT_EQ(ret, 0);
+#endif
 }

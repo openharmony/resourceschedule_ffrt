@@ -42,6 +42,7 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode
         lk->unlock();
         wn->cv.wait(nl);
     }
+    wn->task = nullptr;
     lk->lock();
 }
 
@@ -73,6 +74,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
         remove(wn);
         wqlock.unlock();
     }
+    wn->task = nullptr;
     lk->lock();
     return ret;
 }

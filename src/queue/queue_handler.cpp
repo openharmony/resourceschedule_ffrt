@@ -178,7 +178,7 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Stop();
-    while (FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) || queue_->GetActiveStatus() ||
+    while ((FFRTFacade::GetQMInstance().QueryQueueStatus(GetQueueId()) != 0) || queue_->GetActiveStatus() ||
         deliverCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
     }
@@ -509,4 +509,4 @@ void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
         });
     }
 }
-} //namespace ffrt
+} // namespace ffrt

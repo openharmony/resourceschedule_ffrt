@@ -1771,7 +1771,7 @@ int main()
 {
     ffrt_rwlock_t rwlock;
     int x = 0;
-    int ret = ffrt_rwlock_init(&rwlock, nullptr);
+    ffrt_rwlock_init(&rwlock, nullptr);
     ffrt::submit([&]() {
         ffrt_rwlock_wrlock(&rwlock);
         ffrt_usleep(10);
@@ -1787,7 +1787,7 @@ int main()
 
     ffrt::submit([&]() {
         ffrt_usleep(2);
-        if(ffrt_rwlock_trywrlock(&wrlock)){
+        if(ffrt_rwlock_trywrlock(&rwlock)){
             x++;
             ffrt_rwlock_unlock(&rwlock);
         }
@@ -1795,7 +1795,7 @@ int main()
 
     ffrt::submit([&]() {
         ffrt_usleep(2);
-        if(ffrt_rwlock_tryrdlock(&wrlock)){
+        if(ffrt_rwlock_tryrdlock(&rwlock)){
             ffrt_rwlock_unlock(&rwlock);
         }
     },{},{});

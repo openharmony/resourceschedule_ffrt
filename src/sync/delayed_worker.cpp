@@ -44,14 +44,14 @@ constexpr int ASYNC_TASK_SLEEP_MS = 1;
 namespace ffrt {
 pthread_key_t g_ffrtDelayWorkerFlagKey;
 pthread_once_t g_ffrtDelayWorkerThreadKeyOnce = PTHREAD_ONCE_INIT;
-void FFRTDelayWorkeEnvKeyCreate()
+void FFRTDelayedWorkerEnvKeyCreate()
 {
     pthread_key_create(&g_ffrtDelayWorkerFlagKey, nullptr);
 }
 
 void DelayedWorker::ThreadEnvCreate()
 {
-    pthread_once(&g_ffrtDelayWorkerThreadKeyOnce, FFRTDelayWorkeEnvKeyCreate);
+    pthread_once(&g_ffrtDelayWorkerThreadKeyOnce, FFRTDelayedWorkerEnvKeyCreate);
 }
 
 bool DelayedWorker::IsDelayerWorkerThread()

@@ -103,10 +103,10 @@ void DelayedWorker::DumpMap()
 
 void DelayedWorker::ThreadInit()
 {
-    if (delayWorker != nullptr && delayWorker->joinable()) {
-        delayWorker->join();
+    if (delayedWorker != nullptr && delayedWorker->joinable()) {
+        delayedWorker->join();
     }
-    delayWorker = std::make_unique<std::thread>([this]() {
+    delayedWorker = std::make_unique<std::thread>([this]() {
         struct sched_param param;
         param.sched_priority = 1;
         int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
@@ -220,8 +220,8 @@ DelayedWorker::~DelayedWorker()
     lock.unlock();
     itimerspec its = { {0, 0}, {0, 1} };
     timerfd_settime(timerfd_, 0, &its, nullptr);
-    if (delayWorker != nullptr && delayWorker->joinable()) {
-        delayWorker->join();
+    if (delayedWorker != nullptr && delayedWorker->joinable()) {
+        delayedWorker->join();
     }
     while (asyncTaskCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(ASYNC_TASK_SLEEP_MS));

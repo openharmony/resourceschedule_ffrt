@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_C_SLEEP_H
@@ -47,7 +46,6 @@
  * @return Returns <b>ffrt_success</b> if the thread is suspended;
            returns <b>ffrt_error</b> otherwise.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_usleep(uint64_t usec);
 
@@ -55,7 +53,6 @@ FFRT_C_API int ffrt_usleep(uint64_t usec);
  * @brief Passes control to other tasks so that they can be executed.
  *
  * @since 10
- * @version 1.0
  */
 FFRT_C_API void ffrt_yield(void);
 

@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_CPP_TASK_H
@@ -58,7 +57,6 @@ public:
      * If supported, the function name is automatically set as the task name.
      *
      * @since 10
-     * @version 1.0
      */
     task_attr(const char* func = __builtin_FUNCTION())
     {
@@ -70,7 +68,6 @@ public:
      * @brief Constructs a task_attr object.
      *
      * @since 10
-     * @version 1.0
      */
     task_attr()
     {
@@ -82,7 +79,6 @@ public:
      * @brief Destroys the task_attr object, releasing its resources.
      *
      * @since 10
-     * @version 1.0
      */
     ~task_attr()
     {
@@ -104,7 +100,6 @@ public:
      *
      * @param name Indicates a pointer to the task name.
      * @since 10
-     * @version 1.0
      */
     inline task_attr& name(const char* name)
     {
@@ -117,7 +112,6 @@ public:
      *
      * @return Returns a pointer to the task name.
      * @since 10
-     * @version 1.0
      */
     inline const char* name() const
     {
@@ -129,7 +123,6 @@ public:
      *
      * @param qos Indicates the QoS.
      * @since 10
-     * @version 1.0
      */
     inline task_attr& qos(qos qos_)
     {
@@ -142,7 +135,6 @@ public:
      *
      * @return Returns the QoS.
      * @since 10
-     * @version 1.0
      */
     inline int qos() const
     {
@@ -154,7 +146,6 @@ public:
      *
      * @param delay_us Indicates the delay time, in microseconds.
      * @since 10
-     * @version 1.0
      */
     inline task_attr& delay(uint64_t delay_us)
     {
@@ -167,7 +158,6 @@ public:
      *
      * @return Returns the delay time.
      * @since 10
-     * @version 1.0
      */
     inline uint64_t delay() const
     {
@@ -179,7 +169,6 @@ public:
      *
      * @param priority Indicates the execute priority of concurrent queue task.
      * @since 12
-     * @version 1.0
      */
     inline task_attr& priority(ffrt_queue_priority_t prio)
     {
@@ -192,7 +181,6 @@ public:
      *
      * @return Returns the priority of concurrent queue task.
      * @since 12
-     * @version 1.0
      */
     inline ffrt_queue_priority_t priority() const
     {
@@ -204,7 +192,6 @@ public:
      *
      * @param size Indicates the task stack size, unit is byte.
      * @since 12
-     * @version 1.0
      */
     inline task_attr& stack_size(uint64_t size)
     {
@@ -217,7 +204,6 @@ public:
      *
      * @return Returns task stack size, unit is byte.
      * @since 12
-     * @version 1.0
      */
     inline uint64_t stack_size() const
     {
@@ -227,8 +213,9 @@ public:
     /**
      * @brief Sets the task schedule timeout.
      *
+     * The lower limit of timeout value is 1 ms, if the value is less than 1 ms, it will be set to 1 ms.
+     *
      * @param timeout_us task scheduler timeout.
-     * @version 1.0
      */
     inline task_attr& timeout(uint64_t timeout_us)
     {
@@ -240,7 +227,6 @@ public:
      * @brief Obtains the task schedule timeout.
      *
      * @return Returns task scheduler timeout.
-     * @version 1.0
      */
     inline uint64_t timeout() const
     {
@@ -261,7 +247,6 @@ public:
      * @brief Default constructor for task_handle.
      *
      * @since 10
-     * @version 1.0
      */
     task_handle() : p(nullptr)
     {
@@ -272,7 +257,6 @@ public:
      *
      * @param p The raw task handle pointer.
      * @since 10
-     * @version 1.0
      */
     task_handle(ffrt_task_handle_t p) : p(p)
     {
@@ -282,7 +266,6 @@ public:
      * @brief Destroys the task_handle object, releasing any associated resources.
      *
      * @since 10
-     * @version 1.0
      */
     ~task_handle()
     {
@@ -306,7 +289,6 @@ public:
      *
      * @param h The task_handle object to move from.
      * @since 10
-     * @version 1.0
      */
     inline task_handle(task_handle&& h)
     {
@@ -317,7 +299,6 @@ public:
      * @brief get gid from task handle.
      *
      * @return Return gid.
-     * @version 1.0
      */
     inline uint64_t get_id() const
     {
@@ -330,7 +311,6 @@ public:
      * @param h The task_handle object to move from.
      * @return Returns the current task_handle object.
      * @since 10
-     * @version 1.0
      */
     inline task_handle& operator=(task_handle&& h)
     {
@@ -349,7 +329,6 @@ public:
      *
      * @return Returns the raw task handle pointer.
      * @since 10
-     * @version 1.0
      */
     inline operator void* () const
     {
@@ -370,7 +349,6 @@ struct dependence : ffrt_dependence_t {
      *
      * @param d A pointer to the data dependency.
      * @since 10
-     * @version 1.0
      */
     dependence(const void* d)
     {
@@ -383,7 +361,6 @@ struct dependence : ffrt_dependence_t {
      *
      * @param h A reference to a task_handle representing the dependency.
      * @since 10
-     * @version 1.0
      */
     dependence(const task_handle& h)
     {
@@ -397,7 +374,6 @@ struct dependence : ffrt_dependence_t {
      *
      * @param other The dependence object to copy from.
      * @since 10
-     * @version 1.0
      */
     dependence(const dependence& other)
     {
@@ -409,7 +385,6 @@ struct dependence : ffrt_dependence_t {
      *
      * @param other The dependence object to move from.
      * @since 10
-     * @version 1.0
      */
     dependence(dependence&& other)
     {
@@ -422,7 +397,6 @@ struct dependence : ffrt_dependence_t {
      * @param other The dependence object to copy from.
      * @return Returns the current dependence object.
      * @since 10
-     * @version 1.0
      */
     dependence& operator=(const dependence& other)
     {
@@ -442,7 +416,6 @@ struct dependence : ffrt_dependence_t {
      * @param other The dependence object to move from.
      * @return Returns the current dependence object.
      * @since 10
-     * @version 1.0
      */
     dependence& operator=(dependence&& other)
     {
@@ -458,7 +431,6 @@ struct dependence : ffrt_dependence_t {
      * @brief Destructor for dependence.
      *
      * @since 10
-     * @version 1.0
      */
     ~dependence()
     {
@@ -491,7 +463,6 @@ struct function {
  * @tparam T The type of the function closure.
  * @param t A pointer to the function wrapper.
  * @since 10
- * @version 1.0
  */
 template<class T>
 void exec_function_wrapper(void* t)
@@ -508,7 +479,6 @@ void exec_function_wrapper(void* t)
  * @tparam T The type of the function closure.
  * @param t A pointer to the function wrapper.
  * @since 10
- * @version 1.0
  */
 template<class T>
 void destroy_function_wrapper(void* t)
@@ -527,7 +497,6 @@ void destroy_function_wrapper(void* t)
  * @param kind The function kind (optional).
  * @return Returns a pointer to the function wrapper header.
  * @since 10
- * @version 1.0
  */
 template<class T>
 inline ffrt_function_header_t* create_function_wrapper(T&& func,
@@ -551,7 +520,6 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func,
  * @param func Indicates a task executor function closure.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, const task_attr& attr = {})
 {
@@ -565,7 +533,6 @@ static inline void submit(std::function<void()>&& func, const task_attr& attr = 
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
     const task_attr& attr = {})
@@ -582,7 +549,6 @@ static inline void submit(std::function<void()>&& func, std::initializer_list<de
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
     std::initializer_list<dependence> out_deps, const task_attr& attr = {})
@@ -599,7 +565,6 @@ static inline void submit(std::function<void()>&& func, std::initializer_list<de
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps,
     const task_attr& attr = {})
@@ -616,7 +581,6 @@ static inline void submit(std::function<void()>&& func, const std::vector<depend
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps,
     const std::vector<dependence>& out_deps, const task_attr& attr = {})
@@ -632,7 +596,6 @@ static inline void submit(std::function<void()>&& func, const std::vector<depend
  * @param func Indicates a task executor function closure.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, const task_attr& attr = {})
 {
@@ -646,7 +609,6 @@ static inline void submit(const std::function<void()>& func, const task_attr& at
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
     const task_attr& attr = {})
@@ -663,7 +625,6 @@ static inline void submit(const std::function<void()>& func, std::initializer_li
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
     std::initializer_list<dependence> out_deps, const task_attr& attr = {})
@@ -680,7 +641,6 @@ static inline void submit(const std::function<void()>& func, std::initializer_li
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps,
     const task_attr& attr = {})
@@ -697,7 +657,6 @@ static inline void submit(const std::function<void()>& func, const std::vector<d
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @since 10
- * @version 1.0
  */
 static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps,
     const std::vector<dependence>& out_deps, const task_attr& attr = {})
@@ -715,7 +674,6 @@ static inline void submit(const std::function<void()>& func, const std::vector<d
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
 {
@@ -731,7 +689,6 @@ static inline task_handle submit_h(std::function<void()>&& func, const task_attr
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
     const task_attr& attr = {})
@@ -750,7 +707,6 @@ static inline task_handle submit_h(std::function<void()>&& func, std::initialize
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
     std::initializer_list<dependence> out_deps, const task_attr& attr = {})
@@ -769,7 +725,6 @@ static inline task_handle submit_h(std::function<void()>&& func, std::initialize
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
     const task_attr& attr = {})
@@ -788,7 +743,6 @@ static inline task_handle submit_h(std::function<void()>&& func, const std::vect
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
     const std::vector<dependence>& out_deps, const task_attr& attr = {})
@@ -806,7 +760,6 @@ static inline task_handle submit_h(std::function<void()>&& func, const std::vect
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {})
 {
@@ -822,7 +775,6 @@ static inline task_handle submit_h(const std::function<void()>& func, const task
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
     const task_attr& attr = {})
@@ -841,7 +793,6 @@ static inline task_handle submit_h(const std::function<void()>& func, std::initi
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
     std::initializer_list<dependence> out_deps, const task_attr& attr = {})
@@ -860,7 +811,6 @@ static inline task_handle submit_h(const std::function<void()>& func, std::initi
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
     const task_attr& attr = {})
@@ -879,7 +829,6 @@ static inline task_handle submit_h(const std::function<void()>& func, const std:
  * @return Returns a non-null task handle if the task is submitted;
            returns a null pointer otherwise.
  * @since 10
- * @version 1.0
  */
 static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
     const std::vector<dependence>& out_deps, const task_attr& attr = {})
@@ -893,7 +842,6 @@ static inline task_handle submit_h(const std::function<void()>& func, const std:
  * @brief Waits until all submitted tasks are complete.
  *
  * @since 10
- * @version 1.0
  */
 static inline void wait()
 {
@@ -905,7 +853,6 @@ static inline void wait()
  *
  * @param deps Indicates a pointer to the dependent tasks.
  * @since 10
- * @version 1.0
  */
 static inline void wait(std::initializer_list<dependence> deps)
 {
@@ -918,7 +865,6 @@ static inline void wait(std::initializer_list<dependence> deps)
  *
  * @param deps Indicates a pointer to the dependent tasks.
  * @since 10
- * @version 1.0
  */
 static inline void wait(const std::vector<dependence>& deps)
 {
@@ -934,7 +880,6 @@ static inline void wait(const std::vector<dependence>& deps)
  * @return Returns ffrt_success if the stack size set success;
            returns ffrt_error_inval if qos_ or stack_size invalid;
            returns ffrt_error otherwise.
- * @version 1.0
  */
 static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size)
 {
@@ -952,7 +897,6 @@ namespace this_task {
  * @param qos_ The new QoS level.
  * @return Returns the updated QoS level.
  * @since 10
- * @version 1.0
  */
 static inline int update_qos(qos qos_)
 {
@@ -964,7 +908,6 @@ static inline int update_qos(qos qos_)
  *
  * @return Returns the task ID.
  * @since 10
- * @version 1.0
  */
 static inline uint64_t get_id()
 {

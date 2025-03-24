@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_C_TYPE_DEF_H
@@ -124,7 +123,10 @@ typedef enum {
     ffrt_cond_storage_size = 64,
     /** Queue storage size. */
     ffrt_queue_attr_storage_size = 128,
-    /* Rwlock storage size. */
+    /** Rwlock storage size.
+     *
+     * @since 18
+     */
     ffrt_rwlock_storage_size = 64,
 } ffrt_storage_size_t;
 
@@ -246,7 +248,7 @@ typedef struct {
 /**
  * @brief Defines the rwlock attribute structure.
  *
- * @since 15
+ * @since 18
  */
 typedef struct {
     /** A long integer used to store the rwlock attribute. */
@@ -283,7 +285,7 @@ typedef struct {
 /**
  * @brief Defines the rwlock structure.
  *
- * @since 15
+ * @since 18
  */
 typedef struct {
     /** An array of uint32_t used to store the rwlock. */

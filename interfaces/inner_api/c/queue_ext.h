@@ -46,7 +46,6 @@ typedef enum {
  * @param queue Indicates a queue handle.
  * @param name Indicates name to be searched for, regular expressions are supported.
  * @return Returns whether the task is found.
- * @version 1.0
  */
 FFRT_C_API bool ffrt_queue_has_task(ffrt_queue_t queue, const char* name);
 
@@ -54,7 +53,6 @@ FFRT_C_API bool ffrt_queue_has_task(ffrt_queue_t queue, const char* name);
  * @brief Cancels all unexecuted tasks in the queue.
  *
  * @param queue Indicates a queue handle.
- * @version 1.0
  */
 FFRT_C_API void ffrt_queue_cancel_all(ffrt_queue_t queue);
 
@@ -62,7 +60,6 @@ FFRT_C_API void ffrt_queue_cancel_all(ffrt_queue_t queue);
  * @brief Cancels all unexecuted tasks and wait for running tasks in the queue. No new tasks will be accepted.
  *
  * @param queue Indicates a queue handle.
- * @version 1.0
  */
 FFRT_C_API void ffrt_queue_cancel_and_wait(ffrt_queue_t queue);
 
@@ -73,7 +70,6 @@ FFRT_C_API void ffrt_queue_cancel_and_wait(ffrt_queue_t queue);
  * @param name Indicates name of the task to be canceled, regular expressions are supported.
  * @return Returns <b>0</b> if the task is canceled;
            returns <b>1</b> otherwise.
- * @version 1.0
  */
 FFRT_C_API int ffrt_queue_cancel_by_name(ffrt_queue_t queue, const char* name);
 
@@ -82,7 +78,6 @@ FFRT_C_API int ffrt_queue_cancel_by_name(ffrt_queue_t queue, const char* name);
  *
  * @param queue Indicates a queue handle.
  * @return Returns whether the queue is idle.
- * @version 1.0
  */
 FFRT_C_API bool ffrt_queue_is_idle(ffrt_queue_t queue);
 
@@ -97,7 +92,6 @@ FFRT_C_API bool ffrt_queue_is_idle(ffrt_queue_t queue);
  * @param history_info Indicates whether dump history information.
  * @return Returns the number of characters printed (not including the terminating null byte '\0');
            returns -1 if an error occurred, pay special attention to returning -1 when truncation occurs.
- * @version 1.0
  */
 FFRT_C_API int ffrt_queue_dump(ffrt_queue_t queue, const char* tag, char* buf, uint32_t len, bool history_info);
 
@@ -108,7 +102,6 @@ FFRT_C_API int ffrt_queue_dump(ffrt_queue_t queue, const char* tag, char* buf, u
  * @param priority Indicates the execute priority of queue task.
  * @return Returns the count of tasks;
            returns -1 if an error occurred.
- * @version 1.0
  */
 FFRT_C_API int ffrt_queue_size_dump(ffrt_queue_t queue, ffrt_inner_queue_priority_t priority);
 
@@ -117,7 +110,6 @@ FFRT_C_API int ffrt_queue_size_dump(ffrt_queue_t queue, ffrt_inner_queue_priorit
  *
  * @param queue Indicates a queue handle.
  * @param eventhandler Indicates an eventhandler pointer.
- * @version 1.0
  */
 FFRT_C_API void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandler);
 
@@ -126,7 +118,6 @@ FFRT_C_API void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandl
  *
  * @return Returns a non-null eventhandler pointer;
            returns a null pointer if the current task is not bound to an eventhandler.
- * @version 1.0
  */
 FFRT_C_API void* ffrt_get_current_queue_eventhandler(void);
 

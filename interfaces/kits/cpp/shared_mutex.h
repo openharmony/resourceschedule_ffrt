@@ -19,7 +19,7 @@
  *
  * @brief Provides FFRT C++ APIs.
  *
- * @since 15
+ * @since 18
  */
 
  /**
@@ -30,8 +30,7 @@
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
- * @since 15
- * @version 1.0
+ * @since 18
  */
 
 #ifndef FFRT_API_CPP_SHARED_MUTEX_H
@@ -48,15 +47,14 @@ namespace ffrt {
  * - Exclusive locking: Ensures only one thread can access critical sections.
  * - Shared locking: Allows multiple threads to read simultaneously.
  *
- * @since 15
+ * @since 18
  */
 class shared_mutex : public ffrt_rwlock_t {
 public:
     /**
      * @brief Constructs a shared_mutex object and initializes the underlying lock.
      *
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     shared_mutex()
     {
@@ -66,8 +64,7 @@ public:
     /**
      * @brief Destroys the shared_mutex object and releases the underlying lock.
      *
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     ~shared_mutex()
     {
@@ -87,8 +84,7 @@ public:
     /**
      * @brief Acquires an exclusive lock, blocking other threads.
      *
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     inline void lock()
     {
@@ -99,8 +95,7 @@ public:
      * @brief Attempts to acquire an exclusive lock without blocking.
      *
      * @return true if the lock is successfully acquired; false otherwise.
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     inline bool try_lock()
     {
@@ -110,8 +105,7 @@ public:
     /**
      * @brief Releases the exclusive lock.
      *
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     inline void unlock()
     {
@@ -121,8 +115,7 @@ public:
     /**
      * @brief Acquires a shared lock, allowing concurrent access by multiple threads.
      *
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     inline void lock_shared()
     {
@@ -133,8 +126,7 @@ public:
      * @brief Attempts to acquire a shared lock without blocking.
      *
      * @return true if the lock is successfully acquired; false otherwise.
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     inline bool try_lock_shared()
     {
@@ -144,8 +136,7 @@ public:
     /**
      * @brief Releases the shared lock.
      *
-     * @since 15
-     * @version 1.0
+     * @since 18
      */
     inline void unlock_shared()
     {

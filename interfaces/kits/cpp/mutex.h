@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_CPP_MUTEX_H
@@ -83,7 +82,6 @@ public:
      *
      * @return true if the lock is successfully acquired, false otherwise.
      * @since 10
-     * @version 1.0
      */
     inline bool try_lock()
     {
@@ -94,7 +92,6 @@ public:
      * @brief Locks the mutex.
      *
      * @since 10
-     * @version 1.0
      */
     inline void lock()
     {
@@ -105,7 +102,6 @@ public:
      * @brief Unlocks the mutex.
      *
      * @since 10
-     * @version 1.0
      */
     inline void unlock()
     {
@@ -129,7 +125,6 @@ public:
      * @brief Constructs a new recursive_mutex object.
      *
      * @since 10
-     * @version 1.0
      */
     recursive_mutex()
     {
@@ -142,7 +137,6 @@ public:
      * @brief Destroys the recursive_mutex object.
      *
      * @since 10
-     * @version 1.0
      */
     ~recursive_mutex()
     {
@@ -165,7 +159,6 @@ public:
      *
      * @return true if the lock is successfully acquired, false otherwise.
      * @since 10
-     * @version 1.0
      */
     inline bool try_lock()
     {
@@ -176,7 +169,6 @@ public:
      * @brief Locks the recursive mutex.
      *
      * @since 10
-     * @version 1.0
      */
     inline void lock()
     {
@@ -187,7 +179,6 @@ public:
      * @brief Unlocks the recursive mutex.
      *
      * @since 10
-     * @version 1.0
      */
     inline void unlock()
     {

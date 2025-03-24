@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_CPP_QUEUE_H
@@ -68,7 +67,6 @@ public:
      * @brief Constructs a queue_attr object with default values.
      *
      * @since 10
-     * @version 1.0
      */
     queue_attr()
     {
@@ -79,7 +77,6 @@ public:
      * @brief Destroys the queue_attr object and releases its resources.
      *
      * @since 10
-     * @version 1.0
      */
     ~queue_attr()
     {
@@ -101,7 +98,6 @@ public:
      *
      * @param attr Indicates the QoS.
      * @since 10
-     * @version 1.0
      */
     inline queue_attr& qos(qos qos_)
     {
@@ -114,7 +110,6 @@ public:
      *
      * @return Returns the QoS level.
      * @since 10
-     * @version 1.0
      */
     inline int qos() const
     {
@@ -124,10 +119,11 @@ public:
     /**
      * @brief Sets the timeout value for this queue attribute.
      *
+     * The lower limit of timeout value is 1 ms, if the value is less than 1 ms, it will be set to 1 ms.
+     *
      * @param timeout_us Indicates the timeout value in microseconds.
      * @return Returns the current queue_attr object for chaining.
      * @since 10
-     * @version 1.0
      */
     inline queue_attr& timeout(uint64_t timeout_us)
     {
@@ -140,7 +136,6 @@ public:
      *
      * @return Returns the timeout value in microseconds.
      * @since 10
-     * @version 1.0
      */
     inline uint64_t timeout() const
     {
@@ -153,7 +148,6 @@ public:
      * @param func Indicates the callback function.
      * @return Returns the current queue_attr object for chaining.
      * @since 10
-     * @version 1.0
      */
     inline queue_attr& callback(const std::function<void()>& func)
     {
@@ -166,7 +160,6 @@ public:
      *
      * @return Returns a pointer to the callback function header.
      * @since 10
-     * @version 1.0
      */
     inline ffrt_function_header_t* callback() const
     {
@@ -179,7 +172,6 @@ public:
      * @param max_concurrency Indicates the maximum concurrency level.
      * @return Returns the current queue_attr object for chaining.
      * @since 12
-     * @version 1.0
      */
     inline queue_attr& max_concurrency(const int max_concurrency)
     {
@@ -192,7 +184,6 @@ public:
      *
      * @return Returns the maximum concurrency level.
      * @since 12
-     * @version 1.0
      */
     inline int max_concurrency() const
     {
@@ -218,7 +209,6 @@ public:
      * @param name Indicates the name of the queue.
      * @param attr Specifies the attributes for the queue.
      * @since 10
-     * @version 1.0
      */
     queue(const queue_type type, const char* name, const queue_attr& attr = {})
     {
@@ -232,7 +222,6 @@ public:
      * @param name Indicates the name of the queue.
      * @param attr Specifies the attributes for the queue.
      * @since 10
-     * @version 1.0
      */
     queue(const char* name, const queue_attr& attr = {})
     {
@@ -243,7 +232,6 @@ public:
     /**
      * @brief Destroys the queue object and releases its resources.
      * @since 10
-     * @version 1.0
      */
     ~queue()
     {
@@ -268,7 +256,6 @@ public:
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
      * @since 10
-     * @version 1.0
      */
     inline void submit(const std::function<void()>& func, const task_attr& attr = {})
     {
@@ -281,7 +268,6 @@ public:
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
      * @since 10
-     * @version 1.0
      */
     inline void submit(std::function<void()>&& func, const task_attr& attr = {})
     {
@@ -296,7 +282,6 @@ public:
      * @return Returns a non-null task handle if the task is submitted;
                returns a null pointer otherwise.
      * @since 10
-     * @version 1.0
      */
     inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {})
     {
@@ -311,7 +296,6 @@ public:
      * @return Returns a non-null task handle if the task is submitted;
                returns a null pointer otherwise.
      * @since 10
-     * @version 1.0
      */
     inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
     {
@@ -324,7 +308,6 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @version 1.0
      */
     inline void submit_head(const std::function<void()>& func, const task_attr& attr = {})
     {
@@ -336,7 +319,6 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @version 1.0
      */
     inline void submit_head(std::function<void()>&& func, const task_attr& attr = {})
     {
@@ -350,7 +332,6 @@ public:
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
                returns a null pointer otherwise.
-     * @version 1.0
      */
     inline task_handle submit_head_h(const std::function<void()>& func, const task_attr& attr = {})
     {
@@ -364,7 +345,6 @@ public:
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
                returns a null pointer otherwise.
-     * @version 1.0
      */
     inline task_handle submit_head_h(std::function<void()>&& func, const task_attr& attr = {})
     {
@@ -379,7 +359,6 @@ public:
      * @return Returns <b>0</b> if the task is canceled;
                returns <b>-1</b> otherwise.
      * @since 10
-     * @version 1.0
      */
     inline int cancel(const task_handle& handle)
     {
@@ -391,7 +370,6 @@ public:
      *
      * @param handle Indicates a task handle.
      * @since 10
-     * @version 1.0
      */
     inline void wait(const task_handle& handle)
     {
@@ -403,8 +381,7 @@ public:
      *
      * @param queue Indicates a queue handle.
      * @return Returns the queue task count.
-     * @version 1.0
-    */
+        */
     inline uint64_t get_task_cnt()
     {
         return ffrt_queue_get_task_cnt(queue_handle);
@@ -415,8 +392,7 @@ public:
     *
     * @return Returns application main thread queue.
     * @since 12
-    * @version 1.0
-    */
+       */
     static inline queue* get_main_queue()
     {
         ffrt_queue_t q = ffrt_get_main_queue();

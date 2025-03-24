@@ -19,7 +19,7 @@
  *
  * @brief Provides FFRT C APIs.
  *
- * @since 15
+ * @since 18
  */
 
 /**
@@ -30,8 +30,7 @@
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
- * @since 15
- * @version 1.0
+ * @since 18
  */
 
 #ifndef FFRT_API_C_SHARED_MUTEX_H
@@ -46,8 +45,7 @@
  * @param attr Indicates a pointer to the rwlock attribute.
  * @return Returns <b>ffrt_success</b> if the rwlock is initialized;
            returns <b>ffrt_error_inval</b> otherwise.
- * @since 15
- * @version 1.0
+ * @since 18
  */
 FFRT_C_API int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* attr);
 
@@ -57,8 +55,7 @@ FFRT_C_API int ffrt_rwlock_init(ffrt_rwlock_t* rwlock, const ffrt_rwlockattr_t* 
  * @param rwlock Indicates a pointer to the rwlock.
  * @return Returns <b>ffrt_success</b> if the rwlock is locked;
            returns <b>ffrt_error_inval</b> or blocks the calling thread otherwise.
- * @since 15
- * @version 1.0
+ * @since 18
  */
 FFRT_C_API int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
 
@@ -68,8 +65,7 @@ FFRT_C_API int ffrt_rwlock_wrlock(ffrt_rwlock_t* rwlock);
  * @param rwlock Indicates a pointer to the rwlock.
  * @return Returns <b>ffrt_success</b> if the rwlock is locked;
            returns <b>ffrt_error_inval</b> or <b>ffrt_error_busy</b> otherwise.
- * @since 15
- * @version 1.0
+ * @since 18
  */
 FFRT_C_API int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
 
@@ -79,8 +75,7 @@ FFRT_C_API int ffrt_rwlock_trywrlock(ffrt_rwlock_t* rwlock);
  * @param rwlock Indicates a pointer to the rwlock.
  * @return Returns <b>ffrt_success</b> if the rwlock is locked;
            returns <b>ffrt_error_inval</b> or blocks the calling thread otherwise.
- * @since 15
- * @version 1.0
+ * @since 18
  */
 FFRT_C_API int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
 
@@ -90,8 +85,7 @@ FFRT_C_API int ffrt_rwlock_rdlock(ffrt_rwlock_t* rwlock);
  * @param rwlock Indicates a pointer to the rwlock.
  * @return Returns <b>ffrt_success</b> if the rwlock is locked;
            returns <b>ffrt_error_inval</b> or <b>ffrt_error_busy</b> otherwise.
- * @since 15
- * @version 1.0
+ * @since 18
  */
 FFRT_C_API int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
 
@@ -101,8 +95,7 @@ FFRT_C_API int ffrt_rwlock_tryrdlock(ffrt_rwlock_t* rwlock);
  * @param rwlock Indicates a pointer to the rwlock.
  * @return Returns <b>ffrt_success</b> if the rwlock is unlocked;
            returns <b>ffrt_error_inval</b> otherwise.
- * @since 15
- * @version 1.0
+ * @since 18
  */
 FFRT_C_API int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
 
@@ -112,8 +105,7 @@ FFRT_C_API int ffrt_rwlock_unlock(ffrt_rwlock_t* rwlock);
  * @param rwlock Indicates a pointer to the rwlock.
  * @return Returns <b>ffrt_success</b> if the rwlock is destroyed;
            returns <b>ffrt_error_inval</b> otherwise.
- * @since 15
- * @version 1.0
+ * @since 18
  */
 FFRT_C_API int ffrt_rwlock_destroy(ffrt_rwlock_t* rwlock);
 

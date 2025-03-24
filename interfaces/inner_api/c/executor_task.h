@@ -47,7 +47,6 @@ typedef enum {
  *
  * @param data Indicates the args of the function defined by users.
  * @param qos Indicates the qos of the task.
- * @version 1.0
  */
 typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t qos);
 
@@ -56,7 +55,6 @@ typedef void (*ffrt_executor_task_func)(ffrt_executor_task_t* data, ffrt_qos_t q
  *
  * @param func Indicates a user-defined function.
  * @param type Indicates which task type the function belongs to.
- * @version 1.0
  */
 FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type);
 
@@ -65,7 +63,6 @@ FFRT_C_API void ffrt_executor_task_register_func(ffrt_executor_task_func func, f
  *
  * @param task Indicates a pointer to the task.
  * @param attr Indicates a pointer to the task attribute.
- * @version 1.0
  */
 FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_t* attr);
 
@@ -75,7 +72,6 @@ FFRT_C_API void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt
  * @param task Indicates a pointer to the task.
  * @param attr Indicates the qos of the task.
  * @return Returns success or failed.
- * @version 1.0
  *
  */
 FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos);
@@ -84,7 +80,6 @@ FFRT_C_API int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_
  * @brief Wakeups the ffrt poller.
  *
  * @param qos Indicates the qos of the poller.
- * @version 1.0
  */
 FFRT_C_API void ffrt_poller_wakeup(ffrt_qos_t qos);
 
@@ -92,7 +87,6 @@ FFRT_C_API void ffrt_poller_wakeup(ffrt_qos_t qos);
  * @brief Gets the number of epoll operations performed.
  *
  * @param qos Indicates the qos of the poller.
- * @version 1.0
  */
 FFRT_C_API uint8_t ffrt_epoll_get_count(ffrt_qos_t qos);
 
@@ -100,7 +94,6 @@ FFRT_C_API uint8_t ffrt_epoll_get_count(ffrt_qos_t qos);
  * @brief Querys the ffrt timer.
  *
  * @param handler Indicates the handler of the timer.
- * @version 1.0
  */
 FFRT_C_API ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t handle);
 
@@ -113,7 +106,6 @@ FFRT_C_API ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t hand
  * @param events Indicates the events of the events.
  * @param data Indicates the args of the event callback function.
  * @param cb Indicates the callback function of the event.
- * @version 1.0
  */
 FFRT_C_API int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb);
 
@@ -124,7 +116,6 @@ FFRT_C_API int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, v
  * @param events Indicates the events of the event.
  * @param max_events Indicates the max event value.
  * @param timeout Indicates the time to timeout.
- * @version 1.0
  */
 FFRT_C_API int ffrt_epoll_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, int timeout);
 
@@ -132,7 +123,6 @@ FFRT_C_API int ffrt_epoll_wait(ffrt_qos_t qos, struct epoll_event* events, int m
  * @brief Gets the time a task has waited in the poller.
  *
  * @param taskHandle Indicates the pointer of a task.
- * @version 1.0
  */
 FFRT_C_API uint64_t ffrt_epoll_get_wait_time(void* taskHandle);
 
@@ -145,7 +135,6 @@ FFRT_C_API uint64_t ffrt_epoll_get_wait_time(void* taskHandle);
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
- * @version 1.0
  */
 FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy,
     const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
@@ -154,7 +143,6 @@ FFRT_C_API void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_
  * @brief Wakeups a coroutine IO task.
  *
  * @param task Indicates a pointer to the task.
- * @version 1.0
  */
 FFRT_C_API void ffrt_wake_coroutine(void* task);
 
@@ -162,7 +150,6 @@ FFRT_C_API void ffrt_wake_coroutine(void* task);
  * @brief Get the pointer of the current task.
  *
  * @return Returns a pointer.
- * @version 1.0
  */
 FFRT_C_API void* ffrt_get_current_task(void);
 
@@ -174,7 +161,6 @@ FFRT_C_API void* ffrt_get_current_task(void);
  * @return Returns <b>0</b> if the stack is obtained;
  *         returns <b>-1</b> otherwise.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size);
 
@@ -184,7 +170,6 @@ FFRT_C_API bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size
  * @param none.
  * @return Returns current task.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API void* ffrt_get_cur_task(void);
 
@@ -195,7 +180,6 @@ FFRT_C_API void* ffrt_get_cur_task(void);
  * @param task_local The bool value to be set.
  * @return none.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local);
 
@@ -205,7 +189,6 @@ FFRT_C_API void ffrt_task_attr_set_local(ffrt_task_attr_t* attr, bool task_local
  * @param attr The ffrt_task_attr struct.
  * @return The bool value of task_local.
  * @since 12
- * @version 1.0
  */
 FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
 
@@ -214,7 +197,6 @@ FFRT_C_API bool ffrt_task_attr_get_local(ffrt_task_attr_t* attr);
  *
  * @param task_handle The task pointer.
  * @return The thread id of the input task handle.
- * @version 1.0
  */
 FFRT_C_API pthread_t ffrt_task_get_tid(void* task_handle);
 
@@ -222,7 +204,6 @@ FFRT_C_API pthread_t ffrt_task_get_tid(void* task_handle);
  * @brief Obtains the task id cached by the current thread.
  *
  * @return Returns the task id.
- * @version 1.0
  */
 FFRT_C_API uint64_t ffrt_get_cur_cached_task_id(void);
 #endif

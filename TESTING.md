@@ -61,3 +61,11 @@ foundation/resourceschedule/ffrt/test/
 ```shell
 run -t ut -ss ffrttest
 ```
+
+### Running unit-tests via cmake/ctest
+
+```shell
+cmake -S. -Bbuild -DFFRT_TEST_ENABLE=ON
+cmake --build build --target ffrt_ut
+ctest --test-dir build/test
+```

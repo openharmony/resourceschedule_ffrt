@@ -31,15 +31,17 @@
 #undef private
 #undef protected
 #include "../common.h"
+#ifndef FFRT_GITEE
 #include "cpp/ffrt_dynamic_graph.h"
 #include "c/ffrt_dynamic_graph.h"
-
+#endif
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
 #endif
 using namespace ffrt;
 
+#ifndef FFRT_GITEE
 namespace {
 // 返回当前环境是软化还是硬化
 bool CheckSoftwareEnv()
@@ -47,6 +49,7 @@ bool CheckSoftwareEnv()
     return (ffrt_hcs_get_capability(FFRT_HW_DYNAMIC_XPU_NORMAL) == 0) ? true : false;
 }
 }
+#endif
 
 class WorkerManagerTest : public testing::Test {
 protected:
@@ -232,7 +235,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
     manager->NotifyTaskAdded(QoS(2)); // task notify event
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, 1);
 }
-
+#ifndef FFRT_GITEE
 HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
 {
     if (!CheckSoftwareEnv()) {
@@ -267,3 +270,4 @@ HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
     delete task2;
     delete strategy;
 }
+#endif

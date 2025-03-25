@@ -23,8 +23,22 @@ set(TEST_NAME ffrt_ut)
 
 add_executable(${TEST_NAME} ${UT_TESTS} ${UTILS})
 
+set(COMPILE_DEFS FFRT_GITEE USE_GTEST WITH_NO_MOCKER)
+
+if(NOT EXISTS "/proc/self/sched_rtg_ctrl")
+  set(COMPILE_DEFS ${COMPILE_DEFS} SCHED_RGT_CTRL_DNE)
+endif()
+
+if(NOT EXISTS "/proc/thread-self/sched_qos_ctrl")
+  set(COMPILE_DEFS ${COMPILE_DEFS} SCHED_QOS_CTRL_DNE)
+endif()
+
+if(NOT EXISTS "/dev/auth_ctrl")
+  set(COMPILE_DEFS ${COMPILE_DEFS} AUTH_CTRL_DNE)
+endif()
+
 # add compile definitions/macros
-add_compile_definitions(${TEST_NAME} FFRT_GITEE USE_GTEST WITH_NO_MOCKER)
+add_compile_definitions(${TEST_NAME} ${COMPILE_DEFS})
 
 # link with gtest
 target_link_libraries(

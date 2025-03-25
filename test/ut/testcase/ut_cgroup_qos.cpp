@@ -181,22 +181,17 @@ protected:
     }
 };
 
-HWTEST_F(QosInterfaceTest2, QosPolicyTest, TestSize.Level1)
-{
-    struct QosPolicyData qp = {0, 0, 0, 0, 0};
-    struct QosPolicyDatas policyDatas = {0, 0, {qp}};
 
-    int ret = QosPolicy(&policyDatas);
-    EXPECT_NE(ret, 0);
-}
-
+#if !defined(SCHED_RGT_CTRL_DNE)
 HWTEST_F(QosInterfaceTest2, FFRTEnableRtgTest, TestSize.Level1)
 {
     bool flag = false;
     FFRTEnableRtg(flag);
     EXPECT_EQ(flag, false);
 }
+#endif
 
+#if !defined(AUTH_CTRL_DNE)
 HWTEST_F(QosInterfaceTest2, FFRTAuthEnableTest, TestSize.Level1)
 {
     unsigned int uid = 3039;
@@ -248,6 +243,17 @@ HWTEST_F(QosInterfaceTest2, FFRTAuthGetTest, TestSize.Level1)
         EXPECT_EQ(status, 3);
     }
 }
+#endif
+
+#if !defined(SCHED_QOS_CTRL_DNE)
+HWTEST_F(QosInterfaceTest2, QosPolicyTest, TestSize.Level1)
+{
+    struct QosPolicyData qp = {0, 0, 0, 0, 0};
+    struct QosPolicyDatas policyDatas = {0, 0, {qp}};
+
+    int ret = QosPolicy(&policyDatas);
+    EXPECT_NE(ret, 0);
+}
 
 HWTEST_F(QosInterfaceTest2, FFRTQosApplyTest, TestSize.Level1)
 {
@@ -281,7 +287,7 @@ HWTEST_F(QosInterfaceTest2, FFRTQosLeaveForOtherTest, TestSize.Level1)
     FFRTQosLeaveForOther(tid);
     EXPECT_EQ(level, 1);
 }
-
+#endif
 HWTEST_F(QosInterfaceTest2, FFRTQosConvertInt, TestSize.Level1)
 {
     QoS qos1 = 1;

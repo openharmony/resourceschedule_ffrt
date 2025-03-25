@@ -54,6 +54,7 @@ protected:
     }
 };
 
+#if !defined(SCHED_RGT_CTRL_DNE)
 /**
  * @tc.name: FFRTEnableRtg_test
  * @tc.desc: Test whether the FFRTEnableRtg interface are normal.
@@ -67,7 +68,9 @@ HWTEST_F(QosInterfaceTest, FFRTEnableRtgTest, TestSize.Level1)
     flag = true;
     EXPECT_EQ(0, FFRTEnableRtg(flag));
 }
+#endif
 
+#if !defined(AUTH_CTRL_DNE)
 /**
  * @tc.name: FFRTAuthEnable_test
  * @tc.desc: Test whether the FFRTAuthEnable interface are normal.
@@ -138,7 +141,9 @@ HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level1)
     FFRTAuthEnable(uid, uaFlag, status);
     EXPECT_EQ(0, FFRTAuthGet(uid, &uaFlag, &status));
 }
+#endif
 
+#if !defined(SCHED_QOS_CTRL_DNE)
 /**
  * @tc.name: FFRTQosApply_test
  * @tc.desc: Test whether the FFRTQosApply interface are normal.
@@ -200,3 +205,4 @@ HWTEST_F(QosInterfaceTest, QosPolicyTest, TestSize.Level1)
 
     EXPECT_EQ(-1, QosPolicy(&policyDatas));
 }
+#endif

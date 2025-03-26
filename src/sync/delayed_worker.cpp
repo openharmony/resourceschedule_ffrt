@@ -194,6 +194,7 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
         FFRT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
         std::terminate();
     }
+    DelayedWorker::ThreadEnvCreate();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     monitor = ExecuteUnit::Instance().GetCPUMonitor();
     monitorfd_ = BlockawareMonitorfd(-1, monitor->WakeupCond());

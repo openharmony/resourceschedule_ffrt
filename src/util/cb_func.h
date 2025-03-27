@@ -27,6 +27,7 @@ template <typename T>
 struct TaskAllocCB {
     using Alloc = std::function<T *()>;
     using Free = std::function<void (T *)>;
+    using Free_ = std::function<void (T *)>;
     using GetUnfreedMem = std::function<std::vector<void *> ()>;
     using HasBeenFreed = std::function<bool (T *)>;
     using LockMem = std::function<void ()>;

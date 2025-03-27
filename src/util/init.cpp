@@ -37,6 +37,9 @@ __attribute__((constructor)) static void ffrt_init()
         [] (ffrt::CPUEUTask* task) {
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
     },
+        [] (ffrt::CPUEUTask* task) {
+            ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem_(static_cast<ffrt::SCPUEUTask*>(task));
+        },
     ffrt::SimpleAllocator<ffrt::SCPUEUTask>::getUnfreedMem,
         [] (ffrt::CPUEUTask* task) {
             return ffrt::SimpleAllocator<ffrt::SCPUEUTask>::HasBeenFreed(static_cast<ffrt::SCPUEUTask*>(task));

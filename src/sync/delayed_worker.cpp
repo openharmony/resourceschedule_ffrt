@@ -32,11 +32,11 @@
 namespace {
 const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
 const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
-const int EPOLL_WAIT_TIMEOUT__MILISECONDS = 3 * 60 * 1000;
+const int EPOLL_WAIT_TIMEOUT_MILLISECONDS = 3 * 60 * 1000;
 const int NS_PER_SEC = 1000 * 1000 * 1000;
 const int FAKE_WAKE_UP_ERROR = 4;
 const int WAIT_EVENT_SIZE = 5;
-const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
+const int64_t EXECUTION_TIMEOUT_MILLISECONDS = 500;
 const int DUMP_MAP_MAX_COUNT = 3;
 constexpr int ASYNC_TASK_SLEEP_MS = 1;
 }
@@ -151,7 +151,7 @@ void DelayedWorker::ThreadInit()
             lk.unlock();
 
             int nfds = epoll_wait(epollfd_, waitedEvents.data(), waitedEvents.size(),
-                EPOLL_WAIT_TIMEOUT__MILISECONDS);
+                EPOLL_WAIT_TIMEOUT_MILLISECONDS);
             if (nfds == 0) {
                 DumpMap();
             }
@@ -237,7 +237,7 @@ void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
 {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTp - startTp);
     int64_t durationMs = duration.count();
-    if (durationMs > EXECUTION_TIMEOUT_MILISECONDS) {
+    if (durationMs > EXECUTION_TIMEOUT_MILLISECONDS) {
         FFRT_LOGW("handle work more than [%lld]ms", durationMs);
     }
 }

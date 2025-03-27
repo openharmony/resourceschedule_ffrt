@@ -76,15 +76,13 @@ bool IsDelayedWorkerPreserved()
 
 void DelayedWorker::DumpMap()
 {
-    lock.lock();
+    std::lock_guard lg(lock);
     if (map.empty()) {
-        lock.unlock();
         return;
     }
 
     TimePoint now = std::chrono::steady_clock::now();
     if (now < map.begin()->first) {
-        lock.unlock();
         return;
     }
 
@@ -97,7 +95,6 @@ void DelayedWorker::DumpMap()
             ss << ",";
         }
     }
-    lock.unlock();
     FFRT_LOGW("DumpMap:now=%lu,%s", now.time_since_epoch().count(), ss.str().c_str());
 }
 
@@ -275,19 +272,16 @@ int DelayedWorker::HandleWork()
 bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;
-    lock.lock();
     if (toExit) {
-        lock.unlock();
         FFRT_LOGE("DelayedWorker destroy, dispatch failed\n");
         return false;
     }
 
     TimePoint now = std::chrono::steady_clock::now();
     if (to <= now) {
-        lock.unlock();
         return false;
     }
-
+    std::lock_guard lg(lock);
     if (exited_) {
         ThreadInit();
         exited_ = false;
@@ -305,13 +299,12 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
             FFRT_LOGE("timerfd_settime error, ns=%lu, ret= %d.", ns, ret);
         }
     }
-    lock.unlock();
     return true;
 }
 
 bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 {
-    std::lock_guard<decltype(lock)> l(lock);
+    std::lock_guard lg(lock);
 
     auto range = map.equal_range(to);
     for (auto it = range.first; it != range.second; ++it) {

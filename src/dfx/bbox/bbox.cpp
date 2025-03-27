@@ -392,7 +392,9 @@ static const char* GetSigName(const siginfo_t* info)
 static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
 {
     if (FFRTIsWork()) {
-        g_cur_task = ExecuteCtx::Cur()->task;
+        // init is false to avoid deadlock occurs in the signal handling function due to memory allocation calls.
+        auto ctx = ExecuteCtx::Cur(false);
+        g_cur_task = ctx != nullptr ? ctx->task : nullptr;
         g_cur_tid = gettid();
         g_cur_signame = GetSigName(info);
         SaveTheBbox();

@@ -643,7 +643,14 @@ bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
     if (!ffrt::USE_COROUTINE) {
         return false;
     }
-    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+
+    // init is false to avoid the crash issue caused by nested calls to malloc during initialization.
+    auto ctx = ffrt::ExecuteCtx::Cur(false);
+    if (ctx == nullptr) {
+        return false;
+    }
+
+    auto curTask = ctx->task;
     if (curTask != nullptr) {
         auto co = curTask->coRoutine;
         if (co) {

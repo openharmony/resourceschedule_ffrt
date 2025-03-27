@@ -107,7 +107,10 @@ struct ExecuteCtx {
         return false;
     }
 
-    static ExecuteCtx* Cur();
+    /**
+     * @param init Should ExecuteCtx be initialized if it cannot be obtained
+     */
+    static ExecuteCtx* Cur(bool init = true);
 };
 } // namespace ffrt
 #endif

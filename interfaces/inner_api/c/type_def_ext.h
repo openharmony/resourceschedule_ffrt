@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
- /**
+/**
  * @file type_def.h
  *
  * @brief Declares common types.

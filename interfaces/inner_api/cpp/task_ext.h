@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
- /**
+/**
  * @file task.h
  *
  * @brief Declares the task inner interfaces in C++.

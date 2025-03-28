@@ -18,13 +18,13 @@
 
 namespace ffrt {
 /**
-    @brief get current thread static qos level
-*/
+ * @brief get current thread static qos level
+ */
 int GetStaticQos(qos &static_qos);
 
 /**
-    @brief get current thread dynamic qos level
-*/
+ * @brief get current thread dynamic qos level
+ */
 int GetDynamicQos(qos &dynamic_qos);
 }; // namespace ffrt
 

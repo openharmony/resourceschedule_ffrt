@@ -381,18 +381,18 @@ public:
      *
      * @param queue Indicates a queue handle.
      * @return Returns the queue task count.
-        */
+     */
     inline uint64_t get_task_cnt()
     {
         return ffrt_queue_get_task_cnt(queue_handle);
     }
 
     /**
-    * @brief Get application main thread queue.
-    *
-    * @return Returns application main thread queue.
-    * @since 12
-       */
+     * @brief Get application main thread queue.
+     *
+     * @return Returns application main thread queue.
+     * @since 12
+     */
     static inline queue* get_main_queue()
     {
         ffrt_queue_t q = ffrt_get_main_queue();

@@ -412,10 +412,3 @@ void AddOne(void* args)
 {
     *(static_cast<int*>(args)) += 1;
 }
-
-HWTEST_F(DependencyTest, dependency_onsubmit_dev, TestSize.Level1)
-{
-    int data = 0;
-    ffrt_task_handle_t handle = nullptr;
-    ffrt::SDependenceManager& dependenceManager = ffrt::SDependenceManager::Instance();
-}

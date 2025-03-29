@@ -29,7 +29,7 @@ using namespace testing::ext;
 using namespace ffrt;
 
 
-class QosConvertTest : public testing::Test {
+class QosConvertTestCase : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -48,49 +48,24 @@ protected:
     }
 };
 
-HWTEST_F(QosConvertTest, GetDynamicQosTest, TestSize.Level1)
+HWTEST_F(QosConvertTestCase, GetDynamicQosTest, TestSize.Level1)
 {
     qos tmpQos = qos_default;
     int ret = GetDynamicQos(tmpQos);
     EXPECT_EQ(ret, -1);
 }
 
-HWTEST_F(QosConvertTest, GetStaticQosTest, TestSize.Level1)
+HWTEST_F(QosConvertTestCase, GetStaticQosTest, TestSize.Level1)
 {
     qos tmpQos = qos_default;
     int ret = GetStaticQos(tmpQos);
     EXPECT_EQ(ret, -1);
 }
 
-HWTEST_F(QosConvertTest, IsDelayerWorkerThreadTest, TestSize.Level1)
+HWTEST_F(QosConvertTestCase, IsDelayerWorkerThreadTest, TestSize.Level1)
 {
     DelayedWorker::ThreadEnvCreate();
     sleep(1);
     bool ret = DelayedWorker::IsDelayerWorkerThread();
     EXPECT_EQ(ret, false);
-}
-
-class CgroupQosTest : public testing::Test {
-protected:
-    static void SetUpTestCase()
-    {
-    }
-
-    static void TearDownTestCase()
-    {
-    }
-
-    void SetUp() override
-    {
-    }
-
-    void TearDown() override
-    {
-    }
-};
-
-int TmpFun()
-{
-    int ret = 6;
-    return ret;
 }

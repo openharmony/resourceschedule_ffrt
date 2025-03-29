@@ -39,7 +39,7 @@ using namespace ffrt;
 using namespace std;
 
 
-class CpuMonitorTest : public testing::Test {
+class CpuMonitorTestFunc : public testing::Test {
 protected:
     static void SetUpTestCase()
     {
@@ -65,7 +65,7 @@ protected:
  *
  *
  */
-HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
+HWTEST_F(CpuMonitorTestFunc, IntoSleep, TestSize.Level1)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     SCPUMonitor cpu({
@@ -90,7 +90,7 @@ HWTEST_F(CpuMonitorTest, IntoSleep, TestSize.Level1)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, WakeupSleep, TestSize.Level1)
+HWTEST_F(CpuMonitorTestFunc, WakeupSleep, TestSize.Level1)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     EXPECT_NE(it, nullptr);
@@ -117,7 +117,7 @@ HWTEST_F(CpuMonitorTest, WakeupSleep, TestSize.Level1)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
+HWTEST_F(CpuMonitorTestFunc, TimeoutCount, TestSize.Level1)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     EXPECT_NE(it, nullptr);
@@ -141,7 +141,7 @@ HWTEST_F(CpuMonitorTest, TimeoutCount, TestSize.Level1)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, IntoDeepSleep, TestSize.Level1)
+HWTEST_F(CpuMonitorTestFunc, IntoDeepSleep, TestSize.Level1)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     EXPECT_NE(it, nullptr);
@@ -159,7 +159,7 @@ HWTEST_F(CpuMonitorTest, IntoDeepSleep, TestSize.Level1)
 }
 
 
-HWTEST_F(CpuMonitorTest, WakeupDeepSleep, TestSize.Level1)
+HWTEST_F(CpuMonitorTestFunc, WakeupDeepSleep, TestSize.Level1)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     EXPECT_NE(it, nullptr);
@@ -187,7 +187,7 @@ HWTEST_F(CpuMonitorTest, WakeupDeepSleep, TestSize.Level1)
  *
  *
  */
-HWTEST_F(CpuMonitorTest, IsExceedDeepSleepThreshold, TestSize.Level1)
+HWTEST_F(CpuMonitorTestFunc, IsExceedDeepSleepThreshold, TestSize.Level1)
 {
     CPUWorkerManager *it = new SCPUWorkerManager();
     EXPECT_NE(it, nullptr);

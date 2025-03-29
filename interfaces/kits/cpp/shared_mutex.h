@@ -22,7 +22,7 @@
  * @since 18
  */
 
- /**
+/**
  * @file shared_mutex.h
  *
  * @brief Declares the shared_mutex interfaces in C++.

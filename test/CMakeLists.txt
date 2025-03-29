@@ -18,14 +18,6 @@ file(GLOB_RECURSE UT_TESTS "ut/*.cpp")
 file(GLOB_RECURSE UTILS "testfunc/*.cpp")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/testfunc)
 
-# exclude tests that don't complie at the moment
-set(EXECLUDED_TESTS
-    # the following test needs ffrt_set_task_io_qos which
-    # is not defined
-    ${CMAKE_CURRENT_SOURCE_DIR}/ut/testcase/ut_resource_mngr.cpp
-)
-list(REMOVE_ITEM UT_TESTS ${EXECLUDED_TESTS})
-
 # Executable/target name
 set(TEST_NAME ffrt_ut)
 

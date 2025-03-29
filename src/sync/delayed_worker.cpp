@@ -32,11 +32,11 @@
 namespace {
 const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
 const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
-const int EPOLL_WAIT_TIMEOUT__MILISECONDS = 3 * 60 * 1000;
+const int EPOLL_WAIT_TIMEOUT_MILLISECONDS = 3 * 60 * 1000;
 const int NS_PER_SEC = 1000 * 1000 * 1000;
 const int FAKE_WAKE_UP_ERROR = 4;
 const int WAIT_EVENT_SIZE = 5;
-const int64_t EXECUTION_TIMEOUT_MILISECONDS = 500;
+const int64_t EXECUTION_TIMEOUT_MILLISECONDS = 500;
 const int DUMP_MAP_MAX_COUNT = 3;
 constexpr int ASYNC_TASK_SLEEP_MS = 1;
 }
@@ -44,14 +44,14 @@ constexpr int ASYNC_TASK_SLEEP_MS = 1;
 namespace ffrt {
 pthread_key_t g_ffrtDelayWorkerFlagKey;
 pthread_once_t g_ffrtDelayWorkerThreadKeyOnce = PTHREAD_ONCE_INIT;
-void FFRTDelayWorkeEnvKeyCreate()
+void FFRTDelayedWorkerEnvKeyCreate()
 {
     pthread_key_create(&g_ffrtDelayWorkerFlagKey, nullptr);
 }
 
 void DelayedWorker::ThreadEnvCreate()
 {
-    pthread_once(&g_ffrtDelayWorkerThreadKeyOnce, FFRTDelayWorkeEnvKeyCreate);
+    pthread_once(&g_ffrtDelayWorkerThreadKeyOnce, FFRTDelayedWorkerEnvKeyCreate);
 }
 
 bool DelayedWorker::IsDelayerWorkerThread()
@@ -76,15 +76,13 @@ bool IsDelayedWorkerPreserved()
 
 void DelayedWorker::DumpMap()
 {
-    lock.lock();
+    std::lock_guard lg(lock);
     if (map.empty()) {
-        lock.unlock();
         return;
     }
 
     TimePoint now = std::chrono::steady_clock::now();
     if (now < map.begin()->first) {
-        lock.unlock();
         return;
     }
 
@@ -97,16 +95,15 @@ void DelayedWorker::DumpMap()
             ss << ",";
         }
     }
-    lock.unlock();
     FFRT_LOGW("DumpMap:now=%lu,%s", now.time_since_epoch().count(), ss.str().c_str());
 }
 
 void DelayedWorker::ThreadInit()
 {
-    if (delayWorker != nullptr && delayWorker->joinable()) {
-        delayWorker->join();
+    if (delayedWorker != nullptr && delayedWorker->joinable()) {
+        delayedWorker->join();
     }
-    delayWorker = std::make_unique<std::thread>([this]() {
+    delayedWorker = std::make_unique<std::thread>([this]() {
         struct sched_param param;
         param.sched_priority = 1;
         int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
@@ -154,7 +151,7 @@ void DelayedWorker::ThreadInit()
             lk.unlock();
 
             int nfds = epoll_wait(epollfd_, waitedEvents.data(), waitedEvents.size(),
-                EPOLL_WAIT_TIMEOUT__MILISECONDS);
+                EPOLL_WAIT_TIMEOUT_MILLISECONDS);
             if (nfds == 0) {
                 DumpMap();
             }
@@ -215,13 +212,11 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
 
 DelayedWorker::~DelayedWorker()
 {
-    lock.lock();
     toExit = true;
-    lock.unlock();
     itimerspec its = { {0, 0}, {0, 1} };
     timerfd_settime(timerfd_, 0, &its, nullptr);
-    if (delayWorker != nullptr && delayWorker->joinable()) {
-        delayWorker->join();
+    if (delayedWorker != nullptr && delayedWorker->joinable()) {
+        delayedWorker->join();
     }
     while (asyncTaskCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(ASYNC_TASK_SLEEP_MS));
@@ -242,7 +237,7 @@ void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
 {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTp - startTp);
     int64_t durationMs = duration.count();
-    if (durationMs > EXECUTION_TIMEOUT_MILISECONDS) {
+    if (durationMs > EXECUTION_TIMEOUT_MILLISECONDS) {
         FFRT_LOGW("handle work more than [%lld]ms", durationMs);
     }
 }
@@ -277,19 +272,16 @@ int DelayedWorker::HandleWork()
 bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
 {
     bool w = false;
-    lock.lock();
     if (toExit) {
-        lock.unlock();
         FFRT_LOGE("DelayedWorker destroy, dispatch failed\n");
         return false;
     }
 
     TimePoint now = std::chrono::steady_clock::now();
     if (to <= now) {
-        lock.unlock();
         return false;
     }
-
+    std::lock_guard lg(lock);
     if (exited_) {
         ThreadInit();
         exited_ = false;
@@ -307,13 +299,12 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
             FFRT_LOGE("timerfd_settime error, ns=%lu, ret= %d.", ns, ret);
         }
     }
-    lock.unlock();
     return true;
 }
 
 bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 {
-    std::lock_guard<decltype(lock)> l(lock);
+    std::lock_guard lg(lock);
 
     auto range = map.equal_range(to);
     for (auto it = range.first; it != range.second; ++it) {

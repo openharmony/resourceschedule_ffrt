@@ -706,8 +706,15 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid_with_thread_mode, TestSize.Level1)
 HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level1)
 {
     ffrt_qos_t qos = ffrt_qos_default;
-
-    int ret = ffrt_epoll_get_count(qos);
+    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).PollOnce(0);
+    uint8_t ret = ffrt_epoll_get_count(qos);
+    /* If this test is run in isolation, one can expect the poll count to be one.
+     * However, if this test is run in the same environment of preceding tests e.g.,  ffrt_timer_start_succ_map_null the
+     * count is expected to be larger than one. Considering both run modes, we expect a non-zero value, instead of a
+     * specific value.
+     * Note: In general, it is a better idea to make test run oblivious and function independently from
+     * each-other.
+     */
     EXPECT_NE(ret, 0);
 }
 

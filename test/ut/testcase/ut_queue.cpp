@@ -588,6 +588,7 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     lock.unlock();
     testQueue->wait(handle);
     EXPECT_EQ(results, expectResults);
+    delete testQueue;
 }
 
 HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)

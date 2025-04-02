@@ -3,11 +3,14 @@ include(FetchContent)
 # enable testing
 enable_testing()
 
+set(FETCHCONTENT_QUIET FALSE)
+
 # fetch googletest
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://gitee.com/openharmony/third_party_googletest.git
   GIT_TAG f92157de8552e7b4e01d059b2d9a6999c635ab2e
+  GIT_PROGRESS TRUE
 )
 FetchContent_MakeAvailable(googletest)
 

@@ -58,6 +58,7 @@ HWTEST_F(FrameIntervalTest, FrameIntervalTest, TestSize.Level1)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     EXPECT_NE(fi, nullptr);
+    delete fi;
 }
 
 /**
@@ -71,6 +72,7 @@ HWTEST_F(FrameIntervalTest, OnQoSIntervalsTest, TestSize.Level1)
     fi->OnQoSIntervals(ffrt::IntervalState::DEADLINE_BEGIN);
     fi->OnQoSIntervals(ffrt::IntervalState::DEADLINE_END);
     EXPECT_NE(fi, nullptr);
+    delete fi;
 }
 
 /**
@@ -86,6 +88,7 @@ HWTEST_F(FrameIntervalTest, BeginTest, TestSize.Level1)
 
     int ret1 = fi->Begin();
     EXPECT_EQ(-1, ret1);
+    delete fi;
 }
 
 /**
@@ -102,6 +105,7 @@ HWTEST_F(FrameIntervalTest, EndTest, TestSize.Level1)
     fi->isBegun = true;
     fi->End();
     EXPECT_FALSE(fi->isBegun);
+    delete fi;
 }
 /**
  * @tc.name: updateTest
@@ -119,6 +123,7 @@ HWTEST_F(FrameIntervalTest, updateTest, TestSize.Level1)
 
     deadline = 100000;
     fi->Update(deadline);
+    delete fi;
 }
 
 /**
@@ -132,4 +137,5 @@ HWTEST_F(FrameIntervalTest, JoinTest, TestSize.Level1)
     EXPECT_NE(fi, nullptr);
     fi->Join();
     fi->Leave();
+    delete fi;
 }

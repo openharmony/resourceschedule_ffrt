@@ -598,7 +598,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid, TestSize.Level1)
         EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
         result = ffrt_epoll_wait(qos_level, &ev, maxevents, timeout);
         }, {}, {});
-    usleep(1000);
+    ffrt::wait();
     EXPECT_EQ(0, result);
 }
 
@@ -670,7 +670,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid_with_thread_mode, TestSize.Level1)
         result = ffrt_epoll_wait(qos_level, &ev, maxevents, timeout);
         ffrt_this_task_set_legacy_mode(false);
         }, {}, {});
-    usleep(1000);
+    ffrt::wait();
     EXPECT_EQ(0, result);
 }
 

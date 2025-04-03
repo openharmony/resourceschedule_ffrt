@@ -123,7 +123,6 @@ HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level1)
     interval qi1 = qos_interval_create(deadline_us, qos);
     EXPECT_EQ(qi1, nullptr);
     qos_interval_update(qi1, new_deadline_us);
-
 }
 
 /**

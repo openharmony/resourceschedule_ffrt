@@ -34,7 +34,11 @@ public:
 
 protected:
     LinkedList list;
-    int size = 0;
+    // we defined size atomic to be
+    // able to safely read it without
+    // introducing a data-race or acquiring
+    // a lock.
+    std::atomic_int size = 0;
 };
 
 class FIFOQueue : public RunQueue {
@@ -43,7 +47,7 @@ public:
     {
         auto entry = &task->fq_we;
         list.PushBack(entry->node);
-        size++;
+        size.fetch_add(1, std::memory_order_relaxed);
     }
 
     CPUEUTask* DeQueue() override
@@ -60,27 +64,27 @@ public:
         if (w->type > ffrt_invalid_task || w->type == ffrt_uv_task) {
             w->wq[0] = &w->wq;
             w->wq[1] = &w->wq;
-            size--;
+            size.fetch_sub(1, std::memory_order_relaxed);
             return reinterpret_cast<CPUEUTask *>(w);
         }
 
         auto entry = node->ContainerOf(&WaitEntry::node);
         CPUEUTask* tsk = entry->task;
 
-        size--;
+        size.fetch_sub(1, std::memory_order_relaxed);
         return tsk;
     }
 
     void EnQueueNode(LinkedList* node) override
     {
         list.PushBack(*node);
-        size++;
+        size.fetch_add(1, std::memory_order_relaxed);
     }
 
     void RmQueueNode(LinkedList* node) override
     {
         list.Delete(*node);
-        size--;
+        size.fetch_sub(1, std::memory_order_relaxed);
     }
 
     bool Empty() override
@@ -90,7 +94,7 @@ public:
 
     int Size() override
     {
-        return size;
+        return size.load(std::memory_order_relaxed);
     }
     void SetQos(QoS &newQos) override {}
 };

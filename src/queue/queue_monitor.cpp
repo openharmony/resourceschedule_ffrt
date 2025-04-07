@@ -27,7 +27,6 @@ constexpr uint32_t INVALID_TASK_ID = 0;
 constexpr uint32_t TIME_CONVERT_UNIT = 1000;
 constexpr uint64_t QUEUE_INFO_INITIAL_CAPACITY = 64;
 constexpr uint64_t ALLOW_TIME_ACC_ERROR_US = 500;
-constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000;
 
 inline std::chrono::steady_clock::time_point GetDelayedTimeStamp(uint64_t delayUs)
 {
@@ -43,13 +42,7 @@ QueueMonitor::QueueMonitor()
     queuesStructInfo_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     lastReportedTask_.reserve(QUEUE_INFO_INITIAL_CAPACITY);
     we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
-    uint64_t timeout = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
-    if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
-        timeoutUs_ = 0;
-        FFRT_LOGE("failed to setup watchdog because [%llu] us less than precision threshold", timeout);
-        return;
-    }
-    timeoutUs_ = timeout;
+    timeoutUs_ = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
     FFRT_LOGI("queue monitor ctor leave, watchdog timeout %llu us", timeoutUs_);
 }
 
@@ -117,6 +110,7 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
     TimePoint now = std::chrono::steady_clock::now();
     queuesRunningInfo_[queueId] = {taskId, now};
     if (exit_.exchange(false)) {
+        UpdateTimeoutUs();
         SendDelayedWorker(now + std::chrono::microseconds(timeoutUs_));
     }
 }
@@ -163,6 +157,7 @@ void QueueMonitor::CheckQueuesStatus()
         }
     }
 
+    UpdateTimeoutUs();
     TimePoint oldestStartedTime = std::chrono::steady_clock::now();
     TimePoint startThreshold = oldestStartedTime - std::chrono::microseconds(timeoutUs_ - ALLOW_TIME_ACC_ERROR_US);
     uint64_t taskId = 0;
@@ -237,5 +232,10 @@ bool QueueMonitor::HasQueueActive()
         }
     }
     return false;
+}
+
+void QueueMonitor::UpdateTimeoutUs()
+{
+    timeoutUs_ = ffrt_task_timeout_get_threshold() * TIME_CONVERT_UNIT;
 }
 } // namespace ffrt

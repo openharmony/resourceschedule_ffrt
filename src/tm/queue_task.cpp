@@ -65,7 +65,9 @@ void QueueTask::Destroy()
 {
     // release user func
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
-    f->destroy(f);
+    if (f->destroy) {
+        f->destroy(f);
+    }
     // free serial task object
     DecDeleteRef();
 }

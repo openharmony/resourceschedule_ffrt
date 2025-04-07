@@ -78,9 +78,9 @@ HWTEST_F(DumpTest, dump_cb_succ, TestSize.Level1)
  */
 HWTEST_F(DumpTest, dump_thre_succ, TestSize.Level1)
 {
-    ffrt_task_timeout_set_threshold(500);
+    ffrt_task_timeout_set_threshold(1000);
     uint32_t ret = ffrt_task_timeout_get_threshold();
-    EXPECT_EQ(ret, 500);
+    EXPECT_EQ(ret, 1000);
 }
 
 /*

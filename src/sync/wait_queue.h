@@ -85,7 +85,7 @@ public:
     }
 
 private:
-    spin_mutex wqlock;
+    fast_mutex wqlock;
     WaitUntilEntry* whead;
 
 private:

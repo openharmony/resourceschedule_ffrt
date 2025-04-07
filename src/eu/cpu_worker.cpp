@@ -142,6 +142,8 @@ bool CPUWorker::LocalEmpty(CPUWorker* worker)
 
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
+    worker->WorkerSetup();
+
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     if (worker->ops.IsBlockAwareInit()) {
         int ret = BlockawareRegister(worker->GetDomainId());

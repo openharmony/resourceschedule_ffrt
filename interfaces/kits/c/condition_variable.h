@@ -31,7 +31,6 @@
  * @kit FunctionFlowRuntimeKit
  * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
 
 #ifndef FFRT_API_C_CONDITION_VARIABLE_H
@@ -48,7 +47,6 @@
  * @return Returns <b>ffrt_success</b> if the condition variable is initialized;
            returns <b>ffrt_error_inval</b> otherwise.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
 
@@ -59,7 +57,6 @@ FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
  * @return Returns <b>ffrt_success</b> if the thread is unblocked;
            returns <b>ffrt_error_inval</b> otherwise.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
 
@@ -70,7 +67,6 @@ FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
  * @return Returns <b>ffrt_success</b> if the threads are unblocked;
            returns <b>ffrt_error_inval</b> otherwise.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
 
@@ -82,7 +78,6 @@ FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
  * @return Returns <b>ffrt_success</b> if the thread is unblocked after being blocked;
            returns <b>ffrt_error_inval</b> otherwise.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
 
@@ -99,7 +94,6 @@ FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
            returns <b>ffrt_error_timedout</b> if the maximum duration reaches;
            returns <b>ffrt_error_inval</b> if the blocking fails.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct timespec* time_point);
 
@@ -110,7 +104,6 @@ FFRT_C_API int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const
  * @return Returns <b>ffrt_success</b> if the condition variable is destroyed;
            returns <b>ffrt_error_inval</b> otherwise.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_cond_destroy(ffrt_cond_t* cond);
 

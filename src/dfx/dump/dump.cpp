@@ -23,6 +23,7 @@
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
+#include "util/common_const.h"
 #include "dump.h"
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
@@ -184,6 +185,10 @@ uint32_t ffrt_task_timeout_get_threshold(void)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_timeout_set_threshold(uint32_t threshold_ms)
 {
+    if (threshold_ms < ONE_THOUSAND) {
+        ffrt::TimeoutCfg::Instance()->timeout = ONE_THOUSAND;
+        return;
+    }
     ffrt::TimeoutCfg::Instance()->timeout = threshold_ms;
 }
 #ifdef __cplusplus

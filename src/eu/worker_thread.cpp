@@ -50,7 +50,7 @@ void WorkerThread::NativeConfig()
     SetThreadAttr(this, qos);
 }
 
-void WorkerThread::WorkerSetup(WorkerThread* wthread)
+void WorkerThread::WorkerSetup()
 {
     static int threadIndex[QoS::MaxNum()] = {0};
     std::string qosStr = std::to_string(qos());
@@ -59,7 +59,7 @@ void WorkerThread::WorkerSetup(WorkerThread* wthread)
     if (qosStr == "") {
         FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
     }
-    pthread_setname_np(wthread->GetThread(), threadName.c_str());
+    pthread_setname_np(pthread_self(), threadName.c_str());
 }
 
 int SetCpuAffinity(unsigned long affinity, int tid)

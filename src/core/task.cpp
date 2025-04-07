@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <climits>
 #include <memory>
 #include <vector>
 
@@ -37,12 +38,31 @@
 #include "util/spmc_queue.h"
 #include "tm/task_factory.h"
 #include "tm/queue_task.h"
+#include "util/common_const.h"
 
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
     FFRTFacade::GetDMInstance().onSubmit(has_handle, handle, f, ins, outs, attr);
+}
+
+inline int submit_nb_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs,
+    const task_attr_private *attr)
+{
+    return FFRTFacade::GetDMInstance().onSubmitNb(has_handle, handle, f, ins, outs, attr);
+}
+
+inline void destroy_auto_managed_function_storage_base(ffrt_function_header_t *f)
+{
+    if (f->destroy) {
+        f->destroy(f);
+    }
+
+    ffrt::CPUEUTask* t = reinterpret_cast<ffrt::CPUEUTask*>(static_cast<uintptr_t>(
+        static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::CPUEUTask, func_storage)));
+    ffrt::TaskFactory<ffrt::CPUEUTask>::Free_(t);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -190,6 +210,10 @@ void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_us)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
+    if (timeout_us < ONE_THOUSAND) {
+        (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = ONE_THOUSAND;
+        return;
+    }
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_us;
 }
 
@@ -300,6 +324,31 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};
     ffrt::submit_impl(false, handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_error_t ffrt_submit_base_nb(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, const ffrt_deps_t *out_deps,
+    const ffrt_task_attr_t *attr)
+{
+    if (unlikely(!f)) {
+        FFRT_LOGE("function handler should not be empty");
+        return ffrt_error;
+    }
+
+    const ffrt::task_attr_private *p = reinterpret_cast<const ffrt::task_attr_private *>(attr);
+    if (unlikely(p && p->delay_ > 0)) {
+        FFRT_LOGE("delay cannot be set in non-blocking mode.");
+        ffrt::destroy_auto_managed_function_storage_base(f);
+        return ffrt_error;
+    }
+
+    ffrt_task_handle_t handle = nullptr;
+    int ret = ffrt::submit_nb_impl(false, handle, f, in_deps, out_deps, p);
+    if (ret != 0) {
+        ffrt::destroy_auto_managed_function_storage_base(f);
+        return ffrt_error;
+    }
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -600,7 +649,14 @@ bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
     if (!ffrt::USE_COROUTINE) {
         return false;
     }
-    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+
+    // init is false to avoid the crash issue caused by nested calls to malloc during initialization.
+    auto ctx = ffrt::ExecuteCtx::Cur(false);
+    if (ctx == nullptr) {
+        return false;
+    }
+
+    auto curTask = ctx->task;
     if (curTask != nullptr) {
         auto co = curTask->coRoutine;
         if (co) {

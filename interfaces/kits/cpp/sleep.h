@@ -14,31 +14,73 @@
  */
 
 /**
+ * @addtogroup FFRT
+ * @{
+ *
+ * @brief Provides FFRT C++ APIs.
+ *
+ * @since 10
+ */
+
+/**
  * @file sleep.h
  *
  * @brief Declares the sleep and yield interfaces in C++.
  *
+ * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
  * @since 10
- * @version 1.0
  */
+
 #ifndef FFRT_API_CPP_SLEEP_H
 #define FFRT_API_CPP_SLEEP_H
+
 #include <chrono>
 #include "c/sleep.h"
 
 namespace ffrt {
+/**
+ * @namespace this_task
+ * @brief Contains utility functions for the currently executing task.
+ */
 namespace this_task {
+/**
+ * @brief Yields the execution of the current task.
+ *
+ * This function allows other tasks or threads to be scheduled by yielding the current task's execution.
+ *
+ * @since 10
+ */
 static inline void yield()
 {
     ffrt_yield();
 }
 
+
+/**
+ * @brief Suspends the current task for a specified duration.
+ *
+ * @tparam _Rep The type of the representation of the duration (e.g., int or long).
+ * @tparam _Period The period of the duration (e.g., milliseconds, microseconds).
+ * @param d The duration for which the task should be suspended.
+ * @since 10
+ */
 template <class _Rep, class _Period>
 inline void sleep_for(const std::chrono::duration<_Rep, _Period>& d)
 {
     ffrt_usleep(std::chrono::duration_cast<std::chrono::microseconds>(d).count());
 }
 
+
+/**
+ * @brief Suspends the current task until a specific time point.
+ *
+ * @tparam _Clock The clock type that provides the time point (e.g., steady_clock).
+ * @tparam _Duration The duration type for the time point.
+ * @param abs_time The absolute time point at which the task should resume.
+ * @since 10
+ */
 template<class _Clock, class _Duration>
 inline void sleep_until(
     const std::chrono::time_point<_Clock, _Duration>& abs_time)
@@ -47,4 +89,6 @@ inline void sleep_until(
 }
 } // namespace this_task
 } // namespace ffrt
-#endif
+
+#endif // FFRT_API_CPP_SLEEP_H
+/** @} */

@@ -66,6 +66,11 @@ public:
         Instance()->free(t);
     }
 
+    static void FreeMem_(T* t)
+    {
+        Instance()->free_(t);
+    }
+
     // only used for BBOX
     static std::vector<void *> getUnfreedMem()
     {
@@ -160,7 +165,7 @@ private:
 
     T* Alloc()
     {
-        lock.lock();
+        std::lock_guard<decltype(lock)> lk(lock);
         T* t = nullptr;
         if (count == 0) {
             if (basePtr != nullptr) {
@@ -172,7 +177,6 @@ private:
 #ifdef FFRT_BBOX_ENABLE
                 secondaryCache.insert(t);
 #endif
-                lock.unlock();
                 return t;
             }
             init();
@@ -180,13 +184,12 @@ private:
         t = primaryCache.front();
         primaryCache.pop_front();
         count--;
-        lock.unlock();
         return t;
     }
 
     void free(T* t)
     {
-        lock.lock();
+        std::lock_guard<decltype(lock)> lk(lock);
         t->~T();
         if (basePtr != nullptr &&
             basePtr <= t &&
@@ -200,7 +203,21 @@ private:
 #endif
             std::free(t);
         }
-        lock.unlock();
+    }
+
+    void free_(T* t)
+    {
+        std::lock_guard<decltype(lock)> lk(lock);
+        if (basePtr != nullptr && basePtr <= t && static_cast<size_t>(reinterpret_cast<uintptr_t>(t)) <
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(basePtr)) + MmapSz) {
+            primaryCache.push_back(t);
+            count++;
+        } else {
+#ifdef FFRT_BBOX_ENABLE
+            secondaryCache.erase(t);
+#endif
+            std::free(t);
+        }
     }
 
     SimpleAllocator(std::size_t size = sizeof(T)) : TSize(size)
@@ -268,10 +285,9 @@ class QSimpleAllocator {
     T* Alloc()
     {
         T* p = nullptr;
-        lock.lock();
+        std::lock_guard<decltype(lock)> lk(lock);
         if (cache.empty()) {
             if (!expand()) {
-                lock.unlock();
                 return nullptr;
             }
         }
@@ -279,22 +295,20 @@ class QSimpleAllocator {
         ++curAllocated;
         maxAllocated = std::max(curAllocated, maxAllocated);
         cache.pop_back();
-        lock.unlock();
         return p;
     }
 
     void free(T* p)
     {
-        lock.lock();
+        std::lock_guard<decltype(lock)> lk(lock);
         --curAllocated;
         cache.push_back(p);
-        lock.unlock();
     }
 
     void release()
     {
         T* p = nullptr;
-        lock.lock();
+        std::lock_guard<decltype(lock)> lk(lock);
         FFRT_LOGD("coroutine release with waterline %d, cur occupied %d, cached size %d",
             maxAllocated, curAllocated, cache.size());
         size_t reservedCnt = maxAllocated - curAllocated + 1; // reserve additional one for robustness
@@ -307,7 +321,6 @@ class QSimpleAllocator {
                 FFRT_LOGE("munmap failed with errno: %d", errno);
             }
         }
-        lock.unlock();
     }
 
     QSimpleAllocator()

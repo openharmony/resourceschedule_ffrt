@@ -31,7 +31,9 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
     auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
     std::function<void()> func = [=]() {
         f->exec(f);
-        f->destroy(f);
+        if (f->destroy) {
+            f->destroy(f);
+        }
         task->DecDeleteRef();
     };
 

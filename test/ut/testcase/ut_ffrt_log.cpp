@@ -19,7 +19,9 @@
 #include <gtest/gtest.h>
 #include <securec.h>
 #include "dfx/log/ffrt_log_api.h"
+#ifdef OHOS_STANDARD_SYSTEM
 #include "faultloggerd_client.h"
+#endif
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #include "../common.h"
 
@@ -48,7 +50,7 @@ protected:
     {
     }
 };
-
+#ifdef OHOS_STANDARD_SYSTEM
 // FaultLogger获取句柄/写入日志/读取日志/关闭句柄
 HWTEST_F(FfrtLogTest, faultLoggerFdManager, TestSize.Level1)
 {
@@ -79,3 +81,4 @@ HWTEST_F(FfrtLogTest, faultLoggerFdManager, TestSize.Level1)
     // 删除文件
     remove(FILE_NAME);
 }
+#endif

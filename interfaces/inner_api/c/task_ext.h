@@ -26,7 +26,6 @@
  * @return Returns <b>0</b> if the task is skipped;
            returns <b>-1</b> otherwise.
  * @since 10
- * @version 1.0
  */
 FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
 
@@ -37,14 +36,11 @@ FFRT_C_API int ffrt_skip(ffrt_task_handle_t handle);
  * @param attr Indicates the cgroup attribute.
  * @return Returns <b>0</b> if cgroup attribute set success;
  *         returns <b>-1</b> if cgroup attribute set fail.
- * @version 1.0
  */
 FFRT_C_API int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr* attr);
 
 /**
  * @brief Restore the ffrt threads attribute to the default value for all Qos.
- *
- * @version 1.0
  */
 FFRT_C_API void ffrt_restore_qos_config(void);
 
@@ -55,7 +51,6 @@ FFRT_C_API void ffrt_restore_qos_config(void);
  * @param num Indicates the max num.
  * @return Returns <b>0</b> if max num set success;
  *         return <b>-1</b> if max num set fail;
- * @version 1.0
  */
 FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
 
@@ -64,7 +59,6 @@ FFRT_C_API int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num);
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param notify Indicates whether the task notifies worker.
- * @version 1.0
  */
 FFRT_C_API void ffrt_task_attr_set_notify_worker(ffrt_task_attr_t* attr, bool notify);
 
@@ -73,7 +67,6 @@ FFRT_C_API void ffrt_task_attr_set_notify_worker(ffrt_task_attr_t* attr, bool no
  *
  * @param qos Indicates the QoS.
  * @param number Indicates the number of workers to be notified.
- * @version 1.0
  */
 FFRT_C_API void ffrt_notify_workers(ffrt_qos_t qos, int number);
 
@@ -81,7 +74,6 @@ FFRT_C_API void ffrt_notify_workers(ffrt_qos_t qos, int number);
  * @brief Obtains the ID of this queue.
  *
  * @return Returns the queue ID.
- * @version 1.0
  */
 FFRT_C_API int64_t ffrt_this_queue_get_id(void);
 
@@ -101,7 +93,6 @@ FFRT_C_API int64_t ffrt_this_queue_get_id(void);
  * @param two_stage_worker_num Indicates the number of workers in two-stage.
  * @return Returns 0 if the parameters are valid and the escape function is enabled successfully;
  *         returns 1 otherwise.
- * @version 1.0
  */
 FFRT_C_API int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
     uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num);
@@ -109,16 +100,11 @@ FFRT_C_API int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_
 /**
  * @brief Disable the worker escape function (When all the worker threads under a QoS level fully block, the system will
  * temporarily exceed the limit on the number of worker threads and create new worker threads to execute tasks).
- *
- * @version 1.0
  */
 FFRT_C_API void ffrt_disable_worker_escape(void);
 
 /**
  * @brief Set the sched mode of the QoS.
- *
- * @return
- * @version 1.0
  */
 FFRT_C_API void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode);
 #endif

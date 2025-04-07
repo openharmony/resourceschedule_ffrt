@@ -82,6 +82,13 @@ public:
     virtual void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
         const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
+    virtual int onSubmitNb(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+    {
+        onSubmit(has_handle, handle, f, ins, outs, attr);
+        return 0;
+    }
+
     void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr);
 
     void onSubmitIO(const ffrt_io_callable_t &work, const task_attr_private *attr);

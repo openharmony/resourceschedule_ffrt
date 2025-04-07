@@ -25,13 +25,13 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
-static inline const char* DenpenceStr(Denpence d)
+static inline const char* DependenceStr(Dependence d)
 {
     static const char* m[] = {
-        "DEPENCE_INIT",
-        "DATA_DEPENCE",
-        "CALL_DEPENCE",
-        "CONDITION_DEPENCE",
+        "DEPENDENCE_INIT",
+        "DATA_DEPENDENCE",
+        "CALL_DEPENDENCE",
+        "CONDITION_DEPENDENCE",
     };
     return m[static_cast<uint64_t>(d)];
 }
@@ -46,6 +46,7 @@ void SCPUEUTask::DecDepRef()
 {
     if (--dataRefCnt.submitDep == 0) {
         FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
+        FFRT_WAKE_TRACER(this->gid);
         FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
         this->UpdateState(TaskState::READY);
     }
@@ -75,10 +76,10 @@ void SCPUEUTask::DecChildRef()
         parent->DecDeleteRef();
         return;
     }
-    if (parent->denpenceStatus != Denpence::CALL_DEPENCE) {
+    if (parent->dependenceStatus != Dependence::CALL_DEPENDENCE) {
         return;
     }
-    parent->denpenceStatus = Denpence::DEPENCE_INIT;
+    parent->dependenceStatus = Dependence::DEPENDENCE_INIT;
 
     if (ThreadNotifyMode(parent) || parent->IsRoot()) {
         if (BlockThread(parent)) {
@@ -86,6 +87,7 @@ void SCPUEUTask::DecChildRef()
         }
         parent->waitCond_.notify_all();
     } else {
+        FFRT_WAKE_TRACER(parent->gid);
         parent->UpdateState(TaskState::READY);
     }
 }
@@ -98,10 +100,10 @@ void SCPUEUTask::DecWaitDataRef()
         if (--dataRefCnt.waitDep != 0) {
             return;
         }
-        if (denpenceStatus != Denpence::DATA_DEPENCE) {
+        if (dependenceStatus != Dependence::DATA_DEPENDENCE) {
             return;
         }
-        denpenceStatus = Denpence::DEPENCE_INIT;
+        dependenceStatus = Dependence::DEPENDENCE_INIT;
     }
 
     if (ThreadNotifyMode(this) || IsRoot()) {
@@ -110,6 +112,7 @@ void SCPUEUTask::DecWaitDataRef()
         }
         waitCond_.notify_all();
     } else {
+        FFRT_WAKE_TRACER(this->gid);
         FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
         this->UpdateState(TaskState::READY);
     }
@@ -128,9 +131,9 @@ void SCPUEUTask::RecycleTask()
     }
 }
 
-void SCPUEUTask::MultiDepenceAdd(Denpence depType)
+void SCPUEUTask::MultiDependenceAdd(Dependence depType)
 {
-    FFRT_LOGD("task(%s) ADD_DENPENCE(%s)", this->label.c_str(), DenpenceStr(depType));
-    denpenceStatus = depType;
+    FFRT_LOGD("task(%s) ADD_DEPENDENCE(%s)", this->label.c_str(), DependenceStr(depType));
+    dependenceStatus = depType;
 }
 } /* namespace ffrt */

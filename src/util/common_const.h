@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,12 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FFRT_API_C_INIT_H
-#define FFRT_API_C_INIT_H
-/**
- * @brief In the subprocess, initialize the ffrt resources.
- *        Only applicable for the cloning scene, and only allowed to be called once.
- */
-FFRT_C_API void ffrt_child_init(void);
 
-#endif
+#ifndef FFRT_COMMON_CONST_H
+#define FFRT_COMMON_CONST_H
+
+const int32_t ONE_THOUSAND = 1000;
+
+#endif // FFRT_COMMON_CONST_H

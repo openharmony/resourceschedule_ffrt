@@ -66,7 +66,9 @@ void CPUEUTask::Execute()
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
         f->exec(f);
     }
-    f->destroy(f);
+    if (f->destroy) {
+        f->destroy(f);
+    }
     FFRT_TASKDONE_MARKER(gid);
     if (!USE_COROUTINE) {
         this->UpdateState(ffrt::TaskState::EXITED);

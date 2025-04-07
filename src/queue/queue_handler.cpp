@@ -250,7 +250,9 @@ void QueueHandler::Dispatch(QueueTask* inTask)
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
         }
 
-        f->destroy(f);
+        if (f->destroy) {
+            f->destroy(f);
+        }
         task->Notify();
 
         // run task batch

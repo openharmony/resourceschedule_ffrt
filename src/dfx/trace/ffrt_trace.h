@@ -238,6 +238,12 @@ static bool _IsTagEnabled(uint64_t label)
             _StartTrace(HITRACE_TAG_FFRT, ("FFBK" #tag "|" + std::to_string(gid)).c_str(), -1); \
         FFRT_TRACE_END(); \
     } while (false)
+#define FFRT_WAKE_TRACER(gid) \
+    do { \
+        if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
+            _StartTrace(HITRACE_TAG_FFRT, ("FFWK|" + std::to_string(gid)).c_str(), -1); \
+        FFRT_TRACE_END(); \
+    } while (false)
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr) \
     do { \
         if (__builtin_expect(!!(_IsTagEnabled(HITRACE_TAG_FFRT)), 0)) \
@@ -262,6 +268,7 @@ static bool _IsTagEnabled(uint64_t label)
 #define FFRT_SUBMIT_MARKER(gid)
 #define FFRT_TASK_BEGIN(tag, gid)
 #define FFRT_BLOCK_TRACER(gid, tag)
+#define FFRT_WAKE_TRACER(gid)
 #define FFRT_EXECUTOR_TASK_BEGIN(ptr)
 #define FFRT_SERIAL_QUEUE_TASK_SUBMIT_MARKER(qid, gid)
 #endif

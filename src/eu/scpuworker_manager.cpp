@@ -79,6 +79,19 @@ SCPUWorkerManager::~SCPUWorkerManager()
         }
     }
     delete monitor;
+    // We should delay the destruction of this object, until it is
+    // threads that call WorkerRetired are done. Otherwise,
+    // `CPUWorkerManager::WorkerRetired` can end up accessing freed
+    // memory on `workerNum.fetch_sub(1)`
+    int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
+    while (try_cnt-- > 0) {
+        if (workerNum > 0) {
+            break;
+        }
+    }
+    if (workerNum > 0) {
+        FFRT_LOGE("Possible access after free danger, in CPUWorkerManager::WorkerRetired");
+    }
 }
 
 void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)

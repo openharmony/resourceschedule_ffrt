@@ -423,7 +423,6 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGABRT);
     SignalReg(SIGBUS);
     SignalReg(SIGFPE);
-    SignalReg(SIGILL);
     SignalReg(SIGSTKFLT);
     SignalReg(SIGSYS);
     SignalReg(SIGTRAP);
@@ -436,7 +435,6 @@ __attribute__((destructor)) static void BBoxDeInit()
     SignalUnReg(SIGABRT);
     SignalUnReg(SIGBUS);
     SignalUnReg(SIGFPE);
-    SignalUnReg(SIGILL);
     SignalUnReg(SIGSTKFLT);
     SignalUnReg(SIGSYS);
     SignalUnReg(SIGTRAP);

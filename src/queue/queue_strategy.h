@@ -58,20 +58,32 @@ public:
     {
         (void)args;
         // dequeue next expired task by priority
-        int index = 0;
-        auto iterTarget = whenMapVec[0].begin();
-        for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
-            if (!whenMapVec[idx].empty() && whenMapVec[idx].begin()->first < now) {
-                iterTarget = whenMapVec[idx].begin();
-                index = idx;
+        int iterIndex = ffrt_queue_priority_idle;
+        auto iterTarget = whenMapVec[iterIndex].cbegin();
+        for (int idx = ffrt_queue_priority_immediate; idx <= ffrt_queue_priority_idle; idx++) {
+            const auto& currentMap = whenMapVec[idx];
+            if (currentMap.empty()) {
+                continue;
+            }
+            if (whenMapVec[iterIndex].empty() || iterTarget->first > currentMap.cbegin()->first) {
+                iterIndex = idx;
+                iterTarget = currentMap.cbegin();
+            }
+        }
+
+        for (int idx = ffrt_queue_priority_immediate; idx <= ffrt_queue_priority_idle; idx++) {
+            const auto& currentMap = whenMapVec[idx];
+            if (!currentMap.empty() && currentMap.cbegin()->first < now) {
+                iterTarget = currentMap.cbegin();
+                iterIndex = idx;
                 break;
             }
         }
         T* head = iterTarget->second;
-        whenMapVec[index].erase(iterTarget);
+        whenMapVec[iterIndex].erase(iterTarget);
 
         size_t mapCount = 0;
-        for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
+        for (int idx = ffrt_queue_priority_immediate; idx <= ffrt_queue_priority_idle; idx++) {
             auto& currentMap = whenMapVec[idx];
             mapCount += currentMap.size();
         }

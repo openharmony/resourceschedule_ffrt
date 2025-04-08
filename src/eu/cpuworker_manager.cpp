@@ -134,7 +134,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
     }
     auto& pollerMtx = pollersMtx[thread->GetQos()];
     if (pollerMtx.try_lock()) {
-        polling_[thread->GetQos()] = 1;
+        polling_[thread->GetQos()].store(true, std::memory_order_relaxed);
         if (timeout == -1) {
             monitor->IntoPollWait(thread->GetQos());
         }
@@ -142,7 +142,7 @@ PollerRet CPUWorkerManager::TryPoll(const WorkerThread* thread, int timeout)
         if (timeout == -1) {
             monitor->OutOfPollWait(thread->GetQos());
         }
-        polling_[thread->GetQos()] = 0;
+        polling_[thread->GetQos()].store(false, std::memory_order_relaxed);
         pollerMtx.unlock();
         return ret;
     }

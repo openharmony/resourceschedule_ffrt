@@ -224,7 +224,7 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
     if (ctl.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = GetTaskCount(thread->GetQos());
         bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
-            (polling_[thread->GetQos()] == 0);
+                        !polling_[thread->GetQos()].load(std::memory_order_relaxed);
         return tearDown || taskExistence || needPoll;
         })) {
         monitor->WakeupSleep(thread->GetQos());

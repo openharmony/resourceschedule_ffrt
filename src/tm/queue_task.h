@@ -99,6 +99,26 @@ public:
         return schedTimeout_;
     }
 
+    inline void SetMonitorTask(WaitUntilEntry* monitorWe)
+    {
+        this->monitorWe_ = monitorWe;
+    }
+
+    inline WaitUntilEntry* GetMonitorTask()
+    {
+        return monitorWe_;
+    }
+
+    inline void MonitorTaskStart()
+    {
+        isWeStart_.store(true);
+    }
+
+    inline bool IsMonitorTaskStart()
+    {
+        return isWeStart_;
+    }
+
     uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 
 private:
@@ -112,8 +132,10 @@ private:
     QueueTask* nextTask_ = nullptr;
     std::atomic_bool isFinished_ = {false};
     bool onWait_ = {false};
+    std::atomic_bool isWeStart_ = {false};
 
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
+    WaitUntilEntry* monitorWe_ = nullptr;
 };
 } // namespace ffrt
 

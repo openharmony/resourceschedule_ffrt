@@ -17,8 +17,11 @@
 #define FFRT_TYPES_HPP
 
 namespace ffrt {
+#ifdef CLOSE_COROUTINE_MODE
+constexpr bool USE_COROUTINE = false;
+#else
 constexpr bool USE_COROUTINE = true;
-
+#endif
 enum DT {
     U8,
     U16,

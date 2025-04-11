@@ -280,7 +280,6 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos());
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos(),  task);
     FFRT_TRACE_SCOPE(1, ontaskDone);
-    sTask->DecChildRef();
     if (!(sTask->ins.empty() && sTask->outs.empty())) {
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
         FFRT_TRACE_SCOPE(1, taskDoneAfterLock);
@@ -302,6 +301,16 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     if (task->isWatchdogEnable) {
         RemoveTaskFromWatchdog(task->gid);
     }
+    // Note that `DecChildRef` is going to decrement the `childRefCnt`
+    // of the parent task. And if the parent happens to be
+    // root it may get deleted in `~RootTaskCtxWrapper`.
+    // Hence, following this call there should no longer
+    // be references or accesses to the root task object
+    // or any of its members. E.g. calling this
+    // before out->onProduced can lead to access
+    // of freed memory on wait condition notification
+    // of the parent task.
+    sTask->DecChildRef();
     sTask->RecycleTask();
 }
 

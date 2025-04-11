@@ -66,6 +66,10 @@ config("ffrt_config") {
     defines += [ "ASAN_MODE" ]
   }
 
+  if (use_hwasan || is_tsan) {
+    defines += [ "CLOSE_COROUTINE_MODE" ]
+  }
+
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
   }

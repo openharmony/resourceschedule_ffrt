@@ -249,11 +249,9 @@ void QueueHandler::Dispatch(QueueTask* inTask)
                 std::chrono::steady_clock::now().time_since_epoch()).count());
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
         }
-
-        if (f->destroy) {
-            f->destroy(f);
-        }
+        f->destroy(f);
         task->Notify();
+        RemoveTimeoutMonitor(task);
 
         // run task batch
         nextTask = task->GetNextTask();
@@ -309,33 +307,47 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     }
 
     task->IncDeleteRef();
-    WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
+
     // set delayed worker callback
-    we->cb = ([this, task](WaitEntry* we) {
+    auto timeoutWe = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
+    timeoutWe->cb = ([this, task](WaitEntry* timeoutWe) {
+        task->MonitorTaskStart();
         if (!task->GetFinishStatus()) {
             RunTimeOutCallback(task);
         }
         delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
+        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(timeoutWe));
     });
 
     // set delayed worker wakeup time
     std::chrono::microseconds timeout(timeout_);
     auto now = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
-    we->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
+    timeoutWe->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
+    task->SetMonitorTask(timeoutWe);
 
-    delayedCbCnt_.fetch_add(1);
-    if (!DelayedWakeup(we->tp, we, we->cb)) {
-        delayedCbCnt_.fetch_sub(1);
+    if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb)) {
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(we);
+        SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe);
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
             name_.c_str(), timeout_);
         return;
     }
 
     FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, name_.c_str());
+}
+
+void QueueHandler::RemoveTimeoutMonitor(QueueTask* task)
+{
+    if (timeout_ <= 0 || task->IsMonitorTaskStart()) {
+        return;
+    }
+
+    if (DelayedRemove(task->GetMonitorTask()->tp, task->GetMonitorTask())) {
+        delayedCbCnt_.fetch_sub(1);
+        task->DecDeleteRef();
+        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(task->GetMonitorTask()));
+    }
 }
 
 void QueueHandler::RunTimeOutCallback(QueueTask* task)
@@ -511,4 +523,4 @@ void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
         });
     }
 }
-} //namespace ffrt
+} // namespace ffrt

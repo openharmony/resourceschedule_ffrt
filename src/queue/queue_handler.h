@@ -100,6 +100,7 @@ private:
     void Deliver();
     void TransferInitTask();
     void SetTimeoutMonitor(QueueTask* task);
+    void RemoveTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
     void ReportTimeout(const std::vector<uint64_t>& timeoutTaskId);

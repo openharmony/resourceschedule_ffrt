@@ -170,7 +170,8 @@ static inline void SaveNormalTaskStatus()
         std::vector<CPUEUTask*> tmp;
         for (auto task : unfree) {
             auto t = reinterpret_cast<CPUEUTask*>(task);
-            if (filter(t)) {
+            auto f = reinterpret_cast<ffrt_function_header_t*>(t->func_storage);
+            if (((f->reserve[0] & MASK_FOR_HCS_TASK) != MASK_FOR_HCS_TASK) && filter(t)) {
                 tmp.emplace_back(t);
             }
         }
@@ -602,7 +603,8 @@ std::string SaveNormalTaskStatusInfo(void)
         std::vector<CPUEUTask*> tmp;
         for (auto task : unfree) {
             auto t = reinterpret_cast<CPUEUTask*>(task);
-            if (filter(t)) {
+            auto f = reinterpret_cast<ffrt_function_header_t*>(t->func_storage);
+            if (((f->reserve[0] & MASK_FOR_HCS_TASK) != MASK_FOR_HCS_TASK) && filter(t)) {
                 tmp.emplace_back(reinterpret_cast<CPUEUTask*>(t));
             }
         }

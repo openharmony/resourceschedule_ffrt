@@ -195,6 +195,45 @@ FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_h(
     ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
 
 /**
+ * @brief Submits a task to a queue, simplified from of the ffrt_queue_submit interface.
+ *
+ * This interface wraps the provided task function and its argument into a task wrapper designed
+ * for queue submission (ffrt_function_kind_queue). The task destroy callback (after_func), which
+ * would normally handle any post-execution cleanup, is automatically set to NULL in this wrapper,
+ * thus omitting any additional cleanup actions. The resulting task wrapper is then submitted to
+ * the specified queue via the ffrt_queue_submit interface.
+ *
+ * @param queue Indicates a queue handle.
+ * @param func Indicates a task function to be executed.
+ * @param arg Indicates a pointer to the argument or closure data that will be passed to the task function.
+ * @param attr Indicates a pointer to the task attribute.
+ * @see ffrt_queue_submit
+ * @since 20
+ */
+FFRT_C_API void ffrt_queue_submit_f(ffrt_queue_t queue, ffrt_function_t func, void* arg, const ffrt_task_attr_t* attr);
+
+/**
+ * @brief Submits a task to a queue, and obtains a task handle, simplified from the ffrt_queue_submit_h interface.
+ *
+ * This interface wraps the provided task function and its argument into a task wrapper designed
+ * for queue submission (ffrt_function_kind_queue). The task destroy callback (after_func), which
+ * would normally handle any post-execution cleanup, is automatically set to NULL in this wrapper,
+ * thus omitting any additional cleanup actions. The resulting task wrapper is then submitted to
+ * the specified queue via the ffrt_queue_submit_h interface.
+ *
+ * @param queue Indicates a queue handle.
+ * @param func Indicates a task function to be executed.
+ * @param arg Indicates a pointer to the argument or closure data that will be passed to the task function.
+ * @param attr Indicates a pointer to the task attribute.
+ * @return Returns a non-null task handle if the task is submitted;
+           returns a null pointer otherwise.
+ * @see ffrt_queue_submit_h
+ * @since 20
+ */
+FFRT_C_API ffrt_task_handle_t ffrt_queue_submit_h_f(
+    ffrt_queue_t queue, ffrt_function_t func, void* arg, const ffrt_task_attr_t* attr);
+
+/**
  * @brief Waits until a task in the queue is complete.
  *
  * @param handle Indicates a task handle.

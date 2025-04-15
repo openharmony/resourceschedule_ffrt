@@ -16,6 +16,7 @@
 
 #include "bbox.h"
 #include <sys/syscall.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <csignal>
 #include <cstdlib>
@@ -32,6 +33,7 @@
 #include "util/time_format.h"
 #ifdef OHOS_STANDARD_SYSTEM
 #include "dfx/bbox/fault_logger_fd_manager.h"
+#include "dfx/bbox/dfx_allocator.h"
 #endif
 #include "dfx/dump/dump.h"
 #include "util/ffrt_facade.h"
@@ -40,21 +42,24 @@
 using namespace ffrt;
 
 constexpr static size_t EACH_QUEUE_TASK_DUMP_SIZE = 64;
+constexpr static unsigned int WAIT_PID_SLEEP_MS = 2;
+constexpr static unsigned int WAIT_PID_MAX_RETRIES = 1000;
 static std::atomic<unsigned int> g_taskPendingCounter(0);
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 static CPUEUTask* g_cur_task;
+static unsigned int g_cur_pid;
 static unsigned int g_cur_tid;
 static const char* g_cur_signame;
-std::mutex bbox_handle_lock;
-std::condition_variable bbox_handle_end;
 
 static struct sigaction s_oldSa[SIGSYS + 1]; // SIGSYS = 31
 
 static FuncSaveKeyStatusInfo saveKeyStatusInfo = nullptr;
 static FuncSaveKeyStatus saveKeyStatus = nullptr;
-void SetFuncSaveKeyStatus(FuncSaveKeyStatus func, FuncSaveKeyStatusInfo infoFunc)
+static FuncGetKeyStatus getKeyStatus = nullptr;
+void SetFuncSaveKeyStatus(FuncGetKeyStatus getFunc, FuncSaveKeyStatus saveFunc, FuncSaveKeyStatusInfo infoFunc)
 {
-    saveKeyStatus = func;
+    getKeyStatus = getFunc;
+    saveKeyStatus = saveFunc;
     saveKeyStatusInfo = infoFunc;
 }
 
@@ -68,14 +73,32 @@ void TaskPendingCounterInc(void)
     ++g_taskPendingCounter;
 }
 
+static void SignalUnReg(int signo)
+{
+    sigaction(signo, &s_oldSa[signo], nullptr);
+}
+
+__attribute__((destructor)) static void BBoxDeInit()
+{
+    SignalUnReg(SIGABRT);
+    SignalUnReg(SIGBUS);
+    SignalUnReg(SIGFPE);
+    SignalUnReg(SIGILL);
+    SignalUnReg(SIGSTKFLT);
+    SignalUnReg(SIGSYS);
+    SignalUnReg(SIGTRAP);
+    SignalUnReg(SIGINT);
+    SignalUnReg(SIGKILL);
+}
+
 static inline void SaveCurrent()
 {
     FFRT_BBOX_LOG("<<<=== current status ===>>>");
+    FFRT_BBOX_LOG("signal %s triggered: source pid %d, tid %d", g_cur_signame, g_cur_pid, g_cur_tid);
     auto t = g_cur_task;
     if (t) {
         if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
-            FFRT_BBOX_LOG("signal %s triggered: source tid %d, task id %lu, qos %d, name %s",
-                g_cur_signame, g_cur_tid, t->gid, t->qos_(), t->label.c_str());
+            FFRT_BBOX_LOG("task id %lu, qos %d, name %s", t->gid, t->qos_(), t->label.c_str());
         }
     }
 }
@@ -116,7 +139,6 @@ static inline void SaveWorkerStatus()
     WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
         for (auto& thread : workerGroup[i].threads) {
             SaveLocalFifoStatus(i, thread.first);
             TaskBase* t = thread.first->curTask;
@@ -125,29 +147,6 @@ static inline void SaveWorkerStatus()
                 continue;
             }
             FFRT_BBOX_LOG("qos %d: worker tid %d is running task", i, thread.first->Id());
-        }
-    }
-}
-
-static inline void SaveReadyQueueStatus()
-{
-    FFRT_BBOX_LOG("<<<=== ready queue status ===>>>");
-    for (int i = 0; i < QoS::MaxNum(); i++) {
-        int nt = FFRTFacade::GetSchedInstance()->GetScheduler(i).RQSize();
-        if (!nt) {
-            continue;
-        }
-
-        for (int j = 0; j < nt; j++) {
-            CPUEUTask* t = FFRTFacade::GetSchedInstance()->GetScheduler(i).PickNextTask();
-            if (t == nullptr) {
-                FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> null", i, j, nt);
-                continue;
-            }
-            if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
-                FFRT_BBOX_LOG("qos %d: ready queue task <%d/%d> id %lu name %s",
-                    i, j, nt, t->gid, t->label.c_str());
-            }
         }
     }
 }
@@ -164,7 +163,6 @@ static inline void SaveKeyStatus()
 
 static inline void SaveNormalTaskStatus()
 {
-    TaskFactory<CPUEUTask>::LockMem();
     auto unfree = TaskFactory<CPUEUTask>::GetUnfreedMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         std::vector<CPUEUTask*> tmp;
@@ -182,20 +180,19 @@ static inline void SaveNormalTaskStatus()
         size_t idx = 1;
         for (auto t : tmp) {
             if (t->type == ffrt_normal_task) {
-                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
-                    tmp.size(), t->gid, t->qos_(), t->label.c_str());
+                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx, tmp.size(), t->gid, t->qos_(), t->label.c_str());
                 idx++;
             }
-            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))
-                && t != g_cur_task) {
+            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH)) &&
+                t != g_cur_task) {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-                    std::string dumpInfo;
-                    DumpTask(t, dumpInfo, 1);
-                    if (!dumpInfo.empty()) {
-                        FFRT_BBOX_LOG("%s", dumpInfo.c_str());
-                    }
+                std::string dumpInfo;
+                DumpTask(t, dumpInfo, 1);
+                if (!dumpInfo.empty()) {
+                    FFRT_BBOX_LOG("%s", dumpInfo.c_str());
+                }
 #else
-                    CoStart(t, GetCoEnv());
+                CoStart(t, GetCoEnv());
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
             }
         }
@@ -211,55 +208,90 @@ static inline void SaveNormalTaskStatus()
     apply("pending task", [](CPUEUTask* t) {
         return t->state == TaskState::PENDING;
     });
-    TaskFactory<CPUEUTask>::UnlockMem();
+    apply("ready task", [](CPUEUTask* t) {
+        return t->state == TaskState::READY;
+    });
+}
+
+static void DumpQueueTask(const char* tag, const std::vector<QueueTask*>& tasks,
+    const std::function<bool(QueueTask*)>& filter, size_t limit = EACH_QUEUE_TASK_DUMP_SIZE)
+{
+    std::vector<QueueTask*> tmp;
+    for (auto t : tasks) {
+        if (tmp.size() < limit && filter(t)) {
+            tmp.emplace_back(t);
+        }
+    }
+    if (tmp.size() == 0) {
+        return;
+    }
+
+    FFRT_BBOX_LOG("<<<=== %s ===>>>", tag);
+    size_t idx = 1;
+    for (auto t : tmp) {
+        if (t->type == ffrt_queue_task) {
+            FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx, tmp.size(), t->gid, t->GetQos(), t->label.c_str());
+            idx++;
+        }
+        if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+            std::string dumpInfo;
+            DumpTask(reinterpret_cast<CPUEUTask*>(t), dumpInfo, 1);
+            if (!dumpInfo.empty()) {
+                FFRT_BBOX_LOG("%s", dumpInfo.c_str());
+            }
+#else
+            CoStart(reinterpret_cast<CPUEUTask*>(t), GetCoEnv());
+#endif // FFRT_CO_BACKTRACE_OH_ENABLE
+        }
+    }
 }
 
 static inline void SaveQueueTaskStatus()
 {
-    TaskFactory<QueueTask>::LockMem();
-    auto unfreeQueueTask = TaskFactory<QueueTask>::GetUnfreedMem();
-    auto applyqueue = [&](const char* tag, const std::function<bool(QueueTask*)>& filter) {
-        std::vector<QueueTask*> tmp;
-        for (auto task : unfreeQueueTask) {
-            auto t = reinterpret_cast<QueueTask*>(task);
-            if (filter(t)) {
-                tmp.emplace_back(t);
-            }
-        }
+    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
+    if (unfreeQueueTask.size() == 0) {
+        return;
+    }
 
-        if (tmp.size() > 0) {
-            FFRT_BBOX_LOG("<<<=== %s ===>>>", tag);
+    std::map<QueueHandler*, std::vector<QueueTask*>> taskMap;
+    for (auto t : unfreeQueueTask) {
+        auto task = reinterpret_cast<QueueTask*>(t);
+        if (task->type == ffrt_queue_task && task->GetFinishStatus() == false && task->GetHandler() != nullptr) {
+            taskMap[task->GetHandler()].push_back(task);
         }
-        size_t idx = 1;
-        for (auto t : tmp) {
-            if (t->type == ffrt_queue_task) {
-                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
-                    tmp.size(), t->gid, t->GetQos(), t->label.c_str());
-                idx++;
-            }
+    }
+    if (taskMap.empty()) {
+        return;
+    }
 
-            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
-                CoStart(reinterpret_cast<CPUEUTask*>(t), GetCoEnv());
-            }
-        }
-    };
+    for (auto entry : taskMap) {
+        std::sort(entry.second.begin(), entry.second.end(), [](QueueTask* first, QueueTask* second) {
+            return first->GetUptime() < second->GetUptime();
+        });
+    }
 
-    applyqueue("queue task blocked by synchronization primitive(mutex etc)", [](QueueTask* t) {
-        return (t->GetFinishStatus() == false) && t->coRoutine &&
-            t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
-    });
-    TaskFactory<QueueTask>::UnlockMem();
+    for (auto entry : taskMap) {
+        DumpQueueTask("queue task blocked by synchronization primitive(mutex etc)", entry.second,
+            [](QueueTask* t) {
+                return (t->GetFinishStatus() == false) && t->coRoutine &&
+                    t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
+            });
+        DumpQueueTask("queue task unFinished", entry.second, [](QueueTask* t) {
+            return (t->GetFinishStatus() == false && !(t->coRoutine &&
+                t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH)));
+        });
+    }
 }
 
 static std::atomic_uint g_bbox_tid_is_dealing {0};
 static std::atomic_uint g_bbox_called_times {0};
-static std::condition_variable g_bbox_cv;
-static std::mutex g_bbox_mtx;
 
 void BboxFreeze()
 {
-    std::unique_lock<std::mutex> lk(g_bbox_mtx);
-    g_bbox_cv.wait(lk, [] { return g_bbox_tid_is_dealing.load() == 0; });
+    while (g_bbox_tid_is_dealing.load() != 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PID_SLEEP_MS));
+    }
 }
 
 void backtrace(int ignoreDepth)
@@ -315,56 +347,22 @@ void RecordDebugInfo(void)
  */
 void SaveTheBbox()
 {
-    if (g_bbox_called_times.fetch_add(1) == 0) { // only save once
-        std::thread([&]() {
-            unsigned int expect = 0;
-            unsigned int tid = static_cast<unsigned int>(gettid());
-            ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
-            (void)g_bbox_tid_is_dealing.compare_exchange_strong(expect, tid);
-            monitor->WorkerInit();
-
 #ifdef OHOS_STANDARD_SYSTEM
-            FaultLoggerFdManager::Instance().InitFaultLoggerFd();
+    FaultLoggerFdManager::Instance().InitFaultLoggerFd();
 #endif
-            FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
-            SaveCurrent();
+    FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
+    SaveCurrent();
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
-            SaveTaskCounter();
+    SaveTaskCounter();
 #endif
-            SaveWorkerStatus();
-            SaveKeyStatus();
-            SaveReadyQueueStatus();
-            SaveNormalTaskStatus();
-            SaveQueueTaskStatus();
-            FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
+    SaveWorkerStatus();
+    SaveKeyStatus();
+    SaveNormalTaskStatus();
+    SaveQueueTaskStatus();
+    FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
 #ifdef OHOS_STANDARD_SYSTEM
-            FaultLoggerFdManager::Instance().CloseFd();
+    FaultLoggerFdManager::Instance().CloseFd();
 #endif
-
-            std::unique_lock handle_end_lk(bbox_handle_lock);
-            bbox_handle_end.notify_one();
-
-            std::lock_guard lk(g_bbox_mtx);
-            g_bbox_tid_is_dealing.store(0);
-            g_bbox_cv.notify_all();
-        }).detach();
-
-        {
-            std::unique_lock lk(bbox_handle_lock);
-            (void)bbox_handle_end.wait_for(lk, std::chrono::seconds(5));
-        }
-    } else {
-        unsigned int tid = static_cast<unsigned int>(gettid());
-        if (tid == g_bbox_tid_is_dealing.load()) {
-            FFRT_LOGE("thread %u black box save failed", tid);
-            g_bbox_tid_is_dealing.store(0);
-            g_bbox_cv.notify_all();
-        } else {
-            FFRT_LOGE("thread %u trigger signal again, when thread %u is saving black box",
-                tid, g_bbox_tid_is_dealing.load());
-            BboxFreeze(); // hold other thread's signal resend
-        }
-    }
 }
 
 static void ResendSignal(siginfo_t* info)
@@ -390,15 +388,54 @@ static const char* GetSigName(const siginfo_t* info)
     }
 }
 
-static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
+static void HandleChildProcess()
 {
-    if (FFRTIsWork()) {
+    BBoxDeInit();
+    pid_t childPid = (pid_t)syscall(SYS_clone, SIGCHLD, 0);
+    if (childPid == 0) {
+#ifdef OHOS_STANDARD_SYSTEM
+        RegisterAllocator();
+#endif
         // init is false to avoid deadlock occurs in the signal handling function due to memory allocation calls.
         auto ctx = ExecuteCtx::Cur(false);
         g_cur_task = ctx != nullptr ? ctx->task : nullptr;
-        g_cur_tid = gettid();
-        g_cur_signame = GetSigName(info);
+        g_bbox_tid_is_dealing.store(gettid());
         SaveTheBbox();
+        g_bbox_tid_is_dealing.store(0);
+#ifdef OHOS_STANDARD_SYSTEM
+        UnregisterAllocator();
+#endif
+        _exit(0);
+    } else if (childPid > 0) {
+        pid_t wpid;
+        unsigned int remainingRetries = WAIT_PID_MAX_RETRIES;
+        while ((wpid = waitpid(childPid, nullptr, WNOHANG)) == 0 && remainingRetries-- > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PID_SLEEP_MS));
+        }
+        if (wpid == 0) {
+            (void)kill(childPid, SIGKILL);
+        }
+    }
+}
+
+static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
+{
+    if (FFRTIsWork() && g_bbox_called_times.fetch_add(1) == 0) { // only save once
+        g_cur_pid = static_cast<unsigned int>(getpid());
+        g_cur_tid = static_cast<unsigned int>(gettid());
+        g_cur_signame = GetSigName(info);
+        if (getKeyStatus != nullptr) {
+            getKeyStatus();
+        }
+        pid_t childPid = static_cast<pid_t>(syscall(SYS_clone, SIGCHLD, 0));
+        if (childPid == 0) {
+            HandleChildProcess();
+            _exit(0);
+        } else if (childPid > 0) {
+            g_bbox_tid_is_dealing.store(g_cur_tid);
+            waitpid(childPid, nullptr, 0);
+            g_bbox_tid_is_dealing.store(0);
+        }
     }
     // we need to deregister our signal handler for that signal before continuing.
     sigaction(signo, &s_oldSa[signo], nullptr);
@@ -414,11 +451,6 @@ static void SignalReg(int signo)
     sigaction(signo, &newAction, nullptr);
 }
 
-static void SignalUnReg(int signo)
-{
-    sigaction(signo, &s_oldSa[signo], nullptr);
-}
-
 __attribute__((constructor)) static void BBoxInit()
 {
     SignalReg(SIGABRT);
@@ -430,19 +462,6 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGTRAP);
     SignalReg(SIGINT);
     SignalReg(SIGKILL);
-}
-
-__attribute__((destructor)) static void BBoxDeInit()
-{
-    SignalUnReg(SIGABRT);
-    SignalUnReg(SIGBUS);
-    SignalUnReg(SIGFPE);
-    SignalUnReg(SIGILL);
-    SignalUnReg(SIGSTKFLT);
-    SignalUnReg(SIGSYS);
-    SignalUnReg(SIGTRAP);
-    SignalUnReg(SIGINT);
-    SignalUnReg(SIGKILL);
 }
 
 static inline std::string FormatDateString(uint64_t timeStamp)

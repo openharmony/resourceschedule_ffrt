@@ -22,6 +22,7 @@
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
 #include "eu/func_manager.h"
+#include "cpp/task_ext.h"
 
 namespace {
 const int TSD_SIZE = 128;
@@ -52,7 +53,15 @@ void CPUEUTask::FreeMem()
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif
-    TaskFactory<CPUEUTask>::Free(this);
+    auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
+    if ((f->reserve[0] & MASK_FOR_HCS_TASK) != MASK_FOR_HCS_TASK) {
+        if (f->destroy) {
+            f->destroy(f);
+        }
+        TaskFactory<CPUEUTask>::Free(this);
+        return;
+    }
+    this->~CPUEUTask();
 }
 
 void CPUEUTask::Execute()
@@ -65,9 +74,6 @@ void CPUEUTask::Execute()
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
         f->exec(f);
-    }
-    if (f->destroy) {
-        f->destroy(f);
     }
     FFRT_TASKDONE_MARKER(gid);
     if (!USE_COROUTINE) {

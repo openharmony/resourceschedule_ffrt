@@ -510,6 +510,7 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func,
     auto f = new (p)function_type;
     f->header.exec = exec_function_wrapper<T>;
     f->header.destroy = destroy_function_wrapper<T>;
+    f->header.reserve[0] = 0;
     f->closure = std::forward<T>(func);
     return reinterpret_cast<ffrt_function_header_t*>(f);
 }

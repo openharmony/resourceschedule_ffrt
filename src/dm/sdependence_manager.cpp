@@ -20,6 +20,7 @@
 #include "util/slab.h"
 #include "tm/queue_task.h"
 #include "tm/io_task.h"
+#include "util/ref_function_header.h"
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
@@ -280,6 +281,13 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos());
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos(),  task);
     FFRT_TRACE_SCOPE(1, ontaskDone);
+
+    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
+    // hcs task dec ref
+    if ((f->reserve[0] & MASK_FOR_HCS_TASK) == MASK_FOR_HCS_TASK) {
+        FFRT_LOGW("hcs task taskdone dec ref gid:%llu, create time:%llu", sTask->gid, sTask->createTime);
+        reinterpret_cast<RefFunctionHeader*>(f->reserve[0] & (~MASK_FOR_HCS_TASK))->DecDeleteRef();
+    }
     if (!(sTask->ins.empty() && sTask->outs.empty())) {
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
         FFRT_TRACE_SCOPE(1, taskDoneAfterLock);

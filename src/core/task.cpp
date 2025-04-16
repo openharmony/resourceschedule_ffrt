@@ -39,6 +39,7 @@
 #include "tm/task_factory.h"
 #include "tm/queue_task.h"
 #include "util/common_const.h"
+#include "util/ref_function_header.h"
 
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
@@ -54,15 +55,23 @@ inline int submit_nb_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_func
     return FFRTFacade::GetDMInstance().onSubmitNb(has_handle, handle, f, ins, outs, attr);
 }
 
-inline void destroy_auto_managed_function_storage_base(ffrt_function_header_t *f)
+void DestroyFunctionWrapper(ffrt_function_header_t* f,
+    ffrt_function_kind_t kind = ffrt_function_kind_general)
 {
-    if (f->destroy) {
-        f->destroy(f);
+    if (f == nullptr || f->destroy == nullptr) {
+        return;
     }
-
-    ffrt::CPUEUTask* t = reinterpret_cast<ffrt::CPUEUTask*>(static_cast<uintptr_t>(
-        static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(ffrt::CPUEUTask, func_storage)));
-    ffrt::TaskFactory<ffrt::CPUEUTask>::Free_(t);
+    f->destroy(f);
+    // 按照kind转化为对应类型，释放内存
+    if (kind == ffrt_function_kind_general) {
+        CPUEUTask *t = reinterpret_cast<CPUEUTask *>(static_cast<uintptr_t>(
+            static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(CPUEUTask, func_storage)));
+        TaskFactory<CPUEUTask>::Free_(t);
+        return;
+    }
+    QueueTask *t = reinterpret_cast<QueueTask *>(static_cast<uintptr_t>(
+        static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(QueueTask, func_storage)));
+    TaskFactory<QueueTask>::Free_(t);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -338,14 +347,14 @@ ffrt_error_t ffrt_submit_base_nb(ffrt_function_header_t *f, const ffrt_deps_t *i
     const ffrt::task_attr_private *p = reinterpret_cast<const ffrt::task_attr_private *>(attr);
     if (unlikely(p && p->delay_ > 0)) {
         FFRT_LOGE("delay cannot be set in non-blocking mode.");
-        ffrt::destroy_auto_managed_function_storage_base(f);
+        ffrt::DestroyFunctionWrapper(f, ffrt_function_kind_general);
         return ffrt_error;
     }
 
     ffrt_task_handle_t handle = nullptr;
     int ret = ffrt::submit_nb_impl(false, handle, f, in_deps, out_deps, p);
     if (ret != 0) {
-        ffrt::destroy_auto_managed_function_storage_base(f);
+        ffrt::DestroyFunctionWrapper(f, ffrt_function_kind_general);
         return ffrt_error;
     }
     return ffrt_success;

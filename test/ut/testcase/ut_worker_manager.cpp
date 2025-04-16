@@ -22,6 +22,7 @@
 #include <cstring>
 #define private public
 #define protected public
+#include "util/ffrt_facade.h"
 #include "eu/worker_manager.h"
 #include "eu/scpuworker_manager.h"
 #include "eu/scpu_monitor.h"
@@ -235,6 +236,7 @@ HWTEST_F(WorkerManagerTest, CPUMonitorHandleTaskNotifyConservativeTest2, TestSiz
     manager->NotifyTaskAdded(QoS(2)); // task notify event
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, 1);
 }
+
 #ifndef FFRT_GITEE
 HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
 {
@@ -271,3 +273,36 @@ HWTEST_F(WorkerManagerTest, PickUpTaskBatch, TestSize.Level1)
     delete strategy;
 }
 #endif
+
+/*
+ * 测试用例名称：SetWorkerStackSizeTest
+ * 测试用例描述：设置worker线程栈大小
+ * 预置条件    ：记录当前系统默认的线程栈
+ * 操作步骤    ：1、调用set_worker_stack_size方法，传入不支持的栈大小
+ *              2、调用set_worker_stack_size方法，传入正确的栈大小
+ *              3、当WorkerGroup中已有线程时，调用set_worker_stack_size方法，传入正确的栈大小
+ * 预期结果    ：1、设置线程栈大小失败，返回ffrt_error_inval
+ *              2、设置线程栈大小成功，返回ffrt_success
+ *              3、设置线程栈大小失败，返回ffrt_error
+ */
+HWTEST_F(WorkerManagerTest, SetWorkerStackSizeTest, TestSize.Level1)
+{
+    size_t originStackSize = 0;
+    std::unique_ptr<WorkerThread> originThread = std::make_unique<WorkerThread>(6);
+    pthread_attr_getstacksize(&originThread->attr_, &originStackSize);
+
+    EXPECT_EQ(set_worker_stack_size(6, 1), ffrt_error_inval);
+    EXPECT_EQ(set_worker_stack_size(6, 12 * 1024 * 1024), ffrt_success);
+
+    std::unique_ptr<WorkerThread> thread = std::make_unique<WorkerThread>(6);
+    size_t stackSize = 0;
+    pthread_attr_getstacksize(&thread->attr_, &stackSize);
+    EXPECT_EQ(stackSize, 12 * 1024 * 1024);
+
+    ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
+    groupCtl[6].threads.insert({thread.get(), std::move(thread)});
+    EXPECT_EQ(set_worker_stack_size(6, 12 * 1024 * 1024), ffrt_error);
+
+    groupCtl[6].threads.clear();
+    EXPECT_EQ(set_worker_stack_size(6, originStackSize), ffrt_success);
+}

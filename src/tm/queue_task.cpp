@@ -85,11 +85,6 @@ void QueueTask::Execute()
 {
     IncDeleteRef();
     FFRT_LOGD("Execute stask[%lu], name[%s]", gid, label.c_str());
-    if (isFinished_.load()) {
-        FFRT_LOGE("task [gid=%llu] is complete, no need to execute again", gid);
-        DecDeleteRef();
-        return;
-    }
 
     handler_->Dispatch(this);
     FFRT_TASKDONE_MARKER(gid);

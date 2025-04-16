@@ -18,9 +18,11 @@
 #include <atomic>
 #include <vector>
 #include "eu/co_routine.h"
+#include "internal_inc/types.h"
 #include "qos.h"
 #include "sched/execute_ctx.h"
 #include "internal_inc/non_copyable.h"
+#include "util/time_format.h"
 #ifdef ENABLE_HITRACE_CHAIN
 #include "hitrace/hitracechainc.h"
 #endif
@@ -95,6 +97,9 @@ public:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
     std::mutex mutex_; // used in coroute
     std::condition_variable waitCond_; // cv for thread wait
+    CoTaskStatus curStatus = CoTaskStatus::PENDING;
+    CoTaskStatus preStatus = CoTaskStatus::PENDING;
+    uint64_t statusTime = TimeStampCntvct();
 
     // !deprecated
     void SetTraceTag(const char* name)
@@ -110,6 +115,13 @@ public:
     std::string GetLabel() const override
     {
         return label;
+    }
+
+    void SetStatus(CoTaskStatus statusIn)
+    {
+        statusTime = TimeStampCntvct();
+        preStatus = curStatus;
+        curStatus = statusIn;
     }
 };
 } // namespace ffrt

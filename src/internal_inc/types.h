@@ -71,6 +71,15 @@ enum class TaskStatus {
     RELEASED, // 预留，暂不使用
 };
 
+enum class CoTaskStatus {
+    PENDING, // 任务创建后的初始状态
+    ENQUEUED, // 队列任务插入队列中
+    DEQUEUED, // 队列任务从队列中取出
+    POPED, // 任务从ReadyQueue中Pop出，等待执行
+    EXECUTING, // 任务执行在worker线程
+    CANCELED, // 任务未执行前被取消
+};
+
 typedef enum {
     ET_PENDING, // executor_task 非入队状态
     ET_EXECUTING, // executor_task 执行状态

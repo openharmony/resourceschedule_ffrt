@@ -70,6 +70,7 @@ public:
 
     inline void SetNextTask(QueueTask* task)
     {
+        task->SetStatus(CoTaskStatus::DEQUEUED);
         nextTask_ = task;
     }
 

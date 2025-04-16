@@ -186,7 +186,9 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     while (!WhenMapVecEmpty(whenMapVec_) && now < minMaptime && !isExit_) {
         uint64_t diff = minMaptime - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
+        delayStatus_ = true;
         cond_.wait_for(lock, std::chrono::microseconds(diff));
+        delayStatus_ = false;
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
         minMaptime = GetMinMapTime(whenMapVec_);
@@ -204,12 +206,14 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     return dequeFunc_(queueId_, now, whenMapVec_, &pulledTaskCount_);
 }
 
-void EventHandlerAdapterQueue::Remove()
+int EventHandlerAdapterQueue::Remove()
 {
     std::unique_lock lock(mutex_);
+    uint32_t count = 0;
     for (auto& currentMap : whenMapVec_) {
-        BaseQueue::Remove(currentMap);
+        count += BaseQueue::Remove(currentMap);
     }
+    return count;
 }
 
 int EventHandlerAdapterQueue::Remove(const char* name)
@@ -253,6 +257,19 @@ bool EventHandlerAdapterQueue::IsIdle()
         }
     }
     return true;
+}
+
+uint32_t EventHandlerAdapterQueue::GetDueTaskCount()
+{
+    std::unique_lock lock(mutex_);
+    int count = 0;
+    for (auto& currentMap : whenMapVec_) {
+        count += BaseQueue::GetDueTaskCount(currentMap);
+    }
+    if (count != 0) {
+        FFRT_LOGI("qid = %lu Current Due Task Count %u", GetQueueId(), count);
+    }
+    return count;
 }
 
 int EventHandlerAdapterQueue::Dump(const char* tag, char* buf, uint32_t len, bool historyInfo)

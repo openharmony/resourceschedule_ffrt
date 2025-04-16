@@ -17,13 +17,16 @@
 
 #include <atomic>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include "c/queue.h"
 #include "c/queue_ext.h"
 #include "cpp/task.h"
+#include "internal_inc/types.h"
 #include "base_queue.h"
 #include "sched/execute_ctx.h"
+#include "traffic_record.h"
 
 namespace ffrt {
 class QueueTask;
@@ -42,8 +45,9 @@ public:
     void Dispatch(QueueTask* inTask);
     void Submit(QueueTask* task);
     void TransferTask(QueueTask* task);
-
     std::string GetDfxInfo() const;
+    std::pair<uint64_t, uint64_t> EvaluateTaskTimeout(uint64_t timeoutThreshold, uint64_t timeoutUs,
+        std::stringstream& ss);
 
     bool SetLoop(Loop* loop);
     bool ClearLoop();
@@ -84,6 +88,23 @@ public:
         return queue_->GetMapSize();
     }
 
+    inline uint32_t GetQueueDueCount()
+    {
+        FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "[queueId=%u] constructed failed", GetQueueId());
+        return queue_->GetDueTaskCount();
+    }
+
+    inline QueueTask* GetCurTask()
+    {
+        std::unique_lock lock(mutex_);
+        return curTask_;
+    }
+
+    inline bool CheckDelayStatus()
+    {
+        return queue_->DelayStatus();
+    }
+
     bool IsIdle();
     void SetEventHandler(void* eventHandler);
     void* GetEventHandler();
@@ -94,6 +115,11 @@ public:
     inline const std::unique_ptr<BaseQueue>& GetQueue()
     {
         return queue_;
+    }
+
+    inline int GetType()
+    {
+        return queue_->GetQueueType();
     }
 
 private:
@@ -108,6 +134,8 @@ private:
     void SendSchedTimer(TimePoint delay);
     void AddSchedDeadline(QueueTask* task);
     void RemoveSchedDeadline(QueueTask* task);
+    void ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss);
+    uint64_t CheckTimeSchedule(uint64_t time, uint64_t timeoutUs);
 
     // queue info
     std::string name_;
@@ -115,11 +143,24 @@ private:
     std::unique_ptr<BaseQueue> queue_ = nullptr;
     std::atomic_bool isUsed_ = false;
     std::atomic_uint64_t execTaskId_ = 0;
+    QueueTask* curTask_ = nullptr;
+    uint64_t desWaitCnt_ = 0;
 
     // for timeout watchdog
+    struct TimeoutTask {
+        uint64_t taskGid{0};
+        uint64_t timeoutCnt{0};
+        CoTaskStatus taskStatus{CoTaskStatus::PENDING};
+        TimeoutTask() = default;
+        TimeoutTask(uint64_t gid, uint64_t timeoutcnt, CoTaskStatus status)
+            : taskGid(gid), timeoutCnt(timeoutcnt), taskStatus(status) {}
+    };
     uint64_t timeout_ = 0;
+    TimeoutTask timeoutTask_;
     std::atomic_int delayedCbCnt_ = {0};
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    TrafficRecord trafficRecord_;
+    uint64_t trafficRecordInterval_ = DEFAULT_TRAFFIC_INTERVAL;
 
     std::mutex mutex_;
     bool initSchedTimer_ = false;

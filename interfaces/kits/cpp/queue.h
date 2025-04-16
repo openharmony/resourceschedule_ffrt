@@ -167,6 +167,30 @@ public:
     }
 
     /**
+     * @brief Sets traffic record interval for this queue attribute.
+     *
+     * @param traffic_interval_us Indicates the traffic record interval.
+     * @return Returns the current queue_attr object for chaining.
+     * @since 12
+     */
+    inline queue_attr& traffic_interval(uint64_t traffic_interval_us)
+    {
+        ffrt_queue_attr_set_traffic_interval(this, traffic_interval_us);
+        return *this;
+    }
+
+    /**
+     * @brief Gets traffic record interval for this queue attribute.
+     *
+     * @return Returns the traffic record interval value in microseconds.
+     * @since 12
+     */
+    inline uint64_t traffic_interval() const
+    {
+        return ffrt_queue_attr_get_traffic_interval(this);
+    }
+    
+    /**
      * @brief Sets the maximum concurrency level for this queue attribute.
      *
      * @param max_concurrency Indicates the maximum concurrency level.

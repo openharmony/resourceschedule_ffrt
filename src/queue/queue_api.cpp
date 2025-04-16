@@ -50,6 +50,10 @@ inline QueueTask* ffrt_queue_submit_base(ffrt_queue_t queue, ffrt_function_heade
     handler->Submit(task);
     return task;
 }
+
+constexpr uint64_t MIN_TRAFFIC_INTERVAL_US = 1000000;
+constexpr uint64_t MAX_TRAFFIC_INTERVAL_US = 600000000;
+constexpr uint64_t DEFAULT_TRAFFIC_INTERVAL_US = 6000000;
 } // namespace
 
 API_ATTRIBUTE((visibility("default")))
@@ -105,6 +109,27 @@ uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr)
     FFRT_COND_DO_ERR((attr == nullptr), return 0, "input invalid, attr == nullptr");
     ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);
     return (reinterpret_cast<ffrt::queue_attr_private*>(p))->timeout_;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_queue_attr_set_traffic_interval(ffrt_queue_attr_t* attr, uint64_t trafficInterval)
+{
+    FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
+    if ((trafficInterval < MIN_TRAFFIC_INTERVAL_US || trafficInterval >
+        MAX_TRAFFIC_INTERVAL_US) && (trafficInterval != 0)) {
+        FFRT_LOGE("Invalid time interval, default of 6s is used");
+        (reinterpret_cast<ffrt::queue_attr_private*>(attr))->trafficRecordInterval_ = DEFAULT_TRAFFIC_INTERVAL_US;
+    } else {
+        (reinterpret_cast<ffrt::queue_attr_private*>(attr))->trafficRecordInterval_ = trafficInterval;
+    }
+}
+
+API_ATTRIBUTE((visibility("default")))
+uint64_t ffrt_queue_attr_get_traffic_interval(const ffrt_queue_attr_t* attr)
+{
+    FFRT_COND_DO_ERR((attr == nullptr), return 0, "input invalid, attr == nullptr");
+    ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);
+    return (reinterpret_cast<ffrt::queue_attr_private*>(p))->trafficRecordInterval_;
 }
 
 API_ATTRIBUTE((visibility("default")))

@@ -16,21 +16,20 @@
 #define FFRT_QUEUE_MONITOR_H
 
 #include <vector>
+#include <sstream>
 #include <shared_mutex>
+#include "util/slab.h"
 #include "sched/execute_ctx.h"
-#include "queue_handler.h"
+#include "tm/queue_task.h"
 
 namespace ffrt {
+class QueueHandler;
 class QueueMonitor {
 public:
     static QueueMonitor &GetInstance();
-    void RegisterQueueId(uint32_t queueId, QueueHandler* queueStruct);
-    void ResetQueueInfo(uint32_t queueId);
-    void ResetQueueStruct(uint32_t queueId);
-    void UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId);
-    uint64_t QueryQueueStatus(uint32_t queueId);
-    bool HasQueueActive();
-    void UpdateTimeoutUs();
+    void RegisterQueue(QueueHandler* queue);
+    void DeregisterQueue(QueueHandler* queue);
+    void UpdateQueueInfo();
 
 private:
     QueueMonitor();
@@ -40,17 +39,17 @@ private:
     QueueMonitor &operator=(const QueueMonitor &) = delete;
     QueueMonitor &operator=(QueueMonitor &&) = delete;
 
-    void SendDelayedWorker(TimePoint delay);
-    void CheckQueuesStatus();
-    void ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64_t &taskId);
+    void SetAlarm(uint64_t steadyUs);
+    void ScheduleAlarm();
+    void CheckTimeout(uint64_t& nextTaskStart);
+    void ReportEventTimeout(uint64_t curGid, const std::stringstream& ss);
 
     WaitUntilEntry* we_ = nullptr;
     uint64_t timeoutUs_ = 0;
-    std::shared_mutex mutex_;
-    std::vector<std::pair<uint64_t, TimePoint>> queuesRunningInfo_;
-    std::vector<QueueHandler*> queuesStructInfo_;
-    std::atomic_bool exit_ { true };
-    std::vector<uint64_t> lastReportedTask_;
+    std::stringstream timeoutMSG_;
+    std::shared_mutex infoMutex_;
+    std::atomic_bool suspendAlarm_ = {true};
+    std::vector<QueueHandler*> queuesInfo_;
 };
 } // namespace ffrt
 

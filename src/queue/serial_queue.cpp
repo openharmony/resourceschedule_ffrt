@@ -43,6 +43,7 @@ int SerialQueue::Push(QueueTask* task)
         return INACTIVE;
     }
 
+    task->SetStatus(CoTaskStatus::ENQUEUED);
     if (task->InsertHead() && !whenMap_.empty()) {
         FFRT_LOGD("head insert task=%u in [queueId=%u]", task->gid, queueId_);
         uint64_t headTime = (whenMap_.begin()->first > 0) ? whenMap_.begin()->first - 1 : 0;
@@ -74,7 +75,9 @@ QueueTask* SerialQueue::Pull()
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
+        delayStatus_ = true;
         cond_.wait_for(lock, std::chrono::microseconds(diff));
+        delayStatus_ = false;
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
     }

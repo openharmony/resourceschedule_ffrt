@@ -20,6 +20,7 @@
 #include "concurrent_queue.h"
 #include "eventhandler_adapter_queue.h"
 #include "eventhandler_interactive_queue.h"
+#include "util/time_format.h"
 #include "base_queue.h"
 
 namespace {
@@ -33,17 +34,20 @@ const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_eventhandler_adapter, ffrt::CreateEventHandlerAdapterQueue },
 };
 
-void ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::condition_variable& cond)
+int ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::condition_variable& cond)
 {
     for (auto it = whenMap.begin(); it != whenMap.end(); it++) {
         if (it->second) {
+            it->second->SetStatus(ffrt::CoTaskStatus::CANCELED);
             it->second->Notify();
             it->second->Destroy();
             it->second = nullptr;
         }
     }
+    int mapSize = static_cast<int>(whenMap.size());
     whenMap.clear();
     cond.notify_one();
+    return mapSize;
 }
 }
 
@@ -63,18 +67,19 @@ void BaseQueue::Stop(std::multimap<uint64_t, QueueTask*>& whenMap)
     ClearWhenMap(whenMap, cond_);
 }
 
-void BaseQueue::Remove()
+int BaseQueue::Remove()
 {
     std::unique_lock lock(mutex_);
-    Remove(whenMap_);
+    return Remove(whenMap_);
 }
 
-void BaseQueue::Remove(std::multimap<uint64_t, QueueTask*>& whenMap)
+int BaseQueue::Remove(std::multimap<uint64_t, QueueTask*>& whenMap)
 {
-    FFRT_COND_DO_ERR(isExit_, return, "cannot remove task, [queueId=%u] is exiting", queueId_);
+    FFRT_COND_DO_ERR(isExit_, return 0, "cannot remove task, [queueId=%u] is exiting", queueId_);
 
-    ClearWhenMap(whenMap, cond_);
-    FFRT_LOGD("cancel [queueId=%u] all tasks succ", queueId_);
+    int mapSize = ClearWhenMap(whenMap, cond_);
+    FFRT_LOGD("cancel [queueId=%u] all tasks succ, count %u", queueId_, mapSize);
+    return mapSize;
 }
 
 int BaseQueue::Remove(const char* name)
@@ -91,6 +96,7 @@ int BaseQueue::Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whe
     for (auto iter = whenMap.begin(); iter != whenMap.end();) {
         if (iter->second->IsMatch(name)) {
             FFRT_LOGD("cancel task[%llu] %s succ", iter->second->gid, iter->second->label.c_str());
+            iter->second->SetStatus(CoTaskStatus::CANCELED);
             iter->second->Notify();
             iter->second->Destroy();
             iter = whenMap.erase(iter);
@@ -100,7 +106,7 @@ int BaseQueue::Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whe
         }
     }
 
-    return removedCount > 0 ? SUCC : FAILED;
+    return removedCount;
 }
 
 int BaseQueue::Remove(const QueueTask* task)
@@ -143,5 +149,33 @@ std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* a
     FFRT_COND_DO_ERR((iter == CREATE_FUNC_MAP.end()), return nullptr, "invalid queue type");
 
     return iter->second(attr);
+}
+
+uint32_t BaseQueue::GetDueTaskCount()
+{
+    std::unique_lock lock(mutex_);
+    uint32_t count = GetDueTaskCount(whenMap_);
+    if (count != 0) {
+        FFRT_LOGD("qid = %u Current Due Task Count %u", GetQueueId(), count);
+    }
+    return count;
+}
+
+uint32_t BaseQueue::GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap)
+{
+    const uint64_t& time = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now()).time_since_epoch().count());
+    auto it = whenMap.lower_bound(time);
+    uint32_t count = std::distance(whenMap.begin(), it);
+    return count;
+}
+
+QueueTask* BaseQueue::GetHeadTask()
+{
+    std::unique_lock lock(mutex_);
+    if (whenMap_.empty()) {
+        return nullptr;
+    }
+    return whenMap_.begin()->second;
 }
 } // namespace ffrt

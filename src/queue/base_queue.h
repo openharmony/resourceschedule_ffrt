@@ -45,10 +45,11 @@ public:
     virtual QueueTask* Pull() = 0;
     virtual bool GetActiveStatus() = 0;
     virtual int GetQueueType() const = 0;
-    virtual void Remove();
+    virtual int Remove();
     virtual int Remove(const char* name);
     virtual int Remove(const QueueTask* task);
     virtual void Stop();
+    virtual uint32_t GetDueTaskCount();
 
     virtual bool IsOnLoop()
     {
@@ -66,8 +67,14 @@ public:
         return queueId_;
     }
 
-    virtual bool HasTask(const char* name);
+    inline bool DelayStatus()
+    {
+        return delayStatus_;
+    }
 
+    virtual bool HasTask(const char* name);
+    virtual QueueTask* GetHeadTask();
+    ffrt::mutex mutex_;
 protected:
     inline uint64_t GetNow() const
     {
@@ -76,18 +83,19 @@ protected:
     }
 
     void Stop(std::multimap<uint64_t, QueueTask*>& whenMap);
-    void Remove(std::multimap<uint64_t, QueueTask*>& whenMap);
+    int Remove(std::multimap<uint64_t, QueueTask*>& whenMap);
     int Remove(const QueueTask* task, std::multimap<uint64_t, QueueTask*>& whenMap);
     int Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whenMap);
     bool HasTask(const char* name, std::multimap<uint64_t, QueueTask*> whenMap);
+    uint32_t GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap);
 
     const uint32_t queueId_;
+    bool delayStatus_ { false };
     bool isExit_ { false };
     std::atomic_bool isActiveState_ { false };
     std::multimap<uint64_t, QueueTask*> whenMap_;
     QueueStrategy<QueueTask>::DequeFunc dequeFunc_ { nullptr };
 
-    ffrt::mutex mutex_;
     ffrt::condition_variable cond_;
 };
 

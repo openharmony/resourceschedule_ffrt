@@ -20,6 +20,10 @@
 #include "c/queue_ext.h"
 #include "../common.h"
 #include "queue/base_queue.h"
+#include "sync/delayed_worker.h"
+#define private public
+#include "queue/queue_monitor.h"
+#undef private
 
 using namespace std;
 using namespace ffrt;
@@ -648,4 +652,327 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
 
     EXPECT_EQ(result, 1);
     delete serialQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_recordtraffic_normal_trigger
+ * 测试用例描述 : 设置串行队列的traffic_interval并生效
+ * 操作步骤     : 1、创建队列
+ *               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口
+ *               3、提交堆积任务
+ * 预期结果    : 成功触发流量监控告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level1)
+{
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    ffrt_queue_attr_t queue_attr;
+    ffrt_task_handle_t handle;
+    ffrt_task_attr_t task_attr;
+    int result = 0;
+    (void)ffrt_task_attr_init(&task_attr);
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_traffic_interval(&queue_attr, 1000000);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()>&& firstFunc = [&result]() {
+        result = result + 1;
+        usleep(1100000);
+    };
+    std::function<void()>&& fastFunc = [&result]() {
+        result = result + 1;
+    };
+
+    ffrt_queue_submit(queue_handle, create_function_wrapper(firstFunc, ffrt_function_kind_queue), &task_attr);
+    for (int i = 0; i < 30; i++) {
+        ffrt_queue_submit(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
+    }
+    usleep(1000000);
+    handle = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_wait(handle);
+    EXPECT_EQ(result, 32);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+* 测试用例名称 : ffrt_queue_recordtraffic_disable
+* 测试用例描述 : 关闭串行队列流量监控
+* 操作步骤     : 1、创建队列
+*               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口为0，即关闭流量监控
+* 预期结果    : 即便有任务堆积也不会触发流量监控告警
+*/
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_disable, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    ffrt_task_handle_t handle;
+    ffrt_task_attr_t task_attr;
+    int result = 0;
+    (void)ffrt_task_attr_init(&task_attr);
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_traffic_interval(&queue_attr, 0);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()>&& firstFunc = [&result]() {
+        result = result + 1;
+        usleep(1100000);
+    };
+    std::function<void()>&& fastFunc = [&result]() {
+        result = result + 1;
+    };
+
+    ffrt_queue_submit(queue_handle, create_function_wrapper(firstFunc, ffrt_function_kind_queue), &task_attr);
+    for (int i = 0; i < 30; i++) {
+        ffrt_queue_submit(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
+    }
+    usleep(1000000);
+    handle = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_wait(handle);
+    EXPECT_EQ(result, 32);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+* 测试用例名称 : ffrt_queue_recordtraffic_abnormal_trigger
+* 测试用例描述 : 关闭串行队列的traffic_interval并生效
+* 操作步骤     : 1、创建队列
+*               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口为0
+*               3、提交堆积任务
+* 预期结果    : 使用ffrt_queue_attr_get_traffic_interval获取实际生效的区间为默认值
+*/
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_abnormal_trigger, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_traffic_interval(&queue_attr, -1);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    int64_t ret = ffrt_queue_attr_get_traffic_interval(&queue_attr);
+    EXPECT_EQ(ret, 6000000);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+* 测试用例名称 : ffrt_queue_recordtraffic_normal_corner
+* 测试用例描述 : 串行队列的traffic_interval并生效
+* 操作步骤     : 1、创建队列
+*               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口为0
+*               3、提交堆积任务
+* 预期结果    : 不触发流量监控告警
+*/
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    ffrt_task_handle_t handle;
+    ffrt_task_attr_t task_attr;
+    int result = 0;
+    (void)ffrt_task_attr_init(&task_attr);
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_traffic_interval(&queue_attr, 1000000);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()>&& firstFunc = [&result]() {
+        result = result + 1;
+        usleep(1100000);
+    };
+    std::function<void()>&& fastFunc = [&result]() {
+        result = result + 1;
+    };
+
+    ffrt_queue_submit(queue_handle, create_function_wrapper(firstFunc, ffrt_function_kind_queue), &task_attr);
+    for (int i = 0; i < 19; i++) {
+        ffrt_queue_submit(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
+    }
+    usleep(1000000);
+    ffrt_queue_submit(queue_handle, create_function_wrapper(firstFunc, ffrt_function_kind_queue), &task_attr);
+    for (int i = 0; i < 19; i++) {
+        handle = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc,
+            ffrt_function_kind_queue), &task_attr);
+    }
+    ffrt_queue_wait(handle);
+
+    EXPECT_EQ(result, 40);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_recordtraffic_delay_trigger
+ * 测试用例描述 : 设置串行队列的traffic_interval并生效
+ * 操作步骤     : 1、创建队列
+ *               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口
+ *               3、提交堆积任务
+ * 预期结果    : 成功触发流量监控告警，但不触发上报
+ */
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    ffrt_task_handle_t handle;
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_t task_attr1;
+    int result = 0;
+    (void)ffrt_task_attr_init(&task_attr1);
+    (void)ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_delay(&task_attr, 1200000);
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_traffic_interval(&queue_attr, 1000000);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()>&& firstFunc = [&result]() {
+        result = result + 1;
+        usleep(1100000);
+    };
+    std::function<void()>&& fastFunc = [&result]() {
+        result = result + 1;
+    };
+
+    ffrt_queue_submit(queue_handle, create_function_wrapper(firstFunc, ffrt_function_kind_queue), &task_attr1);
+    for (int i = 0; i < 30; i++) {
+        ffrt_queue_submit(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
+    }
+    usleep(1000000);
+    handle = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc,
+        ffrt_function_kind_queue), &task_attr1);
+    ffrt_queue_wait(handle);
+    EXPECT_EQ(result, 2);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+void MyCallback(uint64_t id, const char* message, uint32_t length)
+{
+    FFRT_LOGE("call ffrt_queue_monitor timeout_callback");
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_monitor_schedule_timeout
+ * 测试用例描述 : 串行队列QueueMonitor检测到任务调度超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交多个任务占满worker，使得新串行任务等待调度
+ * 预期结果    : 成功触发任务调度超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    for (int i = 0; i < 16; i++) {
+        ffrt::submit([&]() {
+            usleep(1100000);
+        }, {}, {});
+    }
+    queue* testQueue = new queue("test_queue");
+
+    auto t = testQueue->submit_h([] {
+        FFRT_LOGE("task start");}, {});
+    testQueue->wait(t);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_monitor_execute_timeout
+ * 测试用例描述 : 串行队列QueueMonitor检测到任务执行超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交执行时间长任务
+ * 预期结果    : 成功触发任务执行超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    queue* testQueue = new queue("test_queue");
+    auto t = testQueue->submit_h([] { usleep(1100000); FFRT_LOGE("done");}, {});
+    FFRT_LOGE("submitted");
+    testQueue->wait(t);
+    delete testQueue;
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_monitor_delay_timeout
+ * 测试用例描述 : 串行队列QueueMonitor检测到任务执行超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交执行时间长任务
+ * 预期结果    : 不触发超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    queue* testQueue = new queue("test_queue");
+    FFRT_LOGE("submit");
+    auto t = testQueue->submit_h([] { FFRT_LOGE("delay start"); }, task_attr().delay(1500000));
+    testQueue->wait(t);
+    delete testQueue;
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_monitor_cancel_timeout
+ * 测试用例描述 : 串行队列QueueMonitor检测到任务执行超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交执行时间长任务
+ * 预期结果    : 不触发超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    queue* testQueue = new queue("test_queue");
+    FFRT_LOGE("submit");
+    testQueue->submit([] { FFRT_LOGE("start"); });
+    auto t = testQueue->submit_h([] { FFRT_LOGE("delay start"); }, task_attr().delay(5000000));
+    testQueue->cancel(t);
+    testQueue->wait(t);
+    usleep(1200000);
+    delete testQueue;
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+}
+
+static inline void stall_us_impl(size_t us)
+{
+    auto start = std::chrono::system_clock::now();
+    size_t passed = 0;
+    while (passed < us) {
+        passed = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - start).count();
+    }
+}
+
+void stall_us(size_t us)
+{
+    stall_us_impl(us);
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_monitor_two_stage_timeout
+ * 测试用例描述 : 串行队列QueueMonitor检测到任务在PENDING和EXECUTING各超时一次
+ * 操作步骤     : 1、创建队列
+ *               2、提交执行时间长任务
+ * 预期结果    : 触发PENDING和EXECUTING各一次的超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    ffrt_set_cpu_worker_max_num(ffrt_qos_default, 1);
+
+    ffrt_queue_attr_t queue_attr;
+    ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    ffrt::submit([] { stall_us(1300 * 1000); });
+    std::function<void()>&& basicFunc = [] { stall_us(1300 * 1000); FFRT_LOGE("done");};
+    ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
+        ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+
+    ffrt_queue_wait(task);
+    ffrt_queue_destroy(queue_handle);
 }

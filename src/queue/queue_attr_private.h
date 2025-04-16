@@ -34,6 +34,8 @@ public:
     uint64_t timeout_ = 0;
     int maxConcurrency_ = 1;
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    // default queue traffic interval of 6,000,000 us
+    uint64_t trafficRecordInterval_ = 6000000;
 };
 }
 #endif

@@ -20,6 +20,7 @@
 #include "c/queue_ext.h"
 #include "../common.h"
 #include "queue/base_queue.h"
+#include "util/spmc_queue.h"
 
 using namespace std;
 using namespace ffrt;
@@ -648,4 +649,85 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
 
     EXPECT_EQ(result, 1);
     delete serialQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_spmc_queue_test
+ * 测试用例描述 : SPMC无锁队列功能测试
+ * 预置条件     ：创建一个SPMC队列
+ * 操作步骤     : 1、调用PushTail接口向队列中push若干数据
+ *               2、创建多个线程，并发地调用PopHead接口从队列中获取数据
+ * 预期结果    : 数据能够被正确取出
+ */
+HWTEST_F(QueueTest, ffrt_spmc_queue_test, TestSize.Level1)
+{
+    SpmcQueue queue;
+    EXPECT_EQ(queue.Init(0), -1);
+    EXPECT_EQ(queue.PushTail(nullptr), -1);
+    EXPECT_EQ(queue.PopHead(), nullptr);
+    EXPECT_EQ(queue.Init(128), 0);
+
+    int data[128];
+    for (int i = 0; i < 128; i++) {
+        data[i] = i;
+        queue.PushTail(&data[i]);
+    }
+    EXPECT_EQ(queue.PushTail(&data[0]), -1);
+
+    std::atomic<int> count = 0;
+    std::vector<std::thread> consumers;
+    for (int i = 0; i < 16; i++) {
+        consumers.emplace_back([&queue, &count] {
+            int* ret = reinterpret_cast<int*>(queue.PopHead());
+            while (ret != nullptr) {
+                count++;
+                ret = reinterpret_cast<int*>(queue.PopHead());
+            }
+        });
+    }
+
+    for (auto& consumer : consumers) {
+        consumer.join();
+    }
+    EXPECT_EQ(count.load(), 128);
+}
+
+/*
+ * 测试用例名称 : ffrt_spmc_queue_pop_head_to_another_queue
+ * 测试用例描述 : SPMC无锁队列数据迁移功能测试
+ * 预置条件     ：创建一个SPMC源队列，创建一个SPMC目标队列，目标队列容量小于源队列
+ * 操作步骤     : 1、调用PushTail接口向源队列中push若干数据
+ *               2、调用PopHeadToAnotherQueue接口向目标队列中迁移小于源队列和目标队列容量的数据
+ *               3、调用PopHeadToAnotherQueue接口向目标队列中迁移等于目标队列容量的数据
+ *               4、调用PopHeadToAnotherQueue接口向目标队列中迁移超过源队列容量的数据
+ * 预期结果    : 1、迁移成功，目标队列中存在和迁移数量相同的数据
+ *              2、迁移成功，目标队列中存在和目标队列数量相同的数据
+ *              3、迁移成功，目标队列中存在和源队列数量相同的数据
+ */
+HWTEST_F(QueueTest, ffrt_spmc_queue_pop_head_to_another_queue, TestSize.Level1)
+{
+    SpmcQueue queue;
+    SpmcQueue dstQueue;
+    SpmcQueue dstQueue2;
+    EXPECT_EQ(queue.Init(128), 0);
+    EXPECT_EQ(dstQueue.Init(64), 0);
+    EXPECT_EQ(dstQueue2.Init(128), 0);
+
+    int data[128];
+    for (int i = 0; i < 128; i++) {
+        data[i] = i;
+        queue.PushTail(&data[i]);
+    }
+
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 0, 0, nullptr), 0);
+    EXPECT_EQ(dstQueue.GetLength(), 0);
+
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 32, 0, nullptr), 32);
+    EXPECT_EQ(dstQueue.GetLength(), 32);
+
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 64, 0, [] (void* data, int qos) { EXPECT_NE(data, nullptr); }), 32);
+    EXPECT_EQ(dstQueue.GetLength(), 64);
+
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue2, 128, 0, nullptr), 64);
+    EXPECT_EQ(dstQueue2.GetLength(), 64);
 }

@@ -135,6 +135,29 @@ HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level1)
 }
 
 /**
+ * @tc.name: shared_mutex_try_lock
+ * @tc.desc: Test function of shared mutex:try_lock
+ * @tc.type: FUNC
+ */
+HWTEST_F(SyncTest, shared_mutex_try_lock, TestSize.Level1)
+{
+    ffrt::shared_mutex lock;
+    lock.lock_shared();
+    EXPECT_TRUE(lock.try_lock_shared());
+    EXPECT_FALSE(lock.try_lock());
+    lock.unlock_shared();
+    lock.unlock_shared();
+
+    lock.lock();
+    EXPECT_FALSE(lock.try_lock_shared());
+    EXPECT_FALSE(lock.try_lock());
+    lock.unlock();
+
+    EXPECT_TRUE(lock.try_lock());
+    lock.unlock();
+}
+
+/**
  * @tc.name: mutex_lock_with_BlockThread
  * @tc.desc: Test function of mutex:lock in Thread mode
  * @tc.type: FUNC
@@ -1058,6 +1081,9 @@ HWTEST_F(SyncTest, future_wait, TestSize.Level1)
     ffrt::thread([&p1] { p1.set_value(9); }).detach();
 
     std::cout << "Waiting..." << std::flush;
+    EXPECT_TRUE(f1.valid());
+    EXPECT_TRUE(f2.valid());
+    EXPECT_TRUE(f4.valid());
     f1.wait();
     f2.wait();
     f4.wait();
@@ -1085,9 +1111,13 @@ HWTEST_F(SyncTest, future_wait_void, TestSize.Level1)
     f4 = std::move(f3);
     ffrt::thread([&] { result[2] = 3; p1.set_value(); }).detach();
 
+    EXPECT_TRUE(f1.valid());
+    EXPECT_TRUE(f2.valid());
+    EXPECT_TRUE(f4.valid());
     f1.wait();
     f2.wait();
     f4.wait();
+    f1.get();
     EXPECT_EQ(result[0], 1);
     EXPECT_EQ(result[1], 2);
     EXPECT_EQ(result[2], 3);

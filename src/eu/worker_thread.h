@@ -133,7 +133,7 @@ public:
 
     void Join()
     {
-        if (tid > 0) {
+        if (tid > 0 && thread_ != 0) {
             pthread_join(thread_, nullptr);
         }
         tid = -1;
@@ -141,7 +141,7 @@ public:
 
     void Detach()
     {
-        if (tid > 0) {
+        if (tid > 0 && thread_ != 0) {
             pthread_detach(thread_);
         } else {
             FFRT_LOGD("qos %d thread not joinable.", qos());

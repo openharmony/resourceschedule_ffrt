@@ -39,6 +39,7 @@
 
 namespace ffrt {
 constexpr int CO_CREATE_RETRY_INTERVAL = 500 * 1000;
+constexpr uint64_t MASK_FOR_HCS_TASK = 0xFF000000000000;
 struct VersionCtx;
 class SCPUEUTask;
 

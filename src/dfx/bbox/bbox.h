@@ -23,11 +23,12 @@ extern void TaskPendingCounterInc(void);
 extern unsigned int GetBboxEnableState(void);
 extern unsigned int GetBboxCalledTimes(void);
 
+typedef void (*FuncGetKeyStatus)();
 typedef void (*FuncSaveKeyStatus)();
 typedef std::string (*FuncSaveKeyStatusInfo)();
 std::string SaveKeyInfo(void);
 #ifdef OHOS_STANDARD_SYSTEM
-void SetFuncSaveKeyStatus(FuncSaveKeyStatus func, FuncSaveKeyStatusInfo infoFunc);
+void SetFuncSaveKeyStatus(FuncGetKeyStatus getFunc, FuncSaveKeyStatus func, FuncSaveKeyStatusInfo infoFunc);
 #else
 void SetFuncSaveKeyStatus(FuncSaveKeyStatus func);
 #endif

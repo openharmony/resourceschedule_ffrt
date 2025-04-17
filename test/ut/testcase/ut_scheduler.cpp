@@ -166,6 +166,12 @@ HWTEST_F(SchedulerTest, taskstate_test, TestSize.Level1)
     for (int i = 0; i < size; ++i) {
         EXPECT_EQ(produceStatus[i], consumeStatus[i]);
     }
+
+    std::unique_ptr<SCPUEUTask> task = std::make_unique<SCPUEUTask>(&task_attr, root.get(), 10000);
+    task->state.SetCurState(TaskState::EXITED);
+    EXPECT_EQ(TaskState::OnTransition(TaskState::PENDING, nullptr), -1);
+    EXPECT_EQ(TaskState::OnTransition(TaskState::PENDING, root.get()), 0);
+    EXPECT_EQ(TaskState::OnTransition(TaskState::PENDING, task.get()), -1);
 }
 
 HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level1)

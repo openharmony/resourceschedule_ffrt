@@ -183,8 +183,14 @@ void* thd_func(void *arg)
     return arg;
 }
 
+int g_data = 0;
+
 HWTEST_F(SleepTest, thread_test, TestSize.Level1)
 {
+    ffrt_thread_t detachThread;
+    ffrt_thread_create(&detachThread, nullptr, thd_func, &g_data);
+    ffrt_thread_detach(detachThread);
+
     int a = 0;
     ffrt_thread_t thread;
     ffrt_thread_create(&thread, nullptr, thd_func, &a);
@@ -198,6 +204,14 @@ HWTEST_F(SleepTest, thread_test2, TestSize.Level1)
 {
     int a = 0;
     ffrt_thread_t thread;
+    ffrt_thread_attr_t attr;
     ffrt_thread_create(nullptr, nullptr, thd_func, &a);
     EXPECT_EQ(0, a);
+    EXPECT_EQ(ffrt_thread_create(&thread, nullptr, nullptr, &a), ffrt_error_inval);
+    EXPECT_EQ(ffrt_thread_create(&thread, &attr, thd_func, &a), ffrt_error);
+
+    void* result = nullptr;
+    EXPECT_EQ(ffrt_thread_join(nullptr, &result), ffrt_error_inval);
+    EXPECT_EQ(ffrt_thread_join(thread, nullptr), ffrt_error_inval);
+    EXPECT_EQ(ffrt_thread_detach(nullptr), ffrt_error_inval);
 }

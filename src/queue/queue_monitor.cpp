@@ -61,7 +61,9 @@ QueueMonitor& QueueMonitor::GetInstance()
 
 void QueueMonitor::RegisterQueueId(uint32_t queueId, QueueHandler* queueStruct)
 {
-    std::unique_lock lock(mutex_);
+    // acquire shared mutex in exclusive mode, because queuesRunningInfo_
+    // will be modified
+    std::lock_guard lock(mutex_);
     if (queueId == queuesRunningInfo_.size()) {
         queuesRunningInfo_.emplace_back(std::make_pair(INVALID_TASK_ID, std::chrono::steady_clock::now()));
         queuesStructInfo_.emplace_back(queueStruct);
@@ -87,7 +89,9 @@ void QueueMonitor::RegisterQueueId(uint32_t queueId, QueueHandler* queueStruct)
 
 void QueueMonitor::ResetQueueInfo(uint32_t queueId)
 {
-    std::shared_lock lock(mutex_);
+    // acquire shared mutex in exclusive mode, because queuesRunningInfo_
+    // will be modified
+    std::lock_guard lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,
         "ResetQueueInfo queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
     queuesRunningInfo_[queueId].first = INVALID_TASK_ID;
@@ -96,7 +100,9 @@ void QueueMonitor::ResetQueueInfo(uint32_t queueId)
 
 void QueueMonitor::ResetQueueStruct(uint32_t queueId)
 {
-    std::shared_lock lock(mutex_);
+    // acquire shared mutex in exclusive mode, because queuesRunningInfo_
+    // will be modified
+    std::lock_guard lock(mutex_);
     FFRT_COND_DO_ERR((queuesStructInfo_.size() <= queueId), return,
         "ResetQueueStruct queueId=%u access violation, StructInfo_.size=%u", queueId, queuesStructInfo_.size());
     queuesStructInfo_[queueId] = nullptr;
@@ -104,7 +110,9 @@ void QueueMonitor::ResetQueueStruct(uint32_t queueId)
 
 void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
 {
-    std::shared_lock lock(mutex_);
+    // acquire shared mutex in exclusive mode, because queuesRunningInfo_
+    // will be modified
+    std::lock_guard lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return,
         "UpdateQueueInfo queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
     TimePoint now = std::chrono::steady_clock::now();
@@ -117,6 +125,7 @@ void QueueMonitor::UpdateQueueInfo(uint32_t queueId, const uint64_t &taskId)
 
 uint64_t QueueMonitor::QueryQueueStatus(uint32_t queueId)
 {
+    // acquire shared mutex in shared mode, because we only read
     std::shared_lock lock(mutex_);
     FFRT_COND_DO_ERR((queuesRunningInfo_.size() <= queueId), return INVALID_TASK_ID,
         "QueryQueueStatus queueId=%u access violation, RunningInfo_.size=%u", queueId, queuesRunningInfo_.size());
@@ -139,7 +148,9 @@ void QueueMonitor::SendDelayedWorker(TimePoint delay)
 
 void QueueMonitor::ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64_t &taskId)
 {
-    std::unique_lock lock(mutex_);
+    // acquire shared mutex in exclusive mode, because queuesRunningInfo_
+    // may be modified
+    std::lock_guard lock(mutex_);
     if (queuesRunningInfo_[queueId].first == taskId) {
         queuesRunningInfo_[queueId].second += std::chrono::microseconds(timeoutUs_);
     }
@@ -148,7 +159,8 @@ void QueueMonitor::ResetTaskTimestampAfterWarning(uint32_t queueId, const uint64
 void QueueMonitor::CheckQueuesStatus()
 {
     {
-        std::unique_lock lock(mutex_);
+        // acquire shared mutex in shared mode, because we only read
+        std::shared_lock lock(mutex_);
         auto iter = std::find_if(queuesRunningInfo_.cbegin(), queuesRunningInfo_.cend(),
             [](const auto& pair) { return pair.first != INVALID_TASK_ID; });
         if (iter == queuesRunningInfo_.cend()) {
@@ -171,7 +183,8 @@ void QueueMonitor::CheckQueuesStatus()
     // Displays information about queues whose tasks time out.
     for (uint32_t i = 0; i < queueRunningInfoSize; ++i) {
         {
-            std::unique_lock lock(mutex_);
+            // acquire shared mutex in shared mode, because we only read
+            std::shared_lock lock(mutex_);
             taskId = queuesRunningInfo_[i].first;
             taskTimestamp = queuesRunningInfo_[i].second;
         }
@@ -186,6 +199,7 @@ void QueueMonitor::CheckQueuesStatus()
             ss << "Serial_Queue_Timeout, process name:[" << processNameStr << "], serial queue qid:[" << i
                 << "], serial task gid:[" << taskId << "], execution:[" << timeoutUs_ << "] us.";
             {
+                // acquire shared mutex in shared mode, because we only read
                 std::shared_lock lock(mutex_);
                 if (queuesStructInfo_[i] != nullptr) {
                     ss << queuesStructInfo_[i]->GetDfxInfo();
@@ -225,7 +239,8 @@ void QueueMonitor::CheckQueuesStatus()
 
 bool QueueMonitor::HasQueueActive()
 {
-    std::unique_lock lock(mutex_);
+    // acquire shared mutex in shared mode, because we only read
+    std::shared_lock lock(mutex_);
     for (uint32_t i = 0; i < queuesRunningInfo_.size(); ++i) {
         if (queuesRunningInfo_[i].first != INVALID_TASK_ID) {
             return true;

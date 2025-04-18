@@ -60,8 +60,14 @@ private:
     }
 
 private:
-    std::thread m_runner;
+    // The order of these two lines matters!
+    // The flag must be initialized before
+    // the thread, otherwise a data-race
+    // can occur when the flag is read
+    // in RunForever, while being
+    // initialized.
     std::atomic<bool> m_exitFlag { false };
+    std::thread m_runner;
 };
 
 IOPoller& GetIOPoller() noexcept

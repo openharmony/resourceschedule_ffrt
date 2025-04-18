@@ -102,14 +102,17 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupCreateTest, TestSize.Level1)
     (void)setuid(1000);
     struct WorkGroup *ret = WorkgroupCreate(interval);
     EXPECT_NE(ret, nullptr);
+    WorkgroupClear(ret);
 
     (void)setuid(3039);
     struct WorkGroup *ret1 = WorkgroupCreate(interval);
     EXPECT_NE(ret1, nullptr);
+    WorkgroupClear(ret1);
 
     (void)setuid(0);
     struct WorkGroup *ret2 = WorkgroupCreate(interval);
     EXPECT_NE(ret2, nullptr);
+    WorkgroupClear(ret2);
 }
 
 /**

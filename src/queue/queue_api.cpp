@@ -14,6 +14,7 @@
  */
 #include "c/queue_ext.h"
 #include "cpp/queue.h"
+#include "core/task_wrapper.h"
 #include "util/event_handler_adapter.h"
 #include "dm/dependence_manager.h"
 #include "tm/queue_task.h"
@@ -175,6 +176,13 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
 }
 
 API_ATTRIBUTE((visibility("default")))
+void ffrt_queue_submit_f(ffrt_queue_t queue, ffrt_function_t func, void* arg, const ffrt_task_attr_t* attr)
+{
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_queue);
+    ffrt_queue_submit(queue, f, attr);
+}
+
+API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_submit_head(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
 {
     FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, function is nullptr");
@@ -189,6 +197,14 @@ ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_
     QueueTask* task = ffrt_queue_submit_base(queue, f, true, false, attr);
     FFRT_COND_DO_ERR((task == nullptr), return nullptr, "failed to submit serial task");
     return static_cast<ffrt_task_handle_t>(task);
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_task_handle_t ffrt_queue_submit_h_f(ffrt_queue_t queue, ffrt_function_t func, void* arg,
+    const ffrt_task_attr_t* attr)
+{
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_queue);
+    return ffrt_queue_submit_h(queue, f, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))

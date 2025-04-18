@@ -34,6 +34,7 @@
 #include "util/slab.h"
 #include "eu/sexecute_unit.h"
 #include "core/task_io.h"
+#include "core/task_wrapper.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
 #include "tm/task_factory.h"
@@ -336,6 +337,14 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
 }
 
 API_ATTRIBUTE((visibility("default")))
+void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps,
+    const ffrt_task_attr_t* attr)
+{
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_general);
+    ffrt_submit_base(f, in_deps, out_deps, attr);
+}
+
+API_ATTRIBUTE((visibility("default")))
 ffrt_error_t ffrt_submit_base_nb(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, const ffrt_deps_t *out_deps,
     const ffrt_task_attr_t *attr)
 {
@@ -386,6 +395,14 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
     ffrt::submit_impl(true, handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
     return handle;
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_task_handle_t ffrt_submit_h_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps,
+    const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+{
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_general);
+    return ffrt_submit_h_base(f, in_deps, out_deps, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))

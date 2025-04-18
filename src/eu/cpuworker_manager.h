@@ -83,7 +83,7 @@ public:
     std::atomic_bool tearDown = false;
     WorkerSleepCtl sleepCtl[QoS::MaxNum()];
     void WorkerLeaveTg(const QoS& qos, pid_t pid);
-    uint8_t polling_[QoS::MaxNum()] = {0};
+    std::atomic<bool> polling_[QoS::MaxNum()] = {false};
     fast_mutex pollersMtx[QoS::MaxNum()];
     void WorkerRetired(WorkerThread* thread);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING

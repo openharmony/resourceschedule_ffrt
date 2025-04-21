@@ -62,10 +62,6 @@ config("ffrt_config") {
 
   defines += ffrt_debug_defines
 
-  if (is_asan) {
-    defines += [ "DFX_ALLOCATE_ASAN" ]
-  }
-
   if (is_asan && !use_hwasan) {
     defines += [ "ASAN_MODE" ]
   }
@@ -136,7 +132,6 @@ ohos_shared_library("libffrt") {
       "src/core/task_io.cpp",
       "src/core/version_ctx.cpp",
       "src/dfx/bbox/bbox.cpp",
-      "src/dfx/bbox/dfx_allocator.cpp",
       "src/dfx/bbox/fault_logger_fd_manager.cpp",
       "src/dfx/dump/dump.cpp",
       "src/dfx/log/ffrt_log.cpp",

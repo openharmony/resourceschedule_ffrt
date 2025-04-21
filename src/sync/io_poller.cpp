@@ -113,7 +113,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
 {
     auto ctx = ExecuteCtx::Cur();
     if (!ctx->task) {
-        FFRT_LOGI("nonworker shall not call this fun.");
+        FFRT_SYSEVENT_LOGI("nonworker shall not call this fun.");
         return;
     }
     struct WakeData data = {.fd = fd, .data = static_cast<void *>(ctx->task)};
@@ -147,7 +147,7 @@ void IOPoller::PollOnce(int timeout) noexcept
     int ndfs = epoll_wait(m_epFd, m_events.data(), m_events.size(), timeout);
     if (ndfs <= 0) {
         if (errno != EINTR) {
-            FFRT_LOGE("epoll_wait error: efd = %d, errorno= %d", m_epFd, errno);
+            FFRT_SYSEVENT_LOGE("epoll_wait error: efd = %d, errorno= %d", m_epFd, errno);
         }
         return;
     }
@@ -163,7 +163,7 @@ void IOPoller::PollOnce(int timeout) noexcept
         }
 
         if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) != 0) {
-            FFRT_LOGI("epoll_ctl fd = %d errorno = %d", data->fd, errno);
+            FFRT_SYSEVENT_LOGI("epoll_ctl fd = %d errorno = %d", data->fd, errno);
             continue;
         }
 

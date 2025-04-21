@@ -58,7 +58,7 @@ void WorkerThread::WorkerSetup()
     std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
         std::string(WORKER_THREAD_SYMBOL) + std::to_string(tid);
     if (qosStr == "") {
-        FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), tid);
+        FFRT_SYSEVENT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), tid);
     }
     pthread_setname_np(pthread_self(), threadName.c_str());
 }
@@ -74,7 +74,7 @@ int SetCpuAffinity(unsigned long affinity, int tid)
     }
     int ret = syscall(__NR_sched_setaffinity, tid, sizeof(mask), &mask);
     if (ret < 0) {
-        FFRT_LOGE("set qos affinity failed for tid %d\n", tid);
+        FFRT_SYSEVENT_LOGE("set qos affinity failed for tid %d\n", tid);
     }
     return ret;
 }

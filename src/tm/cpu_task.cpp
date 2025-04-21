@@ -104,7 +104,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
     if (attr && attr->taskLocal_) {
         tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
         if (unlikely(tsd == nullptr)) {
-            FFRT_LOGE("task local malloc tsd failed");
+            FFRT_SYSEVENT_LOGE("task local malloc tsd failed");
             return;
         }
         memset_s(tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));
@@ -119,7 +119,7 @@ void ExecuteUVTask(TaskBase* task, QoS qos)
 {
     ffrt_executor_task_func func = FuncManager::Instance()->getFunc(ffrt_uv_task);
     if (func == nullptr) {
-        FFRT_LOGE("Static func is nullptr");
+        FFRT_SYSEVENT_LOGE("Static func is nullptr");
         return;
     }
     ffrt_executor_task_t* uv_work = reinterpret_cast<ffrt_executor_task_t *>(task);

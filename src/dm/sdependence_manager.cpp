@@ -80,7 +80,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 {
     // 0 check outs handle
     if (!CheckOutsHandle(outs)) {
-        FFRT_LOGE("outs contain handles error");
+        FFRT_SYSEVENT_LOGE("outs contain handles error");
         return;
     }
 
@@ -368,7 +368,7 @@ void SDependenceManager::MapSignature2Deps(SCPUEUTask* task, const std::vector<c
 #ifndef FFRT_RELEASE
         for (auto parentIn : std::as_const(static_cast<SCPUEUTask*>(task->parent)->ins)) {
             if (parentIn->signature == signature) {
-                FFRT_LOGE("parent's indep only cannot be child's outdep");
+                FFRT_SYSEVENT_LOGE("parent's indep only cannot be child's outdep");
             }
         }
 #endif
@@ -388,7 +388,7 @@ int SDependenceManager::onSkip(ffrt_task_handle_t handle)
         return ffrt_success;
     }
 
-    FFRT_LOGE("skip task [%lu] failed", task->gid);
+    FFRT_LOGW("skip task [%lu] failed", task->gid);
     return ffrt_error;
 }
 } // namespace ffrt

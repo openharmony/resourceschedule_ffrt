@@ -83,7 +83,7 @@ void CPUMonitor::StartMonitor()
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     int ret = BlockawareInit(&keyPtr);
     if (ret != 0) {
-        FFRT_LOGE("blockaware init fail, ret[%d], key[0x%lx]", ret, keyPtr);
+        FFRT_SYSEVENT_LOGE("blockaware init fail, ret[%d], key[0x%lx]", ret, keyPtr);
     } else {
         blockAwareInit = true;
     }
@@ -97,7 +97,7 @@ int CPUMonitor::SetWorkerMaxNum(const QoS& qos, uint32_t num)
     WorkerCtrl& workerCtrl = ctrlQueue[qos()];
     std::lock_guard lk(workerCtrl.lock);
     if (setWorkerMaxNum[qos()]) {
-        FFRT_LOGE("qos[%d] worker num can only been setup once", qos());
+        FFRT_SYSEVENT_LOGE("qos[%d] worker num can only been setup once", qos());
         return -1;
     }
 
@@ -122,7 +122,7 @@ void CPUMonitor::MonitorMain()
     (void)WorkerInit();
     int ret = BlockawareLoadSnapshot(keyPtr, &domainInfoMonitor);
     if (ret != 0) {
-        FFRT_LOGE("blockaware load snapshot fail, ret[%d]", ret);
+        FFRT_SYSEVENT_LOGE("blockaware load snapshot fail, ret[%d]", ret);
         return;
     }
     for (int i = 0; i < qosMonitorMaxNum; i++) {
@@ -292,7 +292,7 @@ size_t CPUMonitor::GetRunningNum(const QoS& qos)
             /* nrRunning may not be updated in a timely manner */
             runningNum = workerCtrl.executionNum - nrBlocked;
         } else {
-            FFRT_LOGE("qos [%d] nrBlocked [%u] is larger than executionNum [%d].",
+            FFRT_SYSEVENT_LOGE("qos [%d] nrBlocked [%u] is larger than executionNum [%d].",
                 qos(), nrBlocked, workerCtrl.executionNum);
         }
     }

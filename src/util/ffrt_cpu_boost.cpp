@@ -30,7 +30,7 @@ int ffrt_cpu_boost_start(int ctx_id)
     int ret = CpuBoostStart(ctx_id);
     if (ret == 0) {
         if (ffrt::ExecuteCtx::Cur() == nullptr) {
-            FFRT_LOGW("ExecuteCtx::Cur() is nullptr, save ctxId failed");
+            FFRT_SYSEVENT_LOGW("ExecuteCtx::Cur() is nullptr, save ctxId failed");
             return ret;
         }
         ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
@@ -47,7 +47,7 @@ int ffrt_cpu_boost_end(int ctx_id)
     int ret = CpuBoostEnd(ctx_id);
     if (ret == 0) {
         if (ffrt::ExecuteCtx::Cur() == nullptr) {
-            FFRT_LOGW("ExecuteCtx::Cur() is nullptr, clear ctxId failed");
+            FFRT_SYSEVENT_LOGW("ExecuteCtx::Cur() is nullptr, clear ctxId failed");
             return ret;
         }
         ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;

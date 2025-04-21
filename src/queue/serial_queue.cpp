@@ -59,7 +59,7 @@ int SerialQueue::Push(QueueTask* task)
     }
 
     if (whenMap_.size() >= overloadThreshold_) {
-        FFRT_LOGW("[queueId=%u] overload warning, size=%llu", queueId_, whenMap_.size());
+        FFRT_SYSEVENT_LOGW("[queueId=%u] overload warning, size=%llu", queueId_, whenMap_.size());
         overloadThreshold_ += std::min(overloadThreshold_, MAX_OVERLOAD_INTERVAL);
     }
 

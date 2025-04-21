@@ -21,7 +21,7 @@
 static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 {
     if (ffrt::GetFuncQosMap() == nullptr) {
-        FFRT_LOGE("FuncQosMap has not regist");
+        FFRT_SYSEVENT_LOGE("FuncQosMap has not regist");
         return false;
     }
     mappedQos = ffrt::GetFuncQosMap()(qos);
@@ -47,7 +47,7 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
         }
         return ret;
     } else {
-        FFRT_LOGE("ffrt_epoll_ctl input error: op=%d, fd=%d", op, fd);
+        FFRT_SYSEVENT_LOGE("ffrt_epoll_ctl input error: op=%d, fd=%d", op, fd);
         return -1;
     }
 }

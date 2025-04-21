@@ -24,7 +24,7 @@ Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
     m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
-        FFRT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
+        FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
         std::terminate();
     }
 }
@@ -57,7 +57,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     }
     void* ptr = static_cast<void*>(wakeData.get());
     if (ptr == nullptr || wakeData == nullptr) {
-        FFRT_LOGE("Construct WakeDataWithCb instance failed! or wakeData is nullptr");
+        FFRT_SYSEVENT_LOGE("Construct WakeDataWithCb instance failed! or wakeData is nullptr");
         return -1;
     }
     wakeData->monitorEvents = events;
@@ -65,7 +65,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     epoll_event ev = { .events = events, .data = { .ptr = ptr } };
     std::unique_lock lock(m_mapMutex);
     if (epoll_ctl(m_epFd, op, fd, &ev) != 0) {
-        FFRT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
+        FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
     }
 
@@ -76,7 +76,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
         auto iter = m_wakeDataMap.find(fd);
         FFRT_COND_RETURN_ERROR(iter == m_wakeDataMap.end(), -1, "fd %d does not exist in wakeDataMap", fd);
         if (iter->second.size() != 1) {
-            FFRT_LOGE("epoll_ctl mod fd wakedata num invalid");
+            FFRT_SYSEVENT_LOGE("epoll_ctl mod fd wakedata num invalid");
             return -1;
         }
         iter->second.pop_back();
@@ -90,7 +90,7 @@ void Poller::CacheMaskFdAndEpollDel(int fd, CPUEUTask *task) noexcept
     auto maskWakeDataWithCb = m_maskWakeDataWithCbMap.find(task);
     if (maskWakeDataWithCb != m_maskWakeDataWithCbMap.end()) {
         if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
-            FFRT_LOGE("fd[%d] ffrt epoll ctl del fail errorno=%d", fd, errno);
+            FFRT_SYSEVENT_LOGE("fd[%d] ffrt epoll ctl del fail errorno=%d", fd, errno);
         }
         CacheDelFd(fd, task);
     }
@@ -141,21 +141,21 @@ int Poller::DelFdEvent(int fd) noexcept
     ClearDelFdCache(fd);
     auto wakeDataIter = m_wakeDataMap.find(fd);
     if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 0) {
-        FFRT_LOGW("fd[%d] has not been added to epoll, ignore", fd);
+        FFRT_SYSEVENT_LOGW("fd[%d] has not been added to epoll, ignore", fd);
         return -1;
     }
     auto delCntIter = m_delCntMap.find(fd);
     if (delCntIter != m_delCntMap.end()) {
         int diff = static_cast<int>(wakeDataIter->second.size()) - delCntIter->second;
         if (diff == 0) {
-            FFRT_LOGW("fd:%d, addCnt:%d, delCnt:%d has not been added to epoll, ignore", fd,
+            FFRT_SYSEVENT_LOGW("fd:%d, addCnt:%d, delCnt:%d has not been added to epoll, ignore", fd,
                 wakeDataIter->second.size(), delCntIter->second);
             return -1;
         }
     }
 
     if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
-        FFRT_LOGE("epoll_ctl del fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
+        FFRT_SYSEVENT_LOGE("epoll_ctl del fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
     }
 
@@ -224,12 +224,12 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
         if (fdDelCacheIter != m_delFdCacheMap.end()) {
             ClearDelFdCache(currFd);
             if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, currFd, &ev) != 0) {
-                FFRT_LOGE("fd[%d] epoll ctl add fail, errorno=%d", currFd, errno);
+                FFRT_SYSEVENT_LOGE("fd[%d] epoll ctl add fail, errorno=%d", currFd, errno);
                 continue;
             }
         } else {
             if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &ev) != 0) {
-                FFRT_LOGE("fd[%d] epoll ctl mod fail, errorno=%d", currFd, errno);
+                FFRT_SYSEVENT_LOGE("fd[%d] epoll ctl mod fail, errorno=%d", currFd, errno);
                 continue;
             }
         }
@@ -257,7 +257,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 
     auto task = ExecuteCtx::Cur()->task;
     if (!task) {
-        FFRT_LOGE("nonworker shall not call this fun.");
+        FFRT_SYSEVENT_LOGE("nonworker shall not call this fun.");
         return -1;
     }
 
@@ -276,7 +276,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         }
 
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
-            FFRT_LOGE("task has waited before");
+            FFRT_SYSEVENT_LOGE("task has waited before");
             m_mapMutex.unlock();
             return 0;
         }
@@ -307,7 +307,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         }
 
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
-            FFRT_LOGE("task has waited before");
+            FFRT_SYSEVENT_LOGE("task has waited before");
             m_mapMutex.unlock();
             return false;
         }
@@ -421,7 +421,7 @@ void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
             wakeData->data, wakeData->cb, wakeData->task);
         void* ptr = static_cast<void*>(maskWakeData.get());
         if (ptr == nullptr || maskWakeData == nullptr) {
-            FFRT_LOGE("CacheEventsAndDoMask Construct WakeDataWithCb instance failed! or wakeData is nullptr");
+            FFRT_SYSEVENT_LOGE("CacheEventsAndDoMask Construct WakeDataWithCb instance failed! or wakeData is nullptr");
             continue;
         }
         maskWakeData->monitorEvents = 0;
@@ -429,7 +429,7 @@ void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
         maskEv.data = {.ptr = ptr};
         if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
             // ENOENT indicate fd is not in epfd, may be deleted
-            FFRT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
+            FFRT_SYSEVENT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
         }
         FFRT_LOGD("fd[%d] event has no consumer, so cache it", currFd);
         syncTaskEvents.push_back(eventVec[i]);
@@ -523,7 +523,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     flag_ = EpollStatus::WAKE;
     if (nfds < 0) {
         if (errno != EINTR) {
-            FFRT_LOGE("epoll_wait error, errorno= %d.", errno);
+            FFRT_SYSEVENT_LOGE("epoll_wait error, errorno= %d.", errno);
         }
         return PollerRet::RET_NULL;
     }
@@ -566,7 +566,7 @@ void Poller::ReleaseFdWakeData() noexcept
             }
             m_delCntMap[delFd] = 1;
         } else {
-            FFRT_LOGE("fd=%d count unexpected, added num=%d, del num=%d", delFd, wakeDataList.size(), delCnt);
+            FFRT_SYSEVENT_LOGE("fd=%d count unexpected, added num=%d, del num=%d", delFd, wakeDataList.size(), delCnt);
         }
         delIter++;
     }

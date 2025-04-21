@@ -38,7 +38,7 @@ void DependenceManager::onSubmitUV(ffrt_executor_task_t *task, const task_attr_p
     LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
     FFRTScheduler* sch = FFRTFacade::GetSchedInstance();
     if (!sch->InsertNode(node, qos)) {
-        FFRT_LOGE("Submit UV task failed!");
+        FFRT_SYSEVENT_LOGE("Submit UV task failed!");
         return;
     }
     FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(qos);
@@ -51,7 +51,7 @@ void DependenceManager::onSubmitIO(const ffrt_io_callable_t& work, const task_at
     new (ioTask) IOTask(work, attr);
     FFRTTraceRecord::TaskSubmit<ffrt_io_task>(ioTask->qos_);
     if (!FFRTFacade::GetSchedInstance()->InsertNode(&ioTask->fq_we.node, ioTask->qos_)) {
-        FFRT_LOGE("Submit IO task failed!");
+        FFRT_SYSEVENT_LOGE("Submit IO task failed!");
         return;
     }
     FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(ioTask->qos_);

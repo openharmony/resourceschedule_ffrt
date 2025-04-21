@@ -24,7 +24,7 @@ void WorkerManager::JoinRtg(QoS& qos)
     for (auto& thread : tgwrap.threads) {
         pid_t tid = thread.first->Id();
         if (!JoinWG(tid)) {
-            FFRT_LOGE("Failed to Join Thread %d", tid);
+            FFRT_SYSEVENT_LOGE("Failed to Join Thread %d", tid);
         }
     }
 }
@@ -43,14 +43,14 @@ ThreadGroup* WorkerManager::JoinTG(QoS& qos)
     }
 
     if (!(tgwrap.tg->Init())) {
-        FFRT_LOGE("Init Thread Group Failed");
+        FFRT_SYSEVENT_LOGE("Init Thread Group Failed");
         return tgwrap.tg.get();
     }
 
     for (auto& thread : tgwrap.threads) {
         pid_t tid = thread.first->Id();
         if (!(tgwrap.tg->Join(tid))) {
-            FFRT_LOGE("Failed to Join Thread %d", tid);
+            FFRT_SYSEVENT_LOGE("Failed to Join Thread %d", tid);
         }
     }
     return tgwrap.tg.get();
@@ -74,13 +74,13 @@ void WorkerManager::LeaveTG(QoS& qos)
             for (auto& thread : groupCtl[qos].threads) {
                 pid_t tid = thread.first->Id();
                 if (!(tgwrap.tg->Leave(tid))) {
-                    FFRT_LOGE("Failed to Leave Thread %d", tid);
+                    FFRT_SYSEVENT_LOGE("Failed to Leave Thread %d", tid);
                 }
             }
         }
 
         if (!(tgwrap.tg->Release())) {
-            FFRT_LOGE("Release Thread Group Failed");
+            FFRT_SYSEVENT_LOGE("Release Thread Group Failed");
         }
     }
 }

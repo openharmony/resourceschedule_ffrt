@@ -38,7 +38,7 @@ uint64_t Deadline::AbsNowNs()
 PerfCtrl::PerfCtrl(const QoS& qos) : qos(qos)
 {
     if (qos == qos_inherit) {
-        FFRT_LOGW("Invalid Thread Group");
+        FFRT_SYSEVENT_LOGW("Invalid Thread Group");
         return;
     }
 
@@ -74,7 +74,7 @@ void PerfCtrl::Update(uint64_t deadlineNs, uint64_t load, bool force)
     }
     predUtil = (load << SCHED_CAPACITY_SHIFT) / deadlineNs;
     if (predUtil > SCHED_MAX_CAPACITY) {
-        FFRT_LOGW("Predict Util %lu Exceeds Max Capacity", predUtil);
+        FFRT_SYSEVENT_LOGW("Predict Util %lu Exceeds Max Capacity", predUtil);
         predUtil = SCHED_MAX_CAPACITY;
     }
 
@@ -130,12 +130,12 @@ int DefaultInterval::Begin()
     std::unique_lock lock(mutex);
 
     if (Enabled()) {
-        FFRT_LOGE("interval already begin\n");
+        FFRT_SYSEVENT_LOGE("interval already begin\n");
         return -1;
     }
 
     if (ctrl.isBusy()) {
-        FFRT_LOGE("qos interval is busy, please retry later\n");
+        FFRT_SYSEVENT_LOGE("qos interval is busy, please retry later\n");
         return -1;
     }
 
@@ -196,7 +196,7 @@ void DefaultInterval::Join()
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalJoin);
     std::unique_lock lock(mutex);
     if (!ctrl.Join()) {
-        FFRT_LOGE("Failed to Join Thread %d", ThreadGroup::GetTID());
+        FFRT_SYSEVENT_LOGE("Failed to Join Thread %d", ThreadGroup::GetTID());
     }
 }
 
@@ -205,7 +205,7 @@ void DefaultInterval::Leave()
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalLeave);
     std::unique_lock lock(mutex);
     if (!ctrl.Leave()) {
-        FFRT_LOGE("Failed to Leave Thread %d", ThreadGroup::GetTID());
+        FFRT_SYSEVENT_LOGE("Failed to Leave Thread %d", ThreadGroup::GetTID());
     }
 }
 

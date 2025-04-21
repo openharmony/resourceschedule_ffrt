@@ -38,7 +38,7 @@ static int TrivalOpenRtgNode(void)
     char fileName[] = "/proc/self/sched_rtg_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGE("task %d belong to user %d open rtg node failed\n", getpid(), getuid());
+        FFRT_SYSEVENT_LOGE("task %d belong to user %d open rtg node failed\n", getpid(), getuid());
     }
 
     return fd;
@@ -49,7 +49,7 @@ static int TrivalOpenAuthCtrlNode(void)
     char fileName[] = "/dev/auth_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGE("task %d belong to user %d open auth node failed\n", getpid(), getuid());
+        FFRT_SYSEVENT_LOGE("task %d belong to user %d open auth node failed\n", getpid(), getuid());
     }
 
     return fd;
@@ -60,7 +60,7 @@ static int TrivalOpenQosCtrlNode(void)
     char fileName[] = "/proc/thread-self/sched_qos_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGW("pid %d belong to user %d open qos node warn, fd:%d, eno:%d, %s\n",
+        FFRT_SYSEVENT_LOGW("pid %d belong to user %d open qos node warn, fd:%d, eno:%d, %s\n",
             getpid(), getuid(), fd, errno, strerror(errno));
     }
 
@@ -83,7 +83,7 @@ int FFRTEnableRtg(bool flag)
 
     ret = ioctl(fd, CMD_ID_SET_ENABLE, &enableData);
     if (ret < 0) {
-        FFRT_LOGE("set rtg config enable failed.\n");
+        FFRT_SYSEVENT_LOGE("set rtg config enable failed.\n");
     }
 
     close(fd);
@@ -110,7 +110,7 @@ int FFRTAuthEnable(unsigned int uid, unsigned int uaFlag, unsigned int status)
 
     ret = ioctl(fd, BASIC_AUTH_CTRL_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("auth enable failed for uid %d with status %d\n", uid, status);
+        FFRT_SYSEVENT_LOGE("auth enable failed for uid %d with status %d\n", uid, status);
     }
     close(fd);
     return ret;
@@ -135,7 +135,7 @@ int FFRTAuthSwitch(unsigned int uid, unsigned int rtgFlag, unsigned int qosFlag,
 
     ret = ioctl(fd, BASIC_AUTH_CTRL_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("auth switch failed for uid %d with status %d\n", uid, status);
+        FFRT_SYSEVENT_LOGE("auth switch failed for uid %d with status %d\n", uid, status);
     }
     close(fd);
     return ret;
@@ -157,7 +157,7 @@ int FFRTAuthDelete(unsigned int uid)
 
     ret = ioctl(fd, BASIC_AUTH_CTRL_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("auth delete failed for uid %d\n", uid);
+        FFRT_SYSEVENT_LOGE("auth delete failed for uid %d\n", uid);
     }
     close(fd);
     return ret;
@@ -182,7 +182,7 @@ int FFRTAuthPause(unsigned int uid)
 
     ret = ioctl(fd, BASIC_AUTH_CTRL_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("auth pause failed for uid %d\n", uid);
+        FFRT_SYSEVENT_LOGE("auth pause failed for uid %d\n", uid);
     }
     close(fd);
     return ret;
@@ -204,7 +204,7 @@ int FFRTAuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status)
 
     ret = ioctl(fd, BASIC_AUTH_CTRL_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("auth get failed for uid %d\n", uid);
+        FFRT_SYSEVENT_LOGE("auth get failed for uid %d\n", uid);
     }
     close(fd);
 
@@ -263,7 +263,7 @@ int FFRTQosLeave(void)
 
     ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("qos leave failed for task %d\n", getpid());
+        FFRT_SYSEVENT_LOGE("qos leave failed for task %d\n", getpid());
     }
 
     close(fd);
@@ -286,7 +286,7 @@ int FFRTQosLeaveForOther(int tid)
 
     ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("qos leave failed for task %d\n", tid);
+        FFRT_SYSEVENT_LOGE("qos leave failed for task %d\n", tid);
     }
     close(fd);
     return ret;
@@ -304,7 +304,7 @@ int QosPolicy(struct QosPolicyDatas *policyDatas)
 
     ret = ioctl(fd, QOS_CTRL_POLICY_OPERATION, policyDatas);
     if (ret < 0) {
-        FFRT_LOGE("set qos policy failed for task %d\n", getpid());
+        FFRT_SYSEVENT_LOGE("set qos policy failed for task %d\n", getpid());
     }
 
     close(fd);
@@ -350,7 +350,7 @@ int FFRTQosGetForOther(int tid, struct QosCtrlData &data)
 
     int ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGE("%s: qos get failed for thread %d, return %d", __func__, tid, ret);
+        FFRT_SYSEVENT_LOGE("%s: qos get failed for thread %d, return %d", __func__, tid, ret);
     }
     close(fd);
 

@@ -55,7 +55,7 @@ ExecuteCtx* ExecuteCtx::Cur(bool init)
     if (curTls != nullptr) {
         ctx = reinterpret_cast<ExecuteCtx *>(curTls);
     } else if (init) {
-        ctx = new (std::nothrow) ExecuteCtx();
+        ctx = new ExecuteCtx();
         pthread_setspecific(g_executeCtxTlsKey, ctx);
     }
     return ctx;

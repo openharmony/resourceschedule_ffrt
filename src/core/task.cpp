@@ -511,7 +511,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_notify_workers(ffrt_qos_t qos, int number)
 {
     if (qos < ffrt::QoS::Min() || qos >= ffrt::QoS::Max() || number <= 0) {
-        FFRT_LOGE("qos [%d] or number [%d] or is invalid.", qos, number);
+        FFRT_SYSEVENT_LOGE("qos [%d] or number [%d] or is invalid.", qos, number);
         return;
     }
 
@@ -529,13 +529,13 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
     ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
     std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
     if (!groupCtl[qos].threads.empty()) {
-        FFRT_LOGE("Stack size can be set only when there is no worker.");
+        FFRT_SYSEVENT_LOGE("Stack size can be set only when there is no worker.");
         return ffrt_error;
     }
 
     int pageSize = getpagesize();
     if (pageSize < 0) {
-        FFRT_LOGE("Invalid pagesize : %d", pageSize);
+        FFRT_SYSEVENT_LOGE("Invalid pagesize : %d", pageSize);
         return ffrt_error;
     }
 
@@ -555,7 +555,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
     ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
-        FFRT_LOGW("task is nullptr");
+        FFRT_SYSEVENT_LOGW("task is nullptr");
         return 1;
     }
 

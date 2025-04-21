@@ -29,7 +29,7 @@ Loop::~Loop()
 void Loop::Run()
 {
     if (this->GetQueueType() == ffrt_queue_eventhandler_interactive) {
-        FFRT_LOGE("main loop no need to run\n");
+        FFRT_SYSEVENT_LOGE("main loop no need to run\n");
         return;
     }
 
@@ -81,10 +81,10 @@ int Loop::EpollCtl(int op, int fd, uint32_t events, void *data, ffrt_poller_cb c
             return poller_.DelFdEvent(fd);
         }
     } else if (op == EPOLL_CTL_MOD) {
-        FFRT_LOGE("EPOLL_CTL_MOD not supported yet");
+        FFRT_SYSEVENT_LOGE("EPOLL_CTL_MOD not supported yet");
         return -1;
     } else {
-        FFRT_LOGE("EPOLL_CTL op invalid");
+        FFRT_SYSEVENT_LOGE("EPOLL_CTL op invalid");
         return -1;
     }
 }

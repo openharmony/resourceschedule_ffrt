@@ -75,7 +75,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
         }
 
         if (try_cnt <= 0) {
-            FFRT_LOGE("erase qos[%d] threads failed", qos);
+            FFRT_SYSEVENT_LOGE("erase qos[%d] threads failed", qos);
         }
     }
     delete monitor;
@@ -107,7 +107,7 @@ void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
         auto worker = std::move(groupCtl[qos].threads[thread]);
         int ret = groupCtl[qos].threads.erase(thread);
         if (ret != 1) {
-            FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
+            FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
         isEmptyQosThreads = groupCtl[qos].threads.empty();
         WorkerLeaveTg(QoS(qos), pid);
@@ -115,7 +115,7 @@ void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)
         if (IsBlockAwareInit()) {
             ret = BlockawareUnregister();
             if (ret != 0) {
-                FFRT_LOGE("blockaware unregister fail, ret[%d]", ret);
+                FFRT_SYSEVENT_LOGE("blockaware unregister fail, ret[%d]", ret);
             }
         }
 #endif
@@ -205,7 +205,7 @@ void SCPUWorkerManager::AddDelayedTask(int qos)
 
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         SimpleAllocator<WaitUntilEntry>::FreeMem(we);
-        FFRT_LOGW("add delyaed task failed, qos %d", qos);
+        FFRT_SYSEVENT_LOGW("add delyaed task failed, qos %d", qos);
     }
 }
 
@@ -261,7 +261,7 @@ void SCPUWorkerManager::WorkerPrepare(WorkerThread* thread)
 void SCPUWorkerManager::WakeupWorkers(const QoS& qos)
 {
     if (tearDown) {
-        FFRT_LOGE("CPU Worker Manager exit");
+        FFRT_SYSEVENT_LOGE("CPU Worker Manager exit");
         return;
     }
 

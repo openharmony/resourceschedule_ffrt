@@ -53,13 +53,13 @@ private:
     bool Load()
     {
         if (handle != nullptr) {
-            FFRT_LOGD("handle exits");
+            FFRT_SYSEVENT_LOGD("handle exits");
             return true;
         }
 
         handle = dlopen(CPU_BOOST_LIB_PATH, RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
-            FFRT_LOGE("load so[%s] fail", CPU_BOOST_LIB_PATH);
+            FFRT_SYSEVENT_LOGE("load so[%s] fail", CPU_BOOST_LIB_PATH);
             return false;
         }
 
@@ -67,7 +67,7 @@ private:
 
 #define LOAD_FUNC(x) x##Temp = reinterpret_cast<x##Type>(dlsym(handle, #x)); \
         if (x##Temp == nullptr) { \
-            FFRT_LOGE("load func %s from %s failed", #x, CPU_BOOST_LIB_PATH); \
+            FFRT_SYSEVENT_LOGE("load func %s from %s failed", #x, CPU_BOOST_LIB_PATH); \
             loadFlag = false; \
         }
             LOAD_FUNC(cpu_boost_start);
@@ -82,6 +82,7 @@ private:
     {
         if (handle != nullptr) {
             if (dlclose(handle) != 0) {
+                FFRT_SYSEVENT_LOGE("failed to close the handle");
                 return false;
             }
             handle = nullptr;

@@ -38,7 +38,7 @@ void InsertTask(void* task, int qos)
     ffrt_executor_task_t* executorTask = reinterpret_cast<ffrt_executor_task_t*>(task);
     ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList*>(&executorTask->wq);
     if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(node, qos)) {
-        FFRT_LOGE("Insert task failed.");
+        FFRT_SYSEVENT_LOGE("Insert task failed.");
     }
 }
 }
@@ -49,11 +49,11 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     QoS localQos = qos;
     int workerQos = localQos();
     if (workerQos < 0 || workerQos >= QoS::MaxNum()) {
-        FFRT_LOGE("IncWorker qos:%d is invaild", workerQos);
+        FFRT_SYSEVENT_LOGE("IncWorker qos:%d is invaild", workerQos);
         return false;
     }
     if (tearDown) {
-        FFRT_LOGE("CPU Worker Manager exit");
+        FFRT_SYSEVENT_LOGE("CPU Worker Manager exit");
         return false;
     }
 
@@ -62,20 +62,20 @@ bool CPUWorkerManager::IncWorker(const QoS& qos)
     auto uniqueWorker = std::unique_ptr<WorkerThread>(worker);
     if (uniqueWorker == nullptr) {
         workerNum.fetch_sub(1);
-        FFRT_LOGE("IncWorker failed: worker is nullptr\n");
+        FFRT_SYSEVENT_LOGE("IncWorker failed: worker is nullptr\n");
         return false;
     }
 
     {
         std::lock_guard<std::shared_mutex> lock(groupCtl[workerQos].tgMutex);
         if (uniqueWorker->Exited()) {
-            FFRT_LOGE("IncWorker failed: worker has exited\n");
+            FFRT_SYSEVENT_LOGE("IncWorker failed: worker has exited\n");
             return false;
         }
 
         auto result = groupCtl[workerQos].threads.emplace(worker, std::move(uniqueWorker));
         if (!result.second) {
-            FFRT_LOGE("qos:%d worker insert fail:%d", workerQos, result.second);
+            FFRT_SYSEVENT_LOGE("qos:%d worker insert fail:%d", workerQos, result.second);
             return false;
         }
     }
@@ -173,14 +173,14 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
         auto worker = std::move(groupCtl[qos].threads[thread]);
         int ret = groupCtl[qos].threads.erase(thread);
         if (ret != 1) {
-            FFRT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
+            FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
         WorkerLeaveTg(qos, pid);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         if (IsBlockAwareInit()) {
             ret = BlockawareUnregister();
             if (ret != 0) {
-                FFRT_LOGE("blockaware unregister fail, ret[%d]", ret);
+                FFRT_SYSEVENT_LOGE("blockaware unregister fail, ret[%d]", ret);
             }
         }
 #endif

@@ -172,13 +172,13 @@ RTGCtrl::RTGCtrl()
 
     std::string fileName = "/proc/self/ffrt";
     if (realpath(fileName.c_str(), filePath) == nullptr) {
-        FFRT_LOGE("Invalid file Path %s", fileName.c_str());
+        FFRT_SYSEVENT_LOGE("Invalid file Path %s", fileName.c_str());
         return;
     }
 
     fd = open(filePath, O_RDWR);
     if (fd < 0) {
-        FFRT_LOGE("Failed to open RTG, Ret %d", fd);
+        FFRT_SYSEVENT_LOGE("Failed to open RTG, Ret %d", fd);
     }
 }
 
@@ -318,7 +318,7 @@ bool RTGCtrl::RTGIOCtrl(RTGMsg& msg)
 {
     int ret = ioctl(fd, RTG_IPC_CMD, &msg);
     if (ret < 0) {
-        FFRT_LOGE("RTG IOCtrl Failed Ret:%d, %s\n", ret, msg.Format().c_str());
+        FFRT_SYSEVENT_LOGE("RTG IOCtrl Failed Ret:%d, %s\n", ret, msg.Format().c_str());
         return false;
     }
 

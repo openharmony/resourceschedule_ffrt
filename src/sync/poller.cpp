@@ -34,13 +34,19 @@ Poller::~Poller() noexcept
     ::close(m_wakeData.fd);
     ::close(m_epFd);
     timerHandle_ = -1;
-    m_wakeDataMap.clear();
-    m_delCntMap.clear();
-    timerMap_.clear();
-    executedHandle_.clear();
+    {
+        std::unique_lock lock(m_mapMutex);
+        m_wakeDataMap.clear();
+        m_delCntMap.clear();
+        m_waitTaskMap.clear();
+        m_cachedTaskEvents.clear();
+    }
+    {
+        std::unique_lock lock(timerMutex_);
+        timerMap_.clear();
+        executedHandle_.clear();
+    }
     flag_ = EpollStatus::TEARDOWN;
-    m_waitTaskMap.clear();
-    m_cachedTaskEvents.clear();
 }
 
 PollerProxy& PollerProxy::Instance()

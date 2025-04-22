@@ -74,7 +74,7 @@ int SetCpuAffinity(unsigned long affinity, int tid)
     }
     int ret = syscall(__NR_sched_setaffinity, tid, sizeof(mask), &mask);
     if (ret < 0) {
-        FFRT_SYSEVENT_LOGE("set qos affinity failed for tid %d\n", tid);
+        FFRT_SYSEVENT_LOGW("set qos affinity failed for tid %d\n", tid);
     }
     return ret;
 }

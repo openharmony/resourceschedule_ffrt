@@ -29,6 +29,7 @@
 #include "tm/scpu_task.h"
 #include "tm/task_factory.h"
 #include "../common.h"
+#include "eu/cpu_manager_strategy.h"
 
 using namespace std;
 using namespace testing;
@@ -306,6 +307,23 @@ HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level1)
     }, ffrt::task_attr().qos(ffrt_qos_user_initiated));
     ffrt::wait();
     EXPECT_EQ(qos, ffrt::QoS(ffrt_qos_user_initiated)());
+}
+
+/*
+* 测试用例名称：ffrt_set_sched_mode_test
+* 测试用例描述：测试ffrt_set_sched_mode接口
+* 预置条件    ：设置mode的值为ffrt_sched_energy_saving_mode
+* 操作步骤    ：调用ffrt_set_sched_mode接口
+* 预期结果    ：接口校验异常场景成功，用例正常执行结束
+*/
+HWTEST_F(CoreTest, ffrt_set_sched_mode_test, TestSize.Level1)
+{
+    ffrt::sched_mode_type sched_type = ffrt::CPUManagerStrategy::GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
+
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_energy_saving_mode);
+    sched_type = ffrt::CPUManagerStrategy::GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
 }
 
 namespace ffrt {

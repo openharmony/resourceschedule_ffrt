@@ -755,8 +755,8 @@ void ffrt_disable_worker_escape(void)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
 {
-    if (mode == ffrt_sched_energy_saving_mode) {
-        FFRT_LOGE("Currently, the energy saving mode is unavailable.");
+    if (mode == ffrt_sched_energy_saving_mode || qos < ffrt::QoS::Min() || qos >= ffrt::QoS::Max()) {
+        FFRT_LOGE("Currently, the energy saving mode is unavailable or qos [%d] is invalid..", qos);
         return;
     }
     ffrt::CPUManagerStrategy::SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));

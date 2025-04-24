@@ -137,6 +137,12 @@ private:
     void ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss);
     uint64_t CheckTimeSchedule(uint64_t time, uint64_t timeoutUs);
 
+    inline void SetCurTask(QueueTask* task)
+    {
+        std::unique_lock lock(mutex_);
+        curTask_ = task;
+    }
+
     // queue info
     std::string name_;
     int qos_ = qos_default;

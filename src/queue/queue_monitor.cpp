@@ -34,13 +34,8 @@ QueueMonitor::QueueMonitor()
 {
     FFRT_LOGI("QueueMonitor ctor enter");
     we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
-    uint64_t timeout = ffrt_task_timeout_get_threshold() * US_PER_MS;
-    timeoutUs_ = timeout;
-    if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
-        FFRT_LOGE("invalid watchdog timeout [%llu] us, using 1s instead", timeout);
-        timeoutUs_ = MIN_TIMEOUT_THRESHOLD_US;
-    }
-    FFRT_LOGI("QueueMonitor ctor leave, watchdog timeout of %llu us has been set", timeoutUs_);
+    timeoutUs_ = ffrt_task_timeout_get_threshold() * US_PER_MS;
+    FFRT_LOGI("queue monitor ctor leave, watchdog timeout of %llu us", timeoutUs_);
 }
 
 QueueMonitor::~QueueMonitor()
@@ -56,7 +51,7 @@ QueueMonitor& QueueMonitor::GetInstance()
     return instance;
 }
 
-void QueueMonitor::ResetQueue(QueueHandler* queue)
+void QueueMonitor::RegisterQueue(QueueHandler* queue)
 {
     std::unique_lock lock(infoMutex_);
     queuesInfo_.push_back(queue);
@@ -72,7 +67,7 @@ void QueueMonitor::DeregisterQueue(QueueHandler* queue)
     }
 }
 
-uint64_t QueueMonitor::UpdateQueueInfo()
+void QueueMonitor::UpdateQueueInfo()
 {
     std::shared_lock lock(infoMutex_);
     if (suspendAlarm_.exchange(false)) {

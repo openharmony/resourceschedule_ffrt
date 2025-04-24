@@ -182,6 +182,10 @@ void QueueHandler::Submit(QueueTask* task)
 void QueueHandler::Cancel()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
+    std::unique_lock lock(mutex_);
+    if (queue_->GetHeadTask() == curTask_) {
+        curTask_ = nullptr;
+    }
     int count = queue_->Remove();
     trafficRecord_.DoneTraffic(count);
 }
@@ -213,6 +217,9 @@ int QueueHandler::Cancel(const char* name)
     FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
          "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     std::unique_lock lock(mutex_);
+    if (queue_->GetHeadTask() != nullptr && queue_->GetHeadTask()->IsMatch(name)) {
+        curTask_ = nullptr;
+    }
     int ret = queue_->Remove(name);
     if (ret <= 0) {
         FFRT_LOGD("cancel task %s failed, task may have been executed", name);
@@ -236,9 +243,11 @@ int QueueHandler::Cancel(QueueTask* task)
     int ret = queue_->Remove(task);
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
-        if (curTask_ == task) {
+        {
             std::unique_lock lock(mutex_);
-            curTask_ = nullptr;
+            if (curTask_ == task) {
+                curTask_ = nullptr;
+            }
         }
         trafficRecord_.DoneTraffic();
         task->SetStatus(CoTaskStatus::CANCELED);
@@ -283,37 +292,33 @@ void QueueHandler::Dispatch(QueueTask* inTask)
                 std::chrono::steady_clock::now().time_since_epoch()).count());
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
         }
-        f->destroy(f);
+        if (f->destroy) {
+            f->destroy(f);
+        }
         task->Notify();
-        trafficRecord_.DoneTraffic();
         RemoveTimeoutMonitor(task);
+        trafficRecord_.DoneTraffic();
 
         // run task batch
         nextTask = task->GetNextTask();
+        SetCurTask(nextTask);
+        task->DecDeleteRef();
         if (nextTask == nullptr) {
-            execTaskId_.store(0);
-            {
-                std::unique_lock lock(mutex_);
-                curTask_ = nullptr;
-            }
             if (!queue_->IsOnLoop()) {
                 Deliver();
             }
         }
-        std::unique_lock lock(mutex_);
-        curTask_ = nextTask;
-        task->DecDeleteRef();
     }
 }
 
 void QueueHandler::Deliver()
 {
     deliverCnt_.fetch_add(1);
-    curTask_ = queue_->GetHeadTask();
+    SetCurTask(queue_->GetHeadTask());
     QueueTask* task = queue_->Pull();
     deliverCnt_.fetch_sub(1);
     if (task != nullptr) {
-        curTask_ = task;
+        SetCurTask(task);
         task->SetStatus(CoTaskStatus::DEQUEUED);
         TransferTask(task);
     }

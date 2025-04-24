@@ -34,7 +34,6 @@
 #include "util/time_format.h"
 #ifdef OHOS_STANDARD_SYSTEM
 #include "dfx/bbox/fault_logger_fd_manager.h"
-#include "dfx/bbox/dfx_allocator.h"
 #endif
 #include "dfx/dump/dump.h"
 #include "util/ffrt_facade.h"
@@ -289,7 +288,7 @@ static inline void SaveQueueTrafficRecord()
 {
     FFRT_BBOX_LOG("<<<=== Queue Traffic Record ===>>>");
 
-    std::string trafficInfo = TrafficRecord::DumpTrafficInfo();
+    std::string trafficInfo = TrafficRecord::DumpTrafficInfo(false);
     std::stringstream ss;
     ss << trafficInfo;
     FFRT_BBOX_LOG("%s", ss.str().c_str());
@@ -406,18 +405,12 @@ static void HandleChildProcess()
     BBoxDeInit();
     pid_t childPid = (pid_t)syscall(SYS_clone, SIGCHLD, 0);
     if (childPid == 0) {
-#ifdef OHOS_STANDARD_SYSTEM
-        RegisterAllocator();
-#endif
         // init is false to avoid deadlock occurs in the signal handling function due to memory allocation calls.
         auto ctx = ExecuteCtx::Cur(false);
         g_cur_task = ctx != nullptr ? ctx->task : nullptr;
         g_bbox_tid_is_dealing.store(gettid());
         SaveTheBbox();
         g_bbox_tid_is_dealing.store(0);
-#ifdef OHOS_STANDARD_SYSTEM
-        UnregisterAllocator();
-#endif
         _exit(0);
     } else if (childPid > 0) {
         pid_t wpid;

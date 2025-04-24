@@ -30,7 +30,7 @@ public:
     void SubmitTraffic(QueueHandler* handler);
     void DoneTraffic();
     void DoneTraffic(uint32_t count);
-    static std::string DumpTrafficInfo();
+    static std::string DumpTrafficInfo(bool withLock = true);
 
     static std::vector<std::pair<uint64_t, std::string>> trafficRecordInfo;
 private:
@@ -55,4 +55,4 @@ private:
 };
 } // namespace ffrt
 
-#endif // FFRT_QUEUE_TRAFFIC_RECORD_H
+#endif // FFRT_QUEUE_TRAFFIC_RECORD_H

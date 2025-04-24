@@ -129,18 +129,23 @@ void TrafficRecord::ReportOverload(std::stringstream& ss)
 #endif
 }
 
-std::string TrafficRecord::DumpTrafficInfo()
+std::string TrafficRecord::DumpTrafficInfo(bool withLock)
 {
     std::stringstream ss;
-    std::unique_lock lock(mtx_);
+    if (withLock) {
+        mtx_.lock();
+    }
     if (trafficRecordInfo.size() != 0) {
         for (auto it = trafficRecordInfo.rbegin(); it != trafficRecordInfo.rend(); ++it) {
             auto& record = *it;
-            ss << "{" << FormatDateToString(record.first) << ", " << record.second << "} \n";
+            ss << "{" << FormatDateString4SteadyClock(record.first) << ", " << record.second << "} \n";
         }
     } else {
         ss << "Queue Traffic Record Empty";
     }
+    if (withLock) {
+        mtx_.unlock();
+    }
     return ss.str();
 }
-} // namespace ffrt
+} // namespace ffrt

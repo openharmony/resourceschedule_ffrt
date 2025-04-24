@@ -346,9 +346,6 @@ void RecordDebugInfo(void)
  */
 void SaveTheBbox()
 {
-#ifdef OHOS_STANDARD_SYSTEM
-    FaultLoggerFdManager::Instance().InitFaultLoggerFd();
-#endif
     FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) start ===>>>");
     SaveCurrent();
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
@@ -359,9 +356,6 @@ void SaveTheBbox()
     SaveNormalTaskStatus();
     SaveQueueTaskStatus();
     FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
-#ifdef OHOS_STANDARD_SYSTEM
-    FaultLoggerFdManager::Instance().CloseFd();
-#endif
 }
 
 static void ResendSignal(siginfo_t* info)
@@ -398,6 +392,9 @@ static void HandleChildProcess()
         g_bbox_tid_is_dealing.store(gettid());
         SaveTheBbox();
         g_bbox_tid_is_dealing.store(0);
+#ifdef OHOS_STANDARD_SYSTEM
+        FaultLoggerFdManager::CloseFd();
+#endif
         _exit(0);
     } else if (childPid > 0) {
         pid_t wpid;
@@ -420,15 +417,24 @@ static void SignalHandler(int signo, siginfo_t* info, void* context __attribute_
         if (getKeyStatus != nullptr) {
             getKeyStatus();
         }
+#ifdef OHOS_STANDARD_SYSTEM
+        FaultLoggerFdManager::InitFaultLoggerFd();
+#endif
         pid_t childPid = static_cast<pid_t>(syscall(SYS_clone, SIGCHLD, 0));
         if (childPid == 0) {
             HandleChildProcess();
+#ifdef OHOS_STANDARD_SYSTEM
+            FaultLoggerFdManager::CloseFd();
+#endif
             _exit(0);
         } else if (childPid > 0) {
             g_bbox_tid_is_dealing.store(g_cur_tid);
             waitpid(childPid, nullptr, 0);
             g_bbox_tid_is_dealing.store(0);
         }
+#ifdef OHOS_STANDARD_SYSTEM
+        FaultLoggerFdManager::CloseFd();
+#endif
     }
     // we need to deregister our signal handler for that signal before continuing.
     sigaction(signo, &s_oldSa[signo], nullptr);

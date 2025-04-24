@@ -55,21 +55,20 @@ protected:
 HWTEST_F(FfrtLogTest, faultLoggerFdManager, TestSize.Level1)
 {
     // 获取句柄
-    FaultLoggerFdManager manager = FaultLoggerFdManager::Instance();
-    EXPECT_EQ(manager.GetFaultLoggerFd(), -1);
-    EXPECT_TRUE(manager.InitFaultLoggerFd() > 0);
+    EXPECT_EQ(FaultLoggerFdManager::GetFaultLoggerFd(), -1);
+    EXPECT_TRUE(FaultLoggerFdManager::InitFaultLoggerFd() > 0);
 
     // 写入日志
-    manager.WriteFaultLogger("test logToFaultlogger arg1[%s],arg2[%d]", "ARG1", 1);
-    manager.WriteFaultLogger("test logToFaultlogger arg1[%s],arg2[%d]", "ARG1", 1);
+    FaultLoggerFdManager::WriteFaultLogger("test logToFaultlogger arg1[%s],arg2[%d]", "ARG1", 1);
+    FaultLoggerFdManager::WriteFaultLogger("test logToFaultlogger arg1[%s],arg2[%d]", "ARG1", 1);
 
     // 关闭句柄
-    manager.CloseFd();
-    EXPECT_EQ(manager.GetFaultLoggerFd(), -1);
+    FaultLoggerFdManager::CloseFd();
+    EXPECT_EQ(FaultLoggerFdManager::GetFaultLoggerFd(), -1);
 
     // 读取日志
-    EXPECT_TRUE(manager.InitFaultLoggerFd() > 0);
-    int fd = manager.GetFaultLoggerFd();
+    EXPECT_TRUE(FaultLoggerFdManager::InitFaultLoggerFd() > 0);
+    int fd = FaultLoggerFdManager::GetFaultLoggerFd();
     const int bufferLen = 2048;
     std::array<char, bufferLen> readBuf {};
     int readSize = read(fd, readBuf.data(), bufferLen);

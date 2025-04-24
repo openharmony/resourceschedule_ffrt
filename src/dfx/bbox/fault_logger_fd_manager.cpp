@@ -23,15 +23,7 @@
 #include "dfx/bbox/fault_logger_fd_manager.h"
 
 static const int g_logBufferSize = 2048;
-
-FaultLoggerFdManager::FaultLoggerFdManager()
-{
-}
-
-FaultLoggerFdManager::~FaultLoggerFdManager()
-{
-    CloseFd();
-}
+int FaultLoggerFdManager::faultLoggerFd_ = -1;
 
 void FaultLoggerFdManager::CloseFd()
 {
@@ -45,9 +37,6 @@ int FaultLoggerFdManager::InitFaultLoggerFd()
 {
     if (faultLoggerFd_ == -1) {
         faultLoggerFd_ = RequestFileDescriptor(FaultLoggerType::FFRT_CRASH_LOG);
-        if (faultLoggerFd_ < 0) {
-            FFRT_LOGW("fail to InitFaultLoggerFd");
-        }
     }
     return faultLoggerFd_;
 }
@@ -78,7 +67,6 @@ void FaultLoggerFdManager::WriteFaultLogger(const char* format, ...)
     std::string msg = errLog;
     int n = write(fd, msg.data(), msg.size());
     if (n < 0) {
-        FFRT_LOGW("fail to write faultLogger msg:%s fd:%d, errno:%d", msg.data(), fd, errno);
         CloseFd();
     }
 }

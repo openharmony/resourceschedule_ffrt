@@ -17,20 +17,11 @@
 
 class FaultLoggerFdManager {
 public:
-    static FaultLoggerFdManager& Instance()
-    {
-        static FaultLoggerFdManager faultLoggerFdManager;
-        return faultLoggerFdManager;
-    }
-    ~FaultLoggerFdManager();
-    void CloseFd();
-    int InitFaultLoggerFd();
-    int GetFaultLoggerFd();
-    void WriteFaultLogger(const char* format, ...);
-
+    static int InitFaultLoggerFd();
+    static void CloseFd();
+    static int GetFaultLoggerFd();
+    static void WriteFaultLogger(const char* format, ...);
 private:
-    int faultLoggerFd_ = -1;
-
-    FaultLoggerFdManager();
+    static int faultLoggerFd_;
 };
 #endif /* __FAULT_LOGGER_FD_MANAGER_H__ */

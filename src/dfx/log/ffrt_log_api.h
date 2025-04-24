@@ -145,7 +145,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #define FFRT_BBOX_LOG(format, ...) \
     do { \
         FFRT_LOGE(format, ##__VA_ARGS__); \
-        FaultLoggerFdManager::Instance().WriteFaultLogger(format, ##__VA_ARGS__); \
+        FaultLoggerFdManager::WriteFaultLogger(format, ##__VA_ARGS__); \
     } while (0)
 #else
 #define FFRT_BBOX_LOG(format, ...) FFRT_LOGE(format, ##__VA_ARGS__)

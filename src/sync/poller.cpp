@@ -20,8 +20,14 @@
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
+    if (m_epFd < 0) {
+        FFRT_LOGE("epoll_create1 failed: errno=%d", errno);
+    }
     m_wakeData.cb = nullptr;
     m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (m_wakeData.fd < 0) {
+        FFRT_LOGE("eventfd failed: errno=%d", errno);
+    }
     epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
         FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);

@@ -183,8 +183,14 @@ void DelayedWorker::ThreadInit()
 DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
     timerfd_ { ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC) }
 {
-    FFRT_ASSERT(epollfd_ >= 0);
-    FFRT_ASSERT(timerfd_ >= 0);
+    epollfd_ = ::epoll_create1(EPOLL_CLOEXEC);
+    if (epollfd_ < 0) {
+        FFRT_LOGE("epoll_create1 failed: errno=%d", errno);
+    }
+    timerfd_ = ::timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+    if (timerfd_ < 0) {
+        FFRT_LOGE("timerfd_create failed: errno=%d", errno);
+    }
 
     epoll_event timer_event { .events = EPOLLIN | EPOLLET, .data = { .fd = timerfd_ } };
     if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, timerfd_, &timer_event) < 0) {

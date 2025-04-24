@@ -56,6 +56,21 @@ protected:
     }
 };
 
+#if defined(__clang__)
+#define OPTIMIZE_OFF __attribute__((optnone))
+#elif defined(__GNUC__)
+#define OPTIMIZE_OFF __attribute__((optimize(0)))
+#else
+#define OPTIMIZE_OFF
+#endif
+
+namespace {
+void OPTIMIZE_OFF OnePlusForTest(void* data)
+{
+    *(int*)data += 1;
+}
+} // namespace
+
 HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
 {
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
@@ -445,4 +460,19 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level1)
         [&] () { custom_manager.UnlockMem(); });
 
     TmTest::TestTaskFactory(false);
+}
+
+HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level1)
+{
+    ffrt_task_attr_t attr;
+    (void)ffrt_task_attr_init(&attr);
+
+    int result = 0;
+    ffrt_task_handle_t task = ffrt_submit_h_f(OnePlusForTest, &result, NULL, NULL, &attr);
+    const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, task}};
+    ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
+    ffrt_wait_deps(&wait);
+    ffrt_task_handle_destroy(task);
+
+    EXPECT_EQ(result, 1);
 }

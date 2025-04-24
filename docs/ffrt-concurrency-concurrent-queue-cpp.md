@@ -76,22 +76,18 @@ int main()
 {
     BankQueueSystem bankQueue("Bank", 2);
 
-    bankQueue.Enter(BankBusiness, "customer1", ffrt_queue_priority_low, 0);
-    bankQueue.Enter(BankBusiness, "customer2", ffrt_queue_priority_low, 0);
-    bankQueue.Enter(BankBusiness, "customer3", ffrt_queue_priority_low, 0);
-    bankQueue.Enter(BankBusiness, "customer4", ffrt_queue_priority_low, 0);
-
+    auto task1 = bankQueue.Enter(BankBusiness, "customer1", ffrt_queue_priority_low, 0);
+    auto task2 = bankQueue.Enter(BankBusiness, "customer2", ffrt_queue_priority_low, 0);
     // VIP享受更优先的服务
-    bankQueue.Enter(BankBusinessVIP, "vip", ffrt_queue_priority_high, 0);
+    auto task3 = bankQueue.Enter(BankBusinessVIP, "customer3 vip", ffrt_queue_priority_high, 0);
+    auto task4 = bankQueue.Enter(BankBusiness, "customer4", ffrt_queue_priority_low, 0);
+    auto task5 = bankQueue.Enter(BankBusiness, "customer5", ffrt_queue_priority_low, 0);
 
-    ffrt::task_handle handle = bankQueue.Enter(BankBusiness, "customer5", ffrt_queue_priority_low, 0);
-    ffrt::task_handle handleLast = bankQueue.Enter(BankBusiness, "customer6", ffrt_queue_priority_low, 0);
-
-    // 取消客户5的服务
-    bankQueue.Exit(handle);
+    // 取消客户4的服务
+    bankQueue.Exit(task4);
 
     // 等待所有的客户服务完成
-    bankQueue.Wait(handleLast);
+    bankQueue.Wait(task5);
     return 0;
 }
 ```

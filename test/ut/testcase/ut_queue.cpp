@@ -732,3 +732,19 @@ HWTEST_F(QueueTest, ffrt_spmc_queue_pop_head_to_another_queue, TestSize.Level1)
     EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue2, 128, 0, nullptr), 64);
     EXPECT_EQ(dstQueue2.GetLength(), 64);
 }
+
+HWTEST_F(QueueTest, ffrt_queue_submit_h_f, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    int result = 0;
+    ffrt_task_handle_t task = ffrt_queue_submit_h_f(queue_handle, OnePlusForTest, &result, NULL);
+    ffrt_queue_wait(task);
+    ffrt_task_handle_destroy(task);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+
+    EXPECT_EQ(result, 1);
+}

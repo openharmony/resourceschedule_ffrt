@@ -23,6 +23,7 @@
 #include "util/slab.h"
 #include "eu/func_manager.h"
 #include "cpp/task_ext.h"
+#include "util/ref_function_header.h"
 
 namespace {
 const int TSD_SIZE = 128;
@@ -61,7 +62,10 @@ void CPUEUTask::FreeMem()
         TaskFactory<CPUEUTask>::Free(this);
         return;
     }
+    FFRT_LOGD("hcs task deconstruct dec ref gid:%llu, create time:%llu", gid, createTime);
     this->~CPUEUTask();
+    // hcs task dec ref
+    reinterpret_cast<RefFunctionHeader*>(f->reserve[0] & (~MASK_FOR_HCS_TASK))->DecDeleteRef();
 }
 
 void CPUEUTask::Execute()

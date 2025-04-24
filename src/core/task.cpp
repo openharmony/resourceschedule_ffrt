@@ -34,6 +34,7 @@
 #include "util/slab.h"
 #include "eu/sexecute_unit.h"
 #include "core/task_io.h"
+#include "core/task_wrapper.h"
 #include "sync/poller.h"
 #include "util/spmc_queue.h"
 #include "tm/task_factory.h"
@@ -336,6 +337,14 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
 }
 
 API_ATTRIBUTE((visibility("default")))
+void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps,
+    const ffrt_task_attr_t* attr)
+{
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_general);
+    ffrt_submit_base(f, in_deps, out_deps, attr);
+}
+
+API_ATTRIBUTE((visibility("default")))
 ffrt_error_t ffrt_submit_base_nb(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, const ffrt_deps_t *out_deps,
     const ffrt_task_attr_t *attr)
 {
@@ -386,6 +395,14 @@ ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t *f, const ffrt_deps
     ffrt::submit_impl(true, handle, f, &delay_deps, nullptr, p);
     ffrt_task_handle_destroy(delay_handle);
     return handle;
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_task_handle_t ffrt_submit_h_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps,
+    const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
+{
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_general);
+    return ffrt_submit_h_base(f, in_deps, out_deps, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -494,7 +511,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_notify_workers(ffrt_qos_t qos, int number)
 {
     if (qos < ffrt::QoS::Min() || qos >= ffrt::QoS::Max() || number <= 0) {
-        FFRT_LOGE("qos [%d] or number [%d] or is invalid.", qos, number);
+        FFRT_SYSEVENT_LOGE("qos [%d] or number [%d] or is invalid.", qos, number);
         return;
     }
 
@@ -512,13 +529,13 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
     ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
     std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
     if (!groupCtl[qos].threads.empty()) {
-        FFRT_LOGE("Stack size can be set only when there is no worker.");
+        FFRT_SYSEVENT_LOGE("Stack size can be set only when there is no worker.");
         return ffrt_error;
     }
 
     int pageSize = getpagesize();
     if (pageSize < 0) {
-        FFRT_LOGE("Invalid pagesize : %d", pageSize);
+        FFRT_SYSEVENT_LOGE("Invalid pagesize : %d", pageSize);
         return ffrt_error;
     }
 
@@ -538,7 +555,7 @@ int ffrt_this_task_update_qos(ffrt_qos_t qos)
     ffrt::QoS _qos = ffrt::GetFuncQosMap()(qos);
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr) {
-        FFRT_LOGW("task is nullptr");
+        FFRT_SYSEVENT_LOGW("task is nullptr");
         return 1;
     }
 
@@ -738,8 +755,8 @@ void ffrt_disable_worker_escape(void)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
 {
-    if (mode == ffrt_sched_energy_saving_mode) {
-        FFRT_LOGE("Currently, the energy saving mode is unavailable.");
+    if (mode == ffrt_sched_energy_saving_mode || qos < ffrt::QoS::Min() || qos >= ffrt::QoS::Max()) {
+        FFRT_LOGE("Currently, the energy saving mode is unavailable or qos [%d] is invalid..", qos);
         return;
     }
     ffrt::CPUManagerStrategy::SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));

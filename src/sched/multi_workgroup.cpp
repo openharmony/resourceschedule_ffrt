@@ -49,7 +49,7 @@ void WorkgroupInit(struct WorkGroup* wg, uint64_t interval, int rtgId)
 int FindThreadInWorkGroup(WorkGroup *workGroup, int tid)
 {
     if (workGroup == nullptr) {
-        FFRT_LOGE("[RSWorkGroup] find thread %{public}d in workGroup failed, workGroup is null", tid);
+        FFRT_SYSEVENT_LOGE("[RSWorkGroup] find thread %{public}d in workGroup failed, workGroup is null", tid);
         return -1;
     }
     for (int i = 0;i < MAX_WG_THREADS; i++) {
@@ -63,7 +63,7 @@ int FindThreadInWorkGroup(WorkGroup *workGroup, int tid)
 bool InsertThreadInWorkGroup(WorkGroup *workGroup, int tid)
 {
     if (workGroup == nullptr) {
-        FFRT_LOGE("[RSWorkGroup] join thread %{public}d into workGroup failed, workGroup is null", tid);
+        FFRT_SYSEVENT_LOGE("[RSWorkGroup] join thread %{public}d into workGroup failed, workGroup is null", tid);
         return false;
     }
     for (int i = 0; i < MAX_WG_THREADS; i++) {
@@ -87,7 +87,7 @@ WorkGroup* CreateRSWorkGroup(uint64_t interval)
             if (rs.rtgId > 0) {
                 rsWorkGroup = new struct WorkGroup();
                 if (rsWorkGroup == nullptr) {
-                    FFRT_LOGE("[RSWorkGroup] rsWorkGroup malloc failed!");
+                    FFRT_SYSEVENT_LOGE("[RSWorkGroup] rsWorkGroup malloc failed!");
                     return nullptr;
                 }
                 WorkgroupInit(rsWorkGroup, interval, rs.rtgId);
@@ -117,7 +117,8 @@ bool JoinRSWorkGroup(int tid)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr) {
-        FFRT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed; Create RSWorkGroup first", tid);
+        FFRT_SYSEVENT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed; Create RSWorkGroup first",
+            tid);
         return false;
     }
     int existIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
@@ -155,7 +156,7 @@ bool JoinWG(int tid)
 {
     if (wgId < 0) {
         if (wgCount > 0) {
-            FFRT_LOGE("[WorkGroup] interval is unavailable");
+            FFRT_SYSEVENT_LOGE("[WorkGroup] interval is unavailable");
         }
         return false;
     }
@@ -167,7 +168,7 @@ bool JoinWG(int tid)
     if (addRet == 0) {
         FFRT_LOGI("[WorkGroup] update thread %{public}d success", tid);
     } else {
-        FFRT_LOGE("[WorkGroup] update thread %{public}d failed, return %{public}d", tid, addRet);
+        FFRT_SYSEVENT_LOGE("[WorkGroup] update thread %{public}d failed, return %{public}d", tid, addRet);
     }
     return true;
 }
@@ -193,7 +194,7 @@ struct WorkGroup* WorkgroupCreate(uint64_t interval)
     }
 
     if (rtgId < 0) {
-        FFRT_LOGE("[WorkGroup] create rtg group %d failed", rtgId);
+        FFRT_SYSEVENT_LOGE("[WorkGroup] create rtg group %d failed", rtgId);
         return nullptr;
     }
     FFRT_LOGI("[WorkGroup] create rtg group %d success", rtgId);
@@ -201,7 +202,7 @@ struct WorkGroup* WorkgroupCreate(uint64_t interval)
     WorkGroup* wg = nullptr;
     wg = new struct WorkGroup();
     if (wg == nullptr) {
-        FFRT_LOGE("[WorkGroup] workgroup malloc failed!");
+        FFRT_SYSEVENT_LOGE("[WorkGroup] workgroup malloc failed!");
         return nullptr;
     }
     WorkgroupInit(wg, interval, rtgId);
@@ -219,14 +220,14 @@ int WorkgroupClear(struct WorkGroup* wg)
         return DestoryRSWorkGroup();
     }
     if (wg == nullptr) {
-        FFRT_LOGE("[WorkGroup] input workgroup is null");
+        FFRT_SYSEVENT_LOGE("[WorkGroup] input workgroup is null");
         return 0;
     }
     int ret = -1;
     if (uid != RS_UID) {
         ret = DestroyRtgGrpAdapter(wg->rtgId);
         if (ret != 0) {
-            FFRT_LOGE("[WorkGroup] destroy rtg group failed");
+            FFRT_SYSEVENT_LOGE("[WorkGroup] destroy rtg group failed");
         } else {
             std::lock_guard<std::mutex> lck(wgLock);
             wgCount--;
@@ -240,7 +241,7 @@ int WorkgroupClear(struct WorkGroup* wg)
 void WorkgroupStartInterval(struct WorkGroup* wg)
 {
     if (wg == nullptr) {
-        FFRT_LOGE("[WorkGroup] input workgroup is null");
+        FFRT_SYSEVENT_LOGE("[WorkGroup] input workgroup is null");
         return;
     }
 

@@ -95,7 +95,7 @@ void DelayedWorker::DumpMap()
             ss << ",";
         }
     }
-    FFRT_LOGW("DumpMap:now=%lu,%s", now.time_since_epoch().count(), ss.str().c_str());
+    FFRT_SYSEVENT_LOGW("DumpMap:now=%lu,%s", now.time_since_epoch().count(), ss.str().c_str());
 }
 
 void DelayedWorker::ThreadInit()
@@ -134,7 +134,7 @@ void DelayedWorker::ThreadInit()
                 itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
                 ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
                 if (ret != 0) {
-                    FFRT_LOGE("timerfd_settime error,ns=%lu,ret= %d.", ns, ret);
+                    FFRT_SYSEVENT_LOGE("timerfd_settime error,ns=%lu,ret= %d.", ns, ret);
                 }
             } else if ((result == 1) && (!preserved)) {
                 if (++noTaskDelayCount_ > 1 && ffrt::FFRTFacade::GetEUInstance().GetWorkerNum() == 0) {
@@ -145,7 +145,7 @@ void DelayedWorker::ThreadInit()
                 itimerspec its = { {0, 0}, {FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS, 0} };
                 ret = timerfd_settime(timerfd_, 0, &its, nullptr);
                 if (ret != 0) {
-                    FFRT_LOGE("timerfd_settime error, ret= %d.", ret);
+                    FFRT_SYSEVENT_LOGE("timerfd_settime error, ret= %d.", ret);
                 }
             }
             lk.unlock();
@@ -158,7 +158,7 @@ void DelayedWorker::ThreadInit()
 
             if (nfds < 0) {
                 if (errno != FAKE_WAKE_UP_ERROR) {
-                    FFRT_LOGW("epoll_wait error, errorno= %d.", errno);
+                    FFRT_SYSEVENT_LOGW("epoll_wait error, errorno= %d.", errno);
                 }
                 continue;
             }
@@ -170,7 +170,7 @@ void DelayedWorker::ThreadInit()
                     if (n == 1) {
                         monitor->MonitorMain();
                     } else {
-                        FFRT_LOGE("monitor read fail:%d, %s", n, errno);
+                        FFRT_SYSEVENT_LOGE("monitor read fail:%d, %s", n, errno);
                     }
                     break;
                 }
@@ -188,7 +188,7 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
 
     epoll_event timer_event { .events = EPOLLIN | EPOLLET, .data = { .fd = timerfd_ } };
     if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, timerfd_, &timer_event) < 0) {
-        FFRT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
+        FFRT_SYSEVENT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
         std::terminate();
     }
     DelayedWorker::ThreadEnvCreate();
@@ -205,7 +205,7 @@ DelayedWorker::DelayedWorker(): epollfd_ { ::epoll_create1(EPOLL_CLOEXEC) },
     epoll_event monitor_event {.events = EPOLLIN, .data = {.fd = monitorfd_}};
     int ret = epoll_ctl(epollfd_, EPOLL_CTL_ADD, monitorfd_, &monitor_event);
     if (ret < 0) {
-        FFRT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
+        FFRT_SYSEVENT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
     }
 #endif
 }
@@ -238,7 +238,7 @@ void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTp - startTp);
     int64_t durationMs = duration.count();
     if (durationMs > EXECUTION_TIMEOUT_MILLISECONDS) {
-        FFRT_LOGW("handle work more than [%lld]ms", durationMs);
+        FFRT_SYSEVENT_LOGW("handle work more than [%lld]ms", durationMs);
     }
 }
 
@@ -273,7 +273,7 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
 {
     bool w = false;
     if (toExit) {
-        FFRT_LOGE("DelayedWorker destroy, dispatch failed\n");
+        FFRT_SYSEVENT_LOGE("DelayedWorker destroy, dispatch failed\n");
         return false;
     }
 
@@ -296,7 +296,7 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
         itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
         int ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
         if (ret != 0) {
-            FFRT_LOGE("timerfd_settime error, ns=%lu, ret= %d.", ns, ret);
+            FFRT_SYSEVENT_LOGE("timerfd_settime error, ns=%lu, ret= %d.", ns, ret);
         }
     }
     return true;

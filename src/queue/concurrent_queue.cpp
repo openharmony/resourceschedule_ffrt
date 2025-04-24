@@ -156,7 +156,7 @@ void ConcurrentQueue::Stop()
 bool ConcurrentQueue::SetLoop(Loop* loop)
 {
     if (loop == nullptr || loop_ != nullptr) {
-        FFRT_LOGE("queueId %s should bind to loop invalid", queueId_);
+        FFRT_SYSEVENT_LOGE("queueId %s should bind to loop invalid", queueId_);
         return false;
     }
 
@@ -170,7 +170,7 @@ int ConcurrentQueue::PushDelayTaskToTimer(QueueTask* task)
     uint64_t delayMs = (task->GetDelay() - 1) / 1000 + 1;
     int timeout = delayMs > INT_MAX ? INT_MAX : delayMs;
     if (loop_->TimerStart(timeout, task, DelayTaskCb, false) < 0) {
-        FFRT_LOGE("push delay queue task to timer fail");
+        FFRT_SYSEVENT_LOGE("push delay queue task to timer fail");
         return FAILED;
     }
     return SUCC;

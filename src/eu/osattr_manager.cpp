@@ -22,7 +22,7 @@ namespace ffrt {
 bool OSAttrManager::CheckSchedAttrPara(const std::string &name, int min, int max, int paraValue)
 {
     if (paraValue < min || paraValue > max) {
-        FFRT_LOGE("OSAttrManager::CheckAttrPara para %s is invalid", name.c_str());
+        FFRT_SYSEVENT_LOGE("OSAttrManager::CheckAttrPara para %s is invalid", name.c_str());
         return false;
     }
     return true;
@@ -33,11 +33,11 @@ int OSAttrManager::UpdateSchedAttr(const QoS& qos, ffrt_os_sched_attr *attr)
     FFRT_LOGI("OSAttrManager::UpdateSchedAttr start qos[%d] attr.lat_nice[%d] attr.cpumap[0x%s] attr.u_min[%d]\
         attr.shares[%d]", qos(), attr->latency_nice, attr->cpumap, attr->uclamp_min, attr->shares);
     if (GetFuncQosMax() == nullptr) {
-        FFRT_LOGE("FuncQosMap has not regist");
+        FFRT_SYSEVENT_LOGE("FuncQosMap has not regist");
         return -1;
     }
     if (qos() != GetFuncQosMax()() - 1) {
-        FFRT_LOGE("qos[%d] attr update is not supported.\n", qos());
+        FFRT_SYSEVENT_LOGE("qos[%d] attr update is not supported.\n", qos());
         return -1;
     }
 

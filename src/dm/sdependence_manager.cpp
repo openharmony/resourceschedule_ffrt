@@ -20,7 +20,6 @@
 #include "util/slab.h"
 #include "tm/queue_task.h"
 #include "tm/io_task.h"
-#include "util/ref_function_header.h"
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
@@ -80,7 +79,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 {
     // 0 check outs handle
     if (!CheckOutsHandle(outs)) {
-        FFRT_LOGE("outs contain handles error");
+        FFRT_SYSEVENT_LOGE("outs contain handles error");
         return;
     }
 
@@ -282,13 +281,6 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos(),  task);
     FFRT_TRACE_SCOPE(1, ontaskDone);
 
-    auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
-    // hcs task dec ref
-    if ((f->reserve[0] & MASK_FOR_HCS_TASK) == MASK_FOR_HCS_TASK) {
-        FFRT_LOGW("hcs task taskdone dec ref gid:%llu, create time:%llu", sTask->gid, sTask->createTime);
-        reinterpret_cast<RefFunctionHeader*>(f->reserve[0] & (~MASK_FOR_HCS_TASK))->DecDeleteRef();
-    }
-    sTask->DecChildRef();
     if (!(sTask->ins.empty() && sTask->outs.empty())) {
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
         FFRT_TRACE_SCOPE(1, taskDoneAfterLock);
@@ -310,6 +302,16 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     if (task->isWatchdogEnable) {
         RemoveTaskFromWatchdog(task->gid);
     }
+    // Note that `DecChildRef` is going to decrement the `childRefCnt`
+    // of the parent task. And if the parent happens to be
+    // root it may get deleted in `~RootTaskCtxWrapper`.
+    // Hence, following this call there should no longer
+    // be references or accesses to the root task object
+    // or any of its members. E.g. calling this
+    // before out->onProduced can lead to access
+    // of freed memory on wait condition notification
+    // of the parent task.
+    sTask->DecChildRef();
     sTask->RecycleTask();
 }
 
@@ -359,7 +361,7 @@ void SDependenceManager::MapSignature2Deps(SCPUEUTask* task, const std::vector<c
 #ifndef FFRT_RELEASE
         for (auto parentIn : std::as_const(static_cast<SCPUEUTask*>(task->parent)->ins)) {
             if (parentIn->signature == signature) {
-                FFRT_LOGE("parent's indep only cannot be child's outdep");
+                FFRT_SYSEVENT_LOGE("parent's indep only cannot be child's outdep");
             }
         }
 #endif
@@ -379,7 +381,7 @@ int SDependenceManager::onSkip(ffrt_task_handle_t handle)
         return ffrt_success;
     }
 
-    FFRT_LOGE("skip task [%lu] failed", task->gid);
+    FFRT_LOGW("skip task [%lu] failed", task->gid);
     return ffrt_error;
 }
 } // namespace ffrt

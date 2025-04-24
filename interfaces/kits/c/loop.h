@@ -36,8 +36,9 @@
 #ifndef FFRT_API_C_LOOP_H
 #define FFRT_API_C_LOOP_H
 
-#include "queue.h"
+#include <stdbool.h>
 #include "type_def.h"
+#include "queue.h"
 
 /**
  * @brief Defines the loop handle, which identifies different loops.

@@ -148,7 +148,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     if (worker->ops.IsBlockAwareInit()) {
         int ret = BlockawareRegister(worker->GetDomainId());
         if (ret != 0) {
-            FFRT_LOGE("blockaware register fail, ret[%d]", ret);
+            FFRT_SYSEVENT_LOGE("blockaware register fail, ret[%d]", ret);
         }
     }
 #endif

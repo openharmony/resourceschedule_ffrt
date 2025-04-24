@@ -81,6 +81,7 @@ HWTEST_F(CpuMonitorTestFunc, IntoSleep, TestSize.Level1)
 
     EXPECT_EQ(workerCtrl.executionNum, -1);
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, 1);
+    delete it;
 }
 
 /**
@@ -108,6 +109,7 @@ HWTEST_F(CpuMonitorTestFunc, WakeupSleep, TestSize.Level1)
 
     EXPECT_EQ(workerCtrl.executionNum, 1);
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, -1);
+    delete it;
 }
 
 /**
@@ -132,6 +134,7 @@ HWTEST_F(CpuMonitorTestFunc, TimeoutCount, TestSize.Level1)
     cpu.TimeoutCount(QoS(5));
 
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, -1);
+    delete it;
 }
 
 /**
@@ -156,6 +159,7 @@ HWTEST_F(CpuMonitorTestFunc, IntoDeepSleep, TestSize.Level1)
     cpu.IntoDeepSleep(QoS(5));
 
     EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, 1);
+    delete it;
 }
 
 
@@ -178,6 +182,7 @@ HWTEST_F(CpuMonitorTestFunc, WakeupDeepSleep, TestSize.Level1)
     EXPECT_EQ(workerCtrl.sleepingWorkerNum, -1);
     EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, -1);
     EXPECT_EQ(workerCtrl.executionNum, 1);
+    delete it;
 }
 
 /**
@@ -202,6 +207,7 @@ HWTEST_F(CpuMonitorTestFunc, IsExceedDeepSleepThreshold, TestSize.Level1)
     workerCtrl.deepSleepingWorkerNum++;
     workerCtrl.executionNum++;
     EXPECT_EQ(cpu.IsExceedDeepSleepThreshold(), true);
+    delete it;
 }
 }
 }

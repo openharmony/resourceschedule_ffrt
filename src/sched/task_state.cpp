@@ -32,7 +32,7 @@ int TaskState::OnTransition(State state, CPUEUTask* task, Op&& op)
     }
 
     if (task->state == TaskState::EXITED) {
-        FFRT_LOGE("task[%s] have finished", task->label.c_str());
+        FFRT_SYSEVENT_LOGE("task[%s] have finished", task->label.c_str());
         return -1;
     }
 

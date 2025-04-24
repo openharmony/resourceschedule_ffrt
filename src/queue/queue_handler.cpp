@@ -156,6 +156,7 @@ void QueueHandler::Submit(QueueTask* task)
         return;
     }
     if (ret == FAILED) {
+        FFRT_SYSEVENT_LOGE("push task failed");
         return;
     }
 
@@ -333,7 +334,7 @@ void QueueHandler::TransferTask(QueueTask* task)
     FFRTScheduler* sch = FFRTFacade::GetSchedInstance();
     FFRT_READY_MARKER(task->gid); // ffrt queue task ready to enque
     if (!sch->InsertNode(&entry->node, task->GetQos())) {
-        FFRT_LOGE("failed to insert task [%llu] into %s", task->gid, name_.c_str());
+        FFRT_SYSEVENT_LOGE("failed to insert task [%llu] into %s", task->gid, name_.c_str());
         return;
     }
 }
@@ -378,7 +379,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe);
-        FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
+        FFRT_SYSEVENT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
             name_.c_str(), timeout_);
         return;
     }
@@ -550,7 +551,7 @@ void QueueHandler::SendSchedTimer(TimePoint delay)
     we_->tp = delay;
     bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     while (!result) {
-        FFRT_LOGW("failed to set delayedworker, retry");
+        FFRT_SYSEVENT_LOGW("failed to set delayedworker, retry");
         we_->tp = std::chrono::steady_clock::now() + std::chrono::microseconds(SCHED_TIME_ACC_ERROR_US);
         result = DelayedWakeup(we_->tp, we_, we_->cb);
     }

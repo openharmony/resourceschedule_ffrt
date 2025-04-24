@@ -53,7 +53,7 @@ WorkerMonitor::WorkerMonitor()
     // 获取当前进程名称
     const char* processName = GetCurrentProcessName();
     if (strlen(processName) == 0) {
-        FFRT_LOGW("Get process name failed, skip worker monitor.");
+        FFRT_SYSEVENT_LOGW("Get process name failed, skip worker monitor.");
         skipSampling_ = true;
         return;
     }
@@ -136,7 +136,7 @@ void WorkerMonitor::SubmitSamplingTask()
 {
     watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
     if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {
-        FFRT_LOGW("Set delayed worker failed.");
+        FFRT_SYSEVENT_LOGW("Set delayed worker failed.");
     }
 }
 
@@ -147,7 +147,7 @@ void WorkerMonitor::SubmitMemReleaseTask()
     }
     memReleaseWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
     if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb)) {
-        FFRT_LOGW("Set delayed worker failed.");
+        FFRT_SYSEVENT_LOGW("Set delayed worker failed.");
     }
 }
 

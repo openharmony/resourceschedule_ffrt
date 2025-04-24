@@ -52,12 +52,13 @@ void WorkerThread::NativeConfig()
 
 void WorkerThread::WorkerSetup()
 {
-    static int threadIndex[QoS::MaxNum()] = {0};
+    static std::atomic<int> threadIndex[QoS::MaxNum()] = {0};
+    int tid = threadIndex[qos()].fetch_add(1, std::memory_order_relaxed);
     std::string qosStr = std::to_string(qos());
     std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
-        std::string(WORKER_THREAD_SYMBOL) + std::to_string(threadIndex[qos()]++);
+        std::string(WORKER_THREAD_SYMBOL) + std::to_string(tid);
     if (qosStr == "") {
-        FFRT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
+        FFRT_SYSEVENT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), tid);
     }
     pthread_setname_np(pthread_self(), threadName.c_str());
 }
@@ -73,7 +74,7 @@ int SetCpuAffinity(unsigned long affinity, int tid)
     }
     int ret = syscall(__NR_sched_setaffinity, tid, sizeof(mask), &mask);
     if (ret < 0) {
-        FFRT_LOGE("set qos affinity failed for tid %d\n", tid);
+        FFRT_SYSEVENT_LOGW("set qos affinity failed for tid %d\n", tid);
     }
     return ret;
 }

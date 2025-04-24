@@ -24,7 +24,7 @@ int GetStaticQos(qos &static_qos)
     struct QosCtrlData data;
     int ret = FFRTQosGet(data);
     if (ret < 0 || data.staticQos < 0) {
-        FFRT_LOGE("get static qos failed");
+        FFRT_SYSEVENT_LOGE("get static qos failed");
         return ERROR_NUM;
     }
     static_qos = static_cast<qos>(data.staticQos);
@@ -36,7 +36,7 @@ int GetDynamicQos(qos &dynamic_qos)
     struct QosCtrlData data;
     int ret = FFRTQosGet(data);
     if (ret < 0 || data.dynamicQos < 0) {
-        FFRT_LOGE("get dynamic qos failed");
+        FFRT_SYSEVENT_LOGE("get dynamic qos failed");
         return ERROR_NUM;
     }
     dynamic_qos = static_cast<qos>(data.dynamicQos);

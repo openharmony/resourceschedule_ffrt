@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ffrt_inner.h"
+#include "ffrt.h"
 
 int ffrt_submit_example1()
 {
@@ -24,12 +24,12 @@ int ffrt_submit_example1()
     printf("hello ffrt. x=%d\n", x);
     return 0;
 }
+
 int ffrt_submit_example2()
 {
     int x = 0;
     ffrt::submit([&]() { x = 2; }, {}, {&x}, ffrt::task_attr().name("add2"));
-    ffrt::submit([&]() { x = x * 3; }, {&x}, {},
-        ffrt::task_attr().name("mul3")); // default to CPU
+    ffrt::submit([&]() { x = x * 3; }, {&x}, {}, ffrt::task_attr().name("mul3")); // default to CPU
     ffrt::wait();
     printf("hello ffrt. x=%d\n", x);
     return 0;

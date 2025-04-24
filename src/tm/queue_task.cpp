@@ -46,7 +46,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         prio_ = attr->prio_;
         stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
         if (delay_ && attr->timeout_) {
-            FFRT_LOGW("task [gid=%llu] not support delay and timeout at the same time, timeout ignored", gid);
+            FFRT_SYSEVENT_LOGW("task [gid=%llu] not support delay and timeout at the same time, timeout ignored", gid);
         } else if (attr->timeout_) {
             schedTimeout_ = std::max(attr->timeout_, MIN_SCHED_TIMEOUT); // min 0.1s
         }
@@ -85,6 +85,11 @@ void QueueTask::Execute()
 {
     IncDeleteRef();
     FFRT_LOGD("Execute stask[%lu], name[%s]", gid, label.c_str());
+    if (isFinished_.load()) {
+        FFRT_SYSEVENT_LOGE("task [gid=%llu] is complete, no need to execute again", gid);
+        DecDeleteRef();
+        return;
+    }
 
     handler_->Dispatch(this);
     FFRT_TASKDONE_MARKER(gid);

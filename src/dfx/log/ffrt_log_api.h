@@ -38,6 +38,9 @@
 unsigned int GetLogId(void);
 bool IsInWhitelist(void);
 void InitWhiteListFlag(void);
+#ifdef FFRT_SEND_EVENT
+void ReportSysEvent(const char* format, ...);
+#endif
 
 #ifdef OHOS_STANDARD_SYSTEM
 template<size_t N>
@@ -147,6 +150,34 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #else
 #define FFRT_BBOX_LOG(format, ...) FFRT_LOGE(format, ##__VA_ARGS__)
 #endif
+
+#ifdef FFRT_SEND_EVENT
+#define FFRT_SYSEVENT_LOGE(format, ...)           \
+    do {                                       \
+        FFRT_LOGE(format, ##__VA_ARGS__);         \
+        ReportSysEvent(format, ##__VA_ARGS__);    \
+    } while (0)
+#define FFRT_SYSEVENT_LOGW(format, ...)           \
+    do {                                       \
+        FFRT_LOGW(format, ##__VA_ARGS__);         \
+        ReportSysEvent(format, ##__VA_ARGS__);    \
+    } while (0)
+#define FFRT_SYSEVENT_LOGI(format, ...)           \
+    do {                                       \
+        FFRT_LOGI(format, ##__VA_ARGS__);         \
+        ReportSysEvent(format, ##__VA_ARGS__);    \
+    } while (0)
+#define FFRT_SYSEVENT_LOGD(format, ...)           \
+    do {                                       \
+        FFRT_LOGD(format, ##__VA_ARGS__);         \
+        ReportSysEvent(format, ##__VA_ARGS__);    \
+    } while (0)
+#else // FFRT_SEND_EVENT
+#define FFRT_SYSEVENT_LOGE(format, ...) FFRT_LOGE(format, ##__VA_ARGS__)
+#define FFRT_SYSEVENT_LOGW(format, ...) FFRT_LOGW(format, ##__VA_ARGS__)
+#define FFRT_SYSEVENT_LOGI(format, ...) FFRT_LOGI(format, ##__VA_ARGS__)
+#define FFRT_SYSEVENT_LOGD(format, ...) FFRT_LOGD(format, ##__VA_ARGS__)
+#endif // FFRT_SEND_EVENT
 
 #define FFRT_COND_DO_ERR(cond, expr, format, ...) \
     if (cond) {                                   \

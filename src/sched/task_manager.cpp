@@ -53,7 +53,7 @@ void TaskManager::CalcTaskTime(CPUEUTask* task)
             uint64_t count = GetCount(TaskState::EXITED);
             calc(task->state.RunningTime(), count, maxRunningTime, avgRunningTime);
             if ((count & 0x3FF) == 0) {
-                FFRT_LOGW(
+                FFRT_SYSEVENT_LOGW(
                     "Task-done num: %lu; wait-time aver : %.2f us, max: %lu us; exec-time: aver %.2f us, max: %lu us",
                     count, avgWaitingTime.load(), maxWaitingTime.load(), avgRunningTime.load(), maxRunningTime.load());
             }

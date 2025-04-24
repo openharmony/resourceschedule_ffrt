@@ -95,7 +95,7 @@ void ffrt_wake_coroutine(void* task)
 #endif
 
     if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(&wakedTask->fq_we.node, wakedTask->qos_)) {
-        FFRT_LOGE("Submit io task failed!");
+        FFRT_SYSEVENT_LOGE("Submit io task failed!");
     }
 }
 #ifdef __cplusplus

@@ -229,6 +229,48 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, cons
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
 
 /**
+ * @brief Submits a task, simplified from the ffrt_submit_base interface.
+ *
+ * This interface wraps the provided task function and its argument into a task wrapper
+ * designated as a general task (ffrt_function_kind_general). During wrapper creation, the
+ * task destroy callback (after_func), which is intended to handle any post-execution cleanup,
+ * is simplified to NULL. The resulting task wrapper is then submitted using the underlying
+ * ffrt_submit_base interface.
+ *
+ * @param func Indicates a task function to be executed.
+ * @param arg Indicates a pointer to the argument or closure data that will be passed to the task function.
+ * @param in_deps Indicates a pointer to the input dependencies.
+ * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a pointer to the task attribute.
+ * @see ffrt_submit_base
+ * @since 20
+ */
+FFRT_C_API void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps,
+    const ffrt_task_attr_t* attr);
+
+/**
+ * @brief Submits a task, and obtains a task handle, simplified from the ffrt_submit_h_base interface.
+ *
+ * This interface wraps the provided task function and its argument into a task wrapper
+ * designated as a general task (ffrt_function_kind_general). During wrapper creation, the
+ * task destroy callback (after_func), which is intended to handle any post-execution cleanup,
+ * is simplified to NULL. The resulting task wrapper is then submitted using the underlying
+ * ffrt_submit_h_base interface.
+ *
+ * @param func Indicates a task function to be executed.
+ * @param arg Indicates a pointer to the argument or closure data that will be passed to the task function.
+ * @param in_deps Indicates a pointer to the input dependencies.
+ * @param out_deps Indicates a pointer to the output dependencies.
+ * @param attr Indicates a pointer to the task attribute.
+ * @return Returns a non-null task handle if the task is submitted;
+           returns a null pointer otherwise.
+ * @see ffrt_submit_h_base
+ * @since 20
+ */
+FFRT_C_API ffrt_task_handle_t ffrt_submit_h_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps,
+    const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
+
+/**
  * @brief Increases reference count of a task.
  *
  * @param handle Indicates a task handle.

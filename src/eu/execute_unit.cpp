@@ -74,7 +74,7 @@ void ExecuteUnit::CreateWorkerManager()
         }
 
         if (manager == nullptr) {
-            FFRT_LOGE("create workerManager fail, devType %d", static_cast<size_t>(dev));
+            FFRT_SYSEVENT_LOGE("create workerManager fail, devType %d", static_cast<size_t>(dev));
             return;
         }
 

@@ -32,6 +32,7 @@ ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue)
     FFRT_COND_DO_ERR((innerLoop == nullptr), return nullptr, "failed to construct loop");
 
     if (!handler->SetLoop(innerLoop)) {
+        FFRT_SYSEVENT_LOGE("failed to set loop for handler");
         delete innerLoop;
         return nullptr;
     }

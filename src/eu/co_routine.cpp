@@ -50,12 +50,13 @@ using namespace ffrt;
 static inline void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
-        FFRT_LOGE("sp offset:%p.\n", co->stkMem.stk +
+        FFRT_SYSEVENT_LOGE("sp offset:%p.\n", co->stkMem.stk +
             co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
-        FFRT_LOGE("stack over flow, check local variable in you tasks or use api 'ffrt_task_attr_set_stack_size'.\n");
+        FFRT_SYSEVENT_LOGE("stack over flow, check local variable in you tasks"
+            " or use api 'ffrt_task_attr_set_stack_size'.\n");
         if (ExecuteCtx::Cur()->task != nullptr) {
             auto curTask = ExecuteCtx::Cur()->task;
-            FFRT_LOGE("task name[%s], gid[%lu], submit_tid[%d]",
+            FFRT_SYSEVENT_LOGE("task name[%s], gid[%lu], submit_tid[%d]",
                 curTask->label.c_str(), curTask->gid, curTask->fromTid);
         }
         abort();
@@ -102,7 +103,7 @@ bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
     }
 
     if (task->tsd == nullptr) {
-        FFRT_LOGE("taskLocal enabled but task tsd invalid");
+        FFRT_SYSEVENT_LOGE("taskLocal enabled but task tsd invalid");
         return false;
     }
 
@@ -146,6 +147,7 @@ void SwitchTsdToTask(ffrt::CPUEUTask* task)
 bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 {
     if (!task->threadTsd) {
+        FFRT_SYSEVENT_LOGE("threadTsd is null");
         return false;
     }
     pthread_settsd(task->threadTsd);
@@ -274,12 +276,12 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
         co = static_cast<CoRoutine*>(mmap(nullptr, stackSize,
             PROT_READ | PROT_WRITE,  MAP_ANONYMOUS | MAP_PRIVATE, -1, 0));
         if (co == reinterpret_cast<CoRoutine*>(MAP_FAILED)) {
-            FFRT_LOGE("memory mmap failed.");
+            FFRT_SYSEVENT_LOGE("memory mmap failed.");
             return nullptr;
         }
     }
     if (!co) {
-        FFRT_LOGE("memory not enough");
+        FFRT_SYSEVENT_LOGE("memory not enough");
         return nullptr;
     }
     co->allocatedSize = stackSize;
@@ -303,7 +305,7 @@ static inline void CoMemFree(CoRoutine* co)
     } else {
         int ret = munmap(co, co->allocatedSize);
         if (ret != 0) {
-            FFRT_LOGE("munmap failed with errno: %d", errno);
+            FFRT_SYSEVENT_LOGE("munmap failed with errno: %d", errno);
         }
     }
 }
@@ -394,7 +396,7 @@ static inline bool CoBboxPreCheck(ffrt::CPUEUTask* task)
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
         if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
-            FFRT_LOGE("executed by worker suddenly, ignore backtrace");
+            FFRT_SYSEVENT_LOGE("executed by worker suddenly, ignore backtrace");
             return false;
         }
     }
@@ -526,7 +528,7 @@ void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred)
 void CoWake(ffrt::CPUEUTask* task, CoWakeType type)
 {
     if (task == nullptr) {
-        FFRT_LOGE("task is nullptr");
+        FFRT_SYSEVENT_LOGE("task is nullptr");
         return;
     }
     // Fast path: state transition without lock

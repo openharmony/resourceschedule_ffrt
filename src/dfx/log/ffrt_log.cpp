@@ -23,10 +23,15 @@
 #include <atomic>
 #include "ffrt_log_api.h"
 #include "internal_inc/osal.h"
+#ifdef FFRT_SEND_EVENT
+#include <securec.h>
+#include "hisysevent.h"
+#endif
 static int g_ffrtLogLevel = FFRT_LOG_DEBUG;
 static std::atomic<unsigned int> g_ffrtLogId(0);
 static bool g_whiteListFlag = false;
 namespace {
+    constexpr int LOG_BUFFER_SIZE = 2048;
     constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
     constexpr char CONF_FILEPATH[] = "/etc/ffrt/log_ctr_whitelist.conf";
 }
@@ -89,3 +94,19 @@ static __attribute__((constructor)) void LogInit(void)
     SetLogLevel();
     InitWhiteListFlag();
 }
+
+#ifdef FFRT_SEND_EVENT
+void ReportSysEvent(const char* format, ...)
+{
+    char buffer[LOG_BUFFER_SIZE] = {0};
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf_s(buffer, LOG_BUFFER_SIZE, LOG_BUFFER_SIZE - 1, format, args);
+    va_end(args);
+    if (ret < 0) {
+        return;
+    }
+    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, "Task_TIMEOUT",
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "MSG", buffer);
+}
+#endif // FFRT_SEND_EVENT

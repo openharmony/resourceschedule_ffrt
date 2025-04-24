@@ -169,7 +169,7 @@ void SCPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notify
         FFRTTraceRecord::WorkRecord(qos(), workerCtrl.executionNum);
         lock.unlock();
         ops.IncWorker(qos);
-    } else if (escapeMgr_.IsEscapeEnable() && (runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
+    } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
         escapeMgr_.SubmitEscape(qos, totalNum, this);
     } else {
         if (workerCtrl.pollWaitFlag) {
@@ -181,7 +181,7 @@ void SCPUMonitor::Poke(const QoS& qos, uint32_t taskCount, TaskNotifyType notify
 void SCPUMonitor::ExecuteEscape(int qos, void* monitorPtr)
 {
     SCPUMonitor* monitor = reinterpret_cast<SCPUMonitor*>(monitorPtr);
-    if (monitor->escapeMgr_.IsEscapeEnable() && monitor->ops.GetTaskCount(qos) > 0) {
+    if (monitor->ops.GetTaskCount(qos) > 0) {
         WorkerCtrl& workerCtrl = monitor->ctrlQueue[qos];
         std::unique_lock lock(workerCtrl.lock);
 
@@ -191,10 +191,14 @@ void SCPUMonitor::ExecuteEscape(int qos, void* monitorPtr)
             lock.unlock();
             monitor->ops.WakeupWorkers(qos);
         } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
-            workerCtrl.executionNum++;
-            FFRTTraceRecord::WorkRecord(qos, workerCtrl.executionNum);
-            lock.unlock();
-            monitor->ops.IncWorker(qos);
+            if (monitor->escapeMgr_.IsEscapeEnable()) {
+                workerCtrl.executionNum++;
+                FFRTTraceRecord::WorkRecord(qos, workerCtrl.executionNum);
+                lock.unlock();
+                monitor->ops.IncWorker(qos);
+            } else {
+                lock.unlock();
+            }
             monitor->ReportEscapeEvent(qos, totalNum);
         } else {
             if (workerCtrl.pollWaitFlag) {

@@ -151,7 +151,7 @@ FFRT_C_API void ffrt_queue_attr_set_traffic_interval(ffrt_queue_attr_t* attr, ui
 
 /**
  * @brief Get the queue traffic record interval that takes effect.
- * 
+ *
  * Invalid traffic interval will return the default value of 6,000,000 us. The unit of return value is microsecond.
  *
  * @param attr Queue attribute Pointer.

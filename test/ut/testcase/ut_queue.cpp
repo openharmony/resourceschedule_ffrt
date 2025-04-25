@@ -863,7 +863,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level1)
 
     for (int i = 0; i < 16; i++) {
         ffrt::submit([&]() {
-            x += 1;
+            x = x + 1;
             usleep(1100000);
         }, {}, {});
     }
@@ -890,7 +890,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level1)
     ffrt::DelayedWorker::GetInstance();
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
-    auto t = testQueue->submit_h([] { x += 1; usleep(1100000); FFRT_LOGE("done");}, {});
+    auto t = testQueue->submit_h([] { x = x + 1; usleep(1100000); FFRT_LOGE("done");}, {});
     FFRT_LOGE("submitted");
     testQueue->wait(t);
     delete testQueue;
@@ -913,7 +913,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level1)
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
-    auto t = testQueue->submit_h([] { x += 1; FFRT_LOGE("delay start"); }, task_attr().delay(1500000));
+    auto t = testQueue->submit_h([] { x = x + 1; FFRT_LOGE("delay start"); }, task_attr().delay(1500000));
     testQueue->wait(t);
     delete testQueue;
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
@@ -935,8 +935,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level1)
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
-    testQueue->submit([] { x += 1; FFRT_LOGE("start"); });
-    auto t = testQueue->submit_h([] { x += 1; FFRT_LOGE("delay start"); }, task_attr().delay(5000000));
+    testQueue->submit([] { x = x + 1; FFRT_LOGE("start"); });
+    auto t = testQueue->submit_h([] { x = x + 1; FFRT_LOGE("delay start"); }, task_attr().delay(5000000));
     testQueue->cancel(t);
     testQueue->wait(t);
     usleep(1200000);
@@ -981,7 +981,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level1)
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
 
     ffrt::submit([] { stall_us(1300 * 1000); });
-    std::function<void()>&& basicFunc = [] { x += 1; stall_us(1300 * 1000); FFRT_LOGE("done");};
+    std::function<void()>&& basicFunc = [] { x = x + 1; stall_us(1300 * 1000); FFRT_LOGE("done");};
     ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
         ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
 

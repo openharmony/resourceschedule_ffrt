@@ -14,6 +14,7 @@
  */
 
 #include "traffic_record.h"
+#include <future>
 #include <sstream>
 #include "queue_handler.h"
 #include "dfx/sysevent/sysevent.h"
@@ -29,19 +30,24 @@ constexpr uint32_t US_TO_MS = 1000;
 }
 
 namespace ffrt {
-std::vector<std::pair<uint64_t, std::string>> TrafficRecord::trafficRecordInfo;
+std::vector<std::pair<uint64_t, std::string>> TrafficRecord::trafficRecordInfo =
+    std::async(std::launch::deferred, []() {
+        std::vector<std::pair<uint64_t, std::string>> trafficInfo;
+        trafficInfo.reserve(INITIAL_RECORD_LIMIT);
+        return trafficInfo;
+    }).get();
 std::mutex TrafficRecord::mtx_;
-TrafficRecord::TrafficRecord()
-{
-    trafficRecordInfo.reserve(INITIAL_RECORD_LIMIT);
-}
 
+TrafficRecord::TrafficRecord() {}
+
+#ifdef FFRT_ENABLE_TRAFFIC_MONITOR
 void TrafficRecord::SetTimeInterval(const uint64_t timeInterval)
 {
     const uint64_t& time = TimeStampCntvct();
     timeInterval_ = timeInterval;
     nextUpdateTime_ = time + timeInterval_;
 }
+
 void TrafficRecord::SubmitTraffic(QueueHandler* handler)
 {
     submitCnt_.fetch_add(1, std::memory_order_relaxed);
@@ -72,6 +78,12 @@ void TrafficRecord::DoneTraffic(uint32_t count)
 {
     doneCnt_.fetch_add(count, std::memory_order_relaxed);
 }
+#else
+void TrafficRecord::SetTimeInterval(const uint64_t timeInterval) {}
+void TrafficRecord::SubmitTraffic(QueueHandler* handler) {}
+void TrafficRecord::DoneTraffic() {}
+void TrafficRecord::DoneTraffic(uint32_t count) {}
+#endif
 
 void TrafficRecord::CalculateTraffic(QueueHandler* handler, const uint64_t& time)
 {

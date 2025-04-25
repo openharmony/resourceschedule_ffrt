@@ -45,7 +45,6 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
         qos_ = (ffrt_queue_attr_get_qos(attr) >= ffrt_qos_background) ? ffrt_queue_attr_get_qos(attr) : qos_;
         timeout_ = ffrt_queue_attr_get_timeout(attr);
         timeoutCb_ = ffrt_queue_attr_get_callback(attr);
-        trafficRecordInterval_ = ffrt_queue_attr_get_traffic_interval(attr);
     }
 
     // callback reference counting is to ensure life cycle
@@ -315,7 +314,10 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 void QueueHandler::Deliver()
 {
     deliverCnt_.fetch_add(1);
-    SetCurTask(queue_->GetHeadTask());
+    {
+        std::unique_lock lock(mutex_);
+        curTask_ = queue_->GetHeadTask();
+    }
     QueueTask* task = queue_->Pull();
     deliverCnt_.fetch_sub(1);
     if (task != nullptr) {

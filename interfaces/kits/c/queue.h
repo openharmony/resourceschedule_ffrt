@@ -134,32 +134,6 @@ FFRT_C_API void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_funct
 FFRT_C_API ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
 
 /**
- * @brief Sets the queue traffic record interval.
- * 
- * Traffic record is to monitor the queue's performance over a specified time interval,
- * tracking task inflow and outflow.
- * Continuous task accumulation can lead to delays in the execution of tasks expected,
- * reports will be triggerred if significant accumulation is dectected.
- *
- * @param attr Queue attribute Pointer.
- * @param traffic_interval_us Queue traffic record interval, unit of microsecond. Default value is 6,000,000 us.
- *                            If input parameter value is smaller than 1,000,000 us or larger than 600,000,000 us,
- *                            the default value will be used. This function can be disabled by setting the traffic
- *                            interval to 0.
- */
-FFRT_C_API void ffrt_queue_attr_set_traffic_interval(ffrt_queue_attr_t* attr, uint64_t traffic_interval_us);
-
-/**
- * @brief Get the queue traffic record interval that takes effect.
- *
- * Invalid traffic interval will return the default value of 6,000,000 us. The unit of return value is microsecond.
- *
- * @param attr Queue attribute Pointer.
- * @return Returns the queue traffic record interval.
- */
-FFRT_C_API uint64_t ffrt_queue_attr_get_traffic_interval(const ffrt_queue_attr_t* attr);
-
-/**
  * @brief Sets the queue max concurrency of a queue attribute.
  *
  * @param attr Queue attribute pointer.

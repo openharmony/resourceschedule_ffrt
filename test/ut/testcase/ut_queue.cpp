@@ -978,6 +978,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level1)
     ffrt_queue_wait(task);
     ffrt_queue_destroy(queue_handle);
 }
+
+/*
  * 测试用例名称 : ffrt_spmc_queue_test
  * 测试用例描述 : SPMC无锁队列功能测试
  * 预置条件     ：创建一个SPMC队列

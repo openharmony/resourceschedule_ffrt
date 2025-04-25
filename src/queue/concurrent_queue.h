@@ -41,7 +41,7 @@ public:
 
     void Stop() override;
     bool SetLoop(Loop* loop);
-    void Remove() override;
+    int Remove() override;
     int Remove(const char* name) override;
     int Remove(const QueueTask* task) override;
     bool HasTask(const char* name) override;

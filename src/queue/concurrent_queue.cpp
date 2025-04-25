@@ -185,9 +185,11 @@ std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
 void ConcurrentQueue::Remove()
 {
     std::unique_lock lock(mutex_);
+    int cnt = 0;
     for (auto& currentMap : whenMapVec_) {
-        BaseQueue::Remove(currentMap);
+        cnt += BaseQueue::Remove(currentMap);
     }
+    return cnt;
 }
 
 int ConcurrentQueue::Remove(const char* name)

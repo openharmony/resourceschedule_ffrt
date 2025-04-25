@@ -131,6 +131,7 @@ private:
 
     void ReportTimeout(const std::vector<uint64_t>& timeoutTaskId);
     void CheckSchedDeadline();
+    bool CheckExecutingTask();
     void SendSchedTimer(TimePoint delay);
     void AddSchedDeadline(QueueTask* task);
     void RemoveSchedDeadline(QueueTask* task);

@@ -182,7 +182,7 @@ std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
     return std::make_unique<ConcurrentQueue>(maxConcurrency);
 }
 
-void ConcurrentQueue::Remove()
+int ConcurrentQueue::Remove()
 {
     std::unique_lock lock(mutex_);
     int cnt = 0;

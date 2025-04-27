@@ -884,7 +884,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level1)
     EXPECT_EQ(x, 2);
 }
 
-static inline void stall_us_impl(size_t us)
+static inline void StallUsImpl(size_t us)
 {
     auto start = std::chrono::system_clock::now();
     size_t passed = 0;
@@ -894,9 +894,9 @@ static inline void stall_us_impl(size_t us)
     }
 }
 
-void stall_us(size_t us)
+void StallUs(size_t us)
 {
-    stall_us_impl(us);
+    StallUsImpl(us);
 }
 
 /*
@@ -919,8 +919,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level1)
     ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
 
-    ffrt::submit([] { stall_us(1300 * 1000); });
-    std::function<void()>&& basicFunc = [&x] { x = x + 1; stall_us(1300 * 1000); FFRT_LOGE("done");};
+    ffrt::submit([] { StallUs(1300 * 1000); });
+    std::function<void()>&& basicFunc = [&x] { x = x + 1; StallUs(1300 * 1000); FFRT_LOGE("done");};
     ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
         ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
 

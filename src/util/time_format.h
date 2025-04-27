@@ -20,14 +20,14 @@
 
 namespace ffrt {
 typedef enum {
-    millisecond,
-    microsecond,
-} time_unit_t;
+    MILLISECOND,
+    MICROSECOND,
+} TimeUnitT;
 
 std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
-    time_unit_t timeUnit = millisecond);
-std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, time_unit_t timeUnit = millisecond);
-std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t timeUnit = millisecond);
+    TimeUnitT timeUnit = MILLISECOND);
+std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit = MILLISECOND);
+std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit = MILLISECOND);
 std::string FormatDateToString(uint64_t timeStamp);
 uint64_t Arm64CntFrq(void);
 uint64_t Arm64CntCt(void);

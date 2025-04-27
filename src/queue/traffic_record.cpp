@@ -127,9 +127,9 @@ void TrafficRecord::DetectCountThreshold()
 {
     if (doneCnt_.load() > 0x00FFFFFF) {
         FFRT_LOGW("Traffic Record exceed threshold, trigger remove");
-        uint32_t old_temp = doneCnt_.load();
-        doneCnt_.fetch_sub(old_temp);
-        submitCnt_.fetch_sub(old_temp);
+        uint32_t oldTemp = doneCnt_.load();
+        doneCnt_.fetch_sub(oldTemp);
+        submitCnt_.fetch_sub(oldTemp);
     }
 }
 

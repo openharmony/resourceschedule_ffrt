@@ -660,8 +660,7 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
  * 测试用例名称 : ffrt_queue_recordtraffic_normal_trigger
  * 测试用例描述 : 设置串行队列的traffic_interval并生效
  * 操作步骤     : 1、创建队列
- *               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口
- *               3、提交堆积任务
+ *               2、提交堆积任务
  * 预期结果    : 成功触发流量监控告警
  */
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level1)
@@ -703,8 +702,7 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level1)
 * 测试用例名称 : ffrt_queue_recordtraffic_normal_corner
 * 测试用例描述 : 串行队列的traffic_interval并生效
 * 操作步骤     : 1、创建队列
-*               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口为0
-*               3、提交堆积任务
+*               2、提交堆积任务
 * 预期结果    : 不触发流量监控告警
 */
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
@@ -715,7 +713,6 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
     int result = 0;
     (void)ffrt_task_attr_init(&task_attr);
     (void)ffrt_queue_attr_init(&queue_attr);
-    ffrt_queue_attr_set_traffic_interval(&queue_attr, 1000000);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
 
     std::function<void()>&& firstFunc = [&result]() {
@@ -747,8 +744,7 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
  * 测试用例名称 : ffrt_queue_recordtraffic_delay_trigger
  * 测试用例描述 : 设置串行队列的traffic_interval并生效
  * 操作步骤     : 1、创建队列
- *               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口
- *               3、提交堆积任务
+ *               2、提交堆积任务
  * 预期结果    : 成功触发流量监控告警，但不触发上报
  */
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level1)
@@ -762,7 +758,6 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level1)
     (void)ffrt_task_attr_init(&task_attr);
     ffrt_task_attr_set_delay(&task_attr, 1200000);
     (void)ffrt_queue_attr_init(&queue_attr);
-    ffrt_queue_attr_set_traffic_interval(&queue_attr, 1000000);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
 
     std::function<void()>&& firstFunc = [&result]() {

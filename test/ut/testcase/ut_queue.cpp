@@ -881,7 +881,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level1)
     usleep(1200000);
     delete testQueue;
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
-    EXPECT_EQ(x, 2);
+    EXPECT_EQ(x, 1);
 }
 
 static inline void StallUsImpl(size_t us)

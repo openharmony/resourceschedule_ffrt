@@ -46,3 +46,8 @@ TASK_TIMEOUT:
   SENARIO: {type: STRING, desc: senario}
   PROCESS_NAME: {type: STRING, desc: process name}
   MSG: {type: STRING, desc: message}
+
+QUEUE_OVERFLOW:
+  __BASE: {type: FAULT, level: CRITICAL, desc: queue overflow, preserve: true}
+  SENARIO: {type: STRING, desc: senario}
+  PROCESS_NAME: {type: STRING, desc: process name}

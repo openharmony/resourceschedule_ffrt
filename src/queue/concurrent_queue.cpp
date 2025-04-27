@@ -112,7 +112,9 @@ QueueTask* ConcurrentQueue::Pull()
     while (!WhenMapVecEmpty(whenMapVec_) && now < minMaptime && !isExit_) {
         uint64_t diff = minMaptime - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
+        delayStatus_ = true;
         cond_.wait_for(lock, std::chrono::microseconds(diff));
+        delayStatus_ = false;
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
         minMaptime = GetMinMapTime(whenMapVec_);
@@ -180,12 +182,14 @@ std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
     return std::make_unique<ConcurrentQueue>(maxConcurrency);
 }
 
-void ConcurrentQueue::Remove()
+int ConcurrentQueue::Remove()
 {
     std::unique_lock lock(mutex_);
+    int cnt = 0;
     for (auto& currentMap : whenMapVec_) {
-        BaseQueue::Remove(currentMap);
+        cnt += BaseQueue::Remove(currentMap);
     }
+    return cnt;
 }
 
 int ConcurrentQueue::Remove(const char* name)

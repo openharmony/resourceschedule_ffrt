@@ -141,7 +141,7 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
     }
 }
 
-void TaskTimeoutReport(std::stringstream& ss, const std::string& processNameStr, const std::string& senarioName)
+void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, const std::string& senarioName)
 {
     std::string msg = ss.str();
     std::string eventName = "TASK_TIMEOUT";
@@ -149,7 +149,18 @@ void TaskTimeoutReport(std::stringstream& ss, const std::string& processNameStr,
     std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", senarioName,
-        "PROCESS_NAME", processNameStr, "MSG", sendMsg);
+        "PROCESS_NAME", processName, "MSG", sendMsg);
+}
+
+void TrafficOverloadReport(std::stringstream& ss, const std::string& senarioName)
+{
+    std::string msg = ss.str();
+    std::string eventName = "TASK_TIMEOUT";
+    time_t cur_time = time(nullptr);
+    std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
+    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", senarioName,
+        "PROCESS_NAME", GetCurrentProcessName(), "MSG", sendMsg);
 }
 
 void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum)

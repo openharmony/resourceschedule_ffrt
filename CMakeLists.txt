@@ -88,6 +88,7 @@ message(STATUS "FFRT_CLANG_COMPILE: " ${FFRT_CLANG_COMPILE})
 message(STATUS "FFRT_SANITIZE: " ${FFRT_SANITIZE})
 
 add_definitions("-DFFRT_PTHREAD_ENABLE")
+add_definitions("-DFFRT_ENABLE_TRAFFIC_MONITOR")
 
 # ffrt qos
 add_definitions(-DUSE_OHOS_QOS)

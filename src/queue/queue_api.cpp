@@ -51,6 +51,10 @@ inline QueueTask* ffrt_queue_submit_base(ffrt_queue_t queue, ffrt_function_heade
     handler->Submit(task);
     return task;
 }
+
+constexpr uint64_t MIN_TRAFFIC_INTERVAL_US = 1000000;
+constexpr uint64_t MAX_TRAFFIC_INTERVAL_US = 600000000;
+constexpr uint64_t DEFAULT_TRAFFIC_INTERVAL_US = 6000000;
 } // namespace
 
 API_ATTRIBUTE((visibility("default")))

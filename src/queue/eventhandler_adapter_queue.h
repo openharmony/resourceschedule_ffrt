@@ -66,9 +66,10 @@ public:
 
     void Stop() override;
     bool HasTask(const char* name) override;
-    void Remove() override;
+    int Remove() override;
     int Remove(const char* name) override;
     int Remove(const QueueTask* task) override;
+    uint32_t GetDueTaskCount() override;
 
     bool IsIdle();
     int Dump(const char* tag, char* buf, uint32_t len, bool historyInfo = true);

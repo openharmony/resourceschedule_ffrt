@@ -123,6 +123,7 @@ int dump_info_all(char *buf, uint32_t len)
         dumpInfo += SaveWorkerStatusInfo();
         dumpInfo += SaveNormalTaskStatusInfo();
         dumpInfo += SaveQueueTaskStatusInfo();
+        dumpInfo += SaveQueueTrafficRecordInfo();
         if (dumpInfo.length() > (len - 1)) {
             FFRT_LOGW("dumpInfo exceeds the buffer length, info length:%d, input len:%u", dumpInfo.length(), len);
         }

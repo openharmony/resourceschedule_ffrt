@@ -17,90 +17,23 @@
 
 #include <chrono>
 #include <string>
-#include <securec.h>
 
 namespace ffrt {
 typedef enum {
-    millisecond,
-    microsecond,
-} time_unit_t;
+    MILLISECOND,
+    MICROSECOND,
+} TimeUnitT;
 
-static std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
-    time_unit_t timeUnit = millisecond)
-{
-    constexpr int MaxMsLength = 3;
-    constexpr int MsPerSecond = 1000;
-    constexpr int DatetimeStringLength = 80;
-    constexpr int MaxUsLength = 6;
-    constexpr int UsPerSecond = 1000 * 1000;
-
-    std::string remainder;
-    if (microsecond == timeUnit) {
-        auto tp = std::chrono::time_point_cast<std::chrono::microseconds>(timePoint);
-        auto us = tp.time_since_epoch().count() % UsPerSecond;
-        remainder = std::to_string(us);
-        if (remainder.length() < MaxUsLength) {
-            remainder = std::string(MaxUsLength - remainder.length(), '0') + remainder;
-        }
-    } else {
-        auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
-        auto ms = tp.time_since_epoch().count() % MsPerSecond;
-        remainder = std::to_string(ms);
-        if (remainder.length() < MaxMsLength) {
-            remainder = std::string(MaxMsLength - remainder.length(), '0') + remainder;
-        }
-    }
-    auto tt = std::chrono::system_clock::to_time_t(timePoint);
-    struct tm curTime;
-    if (memset_s(&curTime, sizeof(curTime), 0, sizeof(curTime)) != EOK) {
-        FFRT_LOGE("Fail to memset");
-        return "";
-    }
-    localtime_r(&tt, &curTime);
-    char sysTime[DatetimeStringLength];
-    std::strftime(sysTime, sizeof(char) * DatetimeStringLength, "%Y-%m-%d %H:%M:%S.", &curTime);
-    return std::string(sysTime) + remainder;
-}
-
-static std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, time_unit_t timeUnit = millisecond)
-{
-    auto referenceTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-    auto referenceTp = std::chrono::system_clock::now();
-
-    std::chrono::microseconds us(static_cast<int64_t>(steadyClockTimeStamp - referenceTimeStamp));
-    return FormatDateString4SystemClock(referenceTp + us, timeUnit);
-}
-
-#if defined(__aarch64__)
-
-static inline uint64_t Arm64CntFrq(void)
-{
-    uint64_t freq = 1;
-    asm volatile("mrs %0, cntfrq_el0" : "=r" (freq));
-    return freq;
-}
-
-static inline uint64_t Arm64CntCt(void)
-{
-    uint64_t tsc = 1;
-    asm volatile("mrs %0, cntvct_el0" : "=r" (tsc));
-    return tsc;
-}
-
-static std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t timeUnit = millisecond)
-{
-    constexpr int Ratio = 1000 * 1000;
-
-    auto referenceFreq = Arm64CntFrq();
-    if (referenceFreq == 0) {
-        return "";
-    }
-    uint64_t referenceCntCt = Arm64CntCt();
-    auto globalTp = std::chrono::system_clock::now();
-    std::chrono::microseconds us(static_cast<int64_t>(cntCtTimeStamp - referenceCntCt) * Ratio / referenceFreq);
-    return FormatDateString4SystemClock(globalTp + us, timeUnit);
-}
-#endif //  __aarch64__
+std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
+    TimeUnitT timeUnit = MILLISECOND);
+std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit = MILLISECOND);
+std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit = MILLISECOND);
+std::string FormatDateToString(uint64_t timeStamp);
+uint64_t Arm64CntFrq(void);
+uint64_t Arm64CntCt(void);
+uint64_t TimeStampCntvct();
+uint64_t ConvertCntvctToUs(uint64_t cntCt);
+uint64_t ConvertUsToCntvct(uint64_t time);
+uint64_t ConvertTscToSteadyClockCount(uint64_t cntCt);
 }
 #endif // UTIL_TIME_FORAMT_H

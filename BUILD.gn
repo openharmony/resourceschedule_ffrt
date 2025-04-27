@@ -170,6 +170,7 @@ ohos_shared_library("libffrt") {
       "src/queue/queue_handler.cpp",
       "src/queue/queue_monitor.cpp",
       "src/queue/serial_queue.cpp",
+      "src/queue/traffic_record.cpp",
       "src/sched/deadline.cpp",
       "src/sched/execute_ctx.cpp",
       "src/sched/frame_interval.cpp",
@@ -206,6 +207,7 @@ ohos_shared_library("libffrt") {
       "src/util/graph_check.cpp",
       "src/util/init.cpp",
       "src/util/spmc_queue.cpp",
+      "src/util/time_format.cpp",
       "src/util/worker_monitor.cpp",
     ]
 

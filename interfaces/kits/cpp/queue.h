@@ -165,7 +165,7 @@ public:
     {
         return ffrt_queue_attr_get_callback(this);
     }
-
+    
     /**
      * @brief Sets the maximum concurrency level for this queue attribute.
      *

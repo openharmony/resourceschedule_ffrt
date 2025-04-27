@@ -37,6 +37,11 @@ public:
     CPUEUTask* PickNextTask()
     {
         CPUEUTask* task = que->DeQueue();
+        if (task != nullptr) {
+            if (task->type == ffrt_queue_task) {
+                task->SetStatus(CoTaskStatus::POPED);
+            }
+        }
         return task;
     }
 

@@ -28,6 +28,7 @@
 #include "sched/scheduler.h"
 #include "tm/queue_task.h"
 #include "queue/queue_monitor.h"
+#include "queue/traffic_record.h"
 #include "tm/task_factory.h"
 #include "eu/cpuworker_manager.h"
 #include "util/time_format.h"
@@ -283,6 +284,17 @@ static inline void SaveQueueTaskStatus()
     }
 }
 
+static inline void SaveQueueTrafficRecord()
+{
+    FFRT_BBOX_LOG("<<<=== Queue Traffic Record ===>>>");
+
+    std::string trafficInfo = TrafficRecord::DumpTrafficInfo(false);
+    std::stringstream ss;
+    ss << trafficInfo;
+    FFRT_BBOX_LOG("%s", ss.str().c_str());
+    return;
+}
+
 static std::atomic_uint g_bbox_tid_is_dealing {0};
 static std::atomic_uint g_bbox_called_times {0};
 
@@ -355,6 +367,7 @@ void SaveTheBbox()
     SaveKeyStatus();
     SaveNormalTaskStatus();
     SaveQueueTaskStatus();
+    SaveQueueTrafficRecord();
     FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
 }
 
@@ -463,19 +476,10 @@ __attribute__((constructor)) static void BBoxInit()
     SignalReg(SIGKILL);
 }
 
-static inline std::string FormatDateString(uint64_t timeStamp)
-{
-#if defined(__aarch64__)
-    return FormatDateString4CntCt(timeStamp, microsecond);
-#else
-    return FormatDateString4SteadyClock(timeStamp, microsecond);
-#endif
-}
-
 std::string GetDumpPreface(void)
 {
     std::ostringstream ss;
-    ss << "|-> Launcher proc ffrt, now:" << FormatDateString(FFRTTraceRecord::TimeStamp()) << " pid:" << GetPid()
+    ss << "|-> Launcher proc ffrt, now:" << FormatDateToString(FFRTTraceRecord::TimeStamp()) << " pid:" << GetPid()
         << std::endl;
     return ss.str();
 }
@@ -508,10 +512,10 @@ void AppendTaskInfo(std::ostringstream& oss, TaskBase* task)
         oss << " fromTid " << task->fromTid;
     }
     if (task->createTime) {
-        oss << " createTime " << FormatDateString(task->createTime);
+        oss << " createTime " << FormatDateToString(task->createTime);
     }
     if (task->executeTime) {
-        oss << " executeTime " << FormatDateString(task->executeTime);
+        oss << " executeTime " << FormatDateToString(task->executeTime);
     }
 }
 
@@ -740,6 +744,17 @@ std::string SaveQueueTaskStatusInfo()
         });
     }
 
+    return ffrtStackInfo;
+}
+
+std::string SaveQueueTrafficRecordInfo()
+{
+    std::string ffrtStackInfo;
+    std::ostringstream ss;
+    ss << "<<<=== Queue Traffic Record ===>>>" << std::endl;
+    ffrtStackInfo += ss.str();
+    std::string trafficInfo = TrafficRecord::DumpTrafficInfo();
+    ffrtStackInfo += trafficInfo;
     return ffrtStackInfo;
 }
 #endif

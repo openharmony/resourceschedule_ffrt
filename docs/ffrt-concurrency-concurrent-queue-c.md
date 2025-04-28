@@ -88,24 +88,26 @@ int main()
         printf("create bank system failed\n");
         return -1;
     }
-    commit_request(bank, bank_business, "customer1", ffrt_queue_priority_low, 0);
-    commit_request(bank, bank_business, "customer2", ffrt_queue_priority_low, 0);
-    commit_request(bank, bank_business, "customer3", ffrt_queue_priority_low, 0);
-    commit_request(bank, bank_business, "customer4", ffrt_queue_priority_low, 0);
 
+    ffrt_task_handle_t task1 = commit_request(bank, bank_business, "customer1", ffrt_queue_priority_low, 0);
+    ffrt_task_handle_t task2 = commit_request(bank, bank_business, "customer2", ffrt_queue_priority_low, 0);
     // VIP享受更优先的服务
-    commit_request(bank, bank_business, "VIP", ffrt_queue_priority_high, 0);
+    ffrt_task_handle_t task3 = commit_request(bank, bank_business, "customer3 VIP", ffrt_queue_priority_high, 0);
+    ffrt_task_handle_t task4 = commit_request(bank, bank_business, "customer4", ffrt_queue_priority_low, 0);
+    ffrt_task_handle_t task5 = commit_request(bank, bank_business, "customer5", ffrt_queue_priority_low, 0);
 
-    ffrt_task_handle_t task = commit_request(bank, bank_business, "customer5", ffrt_queue_priority_low, 0);
-    ffrt_task_handle_t task_last = commit_request(bank, bank_business, "customer6", ffrt_queue_priority_low, 0);
-
-    // 取消客户5的服务
-    cancel_request(task);
+    // 取消客户4的服务
+    cancel_request(task4);
 
     // 等待所有的客户服务完成
-    wait_for_request(task_last);
+    wait_for_request(task5);
     destroy_bank_system(bank);
 
+    ffrt_task_handle_destroy(task1);
+    ffrt_task_handle_destroy(task2);
+    ffrt_task_handle_destroy(task3);
+    ffrt_task_handle_destroy(task4);
+    ffrt_task_handle_destroy(task5);
     return 0;
 }
 ```

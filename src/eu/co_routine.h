@@ -70,7 +70,7 @@ constexpr uint64_t STACK_SIZE = FFRT_STACK_SIZE;
 constexpr uint64_t MIN_STACK_SIZE = 32 * 1024;
 constexpr uint64_t STACK_MEM_SIZE = 8;
 
-using CoCtx = struct co2_context;
+using CoCtx = ffrt_fiber_t;
 
 struct CoRoutineEnv {
     // when task is running, runningCo same with task->co

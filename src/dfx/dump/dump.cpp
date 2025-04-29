@@ -58,19 +58,19 @@ void DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
     } else {
         memset_s(&ctx, sizeof(ctx), 0, sizeof(ctx));
 #if defined(__aarch64__)
-        ctx.uc_mcontext.regs[REG_AARCH64_X29] = task->coRoutine->ctx.regs[10];
-        ctx.uc_mcontext.sp = task->coRoutine->ctx.regs[13];
-        ctx.uc_mcontext.pc = task->coRoutine->ctx.regs[11];
+        ctx.uc_mcontext.regs[REG_AARCH64_X29] = task->coRoutine->ctx.storage[10];
+        ctx.uc_mcontext.sp = task->coRoutine->ctx.storage[13];
+        ctx.uc_mcontext.pc = task->coRoutine->ctx.storage[11];
 #elif defined(__x86_64__)
-        ctx.uc_mcontext.gregs[REG_RBX] = task->coRoutine->ctx.regs[0];
-        ctx.uc_mcontext.gregs[REG_RBP] = task->coRoutine->ctx.regs[1];
-        ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.regs[6];
+        ctx.uc_mcontext.gregs[REG_RBX] = task->coRoutine->ctx.storage[0];
+        ctx.uc_mcontext.gregs[REG_RBP] = task->coRoutine->ctx.storage[1];
+        ctx.uc_mcontext.gregs[REG_RSP] = task->coRoutine->ctx.storage[6];
         ctx.uc_mcontext.gregs[REG_RIP] = *(reinterpret_cast<greg_t *>(ctx.uc_mcontext.gregs[REG_RSP] - 8));
 #elif defined(__arm__)
-        ctx.uc_mcontext.arm_sp = task->coRoutine->ctx.regs[0]; /* sp */
-        ctx.uc_mcontext.arm_pc = task->coRoutine->ctx.regs[1]; /* pc */
-        ctx.uc_mcontext.arm_lr = task->coRoutine->ctx.regs[1]; /* lr */
-        ctx.uc_mcontext.arm_fp = task->coRoutine->ctx.regs[10]; /* fp */
+        ctx.uc_mcontext.arm_sp = task->coRoutine->ctx.storage[0]; /* sp */
+        ctx.uc_mcontext.arm_pc = task->coRoutine->ctx.storage[1]; /* pc */
+        ctx.uc_mcontext.arm_lr = task->coRoutine->ctx.storage[1]; /* lr */
+        ctx.uc_mcontext.arm_fp = task->coRoutine->ctx.storage[10]; /* fp */
 #endif
     }
 
@@ -123,7 +123,6 @@ int dump_info_all(char *buf, uint32_t len)
         dumpInfo += SaveWorkerStatusInfo();
         dumpInfo += SaveNormalTaskStatusInfo();
         dumpInfo += SaveQueueTaskStatusInfo();
-        dumpInfo += SaveQueueTrafficRecordInfo();
         if (dumpInfo.length() > (len - 1)) {
             FFRT_LOGW("dumpInfo exceeds the buffer length, info length:%d, input len:%u", dumpInfo.length(), len);
         }

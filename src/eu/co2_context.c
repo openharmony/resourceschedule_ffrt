@@ -14,6 +14,7 @@
  */
 
 #include "co2_context.h"
+#include "c/fiber.h"
 
 #include <errno.h>
 
@@ -192,21 +193,28 @@ asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     ".size co2_restore_context, . - co2_restore_context\n");
 #endif
 
-int co2_init_context(struct co2_context* ctx, void (*func)(void*), void* arg, void* stack, size_t stack_size)
+int ffrt_fiber_init(ffrt_fiber_t* ctx, void(*func)(void*), void* arg, void* stack, int stack_size)
 {
     if (stack_size < 0x4 * sizeof(uintptr_t)) {
         return EINVAL;
     }
-
+ 
     uintptr_t stack_top = (uintptr_t)stack + stack_size - 0x2 * sizeof(uintptr_t);
     stack_top -= stack_top % (0x2 * sizeof(uintptr_t));
     uintptr_t* data = (uintptr_t*)stack_top;
-
-    ctx->regs[FFRT_REG_LR] = (uintptr_t)context_entry;
-    ctx->regs[FFRT_REG_SP] = stack_top;
-
+ 
+    ctx->storage[FFRT_REG_LR] = (uintptr_t)context_entry;
+    ctx->storage[FFRT_REG_SP] = stack_top;
+ 
     data[0] = (uintptr_t)arg;
     data[1] = (uintptr_t)func;
-
+ 
     return 0;
+}
+
+void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to)
+{
+    if (co2_save_context(from) == 0) {
+        co2_restore_context(to);
+    }
 }

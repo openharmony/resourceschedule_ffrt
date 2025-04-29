@@ -84,8 +84,8 @@ bool FFRTScheduler::WakeupTask(CPUEUTask* task)
 
     int qosLevel = task->qos_();
     if (qosLevel == qos_inherit) {
-        FFRT_SYSEVENT_LOGE("qos inhert not support wake up task[%lu], type[%d], name[%s]",
-            task->gid, task->type, task->label.c_str());
+        FFRT_SYSEVENT_LOGE("qos inhert not support wake up task[%lu], name[%s]",
+            task->gid, task->label.c_str());
         return false;
     }
 

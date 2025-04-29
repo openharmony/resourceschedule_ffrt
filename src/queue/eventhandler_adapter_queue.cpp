@@ -209,7 +209,7 @@ QueueTask* EventHandlerAdapterQueue::Pull()
 int EventHandlerAdapterQueue::Remove()
 {
     std::unique_lock lock(mutex_);
-    uint32_t count = 0;
+    int count = 0;
     for (auto& currentMap : whenMapVec_) {
         count += BaseQueue::Remove(currentMap);
     }
@@ -262,7 +262,7 @@ bool EventHandlerAdapterQueue::IsIdle()
 uint32_t EventHandlerAdapterQueue::GetDueTaskCount()
 {
     std::unique_lock lock(mutex_);
-    int count = 0;
+    uint32_t count = 0;
     for (auto& currentMap : whenMapVec_) {
         count += BaseQueue::GetDueTaskCount(currentMap);
     }

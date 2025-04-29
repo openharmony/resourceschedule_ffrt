@@ -80,7 +80,7 @@ void QueueMonitor::UpdateQueueInfo()
 void QueueMonitor::SetAlarm(uint64_t steadyUs)
 {
     we_->tp = std::chrono::steady_clock::time_point() + std::chrono::microseconds(steadyUs);
-    we_->cb = ([this](WaitEntry* we_) { ScheduleAlarm(); });
+    we_->cb = ([this](WaitEntry* we) { ScheduleAlarm(); });
 
     bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     // generally does not fail

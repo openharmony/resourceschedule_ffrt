@@ -18,24 +18,7 @@
 #include "util/singleton_register.h"
 #include "tm/io_task.h"
 
-pthread_key_t g_rootTaskTlsKey = 0;
-pthread_once_t g_rootTaskKeyOnce = PTHREAD_ONCE_INIT;
 namespace ffrt {
-namespace {
-void RootTaskTlsDestructor(void* args)
-{
-    auto wrapper = static_cast<RootTaskCtxWrapper*>(args);
-    if (wrapper) {
-        delete wrapper;
-    }
-}
-
-void MakeRootTaskTlsKey()
-{
-    pthread_key_create(&g_rootTaskTlsKey, RootTaskTlsDestructor);
-}
-}
-
 DependenceManager& DependenceManager::Instance()
 {
     return SingletonRegister<DependenceManager>::Instance();
@@ -72,20 +55,5 @@ void DependenceManager::onSubmitIO(const ffrt_io_callable_t& work, const task_at
         return;
     }
     FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(ioTask->qos_);
-}
-
-CPUEUTask* DependenceManager::Root()
-{
-    RootTaskCtxWrapper* wrapper = nullptr;
-    pthread_once(&g_rootTaskKeyOnce, MakeRootTaskTlsKey);
-
-    void *curTls = pthread_getspecific(g_rootTaskTlsKey);
-    if (curTls != nullptr) {
-        wrapper = reinterpret_cast<RootTaskCtxWrapper *>(curTls);
-    } else {
-        wrapper = new RootTaskCtxWrapper();
-        pthread_setspecific(g_rootTaskTlsKey, wrapper);
-    }
-    return wrapper->Root();
 }
 }

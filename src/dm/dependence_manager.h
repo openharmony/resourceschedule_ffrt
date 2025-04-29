@@ -106,7 +106,12 @@ public:
 
     virtual int onSkip(ffrt_task_handle_t handle) = 0;
 
-    static CPUEUTask* Root();
+    static inline CPUEUTask* Root()
+    {
+        // Within an ffrt process, different threads may have different QoS interval
+        thread_local static RootTaskCtxWrapper root_wraper;
+        return root_wraper.Root();
+    }
 
 protected:
     DependenceManager() {}

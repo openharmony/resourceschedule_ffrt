@@ -90,6 +90,7 @@ int ConcurrentQueue::Push(QueueTask* task)
 
     whenMapVec_[taskPriority].insert({task->GetUptime(), task});
     if (task == whenMapVec_[taskPriority].begin()->second) {
+        lock.unlock();
         cond_.notify_all();
     }
 

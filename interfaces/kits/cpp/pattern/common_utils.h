@@ -58,7 +58,9 @@
 #endif
 
 namespace ffrt {
-static constexpr uint64_t cacheline_size = 64;
+namespace detail {
+    static constexpr uint64_t cacheline_size = 64;
+}
 
 /**
 * @brief Sleep the current thread.
@@ -299,9 +301,9 @@ private:
         std::atomic<uint64_t> iread_exp; // expect read index after write
     };
 
-    alignas(cacheline_size) Item* q;
-    alignas(cacheline_size) std::atomic<uint64_t> iwrite_; // global write index
-    alignas(cacheline_size) std::atomic<uint64_t> iread_; // global read index
+    alignas(detail::cacheline_size) Item* q;
+    alignas(detail::cacheline_size) std::atomic<uint64_t> iwrite_; // global write index
+    alignas(detail::cacheline_size) std::atomic<uint64_t> iread_; // global read index
 
     bool _try_push(const T& data)
     {

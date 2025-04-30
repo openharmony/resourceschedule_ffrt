@@ -429,8 +429,8 @@ _begin_consume_master_job:
     std::string concurrency_name;
     std::string partner_num_name;
     job_partner_attr attr;
-    alignas(cacheline_size) std::atomic_uint64_t partner_num{0};
-    alignas(cacheline_size) std::atomic_uint64_t job_num{0};
+    alignas(detail::cacheline_size) std::atomic_uint64_t partner_num{0};
+    alignas(detail::cacheline_size) std::atomic_uint64_t job_num{0};
 
     runnable_queue<mpmc_queue> partner_q;
     runnable_queue<mpmc_queue> master_q;

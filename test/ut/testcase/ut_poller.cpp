@@ -141,7 +141,7 @@ std::condition_variable g_cvRegister;
 
 void WaitCallback(void* data)
 {
-    int* dependency = reinterpret_cast<int*>(data);
+    auto dependency = reinterpret_cast<std::atomic<int>*>(data);
     while (*dependency != 1) {
         std::this_thread::yield();
     }
@@ -158,7 +158,11 @@ void EmptyCallback(void* data) {}
  */
 HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level1)
 {
-    int dependency = 0;
+    // dependency can be accessed by multiple threads:
+    // the polling and the updating thread. Hence,
+    // it must be defined as atomic in order to
+    // prevent data-race
+    std::atomic<int> dependency = 0;
     ffrt::task_handle handle = ffrt::submit_h([&] {
         std::unique_lock lk(g_mutexRegister);
         g_cvRegister.wait(lk);
@@ -197,7 +201,11 @@ HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level1)
  */
 HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level1)
 {
-    int dependency = 0;
+    // dependency can be accessed by multiple threads:
+    // the polling and the updating thread. Hence,
+    // it must be defined as atomic in order to
+    // prevent data-race
+    std::atomic<int> dependency = 0;
 
     TimePoint timeout = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
     TimerDataWithCb data(&dependency, WaitCallback, nullptr, false, 100);

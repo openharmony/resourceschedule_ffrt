@@ -178,7 +178,7 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
 API_ATTRIBUTE((visibility("default")))
 void ffrt_queue_submit_f(ffrt_queue_t queue, ffrt_function_t func, void* arg, const ffrt_task_attr_t* attr)
 {
-    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_queue);
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, nullptr, arg, ffrt_function_kind_queue);
     ffrt_queue_submit(queue, f, attr);
 }
 
@@ -203,7 +203,7 @@ API_ATTRIBUTE((visibility("default")))
 ffrt_task_handle_t ffrt_queue_submit_h_f(ffrt_queue_t queue, ffrt_function_t func, void* arg,
     const ffrt_task_attr_t* attr)
 {
-    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_queue);
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, nullptr, arg, ffrt_function_kind_queue);
     return ffrt_queue_submit_h(queue, f, attr);
 }
 

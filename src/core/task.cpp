@@ -340,7 +340,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps,
     const ffrt_task_attr_t* attr)
 {
-    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_general);
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, nullptr, arg, ffrt_function_kind_general);
     ffrt_submit_base(f, in_deps, out_deps, attr);
 }
 
@@ -401,7 +401,7 @@ API_ATTRIBUTE((visibility("default")))
 ffrt_task_handle_t ffrt_submit_h_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps,
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
 {
-    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, NULL, arg, ffrt_function_kind_general);
+    ffrt_function_header_t* f = ffrt_create_function_wrapper(func, nullptr, arg, ffrt_function_kind_general);
     return ffrt_submit_h_base(f, in_deps, out_deps, attr);
 }
 

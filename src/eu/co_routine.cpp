@@ -372,7 +372,7 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
     BindNewCoRoutione(task);
     auto co = task->coRoutine;
     if (co->status.load() == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
-       ffrt_fiber_init(&co->ctx, CoStartEntry, static_cast<void*>(co), co->stkMem.stk, co->stkMem.size);
+        ffrt_fiber_init(&co->ctx, CoStartEntry, static_cast<void*>(co), co->stkMem.stk, co->stkMem.size);
     }
     return 0;
 }

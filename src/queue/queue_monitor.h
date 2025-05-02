@@ -45,7 +45,7 @@ private:
     void ReportEventTimeout(uint64_t curGid, const std::stringstream& ss);
 
     WaitUntilEntry* we_ = nullptr;
-    uint64_t timeoutUs_ = 0;
+    std::atomic<uint64_t> timeoutUs_ = 0;
     std::stringstream timeoutMSG_;
     std::shared_mutex infoMutex_;
     std::atomic_bool suspendAlarm_ = {true};

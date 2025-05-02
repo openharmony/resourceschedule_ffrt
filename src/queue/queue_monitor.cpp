@@ -35,7 +35,7 @@ QueueMonitor::QueueMonitor()
     FFRT_LOGI("QueueMonitor ctor enter");
     we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     timeoutUs_ = ffrt_task_timeout_get_threshold() * US_PER_MS;
-    FFRT_LOGI("queue monitor ctor leave, watchdog timeout of %llu us", timeoutUs_);
+    FFRT_LOGI("queue monitor ctor leave, watchdog timeout of %llu us", timeoutUs_.load());
 }
 
 QueueMonitor::~QueueMonitor()

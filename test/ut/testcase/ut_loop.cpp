@@ -187,7 +187,6 @@ HWTEST_F(LoopTest, loop_destroy_fail, TestSize.Level1)
  */
 HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
 {
-    const uint64_t sleepTime = 250000;
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
@@ -199,7 +198,7 @@ HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
     pthread_create(&thread, 0, ThreadFunc, loop);
 
     ffrt_loop_stop(loop);
-    usleep(sleepTime);
+    pthread_join(thread, nullptr);
     int ret = ffrt_loop_destroy(loop);
     EXPECT_EQ(ret, 0);
 

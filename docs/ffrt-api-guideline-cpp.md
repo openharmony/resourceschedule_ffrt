@@ -1117,7 +1117,7 @@ int main()
     ffrt::submit([&]() {
         ffrt::this_task::sleep_for(std::chrono::milliseconds(2));
         if(smut.try_lock()){
-            x++:
+            x++;
             smut.unlock();
         }
         }, {},{});

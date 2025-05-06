@@ -624,7 +624,7 @@ queue_attr& queue_attr::timeout(uint64_t timeout_us);
 ##### get queue timeout
 
 ```cpp
-uint64_t queue_attr::timeout() const
+uint64_t queue_attr::timeout() const;
 ```
 
 返回值
@@ -1252,7 +1252,7 @@ bool condition_variable::wait_until(std::unique_lock<mutex>& lk, const std::chro
 
 ```cpp
 template <typename Rep, typename Period, typename Pred>
-bool condition_variable::wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleepTime, Pred&& pred)
+bool condition_variable::wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleepTime, Pred&& pred);
 ```
 
 参数

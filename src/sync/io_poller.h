@@ -23,7 +23,7 @@
 #include <map>
 #include <atomic>
 #include "ffrt_inner.h"
-#include "internal_inc/non_copyable.h"
+#include "cpp/non_copyable.h"
 
 namespace ffrt {
 struct WakeData {
@@ -31,7 +31,7 @@ struct WakeData {
     void* data;
 };
 
-struct IOPoller: private NonCopyable {
+struct IOPoller: private non_copyable {
     IOPoller() noexcept;
 
     virtual ~IOPoller() noexcept;

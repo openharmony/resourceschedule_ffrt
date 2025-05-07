@@ -19,7 +19,7 @@
 #include <chrono>
 #include "cpp/condition_variable.h"
 #include "thread.h"
-
+#include "cpp/non_copyable.h"
 namespace ffrt {
 enum class future_status { ready, timeout, deferred };
 

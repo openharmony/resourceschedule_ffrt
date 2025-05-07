@@ -22,7 +22,7 @@
 #include <memory>
 #include "c/queue.h"
 #include "cpp/condition_variable.h"
-#include "cpp/non_copyable.h"
+#include "internal_inc/non_copyable.h"
 #include "queue_strategy.h"
 
 namespace ffrt {
@@ -36,7 +36,7 @@ enum QueueAction {
     CONCURRENT, // concurrency less than max concurrency
 };
 
-class BaseQueue : public non_copyable {
+class BaseQueue : public NonCopyable {
 public:
     BaseQueue();
     virtual ~BaseQueue() = default;

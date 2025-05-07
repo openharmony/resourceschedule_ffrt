@@ -25,7 +25,7 @@
 #include <array>
 #include "qos.h"
 #include "sync/sync.h"
-#include "cpp/non_copyable.h"
+#include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"
 #include "c/timer.h"
 #include "eu/worker_thread.h"
@@ -90,7 +90,7 @@ struct SyncData {
 };
 
 using EventVec = typename std::vector<epoll_event>;
-class Poller : private non_copyable {
+class Poller : private NonCopyable {
     using WakeDataList = typename std::list<std::unique_ptr<struct WakeDataWithCb>>;
 public:
     Poller() noexcept;

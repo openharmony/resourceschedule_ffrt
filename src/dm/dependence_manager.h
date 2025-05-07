@@ -33,7 +33,6 @@
 #include "dfx/watchdog/watchdog_util.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "tm/cpu_task.h"
-#include "cpp/non_copyable.h"
 
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
@@ -74,7 +73,7 @@ inline void InsDedup(std::vector<CPUEUTask*> &in_handles, std::vector<const void
     }
 }
 
-class DependenceManager : public non_copyable {
+class DependenceManager : public NonCopyable {
 public:
     static DependenceManager& Instance();
 

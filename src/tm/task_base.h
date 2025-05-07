@@ -21,13 +21,13 @@
 #include "internal_inc/types.h"
 #include "qos.h"
 #include "sched/execute_ctx.h"
-#include "cpp/non_copyable.h"
+#include "internal_inc/non_copyable.h"
 #include "util/time_format.h"
 
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
 static constexpr uint64_t cacheline_size = 64;
-class TaskBase : private non_copyable {
+class TaskBase : private NonCopyable {
 public:
     uintptr_t reserved = 0;
     uintptr_t type = 0;

@@ -21,7 +21,6 @@
 #include <utility>
 #include "internal_inc/types.h"
 #include "tm/scpu_task.h"
-#include "cpp/non_copyable.h"
 namespace ffrt {
 /* The relationship of VersionCtx is implemented using a doubly linked list：
  * 0、data represents the root node of this data signature
@@ -29,7 +28,7 @@ namespace ffrt {
  * 2、Nested scenes: v1<—>v2.1<—>v2.2<—>v2<—>v3<—>data
  */
 
-struct VersionCtx : private non_copyable {
+struct VersionCtx : private NonCopyable {
     VersionCtx(const void* signature, VersionCtx* next, VersionCtx* last)
         : signature(signature), next(next), last(last) {};
     // Unique identifier for the data, taking the memory address of the actual data

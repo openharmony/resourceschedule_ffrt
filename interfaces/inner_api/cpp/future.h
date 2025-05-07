@@ -19,8 +19,15 @@
 #include <chrono>
 #include "cpp/condition_variable.h"
 #include "thread.h"
-#include "cpp/non_copyable.h"
+
 namespace ffrt {
+struct non_copyable {
+protected:
+    non_copyable() = default;
+    ~non_copyable() = default;
+    non_copyable(const non_copyable&) = delete;
+    non_copyable& operator=(const non_copyable&) = delete;
+};
 enum class future_status { ready, timeout, deferred };
 
 namespace detail {

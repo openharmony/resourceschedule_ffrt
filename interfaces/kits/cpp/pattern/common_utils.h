@@ -44,6 +44,13 @@
 namespace ffrt {
 namespace detail {
     static constexpr uint64_t cacheline_size = 64;
+    struct non_copyable {
+    protected:
+        non_copyable() = default;
+        ~non_copyable() = default;
+        non_copyable(const non_copyable&) = delete;
+        non_copyable& operator=(const non_copyable&) = delete;
+    };
 }
 
 static inline void wfe()
@@ -204,7 +211,7 @@ private:
 };
 
 template <typename T>
-struct mpmc_queue : non_copyable {
+struct mpmc_queue : detail::non_copyable {
     mpmc_queue(uint64_t cap) : capacity(align2n(cap)), mask(capacity - 1)
     {
         if (std::is_pod_v<Item>) {
@@ -350,8 +357,8 @@ struct clock {
 };
 
 template <int UsageId = 0, class FiberLocal = char, class ThreadLocal = char>
-struct fiber : non_copyable {
-    struct thread_env : non_copyable {
+struct fiber : detail::non_copyable {
+    struct thread_env : ndetail::on_copyable {
         fiber* cur = nullptr;
         bool (*cond)(void*) = nullptr;
         ThreadLocal tl;

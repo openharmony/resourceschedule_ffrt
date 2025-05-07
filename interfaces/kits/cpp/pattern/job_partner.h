@@ -134,7 +134,7 @@ private:
  * @since 20
  */
 template <int UsageId = 0>
-struct job_partner : ref_obj<job_partner<UsageId>>, non_copyable {
+struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
     /**
     * @brief Retrieve the job_partner instance in the current thread.
     *

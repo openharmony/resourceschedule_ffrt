@@ -19,7 +19,7 @@ class task_attr;
 ##### set task name
 
 ```cpp
-inline task_attr& task_attr::name(const char* name);
+inline task_attr& task_attr::name(const char* name)
 ```
 
 参数
@@ -37,7 +37,7 @@ inline task_attr& task_attr::name(const char* name);
 ##### get task name
 
 ```cpp
-inline const char* task_attr::name() const;
+inline const char* task_attr::name() const
 ```
 
 返回值
@@ -51,7 +51,7 @@ inline const char* task_attr::name() const;
 ##### set task qos
 
 ```cpp
-inline task_attr& task_attr::qos(qos qos_);
+inline task_attr& task_attr::qos(qos qos_)
 ```
 
 参数
@@ -69,7 +69,7 @@ inline task_attr& task_attr::qos(qos qos_);
 ##### get task qos
 
 ```cpp
-inline int task_attr::qos() const;
+inline int task_attr::qos() const
 ```
 
 返回值
@@ -83,7 +83,7 @@ inline int task_attr::qos() const;
 ##### set task delay
 
 ```cpp
-inline task_attr& task_attr::delay(uint64_t delay_us);
+inline task_attr& task_attr::delay(uint64_t delay_us)
 ```
 
 参数
@@ -101,7 +101,7 @@ inline task_attr& task_attr::delay(uint64_t delay_us);
 ##### get task delay
 
 ```cpp
-inline uint64_t task_attr::delay() const;
+inline uint64_t task_attr::delay() const
 ```
 
 返回值
@@ -115,7 +115,7 @@ inline uint64_t task_attr::delay() const;
 ##### set task priority
 
 ```cpp
-inline task_attr& task_attr::priority(ffrt_queue_priority_t prio);
+inline task_attr& task_attr::priority(ffrt_queue_priority_t prio)
 ```
 
 参数
@@ -133,7 +133,7 @@ inline task_attr& task_attr::priority(ffrt_queue_priority_t prio);
 ##### get task priority
 
 ```cpp
-inline ffrt_queue_priority_t task_attr::priority() const;
+inline ffrt_queue_priority_t task_attr::priority() const
 ```
 
 返回值
@@ -147,7 +147,7 @@ inline ffrt_queue_priority_t task_attr::priority() const;
 ##### set task stack_size
 
 ```cpp
-inline task_attr& task_attr::stack_size(uint64_t size);
+inline task_attr& task_attr::stack_size(uint64_t size)
 ```
 
 参数
@@ -165,7 +165,7 @@ inline task_attr& task_attr::stack_size(uint64_t size);
 ##### get task stack_size
 
 ```cpp
-inline uint64_t task_attr::stack_size() const;
+inline uint64_t task_attr::stack_size() const
 ```
 
 返回值
@@ -179,7 +179,7 @@ inline uint64_t task_attr::stack_size() const;
 ##### set task timeout
 
 ```cpp
-inline task_attr& task_attr::timeout(uint64_t timeout_us);
+inline task_attr& task_attr::timeout(uint64_t timeout_us)
 ```
 
 参数
@@ -197,7 +197,7 @@ inline task_attr& task_attr::timeout(uint64_t timeout_us);
 ##### get task timeout
 
 ```cpp
-inline uint64_t task_attr::timeout() const;
+inline uint64_t task_attr::timeout() const
 ```
 
 返回值
@@ -239,7 +239,7 @@ class task_handle;
 ##### get_id
 
 ```cpp
-inline uint64_t task_handle::get_id() const;
+inline uint64_t task_handle::get_id() const
 ```
 
 返回值
@@ -574,7 +574,7 @@ class queue_attr;
 ##### set queue qos
 
 ```cpp
-queue_attr& queue_attr::qos(qos qos_);
+queue_attr& queue_attr::qos(qos qos_)
 ```
 
 参数
@@ -592,7 +592,7 @@ queue_attr& queue_attr::qos(qos qos_);
 ##### get queue qos
 
 ```cpp
-int queue_attr::qos() const;
+int queue_attr::qos() const
 ```
 
 返回值
@@ -606,7 +606,7 @@ int queue_attr::qos() const;
 ##### set queue timeout
 
 ```cpp
-queue_attr& queue_attr::timeout(uint64_t timeout_us);
+queue_attr& queue_attr::timeout(uint64_t timeout_us)
 ```
 
 参数
@@ -624,7 +624,7 @@ queue_attr& queue_attr::timeout(uint64_t timeout_us);
 ##### get queue timeout
 
 ```cpp
-uint64_t queue_attr::timeout() const;
+uint64_t queue_attr::timeout() const
 ```
 
 返回值
@@ -638,7 +638,7 @@ uint64_t queue_attr::timeout() const;
 ##### set queue callback
 
 ```cpp
-queue_attr& queue_attr::callback(const std::function<void()>& func);
+queue_attr& queue_attr::callback(const std::function<void()>& func)
 ```
 
 参数
@@ -656,7 +656,7 @@ queue_attr& queue_attr::callback(const std::function<void()>& func);
 ##### get queue callback
 
 ```cpp
-ffrt_function_header_t* queue_attr::callback() const;
+ffrt_function_header_t* queue_attr::callback() const
 ```
 
 返回值
@@ -670,7 +670,7 @@ ffrt_function_header_t* queue_attr::callback() const;
 ##### set queue max_concurrency
 
 ```cpp
-queue_attr& queue_attr::max_concurrency(const int max_concurrency);
+queue_attr& queue_attr::max_concurrency(const int max_concurrency)
 ```
 
 参数
@@ -688,7 +688,7 @@ queue_attr& queue_attr::max_concurrency(const int max_concurrency);
 ##### get queue max_concurrency
 
 ```cpp
-int queue_attr::max_concurrency() const;
+int queue_attr::max_concurrency() const
 ```
 
 返回值
@@ -737,8 +737,8 @@ class queue;
 ##### 队列创建
 
 ```cpp
-queue(const char* name, const queue_attr& attr = {});
-queue(const queue_type type, const char* name, const queue_attr& attr = {});
+queue(const char* name, const queue_attr& attr = {})
+queue(const queue_type type, const char* name, const queue_attr& attr = {})
 ```
 
 参数
@@ -754,8 +754,8 @@ queue(const queue_type type, const char* name, const queue_attr& attr = {});
 ##### submit
 
 ```cpp
-void queue::submit(const std::function<void()>& func, const task_attr& attr = {});
-void queue::submit(std::function<void()>&& func, const task_attr& attr = {});
+void queue::submit(const std::function<void()>& func, const task_attr& attr = {})
+void queue::submit(std::function<void()>&& func, const task_attr& attr = {})
 ```
 
 参数
@@ -770,8 +770,8 @@ void queue::submit(std::function<void()>&& func, const task_attr& attr = {});
 ##### submit_h
 
 ```cpp
-task_handle queue::submit_h(const std::function<void()>& func, const task_attr& attr = {});
-task_handle queue::submit_h(std::function<void()>&& func, const task_attr& attr = {});
+task_handle queue::submit_h(const std::function<void()>& func, const task_attr& attr = {})
+task_handle queue::submit_h(std::function<void()>&& func, const task_attr& attr = {})
 ```
 
 参数
@@ -826,7 +826,7 @@ inline task_handle queue::submit_head_h(std::function<void()>&& func, const task
 ##### cancel
 
 ```cpp
-int queue::cancel(const task_handle& handle);
+int queue::cancel(const task_handle& handle)
 ```
 
 参数
@@ -844,7 +844,7 @@ int queue::cancel(const task_handle& handle);
 ##### wait
 
 ```cpp
-inline void queue::wait(const task_handle& handle);
+inline void queue::wait(const task_handle& handle)
 ```
 
 参数
@@ -858,7 +858,7 @@ inline void queue::wait(const task_handle& handle);
 ##### get_task_cnt
 
 ```cpp
-uint64_t queue::get_task_cnt();
+uint64_t queue::get_task_cnt()
 ```
 
 返回值
@@ -872,7 +872,7 @@ uint64_t queue::get_task_cnt();
 ##### get_main_queue
 
 ```cpp
-static inline queue* queue::get_main_queue();
+static inline queue* queue::get_main_queue()
 ```
 
 返回值
@@ -1117,7 +1117,7 @@ int main()
     ffrt::submit([&]() {
         ffrt::this_task::sleep_for(std::chrono::milliseconds(2));
         if(smut.try_lock()){
-            x++;
+            x++:
             smut.unlock();
         }
         }, {},{});
@@ -1252,7 +1252,7 @@ bool condition_variable::wait_until(std::unique_lock<mutex>& lk, const std::chro
 
 ```cpp
 template <typename Rep, typename Period, typename Pred>
-bool condition_variable::wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleepTime, Pred&& pred);
+bool condition_variable::wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleepTime, Pred&& pred)
 ```
 
 参数
@@ -1460,7 +1460,7 @@ int main()
 #### 声明
 
 ```cpp
-struct ffrt::job_partner_attr;
+struct job_partner_attr;
 ```
 
 #### 描述
@@ -1472,7 +1472,7 @@ job_partner实例入参，包括水线、worker数等属性都是通过`job_part
 ##### set qos
 
 ```cpp
-inline ffrt::job_partner_attr& qos(qos q);
+inline job_partner_attr& job_partner_attr::qos(qos q);
 ```
 
 参数
@@ -1490,7 +1490,7 @@ inline ffrt::job_partner_attr& qos(qos q);
 ##### get qos
 
 ```cpp
-inline int qos() const;
+inline int job_partner_attr::qos() const;
 ```
 
 返回值
@@ -1504,7 +1504,7 @@ inline int qos() const;
 ##### set max_num
 
 ```cpp
-inline ffrt::job_partner_attr& max_num(uint64_t v);
+inline job_partner_attr& job_partner_attr::max_num(uint64_t v);
 ```
 
 参数
@@ -1522,7 +1522,7 @@ inline ffrt::job_partner_attr& max_num(uint64_t v);
 ##### get max_num
 
 ```cpp
-inline uint64_t max_num() const;
+inline uint64_t job_partner_attr::max_num() const;
 ```
 
 返回值
@@ -1536,7 +1536,7 @@ inline uint64_t max_num() const;
 ##### set scale
 
 ```cpp
-inline ffrt::job_partner_attr& scale(uint64_t v);
+inline job_partner_attr& job_partner_attr::scale(uint64_t v);
 ```
 
 参数
@@ -1554,7 +1554,7 @@ inline ffrt::job_partner_attr& scale(uint64_t v);
 ##### get scale
 
 ```cpp
-inline uint64_t scale() const;
+inline uint64_t job_partner_attr::scale() const;
 ```
 
 返回值
@@ -1568,7 +1568,7 @@ inline uint64_t scale() const;
 ##### set offset
 
 ```cpp
-inline ffrt::job_partner_attr& offset(uint64_t v);
+inline job_partner_attr& job_partner_attr::offset(uint64_t v);
 ```
 
 参数
@@ -1586,7 +1586,7 @@ inline ffrt::job_partner_attr& offset(uint64_t v);
 ##### get offset
 
 ```cpp
-inline uint64_t offset() const;
+inline uint64_t job_partner_attr::offset() const;
 ```
 
 返回值
@@ -1600,7 +1600,7 @@ inline uint64_t offset() const;
 ##### set busy
 
 ```cpp
-inline ffrt::job_partner_attr& busy(uint64_t us);
+inline job_partner_attr& job_partner_attr::busy(uint64_t us);
 ```
 
 参数
@@ -1618,7 +1618,7 @@ inline ffrt::job_partner_attr& busy(uint64_t us);
 ##### get busy
 
 ```cpp
-inline uint64_t busy() const;
+inline uint64_t job_partner_attr::busy() const;
 ```
 
 返回值
@@ -1632,7 +1632,7 @@ inline uint64_t busy() const;
 ##### set queue_depth
 
 ```cpp
-inline ffrt::job_partner_attr& queue_depth(uint64_t depth);
+inline job_partner_attr& job_partner_attr::queue_depth(uint64_t depth);
 ```
 
 参数
@@ -1650,7 +1650,7 @@ inline ffrt::job_partner_attr& queue_depth(uint64_t depth);
 ##### get queue_depth
 
 ```cpp
-inline uint64_t queue_depth() const;
+inline uint64_t job_partner_attr::queue_depth() const;
 ```
 
 返回值
@@ -1679,7 +1679,7 @@ job_partner实例，包括普通任务的提交、协同任务的提交等功能
 ##### get_partner_of_this_thread
 
 ```cpp
-static __attribute__((noinline)) auto& get_partner_of_this_thread(const ffrt::job_partner_attr& attr = {});
+static __attribute__((noinline)) auto& job_partner::get_partner_of_this_thread(const ffrt::job_partner_attr& attr = {});
 ```
 
 参数
@@ -1698,7 +1698,7 @@ static __attribute__((noinline)) auto& get_partner_of_this_thread(const ffrt::jo
 
 ```cpp
 template <bool boost = true>
-inline int submit(std::function<void()>&& job, void* stack, size_t stack_size);
+inline int job_partner::submit(std::function<void()>&& job, void* stack, size_t stack_size);
 ```
 
 参数
@@ -1720,7 +1720,7 @@ inline int submit(std::function<void()>&& job, void* stack, size_t stack_size);
 
 ```cpp
 template <bool boost = true>
-inline void submit(std::function<void()>&& job);
+inline void job_partner::submit(std::function<void()>&& job);
 ```
 
 参数
@@ -1735,7 +1735,7 @@ inline void submit(std::function<void()>&& job);
 ##### submit_to_master
 
 ```cpp
-static inline void submit_to_master(std::function<void()>&& job);
+static inline void job_partner::submit_to_master(std::function<void()>&& job);
 ```
 
 参数
@@ -1750,7 +1750,7 @@ static inline void submit_to_master(std::function<void()>&& job);
 
 ```cpp
 template<bool help_partner = true, uint64_t master_delay_us = 100>
-inline int wait();
+inline int job_partner::wait();
 ```
 
 参数
@@ -1769,7 +1769,7 @@ inline int wait();
 ##### this_thread_is_master
 
 ```cpp
-inline bool this_thread_is_master();
+inline bool job_partner::this_thread_is_master();
 ```
 
 返回值

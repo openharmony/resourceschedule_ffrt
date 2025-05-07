@@ -42,9 +42,11 @@
 #include "../task.h"
 
 namespace ffrt {
-
 /**
+ * @struct job_partner_attr
  * @brief Defines the job_partner attribute structure.
+ * 
+ * Provides initializing job_partner attribute settings.
  * @since 20
  */
 struct job_partner_attr {
@@ -126,12 +128,11 @@ private:
 };
 
 /**
- * @brief job_partner
- *
- * Provide the function of submitting tasks and waiting for task completion
- *
+ * @struct job_partner
+ * @brief Provide the function of submitting tasks and waiting for task completion.
+ * @tparam UsageId The user-defined job type.
  * @since 20
-*/
+ */
 template <int UsageId = 0>
 struct job_partner : ref_obj<job_partner<UsageId>>, non_copyable {
     /**
@@ -150,6 +151,7 @@ struct job_partner : ref_obj<job_partner<UsageId>>, non_copyable {
     /**
     * @brief Submit a job, Can be called on both master and non master threads. If the queue is full, it will retry.
     *
+    * @tparam boost Indicates whether to dynamically add workers
     * @param job Indicates a job executor function closure.
     * @param stack Indicates the job's address.
     * @param stack_size Indicates the job's size.
@@ -162,39 +164,40 @@ struct job_partner : ref_obj<job_partner<UsageId>>, non_copyable {
     {
         auto p = job_t::init(std::forward<std::function<void()>>(job), stack, stack_size);
         if (p == nullptr) {
-            FFRT_LOGE("job initialize failed, maybe invalid stack_size");
+            FFRT_API_LOGE("job initialize failed, maybe invalid stack_size");
             return 1;
         }
-        FFRT_LOGD("submit %lu", p->id);
+        FFRT_API_LOGD("submit %lu", p->id);
         p->local().partner = this;
         submit<boost>(suspendable_job_func, p);
         return 0;
     }
 
     /**
-    * @brief Submit a job to master thread, Pause the current task after submitting the closure until the
+     * @brief Submit a job to master thread, Pause the current task after submitting the closure until the
             master thread finishes executing the closure and resumes the task. If this interface is called
             inside a non job, the closure will be executed directly, and if the queue is full, it will retry.
-    *
-    * @param job Indicates a job executor function closure.
-    * @since 20
-    */
+     *
+     * @tparam boost Indicates whether to dynamically add workers
+     * @param job Indicates a job executor function closure.
+     * @since 20
+     */
     template <bool boost = true>
     inline void submit(std::function<void()>&& job)
     {
         auto p = new non_suspendable_job_t(std::forward<std::function<void()>>(job), this);
-        FFRT_LOGD("non-suspendable job submit: %p", p);
+        FFRT_API_LOGD("non-suspendable job submit: %p", p);
         submit<boost>(non_suspendable_job_func, p);
     }
 
     /**
-    * @brief Submit a job to master thread, Pause the current task after submitting the closure until the
+     * @brief Submit a job to master thread, Pause the current task after submitting the closure until the
             master thread finishes executing the closure and resumes the task. If this interface is called
             inside a non job, the closure will be executed directly, and if the queue is full, it will retry.
-    *
-    * @param job Indicates a job executor function closure.
-    * @since 20
-    */
+     *
+     * @param job Indicates a job executor function closure.
+     * @since 20
+     */
     static inline void submit_to_master(std::function<void()>&& job)
     {
         auto& e = job_t::env();
@@ -206,14 +209,14 @@ struct job_partner : ref_obj<job_partner<UsageId>>, non_copyable {
     }
 
     /**
-    * @brief Waits until all submitted tasks are complete. Can be called only on master but not non master threads.
-    * @param help_worker Indicates if be true, current thread will consume the worker_q, else not.
-    * @param spin_wait_us Indicates if the worker_q is empty, the current thread will wait for "spin_wait_us" time.
+     * @brief Waits until all submitted tasks are complete. Can be called only on master but not non master threads.
+     * @tparam help_worker Indicates if be true, current thread will consume the worker_q, else not.
+     * @tparam spin_wait_us Indicates if the worker_q is empty, the current thread will wait for "spin_wait_us" time.
             If in this time, a job be submitted, the current thread will consume, else will sleep.
-    * @return Returns <b>1</b> Non master thread call will wait fail and return 1;
+     * @return Returns <b>1</b> Non master thread call will wait fail and return 1;
             returns <b>0</b> wait success.
-    * @since 20
-    */
+     * @since 20
+     */
     template<bool help_partner = true, uint64_t master_delay_us = 100>
     inline int wait()
     {
@@ -221,12 +224,12 @@ struct job_partner : ref_obj<job_partner<UsageId>>, non_copyable {
     }
 
     /**
-    * @brief Judge current thread is job_partner master or not.
-    *
-    * @return Returns <b>ture</b> is job_partner master;
+     * @brief Judge current thread is job_partner master or not.
+     *
+     * @return Returns <b>ture</b> is job_partner master;
             returns <b>false</b> is not job_partner master.
-    * @since 20
-    */
+     * @since 20
+     */
     inline bool this_thread_is_master()
     {
         return job_t::env().tl.token == this;
@@ -263,7 +266,7 @@ private:
     void submit(func_ptr f, void* p)
     {
         auto concurrency = job_num.fetch_add(1, std::memory_order_relaxed) + 1;
-        FFRT_TRACE_INT64(concurrency_name.c_str(), concurrency);
+        FFRT_API_TRACE_INT64(concurrency_name.c_str(), concurrency);
         partner_q.template push<1>(f, p);
 
         auto wn = partner_num.load(std::memory_order_relaxed);
@@ -281,7 +284,7 @@ private:
     template<class Env>
     void submit_to_master(Env& e, job_t* p, std::function<void()>&& job)
     {
-        FFRT_LOGD("job %lu submit to master", (p ? p->id : -1UL));
+        FFRT_API_LOGD("job %lu submit to master", (p ? p->id : -1UL));
         p->local().master_f = std::forward<std::function<void()>>(job);
         p->suspend(e, submit_to_master_suspend_func);
     }
@@ -304,8 +307,8 @@ private:
     void job_partner_task()
     {
         auto partner_n = partner_num.fetch_add(1) + 1;
-        FFRT_TRACE_INT64(partner_num_name.c_str(), partner_n);
-        FFRT_TRACE_SCOPE("%s add task", name.c_str());
+        FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
+        FFRT_API_TRACE_SCOPE("%s add task", name.c_str());
 
         ref_obj<job_partner<UsageId>>::inc_ref();
         ffrt::submit([this] {
@@ -316,7 +319,7 @@ private:
 _re_run_partner:
             while (partner_q.try_run());
             if (partner_num.load() == 1 && attr.busy() > 0) { // last partner delay
-                FFRT_TRACE_SCOPE("stall");
+                FFRT_API_TRACE_SCOPE("stall");
                 auto s = clock::now();
                 while (clock::ns(s) < attr.busy() * 1000) {
                     if (partner_q.try_run()) {
@@ -326,10 +329,10 @@ _re_run_partner:
                 }
             }
             auto partner_n = partner_num.fetch_sub(1) - 1;
-            FFRT_TRACE_INT64(partner_num_name.c_str(), partner_n);
+            FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
             if (partner_q.try_run()) {
                 auto partner_n = partner_num.fetch_add(1) + 1;
-                FFRT_TRACE_INT64(partner_num_name.c_str(), partner_n);
+                FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
                 goto _re_run_partner;
             }
             ref_obj<job_partner<UsageId>>::dec_ref();
@@ -339,12 +342,12 @@ _re_run_partner:
     static void suspendable_job_func(void* p_)
     {
         auto p = (job_t*)p_;
-        FFRT_LOGD("run partner job %lu", p->id);
-        FFRT_TRACE_SCOPE("pjob%lu", p->id);
+        FFRT_API_LOGD("run partner job %lu", p->id);
+        FFRT_API_TRACE_SCOPE("pjob%lu", p->id);
         if (p->start()) { // job done
             auto partner = p->local().partner;
             auto concurrency = partner->job_num.fetch_sub(1, std::memory_order_acquire) - 1;
-            FFRT_TRACE_INT64(partner->concurrency_name.c_str(), concurrency);
+            FFRT_API_TRACE_INT64(partner->concurrency_name.c_str(), concurrency);
             if (concurrency == 0) {
                 partner->notify_master();
             }
@@ -355,12 +358,12 @@ _re_run_partner:
     static void non_suspendable_job_func(void* p_)
     {
         auto p = (non_suspendable_job_t*)p_;
-        FFRT_LOGD("run non-suspendable job %p", p);
-        FFRT_TRACE_SCOPE("nsjob");
+        FFRT_API_LOGD("run non-suspendable job %p", p);
+        FFRT_API_TRACE_SCOPE("nsjob");
         (p->fn)();
         auto partner = p->partner;
         auto concurrency = partner->job_num.fetch_sub(1, std::memory_order_acquire) - 1;
-        FFRT_TRACE_INT64(partner->concurrency_name.c_str(), concurrency);
+        FFRT_API_TRACE_INT64(partner->concurrency_name.c_str(), concurrency);
         if (concurrency == 0) {
             partner->notify_master();
         }
@@ -371,8 +374,8 @@ _re_run_partner:
     {
         auto p = (job_t*)p_;
         {
-            FFRT_LOGD("run master job %lu", p->id);
-            FFRT_TRACE_SCOPE("mjob%lu", p->id);
+            FFRT_API_LOGD("run master job %lu", p->id);
+            FFRT_API_TRACE_SCOPE("mjob%lu", p->id);
             p->local().master_f();
             p->local().master_f = nullptr;
         }
@@ -383,11 +386,11 @@ _re_run_partner:
     int _wait()
     {
         if (!this_thread_is_master()) {
-            FFRT_LOGE("wait only can be called on master thread");
+            FFRT_API_LOGE("wait only can be called on master thread");
             return 1;
         }
-        FFRT_TRACE_SCOPE("%s wait on master", name.c_str());
-        FFRT_LOGD("wait on master");
+        FFRT_API_TRACE_SCOPE("%s wait on master", name.c_str());
+        FFRT_API_LOGD("wait on master");
 
         for (;;) {
 _begin_consume_master_job:
@@ -421,7 +424,7 @@ _begin_consume_master_job:
             }
         }
 
-        FFRT_LOGD("wait success");
+        FFRT_API_LOGD("wait success");
         return 0;
     }
 

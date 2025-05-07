@@ -1465,7 +1465,7 @@ struct ffrt::job_partner_attr;
 
 #### 描述
 
-job_partner实例入参，包括水线、worker数等属性都是通过job_partner_attr设置。
+job_partner实例入参，包括水线、worker数等属性都是通过`job_partner_attr`设置。
 
 #### 方法
 
@@ -1783,7 +1783,7 @@ inline bool this_thread_is_master();
 #### 样例
 
 ````cpp
-#include "cpp/pattern/job_partner.h"
+#include "ffrt/cpp/pattern/job_partner.h"
 
 int main()
 {

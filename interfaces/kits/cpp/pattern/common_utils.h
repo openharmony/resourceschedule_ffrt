@@ -12,24 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- /**
- * @addtogroup FFRT
- * @{
- *
- * @brief Provides FFRT C++ APIs.
- *
- * @since 20
- */
-/**
- * @file common_util.h
- *
- * @brief Declares the common utils.
- *
- * @library libffrt.z.so
- * @kit FunctionFlowRuntimeKit
- * @syscap SystemCapability.Resourceschedule.Ffrt.Core
- * @since 20
- */
+
 #ifndef FFRT_COMMON_UTILS_H
 #define FFRT_COMMON_UTILS_H
 
@@ -44,6 +27,7 @@
 #include <chrono>
 #include <atomic>
 #include "c/fiber.h"
+
 #ifndef FFRT_LOGE
 #define FFRT_LOGE(fmt, ...)
 #endif
@@ -62,11 +46,6 @@ namespace detail {
     static constexpr uint64_t cacheline_size = 64;
 }
 
-/**
-* @brief Sleep the current thread.
-*
-* @since 20
-*/
 static inline void wfe()
 {
 #if (defined __aarch64__ || defined __arm__)
@@ -74,13 +53,6 @@ static inline void wfe()
 #endif
 }
 
-/**
-* @brief Obtain the power closest to the current value.
-*
-* @param x Indicates set the depth of job queue.
-* @return Returns Obtain the power closest to x.
-* @since 20
-*/
 static inline constexpr uint64_t align2n(uint64_t x)
 {
     uint64_t i = 1;
@@ -91,17 +63,7 @@ static inline constexpr uint64_t align2n(uint64_t x)
     return (i < t) ? (i << 1) : i;
 }
 
-/**
- * @brief System futex lock.
- * @since 20
- */
 struct futex {
-    /**
-    * @brief Wait the lock notify.
-    *
-    * @param uaddr Indicates lock address.
-    * @since 20
-    */
     static inline void wait(int* uaddr, int val)
     {
         FFRT_LOGD("futex wait in %p", uaddr);
@@ -109,12 +71,6 @@ struct futex {
         FFRT_LOGD("futex wait %p ret %d", uaddr, r);
     }
 
-    /**
-    * @brief notify the lock.
-    *
-    * @param uaddr Indicates lock address.
-    * @since 20
-    */
     static inline void wake(int* uaddr, int num)
     {
         int r = call(uaddr, FUTEX_WAKE_PRIVATE, num, nullptr, 0);
@@ -128,10 +84,6 @@ private:
     }
 };
 
-/**
- * @brief atomic wait.
- * @since 20
- */
 struct atomic_wait : std::atomic<int> {
     using std::atomic<int>::atomic;
     using std::atomic<int>::operator=;
@@ -397,7 +349,6 @@ struct clock {
     }
 };
 
-// 不同的UsageId对应不同的env
 template <int UsageId = 0, class FiberLocal = char, class ThreadLocal = char>
 struct fiber : non_copyable {
     struct thread_env : non_copyable {
@@ -406,24 +357,12 @@ struct fiber : non_copyable {
         ThreadLocal tl;
     };
 
-    /**
-    * @brief Get context.
-    * @since 20
-    */
     static __attribute__((noinline)) thread_env& env()
     {
         static thread_local thread_env ctx;
         return ctx;
     }
 
-    /**
-    * @brief fiber init.
-    * @param f Indicates a job executor function closure.
-    * @param stack Indicates the job push address.
-    * @param stack_size Indicates  the job's size.
-    * @return The context.
-    * @since 20
-    */
     static inline fiber* init(std::function<void()>&& f, void* stack, size_t stack_size)
     {
         if (stack == nullptr || stack_size < sizeof(fiber) + min_stack_size) {
@@ -439,25 +378,12 @@ struct fiber : non_copyable {
         return c;
     }
 
-    /**
-    * @brief fiber destroy.
-    * @param f Indicates destroy a job executor function closure.
-    * @param stack Indicates the job push address.
-    * @param stack_size Indicates  the job's size.
-    * @return The context.
-    * @since 20
-    */
     inline void destroy()
     {
         FFRT_LOGD("job %lu destroy", id);
         this->~fiber<UsageId, FiberLocal, ThreadLocal>();
     }
 
-    /**
-    * @brief fiber start.
-    * @return Start fiber.
-    * @since 20
-    */
     inline bool start()
     {
         bool done;
@@ -472,19 +398,13 @@ struct fiber : non_copyable {
         e.cond = nullptr;
         return done;
     }
-    /**
-    * @brief One thread submit a job to another thread, then the thread suspend.
-    * @param e Indicates the thread_env of the thread.
-    * @param cond Indicates the conditions of suspend.
-    * @return suspend thread success or not.
-    * @since 20
-    */
+
     template<bool is_final = false>
     static inline void suspend(thread_env& e, bool (*cond)(void*) = nullptr)
     {
         auto j = e.cur;
         if constexpr(is_final) {
-            j->done = true; // set flag
+            j->done = true;
         } else {
             e.cond = cond;
         }
@@ -493,12 +413,6 @@ struct fiber : non_copyable {
         ffrt_fiber_switch(&j->fb, &j->link);
     }
 
-    /**
-    * @brief current thread submit a job to another thread, then the thread suspend.
-    * @param cond Indicates the conditions of suspend.
-    * @return suspend thread success or not.
-    * @since 20
-    */
     template<bool is_final = false>
     static inline void suspend(bool (*cond)(void*) = nullptr)
     {
@@ -523,7 +437,7 @@ private:
     static void fiber_entry(fiber* c)
     {
         c->fn();
-        c->fn = nullptr; // release closure
+        c->fn = nullptr;
         suspend<true>();
     }
 

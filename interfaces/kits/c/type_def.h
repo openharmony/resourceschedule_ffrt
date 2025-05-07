@@ -124,10 +124,13 @@ typedef enum {
     /** Queue storage size. */
     ffrt_queue_attr_storage_size = 128,
 #if defined(__aarch64__)
+    /** Fiber storage size. */
     ffrt_fiber_storage_size = 22,
 #elif defined(__arm__)
+    /** Fiber storage size. */
     ffrt_fiber_storage_size = 64,
 #elif defined(__x86_64__)
+    /** Fiber storage size. */
     ffrt_fiber_storage_size = 8,
 #else
 #error "unsupported architecture"
@@ -317,6 +320,7 @@ typedef struct {
  * @since 20
  */
 typedef struct {
+    /** An array of uint32_t used to store the fiber. */
     uintptr_t storage[ffrt_fiber_storage_size];
 } ffrt_fiber_t;
 

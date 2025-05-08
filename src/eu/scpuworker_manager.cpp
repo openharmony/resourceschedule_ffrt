@@ -205,7 +205,7 @@ void SCPUWorkerManager::AddDelayedTask(int qos)
 
     if (!DelayedWakeup(we->tp, we, we->cb)) {
         SimpleAllocator<WaitUntilEntry>::FreeMem(we);
-        FFRT_SYSEVENT_LOGW("add delyaed task failed, qos %d", qos);
+        FFRT_LOGW("add delyaed task failed, qos %d", qos);
     }
 }
 

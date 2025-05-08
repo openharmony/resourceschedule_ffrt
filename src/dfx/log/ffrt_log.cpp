@@ -106,7 +106,8 @@ void ReportSysEvent(const char* format, ...)
     if (ret < 0) {
         return;
     }
+    std::string msg = buffer;
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, "Task_TIMEOUT",
-        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "MSG", buffer);
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "MSG", msg);
 }
 #endif // FFRT_SEND_EVENT

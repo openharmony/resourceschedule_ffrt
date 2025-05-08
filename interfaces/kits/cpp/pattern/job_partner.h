@@ -45,7 +45,7 @@ namespace ffrt {
 /**
  * @struct job_partner_attr
  * @brief Defines the job_partner attribute structure.
- * 
+ *
  * Provides initializing job_partner attribute settings.
  * @since 20
  */

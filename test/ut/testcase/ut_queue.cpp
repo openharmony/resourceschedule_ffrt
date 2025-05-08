@@ -248,6 +248,47 @@ HWTEST_F(QueueTest, serial_multi_submit_succ, TestSize.Level1)
 }
 
 /*
+ * 测试用例名称 : concurrent_multi_submit_succ
+ * 测试用例描述：循环提交普通任务和延时任务，执行成功
+ * 操作步骤    ：1、循环提交普通任务90次
+ *              2、循环提交延时任务20次，取消10次
+ * 预期结果    ：总共应执行100+取消前已执行的次数
+ */
+HWTEST_F(QueueTest, concurrent_multi_submit_succ, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
+
+    int result = 0;
+    int cancelFailedNum = 0;
+    std::function<void()>&& basicFunc = [&result]() { OnePlusForTest(static_cast<void*>(&result)); };
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
+    ffrt_task_attr_set_delay(&task_attr, 100); // 设置任务0.1ms后才执行，非必须
+
+    for (int n = 0; n < 10; ++n) {
+        for (int i = 0; i < 9; ++i) {
+            ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
+        }
+
+        ffrt_task_handle_t t1 =
+            ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+        ffrt_task_handle_t t2 =
+            ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+        cancelFailedNum += ffrt_queue_cancel(t1);
+        ffrt_task_handle_destroy(t1); // 销毁task_handle，必须
+
+        ffrt_queue_wait(t2);
+        ffrt_task_handle_destroy(t2);
+    }
+
+    EXPECT_EQ(result, (cancelFailedNum + 100));
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
  * 测试用例名称 : serial_early_quit_succ
  * 测试用例描述：主动销毁队列，未执行的任务取消
  * 操作步骤    ：1、提交10000个斐波那契任务

@@ -50,7 +50,7 @@
            returns <b>ffrt_error</b> otherwise.
  * @since 20
  */
-FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, int stack_size);
+FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, size_t stack_size);
 
 
 /**

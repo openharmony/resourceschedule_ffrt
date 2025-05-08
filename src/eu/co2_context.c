@@ -193,7 +193,7 @@ asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     ".size co2_restore_context, . - co2_restore_context\n");
 #endif
 
-int ffrt_fiber_init(ffrt_fiber_t* ctx, void(*func)(void*), void* arg, void* stack, int stack_size)
+int ffrt_fiber_init(ffrt_fiber_t* ctx, void(*func)(void*), void* arg, void* stack, size_t stack_size)
 {
     if (stack_size < 0x4 * sizeof(uintptr_t)) {
         return EINVAL;

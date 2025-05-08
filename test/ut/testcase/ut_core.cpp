@@ -486,11 +486,20 @@ HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level1)
     (void)ffrt_task_attr_init(&attr);
 
     int result = 0;
-    ffrt_task_handle_t task = ffrt_submit_h_f(OnePlusForTest, &result, NULL, NULL, &attr);
+    ffrt_task_handle_t task = ffrt_submit_h_f(OnePlusForTest, &result, nullptr, nullptr, &attr);
     const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, task}};
     ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
     ffrt_wait_deps(&wait);
     ffrt_task_handle_destroy(task);
 
     EXPECT_EQ(result, 1);
+}
+
+HWTEST_F(CoreTest, ffrt_submit_f, TestSize.Level1)
+{
+    ffrt_task_attr_t attr;
+    (void)ffrt_task_attr_init(&attr);
+
+    int result = 0;
+    ffrt_submit_f(OnePlusForTest, &result, nullptr, nullptr, &attr);
 }

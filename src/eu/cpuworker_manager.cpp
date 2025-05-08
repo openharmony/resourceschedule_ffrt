@@ -185,8 +185,8 @@ void CPUWorkerManager::WorkerRetired(WorkerThread* thread)
         }
 #endif
         worker = nullptr;
+        workerNum.fetch_sub(1);
     }
-    workerNum.fetch_sub(1);
 }
 
 void CPUWorkerManager::NotifyTaskAdded(const QoS& qos)

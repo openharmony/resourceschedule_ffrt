@@ -243,7 +243,7 @@ void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTp - startTp);
     int64_t durationMs = duration.count();
     if (durationMs > EXECUTION_TIMEOUT_MILLISECONDS) {
-        FFRT_SYSEVENT_LOGW("handle work more than [%lld]ms", durationMs);
+        FFRT_LOGW("handle work more than [%lld]ms", durationMs);
     }
 }
 

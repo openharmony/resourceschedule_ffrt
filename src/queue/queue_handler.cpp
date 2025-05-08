@@ -381,7 +381,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe);
-        FFRT_SYSEVENT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
+        FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
             name_.c_str(), timeout_);
         return;
     }
@@ -553,7 +553,7 @@ void QueueHandler::SendSchedTimer(TimePoint delay)
     we_->tp = delay;
     bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     while (!result) {
-        FFRT_SYSEVENT_LOGW("failed to set delayedworker, retry");
+        FFRT_LOGW("failed to set delayedworker, retry");
         we_->tp = std::chrono::steady_clock::now() + std::chrono::microseconds(SCHED_TIME_ACC_ERROR_US);
         result = DelayedWakeup(we_->tp, we_, we_->cb);
     }

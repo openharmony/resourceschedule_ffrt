@@ -18,6 +18,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "c/type_def.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,24 +50,10 @@ extern "C" {
 #error "Unsupported architecture"
 #endif
 
-struct co2_context {
-    uintptr_t regs[FFRT_REG_NR];
-};
+int co2_save_context(ffrt_fiber_t* ctx);
 
-int co2_save_context(struct co2_context* ctx);
-
-void co2_restore_context(struct co2_context* ctx);
-
-static inline void co2_switch_context(struct co2_context* from, struct co2_context* to)
-{
-    if (co2_save_context(from) == 0) {
-        co2_restore_context(to);
-    }
-}
-
-int co2_init_context(struct co2_context* ctx, void (*func)(void*), void* arg, void* stack, size_t stack_size);
-
-#ifdef __cplusplus
+void co2_restore_context(ffrt_fiber_t* ctx);
+#ifdef  __cplusplus
 }
 #endif
 #endif /* CO2_INT_H */

@@ -51,7 +51,7 @@ static inline void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
         FFRT_SYSEVENT_LOGE("sp offset:%p.\n", co->stkMem.stk +
-            co->stkMem.size - co->ctx.regs[FFRT_REG_SP]);
+            co->stkMem.size - co->ctx.storage[FFRT_REG_SP]);
         FFRT_SYSEVENT_LOGE("stack over flow, check local variable in you tasks"
             " or use api 'ffrt_task_attr_set_stack_size'.\n");
         if (ExecuteCtx::Cur()->task != nullptr) {
@@ -217,7 +217,7 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 
 static inline void CoSwitch(CoCtx* from, CoCtx* to)
 {
-    co2_switch_context(from, to);
+    ffrt_fiber_switch(from, to);
 }
 
 static inline void CoExit(CoRoutine* co, bool isNormalTask)
@@ -372,7 +372,7 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
     BindNewCoRoutione(task);
     auto co = task->coRoutine;
     if (co->status.load() == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
-        co2_init_context(&co->ctx, CoStartEntry, static_cast<void*>(co), co->stkMem.stk, co->stkMem.size);
+        ffrt_fiber_init(&co->ctx, CoStartEntry, static_cast<void*>(co), co->stkMem.stk, co->stkMem.size);
     }
     return 0;
 }

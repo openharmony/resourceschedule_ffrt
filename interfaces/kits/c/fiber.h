@@ -1,0 +1,66 @@
+/*
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @addtogroup FFRT
+ * @{
+ *
+ * @brief Provides FFRT C APIs.
+ *
+ * @since 20
+ */
+
+/**
+ * @file fiber.h
+ *
+ * @brief Declares the loop interfaces in C.
+ *
+ * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ * @since 20
+ */
+
+#ifndef FFRT_API_C_FIBER_H
+#define FFRT_API_C_FIBER_H
+
+#include "type_def.h"
+
+/**
+ * @brief Initializes a fiber.
+ *
+ * @param fiber Indicates a pointer to the fiber.
+ * @param func Indicates a function pointer when fiber start to run.
+ * @param arg Indicates a function argument.
+ * @param stack Indicates the function address.
+ * @param stack_size Indicates the function size.
+ * @return Returns <b>ffrt_success</b> if the fiber is initialized;
+           returns <b>ffrt_error</b> otherwise.
+ * @since 20
+ */
+FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, size_t stack_size);
+
+
+/**
+ * @brief Switch fiber.
+ *
+ * @param from Indicates save current state to "from" fiber.
+ * @param to Indicates restore "to" fiber.
+ * @since 20
+ */
+FFRT_C_API void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to);
+
+#endif // FFRT_API_C_LOOP_H
+/** @} */

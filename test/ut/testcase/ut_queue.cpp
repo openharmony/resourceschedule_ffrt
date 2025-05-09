@@ -757,4 +757,10 @@ HWTEST_F(QueueTest, ffrt_queue_submit_f, TestSize.Level1)
 
     int result = 0;
     ffrt_queue_submit_f(queue_handle, OnePlusForTest, &result, nullptr);
+    EXPECT_TRUE(queue_handle != nullptr);
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+
+    EXPECT_EQ(result, 1);
 }

@@ -28,22 +28,23 @@
 #include <atomic>
 #include "c/fiber.h"
 
-#ifndef FFRT_LOGE
-#define FFRT_LOGE(fmt, ...)
+#ifndef FFRT_API_LOGE
+#define FFRT_API_LOGE(fmt, ...)
 #endif
-#ifndef FFRT_LOGD
-#define FFRT_LOGD(fmt, ...)
+#ifndef FFRT_API_LOGD
+#define FFRT_API_LOGD(fmt, ...)
 #endif
-#ifndef FFRT_TRACE_INT64
-#define FFRT_TRACE_INT64(name, value)
+#ifndef FFRT_API_TRACE_INT64
+#define FFRT_API_TRACE_INT64(name, value)
 #endif
-#ifndef FFRT_TRACE_SCOPE
-#define FFRT_TRACE_SCOPE(fmt, ...)
+#ifndef FFRT_API_TRACE_SCOPE
+#define FFRT_API_TRACE_SCOPE(fmt, ...)
 #endif
 
 namespace ffrt {
 namespace detail {
     static constexpr uint64_t cacheline_size = 64;
+
     struct non_copyable {
     protected:
         non_copyable() = default;
@@ -73,15 +74,15 @@ static inline constexpr uint64_t align2n(uint64_t x)
 struct futex {
     static inline void wait(int* uaddr, int val)
     {
-        FFRT_LOGD("futex wait in %p", uaddr);
+        FFRT_API_LOGD("futex wait in %p", uaddr);
         int r = call(uaddr, FUTEX_WAIT_PRIVATE, val, nullptr, 0);
-        FFRT_LOGD("futex wait %p ret %d", uaddr, r);
+        FFRT_API_LOGD("futex wait %p ret %d", uaddr, r);
     }
 
     static inline void wake(int* uaddr, int num)
     {
         int r = call(uaddr, FUTEX_WAKE_PRIVATE, num, nullptr, 0);
-        FFRT_LOGD("futex wake %p ret %d", uaddr, r);
+        FFRT_API_LOGD("futex wake %p ret %d", uaddr, r);
     }
 
 private:
@@ -183,7 +184,7 @@ struct ref_obj {
     static inline ptr make(Args&& ... args)
     {
         auto p = new T(std::forward<Args>(args)...);
-        FFRT_LOGD("%s new %p", __PRETTY_FUNCTION__, p);
+        FFRT_API_LOGD("%s new %p", __PRETTY_FUNCTION__, p);
         return ptr(p);
     }
 
@@ -202,7 +203,7 @@ struct ref_obj {
     inline void dec_ref()
     {
         if (ref.fetch_sub(1, std::memory_order_relaxed) == 1) {
-            FFRT_LOGD("%s delete %p", __PRETTY_FUNCTION__, this);
+            FFRT_API_LOGD("%s delete %p", __PRETTY_FUNCTION__, this);
             delete (T*)this;
         }
     }
@@ -242,29 +243,7 @@ struct mpmc_queue : detail::non_copyable {
         return iwrite_.load(std::memory_order_relaxed) - head;
     }
 
-    inline bool try_push(const T& data)
-    {
-        return _try_push(data);
-    }
-
-    inline bool try_pop(T& result)
-    {
-        return _try_pop(result);
-    }
-private:
-    uint64_t capacity;
-    uint64_t mask;
-    struct Item {
-        T data;
-        std::atomic<uint64_t> iwrite_exp; // expect write index after read
-        std::atomic<uint64_t> iread_exp; // expect read index after write
-    };
-
-    alignas(detail::cacheline_size) Item* q;
-    alignas(detail::cacheline_size) std::atomic<uint64_t> iwrite_; // global write index
-    alignas(detail::cacheline_size) std::atomic<uint64_t> iread_; // global read index
-
-    bool _try_push(const T& data)
+    bool try_push(const T& data)
     {
         Item* i;
         auto iwrite = iwrite_.load(std::memory_order_relaxed);
@@ -282,7 +261,7 @@ private:
         return true;
     }
 
-    bool _try_pop(T& result)
+    bool try_pop(T& result)
     {
         Item* i;
         auto iread = iread_.load(std::memory_order_relaxed);
@@ -299,6 +278,18 @@ private:
         i->iwrite_exp.store(iread + capacity, std::memory_order_release);
         return true;
     }
+private:
+    uint64_t capacity;
+    uint64_t mask;
+    struct Item {
+        T data;
+        std::atomic<uint64_t> iwrite_exp; // expect write index after read
+        std::atomic<uint64_t> iread_exp; // expect read index after write
+    };
+
+    alignas(detail::cacheline_size) Item* q;
+    alignas(detail::cacheline_size) std::atomic<uint64_t> iwrite_; // global write index
+    alignas(detail::cacheline_size) std::atomic<uint64_t> iread_; // global read index
 };
 
 using func_ptr = void(*)(void*);
@@ -319,7 +310,7 @@ struct runnable_queue : Queue<ptr_task> {
             return false;
         }
 
-        FFRT_TRACE_INT64(name.c_str(), this->size());
+        FFRT_API_TRACE_INT64(name.c_str(), this->size());
         job.f(job.arg);
         return true;
     }
@@ -336,7 +327,7 @@ struct runnable_queue : Queue<ptr_task> {
                 try_run();
             }
         }
-        FFRT_TRACE_INT64(name.c_str(), this->size());
+        FFRT_API_TRACE_INT64(name.c_str(), this->size());
     }
 
     const std::string name;
@@ -358,7 +349,7 @@ struct clock {
 
 template <int UsageId = 0, class FiberLocal = char, class ThreadLocal = char>
 struct fiber : detail::non_copyable {
-    struct thread_env : ndetail::on_copyable {
+    struct thread_env :  detail::non_copyable {
         fiber* cur = nullptr;
         bool (*cond)(void*) = nullptr;
         ThreadLocal tl;
@@ -370,7 +361,7 @@ struct fiber : detail::non_copyable {
         return ctx;
     }
 
-    static inline fiber* init(std::function<void()>&& f, void* stack, size_t stack_size)
+    static fiber* init(std::function<void()>&& f, void* stack, size_t stack_size)
     {
         if (stack == nullptr || stack_size < sizeof(fiber) + min_stack_size) {
             return nullptr;
@@ -382,16 +373,17 @@ struct fiber : detail::non_copyable {
             return nullptr;
         }
 
+        FFRT_API_LOGD("job %lu create", c->id);
         return c;
     }
 
     inline void destroy()
     {
-        FFRT_LOGD("job %lu destroy", id);
+        FFRT_API_LOGD("job %lu destroy", id);
         this->~fiber<UsageId, FiberLocal, ThreadLocal>();
     }
 
-    inline bool start()
+    bool start()
     {
         bool done;
         auto& e = fiber::env();
@@ -399,7 +391,9 @@ struct fiber : detail::non_copyable {
         do {
             e.cond = nullptr;
             e.cur = this;
+            FFRT_API_LOGD("job %lu switch in", id);
             ffrt_fiber_switch(&link, &fb);
+            FFRT_API_LOGD("job %lu switch out", id);
             done = this->done;
         } while (e.cond && !(e.cond)(this));
         e.cond = nullptr;

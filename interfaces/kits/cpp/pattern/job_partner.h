@@ -441,3 +441,4 @@ _begin_consume_master_job:
 };
 }
 #endif
+/** @} */

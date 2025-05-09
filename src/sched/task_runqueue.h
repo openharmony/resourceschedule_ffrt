@@ -16,8 +16,6 @@
 #ifndef FFRT_TASK_RUNQUEUE_HPP
 #define FFRT_TASK_RUNQUEUE_HPP
 
-
-#include "c/executor_task.h"
 #include "tm/cpu_task.h"
 
 namespace ffrt {

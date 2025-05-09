@@ -18,6 +18,7 @@
 
 #include <atomic>
 #include "dfx/log/ffrt_log_api.h"
+#include "c/type_def.h"
 
 namespace ffrt {
 enum FuncHeaderStatus {

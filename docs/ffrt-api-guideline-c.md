@@ -2643,7 +2643,7 @@ FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
     }
     ```
 
-    ## 协程管理
+## 协程管理
 
 ### ffrt_fiber_t
 

@@ -92,7 +92,7 @@ static std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t t
 {
     constexpr int Ratio = 1000 * 1000;
 
-    auto referenceFreq = Arm64CntFrq();
+    int64_t referenceFreq = static_cast<int64_t>(Arm64CntFrq());
     if (referenceFreq == 0) {
         return "";
     }

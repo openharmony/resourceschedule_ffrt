@@ -502,4 +502,6 @@ HWTEST_F(CoreTest, ffrt_submit_f, TestSize.Level1)
 
     int result = 0;
     ffrt_submit_f(OnePlusForTest, &result, nullptr, nullptr, &attr);
+    ffrt::wait();
+    EXPECT_EQ(result, 1);
 }

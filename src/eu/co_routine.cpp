@@ -50,8 +50,6 @@ using namespace ffrt;
 static inline void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
-        FFRT_SYSEVENT_LOGE("sp offset:%p.\n", co->stkMem.stk +
-            co->stkMem.size - co->ctx.storage[FFRT_REG_SP]);
         FFRT_SYSEVENT_LOGE("stack over flow, check local variable in you tasks"
             " or use api 'ffrt_task_attr_set_stack_size'.\n");
         if (ExecuteCtx::Cur()->task != nullptr) {

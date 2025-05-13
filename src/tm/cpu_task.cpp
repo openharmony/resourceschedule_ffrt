@@ -99,7 +99,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         label = "root";
     } else if ((parent != nullptr) && parent->IsRoot()) {
         label = "t" + std::to_string(rank);
-    } else {
+    } else if (parent != nullptr) {
         label = parent->label + "." + std::to_string(rank);
     }
 

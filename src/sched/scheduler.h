@@ -21,7 +21,6 @@
 #include <map>
 #include <mutex>
 #include <array>
-#include "internal_inc/types.h"
 #include "core/entity.h"
 #include "eu/execute_unit.h"
 #include "sync/sync.h"

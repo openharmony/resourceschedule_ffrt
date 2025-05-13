@@ -79,16 +79,18 @@ void SharedMutexPrivate::Unlock()
         return;
     }
 
-    --state;
-    if (state & writeEntered) {
-        if (state == writeEntered) {
-            NotifyOne(wList2);
-        }
-    } else {
-        if (state == readersMax - 1) {
-            NotifyOne(wList1);
-        } else if (!wList1.Empty()) {
-            NotifyAll(wList1);
+    if (state > 0) {
+        --state;
+        if (state & writeEntered) {
+            if (state == writeEntered) {
+                NotifyOne(wList2);
+            }
+        } else {
+            if (state == readersMax - 1) {
+                NotifyOne(wList1);
+            } else if (!wList1.Empty()) {
+                NotifyAll(wList1);
+            }
         }
     }
     mut.unlock();

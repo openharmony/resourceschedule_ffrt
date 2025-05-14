@@ -76,12 +76,14 @@ struct futex {
     {
         FFRT_API_LOGD("futex wait in %p", uaddr);
         int r = call(uaddr, FUTEX_WAIT_PRIVATE, val, nullptr, 0);
+        (void)(r);
         FFRT_API_LOGD("futex wait %p ret %d", uaddr, r);
     }
 
     static inline void wake(int* uaddr, int num)
     {
         int r = call(uaddr, FUTEX_WAKE_PRIVATE, num, nullptr, 0);
+        (void)(r);
         FFRT_API_LOGD("futex wake %p ret %d", uaddr, r);
     }
 

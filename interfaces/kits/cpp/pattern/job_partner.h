@@ -330,6 +330,7 @@ private:
     void submit(func_ptr f, void* p)
     {
         auto concurrency = job_num.fetch_add(1, std::memory_order_relaxed) + 1;
+        (void)(concurrency);
         FFRT_API_TRACE_INT64(concurrency_name.c_str(), concurrency);
         partner_q.template push<1>(f, p);
 
@@ -371,6 +372,7 @@ private:
     void job_partner_task()
     {
         auto partner_n = partner_num.fetch_add(1) + 1;
+        (void)(partner_n);
         FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
         FFRT_API_TRACE_SCOPE("%s add task", name.c_str());
 
@@ -393,9 +395,11 @@ _re_run_partner:
                 }
             }
             auto partner_n = partner_num.fetch_sub(1) - 1;
+            (void)(partner_n);
             FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
             if (partner_q.try_run()) {
                 auto partner_n = partner_num.fetch_add(1) + 1;
+                (void)(partner_n);
                 FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
                 goto _re_run_partner;
             }

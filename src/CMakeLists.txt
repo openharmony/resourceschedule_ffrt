@@ -2,7 +2,6 @@
 # ffrt code
 # -----------------------------------------------------------------------------
 set(FFRT_LOG_PLAT_PATH "${FFRT_CODE_PATH}/dfx/log/linux")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable")
 
 file(GLOB_RECURSE FFRT_SRC_LIST
 	"${FFRT_CODE_PATH}/core/*.cpp"

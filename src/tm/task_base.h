@@ -40,9 +40,6 @@ public:
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
 #endif
-#ifdef ENABLE_HITRACE_CHAIN
-    struct HiTraceIdStruct traceId_;
-#endif
 
     inline int GetQos() const
     {

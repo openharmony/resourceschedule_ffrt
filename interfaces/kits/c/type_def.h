@@ -123,25 +123,31 @@ typedef enum {
     ffrt_cond_storage_size = 64,
     /** Queue storage size. */
     ffrt_queue_attr_storage_size = 128,
-#if defined(__aarch64__)
-    /** Fiber storage size. */
-    ffrt_fiber_storage_size = 22,
-#elif defined(__arm__)
-    /** Fiber storage size. */
-    ffrt_fiber_storage_size = 64,
-#elif defined(__x86_64__)
-    /** Fiber storage size. */
-    ffrt_fiber_storage_size = 8,
-#else
-#error "unsupported architecture"
-#endif
     /** Rwlock storage size.
      *
      * @since 18
      */
     ffrt_rwlock_storage_size = 64,
+    /** Fiber storage size.
+     *
+     * This constant defines the fiber storage size.
+     * The actual value depends on the target architecture:
+     * - __aarch64__: 22
+     * - __arm__: 64
+     * - __x86_64__: 8
+     *
+     * @since 20
+     */
+#if defined(__aarch64__)
+    ffrt_fiber_storage_size = 22,
+#elif defined(__arm__)
+    ffrt_fiber_storage_size = 64,
+#elif defined(__x86_64__)
+    ffrt_fiber_storage_size = 8,
+#else
+#error "unsupported architecture"
+#endif
 } ffrt_storage_size_t;
-
 /**
  * @brief Enumerates the task types.
  *
@@ -315,7 +321,7 @@ typedef struct {
 } ffrt_cond_t;
 
 /**
- * @brief Defines the fiber variable structure.
+ * @brief Defines the fiber structure.
  *
  * @since 20
  */

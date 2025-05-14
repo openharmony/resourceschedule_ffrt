@@ -1453,7 +1453,7 @@ int main()
 }
 ```
 
-## 协同任务
+## 任务伙伴
 
 ### job_partner_attr
 
@@ -1465,14 +1465,14 @@ struct job_partner_attr;
 
 #### 描述
 
-job_partner实例入参，包括水线、worker数等属性都是通过`job_partner_attr`设置。
+`job_partner`创建时使用的属性设置，包括QoS、Worker控制等设置。
 
 #### 方法
 
 ##### set qos
 
 ```cpp
-inline job_partner_attr& job_partner_attr::qos(qos q);
+job_partner_attr& job_partner_attr::qos(qos q);
 ```
 
 参数
@@ -1485,12 +1485,12 @@ inline job_partner_attr& job_partner_attr::qos(qos q);
 
 描述
 
-- 设置队列的QoS等级。
+- 设置`job_partner`执行时所使用的线程的的QoS等级。
 
 ##### get qos
 
 ```cpp
-inline int job_partner_attr::qos() const;
+int job_partner_attr::qos() const;
 ```
 
 返回值
@@ -1504,12 +1504,12 @@ inline int job_partner_attr::qos() const;
 ##### set max_num
 
 ```cpp
-inline job_partner_attr& job_partner_attr::max_num(uint64_t v);
+job_partner_attr& job_partner_attr::max_num(uint64_t v);
 ```
 
 参数
 
-- `v`：用户指定的最大worker数。
+- `v`：用户指定的最大Worker数。
 
 返回值
 
@@ -1517,31 +1517,31 @@ inline job_partner_attr& job_partner_attr::max_num(uint64_t v);
 
 描述
 
-- 设置最大worker数。
+- 设置最大Worker数，以控制最多使用多少个Worker线程与master线程协同工作。
 
 ##### get max_num
 
 ```cpp
-inline uint64_t job_partner_attr::max_num() const;
+uint64_t job_partner_attr::max_num() const;
 ```
 
 返回值
 
-- 返回最大woker数。
+- 返回最大Worker数。
 
 描述
 
-- 获取当前属性中设置的最大woker数。
+- 获取当前属性中设置的最大Worker数。
 
-##### set scale
+##### set ratio
 
 ```cpp
-inline job_partner_attr& job_partner_attr::scale(uint64_t v);
+job_partner_attr& job_partner_attr::ratio(uint64_t v);
 ```
 
 参数
 
-- `v`：用户指定的job水线。
+- `v`：用户指定的ratio参数。
 
 返回值
 
@@ -1549,31 +1549,31 @@ inline job_partner_attr& job_partner_attr::scale(uint64_t v);
 
 描述
 
-- 设置job水线。
+- 设置ratio参数，用于控制Worker数量。ratio表示任务数和Worker数的比例。
 
-##### get scale
+##### get ratio
 
 ```cpp
-inline uint64_t job_partner_attr::scale() const;
+uint64_t job_partner_attr::ratio() const;
 ```
 
 返回值
 
-- 返回job水线。
+- 返回用户指定的ratio参数。
 
 描述
 
-- 获取当前属性中设置的job水线。
+- 获取当前属性中设置的ratio参数。
 
-##### set offset
+##### set threshold
 
 ```cpp
-inline job_partner_attr& job_partner_attr::offset(uint64_t v);
+job_partner_attr& job_partner_attr::threshold(uint64_t v);
 ```
 
 参数
 
-- `v`：用户指定的水线偏离值。
+- `v`：用户指定的threshold参数。
 
 返回值
 
@@ -1581,31 +1581,31 @@ inline job_partner_attr& job_partner_attr::offset(uint64_t v);
 
 描述
 
-- 设置水线偏离值。
+- 设置threshold参数，用于控制Worker数量。threshold表示任务堆积到指定数量之后才会启动Worker，用于任务粒度非常小时避免Worker被频繁唤醒。
 
-##### get offset
+##### get threshold
 
 ```cpp
-inline uint64_t job_partner_attr::offset() const;
+uint64_t job_partner_attr::threshold() const;
 ```
 
 返回值
 
-- 返回水线偏离值。
+- 返回用户指定的threshold参数。
 
 描述
 
-- 获取当前属性中设置的水线偏离值。
-  
+- 获取当前属性中设置的threshold参数。
+
 ##### set busy
 
 ```cpp
-inline job_partner_attr& job_partner_attr::busy(uint64_t us);
+job_partner_attr& job_partner_attr::busy(uint64_t us);
 ```
 
 参数
 
-- `us`：用户指定woker闲置多久后回收。
+- `us`：繁忙重试的时长，单位是微秒。
 
 返回值
 
@@ -1613,31 +1613,31 @@ inline job_partner_attr& job_partner_attr::busy(uint64_t us);
 
 描述
 
-- 设置worker闲置时间。
+- 设置Worker退出前的繁忙重试时间，在某些平台上会优化为低功耗模式，用于避免Worker频繁创建和退出。
 
 ##### get busy
 
 ```cpp
-inline uint64_t job_partner_attr::busy() const;
+uint64_t job_partner_attr::busy() const;
 ```
 
 返回值
 
-- 返回worker闲置时间。
+- 返回Worker退出前的繁忙重试时间。
 
 描述
 
-- 获取当前属性中设置的worker闲置时间。
-  
+- 获取当前属性中设置的Worker退出前的繁忙重试时间。
+
 ##### set queue_depth
 
 ```cpp
-inline job_partner_attr& job_partner_attr::queue_depth(uint64_t depth);
+job_partner_attr& job_partner_attr::queue_depth(uint64_t depth);
 ```
 
 参数
 
-- `depth`：用户指定的任务队列深度，默认会转成最接近的二的幂等数。
+- `depth`：用户指定的任务队列深度。
 
 返回值
 
@@ -1645,12 +1645,12 @@ inline job_partner_attr& job_partner_attr::queue_depth(uint64_t depth);
 
 描述
 
-- 设置任务队列深度。
+- 设置任务队列深度，当设置为非二的幂次方时，会扩大为二的幂次方数。
 
 ##### get queue_depth
 
 ```cpp
-inline uint64_t job_partner_attr::queue_depth() const;
+uint64_t job_partner_attr::queue_depth() const;
 ```
 
 返回值
@@ -1667,75 +1667,80 @@ inline uint64_t job_partner_attr::queue_depth() const;
 
 ```cpp
 template <int UsageId = 0>
-struct job_partner : ref_obj<job_partner<UsageId>>, non_copyable
+struct job_partner;
 ```
 
 #### 描述
 
-job_partner实例，包括普通任务的提交、协同任务的提交等功能。UsageId表示job_partner实例的不同用途。
+`job_partner`实例，基于该类的方法可以实现partner线程与master线程协同完成计算。
+
+UsageId表示`job_partner`实例的不同用途。
 
 #### 方法
 
 ##### get_partner_of_this_thread
 
 ```cpp
-static __attribute__((noinline)) auto& job_partner::get_partner_of_this_thread(const ffrt::job_partner_attr& attr = {});
+static auto& job_partner::get_partner_of_this_thread(const ffrt::job_partner_attr& attr = {});
 ```
 
 参数
 
-- `attr`：用户指定的job_partner属性。
+- `attr`：用户指定的`job_partner`属性。
 
 返回值
 
-- 返回当前对象以支持链式调用。
+- 返回当前线程的伙伴。
 
 描述
 
-- 获取当前线程job_partner实例。
+- 该方法为`job_partner`的静态方法，用于获取当前线程伙伴（即`job_partner`实例）。
+- 同一调用线程和同一`UsageId`唯一对应一个`job_partner`实例，即：
+  - 同一线程不同`UsageId`的`job_partner`调用该方法返回的`job_partner`实例是不相干的；
+  - 不同线程上同一`UsageId`的`job_partner`调用该方法返回的`job_partner`实例也是不相干的。
 
-##### submit_cooperate
+##### submit suspendable job
 
 ```cpp
 template <bool boost = true>
-inline int job_partner::submit(std::function<void()>&& job, void* stack, size_t stack_size);
+int job_partner::submit(std::function<void()>&& suspendable_job, void* stack, size_t stack_size);
 ```
 
 参数
 
-- `boost`：支持woker水线，boost为true，任务数达到一定水线，自动新增worker。
-- `job`：任务闭包。
-- `stack`：任务地址。
-- `stack_size`：任务大小。
+- `boost`：可选参数，是否触发Worker按水线自动扩容。
+- `suspendable_job`：任务闭包。
+- `stack`：任务执行的栈空间起始地址。
+- `stack_size`：任务执行的栈的大小，和stack参数匹配。
 
 返回值
 
-- 返回任务提交成功与否。
+- 提交成功时返回`ffrt_success`，否则返回`ffrt_error`，通常原因为`stack`为空或`stack_size`不满足最小栈空间（不同平台存在差异）限制，建议设置4KB以上的栈空间。
 
 描述
 
-- 提交一个协同任务。
+- 提交一个可被暂停的任务，当在`suspendable_job`任务闭包中调用`submit_to_master`时，会暂停当前任务，并将`submit_to_master`入参中的闭包发回`job_partner`对应的master线程执行，直到master线程执行完闭包之后才恢复当前任务的执行。
 
-##### submit_normal
+##### submit non_suspendable job
 
 ```cpp
 template <bool boost = true>
-inline void job_partner::submit(std::function<void()>&& job);
+void job_partner::submit(std::function<void()>&& non_suspendable_job);
 ```
 
 参数
 
-- `boost`：支持woker水线，boost为true，任务数达到一定水线，自动新增worker。
+- `boost`：可选参数，是否触发Worker按水线自动扩容。
 - `job`：任务闭包。
 
 描述
 
-- 提交一个普通任务。
+- 提交一个不可暂停的普通任务，即在`non_suspendable_job`任务闭包中不应该调用`submit_to_master`，若强行调用`submit_to_master`，并不会暂停当前任务的执行，而是直接执行`submit_to_master`入参中的闭包。
 
 ##### submit_to_master
 
 ```cpp
-static inline void job_partner::submit_to_master(std::function<void()>&& job);
+static void job_partner::submit_to_master(std::function<void()>&& job);
 ```
 
 参数
@@ -1744,64 +1749,71 @@ static inline void job_partner::submit_to_master(std::function<void()>&& job);
 
 描述
 
-- 提交一个任务到主线程。
+- 该方法为静态方法，在不同的线程上执行该方法效果不同。
+- 若在partner线程上执行该方法，则会暂停当前正在执行的任务，并提交submit_to_master入参中的job任务发到对应的master线程执行，直到master线程执行完该闭包之后才恢复当前任务的执行。
+- 在`suspendable job`内部，且在partner线程上执行调用该函数时才会将将job发到master线程执行，否则会在`submit_to_master`函数内部直接执行job闭包。
 
 ##### wait
 
 ```cpp
-template<bool help_partner = true, uint64_t master_delay_us = 100>
-inline int job_partner::wait();
+template<bool help_partner = true, uint64_t busy_wait_us = 100>
+int job_partner::wait();
 ```
 
 参数
 
-- `help_partner`：当前等待线程是否帮助消费队列任务。
-- `master_delay_us`：如果帮助消费队列，当前等待线程闲置的时间。
+- `help_partner`：当前等待线程是否帮助partner线程消费队列任务，从时延角度，设置为true会更优。
+- `busy_wait_us`：如果`help_partner`设置为true，该参数无效，如果`help_partner`为false，当前等待线程在等待`busy_wait_us`之后会进入睡眠，直到任务完成才被唤醒。
 
 返回值
 
-- 等待结果成功与否。
+- 等待成功时返回0，否则返回非0，通常原因为在非master线程上执行该函数。
 
 描述
 
-- 等待所有任务执行完成。
+- 在master线程上调用该接口时，同步等待`job_partner`历史提交过的所有任务执行完成，并返回0。
 
 ##### this_thread_is_master
 
 ```cpp
-inline bool job_partner::this_thread_is_master();
+static bool job_partner::this_thread_is_master();
 ```
 
 返回值
 
-- 当前线程是否是主线程。
+- 当前线程是否为`this job_partner`的是master线程。
 
 描述
 
-- 判断当前线程是否是主线程。
+- 该方法为非静态方法，判断当前线程是否为`this job_partner`的是master线程。
 
 #### 样例
 
 ````cpp
-#include "ffrt/cpp/pattern/job_partner.h"
+#include <iostream>
+#include <array>
+#include <atomic>
+#include "ffrt/ffrt.h"
 
 int main()
 {
     const int job_num = 100;
-    auto agent = ffrt::job_partner<>::get_partner_of_this_thread();
     constexpr uint64_t stack_size = 16 * 1024;
-    static std::array<char, stack_size> stack[job_num];
-    atomic<int> a = 0;
-    for (int j = 0; j < 100; j++) {
-        agent->submit([&a] {
+    std::array<char, stack_size> stack[job_num];
+    std::atomic<int> a = 0;
+    auto partner = ffrt::job_partner<>::get_partner_of_this_thread();
+    for (int j = 0; j < job_num; j++) {
+        partner->submit([&a] {
             a++;
             for (int i = 0; i < 100; i++) {
                 ffrt::job_partner<>::submit_to_master([&a] {
                     a++;
                 });
             }
-            }, &stack[j], stack_size);
+        }, &stack[j], stack_size);
     }
-    agent->wait();
+    partner->wait();
+    std::cout << "a = " << a.load() << std::endl; // expect a = 10100
+    return 0;
 }
 ````

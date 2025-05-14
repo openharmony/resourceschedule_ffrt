@@ -17,6 +17,7 @@
 #include "c/fiber.h"
 
 #include <errno.h>
+#define API_ATTRIBUTE(attr) __attribute__(attr)
 
 void context_entry(void);
 
@@ -193,6 +194,7 @@ asm(".global context_entry; .type context_entry, %function; context_entry:\n"
     ".size co2_restore_context, . - co2_restore_context\n");
 #endif
 
+API_ATTRIBUTE((visibility("default")))
 int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, size_t stack_size)
 {
     if (stack_size < 0x4 * sizeof(uintptr_t)) {
@@ -212,6 +214,7 @@ int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* st
     return 0;
 }
 
+API_ATTRIBUTE((visibility("default")))
 void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to)
 {
     if (co2_save_context(from) == 0) {

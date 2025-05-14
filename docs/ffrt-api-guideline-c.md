@@ -570,50 +570,6 @@ FFRT_C_API void ffrt_submit_base(ffrt_function_header_t* f, const ffrt_deps_t* i
     }
     ```
 
-### ffrt_submit_f
-
-#### 声明
-
-```c
-FFRT_C_API void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-```
-
-#### 参数
-
-- `func`：指定的任务函数。
-- `arg`：传递给任务函数的参数。
-- `in_deps`：任务的输入数据依赖。输入数据依赖通常以实际数据的地址表达，也支持`ffrt_task_handle_t`作为一种特殊输入依赖。
-- `out_deps`：任务的输出数据依赖。输出数据依赖通常以实际数据的地址表达，不支持`ffrt_task_handle_t`。
-- `attr`：任务的属性设置。
-
-#### 描述
-
-`ffrt_submit_f`接口是`ffrt_submit_base`接口的简化包装形式。当任务不需要销毁回调函数时，接口内部将任务函数及其参数包装成通用任务结构，再调用`ffrt_submit_base`接口提交任务。
-
-#### 样例
-
-```cpp
-#include <stdio.h>
-#include "ffrt/task.h"
-
-// 待提交执行的函数
-void OnePlusForTest(void* arg)
-{
-    (*static_cast<int*>(arg)) += 1;
-}
-
-int main()
-{
-    int a = 0;
-    ffrt_submit_f(OnePlusForTest, &a, NULL, NULL, NULL);
-
-    ffrt_wait();
-
-    printf("a = %d\n", a);
-    return 0;
-}
-```
-
 ### ffrt_submit_h_base
 
 #### 声明
@@ -649,59 +605,6 @@ func->destroy = after_foo;
 ffrt_task_handle_t t = ffrt_submit_h_base(func, NULL, NULL, NULL);
 // 注意C API的ffrt_task_handle_t需要用户调用ffrt_task_handle_destroy显式销毁
 ffrt_task_handle_destroy(t);
-```
-
-### ffrt_submit_h_f
-
-#### 声明
-
-```c
-typedef void* ffrt_task_handle_t;
-
-FFRT_C_API ffrt_task_handle_t ffrt_submit_h_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr);
-```
-
-#### 参数
-
-- `func`：指定的任务函数。
-- `arg`：传递给任务函数的参数。
-- `in_deps`：任务的输入数据依赖。输入数据依赖通常以实际数据的地址表达，也支持`ffrt_task_handle_t`作为一种特殊输入依赖。
-- `out_deps`：任务的输出数据依赖。输出数据依赖通常以实际数据的地址表达，不支持`ffrt_task_handle_t`。
-- `attr`：任务的属性设置。
-
-#### 返回值
-
-- `ffrt_task_handle_t`任务的句柄。
-
-#### 描述
-
-相比于`ffrt_submit_f`接口，增加了任务句柄的返回值。
-
-#### 样例
-
-```cpp
-#include <stdio.h>
-#include <vector>
-#include "ffrt/task.h"
-
-// 待提交执行的函数
-void OnePlusForTest(void* arg)
-{
-    (*static_cast<int*>(arg)) += 1;
-}
-
-int main()
-{
-    int a = 0;
-    ffrt_task_handle_t task = ffrt_submit_h_f(OnePlusForTest, &a, NULL, NULL, NULL);
-
-    const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, task}};
-    ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
-    ffrt_wait_deps(&wait);
-
-    printf("a = %d\n", a);
-    return 0;
-}
 ```
 
 ### ffrt_task_handle_inc_ref
@@ -985,7 +888,7 @@ typedef struct {
 ##### ffrt_queue_attr_init
 
 ```c
-int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
+int ffrt_queue_attr_init(ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1003,7 +906,7 @@ int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_destroy
 
 ```c
-void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
+void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1017,7 +920,7 @@ void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_set_qos
 
 ```c
-void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
+void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 ```
 
 参数
@@ -1032,7 +935,7 @@ void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
 ##### ffrt_queue_attr_get_qos
 
 ```c
-ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
+ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1050,7 +953,7 @@ ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_set_timeout
 
 ```c
-void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
+void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us)
 ```
 
 参数
@@ -1065,7 +968,7 @@ void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
 ##### ffrt_queue_attr_get_timeout
 
 ```c
-uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
+uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1083,7 +986,7 @@ uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_set_callback
 
 ```c
-void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f);
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f)
 ```
 
 参数
@@ -1098,7 +1001,7 @@ void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_
 ##### ffrt_queue_attr_get_callback
 
 ```c
-ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
+ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1116,7 +1019,7 @@ ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* at
 ##### ffrt_queue_attr_set_max_concurrency
 
 ```c
-void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_concurrency);
+void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_concurrency)
 ```
 
 参数
@@ -1131,7 +1034,7 @@ void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_
 ##### ffrt_queue_attr_get_max_concurrency
 
 ```c
-int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr);
+int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1191,7 +1094,7 @@ typedef void* ffrt_queue_t;
 ##### ffrt_queue_create
 
 ```c
-ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr);
+ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1211,7 +1114,7 @@ ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const f
 ##### ffrt_queue_destroy
 
 ```c
-void ffrt_queue_destroy(ffrt_queue_t queue);
+void ffrt_queue_destroy(ffrt_queue_t queue)
 ```
 
 参数
@@ -1225,7 +1128,7 @@ void ffrt_queue_destroy(ffrt_queue_t queue);
 ##### ffrt_queue_submit
 
 ```c
-void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
 ```
 
 参数
@@ -1238,27 +1141,10 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
 
 - 提交任务到队列中。
 
-##### ffrt_queue_submit_f
-
-```c
-void ffrt_queue_submit_f(ffrt_queue_t queue, ffrt_function_t func, void* arg, const ffrt_task_attr_t* attr);
-```
-
-参数
-
-- `queue`：队列的句柄。
-- `func`：指定的任务函数。
-- `arg`：传递给任务函数的参数。
-- `attr`：任务属性。
-
-描述
-
-- 当任务不需要销毁回调函数时，提交任务到队列中。
-
 ##### ffrt_queue_submit_h
 
 ```c
-ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
 ```
 
 参数
@@ -1274,27 +1160,6 @@ ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_
 描述
 
 - 提交任务到队列中，并返回任务句柄。
-
-##### ffrt_queue_submit_h_f
-
-```c
-ffrt_task_handle_t ffrt_queue_submit_h_f(ffrt_queue_t queue, ffrt_function_t func, void* arg, const ffrt_task_attr_t* attr);
-```
-
-参数
-
-- `queue`：队列的句柄。
-- `func`：指定的任务函数。
-- `arg`：传递给任务函数的参数。
-- `attr`：任务属性。
-
-返回值
-
-- `ffrt_task_handle_t`：成功则返回一个非空的任务句柄；否则返回空指针。
-
-描述
-
-- 当任务不需要销毁回调函数时，提交任务到队列中，并返回任务句柄。
 
 ##### ffrt_queue_submit_head
 
@@ -1335,7 +1200,7 @@ ffrt_task_handle_t ffrt_queue_submit_head_h(ffrt_queue_t queue, ffrt_function_he
 ##### ffrt_queue_wait
 
 ```c
-void ffrt_queue_wait(ffrt_task_handle_t handle);
+void ffrt_queue_wait(ffrt_task_handle_t handle)
 ```
 
 参数
@@ -1349,7 +1214,7 @@ void ffrt_queue_wait(ffrt_task_handle_t handle);
 ##### ffrt_queue_cancel
 
 ```c
-int ffrt_queue_cancel(ffrt_task_handle_t handle);
+int ffrt_queue_cancel(ffrt_task_handle_t handle)
 ```
 
 参数
@@ -1396,7 +1261,7 @@ ffrt_queue_t ffrt_get_current_queue();
 ##### ffrt_queue_get_task_cnt
 
 ```c
-uint64_t ffrt_queue_get_task_cnt(ffrt_queue_t queue);
+uint64_t ffrt_queue_get_task_cnt(ffrt_queue_t queue)
 ```
 
 参数
@@ -2643,21 +2508,19 @@ FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
     }
     ```
 
-## 协程管理
+## 纤程
 
 ### ffrt_fiber_t
 
 #### 声明
 
 ```c
-typedef struct {
-    uintptr_t storage[ffrt_fiber_storage_size];
-} ffrt_fiber_t;
+struct ffrt_fiber_t;
 ```
 
 #### 描述
 
-提供协程切换上下文存储和读取功能。
+`ffrt_fiber_t`为纤程存储实体类型，用于保存和恢复执行上下文。
 
 #### 方法
 
@@ -2666,24 +2529,24 @@ typedef struct {
 声明
 
 ```c
-FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, int stack_size);
+FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, size_t stack_size);
 ```
 
 参数
 
-- `fiber`：fiber指针。
-- `func`：fiber运行时当前方法指针。
-- `arg`：fiber运行时当前方法入参。
-- `stack`：fiber运行时当前方法地址。
-- `stack_size`：fiber运行时当前方法内存大小。
+- `fiber`：纤程指针。
+- `func`：纤程启动时的函数指针入口。
+- `arg`：纤程启动时的函数入参。
+- `stack`：纤程运行时使用的栈空间起始地址。
+- `stack_size`：纤程栈大小，单位为字节。
 
 返回值
 
-- 初始化结果：成功返回`ffrt_success`，否则返回`ffrt_error`。
+- 初始化成功返回`ffrt_success`，否则返回`ffrt_error`。通常原因为`stack_size`不满足最小栈空间（不同平台存在差异）限制，建议设置4KB以上的栈空间。
 
 描述
 
-- 初始化fiber。
+- 该函数用于初始化纤程，需要传入纤程启动的函数指针和入参，以及运行时使用的栈空间，纤程不管理任何的内存，纤程栈生命周期由调用方管理。
 
 ##### ffrt_fiber_switch
 
@@ -2695,9 +2558,9 @@ FFRT_C_API void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to);
 
 参数
 
-- `from`：当前协程状态。
-- `to`：之前协程状态。
+- `from`：调用该函数的线程会暂停当前任务的执行，并保存当前上下文到`from`指向的纤程。
+- `to`：将`to`指向的纤程恢复到当前上下文，调用该函数的线程将执行`to`对应的任务。
 
 描述
 
-- 切换协程上下文内容。
+- 切换纤程上下文，调用该函数的线程会暂停当前任务的执行，保存当前上下文到`from`指向的纤程，并将`to`指向的纤程恢复到当前上下文，执行`to`对应的任务。

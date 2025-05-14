@@ -47,6 +47,7 @@ public:
     bool headInsert_ = false;
     ffrt_function_header_t* timeoutCb_ = nullptr;
     uint64_t stackSize_ = STACK_SIZE;
+    bool groupRoot_ = false;
 };
 }
 #endif

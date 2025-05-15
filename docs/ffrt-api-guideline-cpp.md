@@ -1793,7 +1793,7 @@ static bool job_partner::this_thread_is_master();
 #include <iostream>
 #include <array>
 #include <atomic>
-#include "ffrt/ffrt.h"
+#include "ffrt/cpp/pattern/job_partner.h"
 
 int main()
 {

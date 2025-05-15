@@ -46,26 +46,6 @@ namespace ffrt {
  * @struct job_partner_attr
  * @brief Defines the job_partner attribute structure.
  *
- * Provides initializing job_partner attribute settings.
- * Line chart description:
- * partner_num
- *     ^
- *     |         
- * max |            ------------------
- *     |           /   
- *     |    ratio /    
- *     |         /     
- *     |        /      
- *     |       /
- *     |      /
- *     +------------------------------> job_num
- *         threshold
- * Key point description:
- * - The vertical axis is partner_num, and the horizontal axis is job_num
- * - Threshold: When job_num is less than threshold, partner_num is 0.
- * - Ratio control: When job_num is between threshold and max*ratio+threshold,
- *   partner_num calculate according to formula "round((job_num - threshold) / ratio)"
- * - Maximum value (max): When job_num is greater than max*ratio+threshold, partner_num is the maximum value.
  * @since 20
  */
 struct job_partner_attr {

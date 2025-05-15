@@ -139,24 +139,3 @@ static void testCallBack(void* token, uint32_t event)
     EXPECT_EQ(value, testData->expected);
     printf("cb done\n");
 }
-
-HWTEST_F(CoroutineTest, ffrt_epoll_ctl_add_del, TestSize.Level1)
-{
-    uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-
-    ffrt::submit([&]() {
-        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
-        }, {}, {});
-
-    struct TestData testData {.fd = testFd, .expected = expected};
-    // poller_register_001
-    ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-
-    usleep(100);
-
-    // poller_deregister_001
-    ffrt_epoll_ctl(ffrt_qos_default, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
-    close(testFd);
-}

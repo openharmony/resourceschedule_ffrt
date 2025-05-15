@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -76,12 +76,14 @@ struct futex {
     {
         FFRT_API_LOGD("futex wait in %p", uaddr);
         int r = call(uaddr, FUTEX_WAIT_PRIVATE, val, nullptr, 0);
+        (void)(r);
         FFRT_API_LOGD("futex wait %p ret %d", uaddr, r);
     }
 
     static inline void wake(int* uaddr, int num)
     {
         int r = call(uaddr, FUTEX_WAKE_PRIVATE, num, nullptr, 0);
+        (void)(r);
         FFRT_API_LOGD("futex wake %p ret %d", uaddr, r);
     }
 

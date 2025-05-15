@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -38,8 +38,8 @@
 #include <functional>
 #include <string>
 #include <atomic>
-#include "common_utils.h"
-#include "../task.h"
+#include "job_utils.h"
+#include "cpp/task.h"
 
 namespace ffrt {
 /**
@@ -47,66 +47,90 @@ namespace ffrt {
  * @brief Defines the job_partner attribute structure.
  *
  * Provides initializing job_partner attribute settings.
+ * Line chart description:
+ * partner_num
+ *     ^
+ *     |         
+ * max |            ------------------
+ *     |           /   
+ *     |    ratio /    
+ *     |         /     
+ *     |        /      
+ *     |       /
+ *     |      /
+ *     +------------------------------> job_num
+ *         threshold
+ * Key point description:
+ * - The vertical axis is partner_num, and the horizontal axis is job_num
+ * - Threshold: When job_num is less than threshold, partner_num is 0.
+ * - Ratio control: When job_num is between threshold and max*ratio+threshold,
+ *   partner_num calculate according to formula "round((job_num - threshold) / ratio)"
+ * - Maximum value (max): When job_num is greater than max*ratio+threshold, partner_num is the maximum value.
  * @since 20
  */
 struct job_partner_attr {
-    /** QoS level */
+    /** Set QoS level */
     inline job_partner_attr& qos(qos q)
     {
         this->qos_ = q;
         return *this;
     }
-    /** Max number of partner workers */
+    /** Set max number of partner workers */
     inline job_partner_attr& max_num(uint64_t v)
     {
         this->max_num_ = v;
         return *this;
     }
-    /** The waterline of jobs */
-    inline job_partner_attr& scale(uint64_t v)
+    /** Set the ratio parameter for controlling the number of workers */
+    inline job_partner_attr& ratio(uint64_t v)
     {
-        this->scale_ = v;
+        this->ratio_ = v;
         return *this;
     }
-    /** The waterline's offset */
-    inline job_partner_attr& offset(uint64_t v)
+    /** Set the threshold parameter for controlling the number of workers */
+    inline job_partner_attr& threshold(uint64_t v)
     {
-        this->offset_ = v;
+        this->threshold_ = v;
         return *this;
     }
-    /** Last partner worker's idle time */
+    /** Set last worker's retry busy time */
     inline job_partner_attr& busy(uint64_t us)
     {
         this->busy_us_ = us;
         return *this;
     }
-    /** The depth of job queue */
+    /** Set the depth of job queue */
     inline job_partner_attr& queue_depth(uint64_t depth)
     {
         this->queue_depth_ = depth;
         return *this;
     }
-
+    /** Get QoS level */
     inline int qos() const
     {
         return this->qos_;
     }
+    /** Get max number of partner workers */
     inline uint64_t max_num() const
     {
         return this->max_num_;
     }
-    inline uint64_t scale() const
+    /** Get the ratio parameter for controlling the number of workers */
+    inline uint64_t ratio() const
     {
-        return this->scale_;
+        return this->ratio_;
     }
-    inline uint64_t offset() const
+    /** Get the threshold parameter for controlling the number of workers */
+    inline uint64_t threshold() const
     {
-        return this->offset_;
+        return this->threshold_;
     }
+    /** Get last worker's retry busy time */
     inline uint64_t busy() const
     {
         return this->busy_us_;
     }
+    /** Get the depth of job queue */
     inline uint64_t queue_depth() const
     {
         return this->queue_depth_;
@@ -115,14 +139,14 @@ struct job_partner_attr {
 private:
     int qos_ = ffrt::qos_user_initiated;
     uint64_t max_num_ = default_partner_max;
-    uint64_t scale_ = default_partner_scale;
-    uint64_t offset_ = default_partner_offset;
+    uint64_t ratio_ = default_partner_ratio;
+    uint64_t threshold_ = default_partner_threshold;
     uint64_t busy_us_ = default_partner_delay_us;
     uint64_t queue_depth_ = default_q_depth;
 
     static constexpr uint64_t default_partner_max = 2;
-    static constexpr uint64_t default_partner_scale = 20;
-    static constexpr uint64_t default_partner_offset = 0;
+    static constexpr uint64_t default_partner_ratio = 20;
+    static constexpr uint64_t default_partner_threshold = 0;
     static constexpr uint64_t default_partner_delay_us = 100;
     static constexpr uint64_t default_q_depth = 1024;
 };
@@ -160,9 +184,9 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
     * @since 20
     */
     template <bool boost = true>
-    inline int submit(std::function<void()>&& job, void* stack, size_t stack_size)
+    inline int submit(std::function<void()>&& suspendable_job, void* stack, size_t stack_size)
     {
-        auto p = job_t::init(std::forward<std::function<void()>>(job), stack, stack_size);
+        auto p = job_t::init(std::forward<std::function<void()>>(suspendable_job), stack, stack_size);
         if (p == nullptr) {
             FFRT_API_LOGE("job initialize failed, maybe invalid stack_size");
             return 1;
@@ -183,9 +207,9 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * @since 20
      */
     template <bool boost = true>
-    inline void submit(std::function<void()>&& job)
+    inline void submit(std::function<void()>&& non_suspendable_job)
     {
-        auto p = new non_suspendable_job_t(std::forward<std::function<void()>>(job), this);
+        auto p = new non_suspendable_job_t(std::forward<std::function<void()>>(non_suspendable_job), this);
         FFRT_API_LOGD("non-suspendable job submit: %p", p);
         submit<boost>(non_suspendable_job_func, p);
     }
@@ -217,16 +241,56 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
             returns <b>0</b> wait success.
      * @since 20
      */
-    template<bool help_partner = true, uint64_t master_delay_us = 100>
-    inline int wait()
+    template<bool help_partner = true, uint64_t busy_wait_us = 100>
+    int wait()
     {
-        return _wait<help_partner, master_delay_us>();
+        if (!this_thread_is_master()) {
+            FFRT_API_LOGE("wait only can be called on master thread");
+            return 1;
+        }
+        FFRT_API_TRACE_SCOPE("%s wait on master", name.c_str());
+        FFRT_API_LOGD("wait on master");
+
+        for (;;) {
+_begin_consume_master_job:
+            int idx = 0;
+            while (master_q.try_run()) {
+                if (((++idx & 0xF) == 0) && partner_num.load(std::memory_order_relaxed) == 0) {
+                    job_partner_task();
+                }
+            }
+
+            auto concurrency = job_num.load();
+            auto wn = partner_num.load(std::memory_order_relaxed);
+            if (wn < attr.max_num() && partner_q.size() > wn * attr.ratio() + attr.threshold()) {
+                job_partner_task();
+            }
+            if (help_partner && partner_q.try_run()) {
+                goto _begin_consume_master_job;
+            }
+            if (concurrency == 0) {
+                break;
+            } else {
+                auto s = clock::now();
+                while (!help_partner && busy_wait_us > 0 && clock::ns(s) < busy_wait_us * 1000) {
+                    if (master_q.try_run()) {
+                        goto _begin_consume_master_job;
+                    }
+                    wfe();
+                }
+                master_wait.wait(0);
+                master_wait = 0;
+            }
+        }
+
+        FFRT_API_LOGD("wait success");
+        return 0;
     }
 
     /**
      * @brief Judge current thread is job_partner master or not.
      *
-     * @return Returns <b>ture</b> is job_partner master;
+     * @return Returns <b>true</b> is job_partner master;
             returns <b>false</b> is not job_partner master.
      * @since 20
      */
@@ -266,12 +330,13 @@ private:
     void submit(func_ptr f, void* p)
     {
         auto concurrency = job_num.fetch_add(1, std::memory_order_relaxed) + 1;
+        (void)(concurrency);
         FFRT_API_TRACE_INT64(concurrency_name.c_str(), concurrency);
         partner_q.template push<1>(f, p);
 
         auto wn = partner_num.load(std::memory_order_relaxed);
-        if (boost || attr.offset()) {
-            if (wn < attr.max_num() && partner_q.size() > wn * attr.scale() + attr.offset()) {
+        if (boost || attr.threshold()) {
+            if (wn < attr.max_num() && partner_q.size() > wn * attr.ratio() + attr.threshold()) {
                 job_partner_task();
             }
         } else {
@@ -307,13 +372,14 @@ private:
     void job_partner_task()
     {
         auto partner_n = partner_num.fetch_add(1) + 1;
+        (void)(partner_n);
         FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
         FFRT_API_TRACE_SCOPE("%s add task", name.c_str());
 
         ref_obj<job_partner<UsageId>>::inc_ref();
         ffrt::submit([this] {
             auto wn = partner_num.load(std::memory_order_relaxed);
-            if (wn < attr.max_num() && partner_q.size() > wn * attr.scale() + attr.offset()) {
+            if (wn < attr.max_num() && partner_q.size() > wn * attr.ratio() + attr.threshold()) {
                 job_partner_task();
             }
 _re_run_partner:
@@ -329,9 +395,11 @@ _re_run_partner:
                 }
             }
             auto partner_n = partner_num.fetch_sub(1) - 1;
+            (void)(partner_n);
             FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
             if (partner_q.try_run()) {
                 auto partner_n = partner_num.fetch_add(1) + 1;
+                (void)(partner_n);
                 FFRT_API_TRACE_INT64(partner_num_name.c_str(), partner_n);
                 goto _re_run_partner;
             }
@@ -380,52 +448,6 @@ _re_run_partner:
             p->local().master_f = nullptr;
         }
         p->local().partner->partner_q.template push<1>(suspendable_job_func, p);
-    }
-
-    template<bool help_partner = true, uint64_t master_delay_us = 100>
-    int _wait()
-    {
-        if (!this_thread_is_master()) {
-            FFRT_API_LOGE("wait only can be called on master thread");
-            return 1;
-        }
-        FFRT_API_TRACE_SCOPE("%s wait on master", name.c_str());
-        FFRT_API_LOGD("wait on master");
-
-        for (;;) {
-_begin_consume_master_job:
-            int idx = 0;
-            while (master_q.try_run()) {
-                if (((++idx & 0xF) == 0) && partner_num.load(std::memory_order_relaxed) == 0) {
-                    job_partner_task();
-                }
-            }
-
-            auto concurrency = job_num.load();
-            auto wn = partner_num.load(std::memory_order_relaxed);
-            if (wn < attr.max_num() && partner_q.size() > wn * attr.scale() + attr.offset()) {
-                job_partner_task();
-            }
-            if (help_partner && partner_q.try_run()) {
-                goto _begin_consume_master_job;
-            }
-            if (concurrency == 0) {
-                break;
-            } else {
-                auto s = clock::now();
-                while (!help_partner && master_delay_us > 0 && clock::ns(s) < master_delay_us * 1000) {
-                    if (master_q.try_run()) {
-                        goto _begin_consume_master_job;
-                    }
-                    wfe();
-                }
-                master_wait.wait(0);
-                master_wait = 0;
-            }
-        }
-
-        FFRT_API_LOGD("wait success");
-        return 0;
     }
 
     std::string name;

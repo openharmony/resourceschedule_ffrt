@@ -12,10 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef FFRT_API_FFRT_H
 #define FFRT_API_FFRT_H
-
 #ifdef __cplusplus
 #include "cpp/task.h"
 #include "cpp/mutex.h"
@@ -24,8 +22,8 @@
 #include "cpp/sleep.h"
 #include "cpp/queue.h"
 #include "c/timer.h"
-#include "c/fiber.h"
 #include "c/loop.h"
+#include "c/fiber.h"
 #else
 #include "c/task.h"
 #include "c/mutex.h"
@@ -37,5 +35,4 @@
 #include "c/loop.h"
 #include "c/fiber.h"
 #endif
-
 #endif

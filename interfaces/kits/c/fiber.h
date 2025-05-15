@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -25,7 +25,7 @@
 /**
  * @file fiber.h
  *
- * @brief Declares the loop interfaces in C.
+ * @brief Declares the fiber interfaces in C.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -54,13 +54,16 @@ FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* ar
 
 
 /**
- * @brief Switch fiber.
+ * @brief Switch fibers.
  *
- * @param from Indicates save current state to "from" fiber.
- * @param to Indicates restore "to" fiber.
+ * Switches the execution context by saving the current context into the fiber specified
+ * by @c from and restoring the context from the fiber specified by @c to.
+ *
+ * @param from Indicates a pointer to the fiber into which the current context will be saved.
+ * @param to Indicates a pointer to the fiber from which the context will be restored.
  * @since 20
  */
 FFRT_C_API void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to);
 
-#endif // FFRT_API_C_LOOP_H
+#endif // FFRT_API_C_FIBER_H
 /** @} */

@@ -2643,21 +2643,19 @@ FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
     }
     ```
 
-## 协程管理
+## 纤程
 
 ### ffrt_fiber_t
 
 #### 声明
 
 ```c
-typedef struct {
-    uintptr_t storage[ffrt_fiber_storage_size];
-} ffrt_fiber_t;
+struct ffrt_fiber_t;
 ```
 
 #### 描述
 
-提供协程切换上下文存储和读取功能。
+`ffrt_fiber_t`为纤程存储实体类型，用于保存和恢复执行上下文。
 
 #### 方法
 
@@ -2666,24 +2664,24 @@ typedef struct {
 声明
 
 ```c
-FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, int stack_size);
+FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, size_t stack_size);
 ```
 
 参数
 
-- `fiber`：fiber指针。
-- `func`：fiber运行时当前方法指针。
-- `arg`：fiber运行时当前方法入参。
-- `stack`：fiber运行时当前方法地址。
-- `stack_size`：fiber运行时当前方法内存大小。
+- `fiber`：纤程指针。
+- `func`：纤程启动时的函数指针入口。
+- `arg`：纤程启动时的函数入参。
+- `stack`：纤程运行时使用的栈空间起始地址。
+- `stack_size`：纤程栈大小，单位为字节。
 
 返回值
 
-- 初始化结果：成功返回`ffrt_success`，否则返回`ffrt_error`。
+- 初始化成功返回`ffrt_success`，否则返回`ffrt_error`。通常原因为`stack_size`不满足最小栈空间（不同平台存在差异）限制，建议设置4KB以上的栈空间。
 
 描述
 
-- 初始化fiber。
+- 该函数用于初始化纤程，需要传入纤程启动的函数指针和入参，以及运行时使用的栈空间，纤程不管理任何的内存，纤程栈生命周期由调用方管理。
 
 ##### ffrt_fiber_switch
 
@@ -2695,9 +2693,9 @@ FFRT_C_API void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to);
 
 参数
 
-- `from`：当前协程状态。
-- `to`：之前协程状态。
+- `from`：调用该函数的线程会暂停当前任务的执行，并保存当前上下文到`from`指向的纤程。
+- `to`：将`to`指向的纤程恢复到当前上下文，调用该函数的线程将执行`to`对应的任务。
 
 描述
 
-- 切换协程上下文内容。
+- 切换纤程上下文，调用该函数的线程会暂停当前任务的执行，保存当前上下文到`from`指向的纤程，并将`to`指向的纤程恢复到当前上下文，执行`to`对应的任务。

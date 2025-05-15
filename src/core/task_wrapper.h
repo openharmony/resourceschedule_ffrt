@@ -55,7 +55,7 @@ static inline ffrt_function_header_t *ffrt_create_function_wrapper(ffrt_function
     f->func = func;
     f->after_func = after_func;
     f->arg = arg;
-    return (ffrt_function_header_t *)f;
+    return reinterpret_cast<ffrt_function_header_t *>(f);
 }
 
 #endif

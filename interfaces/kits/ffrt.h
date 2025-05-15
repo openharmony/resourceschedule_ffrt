@@ -21,9 +21,9 @@
 #include "cpp/condition_variable.h"
 #include "cpp/sleep.h"
 #include "cpp/queue.h"
-#include "cpp/pattern/job_partner.h"
 #include "c/timer.h"
 #include "c/loop.h"
+#include "c/fiber.h"
 #else
 #include "c/task.h"
 #include "c/mutex.h"

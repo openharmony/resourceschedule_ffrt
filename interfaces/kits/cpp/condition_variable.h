@@ -230,9 +230,22 @@ private:
     template <typename Rep, typename Period>
     cv_status _wait_for(std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& dur) noexcept
     {
+        if (dur <= dur.zero()) {
+            return cv_status::timeout;
+        }
+
+        auto now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch());
+        auto dur_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(dur);
+
+        std::chrono::nanoseconds ns;
+        if (now_ns.count() > std::chrono::nanoseconds::max().count() - dur_ns.count()) {
+            ns = std::chrono::nanoseconds::max();
+        } else {
+            ns = now_ns + dur_ns;
+        }
+
         timespec ts;
-        std::chrono::nanoseconds ns = std::chrono::steady_clock::now().time_since_epoch();
-        ns += std::chrono::duration_cast<std::chrono::nanoseconds>(dur);
         ts.tv_sec = std::chrono::duration_cast<std::chrono::seconds>(ns).count();
         ns -= std::chrono::seconds(ts.tv_sec);
         ts.tv_nsec = static_cast<long>(ns.count());

@@ -45,6 +45,10 @@
 #endif
 #endif
 
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
+
 using namespace ffrt;
 
 static inline void CoStackCheck(CoRoutine* co)
@@ -220,6 +224,9 @@ static inline void CoSwitch(CoCtx* from, CoCtx* to)
 
 static inline void CoExit(CoRoutine* co, bool isNormalTask)
 {
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    TraceChainAdapter::Instance().HiTraceChainClearId();
+#endif
 #ifdef FFRT_TASK_LOCAL_ENABLE
     if (isNormalTask) {
         SwitchTsdToThread(co->task);
@@ -428,6 +435,11 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 #ifdef FFRT_TASK_LOCAL_ENABLE
         SwitchTsdToTask(co->task);
 #endif
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+        if (task->traceId_.valid == HITRACE_ID_VALID) {
+            TraceChainAdapter::Instance().HiTraceChainRestoreId(&task->traceId_);
+        }
+#endif
 #ifdef ASAN_MODE
         /* thread to co start */
         __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
@@ -439,6 +451,14 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+        if (co->status.load() != static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
+            task->traceId_ = TraceChainAdapter::Instance().HiTraceChainGetId();
+            if (task->traceId_.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
+        }
+#endif
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
         CoStackCheck(co);
 

@@ -137,6 +137,7 @@ ohos_shared_library("libffrt") {
       "src/dfx/log/ffrt_log.cpp",
       "src/dfx/sysevent/sysevent.cpp",
       "src/dfx/trace/ffrt_trace.cpp",
+      "src/dfx/trace/ffrt_trace_chain.cpp",
       "src/dfx/trace_record/ffrt_trace_record.cpp",
       "src/dfx/watchdog/watchdog_util.cpp",
       "src/dm/dependence_manager.cpp",
@@ -228,6 +229,8 @@ ohos_shared_library("libffrt") {
       defines += [ "FFRT_ASYNC_STACKTRACE" ]
       sources += [ "src/dfx/async_stack/ffrt_async_stack.cpp" ]
     }
+
+    defines += [ "FFRT_ENABLE_HITRACE_CHAIN" ]
 
     output_extension = "so"
     symlink_target_name = [ "libffrt.z.so" ]

@@ -27,6 +27,30 @@
 namespace ffrt {
 static std::atomic_uint64_t s_gid(0);
 static constexpr uint64_t cacheline_size = 64;
+
+typedef struct HiTraceIdStruct {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    uint64_t chainId : 60;
+    uint64_t ver : 3;
+    uint64_t valid : 1;
+
+    uint64_t parentSpanId : 26;
+    uint64_t spanId : 26;
+    uint64_t flags : 12;
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+    uint64_t valid : 1;
+    uint64_t ver : 3;
+    uint64_t chainId : 60;
+
+    uint64_t flags : 12;
+    uint64_t spanId : 26;
+    uint64_t parentSpanId : 26;
+#else
+#error "ERROR: No BIG_LITTLE_ENDIAN defines."
+#endif
+} HiTraceIdStruct;
+constexpr uint64_t HITRACE_ID_VALID = 1;
+
 class TaskBase : private NonCopyable {
 public:
     uintptr_t reserved = 0;
@@ -40,6 +64,8 @@ public:
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
 #endif
+
+    struct HiTraceIdStruct traceId_ = {};
 
     inline int GetQos() const
     {

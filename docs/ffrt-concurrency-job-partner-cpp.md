@@ -41,7 +41,7 @@ Job Partner中定义原先的线程为master线程，并支持动态管理partne
     ````cpp
     #include <array>
     #include <memory>
-    #include "ffrt/cpp/pattern/job_partner.h"
+    #include "ffrt/ffrt.h"
 
     namespace market_system {
         // 批量创建节点，在js线程上被调用
@@ -77,7 +77,7 @@ Job Partner中定义原先的线程为master线程，并支持动态管理partne
 > **说明：**
 >
 > - 如何使用FFRT C++ API详见：[FFRT C++接口三方库使用指导](ffrt-development-guideline.md#using-ffrt-c-api-1)。
-> - 使用FFRT C接口或C++接口时，都可以通过FFRT C++接口三方库简化头文件包含，即使用`#include "ffrt/cpp/pattern/job_partner.h"`头文件包含语句。
+> - 使用FFRT C接口或C++接口时，都可以通过FFRT C++接口三方库简化头文件包含，即使用`#include "ffrt/ffrt.h"`头文件包含语句。
 
 ## 约束限制
 

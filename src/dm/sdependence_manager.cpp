@@ -25,6 +25,10 @@
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
+
 namespace ffrt {
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
@@ -96,6 +100,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
             static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(SCPUEUTask, func_storage)));
         new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
     }
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
+        task->traceId_ = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
+    }
+#endif
     FFRT_SUBMIT_MARKER(task->gid);
 #ifdef FFRT_ASYNC_STACKTRACE
     {

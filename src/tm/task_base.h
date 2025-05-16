@@ -117,7 +117,7 @@ public:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
     std::mutex mutex_; // used in coroute
     std::condition_variable waitCond_; // cv for thread wait
-    CoTaskStatus curStatus = CoTaskStatus::PENDING;
+    std::atomic<CoTaskStatus> curStatus = CoTaskStatus::PENDING;
     CoTaskStatus preStatus = CoTaskStatus::PENDING;
     uint64_t statusTime = TimeStampCntvct();
 

@@ -271,7 +271,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         // dfx watchdog
         SetTimeoutMonitor(task);
         task->SetStatus(CoTaskStatus::EXECUTING);
-        curTask_ = task;
+        SetCurTask(task);
         execTaskId_.store(task->gid);
 
         // run user task

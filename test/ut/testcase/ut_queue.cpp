@@ -735,6 +735,7 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level1)
     handle = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
     ffrt_queue_wait(handle);
     EXPECT_EQ(result, 32);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -749,7 +750,8 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level1)
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
 {
     ffrt_queue_attr_t queue_attr;
-    ffrt_task_handle_t handle;
+    const int numTasks = 19;
+    ffrt_task_handle_t handle[numTasks];
     ffrt_task_attr_t task_attr;
     int result = 0;
     (void)ffrt_task_attr_init(&task_attr);
@@ -765,18 +767,21 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
     };
 
     ffrt_queue_submit(queue_handle, create_function_wrapper(firstFunc, ffrt_function_kind_queue), &task_attr);
-    for (int i = 0; i < 19; i++) {
+    for (int i = 0; i < numTasks; i++) {
         ffrt_queue_submit(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
     }
     usleep(1000000);
     ffrt_queue_submit(queue_handle, create_function_wrapper(firstFunc, ffrt_function_kind_queue), &task_attr);
-    for (int i = 0; i < 19; i++) {
-        handle = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc,
+    for (int i = 0; i < numTasks; i++) {
+        handle[i] = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc,
             ffrt_function_kind_queue), &task_attr);
     }
-    ffrt_queue_wait(handle);
+    ffrt_queue_wait(handle[numTasks -1]);
 
     EXPECT_EQ(result, 40);
+    for (int i = 0; i < numTasks; i++) {
+        ffrt_task_handle_destroy(handle[i]);
+    }
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -818,6 +823,7 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level1)
         ffrt_function_kind_queue), &task_attr1);
     ffrt_queue_wait(handle);
     EXPECT_EQ(result, 2);
+    ffrt_task_handle_destroy(handle);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
 }
@@ -966,6 +972,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level1)
         ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
 
     ffrt_queue_wait(task);
+    ffrt_task_handle_destroy(task);
     ffrt_queue_destroy(queue_handle);
     EXPECT_EQ(x, 1);
 }

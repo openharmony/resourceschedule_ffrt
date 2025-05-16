@@ -47,7 +47,7 @@ typedef struct ffrt_record_task_time {
 class FFRTTraceRecord {
 public:
     static const int TASK_TYPE_NUM = ffrt_queue_task + 1;
-    static bool ffrt_be_used_;
+    static std::atomic<bool> ffrt_be_used_;
     static bool stat_enable_;
     static int g_recordMaxWorkerNumber_[QoS::MaxNum()];
     static ffrt_record_task_counter_t g_recordTaskCounter_[TASK_TYPE_NUM][QoS::MaxNum()];

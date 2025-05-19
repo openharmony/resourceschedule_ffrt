@@ -55,6 +55,14 @@ SCPUWorkerManager::SCPUWorkerManager()
 SCPUWorkerManager::~SCPUWorkerManager()
 {
     tearDown = true;
+
+    // Before destroying this object, we need to make sure that all thread that
+    // might access this object or its members have exited.
+    // e.g. threads like delayed worker might invoke callbacks like
+    // `SCPUWorkerManager::WakeupWorkers`, or `CPUWorkerManager::WorkerRetired`.
+    // If the destruction of this object happens before or in parallel of
+    // these callbacks access to freed memory can occur.
+
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
@@ -78,6 +86,10 @@ SCPUWorkerManager::~SCPUWorkerManager()
             FFRT_SYSEVENT_LOGE("erase qos[%d] threads failed", qos);
         }
     }
+
+    // Wait for delayed worker to terminate
+    // if it is running.
+    DelayedWorker::GetInstance().Terminate();
     delete monitor;
     // We should delay the destruction of this object, until it is
     // threads that call WorkerRetired are done. Otherwise,
@@ -92,6 +104,7 @@ SCPUWorkerManager::~SCPUWorkerManager()
     if (workerNum > 0) {
         FFRT_LOGE("Possible access after free danger, in CPUWorkerManager::WorkerRetired");
     }
+
 }
 
 void SCPUWorkerManager::WorkerRetiredSimplified(WorkerThread* thread)

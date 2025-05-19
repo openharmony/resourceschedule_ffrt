@@ -215,14 +215,23 @@ DelayedWorker::DelayedWorker()
 #endif
 }
 
+void DelayedWorker::Terminate()
+{
+    if (delayedWorker != nullptr && delayedWorker->joinable()) {
+        FFRT_LOGD("Terminating Delayed worker");
+        toExit = true;
+        // Reduce the timeout to zero, in order to
+        // wakeup epoll_wait immediately.
+        itimerspec its = { {0, 0}, {0, 1} };
+        timerfd_settime(timerfd_, 0, &its, nullptr);
+        delayedWorker->join();
+        delayedWorker  = nullptr;
+    }
+}
+
 DelayedWorker::~DelayedWorker()
 {
-    toExit = true;
-    itimerspec its = { {0, 0}, {0, 1} };
-    timerfd_settime(timerfd_, 0, &its, nullptr);
-    if (delayedWorker != nullptr && delayedWorker->joinable()) {
-        delayedWorker->join();
-    }
+    Terminate();
     while (asyncTaskCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(ASYNC_TASK_SLEEP_MS));
     }

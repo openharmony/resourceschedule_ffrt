@@ -74,12 +74,12 @@ public:
     /**
      * @brief Deleted copy constructor to prevent copying of the shared_mutex object.
      */
-    shared_mutex(shared_mutex const&) = delete;
+    shared_mutex(const shared_mutex&) = delete;
 
     /**
      * @brief Deleted copy assignment operator to prevent assignment of the shared_mutex object.
      */
-    void operator=(shared_mutex const&) = delete;
+    void operator=(const shared_mutex&) = delete;
 
     /**
      * @brief Acquires an exclusive lock, blocking other threads.

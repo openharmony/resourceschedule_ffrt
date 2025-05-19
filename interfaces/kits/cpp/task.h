@@ -336,7 +336,7 @@ public:
     }
 
 private:
-    ffrt_task_handle_t p = nullptr;
+    ffrt_task_handle_t p = nullptr; ///< Handle to the underlying task.
 };
 
 /**
@@ -888,11 +888,11 @@ static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size)
 }
 
 /**
+ * @namespace ffrt::this_task
  * @brief Contains utility functions for the currently executing task.
  */
 namespace this_task {
 /**
- * @namespace this_task
  * @brief Updates the QoS level of the currently executing task.
  *
  * @param qos_ The new QoS level.

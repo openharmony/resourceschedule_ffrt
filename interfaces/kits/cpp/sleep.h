@@ -41,7 +41,7 @@
 
 namespace ffrt {
 /**
- * @namespace this_task
+ * @namespace ffrt::this_task
  * @brief Contains utility functions for the currently executing task.
  */
 namespace this_task {
@@ -56,7 +56,6 @@ static inline void yield()
 {
     ffrt_yield();
 }
-
 
 /**
  * @brief Suspends the current task for a specified duration.

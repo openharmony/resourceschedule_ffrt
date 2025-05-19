@@ -45,6 +45,10 @@
 #endif
 #endif
 
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
+
 using namespace ffrt;
 
 static inline void CoStackCheck(CoRoutine* co)
@@ -220,6 +224,9 @@ static inline void CoSwitch(CoCtx* from, CoCtx* to)
 
 static inline void CoExit(CoRoutine* co, bool isNormalTask)
 {
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    TraceChainAdapter::Instance().HiTraceChainClearId();
+#endif
 #ifdef FFRT_TASK_LOCAL_ENABLE
     if (isNormalTask) {
         SwitchTsdToThread(co->task);
@@ -420,11 +427,6 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 #ifdef FFRT_ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
 #endif
-#ifdef ENABLE_HITRACE_CHAIN
-        if (task->traceId_.valid == HITRACE_ID_VALID) {
-            HiTraceChainRestoreId(&task->traceId_);
-        }
-#endif
         FFRT_TASK_BEGIN(task->label, task->gid);
         if (task->type == ffrt_normal_task) {
             task->UpdateState(ffrt::TaskState::RUNNING);
@@ -432,6 +434,11 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
         CoSwitchInTransaction(task);
 #ifdef FFRT_TASK_LOCAL_ENABLE
         SwitchTsdToTask(co->task);
+#endif
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+        if (task->traceId_.valid == HITRACE_ID_VALID) {
+            TraceChainAdapter::Instance().HiTraceChainRestoreId(&task->traceId_);
+        }
 #endif
 #ifdef ASAN_MODE
         /* thread to co start */
@@ -444,10 +451,12 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
-#ifdef ENABLE_HITRACE_CHAIN
-        task->traceId_ = HiTraceChainGetId();
-        if (task->traceId_.valid == HITRACE_ID_VALID) {
-            HiTraceChainClearId();
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+        if (co->status.load() != static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
+            task->traceId_ = TraceChainAdapter::Instance().HiTraceChainGetId();
+            if (task->traceId_.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
         }
 #endif
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()

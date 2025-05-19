@@ -25,6 +25,10 @@
 #include "eventhandler_adapter_queue.h"
 #include "sched/scheduler.h"
 
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
+
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
@@ -118,9 +122,9 @@ void QueueHandler::Submit(QueueTask* task)
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
-#ifdef ENABLE_HITRACE_CHAIN
-    if (HiTraceChainGetId().valid == HITRACE_ID_VALID) {
-        task->traceId_ = HiTraceChainCreateSpan();
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
+        task->traceId_ = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
     }
 #endif
     // if qos not specified, qos of the queue is inherited by task

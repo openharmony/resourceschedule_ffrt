@@ -27,6 +27,8 @@ ffrt_ut_base_cflags_cc = [
   "-fcxx-exceptions",
   "-std=c++11",
   "-DFFRT_PERF_EVENT_ENABLE",
+  "-DFFRT_WORKER_MONITOR",
+  "-DFFRT_BBOX_ENABLE",
 ]
 
 ffrt_ut_base_deps = [ "../..:libffrt" ]
@@ -154,27 +156,6 @@ ohos_unittest("task_ctx_test") {
   part_name = "ffrt"
 }
 
-ohos_unittest("cpu_monitor_test") {
-  module_out_path = module_output_path
-  cflags_cc = []
-
-  configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
-
-  cflags_cc += ffrt_ut_base_cflags_cc
-
-  sources = [ "cpu_monitor_test.cpp" ]
-  deps = ffrt_ut_base_deps
-  external_deps = ffrt_ut_base_external_deps
-
-  if (is_standard_system) {
-    public_external_deps = gtest_public_external_deps
-  }
-
-  install_enable = true
-  part_name = "ffrt"
-}
-
 ohos_unittest("execute_unit_test") {
   module_out_path = module_output_path
   cflags_cc = []
@@ -208,30 +189,6 @@ ohos_unittest("ut_coroutine") {
   sources = [ "testcase/ut_coroutine.cpp" ]
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
-
-  if (is_standard_system) {
-    public_external_deps = gtest_public_external_deps
-  }
-
-  install_enable = true
-  part_name = "ffrt"
-}
-
-ohos_unittest("ut_cpumonitor") {
-  module_out_path = module_output_path
-  cflags_cc = []
-
-  configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
-
-  cflags_cc += ffrt_ut_base_cflags_cc
-  cflags_cc += [ "-DWITH_NO_MOCKER" ]
-
-  sources = [ "testcase/ut_cpumonitor.cpp" ]
-  deps = ffrt_ut_base_deps
-  external_deps = []
-  external_deps += ffrt_ut_base_external_deps
-  external_deps += [ "googletest:gmock" ]
 
   if (is_standard_system) {
     public_external_deps = gtest_public_external_deps
@@ -764,7 +721,6 @@ group("ffrt_unittest_ffrt") {
   deps = []
   if (!is_asan) {
     deps += [
-      ":cpu_monitor_test",
       ":deadline_test",
       ":execute_unit_test",
       ":frame_interval_test",
@@ -778,7 +734,6 @@ group("ffrt_unittest_ffrt") {
       ":ut_core",
       ":ut_coroutine",
       ":ut_cpu_boost",
-      ":ut_cpumonitor",
       ":ut_csync",
       ":ut_deadline",
       ":ut_dependency",
@@ -794,7 +749,6 @@ group("ffrt_unittest_ffrt") {
       ":ut_queue_dump",
       ":ut_rtg",
       ":ut_scheduler",
-      ":ut_thread",
     ]
   }
 }

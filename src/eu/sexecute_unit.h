@@ -17,6 +17,7 @@
 #define FFRT_SEXECUTE_UNIT_HPP
 
 #include "execute_unit.h"
+#include "util/ffrt_facade.h"
 
 namespace ffrt {
 class SExecuteUnit : public ExecuteUnit {
@@ -26,9 +27,65 @@ public:
         static SExecuteUnit ins;
         return ins;
     }
+
+    void WorkerInit() override {}
+
+    void WorkerPrepare(CPUWorker* thread) override
+    {
+        WorkerJoinTg(thread->GetQos(), thread->Id());
+    }
+
+    WorkerAction WorkerIdleAction(CPUWorker* thread) override;
+
+    void WakeupWorkers(const QoS& qos) override;
+
+    void IntoSleep(const QoS& qos) override
+    {
+        CPUWorkerGroup& group = workerGroup[qos];
+        group.lock.lock();
+        group.sleepingNum++;
+        group.executingNum--;
+        group.lock.unlock();
+    }
+
+    void IntoPollWait(const QoS& qos) override
+    {
+        CPUWorkerGroup& group = workerGroup[qos];
+        std::lock_guard lk(group.lock);
+        group.pollWaitFlag = true;
+    }
+
+    /* strategy options for handling task notify events */
+    static void HandleTaskNotifyDefault(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType);
+    static void HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType);
+    static void HandleTaskNotifyUltraConservative(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType);
 private:
-    WorkerManager* InitManager() override;
     SExecuteUnit();
+    ~SExecuteUnit() override;
+
+    void PokeAdd(const QoS& qos) override
+    {
+        handleTaskNotify(this, qos, TaskNotifyType::TASK_ADDED);
+    }
+    void PokePick(const QoS& qos) override
+    {
+        handleTaskNotify(this, qos, TaskNotifyType::TASK_PICKED);
+    }
+    void PokePoller(const QoS& qos) override
+    {
+        if (FFRTFacade::GetSchedInstance()->GetScheduler(qos).stealWorkers.load(std::memory_order_relaxed) == 0) {
+            handleTaskNotify(this, qos, TaskNotifyType::TASK_LOCAL);
+        }
+    }
+    void PokeEscape(const QoS& qos, bool isPollWait) override
+    {
+        handleTaskNotify(this, qos, TaskNotifyType::TASK_ESCAPED);
+    }
+
+    void PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
+    void ExecuteEscape(int qos) override;
+
+    std::function<void (SExecuteUnit*, const QoS&, TaskNotifyType)> handleTaskNotify { nullptr };
 };
 } // namespace ffrt
 #endif

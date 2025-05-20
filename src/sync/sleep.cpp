@@ -32,31 +32,25 @@
 
 namespace ffrt {
 namespace this_task {
-CPUEUTask* ExecuteCtxTask()
-{
-    auto ctx = ExecuteCtx::Cur();
-    return ctx->task;
-}
-
 void SleepUntilImpl(const TimePoint& to)
 {
-    auto task = ExecuteCtxTask();
+    auto task = ExecuteCtx::Cur()->task;
     if (ThreadWaitMode(task)) {
         if (FFRT_UNLIKELY(LegacyMode(task))) {
-            task->blockType = BlockType::BLOCK_THREAD;
+            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
         }
         std::this_thread::sleep_until(to);
         if (BlockThread(task)) {
-            task->blockType = BlockType::BLOCK_COROUTINE;
+            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
         }
         return;
     }
     // be careful about local-var use-after-free here
     static std::function<void(WaitEntry*)> cb ([](WaitEntry* we) {
-        CoRoutineFactory::CoWakeFunc(we->task, CoWakeType::NO_TIMEOUT_WAKE);
+        CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(we->task), CoWakeType::NO_TIMEOUT_WAKE);
     });
-    FFRT_BLOCK_TRACER(ExecuteCtxTask()->gid, slp);
-    CoWait([&](CPUEUTask* task) -> bool { return DelayedWakeup(to, &task->fq_we, cb); });
+    FFRT_BLOCK_TRACER(ExecuteCtx::Cur()->task->gid, slp);
+    CoWait([&](CoTask* task) -> bool { return DelayedWakeup(to, &task->fq_we, cb); });
 }
 }
 } // namespace ffrt
@@ -68,19 +62,19 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 void ffrt_yield()
 {
-    auto curTask = ffrt::this_task::ExecuteCtxTask();
+    auto curTask = ffrt::ExecuteCtx::Cur()->task;
     if (ThreadWaitMode(curTask)) {
         if (FFRT_UNLIKELY(LegacyMode(curTask))) {
-            curTask->blockType = BlockType::BLOCK_THREAD;
+            static_cast<ffrt::CoTask*>(curTask)->blockType = BlockType::BLOCK_THREAD;
         }
         std::this_thread::yield();
         if (BlockThread(curTask)) {
-            curTask->blockType = BlockType::BLOCK_COROUTINE;
+            static_cast<ffrt::CoTask*>(curTask)->blockType = BlockType::BLOCK_COROUTINE;
         }
         return;
     }
     FFRT_BLOCK_TRACER(curTask->gid, yld);
-    CoWait([](ffrt::CPUEUTask* task) -> bool {
+    CoWait([](ffrt::CoTask* task) -> bool {
         CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
         return true;
     });

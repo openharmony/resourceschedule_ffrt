@@ -23,10 +23,8 @@
 #include <cstdint>
 #include "c/executor_task.h"
 #include "ffrt_inner.h"
-#include "eu/cpu_monitor.h"
 #include "eu/cpu_worker.h"
 #include "eu/co_routine.h"
-#include "eu/scpuworker_manager.h"
 #include "sched/scheduler.h"
 #include "../common.h"
 #include "tm/scpu_task.h"
@@ -138,4 +136,35 @@ static void testCallBack(void* token, uint32_t event)
     EXPECT_EQ(n, sizeof(value));
     EXPECT_EQ(value, testData->expected);
     printf("cb done\n");
+}
+
+/*
+* 测试用例名称：ffrt_get_current_coroutine_stack_success
+* 测试用例描述：ffrt_get_current_coroutine_stack获取当前协程栈成功
+* 预置条件    ：提交ffrt任务
+* 操作步骤    ：在ffrt任务中调用ffrt_get_current_coroutine_stack接口
+* 预期结果    ：获取协程栈地址和大小成功
+*/
+HWTEST_F(CoroutineTest, ffrt_get_current_coroutine_stack_success, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()>&& OnePlusFunc = [&]() {
+        void* stackAddr = nullptr;
+        size_t size = 0;
+        bool ret = ffrt_get_current_coroutine_stack(&stackAddr, &size);
+        EXPECT_EQ(ret, true);
+        EXPECT_FALSE(stackAddr == nullptr);
+        EXPECT_NE(size, 0);
+    };
+    ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
+        ffrt::create_function_wrapper(OnePlusFunc, ffrt_function_kind_queue), nullptr);
+    const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, task}};
+    ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
+    ffrt_wait_deps(&wait);
+    ffrt_task_handle_destroy(task);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
 }

@@ -20,7 +20,6 @@
 #include <functional>
 #include <thread>
 #include "cpp/sleep.h"
-#include "eu/cpu_monitor.h"
 #include "sched/execute_ctx.h"
 namespace ffrt {
 using TimePoint = std::chrono::steady_clock::time_point;
@@ -41,7 +40,6 @@ class DelayedWorker {
     int timerfd_{-1};
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     int monitorfd_{-1};
-    CPUMonitor* monitor = nullptr;
 #endif
     std::atomic<int> asyncTaskCnt_ {0};
     int HandleWork(void);

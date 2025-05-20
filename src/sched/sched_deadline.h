@@ -17,13 +17,13 @@
 #define FFRT_SCHED_DEADLINE_HPP
 
 #include "sched/scheduler.h"
-#include "tm/cpu_task.h"
+#include "tm/task_base.h"
 
 namespace ffrt {
 namespace TaskLoadTracking {
-void Begin(CPUEUTask* task);
-void End(CPUEUTask* task);
-uint64_t GetLoad(CPUEUTask* task);
+void Begin(CoTask* task);
+void End(CoTask* task);
+uint64_t GetLoad(CoTask* task);
 } // namespace TaskLoadTracking
 } // namespace ffrt
 #endif

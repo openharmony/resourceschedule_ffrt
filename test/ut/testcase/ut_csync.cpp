@@ -167,8 +167,8 @@ HWTEST_F(SyncTest, mutex_lock_with_BlockThread, TestSize.Level1)
     int x = 0;
     ffrt::mutex lock;
     ffrt::submit([&]() {
-        ffrt::this_task::sleep_for(10ms);
         ffrt_this_task_set_legacy_mode(true);
+        ffrt::this_task::sleep_for(10ms);
         lock.lock();
         ffrt::submit([&]() {
             EXPECT_EQ(x, 1);
@@ -216,26 +216,26 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
     ffrt::submit([&]() {
         ffrt_this_task_set_legacy_mode(true);
         ffrt_this_task_set_legacy_mode(true);
-        ffrt::CPUEUTask* ctx = ffrt::ExecuteCtx::Cur()->task;
+        ffrt::CPUEUTask* ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
         bool result = ffrt::LegacyMode(ctx);
         EXPECT_TRUE(result);
         ffrt::submit([&]() {
             ffrt_this_task_set_legacy_mode(true);
-            ffrt::CPUEUTask* ctx = ffrt::ExecuteCtx::Cur()->task;
+            ffrt::CPUEUTask* ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
             bool result = ffrt::LegacyMode(ctx);
             EXPECT_TRUE(result);
             x++;
             EXPECT_EQ(x, 1);
             ffrt_this_task_set_legacy_mode(false);
             ffrt_this_task_set_legacy_mode(false);
-            ctx = ffrt::ExecuteCtx::Cur()->task;
+            ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
             int legacycount = ctx->legacyCountNum;
             EXPECT_EQ(legacycount, -1);
             }, {}, {}, ffrt::task_attr().qos(3));
         ffrt::wait();
         ffrt_this_task_set_legacy_mode(false);
         ffrt_this_task_set_legacy_mode(false);
-        ctx = ffrt::ExecuteCtx::Cur()->task;
+        ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
         int legacycount = ctx->legacyCountNum;
         EXPECT_EQ(legacycount, 0);
         }, {}, {}, ffrt::task_attr().qos(3));
@@ -494,6 +494,84 @@ HWTEST_F(SyncTest, conditionTestDataRace, TestSize.Level1)
     }
 
     th1.join();
+}
+
+HWTEST_F(SyncTest, sharedMutexTestInit, TestSize.Level1)
+{
+    // init when attr is not nullptr,
+    int x = 0;
+    ffrt::shared_mutex smut;
+    ffrt_rwlockattr_t attr;
+
+    attr.storage = 1;
+    x = ffrt_rwlock_init(&smut, &attr);
+    EXPECT_EQ(x, ffrt_error_inval);
+}
+
+/*
+* 测试用例名称：sharedMutexTest
+* 测试用例描述：legacy任务调用shared_mutex加解锁接口
+* 预置条件    ：无
+* 操作步骤    ：1.初始化shared_mutex
+               2.提交任务
+               3.调用shared_mutex加解锁接口
+               4.设置legacy模式后，调用shared_mutex加解锁接口
+* 预期结果    ：任务按预期执行
+*/
+HWTEST_F(SyncTest, mutexTest, TestSize.Level1)
+{
+    ffrt::mutex mut;
+
+    int taskCount = 10;
+
+    auto block = [&]() {
+        mut.lock();
+        usleep(10000);
+        mut.unlock();
+        ffrt_this_task_set_legacy_mode(true);
+        mut.lock();
+        usleep(10000);
+        mut.unlock();
+    };
+
+    for (int i = 0; i < taskCount; i++) {
+        ffrt::submit(block);
+    }
+
+    ffrt::wait();
+}
+
+/*
+* 测试用例名称：sharedMutexTest
+* 测试用例描述：legacy任务调用shared_mutex加解锁接口
+* 预置条件    ：无
+* 操作步骤    ：1.初始化shared_mutex
+               2.提交任务
+               3.调用shared_mutex加解锁接口
+               4.设置legacy模式后，调用shared_mutex加解锁接口
+* 预期结果    ：任务按预期执行
+*/
+HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level1)
+{
+    ffrt::shared_mutex smut;
+
+    int taskCount = 10;
+
+    auto block = [&]() {
+        smut.lock();
+        usleep(10000);
+        smut.unlock();
+        ffrt_this_task_set_legacy_mode(true);
+        smut.lock();
+        usleep(10000);
+        smut.unlock();
+    };
+
+    for (int i = 0; i < taskCount; i++) {
+        ffrt::submit(block);
+    }
+
+    ffrt::wait();
 }
 
 static void NotifyOneTest(ffrt::mutex& mtx, ffrt::condition_variable& cv)
@@ -1064,62 +1142,44 @@ HWTEST_F(SyncTest, thread_with_ref, TestSize.Level1)
     t.join();
 }
 
-HWTEST_F(SyncTest, future_wait, TestSize.Level1)
+/*
+* 测试用例名称：ffrt_sleep_test
+* 测试用例描述：测试ffrt_usleep接口
+* 预置条件    ：无
+* 操作步骤    ：1.提交两个普通任务，一个设置为legacy任务
+               2.分别调用ffrt_usleep接口
+* 预期结果    ：任务调用成功
+*/
+HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level1)
 {
-    ffrt::packaged_task<int()> task([] { return 7; });
-    ffrt::future<int> f1 = task.get_future();
-    ffrt::thread t(std::move(task));
+    ffrt::submit([]() {
+        ffrt_this_task_set_legacy_mode(true);
+        ffrt::this_task::sleep_for(30ms);
+    });
 
-    ffrt::future<int> f2 = ffrt::async([] { return 8; });
-
-    ffrt::promise<int> p;
-    ffrt::promise<int> p1;
-    p1 = std::move(p);
-    ffrt::future<int> f3 = p1.get_future();
-    ffrt::future<int> f4;
-    f4 = std::move(f3);
-    ffrt::thread([&p1] { p1.set_value(9); }).detach();
-
-    std::cout << "Waiting..." << std::flush;
-    EXPECT_TRUE(f1.valid());
-    EXPECT_TRUE(f2.valid());
-    EXPECT_TRUE(f4.valid());
-    f1.wait();
-    f2.wait();
-    f4.wait();
-    std::cout << "Done!\nResults are: "
-              << f1.get() << ' ' << f2.get() << ' ' << f4.get() << '\n';
-    t.join();
+    ffrt::submit([]() {
+        ffrt::this_task::sleep_for(30ms);
+    });
+    ffrt::wait();
 }
 
-HWTEST_F(SyncTest, future_wait_void, TestSize.Level1)
+/*
+* 测试用例名称：ffrt_yied_test
+* 测试用例描述：测试ffrt_yied_test接口
+* 预置条件    ：无
+* 操作步骤    ：1.提交两个普通任务，一个设置为legacy任务
+               2.分别调用ffrt_yield接口
+* 预期结果    ：任务调用成功
+*/
+HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level1)
 {
-    vector<int> result(3, 0);
-    ffrt::packaged_task<void()> task([&] { result[0] = 1; });
-    ffrt::future<void> f1 = task.get_future();
-    ffrt::thread t(std::move(task));
-    ffrt::thread t1;
-    t1 = std::move(t);
+    ffrt::submit([]() {
+        ffrt_this_task_set_legacy_mode(true);
+        ffrt::this_task::yield();
+    });
 
-    ffrt::future<void> f2 = ffrt::async([&] { result[1] = 2; });
-
-    ffrt::promise<void> p;
-    ffrt::future<void> f3 = p.get_future();
-    ffrt::promise<void> p1;
-    ffrt::future<void> f4;
-    p1 = std::move(p);
-    f4 = std::move(f3);
-    ffrt::thread([&] { result[2] = 3; p1.set_value(); }).detach();
-
-    EXPECT_TRUE(f1.valid());
-    EXPECT_TRUE(f2.valid());
-    EXPECT_TRUE(f4.valid());
-    f1.wait();
-    f2.wait();
-    f4.wait();
-    f1.get();
-    EXPECT_EQ(result[0], 1);
-    EXPECT_EQ(result[1], 2);
-    EXPECT_EQ(result[2], 3);
-    t1.join();
+    ffrt::submit([]() {
+        ffrt::this_task::yield();
+    });
+    ffrt::wait();
 }

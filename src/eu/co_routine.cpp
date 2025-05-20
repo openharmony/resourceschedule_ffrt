@@ -59,7 +59,7 @@ static inline void CoStackCheck(CoRoutine* co)
         if (ExecuteCtx::Cur()->task != nullptr) {
             auto curTask = ExecuteCtx::Cur()->task;
             FFRT_SYSEVENT_LOGE("task name[%s], gid[%lu], submit_tid[%d]",
-                curTask->label.c_str(), curTask->gid, curTask->fromTid);
+                curTask->GetLabel().c_str(), curTask->gid, curTask->fromTid);
         }
         abort();
     }
@@ -98,13 +98,13 @@ CoRoutineEnv* GetCoEnv()
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
 namespace {
-bool IsTaskLocalEnable(ffrt::CPUEUTask* task)
+bool IsTaskLocalEnable(ffrt::CoTask* task)
 {
-    if ((task->type != ffrt_normal_task) || (!task->taskLocal)) {
+    if ((task->type != ffrt_normal_task) || (!static_cast<CPUEUTask*>(task)->taskLocal)) {
         return false;
     }
 
-    if (task->tsd == nullptr) {
+    if (static_cast<CPUEUTask*>(task)->tsd == nullptr) {
         FFRT_SYSEVENT_LOGE("taskLocal enabled but task tsd invalid");
         return false;
     }
@@ -132,17 +132,19 @@ void SwitchTsdAddrToTask(ffrt::CPUEUTask* task)
     pthread_settsd(task->tsd);
 }
 
-void SwitchTsdToTask(ffrt::CPUEUTask* task)
+void SwitchTsdToTask(ffrt::CoTask* task)
 {
     if (!IsTaskLocalEnable(task)) {
         return;
     }
 
-    InitWorkerTsdValueToTask(task->tsd);
+    CPUEUTask* cpuTask = static_cast<CPUEUTask*>(task);
 
-    SwitchTsdAddrToTask(task);
+    InitWorkerTsdValueToTask(cpuTask->tsd);
 
-    task->runningTid.store(pthread_self());
+    SwitchTsdAddrToTask(cpuTask);
+
+    cpuTask->runningTid.store(pthread_self());
     FFRT_LOGD("switch tsd to task Success");
 }
 
@@ -177,19 +179,21 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
     }
 }
 
-void SwitchTsdToThread(ffrt::CPUEUTask* task)
+void SwitchTsdToThread(ffrt::CoTask* task)
 {
     if (!IsTaskLocalEnable(task)) {
         return;
     }
 
-    if (!SwitchTsdAddrToThread(task)) {
+    CPUEUTask* cpuTask = static_cast<CPUEUTask*>(task);
+
+    if (!SwitchTsdAddrToThread(cpuTask)) {
         return;
     }
 
-    UpdateWorkerTsdValueToThread(task->tsd);
+    UpdateWorkerTsdValueToThread(cpuTask->tsd);
 
-    task->runningTid.store(0);
+    cpuTask->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
 }
 
@@ -213,7 +217,7 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
         task->tsd = nullptr;
         task->taskLocal = false;
     }
-    FFRT_LOGD("tsd deconstruct done, task[%lu], name[%s]", task->gid, task->label.c_str());
+    FFRT_LOGD("tsd deconstruct done, task[%lu], name[%s]", task->gid, task->GetLabel().c_str());
 }
 #endif
 
@@ -330,20 +334,20 @@ void CoWorkerExit(void)
     CoStackFree();
 }
 
-static inline void BindNewCoRoutione(ffrt::CPUEUTask* task)
+static inline void BindNewCoRoutione(ffrt::CoTask* task)
 {
     task->coRoutine = GetCoEnv()->runningCo;
     task->coRoutine->task = task;
     task->coRoutine->thEnv = GetCoEnv();
 }
 
-static inline void UnbindCoRoutione(ffrt::CPUEUTask* task)
+static inline void UnbindCoRoutione(ffrt::CoTask* task)
 {
     task->coRoutine->task = nullptr;
     task->coRoutine = nullptr;
 }
 
-static inline int CoAlloc(ffrt::CPUEUTask* task)
+static inline int CoAlloc(ffrt::CoTask* task)
 {
     if (task->coRoutine) { // use allocated coroutine stack
         if (GetCoEnv()->runningCo) { // free cached stack if it exist
@@ -364,7 +368,7 @@ static inline int CoAlloc(ffrt::CPUEUTask* task)
 }
 
 // call CoCreat when task creat
-static inline int CoCreat(ffrt::CPUEUTask* task)
+static inline int CoCreat(ffrt::CoTask* task)
 {
     CoAlloc(task);
     if (GetCoEnv()->runningCo == nullptr) { // retry once if alloc failed
@@ -382,21 +386,21 @@ static inline int CoCreat(ffrt::CPUEUTask* task)
     return 0;
 }
 
-static inline void CoSwitchInTransaction(ffrt::CPUEUTask* task)
+static inline void CoSwitchInTransaction(ffrt::CoTask* task)
 {
     if (task->cpuBoostCtxId >= 0) {
         CpuBoostRestore(task->cpuBoostCtxId);
     }
 }
 
-static inline void CoSwitchOutTransaction(ffrt::CPUEUTask* task)
+static inline void CoSwitchOutTransaction(ffrt::CoTask* task)
 {
     if (task->cpuBoostCtxId >= 0) {
         CpuBoostSave(task->cpuBoostCtxId);
     }
 }
 
-static inline bool CoBboxPreCheck(ffrt::CPUEUTask* task)
+static inline bool CoBboxPreCheck(ffrt::CoTask* task)
 {
     if (task->coRoutine) {
         int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
@@ -410,7 +414,7 @@ static inline bool CoBboxPreCheck(ffrt::CPUEUTask* task)
 }
 
 // called by thread work
-int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
+int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
 {
     if (!CoBboxPreCheck(task)) {
         return 0;
@@ -428,9 +432,6 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
         FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
-        if (task->type == ffrt_normal_task) {
-            task->UpdateState(ffrt::TaskState::RUNNING);
-        }
         CoSwitchInTransaction(task);
 #ifdef FFRT_TASK_LOCAL_ENABLE
         SwitchTsdToTask(co->task);
@@ -444,6 +445,7 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
         /* thread to co start */
         __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
 #endif
+        task->status = TaskStatus::EXECUTING;
         /* thread switch to co */
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
 #ifdef ASAN_MODE
@@ -464,7 +466,7 @@ int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv)
 
         // 1. coroutine task done, exit normally, need to exec next coroutine task
         if (co->isTaskDone) {
-            task->UpdateState(ffrt::TaskState::EXITED);
+            ffrt::FFRTFacade::GetDMInstance().onTaskDone(static_cast<CPUEUTask*>(task));
             co->isTaskDone = false;
             return 0;
         }
@@ -495,9 +497,7 @@ void CoYield(void)
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
     GetCoEnv()->runningCo = nullptr;
     CoSwitchOutTransaction(co->task);
-    if (co->task->type == ffrt_normal_task) {
-        co->task->UpdateState(ffrt::TaskState::BLOCKED);
-    }
+    co->task->status = ffrt::TaskStatus::COROUTINE_BLOCK;
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     SwitchTsdToThread(co->task);
@@ -526,13 +526,13 @@ void CoYield(void)
 #endif
 }
 
-void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred)
+void CoWait(const std::function<bool(ffrt::CoTask*)>& pred)
 {
     GetCoEnv()->pending = &pred;
     CoYield();
 }
 
-void CoWake(ffrt::CPUEUTask* task, CoWakeType type)
+void CoWake(ffrt::CoTask* task, CoWakeType type)
 {
     if (task == nullptr) {
         FFRT_SYSEVENT_LOGE("task is nullptr");
@@ -543,7 +543,7 @@ void CoWake(ffrt::CPUEUTask* task, CoWakeType type)
     FFRT_WAKE_TRACER(task->gid);
     switch (task->type) {
         case ffrt_normal_task: {
-            task->UpdateState(ffrt::TaskState::READY);
+            task->Ready();
             break;
         }
         case ffrt_queue_task: {
@@ -553,7 +553,7 @@ void CoWake(ffrt::CPUEUTask* task, CoWakeType type)
             break;
         }
         default: {
-            FFRT_LOGE("CoWake unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->label.c_str());
+            FFRT_LOGE("CoWake unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->GetLabel().c_str());
             break;
         }
     }

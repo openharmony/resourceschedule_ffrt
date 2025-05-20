@@ -23,7 +23,7 @@
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {
-class CPUEUTask;
+class TaskBase;
 struct TaskWithNode;
 using TaskListNode = ListNode;
 using TaskList = List<TaskWithNode, TaskListNode>;
@@ -53,7 +53,7 @@ struct TimeoutStatus {
 
 struct TaskWithNode : public TaskListNode {
     TaskWithNode();
-    CPUEUTask* task = nullptr;
+    TaskBase* task = nullptr;
     std::mutex lk;
     std::condition_variable cv;
 };
@@ -90,8 +90,8 @@ private:
 
 private:
     void WeNotifyProc(WaitUntilEntry* we);
-    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, CPUEUTask* task);
-    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, bool legacyMode, CPUEUTask* task);
+    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, TaskBase* task);
+    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, bool legacyMode, TaskBase* task);
     void Notify(bool one) noexcept;
 
     inline bool empty() const

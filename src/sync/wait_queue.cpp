@@ -28,11 +28,11 @@ TaskWithNode::TaskWithNode()
     task = ctx->task;
 }
 
-void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, CPUEUTask* task)
+void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, TaskBase* task)
 {
     wqlock.lock();
     if (legacyMode) {
-        task->blockType = BlockType::BLOCK_THREAD;
+        static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
         wn->task = task;
     }
     push_back(wn);
@@ -47,13 +47,13 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode
 }
 
 bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
-    const TimePoint& tp, bool legacyMode, CPUEUTask* task)
+    const TimePoint& tp, bool legacyMode, TaskBase* task)
 {
     bool ret = false;
     wqlock.lock();
     wn->status.store(we_status::INIT, std::memory_order_release);
     if (legacyMode) {
-        task->blockType = BlockType::BLOCK_THREAD;
+        static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
         wn->task = task;
     }
     push_back(wn);
@@ -82,15 +82,16 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
 void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 {
     ExecuteCtx* ctx = ExecuteCtx::Cur();
-    CPUEUTask* task = ctx->task;
+    TaskBase* task = ctx->task;
     if (ThreadWaitMode(task)) {
         ThreadWait(&ctx->wn, lk, LegacyMode(task), task);
         return;
     }
-    task->wue = new (std::nothrow) WaitUntilEntry(task);
-    FFRT_COND_RETURN_VOID(task->wue == nullptr, "new WaitUntilEntry failed");
-    FFRT_BLOCK_TRACER(task->gid, cnd);
-    CoWait([&](CPUEUTask* task) -> bool {
+    CoTask* coTask = static_cast<CoTask*>(task);
+    coTask->wue = new (std::nothrow) WaitUntilEntry(task);
+    FFRT_COND_RETURN_VOID(coTask->wue == nullptr, "new WaitUntilEntry failed");
+    FFRT_BLOCK_TRACER(coTask->gid, cnd);
+    CoWait([&](CoTask* task) -> bool {
         wqlock.lock();
         push_back(task->wue);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
@@ -98,8 +99,8 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
         // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
         return true;
     });
-    delete task->wue;
-    task->wue = nullptr;
+    delete coTask->wue;
+    coTask->wue = nullptr;
     lk->lock();
 }
 
@@ -125,18 +126,19 @@ bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
 int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexcept
 {
     ExecuteCtx* ctx = ExecuteCtx::Cur();
-    CPUEUTask* task = ctx->task;
+    TaskBase* task = ctx->task;
     int ret = ffrt_success;
     if (ThreadWaitMode(task)) {
         ret = ThreadWaitUntil(&ctx->wn, lk, tp, LegacyMode(task), task) ? ffrt_error_timedout : ffrt_success;
         return ret;
     }
-    task->wue = new WaitUntilEntry(task);
-    task->wue->hasWaitTime = true;
-    task->wue->tp = tp;
-    task->wue->cb = ([&](WaitEntry* we) {
+    CoTask* coTask = static_cast<CoTask*>(task);
+    coTask->wue = new WaitUntilEntry(task);
+    coTask->wue->hasWaitTime = true;
+    coTask->wue->tp = tp;
+    coTask->wue->cb = ([&](WaitEntry* we) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
-        ffrt::CPUEUTask* task = wue->task;
+        ffrt::TaskBase* task = wue->task;
         wqlock.lock();
         if (!WeTimeoutProc(this, wue)) {
             wqlock.unlock();
@@ -144,10 +146,10 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
         }
         wqlock.unlock();
         FFRT_LOGD("task(%d) time is up", task->gid);
-        CoRoutineFactory::CoWakeFunc(task, CoWakeType::TIMEOUT_WAKE);
+        CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::TIMEOUT_WAKE);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
-    CoWait([&](CPUEUTask* task) -> bool {
+    CoWait([&](CoTask* task) -> bool {
         WaitUntilEntry* we = task->wue;
         wqlock.lock();
         push_back(we);
@@ -168,9 +170,9 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
             return false;
         }
     });
-    ret = task->coWakeType == CoWakeType::NO_TIMEOUT_WAKE ? ffrt_success : ffrt_error_timedout;
-    task->wue = nullptr;
-    task->coWakeType = CoWakeType::NO_TIMEOUT_WAKE;
+    ret = coTask->coWakeType == CoWakeType::NO_TIMEOUT_WAKE ? ffrt_success : ffrt_error_timedout;
+    coTask->wue = nullptr;
+    coTask->coWakeType = CoWakeType::NO_TIMEOUT_WAKE;
     lk->lock();
     return ret;
 }
@@ -214,12 +216,12 @@ void WaitQueue::Notify(bool one) noexcept
             break;
         }
         bool isEmpty = empty();
-        CPUEUTask* task = we->task;
+        TaskBase* task = we->task;
         if (ThreadNotifyMode(task) || we->weType == 2) {
             std::unique_lock<std::mutex> lk(we->wl);
             we->status.store(we_status::NOTIFING, std::memory_order_release);
             if (BlockThread(task)) {
-                task->blockType = BlockType::BLOCK_COROUTINE;
+                static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;
             }
             wqlock.unlock();
@@ -227,7 +229,7 @@ void WaitQueue::Notify(bool one) noexcept
         } else {
             WeNotifyProc(we);
             wqlock.unlock();
-            CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
+            CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
         }
         if (isEmpty || one) {
             break;

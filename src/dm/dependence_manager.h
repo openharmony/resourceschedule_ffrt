@@ -94,17 +94,14 @@ public:
     void onSubmitIO(const ffrt_io_callable_t &work, const task_attr_private *attr);
 
     virtual void onWait() = 0;
-#ifdef QOS_DEPENDENCY
-    virtual void onWait(const ffrt_deps_t* deps, int64_t deadline = -1) = 0;
-#else
+
     virtual void onWait(const ffrt_deps_t* deps) = 0;
-#endif
 
     virtual int onExecResults(ffrt_task_handle_t handle) = 0;
 
     virtual void onTaskDone(CPUEUTask* task) = 0;
 
-    virtual int onSkip(ffrt_task_handle_t handle) = 0;
+    virtual int onSkip(ffrt_task_handle_t handle);
 
     static inline CPUEUTask* Root()
     {

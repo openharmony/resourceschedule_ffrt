@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include <dlfcn.h>
-#include "sched/task_scheduler.h"
+#include "sched/stask_scheduler.h"
 #include "eu/co_routine.h"
 #include "eu/execute_unit.h"
 #include "eu/sexecute_unit.h"
@@ -24,6 +24,7 @@
 #include "util/slab.h"
 #include "tm/task_factory.h"
 #include "tm/io_task.h"
+#include "tm/uv_task.h"
 #include "tm/queue_task.h"
 #include "util/slab.h"
 #include "qos.h"
@@ -65,15 +66,30 @@ void RegistCommonTaskFactory()
         ffrt::SimpleAllocator<ffrt::IOTask>::HasBeenFreed,
         ffrt::SimpleAllocator<ffrt::IOTask>::LockMem,
         ffrt::SimpleAllocator<ffrt::IOTask>::UnlockMem);
+
+    ffrt::TaskFactory<ffrt::UVTask>::RegistCb(
+        [] () -> ffrt::UVTask* {
+            return ffrt::SimpleAllocator<ffrt::UVTask>::AllocMem();
+        },
+        [] (ffrt::UVTask* task) {
+            ffrt::SimpleAllocator<ffrt::UVTask>::FreeMem(task);
+        },
+        [] (ffrt::UVTask* task) {
+            ffrt::SimpleAllocator<ffrt::UVTask>::FreeMem_(task);
+        },
+        ffrt::SimpleAllocator<ffrt::UVTask>::getUnfreedMem,
+        [] (ffrt::UVTask* task) {
+            return ffrt::SimpleAllocator<ffrt::UVTask>::HasBeenFreed(task);
+        },
+        ffrt::SimpleAllocator<ffrt::UVTask>::LockMem,
+        ffrt::SimpleAllocator<ffrt::UVTask>::UnlockMem);
 }
 
 __attribute__((constructor)) static void ffrt_init()
 {
     RegistCommonTaskFactory();
     ffrt::TaskFactory<ffrt::CPUEUTask>::RegistCb(
-        [] () -> ffrt::CPUEUTask* {
-            return static_cast<ffrt::CPUEUTask*>(ffrt::SimpleAllocator<ffrt::SCPUEUTask>::AllocMem());
-        },
+        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::AllocMem,
         [] (ffrt::CPUEUTask* task) {
             ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
         },
@@ -88,13 +104,12 @@ __attribute__((constructor)) static void ffrt_init()
         ffrt::SimpleAllocator<ffrt::SCPUEUTask>::LockMem,
         ffrt::SimpleAllocator<ffrt::SCPUEUTask>::UnlockMem);
     ffrt::SchedulerFactory::RegistCb(
-        [] () -> ffrt::TaskScheduler* { return new ffrt::TaskScheduler{new ffrt::FIFOQueue()}; },
+        [] () -> ffrt::TaskScheduler* { return new ffrt::STaskScheduler(); },
         [] (ffrt::TaskScheduler* schd) { delete schd; });
     CoRoutineFactory::RegistCb(
-        [] (ffrt::CPUEUTask* task, CoWakeType type) -> void {CoWake(task, type);});
+        [] (ffrt::CoTask* task, CoWakeType type) -> void {CoWake(task, type);});
     ffrt::DependenceManager::RegistInsCb(ffrt::SDependenceManager::Instance);
     ffrt::ExecuteUnit::RegistInsCb(ffrt::SExecuteUnit::Instance);
-    ffrt::FFRTScheduler::RegistInsCb(ffrt::SFFRTScheduler::Instance);
     ffrt::SetFuncQosMap(ffrt::QoSMap);
     ffrt::SetFuncQosMax(ffrt::QoSMax);
 }

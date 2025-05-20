@@ -17,7 +17,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
 #include "sched/execute_ctx.h"
-#include "tm/cpu_task.h"
+#include "tm/task_base.h"
 #include "c/ffrt_cpu_boost.h"
 
 #ifdef __cplusplus
@@ -33,7 +33,8 @@ int ffrt_cpu_boost_start(int ctx_id)
             FFRT_SYSEVENT_LOGW("ExecuteCtx::Cur() is nullptr, save ctxId failed");
             return ret;
         }
-        ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
+        ffrt::CoTask* curTask = ffrt::IsCoTask(ffrt::ExecuteCtx::Cur()->task) ?
+            static_cast<ffrt::CoTask*>(ffrt::ExecuteCtx::Cur()->task) : nullptr;
         if (curTask != nullptr && curTask->cpuBoostCtxId < 0) {
             curTask->cpuBoostCtxId = ctx_id;
         }
@@ -50,7 +51,8 @@ int ffrt_cpu_boost_end(int ctx_id)
             FFRT_SYSEVENT_LOGW("ExecuteCtx::Cur() is nullptr, clear ctxId failed");
             return ret;
         }
-        ffrt::CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
+        ffrt::CoTask* curTask = ffrt::IsCoTask(ffrt::ExecuteCtx::Cur()->task) ?
+            static_cast<ffrt::CoTask*>(ffrt::ExecuteCtx::Cur()->task) : nullptr;
         if (curTask != nullptr && curTask->cpuBoostCtxId == ctx_id) {
             curTask->cpuBoostCtxId = -1;
         }

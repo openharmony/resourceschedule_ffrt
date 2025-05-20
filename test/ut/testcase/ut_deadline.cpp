@@ -125,7 +125,7 @@ HWTEST_F(DeadlineTest, interval_exception3_test, TestSize.Level1)
 
 HWTEST_F(DeadlineTest, sched_deadline_test, TestSize.Level1)
 {
-    CPUEUTask *ctx = ExecuteCtx::Cur()->task;
+    auto ctx = static_cast<CoTask*>(ExecuteCtx::Cur()->task);
     TaskLoadTracking::Begin(ctx);
     TaskLoadTracking::End(ctx);
 

@@ -17,9 +17,12 @@
 
 #include <atomic>
 #include <regex>
-#include "cpu_task.h"
 #include "queue/queue_attr_private.h"
 #include "queue/queue_handler.h"
+#include "tm/task_factory.h"
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
 
 #define GetQueueTaskByFuncStorageOffset(f)                                                                     \
     (reinterpret_cast<QueueTask*>(static_cast<uintptr_t>(static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - \
@@ -31,17 +34,11 @@ public:
     explicit QueueTask(QueueHandler* handler, const task_attr_private* attr = nullptr, bool insertHead = false);
     ~QueueTask() override;
 
-    void Destroy();
     void Wait();
     void Notify();
-    void Execute() override;
+    void Destroy();
 
     uint32_t GetQueueId() const;
-
-    inline void SetQos(int qos)
-    {
-        this->qos_ = qos;
-    }
 
     inline uint64_t GetDelay() const
     {
@@ -119,11 +116,44 @@ public:
     {
         return isWeStart_;
     }
+    alignas(cacheline_size) uint8_t func_storage[ffrt_auto_managed_function_storage_size];
 
-    uint8_t func_storage[ffrt_auto_managed_function_storage_size];
+public:
+    void Submit() override;
+    void Ready() override;
+
+    // dequeue means task has been pulled out from it's queue
+    inline void Dequeue()
+    {
+        this->status = TaskStatus::DEQUEUED;
+    }
+
+    // pop means task has been poped from scheduler
+    void Pop() override
+    {
+        SetStatus(CoTaskStatus::POPED);
+        status = TaskStatus::POPED;
+    }
+
+    void Execute() override;
+    void Finish() override;
+
+    void Cancel() override
+    {
+        FFRT_LOGD("cancel task[%llu] %s succ", gid, label.c_str());
+        SetStatus(CoTaskStatus::CANCELED);
+        Notify();
+        Destroy();
+    }
+
+    void FreeMem() override;
+
+    void SetQos(const QoS& newQos) override
+    {
+        qos_ = newQos;
+    }
 
 private:
-    void FreeMem() override;
     uint64_t uptime_;
     QueueHandler* handler_;
     bool insertHead_ = false;

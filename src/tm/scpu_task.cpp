@@ -36,9 +36,8 @@ static inline const char* DependenceStr(Dependence d)
     return m[static_cast<uint64_t>(d)];
 }
 
-SCPUEUTask::SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
-    const QoS &qos)
-    : CPUEUTask(attr, parent, id, qos)
+SCPUEUTask::SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id)
+    : CPUEUTask(attr, parent, id)
 {
 }
 
@@ -47,8 +46,7 @@ void SCPUEUTask::DecDepRef()
     if (--dataRefCnt.submitDep == 0) {
         FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
         FFRT_WAKE_TRACER(this->gid);
-        FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
-        this->UpdateState(TaskState::READY);
+        this->Ready();
     }
 }
 
@@ -70,8 +68,8 @@ void SCPUEUTask::DecChildRef()
         }
     }
 
-    if (!parent->IsRoot() && parent->status == TaskStatus::RELEASED && parent->childRefCnt == 0) {
-        FFRT_LOGD("free CPUEUTask:%s gid=%lu", parent->label.c_str(), parent->gid);
+    if (!parent->IsRoot() && parent->status == TaskStatus::WAIT_RELEASING && parent->childRefCnt == 0) {
+        FFRT_LOGD("free CPUEUTask:%s gid=%lu", parent->GetLabel().c_str(), parent->gid);
         lck.unlock();
         parent->DecDeleteRef();
         return;
@@ -88,7 +86,7 @@ void SCPUEUTask::DecChildRef()
         parent->waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(parent->gid);
-        parent->UpdateState(TaskState::READY);
+        parent->Ready();
     }
 }
 
@@ -113,27 +111,25 @@ void SCPUEUTask::DecWaitDataRef()
         waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(this->gid);
-        FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(GetQos());
-        this->UpdateState(TaskState::READY);
+        this->Ready();
     }
 }
 
-void SCPUEUTask::RecycleTask()
+void SCPUEUTask::Finish()
 {
     std::unique_lock<decltype(mutex_)> lck(mutex_);
     if (childRefCnt == 0) {
         FFRT_LOGD("free SCPUEUTask:%s gid=%lu", label.c_str(), gid);
         lck.unlock();
         DecDeleteRef();
-        return;
     } else {
-        status = TaskStatus::RELEASED;
+        status = TaskStatus::WAIT_RELEASING;
     }
 }
 
 void SCPUEUTask::MultiDependenceAdd(Dependence depType)
 {
-    FFRT_LOGD("task(%s) ADD_DEPENDENCE(%s)", this->label.c_str(), DependenceStr(depType));
+    FFRT_LOGD("task(%s) ADD_DENPENCE(%s)", this->GetLabel().c_str(), DependenceStr(depType));
     dependenceStatus = depType;
 }
 } /* namespace ffrt */

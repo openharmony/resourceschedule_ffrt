@@ -301,13 +301,13 @@ void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandler)
 API_ATTRIBUTE((visibility("default")))
 void* ffrt_get_current_queue_eventhandler(void)
 {
-    CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
+    TaskBase* curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr || curTask->type != ffrt_queue_task) {
         FFRT_LOGW("Current task is nullptr or is not a serial task.");
         return nullptr;
     }
 
-    QueueHandler* handler = reinterpret_cast<QueueTask*>(curTask)->GetHandler();
+    QueueHandler* handler = static_cast<QueueTask*>(curTask)->GetHandler();
     FFRT_COND_DO_ERR((handler == nullptr), return nullptr, "task handler is nullptr");
     return handler->GetEventHandler();
 }

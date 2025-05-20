@@ -38,9 +38,27 @@ void CPUEUTask::SetQos(const QoS& newQos)
         } else {
             this->qos_ = QoS();
         }
-        FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos_());
     } else {
         this->qos_ = newQos;
+    }
+    FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos_());
+}
+
+void CPUEUTask::Submit()
+{
+    status = TaskStatus::SUBMITTED;
+    FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos_, &createTime, &fromTid);
+}
+
+void CPUEUTask::Ready()
+{
+    int qos = qos_();
+    bool notifyWorker = notifyWorker_;
+    this->status = TaskStatus::READY;
+    FFRTFacade::GetSchedInstance()->GetScheduler(this->qos_).PushTaskGlobal(this);
+    FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
+    if (notifyWorker) {
+        FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(qos);
     }
 }
 
@@ -72,27 +90,35 @@ void CPUEUTask::Execute()
 {
     FFRT_LOGD("Execute task[%lu], name[%s]", gid, label.c_str());
     FFRTTraceRecord::TaskExecute(&(this->executeTime));
-    UpdateState(TaskState::RUNNING);
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
+        status = TaskStatus::EXECUTING;
         f->exec(f);
     }
     FFRT_TASKDONE_MARKER(gid);
+    // skipped task can not be marked as finish
+    if (status == TaskStatus::EXECUTING) {
+        status = TaskStatus::FINISH;
+    }
     if (!USE_COROUTINE) {
-        this->UpdateState(ffrt::TaskState::EXITED);
+        FFRTFacade::GetDMInstance().onTaskDone(this);
     } else {
         this->coRoutine->isTaskDone = true;
+        /*
+            if we call onTaskDone inside coroutine, the memory of task may be recycled.
+            1.recycled memory can be used by another submit
+            2.task->coRoutine will be recyled and used by another task
+            In this scenario, CoStart will crash.
+            Because it needs to use task and it's coRoutine to perform some action after task finished.
+        */
     }
 }
 
-CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id,
-    const QoS &qos)
-    : parent(parent), rank(id)
+CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id)
+    : CoTask(ffrt_normal_task, attr), parent(parent), rank(id)
 {
-    this->qos_ = qos;
-    fq_we.task = this;
     if (attr && !attr->name_.empty()) {
         label = attr->name_;
     } else if (IsRoot()) {
@@ -103,72 +129,21 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         label = parent->label + "." + std::to_string(rank);
     }
 
-    taskLocal = false;
-    tsd = nullptr;
-    if (attr && attr->taskLocal_) {
-        tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
-        if (unlikely(tsd == nullptr)) {
-            FFRT_SYSEVENT_LOGE("task local malloc tsd failed");
-            return;
-        }
-        memset_s(tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));
-        taskLocal = attr->taskLocal_;
-    }
     if (attr) {
-        stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
-    }
-}
+        notifyWorker_ = attr->notifyWorker_;
 
-void ExecuteUVTask(TaskBase* task, QoS qos)
-{
-    ffrt_executor_task_func func = FuncManager::Instance()->getFunc(ffrt_uv_task);
-    if (func == nullptr) {
-        FFRT_SYSEVENT_LOGE("Static func is nullptr");
-        return;
-    }
-    ffrt_executor_task_t* uv_work = reinterpret_cast<ffrt_executor_task_t *>(task);
-    FFRTTraceRecord::TaskExecute<ffrt_uv_task>(qos);
-    FFRT_EXECUTOR_TASK_BEGIN(uv_work);
-    func(uv_work, qos);
-    FFRT_EXECUTOR_TASK_END();
-    FFRT_EXECUTOR_TASK_FINISH_MARKER(uv_work); // task finish marker for uv task
-    FFRTTraceRecord::TaskDone<ffrt_uv_task>(qos);
-}
-
-void ExecuteTask(TaskBase* task, QoS qos)
-{
-    bool isCoTask = IsCoTask(task);
-
-    // set current task info to context
-    ExecuteCtx* ctx = ExecuteCtx::Cur();
-    if (isCoTask) {
-        ctx->task = reinterpret_cast<CPUEUTask *>(task);
-        ctx->lastGid_ = task->gid;
-    } else {
-        ctx->exec_task = task; // for ffrt_wake_coroutine
-    }
-
-    // run Task with coroutine
-    if (USE_COROUTINE && isCoTask) {
-        while (CoStart(static_cast<CPUEUTask*>(task), GetCoEnv()) != 0) {
-            usleep(CO_CREATE_RETRY_INTERVAL);
+        if (attr->qos_ == qos_inherit && !this->IsRoot()) {
+            qos_ = parent->qos_;
         }
-    } else {
-    // run task on thread
-#ifdef FFRT_ASYNC_STACKTRACE
-        if (isCoTask) {
-            FFRTSetStackId(task->stackId);
-        }
-#endif
-        if (task->type < ffrt_invalid_task && task->type != ffrt_uv_task) {
-            task->Execute();
-        } else {
-            ExecuteUVTask(task, qos);
+        if (attr->taskLocal_) {
+            tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
+            if (unlikely(tsd == nullptr)) {
+                FFRT_SYSEVENT_LOGE("task local malloc tsd failed");
+                return;
+            }
+            memset_s(tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));
+            taskLocal = true;
         }
     }
-
-    // reset task info in context
-    ctx->task = nullptr;
-    ctx->exec_task = nullptr;
 }
 } /* namespace ffrt */

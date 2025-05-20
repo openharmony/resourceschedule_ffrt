@@ -30,13 +30,13 @@ static std::unordered_map<const char*, uint64_t> taskLoad;
 static __thread uint64_t start;
 
 // Called at eu/co_routine.cpp CoStart(task).
-void Begin(CPUEUTask* task)
+void Begin(CoTask* task)
 {
     (void)task;
     start = perf_mmap_read_current();
 }
 
-void End(CPUEUTask* task)
+void End(CoTask* task)
 {
     uint64_t load = perf_mmap_read_current() - start;
 
@@ -44,21 +44,21 @@ void End(CPUEUTask* task)
 }
 
 // Get historical load based on its identity. 0 on the first time.
-uint64_t GetLoad(CPUEUTask* task)
+uint64_t GetLoad(CoTask* task)
 {
     return taskLoad[task->identity];
 }
 
 #else // !PER_TASK_LOAD_TRACKING
-void Begin(CPUEUTask* task)
+void Begin(CoTask* task)
 {
     (void)task;
 }
-void End(CPUEUTask* task)
+void End(CoTask* task)
 {
     (void)task;
 }
-uint64_t GetLoad(CPUEUTask* task)
+uint64_t GetLoad(CoTask* task)
 {
     (void)task;
     return 0;

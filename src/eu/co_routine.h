@@ -40,6 +40,7 @@ extern "C" void __asan_handle_no_return();
 #endif
 
 namespace ffrt {
+class CoTask;
 class CPUEUTask;
 struct WaitEntry;
 } // namespace ffrt
@@ -77,7 +78,7 @@ struct CoRoutineEnv {
     // if task switch out, set to null. if task complete, be used as co cache for next task.
     CoRoutine* runningCo = nullptr;
     CoCtx schCtx;
-    const std::function<bool(ffrt::CPUEUTask*)>* pending = nullptr;
+    const std::function<bool(ffrt::CoTask*)>* pending = nullptr;
 };
 
 struct StackMem {
@@ -89,7 +90,7 @@ struct StackMem {
 struct CoRoutine {
     std::atomic_int status;
     CoRoutineEnv* thEnv;
-    ffrt::CPUEUTask* task;
+    ffrt::CoTask* task;
 #ifdef ASAN_MODE
     void *asanFakeStack = nullptr;  // not finished, need further verification
     const void *asanFiberAddr = nullptr;
@@ -124,11 +125,11 @@ public:
 
 class CoRoutineFactory {
 public:
-    using CowakeCB = std::function<void (ffrt::CPUEUTask*, CoWakeType)>;
+    using CowakeCB = std::function<void (ffrt::CoTask*, CoWakeType)>;
 
     static CoRoutineFactory &Instance();
 
-    static void CoWakeFunc(ffrt::CPUEUTask* task, CoWakeType type)
+    static void CoWakeFunc(ffrt::CoTask* task, CoWakeType type)
     {
         return Instance().cowake_(task, type);
     }
@@ -144,11 +145,11 @@ private:
 void CoStackFree(void);
 void CoWorkerExit(void);
 
-int CoStart(ffrt::CPUEUTask* task, CoRoutineEnv* coRoutineEnv);
+int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv);
 void CoYield(void);
 
-void CoWait(const std::function<bool(ffrt::CPUEUTask*)>& pred);
-void CoWake(ffrt::CPUEUTask* task, CoWakeType type);
+void CoWait(const std::function<bool(ffrt::CoTask*)>& pred);
+void CoWake(ffrt::CoTask* task, CoWakeType type);
 
 CoRoutineEnv* GetCoEnv(void);
 

@@ -25,120 +25,79 @@
 #include "eu/execute_unit.h"
 #include "sync/sync.h"
 #include "sched/task_scheduler.h"
-#include "eu/worker_thread.h"
 #include "tm/cpu_task.h"
 #include "util/cb_func.h"
 #include "dfx/bbox/bbox.h"
 
 namespace ffrt {
-class FFRTScheduler {
+class Scheduler {
 public:
-    FFRTScheduler(const FFRTScheduler&) = delete;
-    FFRTScheduler& operator=(const FFRTScheduler&) = delete;
-    virtual ~FFRTScheduler()
+    Scheduler(const Scheduler&) = delete;
+    Scheduler& operator=(const Scheduler&) = delete;
+    virtual ~Scheduler()
     {
+        tearDown = true;
         for (int i = 0; i < QoS::Max(); i++) {
-            SchedulerFactory::Recycle(fifoQue[i]);
+            SchedulerFactory::Recycle(taskSchedulers[i]);
         }
     }
 
     // 获取调度器的单例
-    static FFRTScheduler* Instance();
-    static void RegistInsCb(SingleInsCB<FFRTScheduler>::Instance &&cb);
+    static Scheduler* Instance();
 
-#ifdef QOS_DEPENDENCY
-    void onWait(const std::vector<VersionCtx*>& waitDatas, int64_t deadline)
+    inline TaskScheduler& GetScheduler(const QoS& qos)
     {
-        for (auto data : waitDatas) {
-            if (!data->childVersions.empty()) {
-                auto waitVersion = data->childVersions.back();
-                if (waitVersion->status != DataStatus::IDLE) { // 数据已经被生产出来
-                    continue;
-                }
-                FFRT_LOGD("wait task=%p deadline=%ld", waitVersion->myProducer, deadline);
-                updateTask(waitVersion->myProducer, deadline);
-                UpdateVersion(waitVersion->preVersion, deadline);
-            }
+        return *taskSchedulers[static_cast<unsigned short>(qos)];
+    }
+
+    void PushTask(const QoS& qos, TaskBase* task)
+    {
+        if (!tearDown && task) {
+            taskSchedulers[qos]->PushTask(task);
         }
     }
-#endif
 
-    TaskScheduler& GetScheduler(const QoS& qos)
+    TaskBase* PopTask(const QoS& qos)
     {
-        return *fifoQue[static_cast<unsigned short>(qos)];
+        if (tearDown) {
+            return nullptr;
+        }
+        return taskSchedulers[qos]->PopTask();
     }
 
-    virtual bool InsertNode(LinkedList* node, const QoS qos);
-
-    virtual bool RemoveNode(LinkedList* node, const QoS qos);
-
-    virtual bool WakeupTask(CPUEUTask* task);
-
-protected:
-    FFRTScheduler()
+    inline uint64_t GetTotalTaskCnt(const QoS& qos)
     {
-        TaskState::RegisterOps(TaskState::READY, ([this] (CPUEUTask* task) { return this->WakeupTask(task); }));
+        return taskSchedulers[static_cast<unsigned short>(qos)]->GetTotalTaskCnt();
+    }
+
+    inline uint64_t GetGlobalTaskCnt(const QoS& qos)
+    {
+        return taskSchedulers[static_cast<unsigned short>(qos)]->GetGlobalTaskCnt();
+    }
+
+    inline const TaskSchedMode& GetTaskSchedMode(const QoS& qos)
+    {
+        return taskSchedulers[static_cast<unsigned short>(qos)]->GetTaskSchedMode();
+    }
+
+    bool CancelUVWork(ffrt_executor_task_t* uvWork, int qos);
+
+    inline SpmcQueue* GetWorkerLocalQueue(const QoS& qos, pid_t pid)
+    {
+        return taskSchedulers[static_cast<unsigned short>(qos)]->GetWorkerLocalQueue(pid);
+    }
+
+    std::atomic_bool tearDown { false };
+
+private:
+    std::array<TaskScheduler*, QoS::MaxNum()> taskSchedulers;
+    Scheduler()
+    {
         for (int i = 0; i < QoS::Max(); i++) {
-            fifoQue[i] = SchedulerFactory::Alloc();
-            fifoQue[i]->qos = i;
+            taskSchedulers[i] = SchedulerFactory::Alloc();
+            QoS qos = QoS(i);
+            GetScheduler(i).SetQos(qos);
         }
-    }
-
-private:
-    std::array<TaskScheduler*, QoS::MaxNum()> fifoQue;
-#ifdef QOS_DEPENDENCY
-    void ResetDeadline(CPUEUTask* task, int64_t deadline)
-    {
-        auto it = std::find_if(readyTasks.begin(), readyTasks.end(), [task](auto& p) { return p.second == task; });
-        if (it == readyTasks.end()) {
-            return;
-        }
-        auto node = readyTasks.extract(it);
-        task->qos_.deadline.relative += deadline - task->qos_.deadline.absolute;
-        task->qos_.deadline.absolute = deadline;
-        readyTasks.insert(std::move(node));
-    }
-    void updateTask(CPUEUTask* task, int64_t deadline)
-    {
-        if (task == nullptr) {
-            return;
-        }
-        ResetDeadline(task, deadline);
-        onWait(task->ins, deadline);
-        for (auto data : task->outs) {
-            UpdateVersion(data, deadline);
-        }
-        UpdateChildTask(task, deadline);
-    }
-    void UpdateChildTask(CPUEUTask* task, int64_t deadline)
-    {
-        (void)task;
-        (void)deadline;
-    }
-    void UpdateVersion(VersionCtx* data, int64_t deadline)
-    {
-        if (data == nullptr) {
-            return;
-        }
-        updateTask(data->myProducer, deadline);
-        for (auto task : data->consumers) {
-            updateTask(task, deadline);
-        }
-        UpdateVersion(data->preVersion, deadline);
-    }
-#endif
-};
-
-class SFFRTScheduler : public FFRTScheduler {
-public:
-    static FFRTScheduler& Instance()
-    {
-        static SFFRTScheduler ins;
-        return ins;
-    }
-private:
-    SFFRTScheduler()
-    {
     }
 };
 } // namespace ffrt

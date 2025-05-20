@@ -21,7 +21,7 @@
 namespace ffrt {
 class SCPUEUTask : public CPUEUTask {
 public:
-    SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id, const QoS &qos = QoS());
+    SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id);
     std::unordered_set<VersionCtx*> ins;
     std::unordered_set<VersionCtx*> outs;
 
@@ -52,13 +52,14 @@ public:
     }
     void DecWaitDataRef();
     void MultiDependenceAdd(Dependence depType);
-    void RecycleTask() override;
+
+public:
+    void Finish() override;
 };
 
 class RootTask : public SCPUEUTask {
 public:
-    RootTask(const task_attr_private* attr, SCPUEUTask* parent, const uint64_t& id,
-        const QoS& qos = QoS()) : SCPUEUTask(attr, parent, id, qos)
+    RootTask(const task_attr_private* attr, SCPUEUTask* parent, const uint64_t& id) : SCPUEUTask(attr, parent, id)
     {
     }
 public:

@@ -18,23 +18,52 @@
 #include "task_base.h"
 #include "core/task_io.h"
 #include "core/task_attr_private.h"
+#include "tm/task_factory.h"
+#include "util/ffrt_facade.h"
 
 namespace ffrt {
 class IOTask : public TaskBase {
 public:
     IOTask(const ffrt_io_callable_t& work, const task_attr_private* attr);
 
-    ffrt_io_callable_t work;
-    ExecTaskStatus status = ExecTaskStatus::ET_PENDING;
+    void Submit() override {}
+
+    void Ready() override
+    {
+        QoS taskQos = qos_;
+        FFRTTraceRecord::TaskSubmit<ffrt_io_task>(taskQos);
+        this->status = TaskStatus::READY;
+        FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
+        FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(taskQos);
+        FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_LOCAL>(taskQos);
+    }
+
+    void Pop() override
+    {
+        status = TaskStatus::POPED;
+    }
+
+    void Execute() override;
+
+    void Finish() override {}
+    void Cancel() override {}
+
+    void FreeMem() override
+    {
+        TaskFactory<IOTask>::Free(this);
+    }
+
+    void SetQos(const QoS& newQos) override
+    {
+        qos_ = newQos;
+    }
 
     std::string GetLabel() const override
     {
         return "io-task";
     }
-
 private:
-    void FreeMem() override;
-    void Execute() override;
+    ffrt_io_callable_t work;
 };
 } /* namespace ffrt */
 #endif

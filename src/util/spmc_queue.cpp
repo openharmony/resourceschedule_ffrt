@@ -16,7 +16,6 @@
 #include "spmc_queue.h"
 #include <cstdlib>
 #include "dfx/log/ffrt_log_api.h"
-
 namespace ffrt {
 SpmcQueue::~SpmcQueue()
 {
@@ -89,7 +88,7 @@ int SpmcQueue::PushTail(void* object)
     return -1;
 }
 
-unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum, int qos, PushFunc func)
+unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int elementNum, PushFunc func)
 {
     if (elementNum == 0) {
         return 0;
@@ -104,7 +103,7 @@ unsigned int SpmcQueue::PopHeadToAnotherQueue(SpmcQueue& dstQueue, unsigned int 
 
         int ret = dstQueue.PushTail(element);
         if (ret != 0) {
-            func(element, qos);
+            func(element);
             return pushCount;
         }
 

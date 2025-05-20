@@ -30,7 +30,7 @@
 #include "queue/queue_monitor.h"
 #include "queue/traffic_record.h"
 #include "tm/task_factory.h"
-#include "eu/cpuworker_manager.h"
+#include "eu/execute_unit.h"
 #include "util/time_format.h"
 #ifdef OHOS_STANDARD_SYSTEM
 #include "dfx/bbox/fault_logger_fd_manager.h"
@@ -46,7 +46,7 @@ constexpr static unsigned int WAIT_PID_SLEEP_MS = 2;
 constexpr static unsigned int WAIT_PID_MAX_RETRIES = 1000;
 static std::atomic<unsigned int> g_taskPendingCounter(0);
 static std::atomic<unsigned int> g_taskWakeCounter(0);
-static CPUEUTask* g_cur_task;
+static TaskBase* g_cur_task;
 static unsigned int g_cur_pid;
 static unsigned int g_cur_tid;
 static const char* g_cur_signame;
@@ -98,7 +98,7 @@ static inline void SaveCurrent()
     auto t = g_cur_task;
     if (t) {
         if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
-            FFRT_BBOX_LOG("task id %lu, qos %d, name %s", t->gid, t->qos_(), t->label.c_str());
+            FFRT_BBOX_LOG("task id %lu, qos %d, name %s", t->gid, t->qos_(), t->GetLabel().c_str());
         }
     }
 }
@@ -121,25 +121,26 @@ static inline void SaveTaskCounter()
 }
 #endif
 
-static inline void SaveLocalFifoStatus(int qos, WorkerThread* thread)
+static inline void SaveLocalFifoStatus(int qos, CPUWorker* worker)
 {
-    CPUWorker* worker = reinterpret_cast<CPUWorker*>(thread);
-    CPUEUTask* t = reinterpret_cast<CPUEUTask*>(worker->localFifo.PopHead());
+    auto sched = FFRTFacade::GetSchedInstance();
+    if (sched->GetTaskSchedMode(qos) == TaskSchedMode::DEFAULT_TASK_SCHED_MODE) { return; }
+    CPUEUTask* t = reinterpret_cast<CPUEUTask*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
     while (t != nullptr) {
         if (t->type == ffrt_normal_task || t->type == ffrt_queue_task) {
             FFRT_BBOX_LOG("qos %d: worker tid %d is localFifo task id %lu name %s",
-                qos, worker->Id(), t->gid, t->label.c_str());
+                qos, worker->Id(), t->gid, t->GetLabel().c_str());
         }
-        t = reinterpret_cast<CPUEUTask*>(worker->localFifo.PopHead());
+        t = reinterpret_cast<CPUEUTask*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
     }
 }
 
 static inline void SaveWorkerStatus()
 {
-    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        for (auto& thread : workerGroup[i].threads) {
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        for (auto& thread : workerGroup.threads) {
             SaveLocalFifoStatus(i, thread.first);
             TaskBase* t = thread.first->curTask;
             if (t == nullptr) {
@@ -180,7 +181,8 @@ static inline void SaveNormalTaskStatus()
         size_t idx = 1;
         for (auto t : tmp) {
             if (t->type == ffrt_normal_task) {
-                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx, tmp.size(), t->gid, t->qos_(), t->label.c_str());
+                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
+                    tmp.size(), t->gid, t->qos_(), t->GetLabel().c_str());
                 idx++;
             }
             if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH)) &&
@@ -199,14 +201,14 @@ static inline void SaveNormalTaskStatus()
     };
 
     apply("blocked by synchronization primitive(mutex etc)", [](CPUEUTask* t) {
-        return (t->state == TaskState::RUNNING) && t->coRoutine &&
+        return (t->status == TaskStatus::EXECUTING) && t->coRoutine &&
             t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH) && t != g_cur_task;
     });
     apply("blocked by task dependence", [](CPUEUTask* t) {
-        return t->state == TaskState::BLOCKED;
+        return t->status == TaskStatus::THREAD_BLOCK || t->status == TaskStatus::COROUTINE_BLOCK;
     });
     apply("pending task", [](CPUEUTask* t) {
-        return t->state == TaskState::PENDING;
+        return t->status == TaskStatus::SUBMITTED;
     });
     apply("ready task", [](CPUEUTask* t) {
         return t->state == TaskState::READY;
@@ -337,7 +339,8 @@ void RecordDebugInfo(void)
     FFRT_BBOX_LOG("<<<=== ffrt debug log start ===>>>");
 
     if ((t != nullptr) && (t->type == ffrt_normal_task || t->type == ffrt_queue_task)) {
-        FFRT_BBOX_LOG("debug log: tid %d, task id %lu, qos %d, name %s", gettid(), t->gid, t->qos_(), t->label.c_str());
+        FFRT_BBOX_LOG("debug log: tid %d, task id %lu, qos %d, name %s", gettid(), t->gid, t->qos_(),
+            t->GetLabel().c_str());
     }
     SaveKeyStatus();
     FFRT_BBOX_LOG("<<<=== ffrt debug log finish ===>>>");
@@ -521,10 +524,9 @@ void AppendTaskInfo(std::ostringstream& oss, TaskBase* task)
 
 std::string SaveKeyInfo(void)
 {
-    ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
     std::ostringstream oss;
 
-    monitor->WorkerInit();
+    ffrt::FFRTFacade::GetEUInstance().WorkerInit();
     oss << "    |-> key status" << std::endl;
     if (saveKeyStatusInfo == nullptr) {
         oss << "no key status info" << std::endl;
@@ -534,7 +536,7 @@ std::string SaveKeyInfo(void)
     return oss.str();
 }
 
-void DumpThreadTaskInfo(WorkerThread* thread, int qos, std::ostringstream& ss)
+void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
 {
     TaskBase* t = thread->curTask;
     pid_t tid = thread->Id();
@@ -547,7 +549,7 @@ void DumpThreadTaskInfo(WorkerThread* thread, int qos, std::ostringstream& ss)
         case ffrt_normal_task: {
             TaskFactory<CPUEUTask>::LockMem();
             auto cpuTask = reinterpret_cast<CPUEUTask*>(t);
-            if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->state != TaskState::EXITED)) {
+            if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->status != TaskStatus::FINISH)) {
                 ss << "        qos " << qos << ": worker tid " << tid << " normal task is running, task id "
                    << t->gid << " name " << t->GetLabel().c_str();
                 AppendTaskInfo(ss, t);
@@ -588,13 +590,13 @@ std::string SaveWorkerStatusInfo(void)
 {
     std::ostringstream ss;
     std::ostringstream oss;
-    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     oss << "    |-> worker count" << std::endl;
     ss << "    |-> worker status" << std::endl;
     for (int i = 0; i < QoS::MaxNum(); i++) {
         std::vector<int> tidArr;
-        std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-        for (auto& thread : workerGroup[i].threads) {
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
+        for (auto& thread : workerGroup.threads) {
             tidArr.push_back(thread.first->Id());
             DumpThreadTaskInfo(thread.first, i, ss);
         }
@@ -640,7 +642,7 @@ std::string SaveNormalTaskStatusInfo(void)
             ss.str("");
             if (t->type == ffrt_normal_task) {
                 ss << "        <" << idx++ << "/" << tmp.size() << ">" << "stack: task id " << t->gid << ",qos "
-                    << t->qos_() << ",name " << t->label.c_str();
+                    << t->qos_() << ",name " << t->GetLabel().c_str();
                 AppendTaskInfo(ss, t);
                 ss << std::endl;
             }
@@ -654,17 +656,17 @@ std::string SaveNormalTaskStatusInfo(void)
     };
 
     apply("blocked by synchronization primitive(mutex etc)", [](CPUEUTask* t) {
-        return (t->state == TaskState::RUNNING) && t->coRoutine &&
+        return (t->status == TaskStatus::EXECUTING) && t->coRoutine &&
             t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
     });
     apply("blocked by task dependence", [](CPUEUTask* t) {
-        return t->state == TaskState::BLOCKED;
+        return t->status == TaskStatus::THREAD_BLOCK || t->status == TaskStatus::COROUTINE_BLOCK;
     });
     apply("pending task", [](CPUEUTask* t) {
-        return t->state == TaskState::PENDING;
+        return t->status == TaskStatus::SUBMITTED;
     });
     apply("ready task", [](CPUEUTask* t) {
-        return t->state == TaskState::READY;
+        return t->status == TaskStatus::READY;
     });
     TaskFactory<CPUEUTask>::UnlockMem();
 
@@ -692,7 +694,7 @@ void DumpQueueTaskInfo(std::string& ffrtStackInfo, const char* tag, const std::v
         ss.str("");
         if (t->type == ffrt_queue_task) {
             ss << "<" << idx++ << "/" << tmp.size() << ">" << "id " << t->gid << " qos "
-                << t->GetQos() << " name " << t->label.c_str();
+                << t->GetQos() << " name " << t->GetLabel().c_str();
             AppendTaskInfo(ss, t);
             ss << std::endl;
         }

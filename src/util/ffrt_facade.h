@@ -52,7 +52,7 @@ public:
         return Instance().GetDWInstanceImpl();
     }
 
-    static inline FFRTScheduler* GetSchedInstance()
+    static inline Scheduler* GetSchedInstance()
     {
         return Instance().GetSchedInstanceImpl();
     }
@@ -106,9 +106,9 @@ private:
         return DelayedWorker::GetInstance();
     }
 
-    inline FFRTScheduler* GetSchedInstanceImpl()
+    inline Scheduler* GetSchedInstanceImpl()
     {
-        return FFRTScheduler::Instance();
+        return Scheduler::Instance();
     }
 
     inline IOPoller& GetIoPPInstanceImpl()

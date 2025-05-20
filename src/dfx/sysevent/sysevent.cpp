@@ -166,7 +166,7 @@ void TrafficOverloadReport(std::stringstream& ss, const std::string& senarioName
 void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum)
 {
     time_t cur_time = time(nullptr);
-    size_t near_gid = s_gid.load(std::memory_order_acquire);
+    size_t near_gid = TaskBase::GetLastGid();
     std::string msg = "report time: " + std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n"
                     + ", qos: " + std::to_string(qos)
                     + ", worker num: " + std::to_string(totalNum)

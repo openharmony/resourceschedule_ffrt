@@ -29,7 +29,6 @@
 #include "tm/scpu_task.h"
 #include "tm/task_factory.h"
 #include "../common.h"
-#include "eu/cpu_manager_strategy.h"
 
 using namespace std;
 using namespace testing;
@@ -75,9 +74,11 @@ void OPTIMIZE_OFF OnePlusForTest(void* data)
 HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
 {
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
-    SCPUEUTask *task1 = new SCPUEUTask(nullptr, nullptr, 0, QoS(static_cast<int>(qos_user_interactive)));
+    task_attr_private attr;
+    attr.qos_ = qos_user_interactive;
+    SCPUEUTask *task1 = new SCPUEUTask(&attr, nullptr, 0);
     auto func2 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
-    SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0, QoS());
+    SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0);
     QoS qos = QoS(static_cast<int>(qos_inherit));
     task2->SetQos(qos);
     EXPECT_EQ(task2->qos_, static_cast<int>(qos_user_interactive));
@@ -92,7 +93,7 @@ HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
  */
 HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
 {
-    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0, QoS());
+    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0);
 
     // when executing task is nullptr
     EXPECT_EQ(ThreadWaitMode(nullptr), true);
@@ -101,7 +102,7 @@ HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
     EXPECT_EQ(ThreadWaitMode(task), true);
 
     // when executing task in legacy mode
-    SCPUEUTask* parent = new SCPUEUTask(nullptr, nullptr, 0, QoS());
+    SCPUEUTask* parent = new SCPUEUTask(nullptr, nullptr, 0);
     task->parent = parent;
     task->legacyCountNum = 1;
     EXPECT_EQ(ThreadWaitMode(task), true);
@@ -255,7 +256,7 @@ HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
  */
 HWTEST_F(CoreTest, ffrt_task_get_tid_test, TestSize.Level1)
 {
-    ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0, ffrt::QoS(2));
+    ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
     ffrt::QueueTask* queueTask = new ffrt::QueueTask(nullptr);
     pthread_t tid = ffrt_task_get_tid(task);
     EXPECT_EQ(tid, 0);
@@ -290,11 +291,29 @@ HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level1)
 }
 
 /*
+* 测试用例名称：ffrt_skip_task_test
+* 测试用例描述：测试ffrt_skip接口
+* 预置条件    ：无
+* 操作步骤    ：1.提交普通延时执行的任务，不notifyworker，并获取句柄
+               2.调用ffrt_skip接口，入参为句柄
+* 预期结果    ：任务取消成功
+*/
+HWTEST_F(CoreTest, ffrt_skip_task_test, TestSize.Level1)
+{
+    auto h = ffrt::submit_h([]() {}, {}, {}, ffrt::task_attr().delay(10000)); // 10ms
+    int cancel_ret = ffrt::skip(h);
+    EXPECT_EQ(cancel_ret, 0);
+    ffrt::wait();
+}
+
+/*
 * 测试用例名称：ffrt_get_cur_task_test
 * 测试用例描述：测试ffrt_get_cur_task接口
 * 预置条件    ：提交ffrt任务
-* 操作步骤    ：在ffrt任务中调用ffrt_get_cur_task接口
-* 预期结果    ：返回的task地址不为空
+* 操作步骤    ：1.在ffrt任务中调用ffrt_get_cur_task接口
+               2.在非ffrt任务中调用ffrt_get_cur_task接口
+* 预期结果    ：1.返回的task地址不为空
+               2.返回的task地址不为空
 */
 HWTEST_F(CoreTest, ffrt_get_cur_task_test, TestSize.Level1)
 {
@@ -305,6 +324,8 @@ HWTEST_F(CoreTest, ffrt_get_cur_task_test, TestSize.Level1)
     ffrt::wait();
 
     EXPECT_NE(taskPtr, nullptr);
+    taskPtr = ffrt_get_cur_task();
+    EXPECT_EQ(taskPtr, nullptr);
 }
 
 /*
@@ -325,20 +346,57 @@ HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level1)
 }
 
 /*
-* 测试用例名称：ffrt_set_sched_mode_test
-* 测试用例描述：测试ffrt_set_sched_mode接口
-* 预置条件    ：设置mode的值为ffrt_sched_energy_saving_mode
-* 操作步骤    ：调用ffrt_set_sched_mode接口
-* 预期结果    ：接口校验异常场景成功，用例正常执行结束
+* 测试用例名称：ffrt_set_sched_mode
+* 测试用例描述：ffrt_set_sched_mode EU调度模式设置
+* 预置条件    ：NA
+* 操作步骤    ：在非ffrt任务中调用ffrt_set_sched_mode接口
+* 预期结果    ：设置EU调度策略为默认模式、性能模式或节能模式
 */
-HWTEST_F(CoreTest, ffrt_set_sched_mode_test, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level1)
 {
-    ffrt::sched_mode_type sched_type = ffrt::CPUManagerStrategy::GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    ffrt::sched_mode_type sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
 
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_energy_saving_mode);
-    sched_type = ffrt::CPUManagerStrategy::GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
+
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_performance_mode);
+    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_performance_mode));
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_default_mode);
+}
+
+/*
+* 测试用例名称：ffrt_set_worker_stack_size
+* 测试用例描述：ffrt_set_worker_stack_size 设置worker线程栈大小
+* 预置条件    ：NA
+* 操作步骤    ：在非ffrt任务中调用ffrt_set_worker_stack_size接口
+* 预期结果    ：能够处理正常和异常stackSize和qos的值
+*/
+HWTEST_F(CoreTest, ffrt_set_worker_stack_size, TestSize.Level1)
+{
+    ffrt_error_t ret;
+    int qosMin = ffrt_qos_background;
+    int qosMax = ffrt::QoS::Max();
+    int stackSizeMin = PTHREAD_STACK_MIN;
+    // 设置异常Qos
+    ret = ffrt_set_worker_stack_size(qosMin - 1, stackSizeMin);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_set_worker_stack_size(qosMax, stackSizeMin);
+    EXPECT_EQ(ret, ffrt_error_inval);
+
+    // 设置异常stacksize
+    ret = ffrt_set_worker_stack_size(qosMin, stackSizeMin - 1);
+    EXPECT_EQ(ret, ffrt_error_inval);
+
+    // 正常设置stackSize
+    ret = ffrt_set_worker_stack_size(qosMax - 1, stackSizeMin);
+    EXPECT_EQ(ret, ffrt_success);
+    // 设置其他Qos栈大小可设置成功
+    int stackOther = PTHREAD_STACK_MIN;
+    ret = ffrt_set_worker_stack_size(qosMin, PTHREAD_STACK_MIN * 2);
+    EXPECT_EQ(ret, ffrt_success);
 }
 
 namespace ffrt {
@@ -352,9 +410,17 @@ TaskFactory<T>& TaskFactory<T>::Instance()
 
 namespace TmTest {
 class MyTask : public ffrt::TaskBase {
+public:
+    MyTask() : ffrt::TaskBase(ffrt_invalid_task, nullptr) {}
 private:
     void FreeMem() override { ffrt::TaskFactory<MyTask>::Free(this); }
+    void Submit() override {}
+    void Ready() override {}
+    void Pop() override {}
+    void Cancel() override {}
+    void Finish() override {}
     void Execute() override {}
+    void SetQos(const QoS& newQos) override {}
     std::string GetLabel() const override { return "my-task"; }
 };
 
@@ -493,6 +559,22 @@ HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level1)
     ffrt_task_handle_destroy(task);
 
     EXPECT_EQ(result, 1);
+}
+
+/*
+* 测试用例名称：ffrt_task_factory_test_003
+* 测试用例描述：测试使用SimpleAllocator时，UVTask的TaskFactory接口正常
+* 预置条件    ：无
+* 操作步骤    ：1.向TaskFactory申请一个UVTask实例
+               2.调用TaskFactory的HasBeenFreed、Free_接口
+* 预期结果    ：任务是否释放符合预期
+*/
+HWTEST_F(CoreTest, ffrt_task_factory_test_003, TestSize.Level1)
+{
+    ffrt::UVTask* task = ffrt::TaskFactory<ffrt::UVTask>::Alloc();
+    EXPECT_EQ(ffrt::TaskFactory<ffrt::UVTask>::HasBeenFreed(task), false);
+    ffrt::TaskFactory<ffrt::UVTask>::Free_(task);
+    EXPECT_EQ(ffrt::TaskFactory<ffrt::UVTask>::HasBeenFreed(task), true);
 }
 
 HWTEST_F(CoreTest, ffrt_submit_f, TestSize.Level1)

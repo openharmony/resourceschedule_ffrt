@@ -226,7 +226,7 @@ void mutexPrivate::wait()
         list.PushBack(ctx->wn.node);
         std::unique_lock<std::mutex> lk(ctx->wn.wl);
         if (FFRT_UNLIKELY(LegacyMode(task))) {
-            task->blockType = BlockType::BLOCK_THREAD;
+            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
             ctx->wn.task = task;
         }
         wlock.unlock();
@@ -235,7 +235,7 @@ void mutexPrivate::wait()
         return;
     } else {
         FFRT_BLOCK_TRACER(task->gid, mtx);
-        CoWait([this](CPUEUTask* task) -> bool {
+        CoWait([this](CoTask* task) -> bool {
             wlock.lock();
             if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {
                 wlock.unlock();
@@ -261,19 +261,19 @@ void mutexPrivate::wake()
         wlock.unlock();
         return;
     }
-    CPUEUTask* task = we->task;
+    TaskBase* task = we->task;
     if (ThreadNotifyMode(task) || we->weType == 2) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         std::unique_lock lk(wue->wl);
         if (BlockThread(task)) {
-            task->blockType = BlockType::BLOCK_COROUTINE;
+            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
             we->task = nullptr;
         }
         wlock.unlock();
         wue->cv.notify_one();
     } else {
         wlock.unlock();
-        CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
+        CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
     }
 }
 } // namespace ffrt

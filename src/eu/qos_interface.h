@@ -16,7 +16,7 @@
 #ifndef QOS_INTERFACE_H
 #define QOS_INTERFACE_H
 #include "internal_inc/config.h"
-#include "eu/worker_thread.h"
+#include "eu/cpu_worker.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -205,7 +205,7 @@ int ThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas);
 typedef int (*Func_affinity)(unsigned long affinity, int tid);
 void setFuncAffinity(Func_affinity func);
 Func_affinity getFuncAffinity(void);
-typedef void (*Func_priority)(unsigned char priority, ffrt::WorkerThread* thread);
+typedef void (*Func_priority)(unsigned char priority, ffrt::CPUWorker* thread);
 void setFuncPriority(Func_priority func);
 Func_priority getFuncPriority(void);
 

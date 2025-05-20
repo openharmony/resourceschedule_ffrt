@@ -168,7 +168,7 @@ void DelayedWorker::ThreadInit()
                     char buffer;
                     size_t n = ::read(monitorfd_, &buffer, sizeof buffer);
                     if (n == 1) {
-                        monitor->MonitorMain();
+                        ExecuteUnit::Instance().MonitorMain();
                     } else {
                         FFRT_SYSEVENT_LOGE("monitor read fail:%d, %s", n, errno);
                     }
@@ -198,8 +198,7 @@ DelayedWorker::DelayedWorker()
     }
     DelayedWorker::ThreadEnvCreate();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    monitor = ExecuteUnit::Instance().GetCPUMonitor();
-    monitorfd_ = BlockawareMonitorfd(-1, monitor->WakeupCond());
+    monitorfd_ = BlockawareMonitorfd(-1, ExecuteUnit::Instance().WakeupCond());
     FFRT_ASSERT(monitorfd_ >= 0);
     FFRT_LOGI("timerfd:%d, monitorfd:%d", timerfd_, monitorfd_);
     /* monitorfd does not support 'CLOEXEC', and current kernel does not inherit monitorfd after 'fork'.

@@ -16,60 +16,210 @@
 #ifndef FFRT_CPU_WORKER_HPP
 #define FFRT_CPU_WORKER_HPP
 
-#include "eu/worker_thread.h"
-#include "eu/cpu_manager_strategy.h"
-#include "c/executor_task.h"
+#include <atomic>
+#include <unistd.h>
+#ifdef FFRT_PTHREAD_ENABLE
+#include <pthread.h>
+#endif
+#include <thread>
+#ifdef OHOS_THREAD_STACK_DUMP
+#include <sstream>
+#include "dfx_dump_catcher.h"
+#endif
+#include "qos.h"
 #include "sync/poller.h"
+#include "tm/cpu_task.h"
+#include "dfx/log/ffrt_log_api.h"
+#include "c/executor_task.h"
 #include "util/spmc_queue.h"
-#include "tm/task_base.h"
 
 namespace ffrt {
-const unsigned int LOCAL_QUEUE_SIZE = 128;
-const unsigned int STEAL_BUFFER_SIZE = LOCAL_QUEUE_SIZE / 2;
+constexpr int PTHREAD_CREATE_NO_MEM_CODE = 11;
+constexpr int FFRT_RETRY_MAX_COUNT = 12;
+const std::vector<uint64_t> FFRT_RETRY_CYCLE_LIST = {
+    10 * 1000, 50 * 1000, 100 * 1000, 200 * 1000, 500 * 1000, 1000 * 1000, 2 * 1000 * 1000,
+    5 * 1000 * 1000, 10 * 1000 * 1000, 50 * 1000 * 1000, 100 * 1000 * 1000, 500 * 1000 * 1000
+};
 
-class CPUWorker : public WorkerThread {
+enum class WorkerAction {
+    RETRY = 0,
+    RETIRE,
+    MAX,
+};
+
+enum class WorkerStatus {
+    EXECUTING = 0,
+    SLEEPING,
+    DESTROYED,
+};
+
+class CPUWorker;
+struct CpuWorkerOps {
+    std::function<WorkerAction (CPUWorker*)> WorkerIdleAction;
+    std::function<void (CPUWorker*)> WorkerRetired;
+    std::function<void (CPUWorker*)> WorkerPrepare;
+    std::function<PollerRet (const CPUWorker*, int timeout)> TryPoll;
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    std::function<bool (void)> IsBlockAwareInit;
+#endif
+};
+
+class CPUWorker {
 public:
-    CPUWorker(const QoS& qos, CpuWorkerOps&& ops, void* worker_mgr) : WorkerThread(qos), ops(ops)
+    explicit CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize);
+    ~CPUWorker();
+
+    bool Exited() const
     {
-#ifdef FFRT_SEND_EVENT
-        uint64_t freq = 1000000;
-#if defined(__aarch64__)
-        asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
-#endif
-        this->cacheFreq = freq;
-        this->cacheQos = static_cast<int>(qos);
-#endif
-        this->worker_mgr = worker_mgr;
-        localFifo.Init(LOCAL_QUEUE_SIZE);
-#ifdef FFRT_PTHREAD_ENABLE
-        Start(CPUWorker::WrapDispatch, this);
-#else
-        Start(CPUWorker::Dispatch, this);
-#endif
+        return exited;
     }
 
-    CpuWorkerOps ops;
-    SpmcQueue localFifo;
-    void* priority_task = nullptr;
+    void SetExited(bool var)
+    {
+        this->exited = var;
+    }
+
+    pid_t Id() const
+    {
+        while (!exited && tid < 0) {
+        }
+        return tid;
+    }
+
+    const QoS& GetQos() const
+    {
+        return qos;
+    }
+
+    const WorkerStatus& GetWorkerState() const
+    {
+        return state;
+    }
+
+    void SetWorkerState(const WorkerStatus& newState)
+    {
+        this->state = newState;
+    }
+
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    unsigned int GetDomainId() const
+    {
+        return domain_id;
+    }
+#endif
+#ifdef FFRT_PTHREAD_ENABLE
+    void Start(void*(*ThreadFunc)(void*), void* args)
+    {
+        int ret = pthread_create(&thread_, &attr_, ThreadFunc, args);
+        if (ret == PTHREAD_CREATE_NO_MEM_CODE) {
+            int count = 0;
+            while (ret == PTHREAD_CREATE_NO_MEM_CODE && count < FFRT_RETRY_MAX_COUNT) {
+                usleep(FFRT_RETRY_CYCLE_LIST[count]);
+                count++;
+                FFRT_LOGW("pthread_create failed due to shortage of system memory, FFRT retry %d times...", count);
+                ret = pthread_create(&thread_, &attr_, ThreadFunc, args);
+            }
+        }
+        if (ret != 0) {
+            FFRT_LOGE("pthread_create failed, ret = %d", ret);
+            exited = true;
+        }
+        pthread_attr_destroy(&attr_);
+    }
+
+    void Join()
+    {
+        if (tid > 0 && thread_ != 0) {
+            pthread_join(thread_, nullptr);
+        }
+        tid = -1;
+    }
+
+    void Detach()
+    {
+        if (tid > 0 && thread_ != 0) {
+            pthread_detach(thread_);
+        } else {
+            FFRT_LOGD("qos %d thread not joinable.", qos());
+        }
+        tid = -1;
+    }
+
+    pthread_t& GetThread()
+    {
+        return this->thread_;
+    }
+#else
+    template <typename F, typename... Args>
+    void Start(F&& f, Args&&... args)
+    {
+        auto wrap = [&](Args&&... args) {
+            NativeConfig();
+            return f(args...);
+        };
+        thread = std::thread(wrap, args...);
+    }
+
+    void Join()
+    {
+        if (thread.joinable()) {
+            thread.join();
+        }
+        tid = -1;
+    }
+
+    void Detach()
+    {
+        if (thread.joinable()) {
+            thread.detach();
+        } else {
+            FFRT_LOGD("qos %d thread not joinable\n", qos());
+        }
+        tid = -1;
+    }
+
+    pthread_t GetThread()
+    {
+        return this->thread.native_handle();
+    }
+#endif
+
+    void SetThreadAttr(const QoS& newQos);
+
+    TaskBase* curTask = nullptr;
+    uintptr_t curTaskType_ = ffrt_invalid_task;
+    std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值
+    uint64_t curTaskGid_ = UINT64_MAX;
     unsigned int tick = 0;
     unsigned int global_interval = 60;
     unsigned int budget = 10;
 
-public:
-    static void WorkerLooperDefault(CPUWorker* worker);
-
 private:
+    void NativeConfig();
+    static void WorkerLooper(CPUWorker* worker);
     static void* WrapDispatch(void* worker);
+    void WorkerSetup();
     static void Dispatch(CPUWorker* worker);
     static void RunTask(TaskBase* task, CPUWorker* worker);
-    static void RunTaskLifo(TaskBase* task, CPUWorker* worker);
-    static void* GetTask(CPUWorker* worker);
     static PollerRet TryPoll(CPUWorker* worker, int timeout);
-    static bool LocalEmpty(CPUWorker* worker);
 #ifdef FFRT_SEND_EVENT
     int cacheQos; // cache int qos
     std::string cacheLabel; // cache string label
     uint64_t cacheFreq = 1000000; // cache cpu freq
+#endif
+    std::atomic_bool exited {false};
+    std::atomic<pid_t> tid {-1};
+    QoS qos;
+    CpuWorkerOps ops;
+    WorkerStatus state;
+#ifdef FFRT_PTHREAD_ENABLE
+    pthread_t thread_{0};
+    pthread_attr_t attr_;
+#else
+    std::thread thread;
+#endif
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    unsigned int domain_id;
 #endif
 };
 } // namespace ffrt

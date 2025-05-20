@@ -16,76 +16,329 @@
 #ifndef FFRT_EXECUTE_UNIT_HPP
 #define FFRT_EXECUTE_UNIT_HPP
 
-
+#include <memory>
+#include <atomic>
+#include <vector>
+#include <functional>
+#include <mutex>
+#include <shared_mutex>
+#include <condition_variable>
+#include <unordered_map>
+#include "cpp/mutex.h"
 #include "sched/workgroup_internal.h"
-#include "eu/worker_manager.h"
 #include "eu/thread_group.h"
-#include "eu/cpu_monitor.h"
+#include "eu/cpu_worker.h"
 #include "internal_inc/osal.h"
 #include "util/cb_func.h"
+#include "sync/poller.h"
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+#include "eu/blockaware.h"
+#endif
+
+namespace {
+constexpr uint64_t ONE_STAGE_INTERVAL = 10;
+constexpr uint64_t TWO_STAGE_INTERVAL = 100;
+constexpr uint64_t THREE_STAGE_INTERVAL = 1000;
+constexpr uint64_t ONE_STAGE_WORKER_NUM = 128;
+constexpr uint64_t TWO_STAGE_WORKER_NUM = 256;
+constexpr int DEEP_SLEEP_NUM_DOUBLE = 2;
+}
 
 namespace ffrt {
+enum class TaskNotifyType {
+    TASK_PICKED = 0,
+    TASK_ADDED,
+    TASK_LOCAL,
+    TASK_ESCAPED,
+};
+
+struct CPUWorkerGroup {
+    // rtg parameters
+    std::unique_ptr<ThreadGroup> tg;
+    uint64_t tgRefCount = 0;
+    mutable std::shared_mutex tgMutex;
+
+    // worker manage parameters
+    size_t hardLimit{0};
+    size_t maxConcurrency{0};
+    size_t workerStackSize{0};
+    bool setWorkerMaxNum{false};
+    std::unordered_map<CPUWorker *, std::unique_ptr<CPUWorker>> threads;
+    std::mutex mutex;
+    std::condition_variable cv;
+
+    // group status parameters
+    alignas(cacheline_size) fast_mutex lock;
+    alignas(cacheline_size) int executingNum{0};
+    alignas(cacheline_size) int sleepingNum{0};
+    alignas(cacheline_size) bool irqEnable{false};
+    /* used for performance mode */
+    alignas(cacheline_size) bool fastWakeEnable = false; // directly wakeup first worker by futex
+    alignas(cacheline_size) int pendingWakeCnt = 0;      // number of workers waking but not waked-up yet
+    alignas(cacheline_size) int pendingTaskCnt = 0;      // number of tasks submitted to RTB but not picked-up yet
+
+    int deepSleepingWorkerNum{0};
+    bool retryBeforeDeepSleep{true};
+
+    bool pollWaitFlag{false};
+    uint8_t polling_{0};
+    fast_mutex pollersMtx;
+
+    inline void WorkerCreate()
+    {
+        executingNum++;
+    }
+
+    inline void RollBackCreate()
+    {
+        std::lock_guard lk(lock);
+        executingNum--;
+    }
+
+    inline void IntoDeepSleep()
+    {
+        std::lock_guard lk(lock);
+        deepSleepingWorkerNum++;
+    }
+
+    inline void OutOfDeepSleep(bool irqWake = false)
+    {
+        std::lock_guard lk(lock);
+        if (irqWake) {
+            irqEnable = false;
+        }
+        sleepingNum--;
+        deepSleepingWorkerNum--;
+        executingNum++;
+    }
+
+    inline void OutOfSleep(bool irqWake = false)
+    {
+        std::lock_guard lk(lock);
+        if (irqWake) {
+            irqEnable = false;
+        }
+        if (pendingWakeCnt > 0) {
+            pendingWakeCnt--;
+        }
+        sleepingNum--;
+        executingNum++;
+    }
+
+    inline void OutOfPollWait()
+    {
+        std::lock_guard lk(lock);
+        pollWaitFlag = false;
+    }
+
+    inline void WorkerDestroy()
+    {
+        std::lock_guard lk(lock);
+        sleepingNum--;
+    }
+
+    inline bool TryDestroy()
+    {
+        std::lock_guard lk(lock);
+        sleepingNum--;
+        return sleepingNum > 0;
+    }
+
+    inline void RollbackDestroy(bool irqWake = false)
+    {
+        std::lock_guard lk(lock);
+        if (irqWake) {
+            irqEnable = false;
+        }
+        executingNum++;
+    }
+};
+
+struct EscapeConfig {
+    bool enableEscape_ = false;
+    uint64_t oneStageIntervalMs_ = ONE_STAGE_INTERVAL;
+    uint64_t twoStageIntervalMs_ = TWO_STAGE_INTERVAL;
+    uint64_t threeStageIntervalMs_ = THREE_STAGE_INTERVAL;
+    uint64_t oneStageWorkerNum_ = ONE_STAGE_WORKER_NUM;
+    uint64_t twoStageWorkerNum_ = TWO_STAGE_WORKER_NUM;
+};
+
 class ExecuteUnit {
 public:
-    static ExecuteUnit& Instance();
+    static ExecuteUnit &Instance();
 
     static void RegistInsCb(SingleInsCB<ExecuteUnit>::Instance &&cb);
 
-    ThreadGroup* BindTG(const DevType dev, QoS& qos);
-    void UnbindTG(const DevType dev, QoS& qos);
-    void BindWG(const DevType dev, QoS& qos);
+    ThreadGroup *BindTG(QoS& qos);
+    void UnbindTG(QoS& qos);
+    void BindWG(QoS& qos);
 
-    void NotifyTaskAdded(const QoS& qos)
+    // event notify
+    template <TaskNotifyType TYPE>
+    void NotifyTask(const QoS &qos, bool isPollWait = false)
     {
-        if (likely(wManager[static_cast<size_t>(DevType::CPU)])) {
-            wManager[static_cast<size_t>(DevType::CPU)]->NotifyTaskAdded(qos);
+        if constexpr (TYPE == TaskNotifyType::TASK_ADDED) {
+            PokeAdd(qos);
+        } else if constexpr (TYPE == TaskNotifyType::TASK_PICKED) {
+            PokePick(qos);
+        } else if constexpr (TYPE == TaskNotifyType::TASK_ESCAPED) {
+            PokeEscape(qos, isPollWait);
+        } else if constexpr (TYPE == TaskNotifyType::TASK_LOCAL) {
+            PokePoller(qos);
         }
     }
 
-    void NotifyWorkers(const QoS& qos, int number)
+    // dfx op
+    virtual void WorkerInit() = 0;
+    CPUWorkerGroup &GetWorkerGroup(int qos)
     {
-        if (likely(wManager[static_cast<size_t>(DevType::CPU)])) {
-            wManager[static_cast<size_t>(DevType::CPU)]->NotifyWorkers(qos, number);
+        return workerGroup[qos];
+    }
+
+    inline int SetWorkerMaxNum(const QoS &qos, uint32_t num)
+    {
+        CPUWorkerGroup &group = workerGroup[qos];
+        std::lock_guard lk(group.lock);
+        if (group.setWorkerMaxNum) {
+            FFRT_SYSEVENT_LOGE("qos[%d] worker num can only been setup once", qos());
+            return -1;
         }
+        group.hardLimit = static_cast<size_t>(num);
+        group.setWorkerMaxNum = true;
+        return 0;
     }
 
-    void NotifyLocalTaskAdded(const QoS& qos)
+    int SetWorkerStackSize(const QoS &qos, size_t stack_size);
+
+    // worker escape
+    int SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageIntervalMs, uint64_t threeStageIntervalMs,
+        uint64_t oneStageWorkerNum, uint64_t twoStageWorkerNum);
+
+    inline void SetEscapeDisable()
     {
-        {
-            wManager[static_cast<size_t>(DevType::CPU)]->NotifyLocalTaskAdded(qos);
-        }
+        escapeConfig.enableEscape_ = false;
+        // after the escape function is disabled, parameters are restored to default values
+        escapeConfig.oneStageIntervalMs_ = ONE_STAGE_INTERVAL;
+        escapeConfig.twoStageIntervalMs_ = TWO_STAGE_INTERVAL;
+        escapeConfig.threeStageIntervalMs_ = THREE_STAGE_INTERVAL;
+        escapeConfig.oneStageWorkerNum_ = ONE_STAGE_WORKER_NUM;
+        escapeConfig.twoStageWorkerNum_ = TWO_STAGE_WORKER_NUM;
     }
 
-    std::mutex* GetSleepCtl(int qos)
+    inline bool IsEscapeEnable()
     {
-        return wManager[static_cast<size_t>(DevType::CPU)]->GetSleepCtl(qos);
+        return escapeConfig.enableEscape_;
     }
 
-    WorkerGroupCtl* GetGroupCtl()
+    void SubmitEscape(int qos, uint64_t totalWorkerNum);
+
+    inline uint64_t GetWorkerNum()
     {
-        return wManager[static_cast<size_t>(DevType::CPU)]->GetGroupCtl();
+        return workerNum.load();
     }
 
-    uint64_t GetWorkerNum()
+    inline void SetSchedMode(const QoS qos, const sched_mode_type mode)
     {
-        return wManager[static_cast<size_t>(DevType::CPU)]->GetWorkerNum();
+        schedMode[qos] = mode;
     }
 
-    CPUMonitor* GetCPUMonitor()
+    inline const sched_mode_type &GetSchedMode(const QoS qos)
     {
-        return wManager[static_cast<size_t>(DevType::CPU)]->GetCPUMonitor();
+        return schedMode[qos];
     }
 
-    virtual WorkerManager* InitManager() = 0;
+    void RestoreThreadConfig();
 
-    void CreateWorkerManager();
-
+    void NotifyWorkers(const QoS &qos, int number);
+// worker dynamic scaling
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    void MonitorMain();
+    BlockawareWakeupCond *WakeupCond(void);
+#endif
 protected:
+    virtual void WakeupWorkers(const QoS &qos) = 0;
+
+    // worker manipulate op
+    bool IncWorker(const QoS &qos);
+    virtual void WorkerPrepare(CPUWorker *thread) = 0;
+    virtual WorkerAction WorkerIdleAction(CPUWorker *thread) = 0;
+    void WorkerRetired(CPUWorker *thread);
+
+    // worker rtg config
+    void WorkerJoinTg(const QoS &qos, pid_t pid);
+    void WorkerLeaveTg(const QoS &qos, pid_t pid);
+
+    // worker group info
+    inline bool IsExceedDeepSleepThreshold()
+    {
+        int totalWorker = 0;
+        int deepSleepingWorkerNum = 0;
+        for (unsigned int i = 0; i < static_cast<unsigned int>(QoS::Max()); i++) {
+            CPUWorkerGroup &group = workerGroup[i];
+            std::lock_guard lk(group.lock);
+            deepSleepingWorkerNum += group.deepSleepingWorkerNum;
+            totalWorker += group.executingNum + group.sleepingNum;
+        }
+        return deepSleepingWorkerNum * DEEP_SLEEP_NUM_DOUBLE > totalWorker;
+    }
+
+    // worker group state
+    virtual void IntoSleep(const QoS &qos) = 0;
+    virtual void IntoPollWait(const QoS &qos) = 0;
+
     ExecuteUnit();
     virtual ~ExecuteUnit();
 
-    std::array<WorkerManager*, static_cast<size_t>(DevType::DEVMAX)> wManager;
-};
+    size_t GetRunningNum(const QoS &qos);
+    void ReportEscapeEvent(int qos, size_t totalNum);
 
+    CPUWorkerGroup workerGroup[QoS::MaxNum()];
+    std::atomic_uint64_t workerNum = 0;
+    std::atomic_bool tearDown{false};
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    bool blockAwareInit{false};
+    bool stopMonitor{false};
+    unsigned long keyPtr{0};
+    int qosMonitorMaxNum{std::min(QoS::Max(), BLOCKAWARE_DOMAIN_ID_MAX + 1)};
+    BlockawareWakeupCond wakeupCond;
+    BlockawareDomainInfoArea domainInfoMonitor;
+#endif
+
+private:
+    CPUWorker *CreateCPUWorker(const QoS &qos);
+
+    virtual void PokeAdd(const QoS &qos) = 0;
+    virtual void PokePick(const QoS &qos) = 0;
+    virtual void PokePoller(const QoS &qos) = 0;
+    virtual void PokeEscape(const QoS &qos, bool isPollWait) = 0;
+
+    // poller work
+    PollerRet TryPoll(const CPUWorker *thread, int timeout = -1);
+
+    // eu sched mode array
+    static std::array<sched_mode_type, QoS::MaxNum()> schedMode;
+
+    // worker escape
+    EscapeConfig escapeConfig;
+    bool submittedDelayedTask_[QoS::MaxNum()] = {0};
+    WaitUntilEntry *we_[QoS::MaxNum()] = {nullptr};
+    virtual void ExecuteEscape(int qos) = 0;
+
+    inline uint64_t CalEscapeInterval(uint64_t totalWorkerNum)
+    {
+        if (totalWorkerNum < escapeConfig.oneStageWorkerNum_) {
+            return escapeConfig.oneStageIntervalMs_;
+        } else if (totalWorkerNum >= escapeConfig.oneStageWorkerNum_ &&
+            totalWorkerNum < escapeConfig.twoStageWorkerNum_) {
+            return escapeConfig.twoStageIntervalMs_;
+        } else {
+            return escapeConfig.threeStageIntervalMs_;
+        }
+    }
+
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    bool IsBlockAwareInit(void);
+#endif
+};
 } // namespace ffrt
 #endif

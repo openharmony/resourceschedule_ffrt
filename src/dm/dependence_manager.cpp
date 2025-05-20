@@ -17,6 +17,7 @@
 #include "util/ffrt_facade.h"
 #include "util/singleton_register.h"
 #include "tm/io_task.h"
+#include "tm/uv_task.h"
 
 namespace ffrt {
 DependenceManager& DependenceManager::Instance()
@@ -33,15 +34,9 @@ void DependenceManager::onSubmitUV(ffrt_executor_task_t *task, const task_attr_p
 {
     FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
     FFRT_TRACE_SCOPE(1, onSubmitUV);
-    QoS qos = (attr == nullptr || attr->qos_ == qos_inherit) ? QoS() : QoS(attr->qos_);
-    FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(qos);
-    LinkedList* node = reinterpret_cast<LinkedList *>(&task->wq);
-    FFRTScheduler* sch = FFRTFacade::GetSchedInstance();
-    if (!sch->InsertNode(node, qos)) {
-        FFRT_SYSEVENT_LOGE("Submit UV task failed!");
-        return;
-    }
-    FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(qos);
+    UVTask* uvTask = TaskFactory<UVTask>::Alloc();
+    new(uvTask) UVTask(task, attr);
+    uvTask->Ready();
 }
 
 void DependenceManager::onSubmitIO(const ffrt_io_callable_t& work, const task_attr_private* attr)
@@ -49,11 +44,19 @@ void DependenceManager::onSubmitIO(const ffrt_io_callable_t& work, const task_at
     FFRT_TRACE_SCOPE(1, onSubmitIO);
     IOTask* ioTask = TaskFactory<IOTask>::Alloc();
     new (ioTask) IOTask(work, attr);
-    FFRTTraceRecord::TaskSubmit<ffrt_io_task>(ioTask->qos_);
-    if (!FFRTFacade::GetSchedInstance()->InsertNode(&ioTask->fq_we.node, ioTask->qos_)) {
-        FFRT_SYSEVENT_LOGE("Submit IO task failed!");
-        return;
+    ioTask->Ready();
+}
+
+int DependenceManager::onSkip(ffrt_task_handle_t handle)
+{
+    ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
+    auto exp = ffrt::SkipStatus::SUBMITTED;
+    if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
+        __ATOMIC_RELAXED)) {
+        task->Cancel();
+        return ffrt_success;
     }
-    FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(ioTask->qos_);
+    FFRT_LOGW("skip task [%lu] faild", task->gid);
+    return ffrt_error;
 }
 }

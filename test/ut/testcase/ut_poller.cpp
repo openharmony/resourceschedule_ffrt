@@ -21,6 +21,7 @@
 #define private public
 #include "sync/poller.h"
 #undef private
+#include "tm/cpu_task.h"
 #include "util.h"
 #include "../common.h"
 

@@ -60,15 +60,18 @@ enum class NestType {
 };
 
 enum class TaskStatus {
-    CONSTRUCTING, // 预留，暂不使用
-    SUBMITTING, // 预留，暂不使用
-    PENDING, // 默认状态
-    READY, // 可以被执行，可能由于上一个任务执行完而被依赖管理模块触发进入该状态（PEND->READY），也可能submit时被依赖管理模块触发进入该状态（PEND->READY）
-    EXECUTING, // 被调度器调度，正在执行，可能由调度模块触发进入该状态（READY->EXE），还可能由wait成功时被依赖管理模块触发进入该状态（BLOCK->EXE）
-    EXECUTING_NO_DEPENDENCE, // 执行过程中已经解依赖
-    BLOCKED, // 进入wait状态，wait时被依赖管理模块触发进入该状态（EXE->BLOCK）
-    FINISH, // 干完了（EXEC->FINISH）
-    RELEASED, // 预留，暂不使用
+    PENDING,         // 任务创建后的初始状态
+    ENQUEUED,         // 队列任务插入队列中 (串行/并发队列任务)
+    DEQUEUED,         // 队列任务从队列中取出 (串行/并发队列任务)
+    SUBMITTED,       // 任务存在数据依赖
+    READY,           // 任务没有依赖/依赖解除
+    POPED,           // 任务从ReadyQueue中取出，等待执行
+    EXECUTING,       // 任务执行在worker线程
+    THREAD_BLOCK,    // 任务由于FFRT同步原语进入线程阻塞状态
+    COROUTINE_BLOCK, // 任务由于FFRT同步原语进入协程阻塞状态
+    FINISH,          // 任务执行完成，可解除依赖
+    WAIT_RELEASING,  // 任务资源等待回收 (父子嵌套依赖时，父任务完成但子任务还未完成，可以进入此状态)
+    CANCELED,        // 任务未执行前被取消 (cancel/skip语义)
 };
 
 enum class CoTaskStatus {

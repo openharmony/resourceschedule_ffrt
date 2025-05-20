@@ -18,7 +18,7 @@
 
 #include <mutex>
 #include <map>
-#include "eu/worker_thread.h"
+#include "eu/cpu_worker.h"
 #include "tm/cpu_task.h"
 
 namespace ffrt {
@@ -83,7 +83,7 @@ private:
     void SubmitSamplingTask();
     void SubmitMemReleaseTask();
     void CheckWorkerStatus();
-    void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, WorkerThread* worker,
+    void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,
         CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
     void RecordIpcInfo(const std::string& dumpInfo, int tid);
@@ -96,7 +96,7 @@ private:
     bool skipSampling_ = false;
     WaitUntilEntry watchdogWaitEntry_;
     WaitUntilEntry memReleaseWaitEntry_;
-    std::map<WorkerThread*, TaskTimeoutInfo> workerStatus_;
+    std::map<CPUWorker*, TaskTimeoutInfo> workerStatus_;
     bool samplingTaskExit_ = true;
     bool memReleaseTaskExit_ = true;
 };

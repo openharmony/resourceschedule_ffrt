@@ -50,19 +50,19 @@ const int NOTIFING = 1;
 const int TIMEOUT_DONE = 2;
 } // namespace we_status
 
-class CPUEUTask;
 class TaskBase;
+class CoTask;
 
 struct WaitEntry {
     WaitEntry() : prev(this), next(this), task(nullptr), weType(0), wtType(SharedMutexWaitType::NORMAL) {
     }
-    explicit WaitEntry(CPUEUTask *task) : prev(nullptr), next(nullptr), task(task), weType(0),
+    explicit WaitEntry(TaskBase *task) : prev(nullptr), next(nullptr), task(task), weType(0),
         wtType(SharedMutexWaitType::NORMAL) {
     }
     LinkedList node;
     WaitEntry* prev;
     WaitEntry* next;
-    CPUEUTask* task;
+    TaskBase* task;
     int weType;
     SharedMutexWaitType wtType;
 };
@@ -71,7 +71,7 @@ struct WaitUntilEntry : WaitEntry {
     WaitUntilEntry() : WaitEntry(), status(we_status::INIT), hasWaitTime(false)
     {
     }
-    explicit WaitUntilEntry(CPUEUTask* task) : WaitEntry(task), status(we_status::INIT), hasWaitTime(false)
+    explicit WaitUntilEntry(TaskBase* task) : WaitEntry(task), status(we_status::INIT), hasWaitTime(false)
     {
     }
     std::atomic_int32_t status;
@@ -86,26 +86,11 @@ struct ExecuteCtx {
     ExecuteCtx();
     virtual ~ExecuteCtx();
 
-    TaskBase* exec_task = nullptr;
-    void** priority_task_ptr = nullptr;
-    SpmcQueue* localFifo = nullptr;
     QoS qos;
-    CPUEUTask* task; // 当前正在执行的Task
+    TaskBase* task; // 当前正在执行的Task
     WaitUntilEntry wn;
     uint64_t lastGid_ = 0;
     pid_t tid;
-
-    inline bool PushTaskToPriorityStack(TaskBase* executorTask)
-    {
-        if (priority_task_ptr == nullptr) {
-            return false;
-        }
-        if (*priority_task_ptr == nullptr) {
-            *priority_task_ptr = reinterpret_cast<void*>(executorTask);
-            return true;
-        }
-        return false;
-    }
 
     /**
      * @param init Should ExecuteCtx be initialized if it cannot be obtained

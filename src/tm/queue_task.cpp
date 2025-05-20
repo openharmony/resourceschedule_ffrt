@@ -15,8 +15,9 @@
 #include "queue_task.h"
 #include "ffrt_trace.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "c/task.h"
-#include "util/slab.h"
+#include "util/ffrt_facade.h"
 #include "tm/task_factory.h"
 
 namespace {
@@ -24,9 +25,8 @@ constexpr uint64_t MIN_SCHED_TIMEOUT = 100000; // 0.1s
 }
 namespace ffrt {
 QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool insertHead)
-    : handler_(handler), insertHead_(insertHead)
+    : CoTask(ffrt_queue_task, attr), handler_(handler), insertHead_(insertHead)
 {
-    type = ffrt_queue_task;
     if (handler) {
         if (attr) {
             label = handler->GetName() + "_" + attr->name_ + "_" + std::to_string(gid);
@@ -35,7 +35,6 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         }
     }
 
-    fq_we.task = reinterpret_cast<CPUEUTask*>(this);
     uptime_ = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count());
 
@@ -44,7 +43,6 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         qos_ = attr->qos_;
         uptime_ += delay_;
         prio_ = attr->prio_;
-        stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
         if (delay_ && attr->timeout_) {
             FFRT_SYSEVENT_LOGW("task [gid=%llu] not support delay and timeout at the same time, timeout ignored", gid);
         } else if (attr->timeout_) {
@@ -59,6 +57,49 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
 QueueTask::~QueueTask()
 {
     FFRT_LOGD("dtor task [gid=%llu]", gid);
+}
+
+void QueueTask::Submit()
+{
+    status = TaskStatus::ENQUEUED;
+    FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(qos_, &createTime, &fromTid);
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
+        traceId_ = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
+    }
+#endif
+}
+
+void QueueTask::Ready()
+{
+    QoS taskQos = qos_;
+    FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(taskQos);
+    status = TaskStatus::READY;
+    FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
+    FFRTTraceRecord::TaskEnqueue<ffrt_queue_task>(taskQos);
+    FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(taskQos);
+}
+
+void QueueTask::Finish()
+{
+    if (createTime != 0) {
+        FFRTTraceRecord::TaskDone<ffrt_queue_task>(qos_(), this);
+    }
+    auto f = reinterpret_cast<ffrt_function_header_t *>(func_storage);
+    if (f->destroy) {
+        f->destroy(f);
+    }
+    Notify();
+    FFRT_TASKDONE_MARKER(gid);
+}
+
+void QueueTask::FreeMem()
+{
+    // only tasks which called ffrt_poll_ctl may have cached events
+    if (pollerEnable) {
+        FFRTFacade::GetPPInstance().GetPoller(qos_).ClearCachedEvents(this);
+    }
+    TaskFactory<QueueTask>::Free(this);
 }
 
 void QueueTask::Destroy()
@@ -90,9 +131,7 @@ void QueueTask::Execute()
         DecDeleteRef();
         return;
     }
-
     handler_->Dispatch(this);
-    FFRT_TASKDONE_MARKER(gid);
     DecDeleteRef();
 }
 
@@ -103,11 +142,6 @@ void QueueTask::Wait()
     while (!isFinished_.load()) {
         waitCond_.wait(lock);
     }
-}
-
-void QueueTask::FreeMem()
-{
-    TaskFactory<QueueTask>::Free(this);
 }
 
 uint32_t QueueTask::GetQueueId() const

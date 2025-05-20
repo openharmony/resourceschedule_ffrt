@@ -36,6 +36,7 @@ public:
         // dequeue due tasks in batch
         T* head = whenMap.begin()->second;
         whenMap.erase(whenMap.begin());
+        head->Dequeue();
 
         T* node = head;
         while (!whenMap.empty() && whenMap.begin()->first < now) {
@@ -45,9 +46,9 @@ public:
             }
             node->SetNextTask(next);
             whenMap.erase(whenMap.begin());
+            next->Dequeue();
             node = next;
         }
-
         FFRT_LOGD("dequeue [gid=%llu -> gid=%llu], %u other tasks in [queueId=%u] ",
             head->gid, node->gid, whenMap.size(), queueId);
         return head;
@@ -81,6 +82,7 @@ public:
         }
         T* head = iterTarget->second;
         whenMapVec[iterIndex].erase(iterTarget);
+        head->Dequeue();
 
         size_t mapCount = 0;
         for (int idx = ffrt_queue_priority_immediate; idx <= ffrt_queue_priority_idle; idx++) {
@@ -132,6 +134,7 @@ public:
             (*pulledTaskCount)[idx] = 0;
         }
         whenMapVec[iterIndex].erase(iterTarget);
+        head->Dequeue();
 
         size_t mapCount = 0;
         for (int idx = 0; idx <= ffrt_inner_queue_priority_idle; idx++) {

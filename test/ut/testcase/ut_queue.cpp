@@ -418,6 +418,23 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level1)
 }
 
 /*
+ * 测试用例名称 : get_queue_id_from_task
+ * 测试用例描述 : 从队列任务中读取queueid
+ * 操作步骤     : 1、创建串行队列，提交任务
+ *               2、在任务中读取queueid
+ * 预期结果    : 读取queueid成功
+ */
+HWTEST_F(QueueTest, get_queue_id_from_task, TestSize.Level1)
+{
+    queue* testQueue = new queue("test_queue");
+    auto t = testQueue->submit_h([] {
+        (void)ffrt::get_queue_id();
+    }, {});
+    testQueue->wait(t);
+    delete testQueue;
+}
+
+/*
  * 测试用例名称 : ffrt_task_attr_set_queue_priority
  * 测试用例描述 : 测试 ffrt_task_attr_set_queue_priority
  * 操作步骤     : 1、调用ffrt_task_attr_set_queue_priority接口设置队列优先级
@@ -1045,16 +1062,16 @@ HWTEST_F(QueueTest, ffrt_spmc_queue_pop_head_to_another_queue, TestSize.Level1)
         queue.PushTail(&data[i]);
     }
 
-    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 0, 0, nullptr), 0);
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 0, nullptr), 0);
     EXPECT_EQ(dstQueue.GetLength(), 0);
 
-    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 32, 0, nullptr), 32);
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 32, nullptr), 32);
     EXPECT_EQ(dstQueue.GetLength(), 32);
 
-    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 64, 0, [] (void* data, int qos) { EXPECT_NE(data, nullptr); }), 32);
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue, 64, [] (void* data) { EXPECT_NE(data, nullptr); }), 32);
     EXPECT_EQ(dstQueue.GetLength(), 64);
 
-    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue2, 128, 0, nullptr), 64);
+    EXPECT_EQ(queue.PopHeadToAnotherQueue(dstQueue2, 128, nullptr), 64);
     EXPECT_EQ(dstQueue2.GetLength(), 64);
 }
 

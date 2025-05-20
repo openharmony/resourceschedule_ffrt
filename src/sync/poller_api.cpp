@@ -43,7 +43,7 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
     } else if (op == EPOLL_CTL_ADD || op == EPOLL_CTL_MOD) {
         int ret = ffrt::FFRTFacade::GetPPInstance().GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
         if (ret == 0) {
-            ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(ffrtQos);
+            ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(ffrtQos);
         }
         return ret;
     } else {
@@ -92,6 +92,6 @@ uint64_t ffrt_epoll_get_wait_time(void* taskHandle)
         return 0;
     }
 
-    auto task = reinterpret_cast<ffrt::CPUEUTask*>(taskHandle);
+    auto task = reinterpret_cast<ffrt::CoTask*>(taskHandle);
     return ffrt::FFRTFacade::GetPPInstance().GetPoller(task->qos_).GetTaskWaitTime(task);
 }

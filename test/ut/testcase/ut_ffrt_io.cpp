@@ -94,6 +94,34 @@ HWTEST_F(ffrtIoTest, IoPoller_1Producer_1Consumer, TestSize.Level1)
     ffrt::wait();
 }
 
+/*
+* 测试用例名称：IoPoller_1Producer_1Consumer_Legacy_Mode
+* 测试用例描述：sync_io接口，线程阻塞模式测试
+* 预置条件    ：无
+* 操作步骤    ：1.提交一个读任务，一个写任务
+               2.读任务使设置legacy_mode后调用sync_io接口
+* 预期结果    ：任务正确执行
+*/
+HWTEST_F(ffrtIoTest, IoPoller_1Producer_1Consumer_Legacy_Mode, TestSize.Level1)
+{
+    uint64_t expected = 0xabacadae;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    ffrt::submit([&]() {
+        ffrt_this_task_set_legacy_mode(true);
+        ffrt::sync_io(testFd);
+        uint64_t value = 0;
+        ssize_t n = read(testFd, &value, sizeof(uint64_t));
+        EXPECT_EQ(n, sizeof(value));
+        EXPECT_EQ(value, expected);
+        close(testFd);
+        }, {}, {});
+    ffrt::submit([&]() {
+        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
+        EXPECT_EQ(n, sizeof(uint64_t));
+        }, {}, {});
+    ffrt::wait();
+}
+
 HWTEST_F(ffrtIoTest, IoPoller_1Consumer_1Producer, TestSize.Level1)
 {
     uint64_t expected = 0xabacadae;
@@ -674,6 +702,31 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_valid_with_thread_mode, TestSize.Level1)
     EXPECT_EQ(0, result);
 }
 
+/*
+* 测试用例名称：ffrt_epoll_in_task
+* 测试用例描述：ffrt_epoll_ctrl接口在task中使用
+* 预置条件    ：无
+* 操作步骤    ：1.提交任务，在闭包中调用ffrt_epoll_ctrl接口
+* 预期结果    ：任务按预期执行
+*/
+HWTEST_F(ffrtIoTest, ffrt_epoll_in_task, TestSize.Level1)
+{
+    ffrt::submit([&]() {
+        uint64_t expected = 0xabacadae;
+        int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+        struct WakeData m_wakeData;
+        m_wakeData.data = nullptr;
+        m_wakeData.fd = testFd;
+        ffrt_qos_t qos_level = ffrt_qos_user_initiated;
+        int op = EPOLL_CTL_ADD;
+        struct TestData testData {.fd = testFd, .expected = expected};
+        int ret = ffrt_epoll_ctl(qos_level, op, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
+        EXPECT_EQ(0, ret);
+    }, {}, {});
+
+    ffrt::wait();
+}
+
 HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level1)
 {
     ffrt_qos_t qos = ffrt_qos_default;
@@ -695,4 +748,21 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_invalid, TestSize.Level1)
 
     int ret = ffrt_epoll_get_wait_time(taskHandle);
     EXPECT_EQ(ret, 0);
+}
+
+/*
+* 测试用例名称：ffrt_epoll_get_wait_time_valid
+* 测试用例描述：使用有效任务指针调用ffrt_epoll_get_wait_time
+* 预置条件    ：无
+* 操作步骤    ：1.提交任务
+               2、调用ffrt_epoll_get_wait_time接口
+* 预期结果    ：结果为0
+*/
+HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_valid, TestSize.Level1)
+{
+    auto handle = ffrt::submit_h([]() {});
+
+    int ret = ffrt_epoll_get_wait_time(handle);
+    EXPECT_EQ(ret, 0);
+    ffrt::wait();
 }

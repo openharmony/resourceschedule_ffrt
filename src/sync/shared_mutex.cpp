@@ -102,7 +102,7 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
     auto task = ctx->task;
     if (ThreadWaitMode(task)) {
         if (FFRT_UNLIKELY(LegacyMode(task))) {
-            task->blockType = BlockType::BLOCK_THREAD;
+            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
             ctx->wn.task = task;
         }
         ctx->wn.wtType = wtType;
@@ -114,7 +114,7 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
         ctx->wn.task = nullptr;
     } else {
         FFRT_BLOCK_TRACER(task->gid, smx);
-        CoWait([&](CPUEUTask* task) -> bool {
+        CoWait([&](CoTask* task) -> bool {
             task->fq_we.wtType = wtType;
             wList.PushBack(task->fq_we.node);
             mut.unlock();
@@ -129,10 +129,10 @@ void SharedMutexPrivate::NotifyOne(LinkedList& wList)
     WaitEntry* we = wList.PopFront(&WaitEntry::node);
 
     if (we != nullptr) {
-        CPUEUTask* task = we->task;
+        auto task = we->task;
         if (ThreadNotifyMode(task) || we->weType == 2) { // 2 is weType
             if (BlockThread(task)) {
-                task->blockType = BlockType::BLOCK_COROUTINE;
+                static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;
             }
 
@@ -140,7 +140,7 @@ void SharedMutexPrivate::NotifyOne(LinkedList& wList)
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
+            CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
         }
     }
 }
@@ -150,10 +150,10 @@ void SharedMutexPrivate::NotifyAll(LinkedList& wList)
     WaitEntry* we = wList.PopFront(&WaitEntry::node);
 
     while (we != nullptr) {
-        CPUEUTask* task = we->task;
+        auto task = we->task;
         if (ThreadNotifyMode(task) || we->weType == 2) { // 2 is weType
             if (BlockThread(task)) {
-                task->blockType = BlockType::BLOCK_COROUTINE;
+                static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
                 we->task = nullptr;
             }
 
@@ -161,7 +161,7 @@ void SharedMutexPrivate::NotifyAll(LinkedList& wList)
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
+            CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
         }
 
         if (we->wtType == SharedMutexWaitType::READ) {

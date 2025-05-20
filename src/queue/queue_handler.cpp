@@ -139,10 +139,10 @@ void QueueHandler::Submit(QueueTask* task)
         task->SetQos(qos_);
     }
 
-    uint64_t gid = task->gid;
-    FFRTTraceRecord::TaskSubmit(&(task->createTime), &(task->fromTid));
+    task->Submit();
 
     trafficRecord_.SubmitTraffic(this);
+
 #if (FFRT_TRACE_RECORD_LEVEL < FFRT_TRACE_RECORD_LEVEL_1)
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
         task->fromTid = ExecuteCtx::Cur()->tid;
@@ -156,7 +156,7 @@ void QueueHandler::Submit(QueueTask* task)
 
     int ret = queue_->Push(task);
     if (ret == SUCC) {
-        FFRT_LOGD("submit task[%lu] into %s", gid, name_.c_str());
+        FFRT_LOGD("submit task[%lu] into %s", task->gid, name_.c_str());
         return;
     }
     if (ret == FAILED) {
@@ -170,12 +170,12 @@ void QueueHandler::Submit(QueueTask* task)
 
     // activate queue
     if (task->GetDelay() == 0) {
-        FFRT_LOGD("task [%llu] activate %s", gid, name_.c_str());
+        FFRT_LOGD("task [%llu] activate %s", task->gid, name_.c_str());
         curTask_ = task;
         FFRTFacade::GetQMInstance().UpdateQueueInfo();
         TransferTask(task);
     } else {
-        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", gid, task->GetDelay(), name_.c_str());
+        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", task->gid, task->GetDelay(), name_.c_str());
         if (ret == INACTIVE) {
             queue_->Push(task);
         }
@@ -255,11 +255,9 @@ int QueueHandler::Cancel(QueueTask* task)
             }
         }
         trafficRecord_.DoneTraffic();
-        task->SetStatus(CoTaskStatus::CANCELED);
-        task->Notify();
-        task->Destroy();
+        task->Cancel();
     } else {
-        FFRT_LOGD("cancel task[%llu] %s failed, task may have been executed", task->gid, task->label.c_str());
+        FFRT_LOGD("cancel task[%llu] %s failed, task may have been executed", task->gid, task->GetLabel().c_str());
     }
     return ret;
 }
@@ -278,6 +276,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRTTraceRecord::TaskExecute(&(task->executeTime));
+        task->status = TaskStatus::EXECUTING;
         if (task->GetSchedTimeout() > 0) {
             RemoveSchedDeadline(task);
         }
@@ -289,18 +288,12 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         }
 
         f->exec(f);
-        if (task->createTime != 0) {
-            FFRTTraceRecord::TaskDone<ffrt_queue_task>(task->GetQos(), task);
-        }
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
             uint64_t completeTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
         }
-        if (f->destroy) {
-            f->destroy(f);
-        }
-        task->Notify();
+        task->Finish();
         RemoveTimeoutMonitor(task);
         trafficRecord_.DoneTraffic();
 
@@ -338,12 +331,7 @@ void QueueHandler::TransferTask(QueueTask* task)
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
         reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->SetCurrentRunningTask(task);
     }
-    FFRTScheduler* sch = FFRTFacade::GetSchedInstance();
-    FFRT_READY_MARKER(task->gid); // ffrt queue task ready to enque
-    if (!sch->InsertNode(&entry->node, task->GetQos())) {
-        FFRT_SYSEVENT_LOGE("failed to insert task [%llu] into %s", task->gid, name_.c_str());
-        return;
-    }
+    task->Ready();
 }
 
 void QueueHandler::TransferInitTask()

@@ -14,105 +14,24 @@
  */
 
 #include "scheduler.h"
-
-#include "util/ffrt_facade.h"
 #include "util/singleton_register.h"
-
-namespace {
-constexpr int TASK_OVERRUN_THRESHOLD = 1000;
-constexpr int TASK_OVERRUN_ALARM_FREQ = 500;
-}
+#include "util/ffrt_facade.h"
 
 namespace ffrt {
-
-FFRTScheduler* FFRTScheduler::Instance()
+Scheduler* Scheduler::Instance()
 {
-    return &SingletonRegister<FFRTScheduler>::Instance();
+    static Scheduler instance;
+    return &instance;
 }
 
-void FFRTScheduler::RegistInsCb(SingleInsCB<FFRTScheduler>::Instance &&cb)
+bool Scheduler::CancelUVWork(ffrt_executor_task_t* uvWork, int qos)
 {
-    SingletonRegister<FFRTScheduler>::RegistInsCb(std::move(cb));
-}
-
-bool FFRTScheduler::InsertNode(LinkedList* node, const QoS qos)
-{
-    FFRT_COND_DO_ERR((node == nullptr), return false, "Node is NULL");
-
-    int level = qos();
-    FFRT_COND_DO_ERR((level == qos_inherit), return false, "Level incorrect");
-
-    ffrt_executor_task_t* task = reinterpret_cast<ffrt_executor_task_t*>(reinterpret_cast<char*>(node) -
-        offsetof(ffrt_executor_task_t, wq));
-    uintptr_t taskType = task->type;
-
-    auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
-    lock->lock();
-    fifoQue[static_cast<unsigned short>(level)]->WakeupNode(node);
-    lock->unlock();
-
-    if (taskType == ffrt_io_task) {
-        FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(qos);
-        return true;
-    }
-
-    FFRTFacade::GetEUInstance().NotifyTaskAdded(qos);
-    return true;
-}
-
-bool FFRTScheduler::RemoveNode(LinkedList* node, const QoS qos)
-{
-    FFRT_COND_DO_ERR((node == nullptr), return false, "Node is NULL");
-
-    int level = qos();
-    FFRT_COND_DO_ERR((level == qos_inherit), return false, "Level incorrect");
-
-    auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
-    lock->lock();
-    if (!node->InList()) {
-        lock->unlock();
-        return false;
-    }
-    fifoQue[static_cast<unsigned short>(level)]->RemoveNode(node);
-    lock->unlock();
-    return true;
-}
-
-bool FFRTScheduler::WakeupTask(CPUEUTask* task)
-{
-    FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
-
-    int qosLevel = task->qos_();
-    if (qosLevel == qos_inherit) {
-        FFRT_SYSEVENT_LOGE("qos inhert not support wake up task[%lu], name[%s]",
-            task->gid, task->label.c_str());
+    if (!reinterpret_cast<LinkedList*>(uvWork->wq)->InList()) {
+        FFRT_SYSEVENT_LOGW("the task has been picked, or has not been inserted");
         return false;
     }
 
-    QoS _qos = qosLevel;
-    int level = _qos();
-    uint64_t gid = task->gid;
-    bool notifyWorker = task->notifyWorker_;
-    std::string label = task->label;
-
-    FFRT_READY_MARKER(gid); // ffrt normal task ready to enque
-    auto lock = FFRTFacade::GetEUInstance().GetSleepCtl(level);
-    lock->lock();
-    fifoQue[static_cast<unsigned short>(level)]->WakeupTask(task);
-    int taskCount = fifoQue[static_cast<size_t>(level)]->RQSize();
-    lock->unlock();
-
-    // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
-    FFRT_LOGD("qos[%d] task[%lu] entered q", level, gid);
-    if (taskCount >= TASK_OVERRUN_THRESHOLD && taskCount % TASK_OVERRUN_ALARM_FREQ == 0) {
-        FFRT_SYSEVENT_LOGW("qos [%d], task [%s] entered q, task count [%d] exceeds threshold.",
-            level, label.c_str(), taskCount);
-    }
-
-    if (notifyWorker) {
-        FFRTFacade::GetEUInstance().NotifyTaskAdded(_qos);
-    }
-
+    GetScheduler(qos).CancelUVWork(uvWork);
     return true;
 }
 

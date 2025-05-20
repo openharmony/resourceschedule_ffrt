@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,45 +12,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#include "eu/worker_thread.h"
 #include <algorithm>
 #include <unistd.h>
 #include <sys/syscall.h>
-#include "dfx/log/ffrt_log_api.h"
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-#include "eu/blockaware.h"
-#endif
-#include "eu/execute_unit.h"
+#include <sys/resource.h>
+#include "cpu_worker.h"
 #include "eu/osattr_manager.h"
 #include "eu/qos_interface.h"
-#include "qos.h"
-#include "util/ffrt_facade.h"
 #include "util/name_manager.h"
+#include "util/ffrt_facade.h"
+#include "internal_inc/osal.h"
+
+namespace {
+constexpr int CFS_PRIO_MIN = 1;
+constexpr int CFS_PRIO_DEFAULT = 20;
+constexpr int CFS_PRIO_MAX = 40;
+constexpr int VIP_PRIO_MIN = 41;
+constexpr int VIP_PRIO_MAX = 50;
+constexpr int RT_PRIO_MIN = 51;
+constexpr int RT_PRIO_MAX = 139;
+}
 
 namespace ffrt {
-WorkerThread::WorkerThread(const QoS& qos) : exited(false), idle(false), tid(-1), qos(qos)
-{
-#ifdef FFRT_PTHREAD_ENABLE
-    pthread_attr_init(&attr_);
-    size_t stackSize = FFRTFacade::GetEUInstance().GetGroupCtl()[qos()].workerStackSize;
-    if (stackSize > 0) {
-        pthread_attr_setstacksize(&attr_, stackSize);
-    }
-#endif
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    domain_id = (qos() <= BLOCKAWARE_DOMAIN_ID_MAX) ? qos() : BLOCKAWARE_DOMAIN_ID_MAX + 1;
-#endif
-}
-
-void WorkerThread::NativeConfig()
-{
-    pid_t pid = syscall(SYS_gettid);
-    this->tid = pid;
-    SetThreadAttr(this, qos);
-}
-
-void WorkerThread::WorkerSetup()
+void CPUWorker::WorkerSetup()
 {
     static std::atomic<int> threadIndex[QoS::MaxNum()] = {0};
     int tid = threadIndex[qos()].fetch_add(1, std::memory_order_relaxed);
@@ -79,11 +63,16 @@ int SetCpuAffinity(unsigned long affinity, int tid)
     return ret;
 }
 
-void SetThreadAttr(WorkerThread* thread, const QoS& qos)
+void SetDefaultThreadAttr(CPUWorker* thread, const QoS& qos)
 {
     if (qos() <= qos_max) {
         FFRTQosApplyForOther(qos(), thread->Id());
         FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
     }
 }
-}; // namespace ffrt
+
+void CPUWorker::SetThreadAttr(const QoS& newQos)
+{
+    SetDefaultThreadAttr(this, newQos);
+}
+}

@@ -27,15 +27,17 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_this_task_set_legacy_mode(bool mode)
 {
     auto task = ffrt::ExecuteCtx::Cur()->task;
-    if (!task) {
+    if (!ffrt::IsCoTask(task)) {
         return;
     }
 
+    ffrt::CoTask* coTask = static_cast<ffrt::CoTask*>(task);
+
     if (mode) {
-        task->legacyCountNum++;
+        coTask->legacyCountNum++;
     } else {
-        task->legacyCountNum--;
-        if (task->legacyCountNum < 0) {
+        coTask->legacyCountNum--;
+        if (coTask->legacyCountNum < 0) {
             FFRT_SYSEVENT_LOGE("Legacy count num less than zero");
         }
     }

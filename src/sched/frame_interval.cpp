@@ -29,7 +29,7 @@ FrameInterval::FrameInterval(uint64_t deadline, const QoS& qos) : Interval(deadl
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup][Interface] Create WorkGroup Failed");
     } else {
-        FFRTFacade::GetEUInstance().BindWG(DevType::CPU, this->qos);
+        FFRTFacade::GetEUInstance().BindWG(this->qos);
     }
 }
 

@@ -47,7 +47,7 @@ ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt
 
     int handle = ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).RegisterTimer(timeout, data, cb, repeat);
     if (handle >= 0) {
-        ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(pollerQos);
+        ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(pollerQos);
     }
     return handle;
 }

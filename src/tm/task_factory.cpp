@@ -16,6 +16,7 @@
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"
 #include "tm/io_task.h"
+#include "tm/uv_task.h"
 
 namespace ffrt {
 template <typename T>
@@ -28,4 +29,5 @@ TaskFactory<T>& TaskFactory<T>::Instance()
 template class TaskFactory<CPUEUTask>;
 template class TaskFactory<QueueTask>;
 template class TaskFactory<IOTask>;
+template class TaskFactory<UVTask>;
 } // namespace ffrt

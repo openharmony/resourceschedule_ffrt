@@ -32,17 +32,11 @@ public:
 
     void onWait() override;
 
-#ifdef QOS_DEPENDENCY
-    void onWait(const ffrt_deps_t* deps, int64_t deadline = -1) override;
-#else
     void onWait(const ffrt_deps_t* deps) override;
-#endif
 
     int onExecResults(ffrt_task_handle_t handle) override;
 
     void onTaskDone(CPUEUTask* task) override;
-
-    int onSkip(ffrt_task_handle_t handle) override;
 
 private:
     SDependenceManager();

@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include <pthread.h>
-#include <random>
 #include "tm/io_task.h"
 #include "core/task_io.h"
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
@@ -24,10 +23,6 @@
 #include "util/spmc_queue.h"
 
 #define ENABLE_LOCAL_QUEUE
-
-namespace {
-const int INSERT_GLOBAL_QUEUE_FREQ = 5;
-}
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +52,11 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
 API_ATTRIBUTE((visibility("default")))
 void* ffrt_get_current_task(void)
 {
-    return reinterpret_cast<void*>(ffrt::ExecuteCtx::Cur()->exec_task);
+    auto task = ffrt::ExecuteCtx::Cur()->task;
+    if (!ffrt::IsCoTask(task)) {
+        return reinterpret_cast<void*>(task);
+    }
+    return nullptr;
 }
 
 // API used to schedule stackless coroutine task
@@ -73,29 +72,13 @@ void ffrt_wake_coroutine(void* task)
     TaskWakeCounterInc();
 #endif
 
-    ffrt::IOTask* wakedTask = static_cast<ffrt::IOTask*>(task);
-    wakedTask->status = ffrt::ExecTaskStatus::ET_READY;
-
-#ifdef FFRT_LOCAL_QUEUE_ENABLE
-    // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yeild function
-    bool selfWakeup = (ffrt::ExecuteCtx::Cur()->exec_task == task);
-    if (!selfWakeup) {
-        if (ffrt::ExecuteCtx::Cur()->PushTaskToPriorityStack(wakedTask)) {
-            return;
-        }
-
-        if (rand() % INSERT_GLOBAL_QUEUE_FREQ) {
-            if (ffrt::ExecuteCtx::Cur()->localFifo != nullptr &&
-                ffrt::ExecuteCtx::Cur()->localFifo->PushTail(task) == 0) {
-                ffrt::FFRTFacade::GetEUInstance().NotifyLocalTaskAdded(wakedTask->qos_);
-                return;
-            }
-        }
-    }
-#endif
-
-    if (!ffrt::FFRTFacade::GetSchedInstance()->InsertNode(&wakedTask->fq_we.node, wakedTask->qos_)) {
-        FFRT_SYSEVENT_LOGE("Submit io task failed!");
+    ffrt::TaskBase* wakedTask = static_cast<ffrt::TaskBase*>(task);
+    wakedTask->status = ffrt::TaskStatus::READY;
+    int qos = wakedTask->qos_;
+    ffrt::FFRTFacade::GetSchedInstance()->PushTask(wakedTask->qos_, wakedTask);
+    if (ffrt::FFRTFacade::GetSchedInstance()->GetTaskSchedMode(qos)
+        == ffrt::TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
+        ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(qos);
     }
 }
 #ifdef __cplusplus

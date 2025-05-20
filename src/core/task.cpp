@@ -25,7 +25,7 @@
 #include "task_attr_private.h"
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
-#include "eu/worker_thread.h"
+#include "eu/cpu_worker.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/watchdog/watchdog_util.h"
@@ -84,19 +84,14 @@ void sync_io(int fd)
 API_ATTRIBUTE((visibility("default")))
 void set_trace_tag(const char* name)
 {
-    CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
-    if (curTask != nullptr) {
-        curTask->SetTraceTag(name);
-    }
+    // !deprecated
+    (void)name;
 }
 
 API_ATTRIBUTE((visibility("default")))
 void clear_trace_tag()
 {
-    CPUEUTask* curTask = ffrt::ExecuteCtx::Cur()->task;
-    if (curTask != nullptr) {
-        curTask->ClearTraceTag();
-    }
+    // !deprecated
 }
 
 void CreateDelayDeps(
@@ -478,13 +473,7 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_restore_qos_config()
 {
-    ffrt::WorkerGroupCtl *wgCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
-    for (auto qos = ffrt::QoS::Min(); qos < ffrt::QoS::Max(); ++qos) {
-        std::unique_lock<std::shared_mutex> lck(wgCtl[qos].tgMutex);
-        for (auto& thread : wgCtl[qos].threads) {
-            ffrt::SetThreadAttr(thread.first, qos);
-        }
-    }
+    ffrt::FFRTFacade::GetEUInstance().RestoreThreadConfig();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -503,8 +492,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
         FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
     }
-    ffrt::CPUMonitor *monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
-    return monitor->SetWorkerMaxNum(_qos, num);
+    return ffrt::FFRTFacade::GetEUInstance().SetWorkerMaxNum(_qos, num);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -526,22 +514,9 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
         return ffrt_error_inval;
     }
 
-    ffrt::WorkerGroupCtl* groupCtl = ffrt::FFRTFacade::GetEUInstance().GetGroupCtl();
-    std::unique_lock<std::shared_mutex> lck(groupCtl[qos].tgMutex);
-    if (!groupCtl[qos].threads.empty()) {
-        FFRT_SYSEVENT_LOGE("Stack size can be set only when there is no worker.");
+    if (ffrt::FFRTFacade::GetEUInstance().SetWorkerStackSize(ffrt::QoS(qos), stack_size) != 0) {
         return ffrt_error;
     }
-
-    int pageSize = getpagesize();
-    if (pageSize < 0) {
-        FFRT_SYSEVENT_LOGE("Invalid pagesize : %d", pageSize);
-        return ffrt_error;
-    }
-
-    groupCtl[qos].workerStackSize = (stack_size - 1 + static_cast<size_t>(pageSize)) &
-        -(static_cast<size_t>(pageSize));
-
     return ffrt_success;
 }
 
@@ -607,7 +582,7 @@ int64_t ffrt_this_queue_get_id()
         return -1;
     }
 
-    ffrt::QueueTask* task = reinterpret_cast<ffrt::QueueTask*>(curTask);
+    ffrt::QueueTask* task = static_cast<ffrt::QueueTask*>(curTask);
     return task->GetQueueId();
 }
 
@@ -644,15 +619,11 @@ void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executo
 API_ATTRIBUTE((visibility("default")))
 int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 {
-    if (task == nullptr) {
-        FFRT_LOGE("function handler should not be empty");
-        return 0;
-    }
-    ffrt::QoS _qos = qos;
+    FFRT_COND_DO_ERR((qos == ffrt::qos_inherit), return 0, "Level incorrect");
+    FFRT_COND_DO_ERR((task == nullptr), return 0, "libuv task is NULL");
 
-    ffrt::LinkedList* node = reinterpret_cast<ffrt::LinkedList *>(&task->wq);
-    ffrt::FFRTScheduler* sch = ffrt::FFRTFacade::GetSchedInstance();
-    bool ret = sch->RemoveNode(node, _qos);
+    ffrt::Scheduler* sch = ffrt::FFRTFacade::GetSchedInstance();
+    bool ret = sch->CancelUVWork(task, qos);
     if (ret) {
         ffrt::FFRTTraceRecord::TaskCancel<ffrt_uv_task>(qos);
     }
@@ -662,7 +633,10 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 API_ATTRIBUTE((visibility("default")))
 void* ffrt_get_cur_task(void)
 {
-    return ffrt::ExecuteCtx::Cur()->task;
+    if (ffrt::IsCoTask(ffrt::ExecuteCtx::Cur()->task)) {
+        return ffrt::ExecuteCtx::Cur()->task;
+    }
+    return nullptr;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -682,9 +656,9 @@ bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
         return false;
     }
 
-    auto curTask = ctx->task;
-    if (curTask != nullptr) {
-        auto co = curTask->coRoutine;
+    auto curTask = ffrt::ExecuteCtx::Cur()->task;
+    if (IsCoTask(curTask)) {
+        auto co = static_cast<ffrt::CoTask*>(curTask)->coRoutine;
         if (co) {
             *size = co->stkMem.size;
             *stack_addr = GetCoStackAddr(co);
@@ -741,15 +715,14 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
     uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num)
 {
-    ffrt::CPUMonitor* monitor = ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor();
-    return monitor->SetEscapeEnable(one_stage_interval_ms, two_stage_interval_ms,
+    return ffrt::FFRTFacade::GetEUInstance().SetEscapeEnable(one_stage_interval_ms, two_stage_interval_ms,
         three_stage_interval_ms, one_stage_worker_num, two_stage_worker_num);
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_disable_worker_escape(void)
 {
-    ffrt::FFRTFacade::GetEUInstance().GetCPUMonitor()->SetEscapeDisable();
+    ffrt::FFRTFacade::GetEUInstance().SetEscapeDisable();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -759,7 +732,7 @@ void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
         FFRT_LOGE("Currently, the energy saving mode is unavailable or qos [%d] is invalid..", qos);
         return;
     }
-    ffrt::CPUManagerStrategy::SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));
+    ffrt::FFRTFacade::GetEUInstance().SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));
 }
 #ifdef __cplusplus
 }

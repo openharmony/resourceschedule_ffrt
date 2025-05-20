@@ -15,40 +15,29 @@
 
 #include "io_task.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
-#include "dfx/trace/ffrt_trace.h"
 #include "dfx/bbox/bbox.h"
-#include "tm/task_factory.h"
 
 namespace ffrt {
-IOTask::IOTask(const ffrt_io_callable_t& work, const task_attr_private* attr) : work(work)
-{
-    this->type = ffrt_io_task;
-    this->qos_ = (attr == nullptr || attr->qos_ == qos_inherit) ? QoS()
-        : QoS(attr->qos_);
-    fq_we.task = reinterpret_cast<CPUEUTask*>(this);
-}
-
-void IOTask::FreeMem()
-{
-    TaskFactory<IOTask>::Free(this);
-}
+IOTask::IOTask(const ffrt_io_callable_t& work, const task_attr_private* attr)
+    : TaskBase(ffrt_io_task, attr), work(work) {}
 
 void IOTask::Execute()
 {
     FFRTTraceRecord::TaskExecute<ffrt_io_task>(qos_);
     FFRT_EXECUTOR_TASK_BEGIN(this);
-    status = ExecTaskStatus::ET_EXECUTING;
+    status = TaskStatus::EXECUTING;
     ffrt_coroutine_ptr_t coroutine = work.exec;
     ffrt_coroutine_ret_t ret = coroutine(work.data);
     if (ret == ffrt_coroutine_ready) {
-        status = ExecTaskStatus::ET_FINISH;
+        status = TaskStatus::FINISH;
         work.destroy(work.data);
         DecDeleteRef();
         FFRT_EXECUTOR_TASK_END();
+        FFRTTraceRecord::TaskDone<ffrt_io_task>(qos_);
         return;
     }
     FFRT_EXECUTOR_TASK_BLOCK_MARKER(this);
-    status = ExecTaskStatus::ET_PENDING;
+    status = TaskStatus::PENDING;
 #ifdef FFRT_BBOX_ENABLE
     TaskPendingCounterInc();
 #endif

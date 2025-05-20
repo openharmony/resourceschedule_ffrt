@@ -25,7 +25,7 @@
 
 #include "dfx/sysevent/sysevent.h"
 #include "eu/execute_unit.h"
-#include "eu/worker_manager.h"
+#include "eu/execute_unit.h"
 #include "eu/co_routine_factory.h"
 #include "internal_inc/osal.h"
 #include "sched/scheduler.h"
@@ -79,13 +79,13 @@ WorkerMonitor::WorkerMonitor()
             return;
         }
 
-        WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
         {
             bool noWorkerThreads = true;
             std::lock_guard submitTaskLock(submitTaskMutex_);
             for (int i = 0; i < QoS::MaxNum(); i++) {
-                std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-                if (!workerGroup[i].threads.empty()) {
+                CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+                std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
+                if (!workerGroup.threads.empty()) {
                     noWorkerThreads = false;
                     break;
                 }
@@ -158,13 +158,13 @@ void WorkerMonitor::CheckWorkerStatus()
         return;
     }
 
-    WorkerGroupCtl* workerGroup = FFRTFacade::GetEUInstance().GetGroupCtl();
     {
         bool noWorkerThreads = true;
         std::lock_guard submitTaskLock(submitTaskMutex_);
         for (int i = 0; i < QoS::MaxNum(); i++) {
-            std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-            if (!workerGroup[i].threads.empty()) {
+            CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+            std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
+            if (!workerGroup.threads.empty()) {
                 noWorkerThreads = false;
                 break;
             }
@@ -181,13 +181,11 @@ void WorkerMonitor::CheckWorkerStatus()
 
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        int executionNum = FFRTFacade::GetEUInstance().GetCPUMonitor()->WakedWorkerNum(i);
-        int sleepingWorkerNum = FFRTFacade::GetEUInstance().GetCPUMonitor()->SleepingWorkerNum(i);
-
-        std::shared_lock<std::shared_mutex> lck(workerGroup[i].tgMutex);
-        CoWorkerInfo coWorkerInfo(i, workerGroup[i].threads.size(), executionNum, sleepingWorkerNum);
-        for (auto& thread : workerGroup[i].threads) {
-            WorkerThread* worker = thread.first;
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
+        CoWorkerInfo coWorkerInfo(i, workerGroup.threads.size(), workerGroup.executingNum, workerGroup.sleepingNum);
+        for (auto& thread : workerGroup.threads) {
+            CPUWorker* worker = thread.first;
             CPUEUTask* workerTask = static_cast<CPUEUTask*>(worker->curTask);
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
@@ -209,7 +207,7 @@ void WorkerMonitor::CheckWorkerStatus()
     SubmitSamplingTask();
 }
 
-void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, WorkerThread* worker,
+void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,
     CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions)
 {
     auto workerIter = workerStatus_.find(worker);

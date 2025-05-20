@@ -63,9 +63,10 @@ PollerProxy& PollerProxy::Instance()
 
 int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_cb cb) noexcept
 {
-    auto wakeData = std::make_unique<WakeDataWithCb>(fd, data, cb, ExecuteCtx::Cur()->task);
-    if (ExecuteCtx::Cur()->task) {
-        ExecuteCtx::Cur()->task->pollerEnable = true;
+    CoTask* task = IsCoTask(ExecuteCtx::Cur()->task) ? static_cast<CoTask*>(ExecuteCtx::Cur()->task) : nullptr;
+    auto wakeData = std::make_unique<WakeDataWithCb>(fd, data, cb, task);
+    if (task) {
+        task->pollerEnable = true;
     }
     void* ptr = static_cast<void*>(wakeData.get());
     if (ptr == nullptr || wakeData == nullptr) {
@@ -97,7 +98,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     return 0;
 }
 
-void Poller::CacheMaskFdAndEpollDel(int fd, CPUEUTask *task) noexcept
+void Poller::CacheMaskFdAndEpollDel(int fd, CoTask *task) noexcept
 {
     auto maskWakeDataWithCb = m_maskWakeDataWithCbMap.find(task);
     if (maskWakeDataWithCb != m_maskWakeDataWithCbMap.end()) {
@@ -108,7 +109,7 @@ void Poller::CacheMaskFdAndEpollDel(int fd, CPUEUTask *task) noexcept
     }
 }
 
-int Poller::ClearMaskWakeDataWithCbCache(CPUEUTask *task) noexcept
+int Poller::ClearMaskWakeDataWithCbCache(CoTask *task) noexcept
 {
     auto maskWakeDataWithCbIter = m_maskWakeDataWithCbMap.find(task);
     if (maskWakeDataWithCbIter != m_maskWakeDataWithCbMap.end()) {
@@ -122,7 +123,7 @@ int Poller::ClearMaskWakeDataWithCbCache(CPUEUTask *task) noexcept
     return 0;
 }
 
-int Poller::ClearMaskWakeDataWithCbCacheWithFd(CPUEUTask *task, int fd) noexcept
+int Poller::ClearMaskWakeDataWithCbCacheWithFd(CoTask *task, int fd) noexcept
 {
     auto maskWakeDataWithCbIter = m_maskWakeDataWithCbMap.find(task);
     if (maskWakeDataWithCbIter != m_maskWakeDataWithCbMap.end()) {
@@ -140,7 +141,7 @@ int Poller::ClearDelFdCache(int fd) noexcept
 {
     auto fdDelCacheIter = m_delFdCacheMap.find(fd);
     if (fdDelCacheIter != m_delFdCacheMap.end()) {
-        CPUEUTask *task = fdDelCacheIter->second;
+        CoTask *task = fdDelCacheIter->second;
         ClearMaskWakeDataWithCbCacheWithFd(task, fd);
         m_delFdCacheMap.erase(fdDelCacheIter);
     }
@@ -190,7 +191,7 @@ int Poller::DelFdEvent(int fd) noexcept
     return 0;
 }
 
-void Poller::ClearCachedEvents(CPUEUTask* task) noexcept
+void Poller::ClearCachedEvents(CoTask* task) noexcept
 {
     std::unique_lock lock(m_mapMutex);
     auto iter = m_cachedTaskEvents.find(task);
@@ -249,7 +250,7 @@ int Poller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_
     return fdCnt;
 }
 
-int Poller::FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept
+int Poller::FetchCachedEventAndDoUnmask(CoTask* task, struct epoll_event* eventsVec) noexcept
 {
     // should used in lock
     auto syncTaskIter = m_cachedTaskEvents.find(task);
@@ -267,7 +268,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 {
     FFRT_COND_DO_ERR((eventsVec == nullptr), return -1, "eventsVec cannot be null");
 
-    auto task = ExecuteCtx::Cur()->task;
+    CoTask* task = IsCoTask(ExecuteCtx::Cur()->task) ? static_cast<CoTask*>(ExecuteCtx::Cur()->task) : nullptr;
     if (!task) {
         FFRT_SYSEVENT_LOGE("nonworker shall not call this fun.");
         return -1;
@@ -283,7 +284,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         if (cachedNfds > 0) {
             m_mapMutex.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
-                task->label.c_str(), task->gid, cachedNfds);
+                task->GetLabel().c_str(), task->gid, cachedNfds);
             return cachedNfds;
         }
 
@@ -302,18 +303,18 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             m_waitTaskMap[task].timerHandle = RegisterTimer(timeout, nullptr, nullptr);
         }
         m_mapMutex.unlock();
-        reinterpret_cast<SCPUEUTask*>(task)->waitCond_.wait(lck);
-        FFRT_LOGD("task[%s] id[%d] has [%d] events", task->label.c_str(), task->gid, nfds);
+        task->waitCond_.wait(lck);
+        FFRT_LOGD("task[%s] id[%d] has [%d] events", task->GetLabel().c_str(), task->gid, nfds);
         return nfds;
     }
 
-    CoWait([&](CPUEUTask *task)->bool {
+    CoWait([&](CoTask *task)->bool {
         m_mapMutex.lock();
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
             m_mapMutex.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
-                task->label.c_str(), task->gid, cachedNfds);
+                task->GetLabel().c_str(), task->gid, cachedNfds);
             nfds = cachedNfds;
             return false;
         }
@@ -333,7 +334,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         // The ownership of the task belongs to m_waitTaskMap, and the task cannot be accessed any more.
         return true;
     });
-    FFRT_LOGD("task[%s] id[%d] has [%d] events", task->label.c_str(), task->gid, nfds);
+    FFRT_LOGD("task[%s] id[%d] has [%d] events", task->GetLabel().c_str(), task->gid, nfds);
     return nfds;
 }
 
@@ -343,7 +344,7 @@ void Poller::WakeUp() noexcept
     (void)::write(m_wakeData.fd, &one, sizeof one);
 }
 
-void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
+void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CoTask*, EventVec>& syncTaskEvents,
                               std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept
 {
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
@@ -372,14 +373,14 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>
 }
 
 namespace {
-void WakeTask(CPUEUTask* task)
+void WakeTask(CoTask* task)
 {
     if (ThreadNotifyMode(task)) {
         std::unique_lock<std::mutex> lck(task->mutex_);
         if (BlockThread(task)) {
             task->blockType = BlockType::BLOCK_COROUTINE;
         }
-        reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
+        task->waitCond_.notify_one();
     } else {
         CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
     }
@@ -407,7 +408,7 @@ void CopyEventsInfoToConsumer(SyncData& taskInfo, EventVec& cachedEventsVec)
 }
 } // namespace
 
-void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
+void Poller::CacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept
 {
     auto& syncTaskEvents = m_cachedTaskEvents[task];
     for (size_t i = 0; i < eventVec.size(); i++) {
@@ -448,17 +449,17 @@ void Poller::CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept
     }
 }
 
-void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept
+void Poller::WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEvents) noexcept
 {
     if (syncTaskEvents.empty()) {
         return;
     }
 
     std::unordered_set<int> timerHandlesToRemove;
-    std::unordered_set<CPUEUTask*> tasksToWake;
+    std::unordered_set<CoTask*> tasksToWake;
     m_mapMutex.lock();
     for (auto& taskEventPair : syncTaskEvents) {
-        CPUEUTask* currTask = taskEventPair.first;
+        CoTask* currTask = taskEventPair.first;
         auto iter = m_waitTaskMap.find(currTask);
         if (iter == m_waitTaskMap.end()) {
             CacheEventsAndDoMask(currTask, taskEventPair.second);
@@ -491,7 +492,7 @@ void Poller::WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEven
     }
 }
 
-uint64_t Poller::GetTaskWaitTime(CPUEUTask* task) noexcept
+uint64_t Poller::GetTaskWaitTime(CoTask* task) noexcept
 {
     std::unique_lock lock(m_mapMutex);
     auto iter = m_waitTaskMap.find(task);
@@ -553,7 +554,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
         return PollerRet::RET_NULL;
     }
 
-    std::unordered_map<CPUEUTask*, EventVec> syncTaskEvents;
+    std::unordered_map<CoTask*, EventVec> syncTaskEvents;
     ProcessWaitedFds(nfds, syncTaskEvents, waitedEvents);
     WakeSyncTask(syncTaskEvents);
     ReleaseFdWakeData();
@@ -586,7 +587,7 @@ void Poller::ReleaseFdWakeData() noexcept
     fdEmpty_.store(m_wakeDataMap.empty());
 }
 
-void Poller::ProcessTimerDataCb(CPUEUTask* task) noexcept
+void Poller::ProcessTimerDataCb(CoTask* task) noexcept
 {
     m_mapMutex.lock();
     auto iter = m_waitTaskMap.find(task);
@@ -658,7 +659,8 @@ int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool r
     std::lock_guard lock(timerMutex_);
     timerHandle_ += 1;
 
-    TimerDataWithCb timerMapValue(data, cb, ExecuteCtx::Cur()->task, repeat, timeout);
+    CoTask* task = IsCoTask(ExecuteCtx::Cur()->task) ? static_cast<CoTask*>(ExecuteCtx::Cur()->task) : nullptr;
+    TimerDataWithCb timerMapValue(data, cb, task, repeat, timeout);
     timerMapValue.handle = timerHandle_;
     RegisterTimerImpl(timerMapValue);
 

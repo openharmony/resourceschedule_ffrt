@@ -28,7 +28,6 @@
 #include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"
 #include "c/timer.h"
-#include "eu/worker_thread.h"
 namespace ffrt {
 enum class PollerRet {
     RET_NULL,
@@ -51,27 +50,27 @@ constexpr int EPOLL_EVENT_SIZE = 1024;
 
 struct WakeDataWithCb {
     WakeDataWithCb() {}
-    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal, CPUEUTask *taskVal)
+    WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal, CoTask *taskVal)
         : fd(fdVal), data(dataVal), cb(cbVal), task(taskVal)
     {}
 
     int fd = 0;
     void* data = nullptr;
     std::function<void(void*, uint32_t)> cb = nullptr;
-    CPUEUTask* task = nullptr;
+    CoTask* task = nullptr;
     uint32_t monitorEvents = 0;
 };
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CPUEUTask *taskVal, bool repeat, uint64_t timeout)
+    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CoTask *taskVal, bool repeat, uint64_t timeout)
         : data(dataVal), cb(cbVal), task(taskVal), repeat(repeat), timeout(timeout)
     {}
 
     void* data = nullptr;
     void(*cb)(void*) = nullptr;
     int handle = -1;
-    CPUEUTask* task = nullptr;
+    CoTask* task = nullptr;
     bool repeat = false;
     uint64_t timeout = 0;
 };
@@ -109,40 +108,40 @@ public:
 
     uint64_t GetPollCount() noexcept;
 
-    uint64_t GetTaskWaitTime(CPUEUTask* task) noexcept;
+    uint64_t GetTaskWaitTime(CoTask* task) noexcept;
 
     bool DetermineEmptyMap() noexcept;
     bool DeterminePollerReady() noexcept;
 
-    void ClearCachedEvents(CPUEUTask* task) noexcept;
+    void ClearCachedEvents(CoTask* task) noexcept;
 
 private:
     void ReleaseFdWakeData() noexcept;
-    void WakeSyncTask(std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents) noexcept;
-    void ProcessWaitedFds(int nfds, std::unordered_map<CPUEUTask*, EventVec>& syncTaskEvents,
+    void WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEvents) noexcept;
+    void ProcessWaitedFds(int nfds, std::unordered_map<CoTask*, EventVec>& syncTaskEvents,
                           std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept;
 
     void ExecuteTimerCb(TimePoint timer) noexcept;
-    void ProcessTimerDataCb(CPUEUTask* task) noexcept;
+    void ProcessTimerDataCb(CoTask* task) noexcept;
     void RegisterTimerImpl(const TimerDataWithCb& data) noexcept;
 
-    void CacheEventsAndDoMask(CPUEUTask* task, EventVec& eventVec) noexcept;
-    int FetchCachedEventAndDoUnmask(CPUEUTask* task, struct epoll_event* eventsVec) noexcept;
+    void CacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept;
+    int FetchCachedEventAndDoUnmask(CoTask* task, struct epoll_event* eventsVec) noexcept;
     int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
 
-    inline void CacheDelFd(int fd, CPUEUTask *task) noexcept
+    inline void CacheDelFd(int fd, CoTask *task) noexcept
     {
         m_delFdCacheMap.emplace(fd, task);
     }
 
-    inline void CacheMaskWakeData(CPUEUTask* task, std::unique_ptr<struct WakeDataWithCb>& maskWakeData) noexcept
+    inline void CacheMaskWakeData(CoTask* task, std::unique_ptr<struct WakeDataWithCb>& maskWakeData) noexcept
     {
         m_maskWakeDataWithCbMap[task].emplace_back(std::move(maskWakeData));
     }
 
-    void CacheMaskFdAndEpollDel(int fd, CPUEUTask *task) noexcept;
-    int ClearMaskWakeDataWithCbCache(CPUEUTask *task) noexcept;
-    int ClearMaskWakeDataWithCbCacheWithFd(CPUEUTask *task, int fd) noexcept;
+    void CacheMaskFdAndEpollDel(int fd, CoTask *task) noexcept;
+    int ClearMaskWakeDataWithCbCache(CoTask *task) noexcept;
+    int ClearMaskWakeDataWithCbCacheWithFd(CoTask *task, int fd) noexcept;
     int ClearDelFdCache(int fd) noexcept;
 
     bool IsFdExist() noexcept;
@@ -155,11 +154,11 @@ private:
     struct WakeDataWithCb m_wakeData;
     std::unordered_map<int, WakeDataList> m_wakeDataMap;
     std::unordered_map<int, int> m_delCntMap;
-    std::unordered_map<CPUEUTask*, SyncData> m_waitTaskMap;
-    std::unordered_map<CPUEUTask*, EventVec> m_cachedTaskEvents;
+    std::unordered_map<CoTask*, SyncData> m_waitTaskMap;
+    std::unordered_map<CoTask*, EventVec> m_cachedTaskEvents;
 
-    std::unordered_map<int, CPUEUTask*> m_delFdCacheMap;
-    std::unordered_map<CPUEUTask*, WakeDataList> m_maskWakeDataWithCbMap;
+    std::unordered_map<int, CoTask*> m_delFdCacheMap;
+    std::unordered_map<CoTask*, WakeDataList> m_maskWakeDataWithCbMap;
 
     std::unordered_map<int, TimerStatus> executedHandle_;
     std::multimap<TimePoint, TimerDataWithCb> timerMap_;

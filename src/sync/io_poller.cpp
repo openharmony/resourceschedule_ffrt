@@ -115,27 +115,28 @@ void IOPoller::WakeUp() noexcept
 
 void IOPoller::WaitFdEvent(int fd) noexcept
 {
-    auto ctx = ExecuteCtx::Cur();
-    if (!ctx->task) {
+    CoTask* task = IsCoTask(ExecuteCtx::Cur()->task) ? static_cast<CoTask*>(ExecuteCtx::Cur()->task) : nullptr;
+    if (!task) {
         FFRT_SYSEVENT_LOGI("nonworker shall not call this fun.");
         return;
     }
-    struct WakeData data = {.fd = fd, .data = static_cast<void *>(ctx->task)};
+
+    struct WakeData data = {.fd = fd, .data = static_cast<void *>(task)};
 
     epoll_event ev = { .events = EPOLLIN, .data = {.ptr = static_cast<void*>(&data)} };
-    FFRT_BLOCK_TRACER(ctx->task->gid, fd);
-    if (ThreadWaitMode(ctx->task)) {
-        std::unique_lock<std::mutex> lck(ctx->task->mutex_);
+    FFRT_BLOCK_TRACER(task->gid, fd);
+    if (ThreadWaitMode(task)) {
+        std::unique_lock<std::mutex> lck(task->mutex_);
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
-            if (FFRT_UNLIKELY(LegacyMode(ctx->task))) {
-                ctx->task->blockType = BlockType::BLOCK_THREAD;
+            if (FFRT_UNLIKELY(LegacyMode(task))) {
+                task->blockType = BlockType::BLOCK_THREAD;
             }
-            reinterpret_cast<SCPUEUTask*>(ctx->task)->waitCond_.wait(lck);
+            task->waitCond_.wait(lck);
         }
         return;
     }
 
-    CoWait([&](CPUEUTask *task)->bool {
+    CoWait([&](CoTask *task)->bool {
         (void)task;
         if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
             return true;
@@ -171,13 +172,13 @@ void IOPoller::PollOnce(int timeout) noexcept
             continue;
         }
 
-        auto task = reinterpret_cast<CPUEUTask *>(data->data);
+        auto task = reinterpret_cast<CoTask *>(data->data);
         if (ThreadNotifyMode(task)) {
             std::unique_lock<std::mutex> lck(task->mutex_);
             if (BlockThread(task)) {
                 task->blockType = BlockType::BLOCK_COROUTINE;
             }
-            reinterpret_cast<SCPUEUTask*>(task)->waitCond_.notify_one();
+            task->waitCond_.notify_one();
         } else {
             CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
         }

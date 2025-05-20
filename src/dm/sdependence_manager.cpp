@@ -41,17 +41,16 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     SimpleAllocator<SCPUEUTask>::Instance();
     SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<IOTask>::Instance();
+    SimpleAllocator<UVTask>::Instance();
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
     QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
     PollerProxy::Instance();
-    FFRTScheduler::Instance();
+    Scheduler::Instance();
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance();
 #endif
     ExecuteUnit::Instance();
-    TaskState::RegisterOps(TaskState::EXITED,
-        [this](CPUEUTask* task) { return this->onTaskDone(static_cast<SCPUEUTask*>(task)), true; });
 
 #ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
@@ -91,14 +90,15 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     auto ctx = ExecuteCtx::Cur();
 
     // 2 Get current task's parent
-    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
+    auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ?
+        static_cast<CPUEUTask*>(ctx->task) : DependenceManager::Root();
 
     // 2.1 Create task ctx
     SCPUEUTask* task = nullptr;
     {
         task = reinterpret_cast<SCPUEUTask*>(static_cast<uintptr_t>(
             static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - OFFSETOF(SCPUEUTask, func_storage)));
-        new (task)SCPUEUTask(attr, parent, ++parent->childNum, QoS());
+        new (task)SCPUEUTask(attr, parent, ++parent->childNum);
     }
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
     if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
@@ -112,7 +112,8 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     }
 #endif
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
-    FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos, &(task->createTime), &(task->fromTid));
+    task->SetQos(qos);
+    task->Submit();
 
     std::vector<const void*> insNoDup;
     std::vector<const void*> outsNoDup;
@@ -130,7 +131,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         handle = static_cast<ffrt_task_handle_t>(task);
         outsNoDup.push_back(handle); // handle作为任务的输出signature
     }
-    task->SetQos(qos);
+
     /* The parent's number of subtasks to be completed increases by one,
         * and decreases by one after the subtask is completed
         */
@@ -164,12 +165,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         }
     }
 
-    if (attr != nullptr) {
-        task->notifyWorker_ = attr->notifyWorker_;
-    }
-
-    task->UpdateState(TaskState::READY);
-    FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
+    task->Ready();
     FFRT_TRACE_END();
 }
 
@@ -182,7 +178,7 @@ void SDependenceManager::onWait()
     if (ThreadWaitMode(task)) {
         std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDependenceAdd(Dependence::CALL_DEPENDENCE);
-        FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+        FFRT_LOGD("onWait name:%s gid=%lu", task->GetLabel().c_str(), task->gid);
         if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
@@ -190,25 +186,20 @@ void SDependenceManager::onWait()
         return;
     }
 
-    auto childDepFun = [&](ffrt::CPUEUTask* task) -> bool {
+    auto childDepFun = [](CoTask* task) -> bool {
         auto sTask = static_cast<SCPUEUTask*>(task);
         std::unique_lock<std::mutex> lck(sTask->mutex_);
         if (sTask->childRefCnt == 0) {
             return false;
         }
         sTask->MultiDependenceAdd(Dependence::CALL_DEPENDENCE);
-        sTask->UpdateState(ffrt::TaskState::BLOCKED);
         return true;
     };
     FFRT_BLOCK_TRACER(task->gid, chd);
     CoWait(childDepFun);
 }
 
-#ifdef QOS_DEPENDENCY
-void SDependenceManager::onWait(const ffrt_deps_t* deps, int64_t deadline = -1)
-#else
 void SDependenceManager::onWait(const ffrt_deps_t* deps)
-#endif
 {
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
@@ -235,11 +226,6 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
                 waitDatas.push_back(waitData);
             }
         }
-#ifdef QOS_DEPENDENCY
-        if (deadline != -1) {
-            Scheduler::Instance()->onWait(waitDatas, deadline);
-        }
-#endif
         for (auto data : std::as_const(waitDatas)) {
             data->AddDataWaitTaskByThis(task);
         }
@@ -249,7 +235,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         dataDepFun();
         std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDependenceAdd(Dependence::DATA_DEPENDENCE);
-        FFRT_LOGD("onWait name:%s gid=%lu", task->label.c_str(), task->gid);
+        FFRT_LOGD("onWait name:%s gid=%lu", task->GetLabel().c_str(), task->gid);
         if (FFRT_UNLIKELY(LegacyMode(task))) {
             task->blockType = BlockType::BLOCK_THREAD;
         }
@@ -257,16 +243,15 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         return;
     }
 
-    auto pendDataDepFun = [&](ffrt::CPUEUTask* task) -> bool {
+    auto pendDataDepFun = [dataDepFun](ffrt::CoTask* task) -> bool {
         auto sTask = static_cast<SCPUEUTask*>(task);
         dataDepFun();
-        FFRT_LOGD("onWait name:%s gid=%lu", sTask->label.c_str(), sTask->gid);
+        FFRT_LOGD("onWait name:%s gid=%lu", sTask->GetLabel().c_str(), sTask->gid);
         std::unique_lock<std::mutex> lck(sTask->mutex_);
         if (sTask->dataRefCnt.waitDep == 0) {
             return false;
         }
         sTask->MultiDependenceAdd(Dependence::DATA_DEPENDENCE);
-        sTask->UpdateState(ffrt::TaskState::BLOCKED);
         return true;
     };
     FFRT_BLOCK_TRACER(task->gid, dat);
@@ -284,7 +269,7 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos());
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos(),  task);
     FFRT_TRACE_SCOPE(1, ontaskDone);
-
+    sTask->DecChildRef();
     if (!(sTask->ins.empty() && sTask->outs.empty())) {
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
         FFRT_TRACE_SCOPE(1, taskDoneAfterLock);
@@ -315,8 +300,7 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     // before out->onProduced can lead to access
     // of freed memory on wait condition notification
     // of the parent task.
-    sTask->DecChildRef();
-    sTask->RecycleTask();
+    sTask->Finish();
 }
 
 void SDependenceManager::MapSignature2Deps(SCPUEUTask* task, const std::vector<const void*>& inDeps,
@@ -374,18 +358,5 @@ void SDependenceManager::MapSignature2Deps(SCPUEUTask* task, const std::vector<c
     add_outversion:
         outVersions.push_back({version, type});
     }
-}
-
-int SDependenceManager::onSkip(ffrt_task_handle_t handle)
-{
-    ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
-    auto exp = ffrt::SkipStatus::SUBMITTED;
-    if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
-        __ATOMIC_RELAXED)) {
-        return ffrt_success;
-    }
-
-    FFRT_LOGW("skip task [%lu] failed", task->gid);
-    return ffrt_error;
 }
 } // namespace ffrt

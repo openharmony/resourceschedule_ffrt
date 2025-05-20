@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <chrono>
 #include "ffrt_inner.h"
 #include "dfx/bbox/bbox.h"
 #include "c/queue_ext.h"
@@ -22,6 +23,7 @@
 using namespace ffrt;
 
 extern void SaveTheBbox();
+extern void RecordDebugInfo();
 
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
@@ -164,4 +166,20 @@ HWTEST_F(DfxTest, queue_dfx_bbox_queue_task_0001, TestSize.Level1)
         exit(0);
     }
     sleep(1);
+}
+
+/*
+* 测试用例名称：dfx_bbox_normal_task_0002
+* 测试用例描述：提交有依赖关系的任务，测试SaveTheBbox和RecordDebugInfo函数
+* 预置条件    ：无
+* 操作步骤    ：提交嵌套任务，子任务等待cv和数据依赖，调用SaveTheBbox和RecordDebugInfo接口
+* 预期结果    ：SaveTheBbox()函数正确执行
+*/
+HWTEST_F(DfxTest, dfx_bbox_normal_task_0002, TestSize.Level1)
+{
+    SaveTheBbox();
+    ffrt::submit([]() {
+        RecordDebugInfo();
+    });
+    ffrt::wait();
 }

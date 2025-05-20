@@ -95,8 +95,7 @@ int BaseQueue::Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whe
     int removedCount = 0;
     for (auto iter = whenMap.begin(); iter != whenMap.end();) {
         if (iter->second->IsMatch(name)) {
-            FFRT_LOGD("cancel task[%llu] %s succ", iter->second->gid, iter->second->label.c_str());
-            iter->second->SetStatus(CoTaskStatus::CANCELED);
+            FFRT_LOGD("cancel task[%llu] %s succ", iter->second->gid, iter->second->GetLabel().c_str());
             iter->second->Notify();
             iter->second->Destroy();
             iter = whenMap.erase(iter);

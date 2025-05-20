@@ -10,6 +10,7 @@
   - [串行队列(C++)](ffrt-concurrency-serial-queue-cpp.md)
   - [并发队列(C++)](ffrt-concurrency-concurrent-queue-cpp.md)
   - [图依赖并发(C++)](ffrt-concurrency-graph-cpp.md)
+- [Function Flow Runtime开发样例(Kotlin)](ffrt-example-kotlin.md)
 - [Function Flow Runtime开发指导](ffrt-development-guideline.md)
 - [Function Flow Runtime C++ API](ffrt-api-guideline-cpp.md)
 - [Function Flow Runtime C API](ffrt-api-guideline-c.md)

@@ -41,11 +41,13 @@
 /**
  * @brief Initializes a fiber.
  *
- * @param fiber Indicates a pointer to the fiber.
- * @param func Indicates a function pointer when fiber start to run.
- * @param arg Indicates a function argument.
- * @param stack Indicates the function address.
- * @param stack_size Indicates the function size.
+ * This function initializes a fiber structure, preparing it for execution.
+ *
+ * @param fiber Indicates the pointer to the fiber structure to be initialized.
+ * @param func Indicates the entry point function that the fiber will execute.
+ * @param arg Indicates the argument to be passed to the entry point function.
+ * @param stack Indicates the pointer to the memory region to be used as the fiber's stack.
+ * @param stack_size Indicates the size of the stack in bytes.
  * @return Returns <b>ffrt_success</b> if the fiber is initialized;
            returns <b>ffrt_error</b> otherwise.
  * @since 20
@@ -54,13 +56,13 @@ FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* ar
 
 
 /**
- * @brief Switch fibers.
+ * @brief Switch execution context between two fibers.
  *
  * Switches the execution context by saving the current context into the fiber specified
  * by @c from and restoring the context from the fiber specified by @c to.
  *
- * @param from Indicates a pointer to the fiber into which the current context will be saved.
- * @param to Indicates a pointer to the fiber from which the context will be restored.
+ * @param from Indicates the pointer to the fiber into which the current context will be saved.
+ * @param to Indicates the pointer to the fiber from which the context will be restored.
  * @since 20
  */
 FFRT_C_API void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to);

@@ -70,12 +70,12 @@ public:
     /**
      * @brief Deleted copy constructor to prevent copying of the mutex object.
      */
-    mutex(mutex const&) = delete;
+    mutex(const mutex&) = delete;
 
     /**
      * @brief Deleted copy assignment operator to prevent assignment of the mutex object.
      */
-    void operator=(mutex const&) = delete;
+    void operator=(const mutex&) = delete;
 
     /**
      * @brief Attempts to lock the mutex without blocking.
@@ -147,12 +147,12 @@ public:
     /**
      * @brief Deleted copy constructor to prevent copying of the recursive_mutex object.
      */
-    recursive_mutex(recursive_mutex const&) = delete;
+    recursive_mutex(const recursive_mutex&) = delete;
 
     /**
      * @brief Deleted copy assignment operator to prevent assignment of the recursive_mutex object.
      */
-    void operator=(recursive_mutex const&) = delete;
+    void operator=(const recursive_mutex&) = delete;
 
     /**
      * @brief Attempts to lock the recursive mutex without blocking.
@@ -184,8 +184,9 @@ public:
     {
         ffrt_mutex_unlock(this);
     }
+
 private:
-    ffrt_mutexattr_t attr;
+    ffrt_mutexattr_t attr; ///< Mutex attribute object used to configure the recursive behavior of the mutex.
 };
 } // namespace ffrt
 

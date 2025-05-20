@@ -47,9 +47,9 @@ namespace ffrt {
  * @since 12
  */
 enum queue_type {
-    queue_serial = ffrt_queue_serial,         /**< A serial queue that processes tasks sequentially. */
-    queue_concurrent = ffrt_queue_concurrent, /**< A concurrent queue that processes tasks in parallel. */
-    queue_max = ffrt_queue_max,               /**< Defines the maximum type for validation. */
+    queue_serial = ffrt_queue_serial,         ///< A serial queue that processes tasks sequentially.
+    queue_concurrent = ffrt_queue_concurrent, ///< A concurrent queue that processes tasks in parallel.
+    queue_max = ffrt_queue_max,               ///< Defines the maximum type for validation.
 };
 
 /**
@@ -243,12 +243,12 @@ public:
     /**
      * @brief Deleted copy constructor to prevent copying of the queue object.
      */
-    queue(queue const&) = delete;
+    queue(const queue&) = delete;
 
     /**
      * @brief Deleted copy assignment operator to prevent assignment of the queue object.
      */
-    void operator=(queue const&) = delete;
+    void operator=(const queue&) = delete;
 
     /**
      * @brief Submits a task with a specified attribute to this queue.
@@ -356,8 +356,7 @@ public:
      * @brief Cancels a task.
      *
      * @param handle Indicates a task handle.
-     * @return Returns <b>0</b> if the task is canceled;
-               returns <b>-1</b> otherwise.
+     * @return Returns 0 if the task is canceled; -1 otherwise.
      * @since 10
      */
     inline int cancel(const task_handle& handle)
@@ -405,12 +404,21 @@ public:
     }
 
 private:
+    /**
+     * @brief Type alias for the function pointer used to delete or destroy a queue.
+     */
     using QueueDeleter = void (*)(ffrt_queue_t);
 
+    /**
+     * @brief Constructs a queue object from an existing queue handle and an optional deleter.
+     *
+     * @param queue_handle The handle to the existing queue.
+     * @param deleter The function pointer used to destroy the queue.
+     */
     queue(ffrt_queue_t queue_handle, QueueDeleter deleter = nullptr) : queue_handle(queue_handle), deleter(deleter) {}
 
-    ffrt_queue_t queue_handle = nullptr;
-    QueueDeleter deleter = nullptr;
+    ffrt_queue_t queue_handle = nullptr; ///< Handle to the underlying queue.
+    QueueDeleter deleter = nullptr;      ///< Function pointer used to delete or destroy the queue.
 };
 } // namespace ffrt
 

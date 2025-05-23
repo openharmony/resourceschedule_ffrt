@@ -179,3 +179,42 @@ HWTEST_F(ExecuteUnitTest, ffrt_inc_worker_abnormal, TestSize.Level1)
     EXPECT_EQ(manager->IncWorker(QoS(qos_default)), false);
     delete manager;
 }
+
+/**
+ * @tc.name: BindWG
+ * @tc.desc: Test whether the BindWG interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level1)
+{
+    QoS *qos1 = new QoS();
+    FFRTFacade::GetEUInstance().BindWG(*qos1);
+    EXPECT_EQ(*qos1, qos_default);
+    delete qos1;
+}
+
+/**
+ * @tc.name: UnbindTG
+ * @tc.desc: Test whether the UnbindTG interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level1)
+{
+    QoS *qos1 = new QoS();
+    FFRTFacade::GetEUInstance().UnbindTG(*qos1);
+    EXPECT_EQ(*qos1, qos_default);
+    delete qos1;
+}
+
+/**
+ * @tc.name: BindTG
+ * @tc.desc: Test whether the BindTG interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level1)
+{
+    QoS *qos1 = new QoS();
+    ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(*qos1);
+    EXPECT_EQ(*qos1, qos_default);
+    delete qos1;
+}

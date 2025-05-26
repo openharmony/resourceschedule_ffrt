@@ -77,7 +77,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level1)
 */
 HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level1)
 {
-    int count = 5;
+    constexpr int count = 5;
     for (int i = 0; i < count; i++) {
         ffrt::submit([&]() {});
     }
@@ -94,12 +94,12 @@ HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level1)
 */
 HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<ffrt::SExecuteUnit>();
     manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyConservative;
 
-    auto task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    auto task = std::make_unique<ffrt::SCPUEUTask>(nullptr, nullptr, 0);
     ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task);
+    sch->PushTask(ffrt::QoS(2), task.get());
 
     int executingNum = manager->GetWorkerGroup(ffrt::QoS(2)).executingNum;
     manager->GetWorkerGroup(2).executingNum = 20;
@@ -107,9 +107,6 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
     manager->NotifyTask<ffrt::TaskNotifyType::TASK_PICKED>(ffrt::QoS(2));
     manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
     sch->PopTask(ffrt::QoS(2));
-
-    delete manager;
-    delete task;
 }
 
 /*
@@ -121,12 +118,12 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
 */
 HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.Level1)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<ffrt::SExecuteUnit>();
     manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative;
 
-    ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    auto task = std::make_unique<ffrt::SCPUEUTask>(nullptr, nullptr, 0);
     ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task);
+    sch->PushTask(ffrt::QoS(2), task.get());
 
     int executingNum = manager->GetWorkerGroup(2).executingNum;
     manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = 20;
@@ -134,11 +131,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.L
     manager->NotifyTask<ffrt::TaskNotifyType::TASK_PICKED>(ffrt::QoS(2));
     manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
     sch->PopTask(ffrt::QoS(2));
-
-    delete manager;
-    delete task;
 }
-
 /*
 * 测试用例名称：ffrt_escape_submit_execute
 * 测试用例描述：调用EU的逃生函数
@@ -148,8 +141,8 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.L
 */
 HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level1)
 {
-    int taskCount = 100;
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    constexpr int taskCount = 100;
+    auto manager = std::make_unique<ffrt::SExecuteUnit>();
     EXPECT_EQ(manager->SetEscapeEnable(10, 100, 1000, 0, 30), 0);
     for (int i = 0; i < taskCount; i++) {
         ffrt::submit([&]() {
@@ -173,9 +166,44 @@ HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level1)
 */
 HWTEST_F(ExecuteUnitTest, ffrt_inc_worker_abnormal, TestSize.Level1)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<ffrt::SExecuteUnit>();
     EXPECT_EQ(manager->IncWorker(QoS(-1)), false);
     manager->tearDown = true;
     EXPECT_EQ(manager->IncWorker(QoS(qos_default)), false);
-    delete manager;
+}
+
+/**
+ * @tc.name: BindWG
+ * @tc.desc: Test whether the BindWG interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level1)
+{
+    auto qos1 = std::make_unique<QoS>();
+    FFRTFacade::GetEUInstance().BindWG(*qos1);
+    EXPECT_EQ(*qos1, qos_default);
+}
+
+/**
+ * @tc.name: UnbindTG
+ * @tc.desc: Test whether the UnbindTG interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level1)
+{
+    auto qos1 = std::make_unique<QoS>();
+    FFRTFacade::GetEUInstance().UnbindTG(*qos1);
+    EXPECT_EQ(*qos1, qos_default);
+}
+
+/**
+ * @tc.name: BindTG
+ * @tc.desc: Test whether the BindTG interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level1)
+{
+    auto qos1 = std::make_unique<QoS>();
+    ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(*qos1);
+    EXPECT_EQ(*qos1, qos_default);
 }

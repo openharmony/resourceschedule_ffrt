@@ -113,7 +113,7 @@ void ExecuteUnit::BindWG(QoS& qos)
     std::shared_lock<std::shared_mutex> lck(tgwrap.tgMutex);
     for (auto &thread : tgwrap.threads) {
         pid_t tid = thread.first->Id();
-        if (!JoinWG(tid)) {
+        if (!JoinWG(tid, qos)) {
             FFRT_SYSEVENT_LOGE("Failed to Join Thread %d", tid);
         }
     }
@@ -358,8 +358,8 @@ PollerRet ExecuteUnit::TryPoll(const CPUWorker *thread, int timeout)
 void ExecuteUnit::WorkerJoinTg(const QoS &qos, pid_t pid)
 {
     std::shared_lock<std::shared_mutex> lock(workerGroup[qos()].tgMutex);
-    if (qos == qos_user_interactive) {
-        (void)JoinWG(pid);
+    if (qos == qos_user_interactive || qos > qos_max) {
+        (void)JoinWG(pid, qos);
         return;
     }
     auto &tgwrap = workerGroup[qos()];
@@ -376,8 +376,8 @@ void ExecuteUnit::WorkerJoinTg(const QoS &qos, pid_t pid)
 
 void ExecuteUnit::WorkerLeaveTg(const QoS &qos, pid_t pid)
 {
-    if (qos == qos_user_interactive) {
-        (void)LeaveWG(pid);
+    if (qos == qos_user_interactive || qos > qos_max) {
+        (void)LeaveWG(pid, qos);
         return;
     }
     auto &tgwrap = workerGroup[qos()];

@@ -40,7 +40,13 @@ enum QueryIntervalItem {
     QUERY_COMPOSER = 3,
     QUERY_HARDWARE = 4,
     QUERY_EXECUTOR_START = 5,
-    QUERY_TYPE_MAX
+    QUERY_RENDER_SERVICE_MAIN = 6,
+    QUERY_RENDER_SERVICE_RENDER = 7,
+    QUERY_SELF_RENDER_REMOVE_THREAD = 8,
+    QUERY_SELF_RENDER_ADD_THREAD = 9,
+    QUERY_SELF_RENDER_FRAME_START = 12,
+    QUERY_SELF_RENDER_FRAME_END = 13,
+    QURRY_TYPE_MAX,
 };
 
 extern "C" {
@@ -178,6 +184,7 @@ static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
     return -1;
 }
 
+#if defined(__aarch64__) || defined(__arm__)
 #define CTC_QUERY_INTERVAL(queryItem, queryRs)                             \
     do {                                                                   \
         auto func = TaskClientAdapter::Instance()->CTC_QueryIntervalFunc;   \
@@ -185,6 +192,10 @@ static int AddThreadToRtgAdapter(int tid, int grpId, int prioType = 0)
             func(queryItem, queryRs);                                      \
         }                                                                  \
     } while (0)
-
+#elif defined(__x86_64__)
+#define CTC_QUERY_INTERVAL(queryItem, queryRs)    queryRs.rtgId = 1
+#else
+#error "Unsupported architecture"
+#endif
 #endif /* __FFRT_TASKCLIENT_ADAPTER_H__ */
 #endif /* QOS_FRAME_RTG */

@@ -40,31 +40,32 @@ struct WorkGroup {
     int rtgId;
     int tids[MAX_WG_THREADS];
     uint64_t interval;
+    int qos;
     WgType type;
 };
 
 #if (defined(QOS_FRAME_RTG))
 
-struct WorkGroup* WorkgroupCreate(uint64_t interval);
+struct WorkGroup* WorkgroupCreate(uint64_t interval, int qos);
 int WorkgroupClear(struct WorkGroup* wg);
-bool JoinWG(int tid);
-bool LeaveWG(int tid);
+bool JoinWG(int tid, int qos);
+bool LeaveWG(int tid, int qos);
 
 #else
 
 #ifdef QOS_WORKER_FRAME_RTG
-    WorkGroup* CreateRSWorkGroup(uint64_t interval);
-    bool JoinRSWorkGroup(int tid);
-    bool LeaveRSWorkGroup(int tid);
-    bool DestoryRSWorkGroup();
+    WorkGroup* CreateRSWorkGroup(uint64_t interval, int qos);
+    bool JoinRSWorkGroup(int tid, int qos);
+    bool LeaveRSWorkGroup(int tid, int qos);
+    bool DestoryRSWorkGroup(int qos);
 #endif
 
-inline struct WorkGroup* WorkgroupCreate(uint64_t interval __attribute__((unused)))
+inline struct WorkGroup* WorkgroupCreate(uint64_t interval __attribute__((unused)), int qos)
 {
 #ifdef QOS_WORKER_FRAME_RTG
     int uid = getuid();
     if (uid == RS_UID) {
-        return CreateRSWorkGroup(interval);
+        return CreateRSWorkGroup(interval, qos);
     }
 #endif
     struct WorkGroup* wg = new (std::nothrow) struct WorkGroup();
@@ -79,7 +80,7 @@ inline int WorkgroupClear(struct WorkGroup* wg)
 #ifdef QOS_WORKER_FRAME_RTG
     int uid = getuid();
     if (uid == RS_UID) {
-        return DestoryRSWorkGroup();
+        return DestoryRSWorkGroup(wg->qos);
     }
 #endif
     delete wg;
@@ -87,24 +88,24 @@ inline int WorkgroupClear(struct WorkGroup* wg)
     return 0;
 }
 
-inline bool JoinWG(int tid)
+inline bool JoinWG(int tid, int qos)
 {
 #ifdef QOS_WORKER_FRAME_RTG
     int uid = getuid();
     if (uid == RS_UID) {
-        return JoinRSWorkGroup(tid);
+        return JoinRSWorkGroup(tid, qos);
     }
 #endif
     (void)tid;
     return true;
 }
 
-inline bool LeaveWG(int tid)
+inline bool LeaveWG(int tid, int qos)
 {
 #ifdef QOS_WORKER_FRAME_RTG
     int uid = getuid();
     if (uid == RS_UID) {
-        return LeaveRSWorkGroup(tid);
+        return LeaveRSWorkGroup(tid, qos);
     }
 #endif
     (void)tid;

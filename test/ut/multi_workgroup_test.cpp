@@ -83,7 +83,7 @@ void SwapToFront(int uid)
 HWTEST_F(WorkgroupInternalTest, JoinWGTest, TestSize.Level1)
 {
     int tid = GET_TID();
-    bool ret = JoinWG(tid);
+    bool ret = JoinWG(tid, 0);
 #if defined(QOS_FRAME_RTG)
     EXPECT_FALSE(ret);
 #else
@@ -100,17 +100,17 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupCreateTest, TestSize.Level1)
 {
     long interval = 10000;
     (void)setuid(1000);
-    struct WorkGroup *ret = WorkgroupCreate(interval);
+    struct WorkGroup *ret = WorkgroupCreate(interval, 0);
     EXPECT_NE(ret, nullptr);
     WorkgroupClear(ret);
 
     (void)setuid(3039);
-    struct WorkGroup *ret1 = WorkgroupCreate(interval);
+    struct WorkGroup *ret1 = WorkgroupCreate(interval, 0);
     EXPECT_NE(ret1, nullptr);
     WorkgroupClear(ret1);
 
     (void)setuid(0);
-    struct WorkGroup *ret2 = WorkgroupCreate(interval);
+    struct WorkGroup *ret2 = WorkgroupCreate(interval, 0);
     EXPECT_NE(ret2, nullptr);
     WorkgroupClear(ret2);
 }
@@ -187,7 +187,7 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupClearTest, TestSize.Level1)
 
     long interval = 10000;
     (void)setuid(1000);
-    struct WorkGroup *wg2 = WorkgroupCreate(interval);
+    struct WorkGroup *wg2 = WorkgroupCreate(interval, 0);
     int ret2 = WorkgroupClear(wg2);
 #if defined(QOS_FRAME_RTG)
     EXPECT_EQ(-1, ret2);
@@ -196,7 +196,7 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupClearTest, TestSize.Level1)
 #endif
 
     (void)setuid(3039);
-    struct WorkGroup *wg3 = WorkgroupCreate(interval);
+    struct WorkGroup *wg3 = WorkgroupCreate(interval, 0);
     int ret3 = WorkgroupClear(wg3);
 #if defined(QOS_FRAME_RTG)
     EXPECT_EQ(-1, ret3);
@@ -205,7 +205,7 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupClearTest, TestSize.Level1)
 #endif
 
     (void)setuid(0);
-    struct WorkGroup *wg4 = WorkgroupCreate(interval);
+    struct WorkGroup *wg4 = WorkgroupCreate(interval, 0);
     int ret4 = WorkgroupClear(wg4);
     EXPECT_EQ(0, ret4);
 }

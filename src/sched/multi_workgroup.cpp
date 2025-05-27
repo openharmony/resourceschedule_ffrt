@@ -34,11 +34,12 @@ static std::mutex wgLock;
 
 #if (defined(QOS_WORKER_FRAME_RTG))
 
-void WorkgroupInit(struct WorkGroup* wg, uint64_t interval, int rtgId)
+void WorkgroupInit(struct WorkGroup* wg, uint64_t interval, int rtgId, int qos)
 {
     wg->started = false;
     wg->interval = interval;
     wg->rtgId = rtgId;
+    wg->qos = qos;
     wgId = rtgId;
 
     for (int i = 0; i < MAX_WG_THREADS; i++) {
@@ -75,7 +76,7 @@ bool InsertThreadInWorkGroup(WorkGroup *workGroup, int tid)
     return false;
 }
 
-WorkGroup* CreateRSWorkGroup(uint64_t interval)
+WorkGroup* CreateRSWorkGroup(uint64_t interval, int qos)
 {
     IntervalReply rs;
     rs.rtgId = -1;
@@ -83,14 +84,14 @@ WorkGroup* CreateRSWorkGroup(uint64_t interval)
     {
         std::lock_guard<std::mutex> lck(wgLock);
         if (rsWorkGroup == nullptr) {
-            CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE, rs);
+            CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE_RENDER, rs);
             if (rs.rtgId > 0) {
                 rsWorkGroup = new struct WorkGroup();
                 if (rsWorkGroup == nullptr) {
                     FFRT_SYSEVENT_LOGE("[RSWorkGroup] rsWorkGroup malloc failed!");
                     return nullptr;
                 }
-                WorkgroupInit(rsWorkGroup, interval, rs.rtgId);
+                WorkgroupInit(rsWorkGroup, interval, rs.rtgId, qos);
                 wgCount++;
             }
         }
@@ -98,10 +99,10 @@ WorkGroup* CreateRSWorkGroup(uint64_t interval)
     return rsWorkGroup;
 }
 
-bool LeaveRSWorkGroup(int tid)
+bool LeaveRSWorkGroup(int tid, int qos)
 {
     std::lock_guard<std::mutex> lck(wgLock);
-    if (rsWorkGroup == nullptr) {
+    if (rsWorkGroup == nullptr || rsWorkGroup->qos != qos) {
         FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup rsWorkGroup is null ,tid:%{public}d", tid);
         return false;
     }
@@ -113,10 +114,10 @@ bool LeaveRSWorkGroup(int tid)
     return true;
 }
 
-bool JoinRSWorkGroup(int tid)
+bool JoinRSWorkGroup(int tid, int qos)
 {
     std::lock_guard<std::mutex> lck(wgLock);
-    if (rsWorkGroup == nullptr) {
+    if (rsWorkGroup == nullptr || rsWorkGroup->qos != qos) {
         FFRT_SYSEVENT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed; Create RSWorkGroup first",
             tid);
         return false;
@@ -138,10 +139,10 @@ bool JoinRSWorkGroup(int tid)
     return true;
 }
 
-bool DestoryRSWorkGroup()
+bool DestoryRSWorkGroup(int qos)
 {
     std::lock_guard<std::mutex> lck(wgLock);
-    if (rsWorkGroup != nullptr) {
+    if (rsWorkGroup != nullptr && rsWorkGroup->qos == qos) {
         delete rsWorkGroup;
         rsWorkGroup = nullptr;
         wgId = -1;
@@ -152,7 +153,7 @@ bool DestoryRSWorkGroup()
 #endif
 
 #if defined(QOS_FRAME_RTG)
-bool JoinWG(int tid)
+bool JoinWG(int tid, int qos)
 {
     if (wgId < 0) {
         if (wgCount > 0) {
@@ -162,7 +163,7 @@ bool JoinWG(int tid)
     }
     int uid = getuid();
     if (uid == RS_UID) {
-        return JoinRSWorkGroup(tid);
+        return JoinRSWorkGroup(tid, qos);
     }
     int addRet = AddThreadToRtgAdapter(tid, wgId, 0);
     if (addRet == 0) {
@@ -173,16 +174,16 @@ bool JoinWG(int tid)
     return true;
 }
 
-bool LeaveWG(int tid)
+bool LeaveWG(int tid, int qos)
 {
     int uid = getuid();
     if (uid == RS_UID) {
-        return LeaveRSWorkGroup(tid);
+        return LeaveRSWorkGroup(tid, qos);
     }
     return false;
 }
 
-struct WorkGroup* WorkgroupCreate(uint64_t interval)
+struct WorkGroup* WorkgroupCreate(uint64_t interval, int qos)
 {
     int rtgId = -1;
     int uid = getuid();
@@ -215,13 +216,13 @@ struct WorkGroup* WorkgroupCreate(uint64_t interval)
 
 int WorkgroupClear(struct WorkGroup* wg)
 {
-    int uid = getuid();
-    if (uid == RS_UID) {
-        return DestoryRSWorkGroup();
-    }
     if (wg == nullptr) {
         FFRT_SYSEVENT_LOGE("[WorkGroup] input workgroup is null");
         return 0;
+    }
+    int uid = getuid();
+    if (uid == RS_UID) {
+        return DestoryRSWorkGroup(wg->qos);
     }
     int ret = -1;
     if (uid != RS_UID) {

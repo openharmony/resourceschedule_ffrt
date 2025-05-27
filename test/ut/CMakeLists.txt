@@ -24,6 +24,7 @@ endif()
 
 add_definitions("-DFFRT_BBOX_ENABLE")
 add_definitions("-DFFRT_WORKER_MONITOR")
+add_definitions("-DQOS_WORKER_FRAME_RTG")
 
 include_directories(${PROJECT_SOURCE_DIR}/test/stub/)
 

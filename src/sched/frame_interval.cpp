@@ -25,7 +25,7 @@ FrameInterval::FrameInterval(uint64_t deadline, const QoS& qos) : Interval(deadl
 {
     wg = nullptr;
     isBegun = false;
-    wg = WorkgroupCreate(deadline);
+    wg = WorkgroupCreate(deadline, qos);
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup][Interface] Create WorkGroup Failed");
     } else {

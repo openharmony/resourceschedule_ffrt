@@ -16,7 +16,7 @@
 #include "sched/execute_ctx.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
-
+#include <securec.h>
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
@@ -29,10 +29,8 @@ Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
         FFRT_LOGE("eventfd failed: errno=%d", errno);
     }
     epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
-    if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
-        FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
-        std::terminate();
-    }
+    FFRT_COND_TERMINATE((epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0),
+        "epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
 }
 
 Poller::~Poller() noexcept

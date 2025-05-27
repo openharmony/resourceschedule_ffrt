@@ -75,7 +75,6 @@ public:
 
     static int StatEnable(char *buf, uint32_t len)
     {
-        FFRT_LOGW("StatEnable, buffer addr = 0x%pK, size = %u", buf, len);
         if (len < TASK_STAT_LENGTH) {
             FFRT_LOGE("Buffer size is not enough, len = %u", len);
             return -1;

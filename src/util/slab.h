@@ -23,6 +23,7 @@
 #ifdef FFRT_BBOX_ENABLE
 #include <unordered_set>
 #endif
+#include <securec.h>
 #include <sys/mman.h>
 #include "sync/sync.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -152,10 +153,7 @@ private:
     void init()
     {
         char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
-        if (p == nullptr) {
-            FFRT_LOGE("calloc failed");
-            std::terminate();
-        }
+        FFRT_COND_TERMINATE((p == nullptr), "p calloc failed");
         count = MmapSz / TSize;
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             primaryCache.push_back(reinterpret_cast<T*>(p + i));
@@ -170,10 +168,8 @@ private:
         if (count == 0) {
             if (basePtr != nullptr) {
                 t = reinterpret_cast<T*>(std::calloc(1, TSize));
-                if (t == nullptr) {
-                    FFRT_LOGE("calloc failed");
-                    std::terminate();
-                }
+                FFRT_COND_TERMINATE((t == nullptr), "t calloc failed");
+
 #ifdef FFRT_BBOX_ENABLE
                 secondaryCache.insert(t);
 #endif

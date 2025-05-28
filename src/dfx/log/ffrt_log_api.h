@@ -18,9 +18,7 @@
 
 #ifdef OHOS_STANDARD_SYSTEM
 #include <array>
-#ifdef FFRT_ENG_DEBUG
 #include <info/fatal_message.h>
-#endif
 #include <string_view>
 #include "hilog/log.h"
 #include "internal_inc/osal.h"
@@ -236,6 +234,27 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
     do { \
         if (unlikely(cond)) { \
             FFRT_LOGE(fmt, ##__VA_ARGS__); \
+        } \
+    } while (0)
+#endif // FFRT_ENG_DEBUG
+
+#ifdef FFRT_ENG_DEBUG
+#define FFRT_COND_TERMINATE(cond, fmt, ...) \
+    do { \
+        if (cond) { \
+            char fatal_msg[256]; \
+            snprintf_s(fatal_msg, sizeof(fatal_msg), sizeof(fatal_msg) - 1, fmt, ##__VA_ARGS__); \
+            FFRT_SYSEVENT_LOGE(fmt, ##__VA_ARGS__); \
+            set_fatal_message(fatal_msg); \
+            std::terminate(); \
+        } \
+    } while (0)
+#else
+#define FFRT_COND_TERMINATE(cond, fmt, ...) \
+    do { \
+        if (cond) { \
+            FFRT_SYSEVENT_LOGE(fmt, ##__VA_ARGS__); \
+            std::terminate(); \
         } \
     } while (0)
 #endif // FFRT_ENG_DEBUG

@@ -193,8 +193,8 @@ DelayedWorker::DelayedWorker()
 
     epoll_event timer_event { .events = EPOLLIN | EPOLLET, .data = { .fd = timerfd_ } };
     if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, timerfd_, &timer_event) < 0) {
-        FFRT_SYSEVENT_LOGE("epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
-        std::terminate();
+        FFRT_COND_TERMINATE((epoll_ctl(epollfd_, EPOLL_CTL_ADD, timerfd_, &timer_event) < 0),
+            "epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
     }
     DelayedWorker::ThreadEnvCreate();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING

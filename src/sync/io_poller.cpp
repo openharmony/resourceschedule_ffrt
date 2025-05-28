@@ -89,9 +89,7 @@ IOPoller::IOPoller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) },
             FFRT_LOGE("eventfd failed: errno=%d", errno);
         }
         epoll_event ev{ .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
-        if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
-            std::terminate();
-        }
+        FFRT_COND_TERMINATE((epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0), "io epoll_ctl add fd error");
     }
 }
 

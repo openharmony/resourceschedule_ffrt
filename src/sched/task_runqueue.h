@@ -18,6 +18,7 @@
 
 #include "tm/cpu_task.h"
 #include "tm/uv_task.h"
+#include <cassert>
 
 namespace ffrt {
 class RunQueue {
@@ -35,7 +36,8 @@ public:
     void EnQueue(TaskBase* task) override
     {
         list.PushBack(task->fq_we.node);
-        size++;
+        auto curSize = size.load(std::memory_order_relaxed);
+        size.store(curSize + 1, std::memory_order_relaxed);
     }
 
     TaskBase* DeQueue() override
@@ -49,7 +51,9 @@ public:
         }
 
         TaskBase* task = node->ContainerOf(&WaitEntry::node)->task;
-        size--;
+        auto curSize = size.load(std::memory_order_relaxed);
+        assert(curSize > 0);
+        size.store(curSize - 1, std::memory_order_relaxed);
         return task;
     }
 
@@ -60,13 +64,13 @@ public:
 
     int Size() override
     {
-        return size;
+        return size.load(std::memory_order_relaxed);
     }
     void SetQos(QoS &newQos) override {}
 
 private:
     LinkedList list;
-    int size = 0;
+    std::atomic<int> size = 0;
 };
 } // namespace ffrt
 

@@ -340,7 +340,7 @@ PollerRet ExecuteUnit::TryPoll(const CPUWorker *thread, int timeout)
     }
     CPUWorkerGroup &group = workerGroup[thread->GetQos()];
     if (group.pollersMtx.try_lock()) {
-        group.polling_ = 1;
+        group.polling_.store(true, std::memory_order_relaxed);
         if (timeout == -1) {
             IntoPollWait(thread->GetQos());
         }
@@ -348,7 +348,7 @@ PollerRet ExecuteUnit::TryPoll(const CPUWorker *thread, int timeout)
         if (timeout == -1) {
             workerGroup[thread->GetQos()].OutOfPollWait();
         }
-        group.polling_ = 0;
+        group.polling_.store(false, std::memory_order_relaxed);
         group.pollersMtx.unlock();
         return ret;
     }

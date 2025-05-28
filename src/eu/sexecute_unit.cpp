@@ -131,7 +131,8 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
     if (group.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(thread->GetQos());
         bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
-        (workerGroup[thread->GetQos()].polling_ == 0);
+        /* note that polling_ is not protected by lk, hence it needs to be defined as atomic */
+        (!workerGroup[thread->GetQos()].polling_.load(std::memory_order_relaxed));
         return tearDown || taskExistence || needPoll;
     })) {
         workerGroup[thread->GetQos()].OutOfSleep();

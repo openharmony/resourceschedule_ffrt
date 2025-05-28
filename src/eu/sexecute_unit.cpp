@@ -80,6 +80,10 @@ SExecuteUnit::SExecuteUnit() : ExecuteUnit(), handleTaskNotify(SExecuteUnit::Han
 SExecuteUnit::~SExecuteUnit()
 {
     tearDown = true;
+    // Before destroying this object, we need to make sure that all threads that
+    // might access this object or its members have exited.
+    // If the destruction of this object happens before or in parallel of
+    // these threads access to freed memory can occur.
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
@@ -102,6 +106,13 @@ SExecuteUnit::~SExecuteUnit()
             FFRT_SYSEVENT_LOGE("erase qos[%d] threads failed", qos);
         }
     }
+    // Note that delayedWorker might
+    // call ffrt::SExecuteUnit::WakeupWorkers
+    // We need to ensure the object is still
+    // alive when that happens. Hence, we
+    // delay the destruction till we ensure
+    // this access cannot happen.
+    DelayedWorker::GetInstance().Terminate();
 }
 
 WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)

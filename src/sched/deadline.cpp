@@ -27,7 +27,7 @@ public:
     template <typename... Args>
     QosIntervalPrivate(uint64_t deadlineUs, const QoS& qos)
     {
-        if (qos == qos_user_interactive) {
+        if (qos == qos_user_interactive || qos > qos_max) {
             it = std::make_unique<FrameInterval>(deadlineUs, qos);
         } else {
             it = std::make_unique<DefaultInterval>(deadlineUs, qos);

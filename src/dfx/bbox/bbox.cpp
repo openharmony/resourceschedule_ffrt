@@ -460,7 +460,7 @@ static void SignalHandler(int signo, siginfo_t* info, void* context __attribute_
 static void SignalReg(int signo)
 {
     sigaction(signo, nullptr, &s_oldSa[signo]);
-    struct sigaction newAction;
+    struct sigaction newAction = {};
     newAction.sa_flags = SA_RESTART | SA_SIGINFO;
     newAction.sa_sigaction = SignalHandler;
     sigaction(signo, &newAction, nullptr);

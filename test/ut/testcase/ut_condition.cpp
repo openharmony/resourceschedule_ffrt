@@ -187,23 +187,24 @@ int g_data = 0;
 
 HWTEST_F(SleepTest, thread_test, TestSize.Level1)
 {
-    ffrt_thread_t detachThread;
+    ffrt_thread_t detachThread = nullptr;
     ffrt_thread_create(&detachThread, nullptr, thd_func, &g_data);
     ffrt_thread_detach(detachThread);
 
     int a = 0;
-    ffrt_thread_t thread;
+    ffrt_thread_t thread = nullptr;
     ffrt_thread_create(&thread, nullptr, thd_func, &a);
     void* result = nullptr;
     ffrt_thread_join(thread, &result);
     EXPECT_EQ(1, a);
     EXPECT_EQ(&a, result);
+    ffrt::wait();
 }
 
 HWTEST_F(SleepTest, thread_test2, TestSize.Level1)
 {
     int a = 0;
-    ffrt_thread_t thread;
+    ffrt_thread_t thread = nullptr;
     ffrt_thread_attr_t attr;
     ffrt_thread_create(nullptr, nullptr, thd_func, &a);
     EXPECT_EQ(0, a);

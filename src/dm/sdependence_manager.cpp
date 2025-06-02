@@ -269,7 +269,6 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos());
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos(),  task);
     FFRT_TRACE_SCOPE(1, ontaskDone);
-    sTask->DecChildRef();
     if (!(sTask->ins.empty() && sTask->outs.empty())) {
         std::lock_guard<decltype(criticalMutex_)> lg(criticalMutex_);
         FFRT_TRACE_SCOPE(1, taskDoneAfterLock);
@@ -300,6 +299,7 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
     // before out->onProduced can lead to access
     // of freed memory on wait condition notification
     // of the parent task.
+    sTask->DecChildRef();
     sTask->Finish();
 }
 

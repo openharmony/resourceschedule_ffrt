@@ -185,7 +185,7 @@ HWTEST_F(ffrtIoTest, IoPoller_Producer_N_Consumer_N, TestSize.Level1)
 struct TestData {
     int fd;
     uint64_t expected;
-    bool finish;
+    std::atomic<bool> finish;
 };
 
 static void testCallBack(void* token, uint32_t event)

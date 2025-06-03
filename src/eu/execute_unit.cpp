@@ -340,7 +340,16 @@ PollerRet ExecuteUnit::TryPoll(const CPUWorker *thread, int timeout)
     }
     CPUWorkerGroup &group = workerGroup[thread->GetQos()];
     if (group.pollersMtx.try_lock()) {
-        group.polling_ = 1;
+        /* The required orders on these operations are not clear from the code.
+         * To ensure correctness, we try to enforce all ordering (by preserving program oder).
+         * We forbid moving the updates to polling_ into the critical sections, e.g., of IntoPollWait.
+         * This is achieved by using matching seq_cst order on the first store and the atomic load
+         * (see SExecuteUnit::WorkerIdleAction),
+         * which ensures the atomic store can't be observed to occur
+         * in the critical section of IntoPollWait, and a release barrier
+         * on the second store to ensure it can not be observed to have been moved up.
+         */
+        group.polling_ = true;
         if (timeout == -1) {
             IntoPollWait(thread->GetQos());
         }
@@ -348,7 +357,8 @@ PollerRet ExecuteUnit::TryPoll(const CPUWorker *thread, int timeout)
         if (timeout == -1) {
             workerGroup[thread->GetQos()].OutOfPollWait();
         }
-        group.polling_ = 0;
+        /* release barrier is used here to ensure this write does not move up */
+        group.polling_.store(false, std::memory_order_release);
         group.pollersMtx.unlock();
         return ret;
     }

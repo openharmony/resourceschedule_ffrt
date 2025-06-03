@@ -81,7 +81,7 @@ struct CPUWorkerGroup {
     bool retryBeforeDeepSleep{true};
 
     bool pollWaitFlag{false};
-    uint8_t polling_{0};
+    std::atomic<bool> polling_{false};
     fast_mutex pollersMtx;
 
     inline void WorkerCreate()

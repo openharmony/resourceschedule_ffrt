@@ -19,9 +19,9 @@
 #include <dlfcn.h>
 
 #ifdef APP_USE_ARM
-constexpr const char* TRACE_CHAIN_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitracechain.so";
+constexpr const char* TRACE_CHAIN_LIB_PATH = "libhitracechain.so";
 #else
-constexpr const char* TRACE_CHAIN_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitracechain.so";
+constexpr const char* TRACE_CHAIN_LIB_PATH = "libhitracechain.so";
 #endif
 
 namespace ffrt {

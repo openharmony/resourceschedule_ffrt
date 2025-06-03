@@ -73,9 +73,9 @@ void StartAsyncTrace(uint64_t label, const std::string& value, int32_t taskId, f
 void FinishAsyncTrace(uint64_t label, const std::string& value, int32_t taskId);
 void CountTrace(uint64_t label, const std::string& name, int64_t count);
 #ifdef APP_USE_ARM
-constexpr const char* TRACE_LIB_PATH = "/system/lib/chipset-pub-sdk/libhitrace_meter.so";
+constexpr const char* TRACE_LIB_PATH = "libhitrace_meter.so";
 #else
-constexpr const char* TRACE_LIB_PATH = "/system/lib64/chipset-pub-sdk/libhitrace_meter.so";
+constexpr const char* TRACE_LIB_PATH = "libhitrace_meter.so";
 #endif
 class TraceAdapter {
 public:

@@ -169,7 +169,7 @@ protected:
         return task;
     }
 private:
-    std::mutex* mtx {nullptr};
+    std::atomic<std::mutex*> mtx {nullptr};
     std::mutex cancelMtx;
     std::unordered_map<ffrt_executor_task_t*, uint32_t> cancelMap_;
 };

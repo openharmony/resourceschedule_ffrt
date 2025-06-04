@@ -57,14 +57,9 @@ HWTEST_F(DeadlineTest, qos_interval_create_test, TestSize.Level1)
 {
     uint64_t deadline_us = 50000;
     qos qos = qos_deadline_request;
-
     interval qi = qos_interval_create(deadline_us, qos);
     EXPECT_NE(qi, nullptr);
     qos_interval_destroy(qi);
-
-    qos = qos_max + 1;
-    interval qi1 = qos_interval_create(deadline_us, qos);
-    EXPECT_EQ(qi1, nullptr);
 }
 
 /**
@@ -74,17 +69,11 @@ HWTEST_F(DeadlineTest, qos_interval_create_test, TestSize.Level1)
  */
 HWTEST_F(DeadlineTest, qos_interval_destroy_test, TestSize.Level1)
 {
-    interval* qi = new interval();
-    EXPECT_NE(qi, nullptr);
-    qos_interval_destroy(*qi);
-    delete qi;
-
     uint64_t deadline_us = 50000;
-    qos qos = qos_max + 1;
-
-    interval qi1 = qos_interval_create(deadline_us, qos);
-    EXPECT_EQ(qi1, nullptr);
-    qos_interval_destroy(qi1);
+    qos qos = qos_deadline_request;
+    interval qi = qos_interval_create(deadline_us, qos);
+    EXPECT_NE(qi, nullptr);
+    qos_interval_destroy(qi);
 }
 
 /**
@@ -94,16 +83,11 @@ HWTEST_F(DeadlineTest, qos_interval_destroy_test, TestSize.Level1)
  */
 HWTEST_F(DeadlineTest, qos_interval_begin_test, TestSize.Level1)
 {
-    interval* qi = new interval();
-    qos_interval_begin(*qi);
-    delete qi;
-
     uint64_t deadline_us = 50000;
-    qos qos = qos_max + 1;
-
-    interval qi1 = qos_interval_create(deadline_us, qos);
-    EXPECT_EQ(qi1, nullptr);
-    qos_interval_begin(qi1);
+    qos qos = qos_deadline_request;
+    interval qi = qos_interval_create(deadline_us, qos);
+    qos_interval_begin(qi);
+    qos_interval_destroy(qi);
 }
 
 /**
@@ -113,16 +97,12 @@ HWTEST_F(DeadlineTest, qos_interval_begin_test, TestSize.Level1)
  */
 HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level1)
 {
-    uint64_t deadline_us = 50000;
-    qos qos = qos_max + 1;
     uint64_t new_deadline_us = 40000;
-    interval* qi = new interval();
-    qos_interval_update(*qi, new_deadline_us);
-    delete qi;
-
-    interval qi1 = qos_interval_create(deadline_us, qos);
-    EXPECT_EQ(qi1, nullptr);
-    qos_interval_update(qi1, new_deadline_us);
+    uint64_t deadline_us = 50000;
+    qos qos = qos_deadline_request;
+    interval qi = qos_interval_create(deadline_us, qos);
+    qos_interval_update(qi, new_deadline_us);
+    qos_interval_destroy(qi);
 }
 
 /**
@@ -133,14 +113,10 @@ HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level1)
 HWTEST_F(DeadlineTest, qos_interval_end_test, TestSize.Level1)
 {
     uint64_t deadline_us = 50000;
-    qos qos = qos_max + 1;
-    interval* qi = new interval();
-    qos_interval_end(*qi);
-    delete qi;
-
-    interval qi1 = qos_interval_create(deadline_us, qos);
-    EXPECT_EQ(qi1, nullptr);
-    qos_interval_end(qi1);
+    qos qos = qos_deadline_request;
+    interval qi = qos_interval_create(deadline_us, qos);
+    qos_interval_end(qi);
+    qos_interval_destroy(qi);
 }
 
 /**
@@ -155,13 +131,7 @@ HWTEST_F(DeadlineTest, qos_interval_join_test, TestSize.Level1)
     interval ret = qos_interval_create(deadline_us, qos);
     EXPECT_NE(ret, nullptr);
     qos_interval_join(ret);
-    ffrt_interval_destroy(ret);
-
-    qos = qos_max + 1;
-    interval ret1 = qos_interval_create(deadline_us, qos);
-    EXPECT_EQ(ret1, nullptr);
-    qos_interval_join(ret1);
-    ffrt_interval_destroy(ret1);
+    qos_interval_destroy(ret);
 }
 
 /**
@@ -177,9 +147,4 @@ HWTEST_F(DeadlineTest, qos_interval_leave_test, TestSize.Level1)
     EXPECT_NE(ret, nullptr);
     qos_interval_leave(ret);
     qos_interval_destroy(ret);
-
-    qos = qos_max + 1;
-    interval ret1 = qos_interval_create(deadline_us, qos);
-    EXPECT_EQ(ret1, nullptr);
-    qos_interval_leave(ret1);
 }

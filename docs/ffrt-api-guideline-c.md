@@ -1606,6 +1606,7 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 - C API中的同一个`ffrt_mutexattr_t`只能调用一次`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`，重复调用其行为是未定义的。
 - 用户需要在调用`ffrt_mutex_init`之后和调用`ffrt_mutex_destroy`之前显示调用`ffrt_mutexattr_destroy`。
 - 在`ffrt_mutex_destroy`之后再对`ffrt_mutex_t`进行访问，其行为是未定义的。
+- 与`pthread_mutex_t`相同，不允许对`ffrt_mutex_t`进行赋值或 memcpy 拷贝！必须使用 `ffrt_mutex_init` 显示初始化新的锁对象，否则行为是未定义的。
 
 #### 方法
 

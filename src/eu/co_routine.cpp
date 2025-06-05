@@ -293,13 +293,13 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
         FFRT_SYSEVENT_LOGE("memory not enough");
         return nullptr;
     }
+    new (co)CoRoutine();
     co->allocatedSize = stackSize;
     co->stkMem.size = static_cast<uint64_t>(stackSize - sizeof(CoRoutine) + 8);
     co->stkMem.magic = STACK_MAGIC;
     if (FFRTFacade::GetCSAInstance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_READ);
     }
-    co->status.store(static_cast<int>(CoStatus::CO_UNINITIALIZED));
     return co;
 }
 

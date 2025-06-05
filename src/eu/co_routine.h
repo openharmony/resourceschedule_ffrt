@@ -88,7 +88,7 @@ struct StackMem {
 };
 
 struct CoRoutine {
-    std::atomic_int status;
+    std::atomic_int status {static_cast<int>(CoStatus::CO_UNINITIALIZED)};
     CoRoutineEnv* thEnv;
     ffrt::CoTask* task;
 #ifdef ASAN_MODE

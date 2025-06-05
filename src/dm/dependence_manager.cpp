@@ -50,6 +50,11 @@ void DependenceManager::onSubmitIO(const ffrt_io_callable_t& work, const task_at
 int DependenceManager::onSkip(ffrt_task_handle_t handle)
 {
     ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);
+    if (task->type == ffrt_queue_task) {
+        FFRT_LOGE("use ffrt::queue::cancel instead of ffrt::skip for canceling queue task");
+        return ffrt_error;
+    }
+
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (__atomic_compare_exchange_n(&task->skipped, &exp, ffrt::SkipStatus::SKIPPED, 0, __ATOMIC_ACQUIRE,
         __ATOMIC_RELAXED)) {

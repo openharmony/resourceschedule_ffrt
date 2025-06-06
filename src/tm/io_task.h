@@ -32,7 +32,7 @@ public:
     {
         QoS taskQos = qos_;
         FFRTTraceRecord::TaskSubmit<ffrt_io_task>(taskQos);
-        this->status = TaskStatus::READY;
+        SetTaskStatus(TaskStatus::READY);
         FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
         FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(taskQos);
         FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_LOCAL>(taskQos);
@@ -40,7 +40,7 @@ public:
 
     void Pop() override
     {
-        status = TaskStatus::POPPED;
+        SetTaskStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;

@@ -61,7 +61,7 @@ QueueTask::~QueueTask()
 
 void QueueTask::Submit()
 {
-    status = TaskStatus::ENQUEUED;
+    SetTaskStatus(TaskStatus::ENQUEUED);
     FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(qos_, &createTime, &fromTid);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
     if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
@@ -74,7 +74,7 @@ void QueueTask::Ready()
 {
     QoS taskQos = qos_;
     FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(taskQos);
-    status = TaskStatus::READY;
+    SetTaskStatus(TaskStatus::READY);
     FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_queue_task>(taskQos);
     FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(taskQos);

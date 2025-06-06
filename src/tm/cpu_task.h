@@ -77,14 +77,14 @@ public:
 
     void Pop() override
     {
-        status = TaskStatus::POPPED;
+        SetTaskStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;
 
     void Cancel() override
     {
-        status = TaskStatus::CANCELED;
+        SetTaskStatus(TaskStatus::CANCELED);
     }
 
     void FreeMem() override;

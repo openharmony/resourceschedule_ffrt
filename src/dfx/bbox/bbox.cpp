@@ -201,14 +201,14 @@ static inline void SaveNormalTaskStatus()
     };
 
     apply("blocked by synchronization primitive(mutex etc)", [](CPUEUTask* t) {
-        return (t->status == TaskStatus::EXECUTING) && t->coRoutine &&
+        return (t->GetTaskStatus() == TaskStatus::EXECUTING) && t->coRoutine &&
             t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH) && t != g_cur_task;
     });
     apply("blocked by task dependence", [](CPUEUTask* t) {
-        return t->status == TaskStatus::THREAD_BLOCK || t->status == TaskStatus::COROUTINE_BLOCK;
+        return t->GetTaskStatus() == TaskStatus::THREAD_BLOCK || t->GetTaskStatus() == TaskStatus::COROUTINE_BLOCK;
     });
     apply("pending task", [](CPUEUTask* t) {
-        return t->status == TaskStatus::SUBMITTED;
+        return t->GetTaskStatus() == TaskStatus::SUBMITTED;
     });
     apply("ready task", [](CPUEUTask* t) {
         return t->state == TaskState::READY;
@@ -549,7 +549,7 @@ void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
         case ffrt_normal_task: {
             TaskFactory<CPUEUTask>::LockMem();
             auto cpuTask = reinterpret_cast<CPUEUTask*>(t);
-            if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->status != TaskStatus::FINISH)) {
+            if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->GetTaskStatus() != TaskStatus::FINISH)) {
                 ss << "        qos " << qos << ": worker tid " << tid << " normal task is running, task id "
                    << t->gid << " name " << t->GetLabel().c_str();
                 AppendTaskInfo(ss, t);
@@ -656,17 +656,17 @@ std::string SaveNormalTaskStatusInfo(void)
     };
 
     apply("blocked by synchronization primitive(mutex etc)", [](CPUEUTask* t) {
-        return (t->status == TaskStatus::EXECUTING) && t->coRoutine &&
+        return (t->GetTaskStatus() == TaskStatus::EXECUTING) && t->coRoutine &&
             t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH);
     });
     apply("blocked by task dependence", [](CPUEUTask* t) {
-        return t->status == TaskStatus::THREAD_BLOCK || t->status == TaskStatus::COROUTINE_BLOCK;
+        return t->GetTaskStatus() == TaskStatus::THREAD_BLOCK || t->GetTaskStatus() == TaskStatus::COROUTINE_BLOCK;
     });
     apply("pending task", [](CPUEUTask* t) {
-        return t->status == TaskStatus::SUBMITTED;
+        return t->GetTaskStatus() == TaskStatus::SUBMITTED;
     });
     apply("ready task", [](CPUEUTask* t) {
-        return t->status == TaskStatus::READY;
+        return t->GetTaskStatus() == TaskStatus::READY;
     });
     TaskFactory<CPUEUTask>::UnlockMem();
 

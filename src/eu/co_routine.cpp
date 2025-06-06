@@ -445,7 +445,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         /* thread to co start */
         __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
 #endif
-        task->status = TaskStatus::EXECUTING;
+        task->SetTaskStatus(TaskStatus::EXECUTING);
         /* thread switch to co */
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
 #ifdef ASAN_MODE
@@ -497,7 +497,7 @@ void CoYield(void)
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
     GetCoEnv()->runningCo = nullptr;
     CoSwitchOutTransaction(co->task);
-    co->task->status = ffrt::TaskStatus::COROUTINE_BLOCK;
+    co->task->SetTaskStatus(TaskStatus::COROUTINE_BLOCK);
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     SwitchTsdToThread(co->task);

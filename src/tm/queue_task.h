@@ -125,14 +125,14 @@ public:
     // dequeue means task has been pulled out from it's queue
     inline void Dequeue()
     {
-        this->status = TaskStatus::DEQUEUED;
+        SetTaskStatus(TaskStatus::DEQUEUED);
     }
 
     // pop means task has been popped from scheduler
     void Pop() override
     {
         SetStatus(CoTaskStatus::POPPED);
-        status = TaskStatus::POPPED;
+        SetTaskStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;

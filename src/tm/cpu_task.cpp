@@ -46,7 +46,7 @@ void CPUEUTask::SetQos(const QoS& newQos)
 
 void CPUEUTask::Submit()
 {
-    status = TaskStatus::SUBMITTED;
+    SetTaskStatus(TaskStatus::SUBMITTED);
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos_, &createTime, &fromTid);
 }
 
@@ -54,7 +54,7 @@ void CPUEUTask::Ready()
 {
     int qos = qos_();
     bool notifyWorker = notifyWorker_;
-    this->status = TaskStatus::READY;
+    SetTaskStatus(TaskStatus::READY);
     FFRTFacade::GetSchedInstance()->GetScheduler(this->qos_).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     if (notifyWorker) {
@@ -94,13 +94,13 @@ void CPUEUTask::Execute()
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-        status = TaskStatus::EXECUTING;
+        SetTaskStatus(TaskStatus::EXECUTING);
         f->exec(f);
     }
     FFRT_TASKDONE_MARKER(gid);
     // skipped task can not be marked as finish
-    if (status == TaskStatus::EXECUTING) {
-        status = TaskStatus::FINISH;
+    if (GetTaskStatus() == TaskStatus::EXECUTING) {
+        SetTaskStatus(TaskStatus::FINISH);
     }
     if (!USE_COROUTINE) {
         FFRTFacade::GetDMInstance().onTaskDone(this);

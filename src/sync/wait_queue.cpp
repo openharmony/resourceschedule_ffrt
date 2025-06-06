@@ -67,7 +67,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
     }
     wn->task = nullptr;
 
-    // notify scenarios wn is already pooped
+    // notify scenarios WaitUntilEntry `wn` is already popped
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
     if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFING) {

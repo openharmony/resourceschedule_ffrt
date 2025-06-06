@@ -23,9 +23,9 @@
 
 namespace ffrt {
 #if (defined(__aarch64__) || defined(__x86_64__))
-constexpr const char* EVENTHANDLER_LIB_PATH = "/system/lib64/chipset-pub-sdk/libeventhandler.z.so";
+constexpr const char* EVENTHANDLER_LIB_PATH = "libeventhandler.z.so";
 #else
-constexpr const char* EVENTHANDLER_LIB_PATH = "/system/lib/chipset-pub-sdk/libeventhandler.z.so";
+constexpr const char* EVENTHANDLER_LIB_PATH = "libeventhandler.z.so";
 #endif
 
 enum class Priority : uint32_t {

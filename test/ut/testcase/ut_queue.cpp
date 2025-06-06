@@ -1106,3 +1106,26 @@ HWTEST_F(QueueTest, ffrt_queue_submit_f, TestSize.Level1)
 
     EXPECT_EQ(result, 1);
 }
+
+/*
+ * 测试用例名称 : ffrt_queue_cancel_with_ffrt_skip_fail
+ * 测试用例描述 : 使用ffrt::skip接口取消队列任务，返回失败
+ * 操作步骤     : 1、创建队列
+ *               2、提交延时的队列任务，同时调用skip接口取消队列任务
+ * 预期结果    : 队列任务取消失败，任务成功执行
+ */
+HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level1)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+        "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    int result = 0;
+    auto handle = testQueue->submit_h([&result] {
+        result++;
+    }, ffrt::task_attr("Delayed_Task").delay(1100000));
+
+    EXPECT_EQ(ffrt::skip(handle), ffrt_error);
+    testQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+    delete testQueue;
+}

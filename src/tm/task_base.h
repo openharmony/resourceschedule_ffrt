@@ -100,7 +100,7 @@ public:
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_inherit;
     std::atomic_uint32_t rc = 1; // reference count for delete
-    TaskStatus status = TaskStatus::PENDING;
+    std::atomic<TaskStatus> status = TaskStatus::PENDING; // can be updated by threads in parallel
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;

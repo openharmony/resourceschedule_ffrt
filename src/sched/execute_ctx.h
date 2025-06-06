@@ -44,11 +44,11 @@ enum class SharedMutexWaitType {
     WRITE,
 };
 
-namespace we_status {
-const int INIT = 0;
-const int NOTIFING = 1;
-const int TIMEOUT_DONE = 2;
-} // namespace we_status
+enum class WaitEntryStatus {
+    INIT,
+    NOTIFYING,
+    TIMEOUT_DONE
+};
 
 class TaskBase;
 class CoTask;
@@ -68,13 +68,13 @@ struct WaitEntry {
 };
 
 struct WaitUntilEntry : WaitEntry {
-    WaitUntilEntry() : WaitEntry(), status(we_status::INIT), hasWaitTime(false)
+    WaitUntilEntry() : WaitEntry(), status(WaitEntryStatus::INIT), hasWaitTime(false)
     {
     }
-    explicit WaitUntilEntry(TaskBase* task) : WaitEntry(task), status(we_status::INIT), hasWaitTime(false)
+    explicit WaitUntilEntry(TaskBase* task) : WaitEntry(task), status(WaitEntryStatus::INIT), hasWaitTime(false)
     {
     }
-    std::atomic_int32_t status;
+    std::atomic<WaitEntryStatus> status;
     bool hasWaitTime;
     TimePoint tp;
     std::function<void(WaitEntry*)> cb;

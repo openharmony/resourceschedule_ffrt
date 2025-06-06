@@ -128,11 +128,11 @@ public:
         this->status = TaskStatus::DEQUEUED;
     }
 
-    // pop means task has been poped from scheduler
+    // pop means task has been popped from scheduler
     void Pop() override
     {
-        SetStatus(CoTaskStatus::POPED);
-        status = TaskStatus::POPED;
+        SetStatus(CoTaskStatus::POPPED);
+        status = TaskStatus::POPPED;
     }
 
     void Execute() override;

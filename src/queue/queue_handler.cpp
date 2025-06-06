@@ -418,7 +418,7 @@ std::string StatusToString(CoTaskStatus status)
         {CoTaskStatus::PENDING,    "PENDING"},
         {CoTaskStatus::ENQUEUED,    "ENQUEUED"},
         {CoTaskStatus::DEQUEUED,    "DEQUEUED"},
-        {CoTaskStatus::POPED,    "POPED"},
+        {CoTaskStatus::POPPED,    "POPPED"},
         {CoTaskStatus::EXECUTING,    "EXECUTING"},
         {CoTaskStatus::CANCELED,    "CANCELED"}
     };

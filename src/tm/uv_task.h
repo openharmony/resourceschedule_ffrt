@@ -54,7 +54,7 @@ public:
 
     void Pop() override
     {
-        status = TaskStatus::POPED;
+        status = TaskStatus::POPPED;
     }
 
     void Execute() override;

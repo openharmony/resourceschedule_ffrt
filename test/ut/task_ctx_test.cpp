@@ -55,7 +55,7 @@ protected:
  * @tc.type: FUNC
  */
 
-HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level1)
+HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level0)
 {
     auto func = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     SCPUEUTask *task = new SCPUEUTask(nullptr, nullptr, 0);

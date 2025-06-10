@@ -62,7 +62,7 @@ HWTEST_F(QosConvertTestCase, GetStaticQosTest, TestSize.Level1)
     EXPECT_EQ(ret, -1);
 }
 
-HWTEST_F(QosConvertTestCase, IsDelayerWorkerThreadTest, TestSize.Level1)
+HWTEST_F(QosConvertTestCase, IsDelayerWorkerThreadTest, TestSize.Level0)
 {
     DelayedWorker::ThreadEnvCreate();
     sleep(1);

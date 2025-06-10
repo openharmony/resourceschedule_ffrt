@@ -71,7 +71,7 @@ void OPTIMIZE_OFF OnePlusForTest(void* data)
 }
 } // namespace
 
-HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
+HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level0)
 {
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     task_attr_private attr;
@@ -91,7 +91,7 @@ HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level1)
  * @tc.desc: Test function of ThreadWaitMode and ThreadNotifyMode
  * @tc.type: FUNC
  */
-HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
+HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level0)
 {
     SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0);
 
@@ -129,7 +129,7 @@ HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level1)
  * 操作步骤：设置timeout值，通过get接口与设置值对比
  * 预期结果：设置成功
  */
-HWTEST_F(CoreTest, task_attr_set_timeout, TestSize.Level1)
+HWTEST_F(CoreTest, task_attr_set_timeout, TestSize.Level0)
 {
     ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
     ffrt_task_attr_init(attr);
@@ -146,7 +146,7 @@ HWTEST_F(CoreTest, task_attr_set_timeout, TestSize.Level1)
  * 操作步骤：设置timeout值，通过get接口与设置值对比
  * 预期结果：设置失败，返回值为0
  */
-HWTEST_F(CoreTest, task_attr_set_timeout_nullptr, TestSize.Level1)
+HWTEST_F(CoreTest, task_attr_set_timeout_nullptr, TestSize.Level0)
 {
     ffrt_task_attr_t* attr = nullptr;
     ffrt_task_attr_set_timeout(attr, 1000);
@@ -161,7 +161,7 @@ HWTEST_F(CoreTest, task_attr_set_timeout_nullptr, TestSize.Level1)
  * 操作步骤：设置stack_size值，通过get接口与设置值对比
  * 预期结果：设置成功
  */
-HWTEST_F(CoreTest, task_attr_set_stack_size, TestSize.Level1)
+HWTEST_F(CoreTest, task_attr_set_stack_size, TestSize.Level0)
 {
     ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
     ffrt_task_attr_init(attr);
@@ -178,7 +178,7 @@ HWTEST_F(CoreTest, task_attr_set_stack_size, TestSize.Level1)
  * 操作步骤：对nullptr进行调用
  * 预期结果：接口校验异常场景成功，用例正常执行结束
  */
-HWTEST_F(CoreTest, ffrt_task_handle_ref_nullptr, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_task_handle_ref_nullptr, TestSize.Level0)
 {
     ffrt_task_handle_t handle = nullptr;
     ffrt_task_handle_inc_ref(handle);
@@ -193,7 +193,7 @@ HWTEST_F(CoreTest, ffrt_task_handle_ref_nullptr, TestSize.Level1)
  * 操作步骤：对task_handle进行设置引用计数接口
  * 预期结果：读取rc值
  */
-HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level0)
 {
     // 验证notify_worker的功能
     int result = 0;
@@ -221,7 +221,7 @@ HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level1)
  * 操作步骤：创建另外一个task_handle任务，并且先执行ffrt::wait保存的dependence的数组
  * 预期结果：任务正常执行结束
  */
-HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
+HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level0)
 {
     int i = 0;
     std::vector<ffrt::dependence> deps;
@@ -254,7 +254,7 @@ HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level1)
  * 操作步骤    ：调用ffrt_task_get_tid方法，入参分别为SCPUEUTask、QueueTask对象和空指针
  * 预期结果    ：ffrt_task_get_tid功能正常，传入空指针时返回0
  */
-HWTEST_F(CoreTest, ffrt_task_get_tid_test, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_task_get_tid_test, TestSize.Level0)
 {
     ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
     ffrt::QueueTask* queueTask = new ffrt::QueueTask(nullptr);
@@ -278,7 +278,7 @@ HWTEST_F(CoreTest, ffrt_task_get_tid_test, TestSize.Level1)
 * 操作步骤    ：调用ffrt_get_cur_cached_task_id接口
 * 预期结果    ：ffrt_get_cur_cached_task_id返回值与自定义值相同
 */
-HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level0)
 {
     auto ctx = ffrt::ExecuteCtx::Cur();
     ctx->lastGid_ = 15;
@@ -298,7 +298,7 @@ HWTEST_F(CoreTest, ffrt_get_cur_cached_task_id_test, TestSize.Level1)
                2.调用ffrt_skip接口，入参为句柄
 * 预期结果    ：任务取消成功
 */
-HWTEST_F(CoreTest, ffrt_skip_task_test, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_skip_task_test, TestSize.Level0)
 {
     auto h = ffrt::submit_h([]() {}, {}, {}, ffrt::task_attr().delay(10000)); // 10ms
     int cancel_ret = ffrt::skip(h);
@@ -315,7 +315,7 @@ HWTEST_F(CoreTest, ffrt_skip_task_test, TestSize.Level1)
 * 预期结果    ：1.返回的task地址不为空
                2.返回的task地址不为空
 */
-HWTEST_F(CoreTest, ffrt_get_cur_task_test, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_get_cur_task_test, TestSize.Level0)
 {
     void* taskPtr = nullptr;
     ffrt::submit([&] {
@@ -335,7 +335,7 @@ HWTEST_F(CoreTest, ffrt_get_cur_task_test, TestSize.Level1)
 * 操作步骤    ：在ffrt任务中调用ffrt_this_task_get_qos接口
 * 预期结果    ：ffrt_this_task_get_qos返回值=3
 */
-HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level0)
 {
     ffrt_qos_t qos = 0;
     ffrt::submit([&] {
@@ -352,7 +352,7 @@ HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level1)
 * 操作步骤    ：在非ffrt任务中调用ffrt_set_sched_mode接口
 * 预期结果    ：设置EU调度策略为默认模式、性能模式或节能模式
 */
-HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level0)
 {
     ffrt::sched_mode_type sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
@@ -374,7 +374,7 @@ HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level1)
 * 操作步骤    ：在非ffrt任务中调用ffrt_set_worker_stack_size接口
 * 预期结果    ：能够处理正常和异常stackSize和qos的值
 */
-HWTEST_F(CoreTest, ffrt_set_worker_stack_size, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_set_worker_stack_size, TestSize.Level0)
 {
     ffrt_error_t ret;
     int qosMin = ffrt_qos_background;
@@ -510,7 +510,7 @@ private:
 * 操作步骤    ：使用TaskFactory申请一个自定义Task的实例，初始化后调用各自的DecDeleteRef释放
 * 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值小于释放前
 */
-HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level0)
 {
     ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
         ffrt::SimpleAllocator<TmTest::MyTask>::AllocMem,
@@ -531,7 +531,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level1)
 * 操作步骤    ：使用TaskFactory申请一个自定义Task的实例，初始化后调用各自的DecDeleteRef释放
 * 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值小于释放前
 */
-HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level0)
 {
     TmTest::CustomTaskManager<TmTest::MyTask> custom_manager;
     ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
@@ -546,7 +546,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level1)
     TmTest::TestTaskFactory(false);
 }
 
-HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level0)
 {
     ffrt_task_attr_t attr;
     (void)ffrt_task_attr_init(&attr);
@@ -569,7 +569,7 @@ HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level1)
                2.调用TaskFactory的HasBeenFreed、Free_接口
 * 预期结果    ：任务是否释放符合预期
 */
-HWTEST_F(CoreTest, ffrt_task_factory_test_003, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_task_factory_test_003, TestSize.Level0)
 {
     ffrt::UVTask* task = ffrt::TaskFactory<ffrt::UVTask>::Alloc();
     EXPECT_EQ(ffrt::TaskFactory<ffrt::UVTask>::HasBeenFreed(task), false);
@@ -577,7 +577,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_003, TestSize.Level1)
     EXPECT_EQ(ffrt::TaskFactory<ffrt::UVTask>::HasBeenFreed(task), true);
 }
 
-HWTEST_F(CoreTest, ffrt_submit_f, TestSize.Level1)
+HWTEST_F(CoreTest, ffrt_submit_f, TestSize.Level0)
 {
     ffrt_task_attr_t attr;
     (void)ffrt_task_attr_init(&attr);

@@ -53,7 +53,7 @@ protected:
  * @tc.desc: Test whether the qos_interval_create interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(DeadlineTest, qos_interval_create_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, qos_interval_create_test, TestSize.Level0)
 {
     uint64_t deadline_us = 50000;
     qos qos = qos_deadline_request;
@@ -67,7 +67,7 @@ HWTEST_F(DeadlineTest, qos_interval_create_test, TestSize.Level1)
  * @tc.desc: Test whether the qos_interval_destroy interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(DeadlineTest, qos_interval_destroy_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, qos_interval_destroy_test, TestSize.Level0)
 {
     uint64_t deadline_us = 50000;
     qos qos = qos_deadline_request;
@@ -81,7 +81,7 @@ HWTEST_F(DeadlineTest, qos_interval_destroy_test, TestSize.Level1)
  * @tc.desc: Test whether the qos_interval_begin interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(DeadlineTest, qos_interval_begin_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, qos_interval_begin_test, TestSize.Level0)
 {
     uint64_t deadline_us = 50000;
     qos qos = qos_deadline_request;
@@ -95,7 +95,7 @@ HWTEST_F(DeadlineTest, qos_interval_begin_test, TestSize.Level1)
  * @tc.desc: Test whether the qos_interval_update interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level0)
 {
     uint64_t new_deadline_us = 40000;
     uint64_t deadline_us = 50000;
@@ -110,7 +110,7 @@ HWTEST_F(DeadlineTest, qos_interval_update_test, TestSize.Level1)
  * @tc.desc: Test whether the qos_interval_end interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(DeadlineTest, qos_interval_end_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, qos_interval_end_test, TestSize.Level0)
 {
     uint64_t deadline_us = 50000;
     qos qos = qos_deadline_request;
@@ -124,7 +124,7 @@ HWTEST_F(DeadlineTest, qos_interval_end_test, TestSize.Level1)
  * @tc.desc: Test whether the qos_interval_join interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(DeadlineTest, qos_interval_join_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, qos_interval_join_test, TestSize.Level0)
 {
     uint64_t deadline_us = 50000;
     qos qos = qos_deadline_request;
@@ -139,7 +139,7 @@ HWTEST_F(DeadlineTest, qos_interval_join_test, TestSize.Level1)
  * @tc.desc: Test whether the qos_interval_leave interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(DeadlineTest, qos_interval_leave_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, qos_interval_leave_test, TestSize.Level0)
 {
     uint64_t deadline_us = 50000;
     qos qos = qos_deadline_request;

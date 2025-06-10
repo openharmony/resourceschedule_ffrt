@@ -58,7 +58,7 @@ protected:
 };
 
 #ifndef FFRT_GITEE
-HWTEST_F(CgroupQosTest, UpdateSchedAttr_test, TestSize.Level1)
+HWTEST_F(CgroupQosTest, UpdateSchedAttr_test, TestSize.Level0)
 {
         ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};
         int ret = 0;
@@ -87,7 +87,7 @@ HWTEST_F(CgroupQosTest, SetCGroupCtlPara_test, TestSize.Level1)
         EXPECT_EQ(value, 1);
 }
 
-HWTEST_F(CgroupQosTest, SetCGroupSetPara_test, TestSize.Level1)
+HWTEST_F(CgroupQosTest, SetCGroupSetPara_test, TestSize.Level0)
 {
         std::string value = "1";
         OSAttrManager::Instance()->SetCGroupSetPara("", value);
@@ -95,7 +95,7 @@ HWTEST_F(CgroupQosTest, SetCGroupSetPara_test, TestSize.Level1)
         EXPECT_EQ(value, "1");
 }
 
-HWTEST_F(CgroupQosTest, SetTidToCGroupPrivate_test, TestSize.Level1)
+HWTEST_F(CgroupQosTest, SetTidToCGroupPrivate_test, TestSize.Level0)
 {
         int32_t pid = 100;
         OSAttrManager::Instance()->SetTidToCGroupPrivate("test", pid);
@@ -110,7 +110,7 @@ HWTEST_F(CgroupQosTest, SetCGroupPara_test, TestSize.Level1)
         EXPECT_EQ(a, 100);
 }
 
-HWTEST_F(CgroupQosTest, SetCGroupPara_err_test, TestSize.Level1)
+HWTEST_F(CgroupQosTest, SetCGroupPara_err_test, TestSize.Level0)
 {
 #ifndef WITH_NO_MOCKER
         MOCKER(write).stubs().will(returnValue(0));
@@ -150,7 +150,7 @@ protected:
     }
 };
 
-HWTEST_F(QosTest, QosConfig_test, TestSize.Level1)
+HWTEST_F(QosTest, QosConfig_test, TestSize.Level0)
 {
 #ifndef WITH_NO_MOCKER
     int i = 0;
@@ -180,7 +180,6 @@ protected:
     {
     }
 };
-
 
 #if !defined(SCHED_RGT_CTRL_DNE)
 HWTEST_F(QosInterfaceTest2, FFRTEnableRtgTest, TestSize.Level1)
@@ -246,7 +245,7 @@ HWTEST_F(QosInterfaceTest2, FFRTAuthGetTest, TestSize.Level1)
 #endif
 
 #if !defined(SCHED_QOS_CTRL_DNE)
-HWTEST_F(QosInterfaceTest2, QosPolicyTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, QosPolicyTest, TestSize.Level0)
 {
     struct QosPolicyData qp = {0, 0, 0, 0, 0};
     struct QosPolicyDatas policyDatas = {0, 0, {qp}};
@@ -255,7 +254,7 @@ HWTEST_F(QosInterfaceTest2, QosPolicyTest, TestSize.Level1)
     EXPECT_NE(ret, 0);
 }
 
-HWTEST_F(QosInterfaceTest2, FFRTQosApplyTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest2, FFRTQosApplyTest, TestSize.Level0)
 {
     unsigned int level = 1;
 

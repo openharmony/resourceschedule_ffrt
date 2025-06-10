@@ -53,7 +53,7 @@ protected:
     }
 };
 
-HWTEST_F(DependencyTest, dependency_success_01, TestSize.Level1)
+HWTEST_F(DependencyTest, dependency_success_01, TestSize.Level0)
 {
     int x = 0;
     ffrt::submit([&]() { x = 2; }, {}, {&x});
@@ -62,7 +62,7 @@ HWTEST_F(DependencyTest, dependency_success_01, TestSize.Level1)
     EXPECT_EQ(x, 6);
 }
 
-HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level1)
+HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
@@ -85,7 +85,7 @@ HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level1)
 #endif
 }
 
-HWTEST_F(DependencyTest, update_qos_success_03, TestSize.Level1)
+HWTEST_F(DependencyTest, update_qos_success_03, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
@@ -95,7 +95,7 @@ HWTEST_F(DependencyTest, update_qos_success_03, TestSize.Level1)
     ffrt_restore_qos_config();
 }
 
-HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level1)
+HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
@@ -106,7 +106,7 @@ HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level1)
     EXPECT_EQ(ret2, 0);
 }
 
-HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level1)
+HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level0)
 {
     int x = 0;
     int ret = ffrt_task_attr_init(nullptr);
@@ -133,7 +133,7 @@ HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level1)
     EXPECT_EQ(x, 1);
 }
 
-HWTEST_F(DependencyTest, update_qos_failed_01, TestSize.Level1)
+HWTEST_F(DependencyTest, update_qos_failed_01, TestSize.Level0)
 {
     int x = 0;
     int ret = ffrt_task_attr_init(nullptr);
@@ -160,7 +160,7 @@ HWTEST_F(DependencyTest, update_qos_failed_01, TestSize.Level1)
     EXPECT_EQ(x, 1);
 }
 
-HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
+HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
@@ -177,7 +177,7 @@ HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level1)
  * 操作步骤     ：测试传入0个线程
  * 预期结果     ：预期失败
  */
-HWTEST_F(DependencyTest, set_worker_min_num_test, TestSize.Level1)
+HWTEST_F(DependencyTest, set_worker_min_num_test, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
@@ -194,7 +194,7 @@ HWTEST_F(DependencyTest, set_worker_min_num_test, TestSize.Level1)
  * 操作步骤     ：测试传入160个线程
  * 预期结果     ：预期失败
  */
-HWTEST_F(DependencyTest, set_worker_max_num_test, TestSize.Level1)
+HWTEST_F(DependencyTest, set_worker_max_num_test, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
@@ -206,7 +206,7 @@ HWTEST_F(DependencyTest, set_worker_max_num_test, TestSize.Level1)
     EXPECT_EQ(ret1, -1);
 }
 
-HWTEST_F(DependencyTest, ffrt_task_attr_get_name_set_notify_test, TestSize.Level1)
+HWTEST_F(DependencyTest, ffrt_task_attr_get_name_set_notify_test, TestSize.Level0)
 {
     int x = 0;
     int ret = ffrt_task_attr_init(nullptr);
@@ -235,7 +235,7 @@ HWTEST_F(DependencyTest, ffrt_task_attr_get_name_set_notify_test, TestSize.Level
     EXPECT_EQ(x, 1);
 }
 
-HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level1)
+HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level0)
 {
     ffrt_task_attr_t attr;
     static ffrt_executor_task_t work;
@@ -250,7 +250,7 @@ HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level1
     EXPECT_EQ(ret, 0);
 }
 
-HWTEST_F(DependencyTest, executor_task_submit_cancel_02, TestSize.Level1)
+HWTEST_F(DependencyTest, executor_task_submit_cancel_02, TestSize.Level0)
 {
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
@@ -290,7 +290,7 @@ static void init_once_sleep(void)
                2、取消的任务数+已执行的任务数=总提交任务数
                3、取消的任务数>0，已执行的任务数<总提交任务数
 */
-HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level1)
+HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level0)
 {
     int taskCount = 10000;
     ffrt_task_attr_t attr;
@@ -323,7 +323,7 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level1)
     ffrt_task_attr_destroy(&attr);
 }
 
-HWTEST_F(DependencyTest, update_trace_tag_task_attr_success, TestSize.Level1)
+HWTEST_F(DependencyTest, update_trace_tag_task_attr_success, TestSize.Level0)
 {
     ffrt::set_trace_tag("TASK A");
     ffrt::clear_trace_tag();
@@ -335,7 +335,7 @@ HWTEST_F(DependencyTest, update_trace_tag_task_attr_success, TestSize.Level1)
     EXPECT_EQ(ffrt_task_attr_get_qos(&tmpTask), ffrt::qos_user_initiated);
 }
 
-HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Level1)
+HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Level0)
 {
     int loops = 5;
     int frame_num = 2;

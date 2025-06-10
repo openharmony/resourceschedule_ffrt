@@ -299,7 +299,7 @@ static void QueueDumpMaxDumpSizeTest(ffrt_queue_t& queue_handle, char* buf)
 /**
  * @brief queue dump interface user cases
  */
-HWTEST_F(QueueDumpTest, queue_dump_case, TestSize.Level1)
+HWTEST_F(QueueDumpTest, queue_dump_case, TestSize.Level0)
 {
     // 创建类型为ffrt_queue_eventhandler_adapter的队列
     ffrt_queue_attr_t queue_attr;

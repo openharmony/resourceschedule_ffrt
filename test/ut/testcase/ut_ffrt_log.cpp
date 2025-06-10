@@ -52,7 +52,7 @@ protected:
 };
 #ifdef OHOS_STANDARD_SYSTEM
 // FaultLogger获取句柄/写入日志/读取日志/关闭句柄
-HWTEST_F(FfrtLogTest, faultLoggerFdManager, TestSize.Level1)
+HWTEST_F(FfrtLogTest, faultLoggerFdManager, TestSize.Level0)
 {
     // 获取句柄
     EXPECT_EQ(FaultLoggerFdManager::GetFaultLoggerFd(), -1);

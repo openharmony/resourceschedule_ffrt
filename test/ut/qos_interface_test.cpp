@@ -60,7 +60,7 @@ protected:
  * @tc.desc: Test whether the FFRTEnableRtg interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTEnableRtgTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTEnableRtgTest, TestSize.Level0)
 {
     bool flag = false;
     EXPECT_EQ(0, FFRTEnableRtg(flag));
@@ -76,7 +76,7 @@ HWTEST_F(QosInterfaceTest, FFRTEnableRtgTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTAuthEnable interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTAuthEnableTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTAuthEnableTest, TestSize.Level0)
 {
     unsigned int uid = getpid();
     unsigned int uaFlag = 0x1fff;
@@ -90,7 +90,7 @@ HWTEST_F(QosInterfaceTest, FFRTAuthEnableTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTAuthSwitch interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTAuthSwitchTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTAuthSwitchTest, TestSize.Level0)
 {
     unsigned int uid = getpid();
     unsigned int rtgFlag = 0x1fff;
@@ -105,7 +105,7 @@ HWTEST_F(QosInterfaceTest, FFRTAuthSwitchTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTAuthDelete interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTAuthDeleteTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTAuthDeleteTest, TestSize.Level0)
 {
     unsigned int uid = getpid();
 
@@ -117,7 +117,7 @@ HWTEST_F(QosInterfaceTest, FFRTAuthDeleteTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTAuthPause interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTAuthPauseTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTAuthPauseTest, TestSize.Level0)
 {
     unsigned int uid = getpid();
     unsigned int uaFlag = 0x1fff;
@@ -132,7 +132,7 @@ HWTEST_F(QosInterfaceTest, FFRTAuthPauseTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTAuthGet interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level0)
 {
     unsigned int uid = getpid();
     unsigned int uaFlag = 0x1fff;
@@ -149,7 +149,7 @@ HWTEST_F(QosInterfaceTest, FFRTAuthGetTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTQosApply interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTQosApplyTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTQosApplyTest, TestSize.Level0)
 {
     unsigned int level = 1;
 
@@ -161,7 +161,7 @@ HWTEST_F(QosInterfaceTest, FFRTQosApplyTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTQosApplyForOther interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTQosApplyForOtherTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTQosApplyForOtherTest, TestSize.Level0)
 {
     unsigned int level = 1;
     int tid = GET_TID();
@@ -174,7 +174,7 @@ HWTEST_F(QosInterfaceTest, FFRTQosApplyForOtherTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTQosLeave interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTQosLeaveTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTQosLeaveTest, TestSize.Level0)
 {
     EXPECT_EQ(0, FFRTQosLeave());
 }
@@ -184,7 +184,7 @@ HWTEST_F(QosInterfaceTest, FFRTQosLeaveTest, TestSize.Level1)
  * @tc.desc: Test whether the FFRTQosLeaveForOther interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, FFRTQosLeaveForOtherTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, FFRTQosLeaveForOtherTest, TestSize.Level0)
 {
     unsigned int level = 1;
     int tid = GET_TID();
@@ -198,7 +198,7 @@ HWTEST_F(QosInterfaceTest, FFRTQosLeaveForOtherTest, TestSize.Level1)
  * @tc.desc: Test whether the QosPolicy interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(QosInterfaceTest, QosPolicyTest, TestSize.Level1)
+HWTEST_F(QosInterfaceTest, QosPolicyTest, TestSize.Level0)
 {
     struct QosPolicyData qp = {0, 0, 0, 0, 0};
     struct QosPolicyDatas policyDatas = {0, 0, {qp}};

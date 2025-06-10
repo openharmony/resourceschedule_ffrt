@@ -95,7 +95,7 @@ void EmptyFunction() {}
  *              2、提交延时串行队列任务并执行
  * 预期结果    ：执行成功
  */
-HWTEST_F(QueueTest, serial_queue_submit_cancel_succ, TestSize.Level1)
+HWTEST_F(QueueTest, serial_queue_submit_cancel_succ, TestSize.Level0)
 {
     // 创建队列
     ffrt_queue_attr_t queue_attr;
@@ -132,7 +132,7 @@ HWTEST_F(QueueTest, serial_queue_submit_cancel_succ, TestSize.Level1)
  *              3、调用串行队列创建接口创建队列，type为串行队列，但name为nullptr
  * 预期结果    ：1创建失败，2、3创建成功
  */
-HWTEST_F(QueueTest, serial_queue_create_fail, TestSize.Level1)
+HWTEST_F(QueueTest, serial_queue_create_fail, TestSize.Level0)
 {
     // input invalid
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_max, nullptr, nullptr);
@@ -159,7 +159,7 @@ HWTEST_F(QueueTest, serial_queue_create_fail, TestSize.Level1)
  *              2、使用ffrt_task_attr_get_delay查询时间
  * 预期结果    ：查询结果与设定相同，初始值为0
  */
-HWTEST_F(QueueTest, ffrt_task_attr_set_get_delay, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_task_attr_set_get_delay, TestSize.Level0)
 {
     // succ free
     ffrt_task_attr_t task_attr;
@@ -184,7 +184,7 @@ HWTEST_F(QueueTest, ffrt_task_attr_set_get_delay, TestSize.Level1)
  *              3、调用串行队列创建接口创建队列并提交任务，随后销毁任务
  * 预期结果    ：2提交失败并返回nullptr，3提交成功
  */
-HWTEST_F(QueueTest, serial_queue_task_create_destroy_fail, TestSize.Level1)
+HWTEST_F(QueueTest, serial_queue_task_create_destroy_fail, TestSize.Level0)
 {
     // input invalid
     ffrt_task_handle_t task = ffrt_queue_submit_h(nullptr, nullptr, nullptr);
@@ -213,7 +213,7 @@ HWTEST_F(QueueTest, serial_queue_task_create_destroy_fail, TestSize.Level1)
  *              2、循环提交延时任务20次，取消10次
  * 预期结果    ：总共应执行100+取消前已执行的次数
  */
-HWTEST_F(QueueTest, serial_multi_submit_succ, TestSize.Level1)
+HWTEST_F(QueueTest, serial_multi_submit_succ, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -254,7 +254,7 @@ HWTEST_F(QueueTest, serial_multi_submit_succ, TestSize.Level1)
  *              2、循环提交延时任务20次，取消10次
  * 预期结果    ：总共应执行100+取消前已执行的次数
  */
-HWTEST_F(QueueTest, concurrent_multi_submit_succ, TestSize.Level1)
+HWTEST_F(QueueTest, concurrent_multi_submit_succ, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -295,7 +295,7 @@ HWTEST_F(QueueTest, concurrent_multi_submit_succ, TestSize.Level1)
                 2、至少取消1个
  * 预期结果    ：取消成功
  */
-HWTEST_F(QueueTest, serial_early_quit_succ, TestSize.Level1)
+HWTEST_F(QueueTest, serial_early_quit_succ, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -323,7 +323,7 @@ HWTEST_F(QueueTest, serial_early_quit_succ, TestSize.Level1)
                 2、调用两次ffrt_queue_cancel取消同一任务
  * 预期结果    ：首次取消成功，第二次取消失败
  */
-HWTEST_F(QueueTest, serial_double_cancel_failed, TestSize.Level1)
+HWTEST_F(QueueTest, serial_double_cancel_failed, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -353,7 +353,7 @@ HWTEST_F(QueueTest, serial_double_cancel_failed, TestSize.Level1)
                 2、调用ffrt_queue_attr_destroy接口销毁队列创建的attr
  * 预期结果    ：设置与销毁成功
  */
-HWTEST_F(QueueTest, ffrt_queue_attr_des, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_attr_des, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -363,7 +363,7 @@ HWTEST_F(QueueTest, ffrt_queue_attr_des, TestSize.Level1)
     ffrt_queue_attr_destroy(&queue_attr);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level0)
 {
     // ffrt_queue_attr_set_timeout接口attr为异常值
     ffrt_queue_attr_t queue_attr;
@@ -379,7 +379,7 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_dfx_api_0002, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_dfx_api_0002, TestSize.Level0)
 {
     // ffrt_queue_attr_get_timeout接口attr为异常值
     ffrt_queue_attr_t queue_attr;
@@ -397,7 +397,7 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0002, TestSize.Level1)
     ffrt_queue_destroy(queue_handle);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level0)
 {
     // ffrt_queue_attr_get_timeoutCb接口attr为异常值
     std::function<void()> cbOne = []() { printf("first set callback\n"); };
@@ -424,7 +424,7 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level1)
  *               2、在任务中读取queueid
  * 预期结果    : 读取queueid成功
  */
-HWTEST_F(QueueTest, get_queue_id_from_task, TestSize.Level1)
+HWTEST_F(QueueTest, get_queue_id_from_task, TestSize.Level0)
 {
     queue* testQueue = new queue("test_queue");
     auto t = testQueue->submit_h([] {
@@ -441,7 +441,7 @@ HWTEST_F(QueueTest, get_queue_id_from_task, TestSize.Level1)
  *               2、使用ffrt_task_attr_get_queue_priority查询优先级
  * 预期结果    : 查询结果与设定相同，值为3
  */
-HWTEST_F(QueueTest, ffrt_task_attr_set_queue_priority, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_task_attr_set_queue_priority, TestSize.Level0)
 {
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr);
@@ -462,7 +462,7 @@ HWTEST_F(QueueTest, ffrt_task_attr_set_queue_priority, TestSize.Level1)
  *               2、使用ffrt_queue_attr_get_max_concurrency查询并行度
  * 预期结果    : 查询结果与设定相同，值为4
  */
-HWTEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -491,7 +491,7 @@ HWTEST_F(QueueTest, ffrt_queue_attr_set_max_concurrency, TestSize.Level1)
  *               2、调用ffrt_queue_has_task查询任务是否在队列中
  * 预期结果    : 查询结果与预期相同
  */
-HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -545,7 +545,7 @@ HWTEST_F(QueueTest, ffrt_queue_has_task, TestSize.Level1)
  *               3、调用ffrt_queue_cancel_all取消所有任务
  * 预期结果    : 任务取消成功
  */
-HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
@@ -610,7 +610,7 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level1)
  *               2、调用ffrt_queue_submit_head提交任务至队头
  * 预期结果    : 提交到对头的任务优先被执行
  */
-HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level0)
 {
     ffrt::queue* testQueue = new ffrt::queue(static_cast<ffrt::queue_type>(
         ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "test_queue");
@@ -654,7 +654,7 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level1)
     delete testQueue;
 }
 
-HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
 {
  // ffrt test case begin
     ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
@@ -683,7 +683,7 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level1)
     delete serialQueue;
 }
 
-HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level0)
 {
  // ffrt test case begin
     ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
@@ -721,7 +721,7 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level1)
  *               2、提交堆积任务
  * 预期结果    : 成功触发流量监控告警
  */
-HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level0)
 {
     ffrt::DelayedWorker::GetInstance();
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
@@ -764,7 +764,7 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level1)
 *               2、提交堆积任务
 * 预期结果    : 不触发流量监控告警
 */
-HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     const int numTasks = 19;
@@ -810,7 +810,7 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level1)
  *               2、提交堆积任务
  * 预期结果    : 成功触发流量监控告警，但不触发上报
  */
-HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     ffrt_task_handle_t handle;
@@ -857,7 +857,7 @@ void MyCallback(uint64_t id, const char* message, uint32_t length)
  *               2、提交多个任务占满worker，使得新串行任务等待调度
  * 预期结果    : 成功触发任务调度超时告警
  */
-HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
@@ -886,7 +886,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level1)
  *               2、提交执行时间长任务
  * 预期结果    : 成功触发任务执行超时告警
  */
-HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
@@ -908,7 +908,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level1)
  *               2、提交执行时间长任务
  * 预期结果    : 不触发超时告警
  */
-HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
@@ -930,7 +930,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level1)
  *               2、提交执行时间长任务
  * 预期结果    : 不触发超时告警
  */
-HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
@@ -970,7 +970,7 @@ void StallUs(size_t us)
  *               2、提交执行时间长任务
  * 预期结果    : 触发PENDING和EXECUTING各一次的超时告警
  */
-HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
@@ -1002,7 +1002,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level1)
  *               2、创建多个线程，并发地调用PopHead接口从队列中获取数据
  * 预期结果    : 数据能够被正确取出
  */
-HWTEST_F(QueueTest, ffrt_spmc_queue_test, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_spmc_queue_test, TestSize.Level0)
 {
     SpmcQueue queue;
     EXPECT_EQ(queue.Init(0), -1);
@@ -1047,7 +1047,7 @@ HWTEST_F(QueueTest, ffrt_spmc_queue_test, TestSize.Level1)
  *              2、迁移成功，目标队列中存在和目标队列数量相同的数据
  *              3、迁移成功，目标队列中存在和源队列数量相同的数据
  */
-HWTEST_F(QueueTest, ffrt_spmc_queue_pop_head_to_another_queue, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_spmc_queue_pop_head_to_another_queue, TestSize.Level0)
 {
     SpmcQueue queue;
     SpmcQueue dstQueue;
@@ -1075,7 +1075,7 @@ HWTEST_F(QueueTest, ffrt_spmc_queue_pop_head_to_another_queue, TestSize.Level1)
     EXPECT_EQ(dstQueue2.GetLength(), 64);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_submit_h_f, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_submit_h_f, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -1091,7 +1091,7 @@ HWTEST_F(QueueTest, ffrt_queue_submit_h_f, TestSize.Level1)
     EXPECT_EQ(result, 1);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_submit_f, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_submit_f, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -1114,7 +1114,7 @@ HWTEST_F(QueueTest, ffrt_queue_submit_f, TestSize.Level1)
  *               2、提交延时的队列任务，同时调用skip接口取消队列任务
  * 预期结果    : 队列任务取消失败，任务成功执行
  */
-HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level1)
+HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
 {
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
         "concurrent_queue", ffrt::queue_attr().max_concurrency(4));

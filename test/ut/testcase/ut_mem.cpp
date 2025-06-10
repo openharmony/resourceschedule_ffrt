@@ -47,7 +47,7 @@ protected:
     }
 };
 
-HWTEST_F(MemTest, mem_leakage_test_try_times_min, TestSize.Level1)
+HWTEST_F(MemTest, mem_leakage_test_try_times_min, TestSize.Level0)
 {
     uint32_t count = 10;
     uint32_t try_times_max = 5;

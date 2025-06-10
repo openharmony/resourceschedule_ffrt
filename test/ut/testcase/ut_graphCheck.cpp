@@ -45,7 +45,7 @@ protected:
     }
 };
 
-HWTEST_F(GraphCheckTest, HasCyclic, TestSize.Level1)
+HWTEST_F(GraphCheckTest, HasCyclic, TestSize.Level0)
 {
     GraphCheckCyclic graph;
 
@@ -58,7 +58,7 @@ HWTEST_F(GraphCheckTest, HasCyclic, TestSize.Level1)
     EXPECT_EQ(graph.IsCyclic(), true);
 }
 
-HWTEST_F(GraphCheckTest, HasNoCyclic, TestSize.Level1)
+HWTEST_F(GraphCheckTest, HasNoCyclic, TestSize.Level0)
 {
     GraphCheckCyclic graph;
 

@@ -17,7 +17,7 @@ import("//build/ohos_var.gni")
 import("//build/test.gni")
 import("../../ffrt.gni")
 
-module_output_path = "ffrttest/"
+module_output_path = "ffrt/ffrt"
 
 gtest_public_external_deps = [ "googletest:gtest_main" ]
 

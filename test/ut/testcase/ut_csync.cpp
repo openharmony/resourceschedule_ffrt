@@ -66,7 +66,7 @@ protected:
  * @tc.desc: Test function of mutexattr when the input is nullptr;
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level1)
+HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level0)
 {
     int ret = ffrt_mutexattr_init(nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
@@ -83,7 +83,7 @@ HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level1)
  * @tc.desc: Test function of mutex when the input is nullptr;
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level1)
+HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level0)
 {
     int ret = ffrt_mutex_init(nullptr, nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
@@ -101,7 +101,7 @@ HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level1)
  * @tc.desc: Test function of mutex:try_lock
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, mutex_try_lock, TestSize.Level1)
+HWTEST_F(SyncTest, mutex_try_lock, TestSize.Level0)
 {
     int val = -1;
     ffrt::mutex lock;
@@ -120,7 +120,7 @@ HWTEST_F(SyncTest, mutex_try_lock, TestSize.Level1)
  * @tc.desc: Test function of recursive mutex:try_lock
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level1)
+HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level0)
 {
     int val = -1;
     ffrt::recursive_mutex lock;
@@ -139,7 +139,7 @@ HWTEST_F(SyncTest, recursive_mutex_try_lock, TestSize.Level1)
  * @tc.desc: Test function of shared mutex:try_lock
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, shared_mutex_try_lock, TestSize.Level1)
+HWTEST_F(SyncTest, shared_mutex_try_lock, TestSize.Level0)
 {
     ffrt::shared_mutex lock;
     lock.lock_shared();
@@ -162,7 +162,7 @@ HWTEST_F(SyncTest, shared_mutex_try_lock, TestSize.Level1)
  * @tc.desc: Test function of mutex:lock in Thread mode
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, mutex_lock_with_BlockThread, TestSize.Level1)
+HWTEST_F(SyncTest, mutex_lock_with_BlockThread, TestSize.Level0)
 {
     int x = 0;
     ffrt::mutex lock;
@@ -210,7 +210,7 @@ HWTEST_F(SyncTest, mutex_lock_with_BlockThread, TestSize.Level1)
  * @tc.desc: Test function of mutex:lock in Thread mode
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
+HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level0)
 {
     int x = 0;
     ffrt::submit([&]() {
@@ -243,7 +243,7 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level1)
     EXPECT_EQ(x, 1);
 }
 
-HWTEST_F(SyncTest, class_data_align, TestSize.Level1)
+HWTEST_F(SyncTest, class_data_align, TestSize.Level0)
 {
     struct memTest {
         bool isFlag; // Construct an unaligned address
@@ -277,7 +277,7 @@ HWTEST_F(SyncTest, class_data_align, TestSize.Level1)
     }
 }
 
-HWTEST_F(SyncTest, lock_stress, TestSize.Level1)
+HWTEST_F(SyncTest, lock_stress, TestSize.Level0)
 {
     // trigger lazy init
     ffrt::submit([&]() {}, {}, {});
@@ -311,7 +311,7 @@ HWTEST_F(SyncTest, lock_stress, TestSize.Level1)
     EXPECT_EQ(acc, (M * N + J));
 }
 
-HWTEST_F(SyncTest, lock_stress_c_api, TestSize.Level1)
+HWTEST_F(SyncTest, lock_stress_c_api, TestSize.Level0)
 {
     // trigger lazy init
     ffrt::submit([&]() {}, {}, {});
@@ -350,7 +350,7 @@ HWTEST_F(SyncTest, lock_stress_c_api, TestSize.Level1)
  * @tc.desc: Test C++ function of recursive mutex:lock in stress mode
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, recursive_lock_stress, TestSize.Level1)
+HWTEST_F(SyncTest, recursive_lock_stress, TestSize.Level0)
 {
     // trigger lazy init
     ffrt::submit([&]() {}, {}, {});
@@ -389,7 +389,7 @@ HWTEST_F(SyncTest, recursive_lock_stress, TestSize.Level1)
  * @tc.desc: Test C function of recursive mutex:lock in stress mode
  * @tc.type: FUNC
  */
-HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level1)
+HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level0)
 {
     // trigger lazy init
     ffrt::submit([&]() {}, {}, {});
@@ -423,7 +423,7 @@ HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level1)
     delete lock;
 }
 
-HWTEST_F(SyncTest, conditionTestWaitfor, TestSize.Level1)
+HWTEST_F(SyncTest, conditionTestWaitfor, TestSize.Level0)
 {
     ffrt::condition_variable cond;
     std::atomic_int a = 0;
@@ -453,7 +453,7 @@ HWTEST_F(SyncTest, conditionTestWaitfor, TestSize.Level1)
     ffrt::wait();
 }
 
-HWTEST_F(SyncTest, conditionTestDataRace, TestSize.Level1)
+HWTEST_F(SyncTest, conditionTestDataRace, TestSize.Level0)
 {
     std::atomic_bool exit {false};
     ffrt::mutex mtx;
@@ -496,7 +496,7 @@ HWTEST_F(SyncTest, conditionTestDataRace, TestSize.Level1)
     th1.join();
 }
 
-HWTEST_F(SyncTest, sharedMutexTestInit, TestSize.Level1)
+HWTEST_F(SyncTest, sharedMutexTestInit, TestSize.Level0)
 {
     // init when attr is not nullptr,
     int x = 0;
@@ -518,7 +518,7 @@ HWTEST_F(SyncTest, sharedMutexTestInit, TestSize.Level1)
                4.设置legacy模式后，调用shared_mutex加解锁接口
 * 预期结果    ：任务按预期执行
 */
-HWTEST_F(SyncTest, mutexTest, TestSize.Level1)
+HWTEST_F(SyncTest, mutexTest, TestSize.Level0)
 {
     ffrt::mutex mut;
 
@@ -551,7 +551,7 @@ HWTEST_F(SyncTest, mutexTest, TestSize.Level1)
                4.设置legacy模式后，调用shared_mutex加解锁接口
 * 预期结果    ：任务按预期执行
 */
-HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level1)
+HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level0)
 {
     ffrt::shared_mutex smut;
 
@@ -942,7 +942,7 @@ static void TryLockSharedTest(ffrt::shared_mutex& smtx)
     }
 }
 
-HWTEST_F(SyncTest, thread1, TestSize.Level1)
+HWTEST_F(SyncTest, thread1, TestSize.Level0)
 {
     auto ThreadFunc1 = [](int a, const int& b) {
         FFRT_LOGW("a = %d, b = %d", a, b);
@@ -1030,7 +1030,7 @@ public:
     int n = 0;
 };
 
-HWTEST_F(SyncTest, thread2, TestSize.Level1)
+HWTEST_F(SyncTest, thread2, TestSize.Level0)
 {
     {
         int n = 0;
@@ -1088,7 +1088,7 @@ HWTEST_F(SyncTest, thread2, TestSize.Level1)
     }
 }
 
-HWTEST_F(SyncTest, thread_with_qos, TestSize.Level1)
+HWTEST_F(SyncTest, thread_with_qos, TestSize.Level0)
 {
     int a = 0;
     auto task = [&] {
@@ -1098,7 +1098,7 @@ HWTEST_F(SyncTest, thread_with_qos, TestSize.Level1)
     EXPECT_EQ(1, a);
 }
 
-HWTEST_F(SyncTest, thread_with_name, TestSize.Level1)
+HWTEST_F(SyncTest, thread_with_name, TestSize.Level0)
 {
     int a = 0;
     auto task = [&] {
@@ -1121,7 +1121,7 @@ struct F {
     }
 };
 
-HWTEST_F(SyncTest, thread_with_ref_check, TestSize.Level1)
+HWTEST_F(SyncTest, thread_with_ref_check, TestSize.Level0)
 {
     int a = 0;
     ffrt::thread t(F{}, std::ref(a), std::cref(a), std::ref(a));
@@ -1136,7 +1136,7 @@ struct A {
 
 void func(const A&) { }
 
-HWTEST_F(SyncTest, thread_with_ref, TestSize.Level1)
+HWTEST_F(SyncTest, thread_with_ref, TestSize.Level0)
 {
     ffrt::thread t(func, A{});
     t.join();
@@ -1150,7 +1150,7 @@ HWTEST_F(SyncTest, thread_with_ref, TestSize.Level1)
                2.分别调用ffrt_usleep接口
 * 预期结果    ：任务调用成功
 */
-HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level1)
+HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level0)
 {
     ffrt::submit([]() {
         ffrt_this_task_set_legacy_mode(true);
@@ -1171,7 +1171,7 @@ HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level1)
                2.分别调用ffrt_yield接口
 * 预期结果    ：任务调用成功
 */
-HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level1)
+HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level0)
 {
     ffrt::submit([]() {
         ffrt_this_task_set_legacy_mode(true);

@@ -80,7 +80,7 @@ void SwapToFront(int uid)
  * @tc.desc: Test whether the JoinWG interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(WorkgroupInternalTest, JoinWGTest, TestSize.Level1)
+HWTEST_F(WorkgroupInternalTest, JoinWGTest, TestSize.Level0)
 {
     int tid = GET_TID();
     bool ret = JoinWG(tid, 0);
@@ -96,7 +96,7 @@ HWTEST_F(WorkgroupInternalTest, JoinWGTest, TestSize.Level1)
  * @tc.desc: Test whether the WorkgroupCreate interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(WorkgroupInternalTest, WorkgroupCreateTest, TestSize.Level1)
+HWTEST_F(WorkgroupInternalTest, WorkgroupCreateTest, TestSize.Level0)
 {
     long interval = 10000;
     (void)setuid(1000);
@@ -120,7 +120,7 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupCreateTest, TestSize.Level1)
  * @tc.desc: Test whether the WorkgroupStartInterval interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(WorkgroupInternalTest, WorkgroupStartIntervalTest, TestSize.Level1)
+HWTEST_F(WorkgroupInternalTest, WorkgroupStartIntervalTest, TestSize.Level0)
 {
 #if defined(QOS_FRAME_RTG)
     struct WorkGroup* wg = nullptr;
@@ -149,7 +149,7 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupStartIntervalTest, TestSize.Level1)
  * @tc.desc: Test whether the WorkgroupStopInterval interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(WorkgroupInternalTest, WorkgroupStopIntervalTest, TestSize.Level1)
+HWTEST_F(WorkgroupInternalTest, WorkgroupStopIntervalTest, TestSize.Level0)
 {
 #if defined(QOS_FRAME_RTG)
     struct WorkGroup* wg = nullptr;
@@ -178,7 +178,7 @@ HWTEST_F(WorkgroupInternalTest, WorkgroupStopIntervalTest, TestSize.Level1)
  * @tc.desc: Test whether the WorkgroupClear interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(WorkgroupInternalTest, WorkgroupClearTest, TestSize.Level1)
+HWTEST_F(WorkgroupInternalTest, WorkgroupClearTest, TestSize.Level0)
 {
     struct WorkGroup* wg = nullptr;
 

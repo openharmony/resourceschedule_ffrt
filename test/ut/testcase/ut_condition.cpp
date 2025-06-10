@@ -45,7 +45,7 @@ protected:
     }
 };
 
-HWTEST_F(CVTest, conditonV_wait_for_test2, TestSize.Level1)
+HWTEST_F(CVTest, conditonV_wait_for_test2, TestSize.Level0)
 {
     ffrt::condition_variable cond;
     ffrt::mutex lock_;
@@ -62,7 +62,7 @@ HWTEST_F(CVTest, conditonV_wait_for_test2, TestSize.Level1)
     ffrt::wait();
 }
 
-HWTEST_F(CVTest, conditonV_wait_for_test3, TestSize.Level1)
+HWTEST_F(CVTest, conditonV_wait_for_test3, TestSize.Level0)
 {
     ffrt::condition_variable cond;
     ffrt::mutex lock_;
@@ -73,7 +73,7 @@ HWTEST_F(CVTest, conditonV_wait_for_test3, TestSize.Level1)
     EXPECT_EQ(status, ffrt::cv_status::timeout);
 }
 
-HWTEST_F(CVTest, conditonV_nullptr_test, TestSize.Level1)
+HWTEST_F(CVTest, conditonV_nullptr_test, TestSize.Level0)
 {
     int ret = 0;
 
@@ -109,7 +109,7 @@ protected:
     }
 };
 
-HWTEST_F(MutexTest, try_lock_test, TestSize.Level1)
+HWTEST_F(MutexTest, try_lock_test, TestSize.Level0)
 {
     int val = -1;
     ffrt::mutex lock;
@@ -123,7 +123,7 @@ HWTEST_F(MutexTest, try_lock_test, TestSize.Level1)
     lock.unlock();
 }
 
-HWTEST_F(MutexTest, lock_stress_test, TestSize.Level1)
+HWTEST_F(MutexTest, lock_stress_test, TestSize.Level0)
 {
     // trigger lazy init
     ffrt::submit([&]() {}, {}, {});
@@ -185,7 +185,7 @@ void* thd_func(void *arg)
 
 int g_data = 0;
 
-HWTEST_F(SleepTest, thread_test, TestSize.Level1)
+HWTEST_F(SleepTest, thread_test, TestSize.Level0)
 {
     ffrt_thread_t detachThread = nullptr;
     ffrt_thread_create(&detachThread, nullptr, thd_func, &g_data);
@@ -201,7 +201,7 @@ HWTEST_F(SleepTest, thread_test, TestSize.Level1)
     ffrt::wait();
 }
 
-HWTEST_F(SleepTest, thread_test2, TestSize.Level1)
+HWTEST_F(SleepTest, thread_test2, TestSize.Level0)
 {
     int a = 0;
     ffrt_thread_t thread = nullptr;

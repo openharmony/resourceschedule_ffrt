@@ -92,7 +92,7 @@ void destroy_stackless_coroutine(void *co)
 {
 }
 
-HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
+HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level0)
 {
     // coroutine_submit_004
     StacklessCoroutine1 co1 = {0};
@@ -110,7 +110,7 @@ HWTEST_F(CoroutineTest, coroutine_submit_succ, TestSize.Level1)
     ffrt_wake_coroutine(nullptr);
 }
 
-HWTEST_F(CoroutineTest, coroutine_submit_fail, TestSize.Level1)
+HWTEST_F(CoroutineTest, coroutine_submit_fail, TestSize.Level0)
 {
     // get_task_001
     EXPECT_EQ(ffrt_get_current_task(), nullptr);
@@ -145,7 +145,7 @@ static void testCallBack(void* token, uint32_t event)
 * 操作步骤    ：在ffrt任务中调用ffrt_get_current_coroutine_stack接口
 * 预期结果    ：获取协程栈地址和大小成功
 */
-HWTEST_F(CoroutineTest, ffrt_get_current_coroutine_stack_success, TestSize.Level1)
+HWTEST_F(CoroutineTest, ffrt_get_current_coroutine_stack_success, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);

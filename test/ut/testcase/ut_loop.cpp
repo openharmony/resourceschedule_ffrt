@@ -68,7 +68,7 @@ void* ThreadFunc(void* p)
  *
  * 预期结果    ：创建失败
  */
-HWTEST_F(LoopTest, loop_null_queue_create_fail, TestSize.Level1)
+HWTEST_F(LoopTest, loop_null_queue_create_fail, TestSize.Level0)
 {
     auto loop = ffrt_loop_create(nullptr);
     EXPECT_EQ(loop, nullptr);
@@ -82,7 +82,7 @@ HWTEST_F(LoopTest, loop_null_queue_create_fail, TestSize.Level1)
  *
  * 预期结果    ：创建失败
  */
-HWTEST_F(LoopTest, loop_serial_queue_create_succ, TestSize.Level1)
+HWTEST_F(LoopTest, loop_serial_queue_create_succ, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -103,7 +103,7 @@ HWTEST_F(LoopTest, loop_serial_queue_create_succ, TestSize.Level1)
  *
  * 预期结果    ：执行成功
  */
-HWTEST_F(LoopTest, loop_concurrent_queue_create_succ, TestSize.Level1)
+HWTEST_F(LoopTest, loop_concurrent_queue_create_succ, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -133,7 +133,7 @@ HWTEST_F(LoopTest, loop_concurrent_queue_create_succ, TestSize.Level1)
  *
  * 预期结果    ：创建失败
  */
-HWTEST_F(LoopTest, loop_concurrent_queue_create_fail, TestSize.Level1)
+HWTEST_F(LoopTest, loop_concurrent_queue_create_fail, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -157,7 +157,7 @@ HWTEST_F(LoopTest, loop_concurrent_queue_create_fail, TestSize.Level1)
  *
  * 预期结果    ：执行失败
  */
-HWTEST_F(LoopTest, loop_run_fail, TestSize.Level1)
+HWTEST_F(LoopTest, loop_run_fail, TestSize.Level0)
 {
     int ret = ffrt_loop_run(nullptr);
     EXPECT_NE(ret, 0);
@@ -170,7 +170,7 @@ HWTEST_F(LoopTest, loop_run_fail, TestSize.Level1)
  *
  * 预期结果    ：执行失败
  */
-HWTEST_F(LoopTest, loop_destroy_fail, TestSize.Level1)
+HWTEST_F(LoopTest, loop_destroy_fail, TestSize.Level0)
 {
     int ret = ffrt_loop_destroy(nullptr);
     EXPECT_NE(ret, 0);
@@ -185,7 +185,7 @@ HWTEST_F(LoopTest, loop_destroy_fail, TestSize.Level1)
  *              2、销毁loop成功
  * 预期结果    ：执行成功
  */
-HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level1)
+HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr);
@@ -230,7 +230,7 @@ int RemoveFdListener(void* handler, uint32_t fd)
     return 0;
 }
 
-HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level1)
+HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
     (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须

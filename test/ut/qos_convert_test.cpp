@@ -120,7 +120,7 @@ static int QosTransfer(int qos)
 }
 
 #ifndef FFRT_GITEE
-HWTEST_F(QosConvertTest, GetStaticQos1, TestSize.Level1)
+HWTEST_F(QosConvertTest, GetStaticQos1, TestSize.Level0)
 {
     for (int i = 1; i <= NR_QOS_LEVEL; i++) {
         qos tmpQos = qos_default;
@@ -159,7 +159,7 @@ HWTEST_F(QosConvertTest, GetStaticQos2, TestSize.Level1)
     EXPECT_EQ(ret, -1);
 }
 
-HWTEST_F(QosConvertTest, GetDynamicQos, TestSize.Level1)
+HWTEST_F(QosConvertTest, GetDynamicQos, TestSize.Level0)
 {
 #if defined(QOS_FRAME_RTG)
     SetRssQos(8);
@@ -172,7 +172,7 @@ HWTEST_F(QosConvertTest, GetDynamicQos, TestSize.Level1)
 }
 
 #ifndef FFRT_GITEE
-HWTEST_F(QosConvertTest, FFRTQosGetInterface, TestSize.Level1)
+HWTEST_F(QosConvertTest, FFRTQosGetInterface, TestSize.Level0)
 {
     SetRssQos(8);
     struct QosCtrlData data;
@@ -184,7 +184,7 @@ HWTEST_F(QosConvertTest, FFRTQosGetInterface, TestSize.Level1)
     EXPECT_EQ(ret, 0);
 }
 
-HWTEST_F(QosConvertTest, FFRTQosGetForOtherInterface, TestSize.Level1)
+HWTEST_F(QosConvertTest, FFRTQosGetForOtherInterface, TestSize.Level0)
 {
     SetRssQos(8);
     struct QosCtrlData data;

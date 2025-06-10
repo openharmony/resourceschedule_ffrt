@@ -50,14 +50,14 @@ protected:
     }
 };
 
-HWTEST_F(RTGTest, rtg_init_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_init_test, TestSize.Level0)
 {
     bool enabled = RTGCtrl::Instance().Enabled();
     FFRT_LOGE("RTGCtrl Init %s", enabled ? "Success" : "Failed");
     EXPECT_EQ(enabled, false);
 }
 
-HWTEST_F(RTGTest, rtg_get_group_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_get_group_test, TestSize.Level0)
 {
     int tgid = RTGCtrl::Instance().GetThreadGroup();
     if (tgid < 0) {
@@ -72,7 +72,7 @@ HWTEST_F(RTGTest, rtg_get_group_test, TestSize.Level1)
     EXPECT_EQ(ret, false);
 }
 
-HWTEST_F(RTGTest, rtg_set_window_size_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_set_window_size_test, TestSize.Level0)
 {
     constexpr int WINDOW_SIZE = 10000;
 
@@ -95,7 +95,7 @@ HWTEST_F(RTGTest, rtg_set_window_size_test, TestSize.Level1)
     EXPECT_EQ(ret, false);
 }
 
-HWTEST_F(RTGTest, rtg_set_invalid_interval_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_set_invalid_interval_test, TestSize.Level0)
 {
     constexpr int INVALID_INTERVAL = 10;
 
@@ -118,7 +118,7 @@ HWTEST_F(RTGTest, rtg_set_invalid_interval_test, TestSize.Level1)
     EXPECT_EQ(ret, false);
 }
 
-HWTEST_F(RTGTest, rtg_set_preferred_cluster_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_set_preferred_cluster_test, TestSize.Level0)
 {
     constexpr int CLUSTER_ID = 0;
 
@@ -141,7 +141,7 @@ HWTEST_F(RTGTest, rtg_set_preferred_cluster_test, TestSize.Level1)
     EXPECT_EQ(ret, false);
 }
 
-HWTEST_F(RTGTest, rtg_begin_end_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_begin_end_test, TestSize.Level0)
 {
     int tgid = RTGCtrl::Instance().GetThreadGroup();
     if (tgid < 0) {
@@ -168,7 +168,7 @@ HWTEST_F(RTGTest, rtg_begin_end_test, TestSize.Level1)
     EXPECT_EQ(ret, false);
 }
 
-HWTEST_F(RTGTest, rtg_add_tread_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_add_tread_test, TestSize.Level0)
 {
     constexpr int THREAD_NUM = 8;
     bool ret;
@@ -236,7 +236,7 @@ HWTEST_F(RTGTest, rtg_add_tread_test, TestSize.Level1)
     }
 }
 
-HWTEST_F(RTGTest, rtg_update_util_test, TestSize.Level1)
+HWTEST_F(RTGTest, rtg_update_util_test, TestSize.Level0)
 {
     constexpr int THREAD_NUM = 8;
 

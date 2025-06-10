@@ -107,7 +107,7 @@ protected:
     }
 };
 
-HWTEST_F(CpuBoostTest, FFRTCpuBoostApiSuccess, TestSize.Level1)
+HWTEST_F(CpuBoostTest, FFRTCpuBoostApiSuccess, TestSize.Level0)
 {
     int i = 0;
     InitCfg(1);

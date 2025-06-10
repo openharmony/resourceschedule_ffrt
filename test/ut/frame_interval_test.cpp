@@ -54,7 +54,7 @@ protected:
  * @tc.desc: Test whether the FrameInterval interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(FrameIntervalTest, FrameIntervalTest, TestSize.Level1)
+HWTEST_F(FrameIntervalTest, FrameIntervalTest, TestSize.Level0)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     EXPECT_NE(fi, nullptr);
@@ -66,7 +66,7 @@ HWTEST_F(FrameIntervalTest, FrameIntervalTest, TestSize.Level1)
  * @tc.desc: Test whether the OnQoSIntervals interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(FrameIntervalTest, OnQoSIntervalsTest, TestSize.Level1)
+HWTEST_F(FrameIntervalTest, OnQoSIntervalsTest, TestSize.Level0)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     fi->OnQoSIntervals(ffrt::IntervalState::DEADLINE_BEGIN);
@@ -80,7 +80,7 @@ HWTEST_F(FrameIntervalTest, OnQoSIntervalsTest, TestSize.Level1)
  * @tc.desc: Test whether the Begin interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(FrameIntervalTest, BeginTest, TestSize.Level1)
+HWTEST_F(FrameIntervalTest, BeginTest, TestSize.Level0)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     int ret = fi->Begin();
@@ -96,7 +96,7 @@ HWTEST_F(FrameIntervalTest, BeginTest, TestSize.Level1)
  * @tc.desc: Test whether the End interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(FrameIntervalTest, EndTest, TestSize.Level1)
+HWTEST_F(FrameIntervalTest, EndTest, TestSize.Level0)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     fi->End();
@@ -112,7 +112,7 @@ HWTEST_F(FrameIntervalTest, EndTest, TestSize.Level1)
  * @tc.desc: Test whether the update interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(FrameIntervalTest, updateTest, TestSize.Level1)
+HWTEST_F(FrameIntervalTest, updateTest, TestSize.Level0)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     EXPECT_NE(fi, nullptr);
@@ -131,7 +131,7 @@ HWTEST_F(FrameIntervalTest, updateTest, TestSize.Level1)
  * @tc.desc: Test whether the Join interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(FrameIntervalTest, JoinTest, TestSize.Level1)
+HWTEST_F(FrameIntervalTest, JoinTest, TestSize.Level0)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     EXPECT_NE(fi, nullptr);

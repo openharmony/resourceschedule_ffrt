@@ -57,7 +57,7 @@ protected:
     }
 };
 
-HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level1)
+HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level0)
 {
     ffrt::FIFOQueue *fifoqueue = new ffrt::FIFOQueue();
     int aimnum = 10;
@@ -77,7 +77,7 @@ HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level1)
  * 操作步骤     : 1.调用ffrt_task_exited_transition接口
  * 预期结果    : 返回-1
  */
-HWTEST_F(SchedulerTest, ffrt_task_exited_transition, TestSize.Level1)
+HWTEST_F(SchedulerTest, ffrt_task_exited_transition, TestSize.Level0)
 {
     ffrt::SCPUEUTask parent(nullptr, nullptr, 0);
     ffrt::SCPUEUTask task(nullptr, &parent, 0);
@@ -142,7 +142,7 @@ HWTEST_F(SchedulerTest, ffrt_sched_local_push_pop, TestSize.Level1)
  *               3.调用PopTask触发偷取任务
  * 预期结果    : 偷取任务成功
  */
-HWTEST_F(SchedulerTest, ffrt_sched_local_steal, TestSize.Level1)
+HWTEST_F(SchedulerTest, ffrt_sched_local_steal, TestSize.Level0)
 {
     STaskScheduler scheduler;
     scheduler.SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
@@ -222,7 +222,7 @@ namespace {
  *               2.调用PopHeadToAnotherQueue向另一个队列中push任务
  * 预期结果    : Push任务失败，原队列任务数量符合预期
  */
-HWTEST_F(SchedulerTest, task_runqueue_pop_to_another_fail_test, TestSize.Level1)
+HWTEST_F(SchedulerTest, task_runqueue_pop_to_another_fail_test, TestSize.Level0)
 {
     int taskCount = 10;
     int localSize = 128;

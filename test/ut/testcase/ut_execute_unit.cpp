@@ -59,7 +59,7 @@ protected:
 * 操作步骤    ：调用enable和disable接口
 * 预期结果    ：正常参数enable成功，非法参数或者重复调用enable失败
 */
-HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level0)
 {
     EXPECT_EQ(ffrt::enable_worker_escape(0, 0, 0, 0, 0), 1);
     EXPECT_EQ(ffrt::enable_worker_escape(), 0);
@@ -75,7 +75,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level1)
                2.调用notify_workers接口，传入number为6
 * 预期结果    ：接口调用成功
 */
-HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level0)
 {
     constexpr int count = 5;
     for (int i = 0; i < count; i++) {
@@ -92,7 +92,7 @@ HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level1)
 * 操作步骤    ：调用SCPUWorkerManager的Notify方法
 * 预期结果    ：成功执行HandleTaskNotifyConservative方法
 */
-HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level0)
 {
     auto manager = std::make_unique<ffrt::SExecuteUnit>();
     manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyConservative;
@@ -116,7 +116,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
 * 操作步骤    ：调用SExecuteUnit的Notify方法
 * 预期结果    ：成功执行HandleTaskNotifyUltraConservative方法
 */
-HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.Level0)
 {
     auto manager = std::make_unique<ffrt::SExecuteUnit>();
     manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative;
@@ -139,7 +139,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.L
 * 操作步骤    ：调用ExecuteEscape、SubmitEscape、ReportEscapeEvent，包括异常分支
 * 预期结果    ：成功执行ExecuteEscape、SubmitEscape、ReportEscapeEvent方法
 */
-HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level0)
 {
     constexpr int taskCount = 100;
     auto manager = std::make_unique<ffrt::SExecuteUnit>();
@@ -164,7 +164,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level1)
                2.设置tearDown为true，调用IncWorker
 * 预期结果    ：返回false
 */
-HWTEST_F(ExecuteUnitTest, ffrt_inc_worker_abnormal, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, ffrt_inc_worker_abnormal, TestSize.Level0)
 {
     auto manager = std::make_unique<ffrt::SExecuteUnit>();
     EXPECT_EQ(manager->IncWorker(QoS(-1)), false);
@@ -177,7 +177,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_inc_worker_abnormal, TestSize.Level1)
  * @tc.desc: Test whether the BindWG interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level0)
 {
     auto qos1 = std::make_unique<QoS>();
     FFRTFacade::GetEUInstance().BindWG(*qos1);
@@ -189,7 +189,7 @@ HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level1)
  * @tc.desc: Test whether the UnbindTG interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level0)
 {
     auto qos1 = std::make_unique<QoS>();
     FFRTFacade::GetEUInstance().UnbindTG(*qos1);
@@ -201,7 +201,7 @@ HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level1)
  * @tc.desc: Test whether the BindTG interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level1)
+HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level0)
 {
     auto qos1 = std::make_unique<QoS>();
     ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(*qos1);

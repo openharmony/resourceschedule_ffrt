@@ -68,7 +68,7 @@ static void (*g_cb)(void*) = Testfun;
  * 预期结果    ：1、超时任务全部从队列中清除
                 2、当实际超时时间很长，但是传入超时时间很短，应该按传入时间执行
  */
-HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level1)
+HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level0)
 {
     Poller poller;
     // 1、组装timeMap_
@@ -109,7 +109,7 @@ HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level1)
                 2、创建两个线程，并发PollerOnce和Unregister
  * 预期结果    ：1、任务全部从队列中清除
  */
-HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level1)
+HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level0)
 {
     Poller poller;
     // 1、组装timeMap_
@@ -157,7 +157,7 @@ void EmptyCallback(void* data) {}
  * 操作步骤    ：1、调用PollOnce接口
  * 预期结果    ：1、三个回调执行完成，没有卡死现象
  */
-HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level1)
+HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level0)
 {
     // dependency can be accessed by multiple threads:
     // the polling and the updating thread. Hence,
@@ -200,7 +200,7 @@ HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level1)
  * 操作步骤    ：调用PollOnce接口
  * 预期结果    ：三个回调执行完成，没有卡死现象
  */
-HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level1)
+HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level0)
 {
     // dependency can be accessed by multiple threads:
     // the polling and the updating thread. Hence,
@@ -245,7 +245,7 @@ HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level1)
  * 操作步骤     :
  * 预期结果     :
  */
-HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level1)
+HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level0)
 {
     Poller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
@@ -284,7 +284,7 @@ HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level1)
  * 操作步骤     :
  * 预期结果     :
  */
-HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level1)
+HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level0)
 {
     Poller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
@@ -319,7 +319,7 @@ HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level1)
  * 操作步骤     :
  * 预期结果     :
  */
-HWTEST_F(PollerTest, TestCacheDelFd003, TestSize.Level1)
+HWTEST_F(PollerTest, TestCacheDelFd003, TestSize.Level0)
 {
     Poller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));

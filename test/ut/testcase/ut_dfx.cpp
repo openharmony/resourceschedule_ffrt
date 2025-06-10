@@ -49,7 +49,7 @@ protected:
     }
 };
 
-HWTEST_F(DfxTest, tracetest, TestSize.Level1)
+HWTEST_F(DfxTest, tracetest, TestSize.Level0)
 {
     int x = 0;
     ffrt::submit(
@@ -81,7 +81,7 @@ static void SignalReg(int signo)
     sigaction(signo, &newAction, nullptr);
 }
 
-HWTEST_F(DfxTest, queue_dfx_bbox_normal_task_0001, TestSize.Level1)
+HWTEST_F(DfxTest, queue_dfx_bbox_normal_task_0001, TestSize.Level0)
 {
     // 异常信号用例，测试bbox功能正常；
     int x = 0;
@@ -124,7 +124,7 @@ HWTEST_F(DfxTest, queue_dfx_bbox_normal_task_0001, TestSize.Level1)
     sleep(1);
 }
 
-HWTEST_F(DfxTest, queue_dfx_bbox_queue_task_0001, TestSize.Level1)
+HWTEST_F(DfxTest, queue_dfx_bbox_queue_task_0001, TestSize.Level0)
 {
     // 异常信号用例，测试bbox功能正常；
     int x = 0;
@@ -175,7 +175,7 @@ HWTEST_F(DfxTest, queue_dfx_bbox_queue_task_0001, TestSize.Level1)
 * 操作步骤    ：提交嵌套任务，子任务等待cv和数据依赖，调用SaveTheBbox和RecordDebugInfo接口
 * 预期结果    ：SaveTheBbox()函数正确执行
 */
-HWTEST_F(DfxTest, dfx_bbox_normal_task_0002, TestSize.Level1)
+HWTEST_F(DfxTest, dfx_bbox_normal_task_0002, TestSize.Level0)
 {
     SaveTheBbox();
     ffrt::submit([]() {

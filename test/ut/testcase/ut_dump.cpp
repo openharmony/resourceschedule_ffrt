@@ -64,7 +64,7 @@ HWTEST_F(DumpTest, dump_succ, TestSize.Level1)
  * 测试用例描述：设置与获取task_timout_cb成功
  * 预期结果    ：设置与获取成功
  */
-HWTEST_F(DumpTest, dump_cb_succ, TestSize.Level1)
+HWTEST_F(DumpTest, dump_cb_succ, TestSize.Level0)
 {
     ffrt_task_timeout_set_cb(nullptr);
     ffrt_task_timeout_cb ret = ffrt_task_timeout_get_cb();
@@ -76,7 +76,7 @@ HWTEST_F(DumpTest, dump_cb_succ, TestSize.Level1)
  * 测试用例描述：设置与获取task_timout_threshold成功
  * 预期结果    ：设置与获取成功
  */
-HWTEST_F(DumpTest, dump_thre_succ, TestSize.Level1)
+HWTEST_F(DumpTest, dump_thre_succ, TestSize.Level0)
 {
     ffrt_task_timeout_set_threshold(1000);
     uint32_t ret = ffrt_task_timeout_get_threshold();
@@ -89,7 +89,7 @@ HWTEST_F(DumpTest, dump_thre_succ, TestSize.Level1)
  * 操作步骤   ：1.调用函数ffrt_dump获取dump stat
  * 预期结果    ：获取成功
  */
-HWTEST_F(DumpTest, dump_stat_succ, TestSize.Level1)
+HWTEST_F(DumpTest, dump_stat_succ, TestSize.Level0)
 {
     char dumpinfo[1024 * 512] = {0};
     int ret = ffrt_dump(ffrt_dump_cmd_t::DUMP_START_STAT, dumpinfo, 1024 * 512);
@@ -104,7 +104,7 @@ HWTEST_F(DumpTest, dump_stat_succ, TestSize.Level1)
  * 操作步骤   ：1.调用函数ffrt_dump获取dump stat
  * 预期结果    ：获取失败
  */
-HWTEST_F(DumpTest, dump_stat_fail, TestSize.Level1)
+HWTEST_F(DumpTest, dump_stat_fail, TestSize.Level0)
 {
     int ret = ffrt_dump(ffrt_dump_cmd_t::DUMP_START_STAT, nullptr, 1000);
     EXPECT_EQ(ret, -1);

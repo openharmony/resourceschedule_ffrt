@@ -65,7 +65,7 @@ enum class TaskStatus {
     DEQUEUED,         // 队列任务从队列中取出 (串行/并发队列任务)
     SUBMITTED,       // 任务存在数据依赖
     READY,           // 任务没有依赖/依赖解除
-    POPED,           // 任务从ReadyQueue中取出，等待执行
+    POPPED,           // 任务从ReadyQueue中取出，等待执行
     EXECUTING,       // 任务执行在worker线程
     THREAD_BLOCK,    // 任务由于FFRT同步原语进入线程阻塞状态
     COROUTINE_BLOCK, // 任务由于FFRT同步原语进入协程阻塞状态
@@ -78,7 +78,7 @@ enum class CoTaskStatus {
     PENDING, // 任务创建后的初始状态
     ENQUEUED, // 队列任务插入队列中
     DEQUEUED, // 队列任务从队列中取出
-    POPED, // 任务从ReadyQueue中Pop出，等待执行
+    POPPED, // 任务从ReadyQueue中Pop出，等待执行
     EXECUTING, // 任务执行在worker线程
     CANCELED, // 任务未执行前被取消
 };

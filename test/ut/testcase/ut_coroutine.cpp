@@ -61,7 +61,7 @@ protected:
 constexpr int BLOCKED_COUNT = 3;
 
 typedef struct {
-    int count;
+    std::atomic<int> count;
     std::mutex lock;
 } StacklessCoroutine1;
 
@@ -69,7 +69,7 @@ ffrt_coroutine_ret_t stackless_coroutine(void* co)
 {
     StacklessCoroutine1* stacklesscoroutine = reinterpret_cast<StacklessCoroutine1*>(co);
     std::lock_guard lg(stacklesscoroutine->lock);
-    printf("stacklesscoroutine %d\n", stacklesscoroutine->count);
+    printf("stacklesscoroutine %d\n", stacklesscoroutine->count.load());
     stacklesscoroutine->count++;
     if (stacklesscoroutine->count < BLOCKED_COUNT) {
         ffrt_wake_coroutine(ffrt_get_current_task());

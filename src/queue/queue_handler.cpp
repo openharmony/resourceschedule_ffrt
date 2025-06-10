@@ -276,7 +276,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRTTraceRecord::TaskExecute(&(task->executeTime));
-        task->status = TaskStatus::EXECUTING;
+        task->SetTaskStatus(TaskStatus::EXECUTING);
         if (task->GetSchedTimeout() > 0) {
             RemoveSchedDeadline(task);
         }
@@ -418,7 +418,7 @@ std::string StatusToString(CoTaskStatus status)
         {CoTaskStatus::PENDING,    "PENDING"},
         {CoTaskStatus::ENQUEUED,    "ENQUEUED"},
         {CoTaskStatus::DEQUEUED,    "DEQUEUED"},
-        {CoTaskStatus::POPED,    "POPED"},
+        {CoTaskStatus::POPPED,    "POPPED"},
         {CoTaskStatus::EXECUTING,    "EXECUTING"},
         {CoTaskStatus::CANCELED,    "CANCELED"}
     };

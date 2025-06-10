@@ -25,7 +25,7 @@ void UVTask::Ready()
 {
     QoS taskQos = qos_;
     FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(taskQos);
-    status = TaskStatus::READY;
+    SetTaskStatus(TaskStatus::READY);
     FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(taskQos);
     FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(taskQos);

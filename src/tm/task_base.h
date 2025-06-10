@@ -91,6 +91,18 @@ public:
         return v;
     }
 
+    inline void SetTaskStatus(TaskStatus s)
+    {
+        // Note: check if stronger barriers are needed
+        taskStatus.store(s, std::memory_order_relaxed);
+    }
+
+    inline TaskStatus GetTaskStatus()
+    {
+        // Note: check if stronger barriers are needed
+        return taskStatus.load(std::memory_order_relaxed);
+    }
+
     // returns the current g_taskId value
     static uint32_t GetLastGid();
 
@@ -100,7 +112,7 @@ public:
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_inherit;
     std::atomic_uint32_t rc = 1; // reference count for delete
-    TaskStatus status = TaskStatus::PENDING;
+    std::atomic<TaskStatus> taskStatus = TaskStatus::PENDING; // can be updated by threads in parallel
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;

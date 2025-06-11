@@ -37,13 +37,14 @@ namespace ffrt {
 void CPUWorker::WorkerSetup()
 {
     static std::atomic<int> threadIndex[QoS::MaxNum()] = {0};
-    int tid = threadIndex[qos()].fetch_add(1, std::memory_order_relaxed);
     std::string qosStr = std::to_string(qos());
+    int index = threadIndex[qos()];
     std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
-        std::string(WORKER_THREAD_SYMBOL) + std::to_string(tid);
+        std::string(WORKER_THREAD_SYMBOL) + std::to_string(index);
     if (qosStr == "") {
-        FFRT_SYSEVENT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), tid);
+        FFRT_SYSEVENT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), index);
     }
+    threadIndex[qos()].fetch_add(1, std::memory_order_relaxed);
     pthread_setname_np(pthread_self(), threadName.c_str());
 }
 

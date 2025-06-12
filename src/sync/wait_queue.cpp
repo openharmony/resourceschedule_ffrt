@@ -65,8 +65,6 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
             ret = true;
         }
     }
-    wn->task = nullptr;
-
     // notify scenarios WaitUntilEntry `wn` is already popped
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
@@ -75,6 +73,11 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
         remove(wn);
         wqlock.unlock();
     }
+    // note that one wn->task can be set to nullptr only either after wn is removed from the queue,
+    // i.e. after the timeout occurred, or after the notify of the condition variable.
+    // In both cases this write will be ordered after the read of `we->task` in
+    // WaitQueue::Notify (if this entry is popped) and a data-race will not occur.
+    wn->task = nullptr;
     lk->lock();
     return ret;
 }

@@ -38,7 +38,7 @@ int ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::condi
 {
     for (auto it = whenMap.begin(); it != whenMap.end(); it++) {
         if (it->second) {
-            it->second->SetStatus(ffrt::CoTaskStatus::CANCELED);
+            it->second->SetStatus(ffrt::TaskStatus::CANCELED);
             it->second->Notify();
             it->second->Destroy();
             it->second = nullptr;
@@ -52,7 +52,10 @@ int ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::condi
 }
 
 namespace ffrt {
-BaseQueue::BaseQueue() : queueId_(g_queueId++) {}
+BaseQueue::BaseQueue() : queueId_(g_queueId++)
+{
+    headTaskVec_.resize(1);
+}
 
 void BaseQueue::Stop()
 {
@@ -96,6 +99,7 @@ int BaseQueue::Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whe
     for (auto iter = whenMap.begin(); iter != whenMap.end();) {
         if (iter->second->IsMatch(name)) {
             FFRT_LOGD("cancel task[%llu] %s succ", iter->second->gid, iter->second->GetLabel().c_str());
+            iter->second->SetStatus(TaskStatus::CANCELED);
             iter->second->Notify();
             iter->second->Destroy();
             iter = whenMap.erase(iter);
@@ -169,12 +173,13 @@ uint32_t BaseQueue::GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap
     return count;
 }
 
-QueueTask* BaseQueue::GetHeadTask()
+std::vector<QueueTask*> BaseQueue::GetHeadTask()
 {
     std::unique_lock lock(mutex_);
     if (whenMap_.empty()) {
-        return nullptr;
+        return {};
     }
-    return whenMap_.begin()->second;
+    headTaskVec_[0] = whenMap_.begin()->second;
+    return headTaskVec_;
 }
 } // namespace ffrt

@@ -323,7 +323,9 @@ void ffrt_submit_base(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, con
     ffrt_task_handle_t delay_handle;
     uint64_t timeout = p->timeout_;
     p->timeout_ = 0;
+    p->isDelaying_ = true;
     ffrt::CreateDelayDeps(delay_handle, in_deps, out_deps, p);
+    p->isDelaying_ = false;
     p->timeout_ = timeout;
     std::vector<ffrt_dependence_t> deps = {{ffrt_dependence_task, delay_handle}};
     ffrt_deps_t delay_deps {static_cast<uint32_t>(deps.size()), deps.data()};

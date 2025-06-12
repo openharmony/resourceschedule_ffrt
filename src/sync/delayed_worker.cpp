@@ -29,6 +29,8 @@
 #include "util/name_manager.h"
 #include "sched/scheduler.h"
 #include "util/ffrt_facade.h"
+#include "util/white_list.h"
+
 namespace {
 const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
 const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
@@ -66,12 +68,7 @@ bool DelayedWorker::IsDelayerWorkerThread()
 
 bool IsDelayedWorkerPreserved()
 {
-    std::unordered_set<std::string> whitelist = { "foundation", "com.ohos.sceneboard" };
-    if (whitelist.find(GetCurrentProcessName()) != whitelist.end()) {
-        return true;
-    }
-
-    return false;
+    return WhiteList::GetInstance().IsEnabled("IsDelayedWorkerPreserved", false);
 }
 
 void DelayedWorker::DumpMap()

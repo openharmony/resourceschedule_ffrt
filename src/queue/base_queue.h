@@ -56,7 +56,12 @@ public:
         return false;
     }
 
-    inline uint64_t GetMapSize()
+    virtual int WaitAll()
+    {
+        return -1;
+    }
+
+     virtual inline uint64_t GetMapSize()
     {
         std::unique_lock lock(mutex_);
         return whenMap_.size();
@@ -73,7 +78,7 @@ public:
     }
 
     virtual bool HasTask(const char* name);
-    virtual QueueTask* GetHeadTask();
+    virtual std::vector<QueueTask*> GetHeadTask();
     ffrt::mutex mutex_;
 protected:
     inline uint64_t GetNow() const
@@ -94,6 +99,7 @@ protected:
     bool isExit_ { false };
     std::atomic_bool isActiveState_ { false };
     std::multimap<uint64_t, QueueTask*> whenMap_;
+    std::vector<QueueTask*> headTaskVec_;
     QueueStrategy<QueueTask>::DequeFunc dequeFunc_ { nullptr };
 
     ffrt::condition_variable cond_;

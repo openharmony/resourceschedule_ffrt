@@ -20,6 +20,7 @@
 #include <map>
 #include "eu/cpu_worker.h"
 #include "tm/cpu_task.h"
+#include "tm/task_base.h"
 
 namespace ffrt {
 struct TaskTimeoutInfo {
@@ -72,6 +73,7 @@ class WorkerMonitor {
 public:
     static WorkerMonitor &GetInstance();
     void SubmitTask();
+    std::string DumpTimeoutInfo();
 
 private:
     WorkerMonitor();
@@ -81,8 +83,13 @@ private:
     WorkerMonitor &operator=(const WorkerMonitor &) = delete;
     WorkerMonitor &operator=(WorkerMonitor &&) = delete;
     void SubmitSamplingTask();
+    void SubmitTaskMonitor(uint64_t nextTimeoutUs);
     void SubmitMemReleaseTask();
     void CheckWorkerStatus();
+    void CheckTaskStatus();
+    uint64_t CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold);
+    bool ControlTimeoutFreq(CPUEUTask* task);
+    void RecordTimeoutTaskInfo(CPUEUTask* task);
     void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,
         CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
@@ -94,10 +101,14 @@ private:
     std::mutex mutex_;
     std::mutex submitTaskMutex_;
     bool skipSampling_ = false;
+    uint64_t timeoutUs_ = 0;
+    std::vector<std::pair<uint64_t, std::string>> taskTimeoutInfo_;
     WaitUntilEntry watchdogWaitEntry_;
+    WaitUntilEntry tskMonitorWaitEntry_;
     WaitUntilEntry memReleaseWaitEntry_;
     std::map<CPUWorker*, TaskTimeoutInfo> workerStatus_;
     bool samplingTaskExit_ = true;
+    bool taskMonitorExit_ = true;
     bool memReleaseTaskExit_ = true;
 };
 }

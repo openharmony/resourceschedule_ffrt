@@ -24,11 +24,19 @@ public:
         : maxConcurrency_(maxConcurrency)
     {
         dequeFunc_ = QueueStrategy<QueueTask>::DequeSingleByPriority;
+        headTaskVec_.resize(maxConcurrency_);
     }
     ~ConcurrentQueue() override;
 
     int Push(QueueTask* task) override;
     QueueTask* Pull() override;
+    int Remove() override;
+    int Remove(const char* name) override;
+    int Remove(const QueueTask* task) override;
+    void Stop() override;
+    int WaitAll() override;
+    std::vector<QueueTask*> GetHeadTask() override;
+
     bool GetActiveStatus() override
     {
         return concurrency_.load();
@@ -39,11 +47,13 @@ public:
         return ffrt_queue_concurrent;
     }
 
-    void Stop() override;
+    inline uint64_t GetMapSize() override
+    {
+        std::unique_lock lock(mutex_);
+        return whenMap_.size() + waitingMap_.size();
+    }
+
     bool SetLoop(Loop* loop);
-    int Remove() override;
-    int Remove(const char* name) override;
-    int Remove(const QueueTask* task) override;
     bool HasTask(const char* name) override;
 
     inline bool ClearLoop()
@@ -63,13 +73,20 @@ public:
 
 private:
     int PushDelayTaskToTimer(QueueTask* task);
+    int PushAndCalConcurrency(QueueTask* task, ffrt_queue_priority_t taskPriority, std::unique_lock<ffrt::mutex>& lock);
+    void Stop(std::multimap<uint64_t, QueueTask*>& whenMap);
 
     Loop* loop_ { nullptr };
     std::atomic_bool isOnLoop_ { false };
 
     int maxConcurrency_ {1};
+    std::vector<QueueTask*> headTaskVec_;
     std::atomic_int concurrency_ {0};
+
+    bool waitingAll_ = false;
+    std::multimap<uint64_t, QueueTask*> waitingMap_;
     std::multimap<uint64_t, QueueTask*> whenMapVec_[4];
+    std::vector<std::pair<uint64_t, QueueTask*>> allWhenmapTask;
 };
 
 std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr);

@@ -52,6 +52,15 @@ typedef struct HiTraceIdStruct {
 } HiTraceIdStruct;
 constexpr uint64_t HITRACE_ID_VALID = 1;
 
+struct TimeoutTask {
+    uint64_t taskGid{0};
+    uint64_t timeoutCnt{0};
+    TaskStatus taskStatus{TaskStatus::PENDING};
+    TimeoutTask() = default;
+    TimeoutTask(uint64_t gid, uint64_t timeoutcnt, TaskStatus status)
+        : taskGid(gid), timeoutCnt(timeoutcnt), taskStatus(status) {}
+};
+
 class TaskBase : private NonCopyable {
 public:
     TaskBase(ffrt_executor_task_type_t type, const task_attr_private *attr);
@@ -150,8 +159,8 @@ public:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
     std::mutex mutex_; // used in coroute
     std::condition_variable waitCond_; // cv for thread wait
-    std::atomic<CoTaskStatus> curStatus = CoTaskStatus::PENDING;
-    CoTaskStatus preStatus = CoTaskStatus::PENDING;
+    std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
+    TaskStatus preStatus = TaskStatus::PENDING;
     uint64_t statusTime = TimeStampCntvct();
 
     bool pollerEnable = false; // set true if task call ffrt_epoll_ctl
@@ -160,7 +169,7 @@ public:
         return label;
     }
 
-    void SetStatus(CoTaskStatus statusIn)
+    void SetStatus(TaskStatus statusIn)
     {
         statusTime = TimeStampCntvct();
         preStatus = curStatus;

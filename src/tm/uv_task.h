@@ -90,6 +90,8 @@ public:
         uvWork->wq[0] = &uvWork->wq;
         uvWork->wq[1] = &uvWork->wq;
     }
+
+    static void ExecuteImpl(UVTask* task, ffrt_executor_task_func func);
 };
 } /* namespace ffrt */
 #endif

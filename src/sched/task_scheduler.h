@@ -94,8 +94,22 @@ public:
         return taskSchedMode;
     }
 
-    inline void CancelUVWork(ffrt_executor_task_t* uvWork)
+    void CancelUVWork(ffrt_executor_task_t* uvWork)
     {
+        {
+            std::lock_guard lg(*GetMutex());
+            auto iter = std::remove_if(uvTaskWaitingQueue_.begin(), uvTaskWaitingQueue_.end(), [uvWork](UVTask* task) {
+                if (task->uvWork == uvWork) {
+                    return true;
+                }
+                return false;
+            });
+            if (iter != uvTaskWaitingQueue_.end()) {
+                uvTaskWaitingQueue_.erase(iter, uvTaskWaitingQueue_.end());
+                return;
+            }
+        }
+
         std::lock_guard<std::mutex> lg(cancelMtx);
         auto it = cancelMap_.find(uvWork);
         if (it != cancelMap_.end()) {
@@ -114,9 +128,14 @@ public:
     virtual bool PushTaskGlobal(TaskBase* task) = 0;
     virtual TaskBase* PopTaskGlobal() = 0;
 
+    bool PushUVTaskToWaitingQueue(UVTask* task);
+    bool CheckUVTaskConcurrency(UVTask* task);
+    UVTask* PickWaitingUVTask();
+
     std::mutex* GetMutex();
 
     std::atomic_uint64_t stealWorkers { 0 };
+
 protected:
     RunQueue *que;
     std::unordered_map<pid_t, SpmcQueue*> localQueues;
@@ -168,10 +187,13 @@ protected:
         static_cast<UVTask*>(task)->SetDequeued();
         return task;
     }
+
 private:
     std::atomic<std::mutex*> mtx {nullptr};
     std::mutex cancelMtx;
     std::unordered_map<ffrt_executor_task_t*, uint32_t> cancelMap_;
+    int uvTaskConcurrency_ = 0;
+    std::deque<UVTask*> uvTaskWaitingQueue_;
 };
 
 class SchedulerFactory {

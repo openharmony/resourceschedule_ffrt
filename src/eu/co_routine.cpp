@@ -466,6 +466,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
 
         // 1. coroutine task done, exit normally, need to exec next coroutine task
         if (co->isTaskDone) {
+            task->SetStatus(TaskStatus::FINISH);
             ffrt::FFRTFacade::GetDMInstance().onTaskDone(static_cast<CPUEUTask*>(task));
             co->isTaskDone = false;
             return 0;
@@ -498,6 +499,7 @@ void CoYield(void)
     GetCoEnv()->runningCo = nullptr;
     CoSwitchOutTransaction(co->task);
     co->task->SetTaskStatus(TaskStatus::COROUTINE_BLOCK);
+    co->task->SetStatus(ffrt::TaskStatus::COROUTINE_BLOCK);
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     SwitchTsdToThread(co->task);

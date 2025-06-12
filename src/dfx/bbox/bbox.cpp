@@ -286,6 +286,17 @@ static inline void SaveQueueTaskStatus()
     }
 }
 
+static inline void SaveTimeoutTask()
+{
+    FFRT_BBOX_LOG("<<<=== Timeout Task Info ===>>>");
+
+    std::string normaltskTimeoutInfo = FFRTFacade::GetWMInstance().DumpTimeoutInfo();
+    std::string queueTimeoutInfo = FFRTFacade::GetQMInstance().DumpQueueTimeoutInfo();
+    std::stringstream ss;
+    ss << normaltskTimeoutInfo << queueTimeoutInfo;
+    FFRT_BBOX_LOG("%s", ss.str().c_str());
+}
+
 static inline void SaveQueueTrafficRecord()
 {
     FFRT_BBOX_LOG("<<<=== Queue Traffic Record ===>>>");
@@ -294,7 +305,6 @@ static inline void SaveQueueTrafficRecord()
     std::stringstream ss;
     ss << trafficInfo;
     FFRT_BBOX_LOG("%s", ss.str().c_str());
-    return;
 }
 
 static std::atomic_uint g_bbox_tid_is_dealing {0};
@@ -370,6 +380,7 @@ void SaveTheBbox()
     SaveKeyStatus();
     SaveNormalTaskStatus();
     SaveQueueTaskStatus();
+    SaveTimeoutTask();
     SaveQueueTrafficRecord();
     FFRT_BBOX_LOG("<<<=== ffrt black box(BBOX) finish ===>>>");
 }
@@ -746,6 +757,19 @@ std::string SaveQueueTaskStatusInfo()
         });
     }
 
+    return ffrtStackInfo;
+}
+
+std::string SaveTimeoutTaskInfo()
+{
+    std::string ffrtStackInfo;
+    std::ostringstream ss;
+    ss << "<<<=== Timeout Task Info ===>>>" << std::endl;
+    ffrtStackInfo += ss.str();
+    std::string timeoutInfo = FFRTFacade::GetWMInstance().DumpTimeoutInfo();
+    std::string queueTimeoutInfo = FFRTFacade::GetQMInstance().DumpQueueTimeoutInfo();
+    ffrtStackInfo += timeoutInfo;
+    ffrtStackInfo += queueTimeoutInfo;
     return ffrtStackInfo;
 }
 

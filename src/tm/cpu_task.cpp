@@ -46,6 +46,7 @@ void CPUEUTask::SetQos(const QoS& newQos)
 
 void CPUEUTask::Submit()
 {
+    SetStatus(TaskStatus::SUBMITTED);
     SetTaskStatus(TaskStatus::SUBMITTED);
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos_, &createTime, &fromTid);
 }
@@ -54,6 +55,7 @@ void CPUEUTask::Ready()
 {
     int qos = qos_();
     bool notifyWorker = notifyWorker_;
+    SetStatus(TaskStatus::READY);
     SetTaskStatus(TaskStatus::READY);
     FFRTFacade::GetSchedInstance()->GetScheduler(this->qos_).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
@@ -94,6 +96,7 @@ void CPUEUTask::Execute()
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
+        SetStatus(TaskStatus::EXECUTING);
         SetTaskStatus(TaskStatus::EXECUTING);
         f->exec(f);
     }
@@ -103,6 +106,7 @@ void CPUEUTask::Execute()
         SetTaskStatus(TaskStatus::FINISH);
     }
     if (!USE_COROUTINE) {
+        SetStatus(TaskStatus::FINISH);
         FFRTFacade::GetDMInstance().onTaskDone(this);
     } else {
         this->coRoutine->isTaskDone = true;

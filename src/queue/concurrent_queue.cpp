@@ -67,6 +67,11 @@ int ConcurrentQueue::Push(QueueTask* task)
         taskPriority = task->GetPriority();
     }
 
+    if (waitingAll_) {
+        waitingMap_.insert({task->GetUptime(), task});
+        return SUCC;
+    }
+
     if (loop_ != nullptr) {
         if (task->GetDelay() == 0) {
             whenMapVec_[taskPriority].insert({task->GetUptime(), task});
@@ -75,26 +80,7 @@ int ConcurrentQueue::Push(QueueTask* task)
         }
         return PushDelayTaskToTimer(task);
     }
-    FFRT_COND_DO_ERR(IsOnLoop(), return FAILED, "cannot push task, [queueId=%u] loop empty", queueId_);
-
-    if (concurrency_.load() < maxConcurrency_) {
-        int oldValue = concurrency_.fetch_add(1);
-        FFRT_LOGD("task [gid=%llu] concurrency[%u] + 1 [queueId=%u]", task->gid, oldValue, queueId_);
-
-        if (task->GetDelay() > 0) {
-            whenMapVec_[taskPriority].insert({task->GetUptime(), task});
-        }
-
-        return CONCURRENT;
-    }
-
-    whenMapVec_[taskPriority].insert({task->GetUptime(), task});
-    if (task == whenMapVec_[taskPriority].begin()->second) {
-        lock.unlock();
-        cond_.notify_all();
-    }
-
-    return SUCC;
+    return PushAndCalConcurrency(task, taskPriority, lock);
 }
 
 QueueTask* ConcurrentQueue::Pull()
@@ -125,12 +111,46 @@ QueueTask* ConcurrentQueue::Pull()
     if (WhenMapVecEmpty(whenMapVec_)) {
         int oldValue = concurrency_.fetch_sub(1); // 取不到后继的task，当前这个task正式退出
         FFRT_LOGD("concurrency[%d] - 1 [queueId=%u] switch into inactive", oldValue, queueId_);
+        if (oldValue == 1) {
+            cond_.notify_all();
+        }
         return nullptr;
     }
     FFRT_COND_DO_ERR(isExit_, return nullptr, "cannot pull task, [queueId=%u] is exiting", queueId_);
 
     // dequeue next expired task by priority
     return dequeFunc_(queueId_, now, whenMapVec_, nullptr);
+}
+
+int ConcurrentQueue::Remove()
+{
+    std::unique_lock lock(mutex_);
+    uint64_t removeCount = 0;
+    for (auto& currentMap : whenMapVec_) {
+        removeCount += BaseQueue::Remove(currentMap);
+    }
+    return removeCount + BaseQueue::Remove(waitingMap_);
+}
+
+int ConcurrentQueue::Remove(const char* name)
+{
+    std::unique_lock lock(mutex_);
+    uint64_t removeCount = 0;
+    for (auto& currentMap : whenMapVec_) {
+        removeCount += BaseQueue::Remove(name, currentMap);
+    }
+    return removeCount + BaseQueue::Remove(name, waitingMap_);
+}
+
+int ConcurrentQueue::Remove(const QueueTask* task)
+{
+    std::unique_lock lock(mutex_);
+    for (auto& currentMap : whenMapVec_) {
+        if (BaseQueue::Remove(task, currentMap) == SUCC) {
+            return SUCC;
+        }
+    }
+    return BaseQueue::Remove(task, waitingMap_);
 }
 
 void ConcurrentQueue::Stop()
@@ -147,11 +167,49 @@ void ConcurrentQueue::Stop()
         }
         whenMapVec_[idx].clear();
     }
+    Stop(waitingMap_);
     if (loop_ == nullptr) {
         cond_.notify_all();
     }
 
     FFRT_LOGI("clear [queueId=%u] succ", queueId_);
+}
+
+int ConcurrentQueue::WaitAll()
+{
+    std::unique_lock lock(mutex_);
+    FFRT_COND_DO_ERR(isOnLoop_, return -1, "loop does not support");
+    FFRT_COND_DO_ERR(isExit_, return -1, "cannot waiting task, [queueId=%u] is exiting", queueId_);
+
+    if (waitingAll_) {
+        return 1;
+    }
+
+    waitingAll_ = true;
+    cond_.wait(lock, [this] { return concurrency_.load() == 0;}); // 是否需要加上whenMap_empty()
+
+    if (waitingMap_.empty()) {
+        waitingAll_ = false;
+        return 0 ;
+    }
+
+    // resubmit tasks to the queue and wake up workers
+    for (const auto& iter : waitingMap_) {
+        QueueTask* task = iter.second;
+        QueueHandler* handler = task->GetHandler();
+        int ret = PushAndCalConcurrency(task, task->GetPriority(), lock);
+        if (ret == CONCURRENT) {
+            if (task->GetDelay() == 0) {
+                handler->TransferTask(task);
+            } else {
+                handler->TransferInitTask();
+            }
+        }
+    }
+
+    waitingAll_ = false;
+    waitingMap_.clear();
+    return 0;
 }
 
 bool ConcurrentQueue::SetLoop(Loop* loop)
@@ -177,41 +235,44 @@ int ConcurrentQueue::PushDelayTaskToTimer(QueueTask* task)
     return SUCC;
 }
 
+int ConcurrentQueue::PushAndCalConcurrency(QueueTask* task, ffrt_queue_priority_t taskPriority, std::unique_lock<ffrt::mutex>& lock)
+{
+    if (concurrency_.load() < maxConcurrency_) {
+        int oldValue = concurrency_.fetch_add(1);
+        FFRT_LOGD("task [gid=%llu] concurrency[%u] + 1 [queueId=%u]", task->gid, oldValue, queueId_);
+
+        if (task->GetDelay() > 0) {
+            whenMapVec_[taskPriority].insert({task->GetUptime(), task});
+        }
+
+        return CONCURRENT;
+    }
+
+    whenMapVec_[taskPriority].insert({task->GetUptime(), task});
+    if (task == whenMapVec_[taskPriority].begin()->second) {
+        lock.unlock();
+        cond_.notify_all();
+    }
+
+    return SUCC;
+}
+
+void ConcurrentQueue::Stop(std::multimap<uint64_t, QueueTask*>& whenMap)
+{
+    for (auto it = whenMap.begin(); it != whenMap.end(); it++) {
+        if (it->second) {
+            it->second->Notify();
+            it->second->Destroy();
+        }
+    }
+
+    whenMap.clear();
+}
+
 std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
 {
     int maxConcurrency = ffrt_queue_attr_get_max_concurrency(attr) <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
     return std::make_unique<ConcurrentQueue>(maxConcurrency);
-}
-
-int ConcurrentQueue::Remove()
-{
-    std::unique_lock lock(mutex_);
-    int cnt = 0;
-    for (auto& currentMap : whenMapVec_) {
-        cnt += BaseQueue::Remove(currentMap);
-    }
-    return cnt;
-}
-
-int ConcurrentQueue::Remove(const char* name)
-{
-    std::unique_lock lock(mutex_);
-    int count = 0;
-    for (auto& currentMap : whenMapVec_) {
-        count += BaseQueue::Remove(name, currentMap);
-    }
-    return count > 0 ? SUCC : FAILED;
-}
-
-int ConcurrentQueue::Remove(const QueueTask* task)
-{
-    std::unique_lock lock(mutex_);
-    for (auto& currentMap : whenMapVec_) {
-        if (BaseQueue::Remove(task, currentMap) == SUCC) {
-            return SUCC;
-        }
-    }
-    return FAILED;
 }
 
 bool ConcurrentQueue::HasTask(const char* name)
@@ -223,5 +284,37 @@ bool ConcurrentQueue::HasTask(const char* name)
         }
     }
     return false;
+}
+
+std::vector<QueueTask*> ConcurrentQueue::GetHeadTask()
+{
+    std::unique_lock lock(mutex_);
+    if (WhenMapVecEmpty(whenMapVec_)) {
+        return {};
+    }
+
+    allWhenmapTask.clear();
+
+    for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
+        if (!whenMapVec_[idx].empty()) {
+            for (const auto& [upTime, qtask] : whenMapVec_[idx]) {
+                allWhenmapTask.emplace_back(upTime, qtask);
+            }
+        }
+    }
+
+    std::sort(allWhenmapTask.begin(), allWhenmapTask.end(),
+                [](const auto& lhs, const auto& rhs) {
+                    return lhs.first < rhs.first;
+                });
+
+    for (size_t i = 0; i < maxConcurrency_; i++) {
+        if (i < allWhenmapTask.size()) {
+            headTaskVec_[i] = allWhenmapTask[i].second;
+        } else {
+            headTaskVec_[i] = nullptr;
+        }
+    }
+    return headTaskVec_;
 }
 } // namespace ffrt

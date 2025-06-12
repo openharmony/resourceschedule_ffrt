@@ -22,6 +22,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/singleton_register.h"
 #include "util/slab.h"
+#include "util/white_list.h"
 #include "tm/task_factory.h"
 #include "tm/io_task.h"
 #include "tm/uv_task.h"

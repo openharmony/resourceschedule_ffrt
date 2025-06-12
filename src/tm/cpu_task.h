@@ -50,9 +50,11 @@ public:
     uint8_t func_storage[ffrt_auto_managed_function_storage_size]; // 函数闭包、指针或函数对象
     CPUEUTask* parent = nullptr;
     const uint64_t rank = 0x0;
+    uint64_t delayTime = 0;
     std::mutex lock; // used in coroute
     std::vector<CPUEUTask*> in_handles;
     TaskState state; // not used
+    TimeoutTask timeoutTask;
 
     /* The current number of child nodes does not represent the real number of child nodes,
      * because the dynamic graph child nodes will grow to assist in the generation of id
@@ -60,6 +62,7 @@ public:
     std::atomic<uint64_t> childNum {0};
     bool isWatchdogEnable = false;
     bool notifyWorker_ = true;
+    bool isDelaying = false;
 
     void** threadTsd = nullptr;
     void** tsd = nullptr;
@@ -125,6 +128,11 @@ inline bool NeedNotifyWorker(TaskBase* task)
         cpuTask->notifyWorker_ = true;
     }
     return needNotify;
+}
+
+inline bool isDelayingTask(CPUEUTask* task)
+{
+    return task->isDelaying;
 }
 } /* namespace ffrt */
 #endif

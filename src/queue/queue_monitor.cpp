@@ -27,6 +27,8 @@ namespace {
 constexpr uint32_t US_PER_MS = 1000;
 constexpr uint64_t ALLOW_ACC_ERROR_US = 10 * US_PER_MS; // 10ms
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000 * US_PER_MS; // 1s
+constexpr uint32_t MAX_RECORD_LIMIT = 64;
+constexpr uint32_t INITIAL_RECORD_LIMIT = 16;
 }
 
 namespace ffrt {
@@ -114,14 +116,21 @@ void QueueMonitor::CheckTimeout(uint64_t& nextTaskStart)
     uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
     for (auto& queueInfo : queuesInfo_) {
         // first为gid, second为下次触发超时的时间
-        std::pair<uint64_t, uint64_t> curTaskTimeStamp = queueInfo->EvaluateTaskTimeout(minStart, timeoutUs_,
+        auto curTaskTimeStamp = queueInfo->EvaluateTaskTimeout(minStart, timeoutUs_,
             timeoutMSG_);
-        if (curTaskTimeStamp.second < UINT64_MAX && curTaskTimeStamp.first != 0) {
-            ReportEventTimeout(curTaskTimeStamp.first, timeoutMSG_);
-        }
+        for (int i = 0; i < static_cast<int>(curTaskTimeStamp.first.size()); i++) {
+            if (curTaskTimeStamp.second < UINT64_MAX && curTaskTimeStamp.first[i] != 0) {
+                ReportEventTimeout(curTaskTimeStamp.first[i], timeoutMSG_);
+            }
 
-        if (curTaskTimeStamp.second < nextTaskStart) {
-            nextTaskStart = curTaskTimeStamp.second;
+            if (taskTimeoutInfo_.size() > MAX_RECORD_LIMIT) {
+                taskTimeoutInfo_.erase(taskTimeoutInfo_.begin());
+            }
+            taskTimeoutInfo_.emplace_back(std::make_pair(now, timeoutMSG_.str()));
+
+            if (curTaskTimeStamp.second < nextTaskStart) {
+                nextTaskStart = curTaskTimeStamp.second;
+            }
         }
     }
 }
@@ -139,4 +148,23 @@ void QueueMonitor::ReportEventTimeout(uint64_t curGid, const std::stringstream& 
     }
 }
 
+std::string QueueMonitor::DumpQueueTimeoutInfo()
+{
+    std::lock_guard lock(infoMutex_);
+    std::stringstream ss;
+    if (taskTimeoutInfo_.size() != 0) {
+        for (auto it = taskTimeoutInfo_.rbegin(); it != taskTimeoutInfo_.rend(); ++it) {
+            auto& record = *it;
+            ss << "{" << FormatDateString4SteadyClock(record.first) << ", " << record.second << "} \n";
+        }
+    } else {
+        ss << "Queue Timeout info Empty";
+    }
+    return ss.str();
+}
+
+void QueueMonitor::UpdateTimeoutUs()
+{
+    timeoutUs_ = ffrt_task_timeout_get_threshold() * US_PER_MS;
+}
 } // namespace ffrt

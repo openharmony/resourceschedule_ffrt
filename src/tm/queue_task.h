@@ -67,7 +67,7 @@ public:
 
     inline void SetNextTask(QueueTask* task)
     {
-        task->SetStatus(CoTaskStatus::DEQUEUED);
+        task->SetStatus(TaskStatus::DEQUEUED);
         nextTask_ = task;
     }
 
@@ -117,6 +117,7 @@ public:
         return isWeStart_;
     }
     alignas(cacheline_size) uint8_t func_storage[ffrt_auto_managed_function_storage_size];
+    int curTaskIdx = 0;
 
 public:
     void Submit() override;
@@ -131,7 +132,7 @@ public:
     // pop means task has been popped from scheduler
     void Pop() override
     {
-        SetStatus(CoTaskStatus::POPPED);
+        SetStatus(TaskStatus::POPPED);
         SetTaskStatus(TaskStatus::POPPED);
     }
 
@@ -141,7 +142,7 @@ public:
     void Cancel() override
     {
         FFRT_LOGD("cancel task[%llu] %s succ", gid, label.c_str());
-        SetStatus(CoTaskStatus::CANCELED);
+        SetStatus(TaskStatus::CANCELED);
         Notify();
         Destroy();
     }

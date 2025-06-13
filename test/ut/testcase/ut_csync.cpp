@@ -523,13 +523,15 @@ HWTEST_F(SyncTest, mutexTest, TestSize.Level1)
     ffrt::mutex mut;
 
     int taskCount = 10;
-
+    std::atomic<int> accessCount(0);
     auto block = [&]() {
         mut.lock();
+        accessCount++;
         usleep(10000);
         mut.unlock();
         ffrt_this_task_set_legacy_mode(true);
         mut.lock();
+        accessCount++;
         usleep(10000);
         mut.unlock();
     };
@@ -539,6 +541,7 @@ HWTEST_F(SyncTest, mutexTest, TestSize.Level1)
     }
 
     ffrt::wait();
+    EXPECT_EQ(accessCount, taskCount * 2);
 }
 
 /*
@@ -556,13 +559,15 @@ HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level1)
     ffrt::shared_mutex smut;
 
     int taskCount = 10;
-
+    std::atomic<int> accessCount(0);
     auto block = [&]() {
         smut.lock();
+        accessCount++;
         usleep(10000);
         smut.unlock();
         ffrt_this_task_set_legacy_mode(true);
         smut.lock();
+        accessCount++;
         usleep(10000);
         smut.unlock();
     };
@@ -572,6 +577,7 @@ HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level1)
     }
 
     ffrt::wait();
+    EXPECT_EQ(accessCount, taskCount * 2);
 }
 
 static void NotifyOneTest(ffrt::mutex& mtx, ffrt::condition_variable& cv)
@@ -1152,15 +1158,23 @@ HWTEST_F(SyncTest, thread_with_ref, TestSize.Level1)
 */
 HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level1)
 {
-    ffrt::submit([]() {
+    std::atomic<bool> legacyTaskExecuted = false;
+    std::atomic<bool> taskSlept = false;
+
+    ffrt::submit([&]() {
         ffrt_this_task_set_legacy_mode(true);
+        legacyTaskExecuted = true;
         ffrt::this_task::sleep_for(30ms);
+        taskSlept = true;
     });
 
-    ffrt::submit([]() {
+    ffrt::submit([&]() {
         ffrt::this_task::sleep_for(30ms);
+        taskSlept = true;
     });
     ffrt::wait();
+    EXPECT_TRUE(legacyTaskExecuted);
+    EXPECT_TRUE(taskSlept);
 }
 
 /*
@@ -1173,13 +1187,19 @@ HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level1)
 */
 HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level1)
 {
-    ffrt::submit([]() {
+    std::atomic<bool> legacyTaskExecuted = false;
+    std::atomic<bool> normalTaskExecuted = false;
+    ffrt::submit([&legacyTaskExecuted]() {
         ffrt_this_task_set_legacy_mode(true);
         ffrt::this_task::yield();
+        legacyTaskExecuted = true;
     });
 
-    ffrt::submit([]() {
+    ffrt::submit([&normalTaskExecuted]() {
         ffrt::this_task::yield();
+        normalTaskExecuted = true;
     });
     ffrt::wait();
+    EXPECT_TRUE(legacyTaskExecuted);
+    EXPECT_TRUE(normalTaskExecuted);
 }

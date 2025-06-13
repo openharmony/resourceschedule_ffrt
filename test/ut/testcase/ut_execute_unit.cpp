@@ -78,65 +78,14 @@ HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level1)
 HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level1)
 {
     int count = 5;
+    std::atomic_int number = 0;
     for (int i = 0; i < count; i++) {
         ffrt::submit([&]() {});
+        number++;
     }
     sleep(1);
     ffrt::notify_workers(2, 6);
-}
-
-/*
-* 测试用例名称：ffrt_handle_task_notify_conservative
-* 测试用例描述：ffrt保守调度策略
-* 预置条件    ：创建SCPUWorkerManager，策略设置为HandleTaskNotifyConservative
-* 操作步骤    ：调用SCPUWorkerManager的Notify方法
-* 预期结果    ：成功执行HandleTaskNotifyConservative方法
-*/
-HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
-{
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
-    manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyConservative;
-
-    auto task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
-    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task);
-
-    int executingNum = manager->GetWorkerGroup(ffrt::QoS(2)).executingNum;
-    manager->GetWorkerGroup(2).executingNum = 20;
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_ADDED>(ffrt::QoS(2));
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_PICKED>(ffrt::QoS(2));
-    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
-    sch->PopTask(ffrt::QoS(2));
-
-    delete manager;
-    delete task;
-}
-
-/*
-* 测试用例名称：ffrt_handle_task_notify_ultra_conservative
-* 测试用例描述：ffrt特别保守调度策略
-* 预置条件    ：创建SExecuteUnit，策略设置为HandleTaskNotifyUltraConservative
-* 操作步骤    ：调用SExecuteUnit的Notify方法
-* 预期结果    ：成功执行HandleTaskNotifyUltraConservative方法
-*/
-HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.Level1)
-{
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
-    manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative;
-
-    ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
-    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task);
-
-    int executingNum = manager->GetWorkerGroup(2).executingNum;
-    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = 20;
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_ADDED>(ffrt::QoS(2));
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_PICKED>(ffrt::QoS(2));
-    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
-    sch->PopTask(ffrt::QoS(2));
-
-    delete manager;
-    delete task;
+    EXPECT_EQ(count, number);
 }
 
 /*

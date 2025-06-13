@@ -31,7 +31,7 @@ void InsertTask(void *task)
 } // namespace
 
 namespace ffrt {
-int PLACE_HOLDER = 0;
+int g_placeHolder = 0;
 TaskBase *TaskScheduler::PopTask()
 {
     TaskBase *task = nullptr;
@@ -133,7 +133,11 @@ void TaskScheduler::PushTaskLocalOrPriority(TaskBase *task)
             return;
         }
 
-        if ((rand() % INSERT_GLOBAL_QUEUE_FREQ > 0)) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, INSERT_GLOBAL_QUEUE_FREQ - 1);
+        int randomNum = dis(gen);
+        if (randomNum > 0) {
             if (GetLocalQueue() != nullptr && GetLocalQueue()->PushTail(task) == 0) {
                 ffrt::FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_LOCAL>(task->qos_);
                 return;
@@ -163,7 +167,7 @@ TaskBase *TaskScheduler::PopTaskLocalOrPriority()
     if (*priorityTaskPtr != nullptr) {
         task = reinterpret_cast<TaskBase *>(*priorityTaskPtr);
         *priorityTaskPtr = nullptr;
-        if (reinterpret_cast<void *>(task) != &PLACE_HOLDER) {
+        if (reinterpret_cast<void *>(task) != &g_placeHolder) {
             return task;
         }
     }

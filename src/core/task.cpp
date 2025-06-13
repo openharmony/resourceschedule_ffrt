@@ -49,13 +49,6 @@ inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_functi
     FFRTFacade::GetDMInstance().onSubmit(has_handle, handle, f, ins, outs, attr);
 }
 
-inline int submit_nb_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-    const ffrt_deps_t *ins, const ffrt_deps_t *outs,
-    const task_attr_private *attr)
-{
-    return FFRTFacade::GetDMInstance().onSubmitNb(has_handle, handle, f, ins, outs, attr);
-}
-
 void DestroyFunctionWrapper(ffrt_function_header_t* f,
     ffrt_function_kind_t kind = ffrt_function_kind_general)
 {
@@ -339,31 +332,6 @@ void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, 
 {
     ffrt_function_header_t* f = ffrt_create_function_wrapper(func, nullptr, arg, ffrt_function_kind_general);
     ffrt_submit_base(f, in_deps, out_deps, attr);
-}
-
-API_ATTRIBUTE((visibility("default")))
-ffrt_error_t ffrt_submit_base_nb(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, const ffrt_deps_t *out_deps,
-    const ffrt_task_attr_t *attr)
-{
-    if (unlikely(!f)) {
-        FFRT_LOGE("function handler should not be empty");
-        return ffrt_error;
-    }
-
-    const ffrt::task_attr_private *p = reinterpret_cast<const ffrt::task_attr_private *>(attr);
-    if (unlikely(p && p->delay_ > 0)) {
-        FFRT_LOGE("delay cannot be set in non-blocking mode.");
-        ffrt::DestroyFunctionWrapper(f, ffrt_function_kind_general);
-        return ffrt_error;
-    }
-
-    ffrt_task_handle_t handle = nullptr;
-    int ret = ffrt::submit_nb_impl(false, handle, f, in_deps, out_deps, p);
-    if (ret != 0) {
-        ffrt::DestroyFunctionWrapper(f, ffrt_function_kind_general);
-        return ffrt_error;
-    }
-    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))

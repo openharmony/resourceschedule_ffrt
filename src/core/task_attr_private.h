@@ -42,6 +42,7 @@ public:
     uint64_t delay_ = 0;
     uint64_t timeout_ = 0;
     bool notifyWorker_ = true;
+    bool isDelaying_ = false;
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
     bool taskLocal_ = false;
     bool headInsert_ = false;

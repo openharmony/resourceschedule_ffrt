@@ -22,6 +22,7 @@
 #include "util/name_manager.h"
 #include "util/ffrt_facade.h"
 #include "internal_inc/osal.h"
+#include "util/white_list.h"
 
 namespace {
 constexpr int CFS_PRIO_MIN = 1;

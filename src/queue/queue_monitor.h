@@ -30,6 +30,7 @@ public:
     void RegisterQueue(QueueHandler* queue);
     void DeregisterQueue(QueueHandler* queue);
     void UpdateQueueInfo();
+    std::string DumpQueueTimeoutInfo();
 
 private:
     QueueMonitor();
@@ -43,6 +44,7 @@ private:
     void ScheduleAlarm();
     void CheckTimeout(uint64_t& nextTaskStart);
     void ReportEventTimeout(uint64_t curGid, const std::stringstream& ss);
+    void UpdateTimeoutUs();
 
     WaitUntilEntry* we_ = nullptr;
     std::atomic<uint64_t> timeoutUs_ = 0;
@@ -50,6 +52,7 @@ private:
     std::shared_mutex infoMutex_;
     std::atomic_bool suspendAlarm_ = {true};
     std::vector<QueueHandler*> queuesInfo_;
+    std::vector<std::pair<uint64_t, std::string>> taskTimeoutInfo_;
 };
 } // namespace ffrt
 

@@ -121,4 +121,17 @@ FFRT_C_API void ffrt_queue_set_eventhandler(ffrt_queue_t queue, void* eventhandl
  */
 FFRT_C_API void* ffrt_get_current_queue_eventhandler(void);
 
+/**
+ * @brief Wait until all tasks in the queue are complete based on the time when this interface is invoked.
+ *
+ * This API is valid only for concurrent queue.
+ * This interface cannot be invoked by multiple threads at the same time.
+ *
+ * @param queue Indicates a queue handle.
+ * @return Returns 0 if waiting successful;
+           returns 1 if another existing thread is invoking the interface;
+           returns -1 if queue type is unsupported.
+ */
+FFRT_C_API int ffrt_concurrent_queue_wait_all(ffrt_queue_t queue);
+
 #endif

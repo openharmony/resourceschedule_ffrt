@@ -118,7 +118,7 @@ void TrafficRecord::CalculateTraffic(QueueHandler* handler, const uint64_t& time
                     ReportOverload(ss);
                     lastReportTime_ = time;
                 }
-                FFRT_LOGE("Queue overload syswarning is triggerred, duecnt %lu", handler->GetQueueDueCount());
+                FFRT_LOGE("Queue overload syswarning is triggerred, duecnt %u", handler->GetQueueDueCount());
             }
         }
 }

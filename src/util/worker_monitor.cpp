@@ -30,7 +30,9 @@
 #include "internal_inc/osal.h"
 #include "sched/scheduler.h"
 #include "util/ffrt_facade.h"
+#include "util/white_list.h"
 #include "dfx/bbox/bbox.h"
+#include "tm/task_factory.h"
 
 namespace {
 constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
@@ -42,37 +44,36 @@ constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
 constexpr int BACKTRACE_TASK_QOS = 7;
 constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
-constexpr char CONF_FILEPATH[] = "/etc/ffrt/worker_monitor.conf";
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60 };
 unsigned int g_samplingTaskCount = 0;
+constexpr uint32_t US_PER_MS = 1000;
+constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000 * US_PER_MS; // 1s
+constexpr uint64_t ALLOW_ACC_ERROR_US = 10 * US_PER_MS; // 10ms
+constexpr uint32_t INITIAL_RECORD_LIMIT = 16;
+constexpr uint32_t MAX_RECORD_LIMIT = 64;
+constexpr int FIRST_THRESHOLD = 10;
+constexpr int SECOND_THRESHOLD = 100;
 }
 
 namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
-    // 获取当前进程名称
-    const char* processName = GetCurrentProcessName();
-    if (strlen(processName) == 0) {
-        FFRT_SYSEVENT_LOGW("Get process name failed, skip worker monitor.");
+    if (WhiteList::GetInstance().IsEnabled("worker_monitor", false)) {
+        FFRT_SYSEVENT_LOGW("Skip worker monitor.");
         skipSampling_ = true;
         return;
     }
-
-    // 从配置文件读取黑名单比对
-    std::string skipProcess;
-    std::ifstream file(CONF_FILEPATH);
-    if (file.is_open()) {
-        while (std::getline(file, skipProcess)) {
-            if (strstr(processName, skipProcess.c_str()) != nullptr) {
-                skipSampling_ = true;
-                return;
-            }
-        }
-    } else {
-        FFRT_LOGW("worker_monitor.conf does not exist or file permission denied");
+    taskTimeoutInfo_.reserve(INITIAL_RECORD_LIMIT);
+    uint64_t timeout = ffrt_task_timeout_get_threshold() * US_PER_MS;
+    timeoutUs_ = timeout;
+    if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
+        FFRT_LOGE("invalid watchdog timeout [%llu] us, using 1s instead", timeout);
+        timeoutUs_ = MIN_TIMEOUT_THRESHOLD_US;
     }
 
     watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
+    tskMonitorWaitEntry_.cb = ([this](WaitEntry* we) { CheckTaskStatus(); });
+
     memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
         std::lock_guard lock(mutex_);
         if (skipSampling_) {
@@ -126,6 +127,10 @@ void WorkerMonitor::SubmitTask()
         SubmitSamplingTask();
         samplingTaskExit_ = false;
     }
+    if (taskMonitorExit_) {
+        SubmitTaskMonitor(timeoutUs_);
+        taskMonitorExit_ = false;
+    }
     if (memReleaseTaskExit_) {
         SubmitMemReleaseTask();
         memReleaseTaskExit_ = false;
@@ -140,11 +145,16 @@ void WorkerMonitor::SubmitSamplingTask()
     }
 }
 
+void WorkerMonitor::SubmitTaskMonitor(uint64_t nextTimeoutUs)
+{
+    tskMonitorWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(nextTimeoutUs);
+    if (!DelayedWakeup(tskMonitorWaitEntry_.tp, &tskMonitorWaitEntry_, tskMonitorWaitEntry_.cb)) {
+        FFRT_LOGW("Set delayed worker failed.");
+    }
+}
+
 void WorkerMonitor::SubmitMemReleaseTask()
 {
-    if (skipSampling_) {
-        return;
-    }
     memReleaseWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
     if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb)) {
         FFRT_LOGW("Set delayed worker failed.");
@@ -205,6 +215,142 @@ void WorkerMonitor::CheckWorkerStatus()
     }
 
     SubmitSamplingTask();
+}
+
+void WorkerMonitor::CheckTaskStatus()
+{
+    std::lock_guard lock(mutex_);
+    if (skipSampling_) {
+        return;
+    }
+
+    TaskFactory<CPUEUTask>::LockMem();
+    std::vector<CPUEUTask*> activeTask;
+    auto unfree = TaskFactory<CPUEUTask>::GetUnfreedMem();
+    for (auto task : unfree) {
+        auto t = reinterpret_cast<CPUEUTask*>(task);
+        if (t->type == ffrt_normal_task) {
+            activeTask.emplace_back(t);
+        }
+    }
+
+    {
+        bool noWorkerThreads = true;
+        std::lock_guard submitTaskLock(submitTaskMutex_);
+
+        for (int i = 0; i < QoS::MaxNum(); i++) {
+            CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+            std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
+            if (!workerGroup.threads.empty()) {
+                noWorkerThreads = false;
+                break;
+            }
+        }
+        if (noWorkerThreads && activeTask.empty()) {
+            taskMonitorExit_ = true;
+            TaskFactory<CPUEUTask>::UnlockMem();
+            return;
+        }
+    }
+
+    uint64_t now = TimeStampCntvct();
+    uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
+    uint64_t curMinTimeStamp = UINT64_MAX;
+
+    for (auto task : activeTask) {
+        uint64_t curTimeStamp = CalculateTaskTimeout(task, minStart);
+        curMinTimeStamp = curTimeStamp < curMinTimeStamp ? curTimeStamp : curMinTimeStamp;
+    }
+    TaskFactory<CPUEUTask>::UnlockMem();
+
+    // 下次检查时间为所有当前任务中的最小状态时间
+    uint64_t nextTimeout = (curMinTimeStamp == UINT64_MAX) ? timeoutUs_ :
+        std::min(timeoutUs_, timeoutUs_ - (now - curMinTimeStamp));
+
+    SubmitTaskMonitor(nextTimeout);
+}
+
+uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold)
+{
+    // 主动延时的任务不检测
+    if (isDelayingTask(task) || (task->delayTime > 0 && task->curStatus == TaskStatus::SUBMITTED)) {
+        return UINT64_MAX;
+    }
+
+    uint64_t curTaskTime = task->statusTime;
+    uint64_t timeoutCount = task->timeoutTask.timeoutCnt;
+
+    if (curTaskTime + timeoutCount * timeoutUs_ < timeoutThreshold) {
+        RecordTimeoutTaskInfo(task);
+        return UINT64_MAX;
+    }
+    return curTaskTime;
+}
+
+bool WorkerMonitor::ControlTimeoutFreq(CPUEUTask* task)
+{
+    uint64_t timoutCnt = task->timeoutTask.timeoutCnt;
+    return (timoutCnt < FIRST_THRESHOLD) || (timoutCnt < SECOND_THRESHOLD && timoutCnt % FIRST_THRESHOLD == 0) ||
+        (timoutCnt % SECOND_THRESHOLD == 0);
+}
+
+void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
+{
+    uint64_t curTaskTime = task->statusTime;
+    TaskStatus curTaskStatus = task->curStatus;
+    TaskStatus preTaskStatus = task->preStatus;
+
+    TimeoutTask& timeoutTskInfo = task->timeoutTask;
+    if (task->gid == timeoutTskInfo.taskGid && curTaskStatus == timeoutTskInfo.taskStatus) {
+        timeoutTskInfo.timeoutCnt += 1;
+    } else {
+        timeoutTskInfo.timeoutCnt = 1;
+        timeoutTskInfo.taskStatus = curTaskStatus;
+        timeoutTskInfo.taskGid = task->gid;
+    }
+
+    if (!ControlTimeoutFreq(task)) {
+        return;
+    }
+
+    std::stringstream ss;
+    uint64_t time = TimeStampCntvct();
+
+    ss << "Normal task[" << task->label.c_str() << "], gid[" << task->gid << "], qos[" << task->GetQos() <<
+        "], delay[" << task->delayTime << "]us, current status[" << StatusToString(curTaskStatus) <<
+        "], start at[" << FormatDateString4SteadyClock(curTaskTime) << "]";
+
+    if (taskTimeoutInfo_.size() > MAX_RECORD_LIMIT) {
+        taskTimeoutInfo_.erase(taskTimeoutInfo_.begin());
+    }
+    taskTimeoutInfo_.emplace_back(std::make_pair(time, ss.str()));
+
+    ss << ", last status[" << StatusToString(preTaskStatus) << "], timeout for[" <<
+        timeoutUs_ / MIN_TIMEOUT_THRESHOLD_US << "]s, reported count: " << timeoutTskInfo.timeoutCnt;
+    FFRT_LOGE("%s", ss.str().c_str());
+
+#ifdef FFRT_SEND_EVENT
+    if (timeoutTskInfo.timeoutCnt == 1) {
+        std::string senarioName = "Normal_Task_Timeout";
+        TaskTimeoutReport(ss, GetCurrentProcessName(), senarioName);
+    }
+#endif
+    return;
+}
+
+std::string WorkerMonitor::DumpTimeoutInfo()
+{
+    std::lock_guard lock(mutex_);
+    std::stringstream ss;
+    if (taskTimeoutInfo_.size() != 0) {
+        for (auto it = taskTimeoutInfo_.rbegin(); it != taskTimeoutInfo_.rend(); ++it) {
+            auto& record = *it;
+            ss << "{" << FormatDateString4SteadyClock(record.first) << ", " << record.second << "} \n";
+        }
+    } else {
+        ss << "Timeout info Empty";
+    }
+    return ss.str();
 }
 
 void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,

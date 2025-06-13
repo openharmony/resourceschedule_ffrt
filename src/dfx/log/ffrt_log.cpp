@@ -23,6 +23,8 @@
 #include <atomic>
 #include "ffrt_log_api.h"
 #include "internal_inc/osal.h"
+#include "util/white_list.h"
+
 #ifdef FFRT_SEND_EVENT
 #include <securec.h>
 #include "hisysevent.h"
@@ -32,8 +34,6 @@ static std::atomic<unsigned int> g_ffrtLogId(0);
 static bool g_whiteListFlag = false;
 namespace {
     constexpr int LOG_BUFFER_SIZE = 2048;
-    constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
-    constexpr char CONF_FILEPATH[] = "/etc/ffrt/log_ctr_whitelist.conf";
 }
 
 unsigned int GetLogId(void)
@@ -65,28 +65,7 @@ static void SetLogLevel(void)
 
 void InitWhiteListFlag(void)
 {
-    // 获取当前进程名称
-    char processName[PROCESS_NAME_BUFFER_LENGTH] = "";
-    GetProcessName(processName, PROCESS_NAME_BUFFER_LENGTH);
-    if (strlen(processName) == 0) {
-        g_whiteListFlag = true;
-        return;
-    }
-
-    // 从配置文件读取白名单对比
-    std::string whiteProcess;
-    std::ifstream file(CONF_FILEPATH);
-    if (file.is_open()) {
-        while (std::getline(file, whiteProcess)) {
-            if (strstr(processName, whiteProcess.c_str()) != nullptr) {
-                g_whiteListFlag = true;
-                return;
-            }
-        }
-    } else {
-        // 当文件不存在或者无权限时默认都开
-        g_whiteListFlag = true;
-    }
+    g_whiteListFlag = WhiteList::GetInstance().IsEnabled("log_ctr", true);
 }
 
 static __attribute__((constructor)) void LogInit(void)

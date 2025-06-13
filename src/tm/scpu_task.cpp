@@ -123,6 +123,7 @@ void SCPUEUTask::Finish()
         lck.unlock();
         DecDeleteRef();
     } else {
+        SetStatus(TaskStatus::WAIT_RELEASING);
         SetTaskStatus(TaskStatus::WAIT_RELEASING);
     }
 }

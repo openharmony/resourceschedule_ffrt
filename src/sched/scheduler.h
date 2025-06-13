@@ -87,6 +87,9 @@ public:
         return taskSchedulers[static_cast<unsigned short>(qos)]->GetWorkerLocalQueue(pid);
     }
 
+    bool CheckUVTaskConcurrency(ffrt_executor_task_t* task, const QoS& qos);
+    ffrt_executor_task_t* PickWaitingUVTask(const QoS& qos);
+
     std::atomic_bool tearDown { false };
 
 private:

@@ -313,6 +313,13 @@ void* ffrt_get_current_queue_eventhandler(void)
 }
 
 API_ATTRIBUTE((visibility("default")))
+int ffrt_concurrent_queue_wait_all(ffrt_queue_t queue)
+{
+    FFRT_COND_DO_ERR(unlikely(queue == nullptr), return -1, "input invalid, queue is nullptr");
+    return static_cast<QueueHandler*>(queue)->WaitAll();
+}
+
+API_ATTRIBUTE((visibility("default")))
 ffrt_queue_t ffrt_get_main_queue(void)
 {
     FFRT_COND_DO_ERR((EventHandlerAdapter::Instance()->GetMainEventHandler == nullptr),

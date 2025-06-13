@@ -861,22 +861,23 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
+    ffrt_task_timeout_set_threshold(1000000);
+    ffrt_set_cpu_worker_max_num(ffrt_qos_default, 4);
     ffrt::DelayedWorker::GetInstance();
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
 
-    for (int i = 0; i < 16; i++) {
-        ffrt::submit([&x]() {
-            x = x + 1;
+    for (int i = 0; i < 9; i++) {
+        ffrt::submit([]() {
             usleep(1100000);
         }, {}, {});
     }
     queue* testQueue = new queue("test_queue");
 
-    auto t = testQueue->submit_h([] {
-        FFRT_LOGE("task start");}, {});
+    auto t = testQueue->submit_h([&x] {
+        FFRT_LOGE("task start"); x = x + 1;}, {});
     testQueue->wait(t);
     delete testQueue;
-    EXPECT_EQ(x, 16);
+    EXPECT_EQ(x, 1);
 }
 
 /*
@@ -890,6 +891,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
+    ffrt_task_timeout_set_threshold(1000);
     ffrt::DelayedWorker::GetInstance();
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
@@ -912,11 +914,13 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
+    ffrt_task_timeout_set_threshold(1000);
     ffrt::DelayedWorker::GetInstance();
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
-    auto t = testQueue->submit_h([&x] { x = x + 1; FFRT_LOGE("delay start"); }, task_attr().delay(1500000));
+    auto t = testQueue->submit_h([&x] { FFRT_LOGE("delay end"); usleep(2100000); 
+        x = x + 1;}, task_attr().delay(1200000));
     testQueue->wait(t);
     delete testQueue;
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
@@ -934,6 +938,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
+    ffrt_task_timeout_set_threshold(1000);
     ffrt::DelayedWorker::GetInstance();
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
@@ -958,7 +963,7 @@ static inline void StallUsImpl(size_t us)
     }
 }
 
-void StallUs(size_t us)
+void stall_us1(size_t us)
 {
     StallUsImpl(us);
 }
@@ -974,6 +979,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
+    ffrt_task_timeout_set_threshold(1000);
     ffrt::DelayedWorker::GetInstance();
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
 
@@ -983,14 +989,15 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level0)
     ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
 
-    ffrt::submit([] { StallUs(1300 * 1000); });
-    std::function<void()>&& basicFunc = [&x] { x = x + 1; StallUs(1300 * 1000); FFRT_LOGE("done");};
+    ffrt::submit([] { stall_us1(1300 * 1000); });
+    std::function<void()>&& basicFunc = [&x] { x = x + 1; stall_us1(1300 * 1000); FFRT_LOGE("done");};
     ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
         ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
 
     ffrt_queue_wait(task);
     ffrt_task_handle_destroy(task);
     ffrt_queue_destroy(queue_handle);
+    ffrt_task_timeout_set_threshold(30000);
     EXPECT_EQ(x, 1);
 }
 
@@ -1107,6 +1114,387 @@ HWTEST_F(QueueTest, ffrt_queue_submit_f, TestSize.Level0)
     EXPECT_EQ(result, 1);
 }
 
+/*
+ * 测试用例名称 : ffrt_queue_concurrent_recordtraffic_delay_trigger
+ * 测试用例描述 : 设置并行队列的traffic_interval并生效
+ * 操作步骤     : 1、创建队列
+ *               2、调用ffrt_queue_attr_set_traffic_interval接口设置并行队列的流量监控窗口
+ *               3、提交堆积任务
+ * 预期结果    : 成功触发流量监控告警，但不触发上报
+ */
+HWTEST_F(QueueTest, ffrt_queue_concurrent_recordtraffic_delay_trigger, TestSize.Level1)
+{
+    ffrt_queue_attr_t queue_attr;
+    ffrt_task_handle_t handle;
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_t task_attr_1;
+    int result = 0;
+    uint64_t concurrency = 4;
+    (void)ffrt_task_attr_init(&task_attr_1);
+    (void)ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_delay(&task_attr, 1200000);
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_attr_set_max_concurrency(&queue_attr, concurrency);
+
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_concurrent, "test_queue", &queue_attr);
+    ffrt::QueueHandler* queueHandler = reinterpret_cast<ffrt::QueueHandler*>(queue_handle);
+    queueHandler->trafficRecordInterval_ = 1000000;
+    queueHandler->trafficRecord_.nextUpdateTime_ = TimeStampCntvct() + 1000000;
+    std::function<void()>&& testFunc = [&result]() {
+        result = result + 1;
+        usleep(1100000);
+    };
+    std::function<void()>&& fastFunc = [&result]() {
+        result = result + 1;
+    };
+
+    ffrt_queue_submit(queue_handle, create_function_wrapper(testFunc, ffrt_function_kind_queue), &task_attr_1);
+    for (int i = 0; i < 30; i++) {
+        ffrt_queue_submit(queue_handle, create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr);
+    }
+    usleep(1000000);
+    handle = ffrt_queue_submit_h(queue_handle,
+                create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr_1);
+    ffrt_queue_wait(handle);
+    EXPECT_EQ(result, 2);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_concurrent_monitor_schedule_timeout_all
+ * 测试用例描述 : 并行队列QueueMonitor检测到任务调度超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交多个任务占满全部worker，使得新并行任务等待调度
+ * 预期结果    : 成功触发任务调度超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_all, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    ffrt_set_cpu_worker_max_num(ffrt_qos_default, 2);
+    std::atomic<std::uint64_t> y{0};
+    std::array<ffrt::task_handle, 10> handles;
+
+    for (uint32_t i = 0; i < 5; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                usleep(2000000);
+                y.fetch_add(1);
+            }, ffrt::task_attr("Slow_Task")
+        );
+    }
+
+    for (uint32_t i = 5; i < 10; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+                usleep(1000000);
+            }, ffrt::task_attr("Normal_Task")
+        );
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+        testQueue->wait(handles[i]);
+    }
+
+    EXPECT_EQ(y, 10);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_concurrent_monitor_schedule_timeout_part
+ * 测试用例描述 : 并行队列QueueMonitor检测到任务调度超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交多个任务占满部分worker，使得新并行任务等待调度
+ * 预期结果    : 成功触发任务调度超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_part, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    ffrt_set_cpu_worker_max_num(ffrt_qos_default, 2);
+    std::atomic<std::uint64_t> y{0};
+    std::array<ffrt::task_handle, 4> handles;
+
+    for (uint32_t i = 0; i < 1; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+                usleep(4000000);
+            }, ffrt::task_attr("Slow_Task")
+        );
+    }
+
+    for (uint32_t i = 1; i < 4; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+                usleep(1000000);
+            }, ffrt::task_attr("Normal_Task")
+        );
+    }
+
+    for (uint32_t i = 0; i < 4; i++) {
+        testQueue->wait(handles[i]);
+    }
+
+    EXPECT_EQ(y, 4);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_concurrent_monitor_schedule_timeout_delay
+ * 测试用例描述 : 并行队列QueueMonitor检测到任务调度超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交多个延迟任务，使得新并行任务等待调度
+ * 预期结果    : 不触发任务调度超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_delay, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    ffrt_set_cpu_worker_max_num(ffrt_qos_default, 3);
+    std::atomic<std::uint64_t> y{0};
+    std::array<ffrt::task_handle, 10> handles;
+
+    for (uint32_t i = 0; i < 2; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+            }, ffrt::task_attr("Delayed_Task").delay(1100000)
+        );
+    }
+
+    for (uint32_t i = 2; i < 10; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+            }, ffrt::task_attr("Normal_Task")
+        );
+    }
+
+    for (uint32_t i = 0; i < 10; i++) {
+        testQueue->wait(handles[i]);
+    }
+
+    EXPECT_EQ(y, 10);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_concurrent_monitor_execute_timeout_all
+ * 测试用例描述 : 并行队列QueueMonitor检测到任务执行超时
+ * 操作步骤     : 1、创建队列
+ *               2、提交执行时间长任务占满全部worker
+ * 预期结果    : 成功触发任务执行超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    std::atomic<std::uint64_t> y{0};
+    std::array<ffrt::task_handle, 20> handles;
+
+    for (uint32_t i = 0; i < 4; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+            }, ffrt::task_attr("Normal_Task")
+        );
+    }
+
+    for (uint32_t i = 4; i < 15; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+                usleep(1100000);
+            }, ffrt::task_attr("Slow_Task")
+        );
+    }
+
+    for (uint32_t i = 15; i < 20; i++) {
+        ffrt::submit([&]() {
+            y.fetch_add(1);
+            }, ffrt::task_attr("Normal_Task")
+        );
+    }
+    for (uint32_t i = 4; i < 15; i++) {
+        testQueue->wait(handles[i]);
+    }
+
+    EXPECT_EQ(y, 20);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_concurrent_monitor_cancel_timeout_all
+ * 测试用例描述 : 并行队列QueueMonitor检测到任务超时
+ * 操作步骤     : 1、创建队列
+ *               2、先提交多个延迟任务占满全部worker，再执行前取消
+ * 预期结果    : 不触发任务调度超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_cancel_timeout_all, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    ffrt_set_cpu_worker_max_num(ffrt_qos_default, 2);
+    std::atomic<std::uint64_t> y{0};
+    std::array<ffrt::task_handle, 10> handles;
+
+    for (uint32_t i = 0; i < 2; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+            }, ffrt::task_attr("Delayed_Task").delay(3000000)
+        );
+    }
+    testQueue->cancel(handles[0]);
+    testQueue->cancel(handles[1]);
+
+    for (uint32_t i = 2; i < 10; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+            }, ffrt::task_attr("Normal_Task")
+        );
+    }
+
+    for (uint32_t i = 2; i < 10; i++) {
+        testQueue->wait(handles[i]);
+    }
+
+    EXPECT_EQ(y, 8);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_concurrent_monitor_mixed_conditions_timeout
+ * 测试用例描述 : 并行队列QueueMonitor检测到任务超时
+ * 操作步骤     : 1、创建队列
+ *               2、先提交多个延迟任务占满全部worker，再执行前取消
+ * 预期结果    : 不触发任务超时告警
+ */
+HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_mixed_conditions_timeout, TestSize.Level1)
+{
+    ffrt_task_timeout_set_cb(MyCallback);
+    ffrt::DelayedWorker::GetInstance();
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    std::atomic<std::uint64_t> y{0};
+    std::array<ffrt::task_handle, 12> handles;
+
+    for (uint32_t i = 0; i < 2; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+            }, ffrt::task_attr("Delayed_Task").delay(3000000)
+        );
+    }
+    testQueue->cancel(handles[0]);
+
+    for (uint32_t i = 2; i < 7; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+                usleep(2000000);
+            }, ffrt::task_attr("Slow_Task")
+        );
+    }
+
+    for (uint32_t i = 7; i < 12; i++) {
+        handles[i] = testQueue->submit_h(
+            [&y] {
+                y.fetch_add(1);
+                usleep(1000000);
+            }, ffrt::task_attr("Normal_Task")
+        );
+    }
+
+    for (uint32_t i = 1; i < 12; i++) {
+        testQueue->wait(handles[i]);
+    }
+
+    EXPECT_EQ(y, 11);
+    delete testQueue;
+    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+}
+
+HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSize.Level1)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+        "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+    bool notify = false;
+    int waitingTaskCount = 0;
+    std::atomic<int> submitThreadTaskCount = 0;
+    std::mutex lock;
+    std::condition_variable cv;
+    for (int i = 0; i < 16; i++) {
+        testQueue->submit([&] {
+            std::unique_lock lk(lock);
+            cv.wait(lk, [&] { return notify; });
+            waitingTaskCount++;
+            EXPECT_EQ(submitThreadTaskCount.load(), 0);
+        });
+    }
+
+    std::mutex threadMutex;
+    std::thread waitingThread([&] {
+        std::unique_lock tm(threadMutex);
+        EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue)), 0);
+    });
+
+    std::thread submitThread([&] {
+        while (threadMutex.try_lock()) {
+            threadMutex.unlock();
+            std::this_thread::yield();
+        }
+        usleep(100 * 1000);
+
+        EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue)), 1);
+        for (int i = 0; i < 16; i++) {
+            testQueue->submit([&] {
+                submitThreadTaskCount.fetch_add(1);
+            });
+        }
+    });
+
+    submitThread.join();
+    EXPECT_EQ(submitThreadTaskCount.load(), 0);
+
+    {
+        std::unique_lock lk(lock);
+        notify = true;
+        cv.notify_all();
+    }
+    waitingThread.join();
+    EXPECT_EQ(waitingTaskCount, 16);
+
+    EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue)), 0);
+    EXPECT_EQ(submitThreadTaskCount.load(), 16);
+}
 /*
  * 测试用例名称 : ffrt_queue_cancel_with_ffrt_skip_fail
  * 测试用例描述 : 使用ffrt::skip接口取消队列任务，返回失败

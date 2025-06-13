@@ -17,6 +17,8 @@
 
 #include <chrono>
 #include <string>
+#include <unordered_map>
+#include "internal_inc/types.h"
 
 namespace ffrt {
 typedef enum {
@@ -35,5 +37,6 @@ uint64_t TimeStampCntvct();
 uint64_t ConvertCntvctToUs(uint64_t cntCt);
 uint64_t ConvertUsToCntvct(uint64_t time);
 uint64_t ConvertTscToSteadyClockCount(uint64_t cntCt);
+std::string StatusToString(TaskStatus status);
 }
 #endif // UTIL_TIME_FORAMT_H

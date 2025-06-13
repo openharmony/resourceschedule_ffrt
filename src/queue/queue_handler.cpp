@@ -37,7 +37,7 @@ constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000000; // 1s
-constexpr uint64_t TASK_WAIT_COUNT = 500000; // 5s
+constexpr uint64_t TASK_WAIT_COUNT = 50000; // 5s
 constexpr uint64_t INVALID_GID = 0;
 }
 
@@ -49,6 +49,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
         qos_ = (ffrt_queue_attr_get_qos(attr) >= ffrt_qos_background) ? ffrt_queue_attr_get_qos(attr) : qos_;
         timeout_ = ffrt_queue_attr_get_timeout(attr);
         timeoutCb_ = ffrt_queue_attr_get_callback(attr);
+        maxConcurrency_ = ffrt_queue_attr_get_max_concurrency(attr);
     }
 
     // callback reference counting is to ensure life cycle
@@ -57,6 +58,9 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
         cbTask->IncDeleteRef();
     }
     trafficRecord_.SetTimeInterval(trafficRecordInterval_);
+    curTaskVec_.resize(maxConcurrency_);
+    timeoutTaskVec_.resize(maxConcurrency_);
+
     queue_ = CreateQueue(type, attr);
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", GetQueueId());
 
@@ -139,6 +143,7 @@ void QueueHandler::Submit(QueueTask* task)
         task->SetQos(qos_);
     }
 
+    uint64_t gid = task->gid;
     task->Submit();
 
     trafficRecord_.SubmitTraffic(this);
@@ -156,7 +161,7 @@ void QueueHandler::Submit(QueueTask* task)
 
     int ret = queue_->Push(task);
     if (ret == SUCC) {
-        FFRT_LOGD("submit task[%lu] into %s", task->gid, name_.c_str());
+        FFRT_LOGD("submit task[%lu] into %s", gid, name_.c_str());
         return;
     }
     if (ret == FAILED) {
@@ -170,26 +175,34 @@ void QueueHandler::Submit(QueueTask* task)
 
     // activate queue
     if (task->GetDelay() == 0) {
-        FFRT_LOGD("task [%llu] activate %s", task->gid, name_.c_str());
-        curTask_ = task;
-        FFRTFacade::GetQMInstance().UpdateQueueInfo();
+        FFRT_LOGD("task [%llu] activate %s", gid, name_.c_str());
+        {
+            std::unique_lock lock(mutex_);
+            UpdateCurTask(task);
+        }
         TransferTask(task);
     } else {
-        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", task->gid, task->GetDelay(), name_.c_str());
+        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", gid, task->GetDelay(), name_.c_str());
         if (ret == INACTIVE) {
             queue_->Push(task);
         }
-        task->SetStatus(CoTaskStatus::ENQUEUED);
+        task->SetStatus(TaskStatus::ENQUEUED);
         TransferInitTask();
     }
+    FFRTFacade::GetQMInstance().UpdateQueueInfo();
 }
 
 void QueueHandler::Cancel()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     std::unique_lock lock(mutex_);
-    if (queue_->GetHeadTask() == curTask_) {
-        curTask_ = nullptr;
+    std::vector<QueueTask*> taskVec = queue_->GetHeadTask();
+    for (auto& task : taskVec) {
+        for (auto& curtask : curTaskVec_) {
+            if (task == curtask) {
+                curtask = nullptr;
+            }
+        }
     }
     int count = queue_->Remove();
     trafficRecord_.DoneTraffic(count);
@@ -205,7 +218,9 @@ void QueueHandler::CancelAndWait()
         desWaitCnt_++;
         if (desWaitCnt_ == TASK_WAIT_COUNT) {
             std::unique_lock lock(mutex_);
-            FFRT_LOGI("Queue Destruct blocked for 5s, %s", GetDfxInfo().c_str());
+            for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
+                FFRT_LOGI("Queue Destruct blocked for 5s, %s", GetDfxInfo(i).c_str());
+            }
             desWaitCnt_ = 0;
         }
     }
@@ -214,7 +229,12 @@ void QueueHandler::CancelAndWait()
 bool QueueHandler::CheckExecutingTask()
 {
     std::unique_lock lock(mutex_);
-    return curTask_ != nullptr && curTask_->curStatus == CoTaskStatus::EXECUTING;
+    for (const auto& curTask : curTaskVec_) {
+        if (curTask != nullptr && curTask->curStatus == TaskStatus::EXECUTING) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int QueueHandler::Cancel(const char* name)
@@ -222,8 +242,13 @@ int QueueHandler::Cancel(const char* name)
     FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
          "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     std::unique_lock lock(mutex_);
-    if (queue_->GetHeadTask() != nullptr && queue_->GetHeadTask()->IsMatch(name)) {
-        curTask_ = nullptr;
+    std::vector<QueueTask*> taskVec = queue_->GetHeadTask();
+    for (auto& task : taskVec) {
+        for (auto& curtask : curTaskVec_) {
+            if (task == curtask && task->IsMatch(name)) {
+                curtask = nullptr;
+            }
+        }
     }
     int ret = queue_->Remove(name);
     if (ret <= 0) {
@@ -248,10 +273,11 @@ int QueueHandler::Cancel(QueueTask* task)
     int ret = queue_->Remove(task);
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
-        {
+        for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
             std::unique_lock lock(mutex_);
-            if (curTask_ == task) {
-                curTask_ = nullptr;
+            if (curTaskVec_[i] == task) {
+                curTaskVec_[i] = nullptr;
+                break;
             }
         }
         trafficRecord_.DoneTraffic();
@@ -268,7 +294,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
     for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
         // dfx watchdog
         SetTimeoutMonitor(task);
-        task->SetStatus(CoTaskStatus::EXECUTING);
+        task->SetStatus(TaskStatus::EXECUTING);
         SetCurTask(task);
         execTaskId_.store(task->gid);
 
@@ -299,7 +325,10 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
         // run task batch
         nextTask = task->GetNextTask();
-        SetCurTask(nextTask);
+        {
+            std::unique_lock lock(mutex_);
+            curTaskVec_[task->curTaskIdx] = nextTask;
+        }
         task->DecDeleteRef();
         if (nextTask == nullptr) {
             if (!queue_->IsOnLoop()) {
@@ -313,14 +342,24 @@ void QueueHandler::Deliver()
 {
     deliverCnt_.fetch_add(1);
     {
+        // curtask has to be updated to headtask of whenmap before pull
         std::unique_lock lock(mutex_);
-        curTask_ = queue_->GetHeadTask();
+        std::vector<QueueTask*> taskMap = queue_->GetHeadTask();
+        if (!taskMap.empty()) {
+            std::unordered_set<QueueTask*> curTaskSet(curTaskVec_.begin(), curTaskVec_.end());
+            for (auto& task : taskMap) {
+                if (curTaskSet.find(task) == curTaskSet.end()) {
+                    UpdateCurTask(task);
+                    break;
+                }
+            }
+        }
     }
     QueueTask* task = queue_->Pull();
     deliverCnt_.fetch_sub(1);
     if (task != nullptr) {
         SetCurTask(task);
-        task->SetStatus(CoTaskStatus::DEQUEUED);
+        task->SetStatus(TaskStatus::DEQUEUED);
         TransferTask(task);
     }
 }
@@ -412,82 +451,88 @@ void QueueHandler::RunTimeOutCallback(QueueTask* task)
     }
 }
 
-std::string StatusToString(CoTaskStatus status)
-{
-    static const std::unordered_map<CoTaskStatus, std::string> statusMap = {
-        {CoTaskStatus::PENDING,    "PENDING"},
-        {CoTaskStatus::ENQUEUED,    "ENQUEUED"},
-        {CoTaskStatus::DEQUEUED,    "DEQUEUED"},
-        {CoTaskStatus::POPPED,    "POPPED"},
-        {CoTaskStatus::EXECUTING,    "EXECUTING"},
-        {CoTaskStatus::CANCELED,    "CANCELED"}
-    };
-
-    auto it = statusMap.find(status);
-    return (it != statusMap.end()) ? it->second : "Unknown";
-}
-
-std::string QueueHandler::GetDfxInfo() const
+std::string QueueHandler::GetDfxInfo(int index) const
 {
     std::stringstream ss;
-    if (queue_ != nullptr && curTask_ != nullptr) {
-        uint64_t curTaskTime = curTask_->statusTime;
-        CoTaskStatus curTaskStatus = curTask_->curStatus;
-        CoTaskStatus preTaskStatus = curTask_->preStatus;
-        ss << "Current task: task name[" << curTask_->label.c_str() << "], gid=[" << curTask_->gid <<
-            "], with delay of[" << curTask_->GetDelay() << "]us, qos[" << curTask_->GetQos() <<
+    if (queue_ != nullptr && curTaskVec_[index] != nullptr) {
+        uint64_t curTaskTime = curTaskVec_[index]->statusTime;
+        TaskStatus curTaskStatus = curTaskVec_[index]->curStatus;
+        TaskStatus preTaskStatus = curTaskVec_[index]->preStatus;
+        ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], gid=[" << curTaskVec_[index]->gid <<
+            "], with delay of[" << curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
             "], current task status[" << StatusToString(curTaskStatus) << "], start at[" <<
             FormatDateString4SteadyClock(curTaskTime) << "], last status[" << StatusToString(preTaskStatus)
             << "]";
+    } else {
+        ss << "Current queue or task nullptr";
     }
     return ss.str();
 }
 
-std::pair<uint64_t, uint64_t> QueueHandler::EvaluateTaskTimeout(uint64_t timeoutThreshold,
+std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uint64_t timeoutThreshold,
     uint64_t timeoutUs, std::stringstream& ss)
 {
+    uint64_t whenmapTskCount = GetTaskCnt();
     std::unique_lock lock(mutex_);
     std::unique_lock mapLock(queue_->mutex_);
-    if (curTask_ == nullptr) {
-        return std::make_pair(INVALID_GID, UINT64_MAX);
-    }
-    uint64_t curTaskTime = curTask_->statusTime;
-    if (curTaskTime == 0 || CheckDelayStatus()) {
-        return std::make_pair(INVALID_GID, UINT64_MAX);
-    }
-    if (curTaskTime < timeoutThreshold) {
-        if (curTask_->gid == timeoutTask_.taskGid && curTask_->curStatus == timeoutTask_.taskStatus) {
-            timeoutTask_.timeoutCnt += 1;
-        } else {
-            timeoutTask_.timeoutCnt = 1;
+    std::pair<std::vector<uint64_t>, uint64_t> curTaskInfo;
+    uint64_t minTime = UINT64_MAX;
+    for (int i = 0;i < static_cast<int>(curTaskVec_.size()); i++) {
+        QueueTask* curTask = curTaskVec_[i];
+        if (curTask == nullptr) {
+            curTaskInfo.first.emplace_back(INVALID_GID);
+            continue;
         }
-        timeoutTask_.taskGid = curTask_->gid;
-        timeoutTask_.taskStatus = curTask_->curStatus;
-        ReportTaskTimeout(timeoutUs, ss);
-        // 同一任务多次上报时基于当前状态时间对应累加时间以更新下次检测时间
-        uint64_t nextTimeSchedule = curTaskTime + (timeoutUs * timeoutTask_.timeoutCnt);
-        return std::make_pair(timeoutTask_.taskGid, CheckTimeSchedule(nextTimeSchedule, timeoutUs));
+
+        uint64_t curTaskTime = curTask->statusTime;
+        if (curTaskTime == 0 || CheckDelayStatus()) {
+            curTaskInfo.first.emplace_back(INVALID_GID);
+            // The next inspection time needs to be updated if current task is a delayed task and there are
+            // still tasks in the whenMap, otherwise pause the inspection.
+            if (whenmapTskCount > 0) {
+                uint64_t now = TimeStampCntvct();
+                minTime = std::min(minTime, now);
+            }
+            continue;
+        }
+
+        if (curTaskTime < timeoutThreshold) {
+            TimeoutTask& timeoutTaskInfo = timeoutTaskVec_[i];
+            if (curTask->gid == timeoutTaskInfo.taskGid &&
+                curTask->curStatus == timeoutTaskInfo.taskStatus) {
+                    timeoutTaskInfo.timeoutCnt += 1;
+            } else {
+                timeoutTaskInfo.timeoutCnt = 1;
+                timeoutTaskInfo.taskGid = curTask->gid;
+                timeoutTaskInfo.taskStatus = curTask->curStatus;
+            }
+
+            ReportTaskTimeout(timeoutUs, ss, i);
+
+            // When the same task is reported mutiple times, the next inspection time is updated by adding the
+            // accumulated time based on the current status time.
+            uint64_t nextTimeSchedule = curTaskTime + (timeoutUs * timeoutTaskInfo.timeoutCnt);
+            curTaskInfo.first.emplace_back(timeoutTaskInfo.taskGid);
+            minTime = std::min(minTime, nextTimeSchedule);
+            continue;
+        }
+
+        curTaskInfo.first.emplace_back(INVALID_GID);
+        minTime = std::min(minTime, curTaskTime);
     }
-    return std::make_pair(INVALID_GID, curTaskTime);
+
+    curTaskInfo.second = minTime;
+    return curTaskInfo;
 }
 
-uint64_t QueueHandler::CheckTimeSchedule(uint64_t time, uint64_t timeoutUs)
-{
-    uint64_t now = TimeStampCntvct();
-    if (time < (now - ((timeoutTask_.timeoutCnt + 1) * timeoutUs))) {
-        FFRT_LOGW("Queue Task Timeout reschedule");
-        return now;
-    }
-    return time;
-}
-void QueueHandler::ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss)
+void QueueHandler::ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss, int index)
 {
     ss.str("");
-    ss << GetDfxInfo() << ", timeout for[" << timeoutUs / MIN_TIMEOUT_THRESHOLD_US <<
-        "]s, reported count: " << timeoutTask_.timeoutCnt;
+    ss << GetDfxInfo(index) << ", timeout for[" << timeoutUs / MIN_TIMEOUT_THRESHOLD_US <<
+        "]s, reported count: " << timeoutTaskVec_[index].timeoutCnt;
     FFRT_LOGE("%s", ss.str().c_str());
 #ifdef FFRT_SEND_EVENT
-    if (timeoutTask_.timeoutCnt == 1) {
+    if (timeoutTaskVec_[index].timeoutCnt == 1) {
         std::string senarioName = "Serial_Queue_Timeout";
         TaskTimeoutReport(ss, GetCurrentProcessName(), senarioName);
     }
@@ -638,6 +683,25 @@ void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
                 func(queueId, ssStr.c_str(), ssStr.size());
             }
         });
+    }
+}
+
+void QueueHandler::SetCurTask(QueueTask* task)
+{
+    std::unique_lock lock(mutex_);
+    if (task != nullptr) {
+        curTaskVec_[task->curTaskIdx] = task;
+    }
+}
+
+void QueueHandler::UpdateCurTask(QueueTask* task)
+{
+    for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
+        if (curTaskVec_[i] == nullptr) {
+            curTaskVec_[i] = task;
+            task->curTaskIdx = i;
+            return;
+        }
     }
 }
 } // namespace ffrt

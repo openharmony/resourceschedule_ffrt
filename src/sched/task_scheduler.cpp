@@ -23,6 +23,8 @@ const unsigned int LOCAL_QUEUE_SIZE = 128;
 const int INSERT_GLOBAL_QUEUE_FREQ = 5;
 const int GLOBAL_INTERVAL = 60;
 const int STEAL_LOCAL_HALF = 2;
+constexpr int UV_TASK_MAX_CONCURRENCY = 8;
+
 void InsertTask(void *task)
 {
     ffrt::TaskBase *baseTask = reinterpret_cast<ffrt::TaskBase *>(task);
@@ -168,6 +170,46 @@ TaskBase *TaskScheduler::PopTaskLocalOrPriority()
         }
     }
     return reinterpret_cast<TaskBase *>(GetLocalQueue()->PopHead());
+}
+
+bool TaskScheduler::PushUVTaskToWaitingQueue(UVTask* task)
+{
+    std::lock_guard lg(*GetMutex());
+    if (uvTaskConcurrency_ >= UV_TASK_MAX_CONCURRENCY) {
+        uvTaskWaitingQueue_.push_back(task);
+        return true;
+    }
+
+    return false;
+}
+
+bool TaskScheduler::CheckUVTaskConcurrency(UVTask* task)
+{
+    std::lock_guard lg(*GetMutex());
+    // the number of workers are executing UV tasks has reached the upper limit.
+    // therefore, the current task is placed back to the head of the waiting queue (be preferentually obtained later).
+    if (uvTaskConcurrency_ >= UV_TASK_MAX_CONCURRENCY) {
+        uvTaskWaitingQueue_.push_front(task);
+        return false;
+    }
+
+    uvTaskConcurrency_++;
+    return true;
+}
+
+UVTask* TaskScheduler::PickWaitingUVTask()
+{
+    std::lock_guard lg(*GetMutex());
+    if (uvTaskWaitingQueue_.empty()) {
+        if (uvTaskConcurrency_ > 0) {
+            uvTaskConcurrency_--;
+        }
+        return nullptr;
+    }
+
+    UVTask* task = uvTaskWaitingQueue_.front();
+    uvTaskWaitingQueue_.pop_front();
+    return task;
 }
 
 std::mutex* TaskScheduler::GetMutex()

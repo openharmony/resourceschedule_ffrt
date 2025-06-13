@@ -55,6 +55,7 @@ std::string SaveTaskCounterInfo(void);
 std::string SaveWorkerStatusInfo(void);
 std::string SaveNormalTaskStatusInfo(void);
 std::string SaveQueueTaskStatusInfo(void);
+std::string SaveTimeoutTaskInfo(void);
 std::string SaveQueueTrafficRecordInfo(void);
 #endif
 #else

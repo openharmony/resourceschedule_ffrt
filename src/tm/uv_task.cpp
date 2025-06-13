@@ -26,6 +26,10 @@ void UVTask::Ready()
     QoS taskQos = qos_;
     FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(taskQos);
     SetTaskStatus(TaskStatus::READY);
+    if (FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushUVTaskToWaitingQueue(this)) {
+        FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(taskQos);
+        return;
+    }
     FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(taskQos);
     FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(taskQos);
@@ -38,18 +42,34 @@ void UVTask::Execute()
         DecDeleteRef();
         return;
     }
+
+    // if the concurrency reaches the upper limit, this worker cannot execute UV tasks.
+    if (!FFRTFacade::GetSchedInstance()->GetScheduler(qos_).CheckUVTaskConcurrency(this)) {
+        return;
+    }
+
     ffrt_executor_task_func func = FuncManager::Instance()->getFunc(ffrt_uv_task);
     if (func == nullptr) {
         FFRT_SYSEVENT_LOGE("Static func is nullptr");
         DecDeleteRef();
         return;
     }
-    FFRTTraceRecord::TaskExecute<ffrt_uv_task>(qos_);
-    FFRT_EXECUTOR_TASK_BEGIN(uvWork);
-    func(uvWork, qos_);
-    FFRT_EXECUTOR_TASK_END();
-    FFRT_EXECUTOR_TASK_FINISH_MARKER(uvWork); // task finish maker for uv task
-    FFRTTraceRecord::TaskDone<ffrt_uv_task>(qos_);
-    DecDeleteRef();
+
+    ExecuteImpl(this, func);
+}
+
+void UVTask::ExecuteImpl(UVTask* task, ffrt_executor_task_func func)
+{
+    QoS taskQos = task->qos_;
+    while (task != nullptr) {
+        FFRTTraceRecord::TaskExecute<ffrt_uv_task>(taskQos);
+        FFRT_EXECUTOR_TASK_BEGIN(task->uvWork);
+        func(task->uvWork, taskQos);
+        FFRT_EXECUTOR_TASK_END();
+        FFRT_EXECUTOR_TASK_FINISH_MARKER(task->uvWork); // task finish marker for uv task
+        FFRTTraceRecord::TaskDone<ffrt_uv_task>(taskQos);
+        task->DecDeleteRef();
+        task = FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PickWaitingUVTask();
+    }
 }
 } // namespace ffrt

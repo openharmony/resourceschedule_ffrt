@@ -17,6 +17,9 @@
 #include <chrono>
 #include "ffrt_inner.h"
 #include "dfx/bbox/bbox.h"
+#define private public
+#include "util/worker_monitor.h"
+#undef private
 #include "c/queue_ext.h"
 #include "../common.h"
 
@@ -182,4 +185,107 @@ HWTEST_F(DfxTest, dfx_bbox_normal_task_0002, TestSize.Level0)
         RecordDebugInfo();
     });
     ffrt::wait();
+}
+
+static inline void stall_us_impl(size_t us)
+{
+    auto start = std::chrono::system_clock::now();
+    size_t passed = 0;
+    while (passed < us) {
+        passed = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - start).count();
+    }
+}
+
+void stall_us(size_t us)
+{
+    stall_us_impl(us);
+}
+
+/*
+* 测试用例名称：normaltsk_timeout_executing
+* 测试用例描述：并发任务WorkerMonitor检测到任务执行超时
+* 操作步骤    ：1、提交执行时间长任务
+* 预期结果    ：成功触发任务执行超时告警
+*/
+HWTEST_F(DfxTest, normaltsk_timeout_executing, TestSize.Level1)
+{
+    ffrt::WorkerMonitor::GetInstance().timeoutUs_ = 1000000;
+    ffrt::WorkerMonitor::GetInstance().SubmitTaskMonitor(1000000);
+    ffrt_task_timeout_set_threshold(1000);
+    int x = 0;
+    auto h = ffrt::submit_h(
+        [&]() {
+            stall_us(3000000);
+            x++;
+        }, {}, {});
+    ffrt::wait({h});
+    EXPECT_EQ(x, 1);
+}
+
+/*
+* 测试用例名称：normaltsk_timeout_pending
+* 测试用例描述：并发任务WorkerMonitor检测到任务调度超时
+* 操作步骤    ：1、限制worker数为1
+               2、提交1个执行时间长任务占住worker，1个即时任务等待
+* 预期结果    ：触发PENDING超时告警
+*/
+HWTEST_F(DfxTest, normaltsk_timeout_pending, TestSize.Level1)
+{
+    ffrt_task_timeout_set_threshold(1000);
+    ffrt_set_cpu_worker_max_num(qos_default, 2);
+    int x = 0;
+    for (int i = 0; i < 3; i++) {
+        ffrt::submit(
+            [&]() {
+                stall_us(2000000);
+                x++;
+            }, {}, {});
+    }
+    ffrt::wait();
+
+    EXPECT_EQ(x, 3);
+}
+
+/*
+* 测试用例名称：normaltsk_timeout_multi
+* 测试用例描述：多个并发任务WorkerMonitor检测超时
+* 操作步骤    ：1、提交多个执行时间长任务
+* 预期结果    ：正确触发多次超时告警
+*/
+HWTEST_F(DfxTest, normaltsk_timeout_multi, TestSize.Level1)
+{
+    ffrt_task_timeout_set_threshold(1000);
+    int x = 0;
+    for (int i = 0; i < 5; i++) {
+        ffrt::submit(
+            [&]() {
+                stall_us(1500000);
+                x++;
+            }, {}, {});
+    }
+    ffrt::wait();
+    EXPECT_EQ(x, 5);
+}
+
+/*
+* 测试用例名称：normaltsk_timeout_delay
+* 测试用例描述：并发任务WorkerMonitor不检测延时任务的主动延时
+* 操作步骤    ：1、提交延时任务
+* 预期结果    ：主动延时期间不触发超时告警，但任务执行期间触发
+*/
+HWTEST_F(DfxTest, normaltsk_timeout_delay, TestSize.Level1)
+{
+    ffrt_task_timeout_set_threshold(1000);
+    int x = 0;
+    for (int i = 0; i < 2; i++) {
+        ffrt::submit([&]() {
+            std::cout << "delay " << 1500 << " us\n";
+            x = x + 1;
+            stall_us(1500000);
+        }, {}, {}, ffrt::task_attr().delay(1500000));
+    }
+    ffrt::wait();
+    EXPECT_EQ(x, 2);
+    ffrt::WorkerMonitor::GetInstance().timeoutUs_ = 30000000;
 }

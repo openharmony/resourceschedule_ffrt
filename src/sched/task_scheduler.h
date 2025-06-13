@@ -94,31 +94,6 @@ public:
         return taskSchedMode;
     }
 
-    void CancelUVWork(ffrt_executor_task_t* uvWork)
-    {
-        {
-            std::lock_guard lg(*GetMutex());
-            auto iter = std::remove_if(uvTaskWaitingQueue_.begin(), uvTaskWaitingQueue_.end(), [uvWork](UVTask* task) {
-                if (task->uvWork == uvWork) {
-                    return true;
-                }
-                return false;
-            });
-            if (iter != uvTaskWaitingQueue_.end()) {
-                uvTaskWaitingQueue_.erase(iter, uvTaskWaitingQueue_.end());
-                return;
-            }
-        }
-
-        std::lock_guard<std::mutex> lg(cancelMtx);
-        auto it = cancelMap_.find(uvWork);
-        if (it != cancelMap_.end()) {
-            it->second++;
-        } else {
-            cancelMap_[uvWork] = 1;
-        }
-    }
-
     inline SpmcQueue* GetWorkerLocalQueue(pid_t pid)
     {
         std::lock_guard lg(*GetMutex());
@@ -128,6 +103,7 @@ public:
     virtual bool PushTaskGlobal(TaskBase* task) = 0;
     virtual TaskBase* PopTaskGlobal() = 0;
 
+    bool CancelUVWork(ffrt_executor_task_t* uvWork);
     bool PushUVTaskToWaitingQueue(UVTask* task);
     bool CheckUVTaskConcurrency(UVTask* task);
     UVTask* PickWaitingUVTask();
@@ -171,8 +147,9 @@ protected:
 
     TaskBase* GetUVTask(TaskBase* task)
     {
-        std::lock_guard<std::mutex> lg(cancelMtx);
+        std::lock_guard<std::mutex> lg(uvMtx);
         UVTask* uvTask = static_cast<UVTask*>(task);
+        uvTask->SetDequeued();
         auto it = cancelMap_.find(uvTask->uvWork);
         if (it != cancelMap_.end()) {
             uvTask->FreeMem();
@@ -184,13 +161,12 @@ protected:
             return nullptr;
         }
 
-        static_cast<UVTask*>(task)->SetDequeued();
         return task;
     }
 
 private:
     std::atomic<std::mutex*> mtx {nullptr};
-    std::mutex cancelMtx;
+    std::mutex uvMtx;
     std::unordered_map<ffrt_executor_task_t*, uint32_t> cancelMap_;
     int uvTaskConcurrency_ = 0;
     std::deque<UVTask*> uvTaskWaitingQueue_;

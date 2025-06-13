@@ -174,7 +174,7 @@ TaskBase *TaskScheduler::PopTaskLocalOrPriority()
 
 bool TaskScheduler::PushUVTaskToWaitingQueue(UVTask* task)
 {
-    std::lock_guard lg(*GetMutex());
+    std::lock_guard lg(uvMtx);
     if (uvTaskConcurrency_ >= UV_TASK_MAX_CONCURRENCY) {
         uvTaskWaitingQueue_.push_back(task);
         return true;
@@ -185,7 +185,7 @@ bool TaskScheduler::PushUVTaskToWaitingQueue(UVTask* task)
 
 bool TaskScheduler::CheckUVTaskConcurrency(UVTask* task)
 {
-    std::lock_guard lg(*GetMutex());
+    std::lock_guard lg(uvMtx);
     // the number of workers are executing UV tasks has reached the upper limit.
     // therefore, the current task is placed back to the head of the waiting queue (be preferentually obtained later).
     if (uvTaskConcurrency_ >= UV_TASK_MAX_CONCURRENCY) {
@@ -199,7 +199,7 @@ bool TaskScheduler::CheckUVTaskConcurrency(UVTask* task)
 
 UVTask* TaskScheduler::PickWaitingUVTask()
 {
-    std::lock_guard lg(*GetMutex());
+    std::lock_guard lg(uvMtx);
     if (uvTaskWaitingQueue_.empty()) {
         if (uvTaskConcurrency_ > 0) {
             uvTaskConcurrency_--;
@@ -209,7 +209,36 @@ UVTask* TaskScheduler::PickWaitingUVTask()
 
     UVTask* task = uvTaskWaitingQueue_.front();
     uvTaskWaitingQueue_.pop_front();
+    task->SetDequeued();
     return task;
+}
+
+bool TaskScheduler::CancelUVWork(ffrt_executor_task_t* uvWork)
+{
+    std::lock_guard lg(uvMtx);
+    if (!reinterpret_cast<LinkedList*>(uvWork->wq)->InList()) {
+        FFRT_SYSEVENT_LOGW("the task has been picked, or has not been inserted");
+        return false;
+    }
+
+    auto iter = std::remove_if(uvTaskWaitingQueue_.begin(), uvTaskWaitingQueue_.end(), [uvWork](UVTask* task) {
+        if (task->uvWork == uvWork) {
+            return true;
+        }
+        return false;
+    });
+    if (iter != uvTaskWaitingQueue_.end()) {
+        uvTaskWaitingQueue_.erase(iter, uvTaskWaitingQueue_.end());
+        return true;
+    }
+    
+    auto it = cancelMap_.find(uvWork);
+    if (it != cancelMap_.end()) {
+        it->second++;
+    } else {
+        cancelMap_[uvWork] = 1;
+    }
+    return true;
 }
 
 std::mutex* TaskScheduler::GetMutex()

@@ -33,15 +33,16 @@ public:
     UVTask(ffrt_executor_task* uvWork, const task_attr_private *attr)
         : TaskBase(ffrt_uv_task, attr), uvWork(uvWork)
     {
-        /* uvWork是libuv传进来的ffrt_executor_task指针，其中的wq成员为双向链表节点，和LinkedList的内存布局一致，
-           曾经用于软化队列的节点和TaskBase类一样插入ReadyQueue。
-           目前由于已组合进入UVTask类型，不再作为链表节点，此处就可以使用uvWorker的wq来标记任务是否已经出队的状态。
-           可参考LinkedList的InList()类方法，(next != nullptr 且 next != this)即为未出队状态。
-           这个状态判断会在Scheduler::CancelUVWork方法中使用，如果任务已标记出队，就不会执行取消动作。
+        /*
+            uvWork是libuv传进来的ffrt_executor_task指针，其中的wq成员为双向链表节点，和LinkedList的内存布局一致，
+            曾经用于软化队列的节点和TaskBase类一样插入ReadyQueue。
+            目前由于已组合进入UVTask类型，不再作为链表节点，此处就可以使用uvWorker的wq来标记任务是否已经出队的状态。
+            libuv里面，在cancel时也会判断任务是否已经出队（uv__queue_empty）:
+            q== q->next || q != q->next->prev;其中next对应wq[0]，prev对应wq[1]
+            将wq入队，即可满足v__queue_empty返回false的需要
         */
         if (uvWork != nullptr) {
-            uvWork->wq[0] = &uvWork->wq[1];
-            uvWork->wq[1] = &uvWork->wq[1];
+            uvWorkList.PushBack(reinterpret_cast<LinkedList*>(&uvWork->wq));
         } else {
             FFRT_LOGE("executor_task is nullptr");
         }
@@ -81,17 +82,20 @@ public:
         if (uvWork == nullptr) {
             return;
         }
-        /* uvWork是libuv传进来的ffrt_executor_task指针，其中的wq成员为双向链表节点，和LinkedList的内存布局一致，
-           曾经用于软化队列的节点和TaskBase类一样插入ReadyQueue。
-           目前由于已组合进入UVTask类型，不再作为链表节点，此处就可以使用uvWorker的wq来标记任务是否已经出队的状态。
-           可参考LinkedList类的InList()方法，(next == this)即为未出队状态。
-           这个状态判断会在Scheduler::CancelUVWork方法中使用，如果任务已标记出队，就不会执行取消动作。
+        /*
+            uvWork是libuv传进来的ffrt_executor_task指针，其中的wq成员为双向链表节点，和LinkedList的内存布局一致，
+            曾经用于软化队列的节点和TaskBase类一样插入ReadyQueue。
+            目前由于已组合进入UVTask类型，不再作为链表节点，此处就可以使用uvWorker的wq来标记任务是否已经出队的状态。
+            libuv里面，在cancel时也会判断任务是否已经出队（uv__queue_empty）:
+            q== q->next || q != q->next->prev;其中next对应wq[0]，prev对应wq[1]
+            将wq出队，即可满足v__queue_empty返回false的需要
         */
-        uvWork->wq[0] = &uvWork->wq;
-        uvWork->wq[1] = &uvWork->wq;
+        LinkedList::RemoveCur(reinterpret_cast<LinkedList*>(&uvWork->wq));
     }
 
     static void ExecuteImpl(UVTask* task, ffrt_executor_task_func func);
+private:
+    LinkedList uvWorkList;
 };
 } /* namespace ffrt */
 #endif

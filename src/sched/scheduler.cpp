@@ -26,13 +26,7 @@ Scheduler* Scheduler::Instance()
 
 bool Scheduler::CancelUVWork(ffrt_executor_task_t* uvWork, int qos)
 {
-    if (!reinterpret_cast<LinkedList*>(uvWork->wq)->InList()) {
-        FFRT_SYSEVENT_LOGW("the task has been picked, or has not been inserted");
-        return false;
-    }
-
-    GetScheduler(qos).CancelUVWork(uvWork);
-    return true;
+    return GetScheduler(qos).CancelUVWork(uvWork);
 }
 
 } // namespace ffrt

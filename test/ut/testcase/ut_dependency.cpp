@@ -323,7 +323,79 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level0)
     ffrt_task_attr_destroy(&attr);
 }
 
-HWTEST_F(DependencyTest, update_trace_tag_task_attr_success, TestSize.Level0)
+namespace {
+std::atomic_int uv_result = 0;
+std::mutex uv_cancel_mtx;
+std::condition_variable uv_cancel_cv;
+// libuv's uv__queue
+struct UvQueue {
+    struct UvQueue* next;
+    struct UvQueue* prev;
+};
+
+// libuv's uv__queue_empty
+inline int UvQueueEmpty(const struct UvQueue* q)
+{
+    return q == q->next || q != q->next->prev;
+}
+
+void UVCbSleep(ffrt_executor_task_t* data, ffrt_qos_t qos)
+{
+    (void)data;
+    (void)qos;
+    uv_result.fetch_add(1);
+    std::unique_lock lk(uv_cancel_mtx);
+    uv_cancel_cv.wait(lk);
+}
+}
+
+/*
+ * 测试用例名称 ：executor_task_submit_cancel_04
+ * 测试用例描述 ：测试通过libuv视角，能够正确取消任务
+ * 操作步骤     ：1.提交批量任务，让worker都阻塞，使得所有uv任务都不从Ready中取出
+ *               2.判断uv__queue_empty位false时，调用ffrt_executor_task_cancel取消任务
+ * 预期结果     ：能够至少取消一个任务，并且任务执行和取消等于总任务数
+ */
+HWTEST_F(DependencyTest, executor_task_submit_cancel_04, TestSize.Level1)
+{
+    uv_result.store(0);
+    int taskCount = 10000;
+    std::atomic_int cancelCount = 0;
+    bool flag = false;
+    ffrt_task_attr_t attr;
+    ffrt_task_attr_init(&attr);
+    ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
+    ffrt_executor_task_register_func(UVCbSleep, ffrt_uv_task);
+    ffrt_executor_task_t works[taskCount];
+
+    for (int i = 0; i < taskCount; i++) {
+        ffrt_executor_task_submit(&works[i], &attr);
+    }
+    while (uv_result < 1) {
+        usleep(100);
+    }
+    thread {[&]() {
+        for (int i = 0; i < taskCount; i++) {
+            if (!UvQueueEmpty(reinterpret_cast<UvQueue*>(&works[i].wq)) &&
+                ffrt_executor_task_cancel(&works[i], ffrt::qos_user_initiated)) {
+                cancelCount.fetch_add(1);
+                flag = true;
+            }
+        }
+    }}.detach();
+    while (!flag) {
+        usleep(100);
+    }
+    while (uv_result + cancelCount < taskCount) {
+        uv_cancel_cv.notify_all();
+        usleep(1000);
+    }
+    printf("canceled: %d, result: %d\n", cancelCount.load(), uv_result.load());
+    EXPECT_GT(cancelCount, 0);
+    EXPECT_EQ(cancelCount.load() + uv_result.load(), taskCount);
+}
+
+HWTEST_F(DependencyTest, update_trace_tag_task_attr_success, TestSize.Level1)
 {
     ffrt::set_trace_tag("TASK A");
     ffrt::clear_trace_tag();

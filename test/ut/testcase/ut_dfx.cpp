@@ -177,9 +177,12 @@ HWTEST_F(DfxTest, queue_dfx_bbox_queue_task_0001, TestSize.Level1)
 */
 HWTEST_F(DfxTest, dfx_bbox_normal_task_0002, TestSize.Level1)
 {
+    std::atomic<int> x = 0;
     SaveTheBbox();
-    ffrt::submit([]() {
+    ffrt::submit([&x]() {
+        x++;
         RecordDebugInfo();
     });
     ffrt::wait();
+    EXPECT_EQ(x, 1);
 }

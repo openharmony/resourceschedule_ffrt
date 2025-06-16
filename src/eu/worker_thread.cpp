@@ -36,13 +36,12 @@ constexpr int RT_PRIO_MAX = 139;
 namespace ffrt {
 void CPUWorker::WorkerSetup()
 {
-    static std::atomic<int> threadIndex[QoS::MaxNum()] = {0};
-    int tid = threadIndex[qos()].fetch_add(1, std::memory_order_relaxed);
+    static int threadIndex[QoS::MaxNum()] = {0};
     std::string qosStr = std::to_string(qos());
     std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
-        std::string(WORKER_THREAD_SYMBOL) + std::to_string(tid);
+        std::string(WORKER_THREAD_SYMBOL) + std::to_string(threadIndex[qos()]++);
     if (qosStr == "") {
-        FFRT_SYSEVENT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), tid);
+        FFRT_SYSEVENT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), threadIndex[qos()]);
     }
     pthread_setname_np(pthread_self(), threadName.c_str());
 }

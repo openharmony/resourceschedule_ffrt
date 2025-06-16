@@ -352,7 +352,12 @@ void RecordDebugInfo(void)
         FFRT_BBOX_LOG("debug log: tid %d, task id %lu, qos %d, name %s", gettid(), t->gid, t->qos_(),
             t->GetLabel().c_str());
     }
-    SaveKeyStatus();
+    FFRT_BBOX_LOG("<<<=== key status ===>>>");
+    if (saveKeyStatusInfo == nullptr) {
+        FFRT_BBOX_LOG("no key status");
+    } else {
+        FFRT_BBOX_LOG("%s", saveKeyStatusInfo().c_str());
+    }
     FFRT_BBOX_LOG("<<<=== ffrt debug log finish ===>>>");
 }
 

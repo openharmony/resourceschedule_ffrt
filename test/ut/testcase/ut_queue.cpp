@@ -878,6 +878,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
     testQueue->wait(t);
     delete testQueue;
     EXPECT_EQ(x, 1);
+    ffrt::wait();
 }
 
 /*
@@ -919,7 +920,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level0)
     ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
-    auto t = testQueue->submit_h([&x] { FFRT_LOGE("delay end"); usleep(2100000); 
+    auto t = testQueue->submit_h([&x] { FFRT_LOGE("delay end"); usleep(2100000);
         x = x + 1;}, task_attr().delay(1200000));
     testQueue->wait(t);
     delete testQueue;

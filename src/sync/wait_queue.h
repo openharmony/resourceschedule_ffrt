@@ -28,29 +28,6 @@ struct TaskWithNode;
 using TaskListNode = ListNode;
 using TaskList = List<TaskWithNode, TaskListNode>;
 
-struct TaskTimeOutStatus {
-    explicit TaskTimeOutStatus(TaskTimeoutState state) : status(state)
-    {
-    }
-    TaskTimeoutState status;
-    std::mutex lock;
-};
-
-enum class TimeoutState {
-    IDLE,
-    WAITING,
-    TIMEOUTING,
-    DONE,
-};
-
-struct TimeoutStatus {
-    explicit TimeoutStatus(TimeoutState state) : status(state)
-    {
-    }
-    TimeoutState status;
-    mutex lock;
-};
-
 struct TaskWithNode : public TaskListNode {
     TaskWithNode();
     TaskBase* task = nullptr;

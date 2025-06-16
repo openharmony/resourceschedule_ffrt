@@ -35,13 +35,10 @@ namespace this_task {
 void SleepUntilImpl(const TimePoint& to)
 {
     auto task = ExecuteCtx::Cur()->task;
-    if (ThreadWaitMode(task)) {
-        if (FFRT_UNLIKELY(LegacyMode(task))) {
-            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
-        }
+    if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
         std::this_thread::sleep_until(to);
-        if (BlockThread(task)) {
-            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
+        if (task) {
+            task->Wake();
         }
         return;
     }
@@ -50,7 +47,9 @@ void SleepUntilImpl(const TimePoint& to)
         CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(we->task), CoWakeType::NO_TIMEOUT_WAKE);
     });
     FFRT_BLOCK_TRACER(ExecuteCtx::Cur()->task->gid, slp);
-    CoWait([&](CoTask* task) -> bool { return DelayedWakeup(to, &task->fq_we, cb); });
+    CoWait([&](CoTask* task) -> bool {
+        return DelayedWakeup(to, &task->we, cb); 
+    });
 }
 }
 } // namespace ffrt
@@ -63,13 +62,10 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_yield()
 {
     auto curTask = ffrt::ExecuteCtx::Cur()->task;
-    if (ThreadWaitMode(curTask)) {
-        if (FFRT_UNLIKELY(LegacyMode(curTask))) {
-            static_cast<ffrt::CoTask*>(curTask)->blockType = BlockType::BLOCK_THREAD;
-        }
+    if (curTask == nullptr || curTask->Block() == ffrt::BlockType::BLOCK_THREAD) {
         std::this_thread::yield();
-        if (BlockThread(curTask)) {
-            static_cast<ffrt::CoTask*>(curTask)->blockType = BlockType::BLOCK_COROUTINE;
+        if (curTask) {
+            curTask->Wake();
         }
         return;
     }

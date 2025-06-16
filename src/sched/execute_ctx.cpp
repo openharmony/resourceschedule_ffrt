@@ -38,7 +38,6 @@ void MakeExecuteCtxTlsKey()
 ExecuteCtx::ExecuteCtx()
 {
     task = nullptr;
-    wn.weType = 2;
     tid = syscall(SYS_gettid);
 }
 

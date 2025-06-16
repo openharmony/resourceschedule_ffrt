@@ -43,7 +43,6 @@ int SerialQueue::Push(QueueTask* task)
         return INACTIVE;
     }
 
-    task->SetStatus(TaskStatus::ENQUEUED);
     if (task->InsertHead() && !whenMap_.empty()) {
         FFRT_LOGD("head insert task=%u in [queueId=%u]", task->gid, queueId_);
         uint64_t headTime = (whenMap_.begin()->first > 0) ? whenMap_.begin()->first - 1 : 0;

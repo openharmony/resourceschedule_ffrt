@@ -33,20 +33,19 @@ namespace ffrt {
 void CPUEUTask::SetQos(const QoS& newQos)
 {
     if (newQos == qos_inherit) {
-        if (!this->IsRoot()) {
-            this->qos_ = parent->qos_;
+        if (!IsRoot()) {
+            qos_ = parent->qos_;
         } else {
-            this->qos_ = QoS();
+            qos_ = QoS();
         }
     } else {
-        this->qos_ = newQos;
+        qos_ = newQos;
     }
-    FFRT_LOGD("Change task %s QoS %d", label.c_str(), this->qos_());
+    FFRT_LOGD("Change task %s QoS %d", label.c_str(), qos_());
 }
 
 void CPUEUTask::Submit()
 {
-    SetStatus(TaskStatus::SUBMITTED);
     SetTaskStatus(TaskStatus::SUBMITTED);
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos_, &createTime, &fromTid);
 }
@@ -55,9 +54,8 @@ void CPUEUTask::Ready()
 {
     int qos = qos_();
     bool notifyWorker = notifyWorker_;
-    SetStatus(TaskStatus::READY);
     SetTaskStatus(TaskStatus::READY);
-    FFRTFacade::GetSchedInstance()->GetScheduler(this->qos_).PushTaskGlobal(this);
+    FFRTFacade::GetSchedInstance()->GetScheduler(qos_).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     if (notifyWorker) {
         FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(qos);
@@ -69,7 +67,7 @@ void CPUEUTask::FreeMem()
     BboxCheckAndFreeze();
     // only tasks which called ffrt_poll_ctl may have cached events
     if (pollerEnable) {
-        FFRTFacade::GetPPInstance().GetPoller(qos_).ClearCachedEvents(this);
+        FFRTFacade::GetPPInstance().ClearCachedEvents(this);
     }
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
@@ -91,63 +89,81 @@ void CPUEUTask::FreeMem()
 void CPUEUTask::Execute()
 {
     FFRT_LOGD("Execute task[%lu], name[%s]", gid, label.c_str());
-    FFRTTraceRecord::TaskExecute(&(this->executeTime));
+    FFRTTraceRecord::TaskExecute(&executeTime);
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-        SetStatus(TaskStatus::EXECUTING);
         SetTaskStatus(TaskStatus::EXECUTING);
         f->exec(f);
     }
     FFRT_TASKDONE_MARKER(gid);
     // skipped task can not be marked as finish
-    if (GetTaskStatus() == TaskStatus::EXECUTING) {
-        SetTaskStatus(TaskStatus::FINISH);
+    if (curStatus == TaskStatus::EXECUTING) {
+        SetStatus(TaskStatus::FINISH);
     }
     if (!USE_COROUTINE) {
-        SetStatus(TaskStatus::FINISH);
         FFRTFacade::GetDMInstance().onTaskDone(this);
     } else {
         this->coRoutine->isTaskDone = true;
         /*
             if we call onTaskDone inside coroutine, the memory of task may be recycled.
-            1.recycled memory can be used by another submit
-            2.task->coRoutine will be recyled and used by another task
+            1.recycled memory of task can be used by another submit
+            2.task->coRoutine will be recyled and can be used by another task
             In this scenario, CoStart will crash.
-            Because it needs to use task and it's coRoutine to perform some action after task finished.
+            Because it needs to use this task and it's coRoutine to perform some action after it task finished.
         */
+        coRoutine->isTaskDone = true;
     }
 }
 
 CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id)
-    : CoTask(ffrt_normal_task, attr), parent(parent), rank(id)
+    : CoTask(ffrt_normal_task, attr), parent(parent)
 {
     if (attr && !attr->name_.empty()) {
         label = attr->name_;
     } else if (IsRoot()) {
         label = "root";
     } else if ((parent != nullptr) && parent->IsRoot()) {
-        label = "t" + std::to_string(rank);
+        label = "t" + std::to_string(id);
     } else if (parent != nullptr) {
-        label = parent->label + "." + std::to_string(rank);
+        label = parent->label + "." + std::to_string(id);
+    } else {
+        label = "t" + std::to_string(id);
     }
 
     if (attr) {
         notifyWorker_ = attr->notifyWorker_;
 
-        if (attr->qos_ == qos_inherit && !this->IsRoot()) {
+        if (attr->qos_ == qos_inherit && !IsRoot()) {
             qos_ = parent->qos_;
         }
+#ifdef FFRT_TASK_LOCAL_ENABLE
         if (attr->taskLocal_) {
-            tsd = (void **)malloc(TSD_SIZE * sizeof(void *));
-            if (unlikely(tsd == nullptr)) {
+            tlsAttr = new TaskLocalAttr;
+            tlsAttr->tsd = static_cast<void**>(malloc(TSD_SIZE * sizeof(void*)));
+            if (unlikely(tlsAttr->tsd == nullptr)) {
                 FFRT_SYSEVENT_LOGE("task local malloc tsd failed");
                 return;
             }
-            memset_s(tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));
-            taskLocal = true;
+            memset_s(tlsAttr->tsd, TSD_SIZE * sizeof(void *), 0, TSD_SIZE * sizeof(void *));
+            tlsAttr->taskLocal = true;
         }
+#endif
+    }
+}
+
+CPUEUTask::~CPUEUTask()
+{
+#ifdef FFRT_TASK_LOCAL_ENABLE
+    if (tlsAttr != nullptr) {
+        delete tlsAttr;
+        tlsAttr = nullptr;
+    }
+#endif
+    if (in_handles_ != nullptr) {
+        delete in_handles_;
+        in_handles_ = nullptr;
     }
 }
 } /* namespace ffrt */

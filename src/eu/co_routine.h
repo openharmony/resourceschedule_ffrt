@@ -57,11 +57,6 @@ enum class CoStackProtectType {
     CO_STACK_STRONG_PROTECT
 };
 
-enum class BlockType {
-    BLOCK_COROUTINE,
-    BLOCK_THREAD
-};
-
 enum class CoWakeType {
     TIMEOUT_WAKE,
     NO_TIMEOUT_WAKE

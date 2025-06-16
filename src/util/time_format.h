@@ -38,5 +38,17 @@ uint64_t ConvertCntvctToUs(uint64_t cntCt);
 uint64_t ConvertUsToCntvct(uint64_t time);
 uint64_t ConvertTscToSteadyClockCount(uint64_t cntCt);
 std::string StatusToString(TaskStatus status);
+
+inline uint64_t TimeStamp(void)
+{
+#if defined(__aarch64__)
+        uint64_t tsc = 1;
+        asm volatile("mrs %0, cntvct_el0" : "=r" (tsc));
+        return tsc;
+#else
+        return static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now()).time_since_epoch().count());
+#endif
+}
 }
 #endif // UTIL_TIME_FORAMT_H

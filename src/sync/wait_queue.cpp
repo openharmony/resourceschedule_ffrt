@@ -28,13 +28,10 @@ TaskWithNode::TaskWithNode()
     task = ctx->task;
 }
 
-void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, TaskBase* task)
+void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, TaskBase* task)
 {
     wqlock.lock();
-    if (legacyMode) {
-        static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
-        wn->task = task;
-    }
+    wn->task = task;
     push_back(wn);
     wqlock.unlock();
     {
@@ -44,18 +41,17 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode
     }
     wn->task = nullptr;
     lk->lock();
+    if (task) {
+        task->Wake();
+    }
 }
 
-bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
-    const TimePoint& tp, bool legacyMode, TaskBase* task)
+bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, TaskBase* task)
 {
     bool ret = false;
     wqlock.lock();
     wn->status.store(we_status::INIT, std::memory_order_release);
-    if (legacyMode) {
-        static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
-        wn->task = task;
-    }
+    wn->task = task;
     push_back(wn);
     wqlock.unlock();
     {
@@ -76,6 +72,9 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
         wqlock.unlock();
     }
     lk->lock();
+    if (task) {
+        task->Wake();
+    }
     return ret;
 }
 
@@ -83,8 +82,8 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 {
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     TaskBase* task = ctx->task;
-    if (ThreadWaitMode(task)) {
-        ThreadWait(&ctx->wn, lk, LegacyMode(task), task);
+    if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
+        ThreadWait(&ctx->wn, lk, task);
         return;
     }
     CoTask* coTask = static_cast<CoTask*>(task);
@@ -128,9 +127,8 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     TaskBase* task = ctx->task;
     int ret = ffrt_success;
-    if (ThreadWaitMode(task)) {
-        ret = ThreadWaitUntil(&ctx->wn, lk, tp, LegacyMode(task), task) ? ffrt_error_timedout : ffrt_success;
-        return ret;
+    if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
+        return ThreadWaitUntil(&ctx->wn, lk, tp, task) ? ffrt_error_timeout : ffrt_success;
     }
     CoTask* coTask = static_cast<CoTask*>(task);
     coTask->wue = new WaitUntilEntry(task);
@@ -217,13 +215,9 @@ void WaitQueue::Notify(bool one) noexcept
         }
         bool isEmpty = empty();
         TaskBase* task = we->task;
-        if (ThreadNotifyMode(task) || we->weType == 2) {
+        if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD()) {
             std::unique_lock<std::mutex> lk(we->wl);
             we->status.store(we_status::NOTIFING, std::memory_order_release);
-            if (BlockThread(task)) {
-                static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
-                we->task = nullptr;
-            }
             wqlock.unlock();
             we->cv.notify_one();
         } else {

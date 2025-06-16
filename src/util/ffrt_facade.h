@@ -14,15 +14,14 @@
  */
 #ifndef UTIL_FFRTFACADE_HPP
 #define UTIL_FFRTFACADE_HPP
-#include "tm/cpu_task.h"
 #include "sched/scheduler.h"
 #include "eu/co_routine.h"
 #include "eu/execute_unit.h"
 #include "dm/dependence_manager.h"
 #include "queue/queue_monitor.h"
 #include "sync/delayed_worker.h"
-#include "sync/poller.h"
-#include "sync/io_poller.h"
+#include "eu/io_poller.h"
+#include "sync/timer_manager.h"
 #include "util/worker_monitor.h"
 
 namespace ffrt {
@@ -42,9 +41,14 @@ public:
         return Instance().GetDMInstanceImpl();
     }
 
-    static inline PollerProxy& GetPPInstance()
+    static inline IOPoller& GetPPInstance()
     {
         return Instance().GetPPInstanceImpl();
+    }
+
+    static inline TimerManager& GetTMInstance()
+    {
+        return Instance().GetTMInstanceImpl();
     }
 
     static inline DelayedWorker& GetDWInstance()
@@ -55,11 +59,6 @@ public:
     static inline Scheduler* GetSchedInstance()
     {
         return Instance().GetSchedInstanceImpl();
-    }
-
-    static inline IOPoller& GetIoPPInstance()
-    {
-        return Instance().GetIoPPInstanceImpl();
     }
 
     static inline CoStackAttr* GetCSAInstance()
@@ -96,9 +95,14 @@ private:
         return DependenceManager::Instance();
     }
 
-    inline PollerProxy& GetPPInstanceImpl()
+    inline IOPoller& GetPPInstanceImpl()
     {
-        return PollerProxy::Instance();
+        return IOPoller::Instance();
+    }
+
+    inline TimerManager& GetTMInstanceImpl()
+    {
+        return TimerManager::Instance();
     }
 
     inline DelayedWorker& GetDWInstanceImpl()
@@ -109,11 +113,6 @@ private:
     inline Scheduler* GetSchedInstanceImpl()
     {
         return Scheduler::Instance();
-    }
-
-    inline IOPoller& GetIoPPInstanceImpl()
-    {
-        return GetIOPoller();
     }
 
     inline CoStackAttr* GetCSAInstanceImpl()

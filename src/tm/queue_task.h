@@ -67,7 +67,6 @@ public:
 
     inline void SetNextTask(QueueTask* task)
     {
-        task->SetStatus(TaskStatus::DEQUEUED);
         nextTask_ = task;
     }
 
@@ -99,7 +98,7 @@ public:
 
     inline void SetMonitorTask(WaitUntilEntry* monitorWe)
     {
-        this->monitorWe_ = monitorWe;
+        monitorWe_ = monitorWe;
     }
 
     inline WaitUntilEntry* GetMonitorTask()
@@ -116,27 +115,43 @@ public:
     {
         return isWeStart_;
     }
-    alignas(cacheline_size) uint8_t func_storage[ffrt_auto_managed_function_storage_size];
     int curTaskIdx = 0;
 
-public:
     void Submit() override;
     void Ready() override;
 
     // dequeue means task has been pulled out from it's queue
     inline void Dequeue()
     {
-        SetTaskStatus(TaskStatus::DEQUEUED);
+        SetStatus(TaskStatus::DEQUEUED);
     }
 
     // pop means task has been popped from scheduler
     void Pop() override
     {
-        SetStatus(TaskStatus::POPPED);
-        SetTaskStatus(TaskStatus::POPPED);
+        SetStatus(TaskStatus::POPED);
     }
 
     void Execute() override;
+
+    BlockType Block() override
+    {
+        if (USE_COROUTINE && legacyCountNum <= 0 && (handler_ && !handler_->IsOnLoop())) {
+            blockType = BlockType::BLOCK_COROUTINE;
+            SetStatus(TaskStatus::COROUTINE_BLOCK);
+        } else {
+            blockType = BlockType::BLOCK_THREAD;
+            SetStatus(TaskStatus::THREAD_BLOCK);
+        }
+        return blockType;
+    }
+
+    void Wake() override
+    {
+        SetStatus(TaskStatus::EXECUTING);
+        blockType = BlockType::BLOCK_COROUTINE;
+    }
+
     void Finish() override;
 
     void Cancel() override
@@ -152,6 +167,11 @@ public:
     void SetQos(const QoS& newQos) override
     {
         qos_ = newQos;
+    }
+
+    BlockType GetBlockType() const override
+    {
+        return blockType;
     }
 
 private:

@@ -45,7 +45,8 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
     QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
-    PollerProxy::Instance();
+    IOPoller::Instance();
+    TimerManager::Instance();
     Scheduler::Instance();
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance();
@@ -115,9 +116,11 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     task->SetQos(qos);
     task->Submit();
 
+    std::vector<CPUEUTask*> isHandles;
     std::vector<const void*> insNoDup;
     std::vector<const void*> outsNoDup;
-    RemoveRepeatedDeps(task->in_handles, ins, outs, insNoDup, outsNoDup);
+    RemoveRepeatedDeps(inHandles, ins, outs, insNoDup, outsNoDup);
+    task->SetInHandles(inHandles);
 
 #ifdef FFRT_OH_WATCHDOG_ENABLE
     if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_)) {
@@ -175,14 +178,12 @@ void SDependenceManager::onWait()
     auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
 
-    if (ThreadWaitMode(task)) {
+    if (task->Block() == BlockType::BLOCK_THREAD) {
         std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDependenceAdd(Dependence::CALL_DEPENDENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->GetLabel().c_str(), task->gid);
-        if (FFRT_UNLIKELY(LegacyMode(task))) {
-            task->blockType = BlockType::BLOCK_THREAD;
-        }
         task->waitCond_.wait(lck, [task] { return task->childRefCnt == 0; });
+        task->Wake();
         return;
     }
 
@@ -231,15 +232,13 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         }
     };
 
-    if (ThreadWaitMode(task)) {
+    if (task->Block() == BlockType::BLOCK_THREAD) {
         dataDepFun();
         std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDependenceAdd(Dependence::DATA_DEPENDENCE);
         FFRT_LOGD("onWait name:%s gid=%lu", task->GetLabel().c_str(), task->gid);
-        if (FFRT_UNLIKELY(LegacyMode(task))) {
-            task->blockType = BlockType::BLOCK_THREAD;
-        }
         task->waitCond_.wait(lck, [task] { return task->dataRefCnt.waitDep == 0; });
+        task->Wake();
         return;
     }
 
@@ -281,7 +280,7 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
         for (auto in : std::as_const(sTask->ins)) {
             in->onConsumed(sTask);
         }
-        for (auto in : std::as_const(sTask->in_handles)) {
+        for (auto in : sTask->GetInHandles()) {
             in->DecDeleteRef();
         }
         // VersionCtx recycling

@@ -186,7 +186,6 @@ void QueueHandler::Submit(QueueTask* task)
         if (ret == INACTIVE) {
             queue_->Push(task);
         }
-        task->SetStatus(TaskStatus::ENQUEUED);
         TransferInitTask();
     }
     FFRTFacade::GetQMInstance().UpdateQueueInfo();
@@ -299,10 +298,10 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         execTaskId_.store(task->gid);
 
         // run user task
+        task->SetTaskStatus(TaskStatus::EXECUTING);
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRTTraceRecord::TaskExecute(&(task->executeTime));
-        task->SetTaskStatus(TaskStatus::EXECUTING);
         if (task->GetSchedTimeout() > 0) {
             RemoveSchedDeadline(task);
         }
@@ -332,6 +331,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         task->DecDeleteRef();
         if (nextTask == nullptr) {
             if (!queue_->IsOnLoop()) {
+                execTaskId_.store(0);
                 Deliver();
             }
         }
@@ -359,7 +359,6 @@ void QueueHandler::Deliver()
     deliverCnt_.fetch_sub(1);
     if (task != nullptr) {
         SetCurTask(task);
-        task->SetStatus(TaskStatus::DEQUEUED);
         TransferTask(task);
     }
 }

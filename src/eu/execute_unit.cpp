@@ -15,17 +15,34 @@
 
 #include "eu/execute_unit.h"
 
+#include <sys/resource.h>
 #include "internal_inc/config.h"
 #include "util/singleton_register.h"
 #include "eu/co_routine_factory.h"
 #include "util/ffrt_facade.h"
 #include "dfx/sysevent/sysevent.h"
+#include "../src_ext/staging_qos/sched/qos_register_impl.h"
 
 namespace {
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
 }
 
 namespace ffrt {
+const std::map<QoS, std::vector<std::pair<QoS, bool>>> DEFAULT_WORKER_SHARE_CONFIG = {
+    {0, {std::make_pair(1, false), std::make_pair(2, false), std::make_pair(3, false), std::make_pair(4, false)}},
+    {1, {std::make_pair(0, false), std::make_pair(2, false), std::make_pair(3, false), std::make_pair(4, false)}},
+    {2, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(3, false), std::make_pair(4, false)}},
+    {3, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(4, false)}},
+    {4, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(3, false)}},
+};
+const std::map<Qos, std::vector<std::pair<QoS, bool>>> WORKER_SHARED_CONFIG = {
+    {2, {std::make_pair(0, false)}},
+    {3, {std::make_pair(2, false)}},
+    {6, {std::make_pair(5, false)}},
+};
+const std::set<QoS> DEFAULT_TASK_BACKLOG_CONFIG = {0, 1, 2, 3, 4, 5};
+const std::set<QoS> TASK_BACKLOG_CONFIG = {0, 2, 4, 5, 6};
+
 ExecuteUnit::ExecuteUnit()
 {
     ffrt::CoRoutineInstance(CoStackAttr::Instance()->size);
@@ -55,6 +72,14 @@ ExecuteUnit::ExecuteUnit()
     for (int idx = 0; idx < QoS::MaxNum(); idx++) {
         we_[idx] = new WaitUntilEntry;
         we_[idx]->cb = nullptr;
+    }
+
+    if (strstr(GetCurrentProcessName(), "CameraDaemon")) {
+        SetWorkerShare(WORKER_SHARE_CONFIG);
+        SetTaskBacklog(TASK_BACKLOG_CONFIG);
+    } else {
+        SetWorkerShare(DEFAULT_WORKER_SHARE_CONFIG);
+        SetTaskBacklog(DEFAULT_TASK_BACKLOG_CONFIG);
     }
 }
 
@@ -304,6 +329,31 @@ void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 
+bool ExecutrUnit::WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWorker*)> taskFunction)
+{
+    for (const auto& pair : workerGroup[worker->GetQos()].workerShareConfig) {
+        int sharedQos = pair.first;
+        bool isChangePriority = pair.second;
+        if (!isChangePriority) {
+            if (taskFunction(shareQos, worker)) {
+                return true;
+            }
+        } else {
+            // change priority
+            int newPriority = QosRegister::Instance()->GetPriority(shareQos);
+            int oldPriority = QosRegister::Instance()->GetPriority(worker->GetQos());
+            CPUWorker::SetThreadPriority(newPriority, worker->Id());
+            bool res = taskFunction(sharedQos, worker);
+            // Restore the priority
+            CPUWorker::SetThreadPriority(oldPriority, worker->Id());
+            if (res) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void ExecuteUnit::WorkerRetired(CPUWorker *thread)
 {
     thread->SetWorkerState(WorkerStatus::DESTROYED);
@@ -331,38 +381,6 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         worker = nullptr;
         workerNum.fetch_sub(1);
     }
-}
-
-PollerRet ExecuteUnit::TryPoll(const CPUWorker *thread, int timeout)
-{
-    if (tearDown || FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap()) {
-        return PollerRet::RET_NULL;
-    }
-    CPUWorkerGroup &group = workerGroup[thread->GetQos()];
-    if (group.pollersMtx.try_lock()) {
-        /* The required orders on these operations are not clear from the code.
-         * To ensure correctness, we try to enforce all ordering (by preserving program oder).
-         * We forbid moving the updates to polling_ into the critical sections, e.g., of IntoPollWait.
-         * This is achieved by using matching seq_cst order on the first store and the atomic load
-         * (see SExecuteUnit::WorkerIdleAction),
-         * which ensures the atomic store can't be observed to occur
-         * in the critical section of IntoPollWait, and a release barrier
-         * on the second store to ensure it can not be observed to have been moved up.
-         */
-        group.polling_ = true;
-        if (timeout == -1) {
-            IntoPollWait(thread->GetQos());
-        }
-        PollerRet ret = FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).PollOnce(timeout);
-        if (timeout == -1) {
-            workerGroup[thread->GetQos()].OutOfPollWait();
-        }
-        /* release barrier is used here to ensure this write does not move up */
-        group.polling_.store(false, std::memory_order_release);
-        group.pollersMtx.unlock();
-        return ret;
-    }
-    return PollerRet::RET_NULL;
 }
 
 void ExecuteUnit::WorkerJoinTg(const QoS &qos, pid_t pid)
@@ -409,7 +427,6 @@ CPUWorker *ExecuteUnit::CreateCPUWorker(const QoS &qos)
         [this](CPUWorker *thread) { return this->WorkerIdleAction(thread); },
         [this](CPUWorker *thread) { this->WorkerRetired(thread); },
         [this](CPUWorker *thread) { this->WorkerPrepare(thread); },
-        [this](const CPUWorker *thread, int timeout) { return this->TryPoll(thread, timeout); },
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         [this]() { return this->IsBlockAwareInit(); },
 #endif

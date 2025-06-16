@@ -54,16 +54,15 @@ class TaskBase;
 class CoTask;
 
 struct WaitEntry {
-    WaitEntry() : prev(this), next(this), task(nullptr), weType(0), wtType(SharedMutexWaitType::NORMAL) {
+    WaitEntry() : prev(this), next(this), task(nullptr), wtType(SharedMutexWaitType::NORMAL) {
     }
-    explicit WaitEntry(TaskBase *task) : prev(nullptr), next(nullptr), task(task), weType(0),
+    explicit WaitEntry(TaskBase *task) : prev(nullptr), next(nullptr), task(task),
         wtType(SharedMutexWaitType::NORMAL) {
     }
     LinkedList node;
     WaitEntry* prev;
     WaitEntry* next;
     TaskBase* task;
-    int weType;
     SharedMutexWaitType wtType;
 };
 

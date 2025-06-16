@@ -160,25 +160,4 @@ std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit)
     std::chrono::microseconds us(static_cast<int64_t>(cntCtTimeStamp - referenceCntCt) * ratio / referenceFreq);
     return FormatDateString4SystemClock(globalTp + us, timeUnit);
 }
-
-std::string StatusToString(TaskStatus status)
-{
-    static const std::unordered_map<TaskStatus, std::string> statusMap = {
-        {TaskStatus::PENDING,    "PENDING"},
-        {TaskStatus::ENQUEUED,    "ENQUEUED"},
-        {TaskStatus::DEQUEUED,    "DEQUEUED"},
-        {TaskStatus::SUBMITTED,    "SUBMITTED"},
-        {TaskStatus::READY,    "READY"},
-        {TaskStatus::POPPED,    "POPPED"},
-        {TaskStatus::EXECUTING,    "EXECUTING"},
-        {TaskStatus::THREAD_BLOCK,    "THREAD_BLOCK"},
-        {TaskStatus::COROUTINE_BLOCK,    "COROUTINE_BLOCK"},
-        {TaskStatus::WAIT_RELEASING,    "WAIT_RELEASING"},
-        {TaskStatus::CANCELED,    "CANCELED"},
-        {TaskStatus::FINISH,    "FINISH"},
-    };
-
-    auto it = statusMap.find(status);
-    return (it != statusMap.end()) ? it->second : "Unknown";
-}
 } // namespace ffrt

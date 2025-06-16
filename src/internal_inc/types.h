@@ -59,7 +59,7 @@ enum class NestType {
     PARENTIN, // 同parent的输入嵌套
 };
 
-enum class TaskStatus {
+enum class TaskStatus : uint8_t {
     PENDING,         // 任务创建后的初始状态
     ENQUEUED,         // 队列任务插入队列中 (串行/并发队列任务)
     DEQUEUED,         // 队列任务从队列中取出 (串行/并发队列任务)
@@ -74,15 +74,12 @@ enum class TaskStatus {
     CANCELED,        // 任务未执行前被取消 (cancel/skip语义)
 };
 
-typedef enum {
-    ET_PENDING, // executor_task 非入队状态
-    ET_EXECUTING, // executor_task 执行状态
-    ET_TOREADY, // executor_task 等待wake通知
-    ET_READY, // executor_task 入队状态
-    ET_FINISH, // executor_task 执行完成，准备执行回调+销毁
-} ExecTaskStatus;
+enum class BlockType : uint8_t {
+    BLOCK_COROUTINE,
+    BLOCK_THREAD
+};
 
-enum class Dependence {
+enum class Dependence : uint8_t {
     DEPENDENCE_INIT,
     DATA_DEPENDENCE,
     CALL_DEPENDENCE,
@@ -95,7 +92,7 @@ enum class SpecTaskType {
     SPEC_TASK_MAX,
 };
 
-enum SkipStatus {
+enum SkipStatus : uint8_t {
     SUBMITTED,
     EXECUTED,
     SKIPPED,

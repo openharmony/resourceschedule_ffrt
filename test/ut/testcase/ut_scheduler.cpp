@@ -24,11 +24,9 @@
 
 #include "core/entity.h"
 #include "sched/task_scheduler.h"
-#include "sched/task_manager.h"
 #include "core/task_attr_private.h"
 #include "tm/scpu_task.h"
 #include "sched/stask_scheduler.h"
-#include "sched/task_state.h"
 #include "../common.h"
 
 using namespace std;
@@ -68,21 +66,6 @@ HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level0)
     EXPECT_EQ(fifoqueue->Size(), aimnum);
     EXPECT_EQ(fifoqueue->Empty(), false);
     delete fifoqueue;
-}
-
-/*
- * 测试用例名称 : ffrt_task_exited_transition
- * 测试用例描述 : TaskState, EXITED测试
- * 预置条件    ：无
- * 操作步骤     : 1.调用ffrt_task_exited_transition接口
- * 预期结果    : 返回-1
- */
-HWTEST_F(SchedulerTest, ffrt_task_exited_transition, TestSize.Level0)
-{
-    ffrt::SCPUEUTask parent(nullptr, nullptr, 0);
-    ffrt::SCPUEUTask task(nullptr, &parent, 0);
-    EXPECT_EQ(ffrt::TaskState::OnTransition(TaskState::EXITED, &task), 0);
-    EXPECT_EQ(ffrt::TaskState::OnTransition(ffrt::TaskState::RUNNING, &task), -1);
 }
 
 /*

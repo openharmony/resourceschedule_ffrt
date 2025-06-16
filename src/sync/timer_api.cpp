@@ -14,7 +14,7 @@
  */
 
 #include "c/timer.h"
-#include "sync/poller.h"
+#include "sync/timer_manager.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "util/ffrt_facade.h"
@@ -35,41 +35,36 @@ static bool QosConvert(ffrt_qos_t qos, ffrt::QoS& mappedQos)
 API_ATTRIBUTE((visibility("default")))
 ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat)
 {
-    ffrt::QoS pollerQos;
-    if (!QosConvert(qos, pollerQos)) {
+    ffrt::QoS convertQos;
+    if (!QosConvert(qos, convertQos)) {
         return -1;
     }
 
     if (cb == nullptr) {
-        FFRT_LOGE("[Poller] cb cannot be null");
+        FFRT_LOGE("[Timer] cb cannot be null");
         return -1;
     }
-
-    int handle = ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).RegisterTimer(timeout, data, cb, repeat);
-    if (handle >= 0) {
-        ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(pollerQos);
-    }
-    return handle;
+    return ffrt::FFRTFacade::GetTMInstance().RegisterTimer(convertQos, timeout, data, cb, repeat);
 }
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_timer_stop(ffrt_qos_t qos, int handle)
 {
-    ffrt::QoS pollerQos;
-    if (!QosConvert(qos, pollerQos)) {
+    ffrt::QoS convertQos;
+    if (!QosConvert(qos, convertQos)) {
         return -1;
     }
 
-    return ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).UnregisterTimer(handle);
+    return ffrt::FFRTFacade::GetTMInstance().UnregisterTimer(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))
 ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, int handle)
 {
-    ffrt::QoS pollerQos;
-    if (!QosConvert(qos, pollerQos)) {
+    ffrt::QoS convertQos;
+    if (!QosConvert(qos, convertQos)) {
         return ffrt_timer_notfound;
     }
 
-    return ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).GetTimerStatus(handle);
+    return ffrt::FFRTFacade::GetTMInstance().GetTimerStatus(handle);
 }

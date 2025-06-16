@@ -55,6 +55,11 @@ public:
     bool SetLoop(Loop* loop);
     bool ClearLoop();
 
+    inline bool IsOnLoop() const
+    {
+        return queue_->IsOnLoop();
+    }
+
     QueueTask* PickUpTask();
 
     inline bool IsValidForLoop()

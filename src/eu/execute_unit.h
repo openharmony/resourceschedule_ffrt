@@ -24,13 +24,16 @@
 #include <shared_mutex>
 #include <condition_variable>
 #include <unordered_map>
+#include <set>
+#include <map>
+#include <array>
 #include "cpp/mutex.h"
 #include "sched/workgroup_internal.h"
 #include "eu/thread_group.h"
 #include "eu/cpu_worker.h"
+#include "sync/sync.h"
 #include "internal_inc/osal.h"
 #include "util/cb_func.h"
-#include "sync/poller.h"
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
@@ -77,12 +80,10 @@ struct CPUWorkerGroup {
     alignas(cacheline_size) int pendingWakeCnt = 0;      // number of workers waking but not waked-up yet
     alignas(cacheline_size) int pendingTaskCnt = 0;      // number of tasks submitted to RTB but not picked-up yet
 
+    // used for worker share
+    std::vextor<std::pair<QoS, bool>> workerShareConfig;
     int deepSleepingWorkerNum{0};
     bool retryBeforeDeepSleep{true};
-
-    bool pollWaitFlag{false};
-    std::atomic<bool> polling_{false};
-    fast_mutex pollersMtx;
 
     inline void WorkerCreate()
     {
@@ -123,12 +124,6 @@ struct CPUWorkerGroup {
         }
         sleepingNum--;
         executingNum++;
-    }
-
-    inline void OutOfPollWait()
-    {
-        std::lock_guard lk(lock);
-        pollWaitFlag = false;
     }
 
     inline void WorkerDestroy()
@@ -184,7 +179,7 @@ public:
         } else if constexpr (TYPE == TaskNotifyType::TASK_ESCAPED) {
             PokeEscape(qos, isPollWait);
         } else if constexpr (TYPE == TaskNotifyType::TASK_LOCAL) {
-            PokePoller(qos);
+            PokeLocal(qos);
         }
     }
 
@@ -247,9 +242,23 @@ public:
         return schedMode[qos];
     }
 
+    inline void SetWorkerShare(const std::map<QoS, std::vector<std::pair<QoS, bool>>> workerShareConfig)
+    {
+        for (const auto& item : workerShareConfig) {
+            workerGroup[item.first].workerShareConfig = item.second;
+        }
+    }
+
+    inline void SetTaskBacklog(const std::set<QoS> userTaskBacklogConfig)
+    {
+        taskBacklogConfig = userTaskBacklogConfig;
+    }
+
     void RestoreThreadConfig();
 
     void NotifyWorkers(const QoS &qos, int number);
+    // used for worker sharing
+    bool WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWorker*)> taskFunction);
 // worker dynamic scaling
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     void MonitorMain();
@@ -284,7 +293,6 @@ protected:
 
     // worker group state
     virtual void IntoSleep(const QoS &qos) = 0;
-    virtual void IntoPollWait(const QoS &qos) = 0;
 
     ExecuteUnit();
     virtual ~ExecuteUnit();
@@ -304,16 +312,15 @@ protected:
     BlockawareDomainInfoArea domainInfoMonitor;
 #endif
 
+    // eu sched task bacllog array
+    std::set<QoS> taskBacklogConfig;
 private:
     CPUWorker *CreateCPUWorker(const QoS &qos);
 
     virtual void PokeAdd(const QoS &qos) = 0;
     virtual void PokePick(const QoS &qos) = 0;
-    virtual void PokePoller(const QoS &qos) = 0;
+    virtual void PokeLocal(const QoS &qos) = 0;
     virtual void PokeEscape(const QoS &qos, bool isPollWait) = 0;
-
-    // poller work
-    PollerRet TryPoll(const CPUWorker *thread, int timeout = -1);
 
     // eu sched mode array
     static std::array<sched_mode_type, QoS::MaxNum()> schedMode;

@@ -71,7 +71,10 @@ WorkerMonitor::WorkerMonitor()
         timeoutUs_ = MIN_TIMEOUT_THRESHOLD_US;
     }
 
-    watchdogWaitEntry_.cb = ([this](WaitEntry* we) { CheckWorkerStatus(); });
+    watchdogWaitEntry_.cb = ([this](WaitEntry* we) {
+        CheckWorkerStatus();
+        FFRTFacade::GetPPInstance().MonitTimeOut();
+    });
     tskMonitorWaitEntry_.cb = ([this](WaitEntry* we) { CheckTaskStatus(); });
 
     memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
@@ -185,10 +188,6 @@ void WorkerMonitor::CheckWorkerStatus()
         }
     }
 
-    if (g_samplingTaskCount++ % RECORD_POLLER_INFO_FREQ == 0) {
-        RecordPollerInfo();
-    }
-
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
@@ -196,7 +195,7 @@ void WorkerMonitor::CheckWorkerStatus()
         CoWorkerInfo coWorkerInfo(i, workerGroup.threads.size(), workerGroup.executingNum, workerGroup.sleepingNum);
         for (auto& thread : workerGroup.threads) {
             CPUWorker* worker = thread.first;
-            CPUEUTask* workerTask = static_cast<CPUEUTask*>(worker->curTask);
+            TaskBase* workerTask = worker->curTask;
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
                 continue;
@@ -354,7 +353,7 @@ std::string WorkerMonitor::DumpTimeoutInfo()
 }
 
 void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,
-    CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions)
+    TaskBase* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions)
 {
     auto workerIter = workerStatus_.find(worker);
     if (workerIter == workerStatus_.end()) {
@@ -457,21 +456,5 @@ void WorkerMonitor::RecordKeyInfo(const std::string& dumpInfo)
     std::string keyInfo = SaveKeyInfo();
     FFRT_LOGW("%s", keyInfo.c_str());
 #endif
-}
-
-void WorkerMonitor::RecordPollerInfo()
-{
-    std::stringstream ss;
-    for (int qos = 0; qos < QoS::MaxNum(); qos++) {
-        uint64_t pollCount = FFRTFacade::GetPPInstance().GetPoller(qos).GetPollCount();
-        if (pollCount > 0) {
-            ss << qos << ":" << pollCount << ";";
-        }
-    }
-
-    std::string result = ss.str();
-    if (!result.empty()) {
-        FFRT_LOGW("%s", result.c_str());
-    }
 }
 }

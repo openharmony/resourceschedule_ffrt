@@ -19,18 +19,17 @@
 #include <mutex>
 #include <map>
 #include "eu/cpu_worker.h"
-#include "tm/cpu_task.h"
 #include "tm/task_base.h"
 
 namespace ffrt {
 struct TaskTimeoutInfo {
-    CPUEUTask* task_ = nullptr;
+    TaskBase* task_ = nullptr;
     int recordLevel_ = 0;
     int sampledTimes_ = 0;
     int executionTime_ = 0;
 
     TaskTimeoutInfo() {}
-    explicit TaskTimeoutInfo(CPUEUTask* task) : task_(task) {}
+    explicit TaskTimeoutInfo(TaskBase* task) : task_(task) {}
 };
 
 struct CoWorkerInfo {
@@ -91,11 +90,10 @@ private:
     bool ControlTimeoutFreq(CPUEUTask* task);
     void RecordTimeoutTaskInfo(CPUEUTask* task);
     void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,
-        CPUEUTask* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
+        TaskBase* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
     void RecordIpcInfo(const std::string& dumpInfo, int tid);
     void RecordKeyInfo(const std::string& dumpInfo);
-    void RecordPollerInfo();
 
 private:
     std::mutex mutex_;

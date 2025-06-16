@@ -23,6 +23,7 @@
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dm/sdependence_manager.h"
+#include "util/ffrt_facade.h"
 #ifndef WITH_NO_MOCKER
 extern "C" int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr);
 #endif

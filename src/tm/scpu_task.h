@@ -25,7 +25,6 @@ public:
     std::unordered_set<VersionCtx*> ins;
     std::unordered_set<VersionCtx*> outs;
 
-    std::mutex dependenceStatusLock;
     Dependence dependenceStatus {Dependence::DEPENDENCE_INIT};
 
     union {

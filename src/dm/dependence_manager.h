@@ -26,7 +26,6 @@
 #include "sched/execute_ctx.h"
 #include "qos.h"
 #include "ffrt_trace.h"
-#include "sched/task_state.h"
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"
 #include "core/entity.h"

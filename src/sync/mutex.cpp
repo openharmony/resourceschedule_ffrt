@@ -217,21 +217,24 @@ void mutexPrivate::wait()
 {
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
-    if (ThreadWaitMode(task)) {
+    if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
         wlock.lock();
         if (l.load(std::memory_order_relaxed) != sync_detail::WAIT) {
             wlock.unlock();
+            if (task) {
+                task->Wake();
+            }
             return;
         }
         list.PushBack(ctx->wn.node);
         std::unique_lock<std::mutex> lk(ctx->wn.wl);
-        if (FFRT_UNLIKELY(LegacyMode(task))) {
-            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
-            ctx->wn.task = task;
-        }
+        ctx->wn.task = task;
         wlock.unlock();
         ctx->wn.cv.wait(lk);
         ctx->wn.task = nullptr;
+        if (task) {
+            task->Wake();
+        }
         return;
     } else {
         FFRT_BLOCK_TRACER(task->gid, mtx);
@@ -241,7 +244,7 @@ void mutexPrivate::wait()
                 wlock.unlock();
                 return false;
             }
-            list.PushBack(task->fq_we.node);
+            list.PushBack(task->we.node);
             wlock.unlock();
             // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
             return true;
@@ -262,13 +265,9 @@ void mutexPrivate::wake()
         return;
     }
     TaskBase* task = we->task;
-    if (ThreadNotifyMode(task) || we->weType == 2) {
+    if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         std::unique_lock lk(wue->wl);
-        if (BlockThread(task)) {
-            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
-            we->task = nullptr;
-        }
         wlock.unlock();
         wue->cv.notify_one();
     } else {

@@ -364,9 +364,9 @@ void UVCbSleep(ffrt_executor_task_t* data, ffrt_qos_t qos)
 HWTEST_F(DependencyTest, executor_task_submit_cancel_04, TestSize.Level1)
 {
     uv_result.store(0);
-    int taskCount = 10000;
+    constexpr int taskCount = 10000;
     std::atomic_int cancelCount = 0;
-    bool flag = false;
+    std::atomic<bool> flag = false;
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
     ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
@@ -384,11 +384,11 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_04, TestSize.Level1)
             if (!UvQueueEmpty(reinterpret_cast<UvQueue*>(&works[i].wq)) &&
                 ffrt_executor_task_cancel(&works[i], ffrt::qos_user_initiated)) {
                 cancelCount.fetch_add(1);
-                flag = true;
+                flag.store(true, std::memory_order_relaxed);
             }
         }
     }}.detach();
-    while (!flag) {
+    while (!flag.load(std::memory_order_relaxed)) {
         usleep(100);
     }
     while (uv_result + cancelCount < taskCount) {

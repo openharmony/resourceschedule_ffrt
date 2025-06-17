@@ -21,6 +21,8 @@
 #include "sched/frame_interval.h"
 #include "dfx/log/ffrt_log_api.h"
 
+constexpr uint64_t MAX_US_COUNT = static_cast<uint64_t>(std::chrono::microseconds::max().count());
+
 namespace ffrt {
 class QosIntervalPrivate {
 public:
@@ -59,6 +61,11 @@ ffrt_interval_t ffrt_interval_create(uint64_t deadline_us, ffrt_qos_t qos)
         return nullptr;
     }
 
+    if (deadline_us > MAX_US_COUNT) {
+        FFRT_LOGW("Deadline exceeds maximum allowed value %llu us. Clamping to %llu us.", deadline_us, MAX_US_COUNT);
+        deadline_us = MAX_US_COUNT;
+    }
+
     return new ffrt::QosIntervalPrivate(deadline_us, qos);
 }
 
@@ -68,6 +75,12 @@ int ffrt_interval_update(ffrt_interval_t it, uint64_t new_deadline_us)
     if (!it) {
         FFRT_LOGE("QoS Interval Not Created Or Has Been Canceled!");
         return ffrt_error;
+    }
+
+    if (new_deadline_us > MAX_US_COUNT) {
+        FFRT_LOGW("Deadline exceeds maximum allowed value %llu us. Clamping to %llu us.", new_deadline_us,
+            MAX_US_COUNT);
+        new_deadline_us = MAX_US_COUNT;
     }
 
     auto _it = static_cast<ffrt::QosIntervalPrivate *>(it);

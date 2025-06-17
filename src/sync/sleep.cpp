@@ -30,6 +30,8 @@
 #include "tm/cpu_task.h"
 #include "cpp/sleep.h"
 
+constexpr uint64_t MAX_US_COUNT = static_cast<uint64_t>(std::chrono::microseconds::max().count());
+
 namespace ffrt {
 namespace this_task {
 void SleepUntilImpl(const TimePoint& to)
@@ -83,8 +85,20 @@ void ffrt_yield()
 API_ATTRIBUTE((visibility("default")))
 int ffrt_usleep(uint64_t usec)
 {
-    auto duration = std::chrono::microseconds{usec};
-    auto to = std::chrono::steady_clock::now() + duration;
+    if (usec > MAX_US_COUNT) {
+        FFRT_LOGW("usec exceeds maximum allowed value %llu us. Clamping to %llu us.", usec, MAX_US_COUNT);
+        usec = MAX_US_COUNT;
+    }
+
+    auto now = std::chrono::steady_clock::now();
+    auto nowUs = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch());
+    auto sleepUs = std::chrono::microseconds(usec);
+    std::chrono::steady_clock::time_point to;
+    if (sleepUs.count() > (std::chrono::microseconds::max().count() - nowUs.count())) {
+        to = std::chrono::steady_clock::time_point::max();
+    } else {
+        to = now + sleepUs;
+    }
 
     ffrt::this_task::SleepUntilImpl(to);
     return ffrt_success;

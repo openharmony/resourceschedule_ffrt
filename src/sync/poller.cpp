@@ -17,6 +17,9 @@
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
 #include <securec.h>
+
+constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+
 namespace ffrt {
 Poller::Poller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
@@ -658,6 +661,10 @@ int Poller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bool r
     timerHandle_ += 1;
 
     CoTask* task = IsCoTask(ExecuteCtx::Cur()->task) ? static_cast<CoTask*>(ExecuteCtx::Cur()->task) : nullptr;
+    if (timeout > MAX_TIMER_MS_COUNT) {
+        FFRT_LOGW("timeout exceeds maximum allowed value %llu ms. Clamping to %llu ms.", timeout, MAX_TIMER_MS_COUNT);
+        timeout = MAX_TIMER_MS_COUNT;
+    }
     TimerDataWithCb timerMapValue(data, cb, task, repeat, timeout);
     timerMapValue.handle = timerHandle_;
     RegisterTimerImpl(timerMapValue);

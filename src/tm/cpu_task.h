@@ -99,7 +99,7 @@ public:
 
     void Pop() override
     {
-        SetTaskStatus(TaskStatus::POPED);
+        SetStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;
@@ -113,7 +113,13 @@ public:
             blockType = BlockType::BLOCK_THREAD;
             SetStatus(TaskStatus::THREAD_BLOCK);
         }
-        return blockType::BLOCK_COROUTINE;
+        return blockType;
+    }
+
+    void Wake() override
+    {
+        SetStatus(TaskStatus::EXECUTING);
+        blockType = BlockType::BLOCK_COROUTINE;
     }
 
     void Cancel() override

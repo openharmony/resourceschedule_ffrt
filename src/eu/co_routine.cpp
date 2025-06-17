@@ -133,8 +133,8 @@ void InitWorkerTsdValueToTask(void** taskTsd)
 void SwitchTsdAddrToTask(ffrt::CPUEUTask* task)
 {
     auto threadTsd = pthread_gettsd();
-    task->tlsAddr->threadTsd = threadTsd;
-    pthread_settsd(task->tlsAddr->tsd);
+    task->tlsAttr->threadTsd = threadTsd;
+    pthread_settsd(task->tlsAttr->tsd);
 }
 
 void SwitchTsdToTask(ffrt::CoTask* task)
@@ -145,7 +145,7 @@ void SwitchTsdToTask(ffrt::CoTask* task)
 
     CPUEUTask* cpuTask = static_cast<CPUEUTask*>(task);
 
-    InitWorkerTsdValueToTask(cpuTask->tlsAddr->tsd);
+    InitWorkerTsdValueToTask(cpuTask->tlsAttr->tsd);
 
     SwitchTsdAddrToTask(cpuTask);
 
@@ -155,12 +155,12 @@ void SwitchTsdToTask(ffrt::CoTask* task)
 
 bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 {
-    if (!task->tlsAddr->threadTsd) {
+    if (!task->tlsAttr->threadTsd) {
         FFRT_SYSEVENT_LOGE("threadTsd is null");
         return false;
     }
-    pthread_settsd(task->tlsAddr->threadTsd);
-    task->tlsAddr->threadTsd = nullptr;
+    pthread_settsd(task->tlsAttr->threadTsd);
+    task->tlsAttr->threadTsd = nullptr;
     return true;
 }
 
@@ -196,7 +196,7 @@ void SwitchTsdToThread(ffrt::CoTask* task)
         return;
     }
 
-    UpdateWorkerTsdValueToThread(cpuTask->tlsAddr->tsd);
+    UpdateWorkerTsdValueToThread(cpuTask->tlsAttr->tsd);
 
     cpuTask->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
@@ -217,10 +217,10 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
     }
 
     TaskTsdRunDtors(task);
-    if (task->tlsAddr->tsd != nullptr) {
-        free(task->tlsAddr->tsd);
-        task->tlsAddr->tsd = nullptr;
-        task->tlsAddr->taskLocal = false;
+    if (task->tlsAttr->tsd != nullptr) {
+        free(task->tlsAttr->tsd);
+        task->tlsAttr->tsd = nullptr;
+        task->tlsAttr->taskLocal = false;
     }
     FFRT_LOGD("tsd deconstruct done, task[%lu], name[%s]", task->gid, task->GetLabel().c_str());
 }
@@ -450,13 +450,13 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         /* thread to co start */
         __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
 #endif
-        // mark tasks as EXECUTIONG which waked by CoWakeFunc that blocked by CoWait before
+        // mark tasks as EXECUTING which waked by CoWakeFunc that blocked by CoWait before
         task->SetStatus(TaskStatus::EXECUTING);
         /* thread switch to co */
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
 #ifdef ASAN_MODE
         /* co to thread finish */
-		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
+		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
 #ifdef FFRT_ENABLE_HITRACE_CHAIN

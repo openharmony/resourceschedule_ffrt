@@ -41,18 +41,14 @@
 #include "util/common_const.h"
 #include "util/ref_function_header.h"
 
+constexpr uint64_t MAX_DELAY_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+constexpr uint64_t MAX_TIMEOUT_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
     FFRTFacade::GetDMInstance().onSubmit(has_handle, handle, f, ins, outs, attr);
-}
-
-inline int submit_nb_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-    const ffrt_deps_t *ins, const ffrt_deps_t *outs,
-    const task_attr_private *attr)
-{
-    return FFRTFacade::GetDMInstance().onSubmitNb(has_handle, handle, f, ins, outs, attr);
 }
 
 void DestroyFunctionWrapper(ffrt_function_header_t* f,
@@ -77,7 +73,7 @@ void DestroyFunctionWrapper(ffrt_function_header_t* f,
 API_ATTRIBUTE((visibility("default")))
 void sync_io(int fd)
 {
-    FFRTFacade::GetPPInstance().WaitFdEvent();
+    FFRTFacade::GetPPInstance().WaitFdEvent(fd);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -193,6 +189,12 @@ void ffrt_task_attr_set_delay(ffrt_task_attr_t *attr, uint64_t delay_us)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
+
+    if (delay_us > MAX_DELAY_US_COUNT) {
+        FFRT_LOGW("delay_us exceeds maximum allowed value %llu us. Clamping to %llu us.", delay_us, MAX_DELAY_US_COUNT);
+        delay_us = MAX_DELAY_US_COUNT;
+    }
+
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->delay_ = delay_us;
 }
 
@@ -218,6 +220,13 @@ void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_us)
         (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = ONE_THOUSAND;
         return;
     }
+
+    if (timeout_us > MAX_TIMEOUT_US_COUNT) {
+        FFRT_LOGW("timeout_us exceeds maximum allowed value %llu us. Clamping to %llu us.", timeout_us,
+            MAX_TIMEOUT_US_COUNT);
+        timeout_us = MAX_TIMEOUT_US_COUNT;
+    }
+
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_us;
 }
 
@@ -338,31 +347,6 @@ void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t* in_deps, 
 {
     ffrt_function_header_t* f = ffrt_create_function_wrapper(func, nullptr, arg, ffrt_function_kind_general);
     ffrt_submit_base(f, in_deps, out_deps, attr);
-}
-
-API_ATTRIBUTE((visibility("default")))
-ffrt_error_t ffrt_submit_base_nb(ffrt_function_header_t *f, const ffrt_deps_t *in_deps, const ffrt_deps_t *out_deps,
-    const ffrt_task_attr_t *attr)
-{
-    if (unlikely(!f)) {
-        FFRT_LOGE("function handler should not be empty");
-        return ffrt_error;
-    }
-
-    const ffrt::task_attr_private *p = reinterpret_cast<const ffrt::task_attr_private *>(attr);
-    if (unlikely(p && p->delay_ > 0)) {
-        FFRT_LOGE("delay cannot be set in non-blocking mode.");
-        ffrt::DestroyFunctionWrapper(f, ffrt_function_kind_general);
-        return ffrt_error;
-    }
-
-    ffrt_task_handle_t handle = nullptr;
-    int ret = ffrt::submit_nb_impl(false, handle, f, in_deps, out_deps, p);
-    if (ret != 0) {
-        ffrt::DestroyFunctionWrapper(f, ffrt_function_kind_general);
-        return ffrt_error;
-    }
-    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))

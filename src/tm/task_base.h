@@ -94,7 +94,7 @@ public:
 
     inline void SetStatus(TaskStatus statusIn)
     {
-        statusTime = TimeStamp();
+        statusTime = TimeStampCntvct();
         preStatus = curStatus;
         curStatus = statusIn;
     }
@@ -113,18 +113,6 @@ public:
             FreeMem();
         }
         return v;
-    }
-
-    inline void SetTaskStatus(TaskStatus s)
-    {
-        // Note: check if stronger barriers are needed
-        taskStatus.store(s, std::memory_order_relaxed);
-    }
-
-    inline TaskStatus GetTaskStatus()
-    {
-        // Note: check if stronger barriers are needed
-        return taskStatus.load(std::memory_order_relaxed);
     }
 
     // returns the current g_taskId value
@@ -186,6 +174,12 @@ public:
         return label;
     }
 
+    void SetStatus(TaskStatus statusIn)
+    {
+        statusTime = TimeStampCntvct();
+        preStatus = curStatus;
+        curStatus = statusIn;
+    }
 protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };

@@ -129,7 +129,7 @@ public:
     // pop means task has been popped from scheduler
     void Pop() override
     {
-        SetStatus(TaskStatus::POPED);
+        SetStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;

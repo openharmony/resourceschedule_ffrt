@@ -21,6 +21,8 @@
 #include "queue_handler.h"
 #include "util/common_const.h"
 
+constexpr uint64_t MAX_TIMEOUT_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+
 using namespace std;
 using namespace ffrt;
 
@@ -102,6 +104,13 @@ void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us)
         (reinterpret_cast<ffrt::queue_attr_private*>(attr))->timeout_ = ONE_THOUSAND;
         return;
     }
+
+    if (timeout_us > MAX_TIMEOUT_US_COUNT) {
+        FFRT_LOGW("timeout_us exceeds maximum allowed value %llu us. Clamping to %llu us.", timeout_us,
+            MAX_TIMEOUT_US_COUNT);
+        timeout_us = MAX_TIMEOUT_US_COUNT;
+    }
+
     (reinterpret_cast<ffrt::queue_attr_private*>(attr))->timeout_ = timeout_us;
 }
 

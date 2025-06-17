@@ -17,7 +17,7 @@
 #include <sys/prctl.h>
 #include "eu/blockaware.h"
 #include "eu/execute_unit.h"
-#include "sched/execute_unit.h"
+#include "sched/execute_ctx.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "util/ffrt_facade.h"
@@ -29,7 +29,7 @@
 #endif
 
 namespace {
-const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = {1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60};
+const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60};
 }
 namespace ffrt {
 namespace {
@@ -46,11 +46,11 @@ void WakeTask(CoTask* task)
         task->waitCond_.notify_one();
     } else {
         lck.unlock();
-        CoRountineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
+        CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
     }
 }
 
-int CopyEventToConsumer(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept
+int CopyEventsToConsumer(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept
 {
     int nfds = cachedEventsVec.size();
     for (int i = 0; i < nfds; i++) {
@@ -78,12 +78,12 @@ IOPoller& IOPoller::Instance()
     return ins;
 }
 
-IOPoller::IOPoller() noexcept: m_epfd { ::epoll_create1(EPOLL_CLOEXEC) }
+IOPoller::IOPoller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
     m_wakeData.mode = PollerType::WAKEUP;
     m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
-    if (epoll_ctl(m_epfd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
+    if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
         FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
         std::terminate();
     }
@@ -100,7 +100,7 @@ IOPoller::~IOPoller() noexcept
         m_runner->join();
     }
     ::close(m_wakeData.fd);
-    ::close(m_epfd);
+    ::close(m_epFd);
 }
 
 void IOPoller::ThreadInit()
@@ -129,7 +129,7 @@ void IOPoller::Run()
             return;
         }
         if (ret == 0 && m_wakeDataMap.empty() && m_syncFdCnt.load() == 0) {
-            //timeout 30s and no fd added
+            // timeout 30s and no fd added
             m_exitFlag = true;
             return;
         }
@@ -146,10 +146,10 @@ int IOPoller::PollOnce(int timeout) noexcept
 {
     pollerCount_++;
     std::array<epoll_event, EPOLL_EVENT_SIZE> waitedEvents;
-    int nfds = epoll_wait(m_epfd, waitedEvents.data(), waitedEvents.size(), timeout);
+    int nfds = epoll_wait(m_epFd, waitedEvents.data(), waitedEvents.size(), timeout);
     if (nfds < 0) {
         if (errno != EINTR) {
-            FFRT_SYSEVENT_LOGE("epoll_wait error, errorno= %d", errno);
+            FFRT_SYSEVENT_LOGE("epoll_wait error, errorno= %d.", errno);
         }
         return -1;
     }
@@ -168,7 +168,7 @@ int IOPoller::PollOnce(int timeout) noexcept
         }
 
         if (data->mode == PollerType::SYNC_IO) {
-            // sync ip wait fd, del fd when waked up
+            // sync io wait fd, del fd when waked up
             if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, data->fd, nullptr) != 0) {
                 FFRT_SYSEVENT_LOGE("epoll_ctl del fd error: fd=%d, errorno=%d", data->fd, errno);
                 continue;
@@ -180,8 +180,8 @@ int IOPoller::PollOnce(int timeout) noexcept
 
         if (data->mode == PollerType::ASYNC_CB) {
             // async io callback
-            timeoutReport.cbStartTime = TimeStamp();
-            timeoutReport.reportCount = 0;
+            timeOutReport.cbStartTime = FFRTTraceRecord::TimeStamp();
+            timeOutReport.reportCount = 0;
             data->cb(data->data, waitedEvents[i].events);
             timeOutReport.cbStartTime = 0;
             continue;
@@ -218,7 +218,7 @@ int IOPoller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_polle
     }
     wakeData->monitorEvents = events;
 
-    epoll_event ev = { .events = events, .data = { .ptr = ptr} };
+    epoll_event ev = { .events = events, .data = { .ptr = ptr } };
     std::lock_guard lock(m_mapMutex);
     if (m_teardown) {
         return -1;
@@ -229,8 +229,8 @@ int IOPoller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_polle
         m_exitFlag = false;
     }
 
-    if (epoll_ctl(m_epfd, op, fd, &ev) != 0) {
-        FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epfd, fd, errno);
+    if (epoll_ctl(m_epFd, op, fd, &ev) != 0) {
+        FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
     }
 
@@ -260,16 +260,16 @@ int IOPoller::DelFdEvent(int fd) noexcept
     }
     auto delCntIter = m_delCntMap.find(fd);
     if (delCntIter != m_delCntMap.end()) {
-        int diff = static_cast<int>(wakeDataIter->second.size()) - delCntIter->second();
+        int diff = static_cast<int>(wakeDataIter->second.size()) - delCntIter->second;
         if (diff == 0) {
             FFRT_SYSEVENT_LOGW("fd:%d, addCnt:%d, delCnt:%d has not been added to epoll, ignore", fd,
-                wakeDataIter->second.size(), delCntIter->second());
+                wakeDataIter->second.size(), delCntIter->second);
             return -1;
         }
     }
 
     if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
-        FFRT_SYSEVENT_LOGE("epoll_ctl del fd error: efd=%d, fd=%d, errorno=%d", m_epfd, fd, errno);
+        FFRT_SYSEVENT_LOGE("epoll_ctl del fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
     }
 
@@ -306,10 +306,10 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
     FFRT_COND_DO_ERR((maxevents < EPOLL_EVENT_SIZE), return -1, "maxEvents:%d cannot be less than 1024", maxevents);
 
     int nfds = 0;
-    std::unique_lock<std::mutex> lck(task->mutex);
+    std::unique_lock<std::mutex> lck(task->mutex_);
     if (task->Block() == BlockType::BLOCK_THREAD) {
         m_mapMutex.lock();
-        int CachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
+        int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
             m_mapMutex.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
@@ -415,7 +415,7 @@ void IOPoller::WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEvent
     for (auto timerHandle : timerHandlesToRemove) {
         FFRTFacade::GetTMInstance().UnregisterTimer(timerHandle);
     }
-    for (auto task : taskToWake) {
+    for (auto task : tasksToWake) {
         WakeTask(task);
     }
 }
@@ -448,7 +448,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
     FFRT_BLOCK_TRACER(task->gid, fd);
     if (task->Block() == BlockType::BLOCK_THREAD) {
         std::unique_lock<std::mutex> lck(task->mutex_);
-        if (epoll_ctl(m_epfd, EPOLL_CTL_ADD, fd, &ev) == 0) {
+        if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0) {
             task->waitCond_.wait(lck);
         }
         task->Wake();
@@ -462,7 +462,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
             return true;
         }
         // The ownership of the task belongs to epoll, and the task cannot be accessed any more.
-        FFRT_LOGI("epoll_ctl add err:efd=%d, fd=%d errorno = %d", m_epFd, fd, errno);
+        FFRT_LOGI("epoll_ctl add err:efd:=%d, fd=%d errorno = %d", m_epFd, fd, errno);
         m_syncFdCnt--;
         return false;
     });
@@ -486,7 +486,7 @@ void IOPoller::ReleaseFdWakeData() noexcept
             }
             m_delCntMap[delFd] = 1;
         } else {
-            FFRT_SYSEVENT_LOGE("fd=%d count unexcepted, added num=%d, del num=%d", delFd, wakeDataList.size(), delCnt());
+            FFRT_SYSEVENT_LOGE("fd=%d count unexpected, added num=%d, del num=%d", delFd, wakeDataList.size(), delCnt);
         }
         delIter++;
     }
@@ -496,7 +496,7 @@ void IOPoller::CacheMaskFdAndEpollDel(int fd, CoTask *task) noexcept
 {
     auto maskWakeData = m_maskWakeDataMap.find(task);
     if (maskWakeData != m_maskWakeDataMap.end()) {
-        if (epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
+        if (epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) != 0) {
             FFRT_SYSEVENT_LOGE("fd[%d] ffrt epoll ctl del fail errorno=%d", fd, errno);
         }
         m_delFdCacheMap.emplace(fd, task);
@@ -560,7 +560,7 @@ int IOPoller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epol
         } else {
             // if seen, update event to newest
             eventsVec[iter->second].events |= eventInfo.events;
-            FFRT_LOGD("fd[%d] has mutiple cached events", currFd);
+            FFRT_LOGD("fd[%d] has mutilple cached events", currFd);
             continue;
         }
 
@@ -572,7 +572,7 @@ int IOPoller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epol
         }
 
         auto& wakeData = wakeDataIter->second.back();
-        epoll_event ev = { .events = wakeData->monitorEvents, .data = { .ptr = static_cast<void*>(wakeData.get())} };
+        epoll_event ev = { .events = wakeData->monitorEvents, .data = { .ptr = static_cast<void*>(wakeData.get()) } };
         auto fdDelCacheIter = m_delFdCacheMap.find(currFd);
         if (fdDelCacheIter != m_delFdCacheMap.end()) {
             ClearDelFdCache(currFd);
@@ -581,7 +581,7 @@ int IOPoller::FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epol
                 continue;
             }
         } else {
-            if (epoll_ctl(m_epfd, EPOLL_CTL_MOD, currFd, &ev) != 0) {
+            if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &ev) != 0) {
                 FFRT_SYSEVENT_LOGE("fd[%d] epoll ctl mod fail, errorno=%d", currFd, errno);
                 continue;
             }
@@ -604,7 +604,7 @@ int IOPoller::FetchCachedEventAndDoUnmask(CoTask* task, struct epoll_event* even
     return nfds;
 }
 
-void IOPOller::CacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept
+void IOPoller::CacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept
 {
     auto& syncTaskEvents = m_cachedTaskEvents[task];
     for (size_t i = 0; i < eventVec.size(); i++) {
@@ -638,7 +638,7 @@ void IOPOller::CacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept
         m_maskWakeDataMap[task].emplace_back(std::move(maskWakeData));
 
         maskEv.data = {.ptr = ptr};
-        if (wpoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
+        if (epoll_ctl(m_epFd, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
             // ENOENT indicate fd is not in epfd, may be deleted
             FFRT_SYSEVENT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", m_epFd, currFd, errno);
         }
@@ -656,7 +656,7 @@ void IOPoller::MonitTimeOut()
     if (timeOutReport.cbStartTime == 0) {
         return;
     }
-    uint64_t now = TimeStamp();
+    uint64_t now = FFRTTraceRecord::TimeStamp();
     static const uint64_t freq = [] {
         uint64_t f = Arm64CntFrq();
         return (f == 1) ? 1000000 : f;

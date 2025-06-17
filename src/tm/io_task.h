@@ -40,7 +40,7 @@ public:
 
     void Pop() override
     {
-        SetStatus(TaskStatus::POPED);
+        SetStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;

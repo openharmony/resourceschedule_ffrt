@@ -21,10 +21,10 @@
 #include "eu/co_routine_factory.h"
 #include "util/ffrt_facade.h"
 #include "dfx/sysevent/sysevent.h"
-#include "../src_ext/staging_qos/sched/qos_register_impl.h"
 
 namespace {
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
+constexpr uint64_t MAX_ESCAPE_INTERVAL_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
 }
 
 namespace ffrt {
@@ -35,7 +35,7 @@ const std::map<QoS, std::vector<std::pair<QoS, bool>>> DEFAULT_WORKER_SHARE_CONF
     {3, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(4, false)}},
     {4, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(3, false)}},
 };
-const std::map<Qos, std::vector<std::pair<QoS, bool>>> WORKER_SHARED_CONFIG = {
+const std::map<QoS, std::vector<std::pair<QoS, bool>>> WORKER_SHARE_CONFIG = {
     {2, {std::make_pair(0, false)}},
     {3, {std::make_pair(2, false)}},
     {6, {std::make_pair(5, false)}},
@@ -190,6 +190,14 @@ int ExecuteUnit::SetWorkerStackSize(const QoS &qos, size_t stack_size)
     return 0;
 }
 
+void ClampValue(uint64_t& value, uint64_t maxValue)
+{
+    if (value > maxValue) {
+        FFRT_LOGW("exceeds maximum allowed value %llu ms. Clamping to %llu ms.", value, maxValue);
+        value = maxValue;
+    }
+}
+
 int ExecuteUnit::SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageIntervalMs,
     uint64_t threeStageIntervalMs, uint64_t oneStageWorkerNum, uint64_t twoStageWorkerNum)
 {
@@ -214,6 +222,10 @@ int ExecuteUnit::SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageI
             twoStageWorkerNum);
         return 1;
     }
+
+    ClampValue(oneStageIntervalMs, MAX_ESCAPE_INTERVAL_MS_COUNT);
+    ClampValue(twoStageIntervalMs, MAX_ESCAPE_INTERVAL_MS_COUNT);
+    ClampValue(threeStageIntervalMs, MAX_ESCAPE_INTERVAL_MS_COUNT);
 
     escapeConfig.enableEscape_ = true;
     escapeConfig.oneStageIntervalMs_ = oneStageIntervalMs;
@@ -247,7 +259,7 @@ void ExecuteUnit::SubmitEscape(int qos, uint64_t totalWorkerNum)
         };
     }
 
-    if (!DelayedWakeup(we_[qos]->tp, we_[qos], we_[qos]->cb)) {
+    if (!DelayedWakeup(we_[qos]->tp, we_[qos], we_[qos]->cb, true)) {
         FFRT_LOGW("Failed to set qos %d escape task.", qos);
         return;
     }
@@ -329,27 +341,16 @@ void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 
-bool ExecutrUnit::WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWorker*)> taskFunction)
+bool ExecuteUnit::WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWorker*)> taskFunction)
 {
     for (const auto& pair : workerGroup[worker->GetQos()].workerShareConfig) {
-        int sharedQos = pair.first;
+        int shareQos = pair.first;
         bool isChangePriority = pair.second;
         if (!isChangePriority) {
             if (taskFunction(shareQos, worker)) {
                 return true;
             }
-        } else {
-            // change priority
-            int newPriority = QosRegister::Instance()->GetPriority(shareQos);
-            int oldPriority = QosRegister::Instance()->GetPriority(worker->GetQos());
-            CPUWorker::SetThreadPriority(newPriority, worker->Id());
-            bool res = taskFunction(sharedQos, worker);
-            // Restore the priority
-            CPUWorker::SetThreadPriority(oldPriority, worker->Id());
-            if (res) {
-                return true;
-            }
-        }
+        } else {}
     }
     return false;
 }
@@ -357,7 +358,7 @@ bool ExecutrUnit::WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWork
 void ExecuteUnit::WorkerRetired(CPUWorker *thread)
 {
     thread->SetWorkerState(WorkerStatus::DESTROYED);
-    pid_t pid = thread->Id();
+    pid_t tid = thread->Id();
     int qos = static_cast<int>(thread->GetQos());
 
     {
@@ -369,7 +370,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         if (ret != 1) {
             FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
-        WorkerLeaveTg(qos, pid);
+        WorkerLeaveTg(qos, tid);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         if (IsBlockAwareInit()) {
             ret = BlockawareUnregister();
@@ -381,6 +382,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         worker = nullptr;
         workerNum.fetch_sub(1);
     }
+    FFRT_LOGI("to exit, qos[%d], tid[%d]", qos, tid);
 }
 
 void ExecuteUnit::WorkerJoinTg(const QoS &qos, pid_t pid)

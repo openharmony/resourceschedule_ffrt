@@ -77,7 +77,7 @@ struct TimeOutReport {
 
 using EventVec = typename std::vector<epoll_event>;
 class IOPoller : private NonCopyable {
-    static constexpr in EPOLL_EVENT_SIZE = 1024;
+    static constexpr int EPOLL_EVENT_SIZE = 1024;
     using WakeDataList = typename std::list<std::unique_ptr<struct WakeData>>;
 public:
     static IOPoller& Instance();
@@ -119,7 +119,7 @@ public:
     void WakeTimeoutTask(CoTask* task) noexcept;
     void MonitTimeOut();
 
-public:
+private:
     IOPoller() noexcept;
 
     void ThreadInit();
@@ -129,7 +129,7 @@ public:
     void ReleaseFdWakeData() noexcept;
     void WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEvents) noexcept;
 
-    void cacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept;
+    void CacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept;
     int FetchCachedEventAndDoUnmask(CoTask* task, struct epoll_event* eventsVec) noexcept;
     int FetchCachedEventAndDoUnmask(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept;
     void CacheMaskFdAndEpollDel(int fd, CoTask *task) noexcept;
@@ -157,7 +157,7 @@ public:
     std::atomic<uint64_t> pollerCount_ { 0 };
     std::atomic<PollerState> m_state { PollerState::EXITED }; // worker state
 
-    std::array<queue*, QoS::MaxNum()> worQue; // queue(per qos) for execute async cb
+    std::array<queue*, QoS::MaxNum()> workQue; // queue(per qos) for execute async cb
 };
 }
 #endif

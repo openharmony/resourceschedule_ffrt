@@ -198,7 +198,7 @@ private:
     void WorkerSetup();
     static void Dispatch(CPUWorker* worker);
     static void RunTask(TaskBase* task, CPUWorker* worker);
-    static bool RunSigleTask(int qos, CPUWorker *worker);
+    static bool RunSingleTask(int qos, CPUWorker *worker);
 #ifdef FFRT_SEND_EVENT
     int cacheQos; // cache int qos
     std::string cacheLabel; // cache string label

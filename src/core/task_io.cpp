@@ -73,7 +73,7 @@ void ffrt_wake_coroutine(void* task)
 #endif
 
     ffrt::TaskBase* wakedTask = static_cast<ffrt::TaskBase*>(task);
-    wakedTask->SetTaskStatus(ffrt::TaskStatus::READY);
+    wakedTask->SetStatus(ffrt::TaskStatus::READY);
     int qos = wakedTask->qos_;
     ffrt::FFRTFacade::GetSchedInstance()->PushTask(wakedTask->qos_, wakedTask);
     if (ffrt::FFRTFacade::GetSchedInstance()->GetTaskSchedMode(qos)

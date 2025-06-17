@@ -46,7 +46,7 @@ void CPUEUTask::SetQos(const QoS& newQos)
 
 void CPUEUTask::Submit()
 {
-    SetTaskStatus(TaskStatus::SUBMITTED);
+    this->SetStatus(TaskStatus::SUBMITTED);
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos_, &createTime, &fromTid);
 }
 
@@ -54,7 +54,7 @@ void CPUEUTask::Ready()
 {
     int qos = qos_();
     bool notifyWorker = notifyWorker_;
-    SetTaskStatus(TaskStatus::READY);
+    this->SetStatus(TaskStatus::READY);
     FFRTFacade::GetSchedInstance()->GetScheduler(qos_).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     if (notifyWorker) {
@@ -94,7 +94,7 @@ void CPUEUTask::Execute()
     auto exp = ffrt::SkipStatus::SUBMITTED;
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-        SetTaskStatus(TaskStatus::EXECUTING);
+        SetStatus(TaskStatus::EXECUTING);
         f->exec(f);
     }
     FFRT_TASKDONE_MARKER(gid);
@@ -105,11 +105,10 @@ void CPUEUTask::Execute()
     if (!USE_COROUTINE) {
         FFRTFacade::GetDMInstance().onTaskDone(this);
     } else {
-        this->coRoutine->isTaskDone = true;
         /*
             if we call onTaskDone inside coroutine, the memory of task may be recycled.
             1.recycled memory of task can be used by another submit
-            2.task->coRoutine will be recyled and can be used by another task
+            2.task->coRoutine will be recycled and can be used by another task
             In this scenario, CoStart will crash.
             Because it needs to use this task and it's coRoutine to perform some action after it task finished.
         */

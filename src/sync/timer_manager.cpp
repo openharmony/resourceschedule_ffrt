@@ -27,7 +27,7 @@ TimerManager& TimerManager::Instance()
 
 TimerManager::TimerManager()
 {
-    for (int i = 0; i < QoS::MaxNum(); i++) {
+    for (int i = 0; i < QoS::MaxNum(); ++i) {
         InitWorkQueAndCb(qos(i));
     }
 }
@@ -38,7 +38,7 @@ TimerManager::~TimerManager()
     teardown = true;
 }
 
-void TimerManager::InitWorkQueueAndCb(int qos)
+void TimerManager::InitWorkQueAndCb(int qos)
 {
     workCb[qos] = [this, qos](WaitEntry* we) {
         int handle = (int)reinterpret_cast<uint64_t>(we);
@@ -63,7 +63,7 @@ void TimerManager::InitWorkQueueAndCb(int qos)
             std::shared_ptr<TimerData> timerMapValue = it->second;
             timerMapValue->state = TimerState::EXECUTING;
             if (timerMapValue->cb != nullptr) {
-                timerMutex_.unlock()l
+                timerMutex_.unlock();
                 timerMapValue->cb(timerMapValue->data);
                 timerMutex_.lock();
             }
@@ -81,7 +81,7 @@ void TimerManager::InitWorkQueueAndCb(int qos)
     };
 }
 
-int TimerManager::RegisterTimer(int qos, unit64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
+int TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
 {
     std::lock_guard lock(timerMutex_);
     if (teardown) {
@@ -99,10 +99,10 @@ int TimerManager::RegisterTimer(int qos, unit64_t timeout, void* data, ffrt_time
 
 void TimerManager::RegisterTimerImpl(std::shared_ptr<TimerData> data)
 {
-    TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::millseconds(data->timeout);
+    TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data->timeout);
     if (!DelayedWakeup(absoluteTime, reinterpret_cast<WaitEntry*>(data->handle), workCb[data->qos])) {
         timerMutex_.unlock();
-        // delay_worker teardowm or absoluteTime already expired
+        // delay_worker teardown or absoluteTime already expired
         workCb[data->qos](reinterpret_cast<WaitEntry*>(data->handle));
         timerMutex_.lock();
     }
@@ -116,7 +116,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
     }
 
     if (handle > timerHandle_) { // invalid handle
-        return -1;    
+        return -1;
     }
 
     auto it = timerMap_.find(handle);

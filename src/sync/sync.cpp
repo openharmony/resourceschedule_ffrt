@@ -31,9 +31,10 @@
 #undef NS_PER_SEC
 #endif
 namespace ffrt {
-bool DelayedWakeup(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
+bool DelayedWakeup(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup,
+    bool skipTimeCheck)
 {
-    return FFRTFacade::GetDWInstance().dispatch(to, we, wakeup);
+    return FFRTFacade::GetDWInstance().dispatch(to, we, wakeup, skipTimeCheck);
 }
 
 bool DelayedRemove(const TimePoint& to, WaitEntry* we)

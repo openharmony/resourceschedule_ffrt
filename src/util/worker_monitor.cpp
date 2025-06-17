@@ -143,7 +143,7 @@ void WorkerMonitor::SubmitTask()
 void WorkerMonitor::SubmitSamplingTask()
 {
     watchdogWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(MONITOR_SAMPLING_CYCLE_US);
-    if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb)) {
+    if (!DelayedWakeup(watchdogWaitEntry_.tp, &watchdogWaitEntry_, watchdogWaitEntry_.cb, true)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
 }
@@ -151,7 +151,7 @@ void WorkerMonitor::SubmitSamplingTask()
 void WorkerMonitor::SubmitTaskMonitor(uint64_t nextTimeoutUs)
 {
     tskMonitorWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(nextTimeoutUs);
-    if (!DelayedWakeup(tskMonitorWaitEntry_.tp, &tskMonitorWaitEntry_, tskMonitorWaitEntry_.cb)) {
+    if (!DelayedWakeup(tskMonitorWaitEntry_.tp, &tskMonitorWaitEntry_, tskMonitorWaitEntry_.cb, true)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
 }
@@ -159,7 +159,7 @@ void WorkerMonitor::SubmitTaskMonitor(uint64_t nextTimeoutUs)
 void WorkerMonitor::SubmitMemReleaseTask()
 {
     memReleaseWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
-    if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb)) {
+    if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb, true)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
 }

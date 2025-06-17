@@ -100,7 +100,7 @@ static inline void SaveCurrent()
     auto t = g_cur_task;
     if (t) {
         FFRT_BBOX_LOG("task id %lu, qos %d, name %s, status %s",
-            t->gid, t->qos(), t->GetLabel().c_str(), StatusToString(t->curStatus).c_str());
+            t->gid, t->qos_(), t->GetLabel().c_str(), StatusToString(t->curStatus).c_str());
     }
 }
 
@@ -129,7 +129,7 @@ static inline void SaveLocalFifoStatus(int qos, CPUWorker* worker)
     TaskBase* t = reinterpret_cast<TaskBase*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
     while (t != nullptr) {
         FFRT_BBOX_LOG("qos %d: worker tid %d is localFifo task id %lu name %s",
-            qos, worker->Id(), t->gid(), t->GetLabel().c_str());
+            qos, worker->Id(), t->gid, t->GetLabel().c_str());
         t = reinterpret_cast<TaskBase*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
     }
 }
@@ -199,22 +199,22 @@ static inline void SaveNormalTaskStatus()
         }
     };
 
-    // Do not dump tasks marked with final status (e.g., FINISH or CANCELED),
-    // as they may be allocated by nother submit and not initialized yet.
+    // Do not dump tasks marked with a final status (e.g., FINISH or CANCELED),
+    // as they may be allocated by another submit and not initialized yet.
     apply("pending task", [](CPUEUTask* t) {
-        return t->GetTaskStatus() == TaskStatus::SUBMITTED;
+        return t->curStatus == TaskStatus::SUBMITTED;
     });
     apply("ready task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::READY;
     });
-    apply("poped task", [](CPUEUTask* t) {
-        return t->curStatus == TaskStatus::POPED;
+    apply("POPPED task", [](CPUEUTask* t) {
+        return t->curStatus == TaskStatus::POPPED;
     });
     apply("executing task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::EXECUTING;
     });
-    apply("blocked by synchronization primative(mutex etc) or wait dependence", [](CPUEUTask* t) {
-        return (t->curStatus == TaskStatus::THREAD_BLOCK() || (t->curStatus == TaskStatus::COROUTINE_BLOCK));
+    apply("blocked by synchronization primitive(mutex etc) or wait dependence", [](CPUEUTask* t) {
+        return (t->curStatus == TaskStatus::THREAD_BLOCK) || (t->curStatus == TaskStatus::COROUTINE_BLOCK);
     });
 }
 
@@ -288,15 +288,15 @@ static inline void SaveQueueTaskStatus()
         DumpQueueTask("queue task ready", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::READY;
         });
-        DumpQueueTask("queue task poped", entry.second, [](QueueTask* t) {
-            return t->curStatus == TaskStatus::POPED;
+        DumpQueueTask("queue task POPPED", entry.second, [](QueueTask* t) {
+            return t->curStatus == TaskStatus::POPPED;
         });
         DumpQueueTask("queue task executing", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::EXECUTING;
         });
         DumpQueueTask("queue task blocked by synchronization primitive(mutex etc)", entry.second,
             [](QueueTask* t) {
-                return (t->curStatus == TaskStatus::THREAD_BLOCK) || (t->curStatus == TaskStatus::COROUTINE_CLOCK);
+                return (t->curStatus == TaskStatus::THREAD_BLOCK) || (t->curStatus == TaskStatus::COROUTINE_BLOCK);
         });
     }
 }
@@ -367,7 +367,12 @@ void RecordDebugInfo(void)
         FFRT_BBOX_LOG("debug log: tid %d, task id %lu, qos %d, name %s, status %s", gettid(), t->gid, t->qos_(),
             t->GetLabel().c_str(), StatusToString(t->curStatus).c_str());
     }
-    SaveKeyStatus();
+    FFRT_BBOX_LOG("<<<=== key status ===>>>");
+    if (saveKeyStatusInfo == nullptr) {
+        FFRT_BBOX_LOG("no key status");
+    } else {
+        FFRT_BBOX_LOG("%s", saveKeyStatusInfo().c_str());
+    }
     FFRT_BBOX_LOG("<<<=== ffrt debug log finish ===>>>");
 }
 
@@ -508,7 +513,7 @@ __attribute__((constructor)) static void BBoxInit()
 std::string GetDumpPreface(void)
 {
     std::ostringstream ss;
-    ss << "|-> Launcher proc ffrt, now:" << FormatDateToString(TimeStamp()) << " pid:" << GetPid()
+    ss << "|-> Launcher proc ffrt, now:" << FormatDateToString(FFRTTraceRecord::TimeStamp()) << " pid:" << GetPid()
         << std::endl;
     return ss.str();
 }
@@ -575,7 +580,7 @@ void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
         case ffrt_normal_task: {
             TaskFactory<CPUEUTask>::LockMem();
             auto cpuTask = static_cast<CPUEUTask*>(t);
-            if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->curStatus() != TaskStatus::FINISH)) {
+            if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->curStatus != TaskStatus::FINISH)) {
                 ss << "        qos " << qos
                     << ": worker tid " << tid
                     << " normal task is running, task id " << t->gid
@@ -702,19 +707,19 @@ std::string SaveNormalTaskStatusInfo(void)
     // Do not dump tasks marked with a final status (e.g., FINISH or CANCELLED),
     // as they may be allocated by another submit and not initialized yet.
     apply("pending task", [](CPUEUTask* t) {
-        return t->CurStatus() == TaskStatus::SUBMITTED;
+        return t->curStatus == TaskStatus::SUBMITTED;
     });
     apply("ready task", [](CPUEUTask* t) {
-        return t->CurStatus() == TaskStatus::READY;
+        return t->curStatus == TaskStatus::READY;
     });
-    apply("poped task", [](CPUEUTask* t) {
-        return t->CurStatus() == TaskStatus::POPED;
+    apply("POPPED task", [](CPUEUTask* t) {
+        return t->curStatus == TaskStatus::POPPED;
     });
     apply("executing task", [](CPUEUTask* t) {
-        return t->CurStatus() == TaskStatus::EXECUTING;
+        return t->curStatus == TaskStatus::EXECUTING;
     });
     apply("blocked by synchronization primitive(mutex etc) or wait dependence", [](CPUEUTask* t) {
-        return (t->CurStatus() == TaskStatus::THREAD_BLOCK) || (t->curStatus == TaskStatus::COROUTINE_BLOCK);
+        return (t->curStatus == TaskStatus::THREAD_BLOCK) || (t->curStatus == TaskStatus::COROUTINE_BLOCK);
     });
     TaskFactory<CPUEUTask>::UnlockMem();
 
@@ -791,13 +796,13 @@ std::string SaveQueueTaskStatusInfo()
             return t->curStatus == TaskStatus::ENQUEUED;
         });
         DumpQueueTaskInfo(ffrtStackInfo, "queue task dequeued", entry.second, [](QueueTask* t) {
-            return t->curStatus == TaskStatus::ENQUEUED;
+            return t->curStatus == TaskStatus::DEQUEUED;
         });
         DumpQueueTaskInfo(ffrtStackInfo, "queue task ready", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::READY;
         });
-        DumpQueueTaskInfo(ffrtStackInfo, "queue task poped", entry.second, [](QueueTask* t) {
-            return t->curStatus == TaskStatus::POPED;
+        DumpQueueTaskInfo(ffrtStackInfo, "queue task POPPED", entry.second, [](QueueTask* t) {
+            return t->curStatus == TaskStatus::POPPED;
         });
         DumpQueueTaskInfo(ffrtStackInfo, "queue task executing", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::EXECUTING;

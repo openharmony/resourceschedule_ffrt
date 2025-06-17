@@ -116,7 +116,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     task->SetQos(qos);
     task->Submit();
 
-    std::vector<CPUEUTask*> isHandles;
+    std::vector<CPUEUTask*> inHandles;
     std::vector<const void*> insNoDup;
     std::vector<const void*> outsNoDup;
     RemoveRepeatedDeps(inHandles, ins, outs, insNoDup, outsNoDup);

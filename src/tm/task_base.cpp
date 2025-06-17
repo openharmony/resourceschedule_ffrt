@@ -68,7 +68,7 @@ std::string StatusToString(TaskStatus status)
         {TaskStatus::ENQUEUED,        "ENQUEUED"},
         {TaskStatus::DEQUEUED,        "DEQUEUED"},
         {TaskStatus::READY,           "READY"},
-        {TaskStatus::POPED,           "POPED"},
+        {TaskStatus::POPPED,           "POPPED"},
         {TaskStatus::EXECUTING,       "EXECUTING"},
         {TaskStatus::THREAD_BLOCK,    "THREAD_BLOCK"},
         {TaskStatus::COROUTINE_BLOCK, "COROUTINE_BLOCK"},

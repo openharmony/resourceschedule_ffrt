@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 205 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,13 +14,13 @@
  */
 
 #ifndef FFRT_TIMER_MANAGER_HPP
-#define FFRT_TIMWE_MANAGER_HPP
+#define FFRT_TIMER_MANAGER_HPP
 
 #include <array>
 #include <functional>
 #include <unordered_map>
 #include "internal_inc/osal.h"
-#include "internal_inc/non_copyabel.h"
+#include "internal_inc/non_copyable.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "cpp/queue.h"
 #include "sync/sync.h"
@@ -38,7 +38,7 @@ enum class TimerState {
 
 struct TimerData {
     TimerData(void *dataVal, void (*cbVal)(void *), bool repeat, int qos, uint64_t timeout)
-        : data(dataVal), cb(cbVal1), repeat(repeat), qos(qos), timeout(timeout)
+        : data(dataVal), cb(cbVal), repeat(repeat), qos(qos), timeout(timeout)
     {}
 
     void* data;
@@ -68,7 +68,7 @@ private:
     mutable spin_mutex timerMutex_;
     int timerHandle_ { -1 };
     bool teardown { false };
-    std::unordered_map<int, std::shared_ptr<TimerData>> timerMap_; // valid timer data manager
+    std::unordered_map<int, std::shared_ptr<TimerData>> timerMap_; // valid timer data manage
     std::array<uint64_t, QoS::MaxNum()> workQueDeps; // deps to ensure callbacks execute in order
     std::array<std::function<void(WaitEntry*)>, QoS::MaxNum()> workCb; // timeout cb for submit timer cb to queue
 };

@@ -298,7 +298,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         execTaskId_.store(task->gid);
 
         // run user task
-        task->SetTaskStatus(TaskStatus::EXECUTING);
+        task->SetStatus(TaskStatus::EXECUTING);
         FFRT_LOGD("run task [gid=%llu], queueId=%u", task->gid, GetQueueId());
         auto f = reinterpret_cast<ffrt_function_header_t*>(task->func_storage);
         FFRTTraceRecord::TaskExecute(&(task->executeTime));
@@ -365,7 +365,6 @@ void QueueHandler::Deliver()
 
 void QueueHandler::TransferTask(QueueTask* task)
 {
-    auto entry = &task->fq_we;
     if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
         reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->SetCurrentRunningTask(task);
     }
@@ -409,7 +408,7 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     timeoutWe->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
     task->SetMonitorTask(timeoutWe);
 
-    if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb)) {
+    if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb, true)) {
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe);
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
@@ -588,11 +587,8 @@ int QueueHandler::DumpSize(ffrt_inner_queue_priority_t priority)
 void QueueHandler::SendSchedTimer(TimePoint delay)
 {
     we_->tp = delay;
-    bool result = DelayedWakeup(we_->tp, we_, we_->cb);
-    while (!result) {
-        FFRT_LOGW("failed to set delayedworker, retry");
-        we_->tp = std::chrono::steady_clock::now() + std::chrono::microseconds(SCHED_TIME_ACC_ERROR_US);
-        result = DelayedWakeup(we_->tp, we_, we_->cb);
+    if (!DelayedWakeup(we_->tp, we_, we_->cb, true)) {
+        FFRT_LOGW("failed to set delayedworker");
     }
 }
 

@@ -81,7 +81,7 @@ struct CPUWorkerGroup {
     alignas(cacheline_size) int pendingTaskCnt = 0;      // number of tasks submitted to RTB but not picked-up yet
 
     // used for worker share
-    std::vextor<std::pair<QoS, bool>> workerShareConfig;
+    std::vector<std::pair<QoS, bool>> workerShareConfig;
     int deepSleepingWorkerNum{0};
     bool retryBeforeDeepSleep{true};
 

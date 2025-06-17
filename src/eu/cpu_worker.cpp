@@ -81,7 +81,6 @@ CPUWorker::~CPUWorker()
         }
 #endif
     }
-    FFRT_LOGI("to exit, qos[%d]", qos());
     Detach();
 }
 
@@ -106,7 +105,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     static bool isBetaVersion = IsBeta();
     uint64_t startExecuteTime = 0;
     if (isBetaVersion) {
-        startExecuteTime = TimeStamp();
+        startExecuteTime = FFRTTraceRecord::TimeStamp();
         if (likely(isNotUv)) {
             worker->cacheLabel = task->GetLabel();
         }
@@ -127,7 +126,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     worker->curTaskType_ = ffrt_invalid_task;
 #ifdef FFRT_SEND_EVENT
     if (isBetaVersion) {
-        uint64_t execDur = ((TimeStamp() - startExecuteTime) / worker->cacheFreq);
+        uint64_t execDur = ((FFRTTraceRecord::TimeStamp() - startExecuteTime) / worker->cacheFreq);
         TaskBlockInfoReport(execDur, isNotUv ? worker->cacheLabel : "uv_task", worker->cacheQos, worker->cacheFreq);
     }
 #endif

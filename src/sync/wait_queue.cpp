@@ -61,9 +61,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
             ret = true;
         }
     }
-    wn->task = nullptr;
-
-    // notify scenarios wn is already pooped
+    // notify scenarios WaitUntilEntry `wn` is already popped
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
     if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFING) {
@@ -71,6 +69,11 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
         remove(wn);
         wqlock.unlock();
     }
+    // note that one wn->task can be set to nullptr only either after wn is removed from the queue,
+    // i.e. after the timeout occurred, or after the notify of the condition variable.
+    // In both cases this write will be ordered after the read of `we->task` in
+    // WaitQueue::Notify (if this entry is popped) and a data-race will not occur.
+    wn->task = nullptr;
     lk->lock();
     if (task) {
         task->Wake();
@@ -128,7 +131,7 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
     TaskBase* task = ctx->task;
     int ret = ffrt_success;
     if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
-        return ThreadWaitUntil(&ctx->wn, lk, tp, task) ? ffrt_error_timeout : ffrt_success;
+        return ThreadWaitUntil(&ctx->wn, lk, tp, task) ? ffrt_error_timedout : ffrt_success;
     }
     CoTask* coTask = static_cast<CoTask*>(task);
     coTask->wue = new WaitUntilEntry(task);
@@ -215,7 +218,7 @@ void WaitQueue::Notify(bool one) noexcept
         }
         bool isEmpty = empty();
         TaskBase* task = we->task;
-        if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD()) {
+        if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             std::unique_lock<std::mutex> lk(we->wl);
             we->status.store(we_status::NOTIFING, std::memory_order_release);
             wqlock.unlock();

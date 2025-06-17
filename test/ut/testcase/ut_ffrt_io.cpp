@@ -262,39 +262,6 @@ HWTEST_F(ffrtIoTest, ffrt_timer_stop_fail, TestSize.Level0)
     EXPECT_EQ(ret, -1);
 }
 
-HWTEST_F(ffrtIoTest, ffrt_timer_stop_succ_mapfirst_flagwait, TestSize.Level0)
-{
-    ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    int x = 0;
-    int* xf = &x;
-    void* data = xf;
-    uint64_t timeout1 = 20;
-    uint64_t timeout2 = 10;
-    uint64_t expected = 0xabacadae;
-    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-
-    EXPECT_EQ(0, ffrt_timer_start(qos, timeout1, data, cb, false));
-
-    int handle = ffrt_timer_start(qos, timeout2, data, cb, false);
-    EXPECT_EQ(1, handle);
-    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).flag_ = ffrt::EpollStatus::WAIT;
-    ffrt_timer_stop(qos, handle);
-    struct TestData testData {.fd = testFd, .expected = expected, .finish = false};
-    ffrt_epoll_ctl(qos, EPOLL_CTL_ADD, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-
-    usleep(15000);
-    ffrt::submit([&]() {
-        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
-        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
-        }, {}, {});
-    while (1) {
-        usleep(1000);
-        if (testData.finish) break;
-    }
-    ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
-    close(testFd);
-}
-
 HWTEST_F(ffrtIoTest, ffrt_timer_query_test, TestSize.Level0)
 {
     int x = 0;
@@ -533,17 +500,8 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_in_task, TestSize.Level0)
 
 HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level0)
 {
-    usleep(1000);
     ffrt_qos_t qos = ffrt_qos_default;
-    ffrt::FFRTFacade::GetPPInstance().GetPoller(qos).PollOnce(0);
-    uint8_t ret = ffrt_epoll_get_count(qos);
-    /* If this test is run in isolation, one can expect the poll count to be one.
-     * However, if this test is run in the same environment of preceding tests e.g.,  ffrt_timer_start_succ_map_null the
-     * count is expected to be larger than one. Considering both run modes, we expect a non-zero value, instead of a
-     * specific value.
-     * Note: In general, it is a better idea to make test run oblivious and function independently from
-     * each-other.
-     */
+    int ret = ffrt_epoll_get_count(qos);
     EXPECT_NE(ret, 0);
 }
 

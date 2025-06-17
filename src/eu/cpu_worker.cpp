@@ -81,7 +81,6 @@ CPUWorker::~CPUWorker()
         }
 #endif
     }
-    FFRT_LOGI("to exit, qos[%d]", qos());
     Detach();
 }
 

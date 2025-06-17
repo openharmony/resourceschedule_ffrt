@@ -46,11 +46,13 @@ class Env {
 public:
     Env()
     {
-        putenv("FFRT_PATH_HARDWARE=1");
+        char envVar[] = "FFRT_PATH_HARDWARE=1";
+        putenv(envVar);
     }
     ~Env()
     {
-        putenv("FFRT_PATH_HARDWARE=0");
+        char envVar[] = "FFRT_PATH_HARDWARE=0";
+        putenv(envVar);
     }
 };
 

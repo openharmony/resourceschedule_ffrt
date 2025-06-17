@@ -307,7 +307,7 @@ void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
 void ExecuteUnit::WorkerRetired(CPUWorker *thread)
 {
     thread->SetWorkerState(WorkerStatus::DESTROYED);
-    pid_t pid = thread->Id();
+    pid_t tid = thread->Id();
     int qos = static_cast<int>(thread->GetQos());
 
     {
@@ -319,7 +319,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         if (ret != 1) {
             FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
-        WorkerLeaveTg(qos, pid);
+        WorkerLeaveTg(qos, tid);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         if (IsBlockAwareInit()) {
             ret = BlockawareUnregister();
@@ -331,6 +331,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         worker = nullptr;
         workerNum.fetch_sub(1);
     }
+    FFRT_LOGI("to exit, qos[%d], tid[%d]", qos, tid);
 }
 
 PollerRet ExecuteUnit::TryPoll(const CPUWorker *thread, int timeout)

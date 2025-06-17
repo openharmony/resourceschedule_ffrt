@@ -42,6 +42,9 @@
 #include "util/common_const.h"
 #include "util/ref_function_header.h"
 
+constexpr uint64_t MAX_DELAY_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+constexpr uint64_t MAX_TIMEOUT_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+
 namespace ffrt {
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
@@ -187,6 +190,12 @@ void ffrt_task_attr_set_delay(ffrt_task_attr_t *attr, uint64_t delay_us)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
+
+    if (delay_us > MAX_DELAY_US_COUNT) {
+        FFRT_LOGW("delay_us exceeds maximum allowed value %llu us. Clamping to %llu us.", delay_us, MAX_DELAY_US_COUNT);
+        delay_us = MAX_DELAY_US_COUNT;
+    }
+
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->delay_ = delay_us;
 }
 
@@ -212,6 +221,13 @@ void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_us)
         (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = ONE_THOUSAND;
         return;
     }
+
+    if (timeout_us > MAX_TIMEOUT_US_COUNT) {
+        FFRT_LOGW("timeout_us exceeds maximum allowed value %llu us. Clamping to %llu us.", timeout_us,
+            MAX_TIMEOUT_US_COUNT);
+        timeout_us = MAX_TIMEOUT_US_COUNT;
+    }
+
     (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = timeout_us;
 }
 

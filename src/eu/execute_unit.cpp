@@ -23,6 +23,7 @@
 
 namespace {
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
+constexpr uint64_t MAX_ESCAPE_INTERVAL_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
 }
 
 namespace ffrt {
@@ -165,6 +166,14 @@ int ExecuteUnit::SetWorkerStackSize(const QoS &qos, size_t stack_size)
     return 0;
 }
 
+void ClampValue(uint64_t& value, uint64_t maxValue)
+{
+    if (value > maxValue) {
+        FFRT_LOGW("exceeds maximum allowed value %llu ms. Clamping to %llu ms.", value, maxValue);
+        value = maxValue;
+    }
+}
+
 int ExecuteUnit::SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageIntervalMs,
     uint64_t threeStageIntervalMs, uint64_t oneStageWorkerNum, uint64_t twoStageWorkerNum)
 {
@@ -189,6 +198,10 @@ int ExecuteUnit::SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageI
             twoStageWorkerNum);
         return 1;
     }
+
+    ClampValue(oneStageIntervalMs, MAX_ESCAPE_INTERVAL_MS_COUNT);
+    ClampValue(twoStageIntervalMs, MAX_ESCAPE_INTERVAL_MS_COUNT);
+    ClampValue(threeStageIntervalMs, MAX_ESCAPE_INTERVAL_MS_COUNT);
 
     escapeConfig.enableEscape_ = true;
     escapeConfig.oneStageIntervalMs_ = oneStageIntervalMs;

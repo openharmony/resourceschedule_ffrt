@@ -166,7 +166,21 @@ public:
     bool wait_for(
         std::unique_lock<mutex>& lk, const std::chrono::duration<Rep, Period>& sleepTime, Pred&& pred) noexcept
     {
-        return wait_until(lk, std::chrono::steady_clock::now() + sleepTime, std::forward<Pred>(pred));
+        if (sleepTime <= sleepTime.zero()) {
+            return pred();
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        auto nowNs = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch());
+        auto sleepNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sleepTime);
+        std::chrono::steady_clock::time_point absoluteTime;
+        if (sleepNs.count() > ((std::chrono::nanoseconds::max)().count() - nowNs.count())) {
+            absoluteTime = (std::chrono::steady_clock::time_point::max)();
+        } else {
+            absoluteTime = now + sleepNs;
+        }
+
+        return wait_until(lk, absoluteTime, std::forward<Pred>(pred));
     }
 
     /**

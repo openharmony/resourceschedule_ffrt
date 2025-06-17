@@ -104,7 +104,7 @@ namespace ffrt {
         std::chrono::microseconds timeoutTime(timeout);
         std::chrono::microseconds delayTime(delay);
         we->tp = (now + timeoutTime + delayTime);
-        if (!DelayedWakeup(we->tp, we, we->cb)) {
+        if (!DelayedWakeup(we->tp, we, we->cb, true)) {
             SimpleAllocator<WaitUntilEntry>::FreeMem(we);
             FFRT_LOGE("failed to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout_ms);
             return false;

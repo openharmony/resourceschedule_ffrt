@@ -235,7 +235,7 @@ void ExecuteUnit::SubmitEscape(int qos, uint64_t totalWorkerNum)
         };
     }
 
-    if (!DelayedWakeup(we_[qos]->tp, we_[qos], we_[qos]->cb)) {
+    if (!DelayedWakeup(we_[qos]->tp, we_[qos], we_[qos]->cb, true)) {
         FFRT_LOGW("Failed to set qos %d escape task.", qos);
         return;
     }

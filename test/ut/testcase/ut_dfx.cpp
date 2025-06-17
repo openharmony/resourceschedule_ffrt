@@ -95,10 +95,10 @@ HWTEST_F(DfxTest, queue_dfx_bbox_normal_task_0001, TestSize.Level0)
         printf("pid = %d, thread id= %d  start\n", getpid(), pid);
 
         auto basic1Func = [&]() {
-            lock.lock();
+            std::lock_guard lg(lock);
             ffrt_usleep(2000);
             x = x + 1;
-            lock.unlock();
+
         };
 
         auto basic2Func = [&]() {
@@ -109,6 +109,7 @@ HWTEST_F(DfxTest, queue_dfx_bbox_normal_task_0001, TestSize.Level0)
 
         auto basic3Func = [&]() {
             ffrt_usleep(5000);
+            std::lock_guard lg(lock);
             x = x + 1;
         };
 

@@ -281,7 +281,9 @@ static void init_once_sleep(void)
     uv_sleep = 0;
     ffrt_executor_task_register_func(ffrt_work_sleep, ffrt_uv_task);
 }
-int thread_safe_rand(const int min, const int max) {
+
+int ThreadSafeRand(const int min, const int max)
+{
     /* note that std:mt19937 is not thread-safe,
      * so each thread has to has its own instance,
      * or it should be protected by a lock */
@@ -313,7 +315,7 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level0)
     ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
     auto tryCancel = [&]() {
         for (int i = taskCount - 1; i >= 0; --i) {
-            auto idx = thread_safe_rand(0, taskCount -1);
+            auto idx = ThreadSafeRand(0, taskCount - 1);
             cancelCount += ffrt_executor_task_cancel(&work[idx], static_cast<int>(ffrt::qos_user_initiated));
         }
     };

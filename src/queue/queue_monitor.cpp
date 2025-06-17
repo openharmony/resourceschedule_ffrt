@@ -84,12 +84,9 @@ void QueueMonitor::SetAlarm(uint64_t steadyUs)
     we_->tp = std::chrono::steady_clock::time_point() + std::chrono::microseconds(steadyUs);
     we_->cb = ([this](WaitEntry* we) { ScheduleAlarm(); });
 
-    bool result = DelayedWakeup(we_->tp, we_, we_->cb);
     // generally does not fail
-    while (!result) {
-        FFRT_LOGW("failed to set delayedworker, try again");
-        we_->tp = std::chrono::steady_clock::now() + std::chrono::microseconds(ALLOW_ACC_ERROR_US);
-        result = DelayedWakeup(we_->tp, we_, we_->cb);
+    if (!DelayedWakeup(we_->tp, we_, we_->cb, true)) {
+        FFRT_LOGW("failed to set delayedworker");
     }
 }
 

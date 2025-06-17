@@ -53,7 +53,8 @@ public:
     DelayedWorker(DelayedWorker const&) = delete;
     void operator=(DelayedWorker const&) = delete;
 
-    bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup);
+    bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup,
+        bool skipTimeCheck = false);
     bool remove(const TimePoint& to, WaitEntry* we);
     void SubmitAsyncTask(std::function<void()>&& func);
     void Terminate();

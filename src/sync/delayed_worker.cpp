@@ -279,7 +279,8 @@ int DelayedWorker::HandleWork()
 }
 
 // There is no requirement that to be less than now
-bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup)
+bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup,
+    bool skipTimeCheck)
 {
     bool w = false;
     if (toExit) {
@@ -287,8 +288,7 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
         return false;
     }
 
-    TimePoint now = std::chrono::steady_clock::now();
-    if (to <= now) {
+    if (!skipTimeCheck && to <= std::chrono::steady_clock::now()) {
         return false;
     }
     std::lock_guard lg(lock);

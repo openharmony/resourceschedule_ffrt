@@ -67,7 +67,7 @@ public:
         return Instance().unlockMem_();
     }
 
-    static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&free,
+    static void RegistCb(TaskAllocCB<CPUEUTask>::Alloc &&alloc, TaskAllocCB<CPUEUTask>::Free &&_free,
         TaskAllocCB<CPUEUTask>::Free_ &&free_ = nullptr,
         TaskAllocCB<CPUEUTask>::GetUnfreedMem &&getUnfreedMem = nullptr,
         TaskAllocCB<CPUEUTask>::HasBeenFreed &&hasBeenFreed = nullptr,
@@ -75,7 +75,7 @@ public:
         TaskAllocCB<CPUEUTask>::UnlockMem &&unlockMem = nullptr)
     {
         Instance().alloc_ = std::move(alloc);
-        Instance().free_ = std::move(free);
+        Instance().free_ = std::move(_free);
         Instance().free__ = std::move(free_);
         Instance().getUnfreedMem_ = std::move(getUnfreedMem);
         Instance().hasBeenFreed_ = std::move(hasBeenFreed);

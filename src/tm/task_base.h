@@ -94,7 +94,7 @@ public:
 
     inline void SetStatus(TaskStatus statusIn)
     {
-        statusTime = TimeStampCntvct();
+        UpdateStatusTime();
         preStatus = curStatus;
         curStatus = statusIn;
     }
@@ -115,6 +115,16 @@ public:
         return v;
     }
 
+    inline void UpdateStatusTime()
+    {
+        auto t = TimeStampCntvct();
+        statusTime.store(t, std::memory_order_relaxed);
+    }
+    inline uint64_t GetStatusTime()
+    {
+       return statusTime.load(std::memory_order_relaxed);
+    }
+
     // returns the current g_taskId value
     static uint32_t GetLastGid();
 
@@ -132,11 +142,11 @@ public:
 #endif
 
     struct HiTraceIdStruct traceId_ = {};
-
-    uint64_t statusTime = TimeStampCntvct();
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
+    private:
+    std::atomic<uint64_t> statusTime = TimeStampCntvct();
 };
 
 class CoTask : public TaskBase {
@@ -176,7 +186,7 @@ public:
 
     void SetStatus(TaskStatus statusIn)
     {
-        statusTime = TimeStampCntvct();
+        UpdateStatusTime();
         preStatus = curStatus;
         curStatus = statusIn;
     }

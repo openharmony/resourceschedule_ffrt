@@ -453,7 +453,7 @@ std::string QueueHandler::GetDfxInfo(int index) const
 {
     std::stringstream ss;
     if (queue_ != nullptr && curTaskVec_[index] != nullptr) {
-        uint64_t curTaskTime = curTaskVec_[index]->statusTime;
+        uint64_t curTaskTime = curTaskVec_[index]->GetStatusTime();
         TaskStatus curTaskStatus = curTaskVec_[index]->curStatus;
         TaskStatus preTaskStatus = curTaskVec_[index]->preStatus;
         ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], gid=[" << curTaskVec_[index]->gid <<
@@ -482,7 +482,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
             continue;
         }
 
-        uint64_t curTaskTime = curTask->statusTime;
+        uint64_t curTaskTime = curTask->GetStatusTime();
         if (curTaskTime == 0 || CheckDelayStatus()) {
             curTaskInfo.first.emplace_back(INVALID_GID);
             // The next inspection time needs to be updated if current task is a delayed task and there are

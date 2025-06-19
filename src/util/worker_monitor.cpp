@@ -276,7 +276,7 @@ uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutTh
         return UINT64_MAX;
     }
 
-    uint64_t curTaskTime = task->statusTime;
+    uint64_t curTaskTime = task->GetStatusTime();
     uint64_t timeoutCount = task->timeoutTask.timeoutCnt;
 
     if (curTaskTime + timeoutCount * timeoutUs_ < timeoutThreshold) {
@@ -295,7 +295,7 @@ bool WorkerMonitor::ControlTimeoutFreq(CPUEUTask* task)
 
 void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
 {
-    uint64_t curTaskTime = task->statusTime;
+    uint64_t curTaskTime = task->GetStatusTime();
     TaskStatus curTaskStatus = task->curStatus;
     TaskStatus preTaskStatus = task->preStatus;
 

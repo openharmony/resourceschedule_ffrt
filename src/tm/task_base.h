@@ -94,6 +94,16 @@ public:
 
     inline void SetStatus(TaskStatus statusIn)
     {
+        /* Note this function can be called concurrently.
+         * The following accesses can be interleaved.
+         * We use atomic relaxed accesses in order to
+         * combat data-races without incurring performance
+         * overhead. Currently statusTime & preStatus
+         * are only used in printing debug information
+         * and don't play a role in the logic. curStatus
+         * plays a role, so one needs to check if stronger
+         * barriers are needed.
+         */
         UpdateStatusTime();
         preStatus.store(GetStatus(), std::memory_order_relaxed);
         curStatus.store(statusIn, std::memory_order_relaxed);
@@ -122,7 +132,7 @@ public:
     }
     inline uint64_t GetStatusTime()
     {
-       return statusTime.load(std::memory_order_relaxed);
+        return statusTime.load(std::memory_order_relaxed);
     }
     inline TaskStatus GetStatus()
     {
@@ -142,7 +152,8 @@ public:
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_default;
     std::atomic_uint32_t rc = 1; // reference count for delete
-
+    std::atomic<TaskStatus> preStatus = TaskStatus::PENDING;
+    std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
@@ -152,10 +163,8 @@ public:
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
-    protected:
+    private:
     std::atomic<uint64_t> statusTime = TimeStampCntvct();
-    std::atomic<TaskStatus> preStatus = TaskStatus::PENDING;
-    std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
 };
 
 class CoTask : public TaskBase {
@@ -193,12 +202,6 @@ public:
         return label;
     }
 
-    void SetStatus(TaskStatus statusIn)
-    {
-        UpdateStatusTime();
-        preStatus.store(GetStatus(), std::memory_order_relaxed);
-        curStatus.store(statusIn, std::memory_order_relaxed);
-    }
 protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };

@@ -297,7 +297,7 @@ void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
 {
     uint64_t curTaskTime = task->GetStatusTime();
     TaskStatus curTaskStatus = task->GetStatus();
-    TaskStatus preTaskStatus = task->preStatus;
+    TaskStatus preTaskStatus = task->GetPreStatus();
 
     TimeoutTask& timeoutTskInfo = task->timeoutTask;
     if (task->gid == timeoutTskInfo.taskGid && curTaskStatus == timeoutTskInfo.taskStatus) {

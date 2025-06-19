@@ -95,7 +95,7 @@ public:
     inline void SetStatus(TaskStatus statusIn)
     {
         UpdateStatusTime();
-        preStatus = GetStatus();
+        preStatus.store(GetStatus(), std::memory_order_relaxed);
         curStatus.store(statusIn, std::memory_order_relaxed);
     }
 
@@ -128,6 +128,10 @@ public:
     {
         return curStatus.load(std::memory_order_relaxed);
     }
+    inline TaskStatus GetPreStatus()
+    {
+        return preStatus.load(std::memory_order_relaxed);
+    }
 
     // returns the current g_taskId value
     static uint32_t GetLastGid();
@@ -138,7 +142,7 @@ public:
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_default;
     std::atomic_uint32_t rc = 1; // reference count for delete
-    TaskStatus preStatus = TaskStatus::PENDING;
+
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
@@ -150,6 +154,7 @@ public:
     int32_t fromTid {0};
     protected:
     std::atomic<uint64_t> statusTime = TimeStampCntvct();
+    std::atomic<TaskStatus> preStatus = TaskStatus::PENDING;
     std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
 };
 
@@ -191,7 +196,7 @@ public:
     void SetStatus(TaskStatus statusIn)
     {
         UpdateStatusTime();
-        preStatus = GetStatus();
+        preStatus.store(GetStatus(), std::memory_order_relaxed);
         curStatus.store(statusIn, std::memory_order_relaxed);
     }
 protected:

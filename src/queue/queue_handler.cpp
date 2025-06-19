@@ -455,7 +455,7 @@ std::string QueueHandler::GetDfxInfo(int index) const
     if (queue_ != nullptr && curTaskVec_[index] != nullptr) {
         uint64_t curTaskTime = curTaskVec_[index]->GetStatusTime();
         TaskStatus curTaskStatus = curTaskVec_[index]->GetStatus();
-        TaskStatus preTaskStatus = curTaskVec_[index]->preStatus;
+        TaskStatus preTaskStatus = curTaskVec_[index]->GetPreStatus();
         ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], gid=[" << curTaskVec_[index]->gid <<
             "], with delay of[" << curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
             "], current task status[" << StatusToString(curTaskStatus) << "], start at[" <<

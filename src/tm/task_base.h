@@ -95,8 +95,8 @@ public:
     inline void SetStatus(TaskStatus statusIn)
     {
         UpdateStatusTime();
-        preStatus = curStatus;
-        curStatus = statusIn;
+        preStatus = GetStatus();
+        curStatus.store(statusIn, std::memory_order_relaxed);
     }
 
     // delete ref setter functions, for memory management
@@ -124,6 +124,10 @@ public:
     {
        return statusTime.load(std::memory_order_relaxed);
     }
+    inline TaskStatus GetStatus()
+    {
+        return curStatus.load(std::memory_order_relaxed);
+    }
 
     // returns the current g_taskId value
     static uint32_t GetLastGid();
@@ -134,7 +138,6 @@ public:
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_default;
     std::atomic_uint32_t rc = 1; // reference count for delete
-    TaskStatus curStatus = TaskStatus::PENDING;
     TaskStatus preStatus = TaskStatus::PENDING;
 
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -145,8 +148,9 @@ public:
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
-    private:
+    protected:
     std::atomic<uint64_t> statusTime = TimeStampCntvct();
+    std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
 };
 
 class CoTask : public TaskBase {
@@ -187,8 +191,8 @@ public:
     void SetStatus(TaskStatus statusIn)
     {
         UpdateStatusTime();
-        preStatus = curStatus;
-        curStatus = statusIn;
+        preStatus = GetStatus();
+        curStatus.store(statusIn, std::memory_order_relaxed);
     }
 protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing

@@ -229,7 +229,7 @@ bool QueueHandler::CheckExecutingTask()
 {
     std::unique_lock lock(mutex_);
     for (const auto& curTask : curTaskVec_) {
-        if (curTask != nullptr && curTask->curStatus == TaskStatus::EXECUTING) {
+        if (curTask != nullptr && curTask->GetStatus() == TaskStatus::EXECUTING) {
             return true;
         }
     }
@@ -454,7 +454,7 @@ std::string QueueHandler::GetDfxInfo(int index) const
     std::stringstream ss;
     if (queue_ != nullptr && curTaskVec_[index] != nullptr) {
         uint64_t curTaskTime = curTaskVec_[index]->GetStatusTime();
-        TaskStatus curTaskStatus = curTaskVec_[index]->curStatus;
+        TaskStatus curTaskStatus = curTaskVec_[index]->GetStatus();
         TaskStatus preTaskStatus = curTaskVec_[index]->preStatus;
         ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], gid=[" << curTaskVec_[index]->gid <<
             "], with delay of[" << curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
@@ -497,12 +497,12 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
         if (curTaskTime < timeoutThreshold) {
             TimeoutTask& timeoutTaskInfo = timeoutTaskVec_[i];
             if (curTask->gid == timeoutTaskInfo.taskGid &&
-                curTask->curStatus == timeoutTaskInfo.taskStatus) {
+                curTask->GetStatus() == timeoutTaskInfo.taskStatus) {
                     timeoutTaskInfo.timeoutCnt += 1;
             } else {
                 timeoutTaskInfo.timeoutCnt = 1;
                 timeoutTaskInfo.taskGid = curTask->gid;
-                timeoutTaskInfo.taskStatus = curTask->curStatus;
+                timeoutTaskInfo.taskStatus = curTask->GetStatus();
             }
 
             ReportTaskTimeout(timeoutUs, ss, i);

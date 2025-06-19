@@ -94,9 +94,9 @@ public:
 
     inline void SetStatus(TaskStatus statusIn)
     {
-        statusTime = TimeStampCntvct();
+        statusTime.store(TimeStampCntvct(), std::memory_order_relaxed);
         preStatus = curStatus;
-        curStatus = statusIn;
+        curStatus.store(statusIn, std::memory_order_relaxed);
     }
 
     // delete ref setter functions, for memory management
@@ -124,7 +124,7 @@ public:
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_default;
     std::atomic_uint32_t rc = 1; // reference count for delete
-    TaskStatus curStatus = TaskStatus::PENDING;
+    std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
     TaskStatus preStatus = TaskStatus::PENDING;
 
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -133,7 +133,7 @@ public:
 
     struct HiTraceIdStruct traceId_ = {};
 
-    uint64_t statusTime = TimeStampCntvct();
+    std::atomic<uint64_t> statusTime = TimeStampCntvct();
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};

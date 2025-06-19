@@ -180,10 +180,10 @@ int IOPoller::PollOnce(int timeout) noexcept
 
         if (data->mode == PollerType::ASYNC_CB) {
             // async io callback
-            timeOutReport.cbStartTime = FFRTTraceRecord::TimeStamp();
+            timeOutReport.cbStartTime.store(FFRTTraceRecord::TimeStamp(), std::memory_order_relaxed);
             timeOutReport.reportCount = 0;
             data->cb(data->data, waitedEvents[i].events);
-            timeOutReport.cbStartTime = 0;
+            timeOutReport.cbStartTime.store(0, std::memory_order_relaxed);
             continue;
         }
 

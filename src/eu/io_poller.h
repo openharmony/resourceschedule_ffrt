@@ -71,7 +71,7 @@ struct WakeData {
 
 struct TimeOutReport {
     TimeOutReport() {}
-    uint64_t cbStartTime = 0; // block info report
+    std::atomic<uint64_t> cbStartTime = 0; // block info report
     uint64_t reportCount = 0;
 };
 

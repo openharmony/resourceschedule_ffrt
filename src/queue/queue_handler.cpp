@@ -482,7 +482,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
             continue;
         }
 
-        uint64_t curTaskTime = curTask->statusTime;
+        uint64_t curTaskTime = curTask->statusTime.load(std::memory_order_relaxed);
         if (curTaskTime == 0 || CheckDelayStatus()) {
             curTaskInfo.first.emplace_back(INVALID_GID);
             // The next inspection time needs to be updated if current task is a delayed task and there are

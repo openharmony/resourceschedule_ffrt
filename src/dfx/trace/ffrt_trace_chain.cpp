@@ -52,8 +52,9 @@ HiTraceIdStruct TraceChainAdapter::HiTraceChainGetId()
 
 void TraceChainAdapter::HiTraceChainClearId()
 {
-    if (clearIdFunc_ != nullptr) {
-        clearIdFunc_();
+    auto clearIdFunc = clearIdFunc_;
+    if (clearIdFunc != nullptr) {
+        clearIdFunc();
     }
 }
 

@@ -20,7 +20,6 @@
 #include "core/version_ctx.h"
 #include "ffrt_inner.h"
 #include "c/ffrt_ipc.h"
-#include "sched/task_state.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/bbox/bbox.h"
 #include "tm/cpu_task.h"
@@ -87,36 +86,38 @@ HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level0)
 }
 
 /**
- * @tc.name: ThreadWaitAndNotifyModeCheck
- * @tc.desc: Test function of ThreadWaitMode and ThreadNotifyMode
+ * @tc.name: TaskBlockTypeCheck
+ * @tc.desc: Test function of TaskBase::Block and TaskBase::Wake
  * @tc.type: FUNC
  */
-HWTEST_F(CoreTest, ThreadWaitAndNotifyMode, TestSize.Level0)
+HWTEST_F(CoreTest, TaskBlockTypeCheck, TestSize.Level0)
 {
     SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0);
 
-    // when executing task is nullptr
-    EXPECT_EQ(ThreadWaitMode(nullptr), true);
-
     // when executing task is root
-    EXPECT_EQ(ThreadWaitMode(task), true);
+    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_THREAD, true);
 
-    // when executing task in legacy mode
-    SCPUEUTask* parent = new SCPUEUTask(nullptr, nullptr, 0);
+    // when executing task is nullptr
+    EXPECT_EQ(task->Block() == BlockType::BLOCK_THREAD, true);
+
+    auto parent = new SCPUEUTask(nullptr, nullptr, 0);
     task->parent = parent;
-    task->legacyCountNum = 1;
-    EXPECT_EQ(ThreadWaitMode(task), true);
 
-    // when task is valid and not in legacy mode
-    task->legacyCountNum = 0;
-    EXPECT_EQ(ThreadWaitMode(task), false);
+    // when task is not in legacy mode
+    EXPECT_EQ(task->Block() == BlockType::BLOCK_COROUTINE, true);
+    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_COROUTINE, true);
+    task->Wake();
 
-    // when block thread is false
-    EXPECT_EQ(ThreadNotifyMode(task), false);
+    // when task is in legacy mode
+    task->legacyCountNum++;
+    EXPECT_EQ(task->Block() == BlockType::BLOCK_THREAD, true);
+    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_THREAD, true);
+    task->Wake();
 
-    // when block thread is true
-    task->blockType = BlockType::BLOCK_THREAD;
-    EXPECT_EQ(ThreadNotifyMode(task), true);
+    // when task's legacy mode canceled
+    task->legacyCountNum--;
+    EXPECT_EQ(task->Block() == BlockType::BLOCK_COROUTINE, true);
+    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_COROUTINE, true);
 
     delete parent;
     delete task;
@@ -359,7 +360,7 @@ HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level0)
 
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_energy_saving_mode);
     sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
-    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_energy_saving_mode));
 
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_performance_mode);
     sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
@@ -420,8 +421,11 @@ private:
     void Cancel() override {}
     void Finish() override {}
     void Execute() override {}
+    ffrt::BlockType Block() override { return ffrt::BlockType::BLOCK_THREAD; }
+    void Wake() override {}
     void SetQos(const QoS& newQos) override {}
     std::string GetLabel() const override { return "my-task"; }
+    ffrt::BlockType GetBlockType() const override { return ffrt::BlockType::BLOCK_THREAD; }
 };
 
 void TestTaskFactory(bool isSimpleAllocator)

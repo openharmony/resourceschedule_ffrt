@@ -132,16 +132,6 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 #endif
 }
 
-PollerRet CPUWorker::TryPoll(CPUWorker* worker, int timeout)
-{
-    PollerRet ret = worker->ops.TryPoll(worker, timeout);
-    if (ret == PollerRet::RET_TIMER) {
-        worker->tick = 0;
-    }
-
-    return ret;
-}
-
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     worker->WorkerSetup();
@@ -168,10 +158,19 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     worker->ops.WorkerRetired(worker);
 }
 
+bool CPUWorker::RunSingleTask(int qos, CPUWorker *worker)
+{
+    TaskBase *task = FFRTFacade::GetSchedInstance()->PopTask(qos);
+    if (task) {
+        RunTask(task, worker);
+        return true;
+    }
+    return false;
+}
+
 // work looper which inherited from history
 void CPUWorker::WorkerLooper(CPUWorker* worker)
 {
-    const sched_mode_type& schedMode = FFRTFacade::GetEUInstance().GetSchedMode(worker->GetQos());
     for (;;) {
         TaskBase* task = FFRTFacade::GetSchedInstance()->PopTask(worker->GetQos());
         worker->tick++;
@@ -180,33 +179,14 @@ void CPUWorker::WorkerLooper(CPUWorker* worker)
                 TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
                 FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(worker->GetQos());
             }
-            if (worker->tick % TRY_POLL_FREQ == 0) {
-                worker->ops.TryPoll(worker, 0);
+            RunTask(task, worker);
+            continue;
+        }
+        //It is about to enter the idle state.
+        if (FFRTFacade::GetEUInstance().GetSchedMode(worker->GetQos()) == sched_mode_type::sched_energy_saving_mode) {
+            if (FFRTFacade::GetEUInstance().WorkerShare(worker, RunSingleTask)) {
+                continue;
             }
-            goto run_task;
-        }
-
-        if (schedMode == sched_mode_type::sched_default_mode) {
-            goto poll_once;
-        } else {
-            // direct to pollwait when no task available
-            goto poll_wait;
-        }
-
-run_task:
-        RunTask(task, worker);
-        continue;
-
-poll_once:
-        if (TryPoll(worker, 0) != PollerRet::RET_NULL) {
-            continue;
-        }
-
-poll_wait:
-        // enable a worker to enter the epoll wait -1 state and continuously listen to fd or timer events
-        // only one worker enters this state at a QoS level
-        if (TryPoll(worker, -1) != PollerRet::RET_NULL) {
-            continue;
         }
 
         FFRT_PERF_WORKER_IDLE(static_cast<int>(worker->qos));

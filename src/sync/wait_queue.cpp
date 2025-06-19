@@ -28,13 +28,10 @@ TaskWithNode::TaskWithNode()
     task = ctx->task;
 }
 
-void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, TaskBase* task)
+void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, TaskBase* task)
 {
     wqlock.lock();
-    if (legacyMode) {
-        static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
-        wn->task = task;
-    }
+    wn->task = task;
     push_back(wn);
     wqlock.unlock();
     {
@@ -44,18 +41,17 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode
     }
     wn->task = nullptr;
     lk->lock();
+    if (task) {
+        task->Wake();
+    }
 }
 
-bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
-    const TimePoint& tp, bool legacyMode, TaskBase* task)
+bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, TaskBase* task)
 {
     bool ret = false;
     wqlock.lock();
-    wn->status.store(WaitEntryStatus::INIT, std::memory_order_release);
-    if (legacyMode) {
-        static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
-        wn->task = task;
-    }
+    wn->status.store(we_status::INIT, std::memory_order_release);
+    wn->task = task;
     push_back(wn);
     wqlock.unlock();
     {
@@ -68,7 +64,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
     // notify scenarios WaitUntilEntry `wn` is already popped
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
-    if (ret || wn->status.load(std::memory_order_acquire) != WaitEntryStatus::NOTIFYING) {
+    if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFING) {
         wqlock.lock();
         remove(wn);
         wqlock.unlock();
@@ -79,6 +75,9 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk,
     // WaitQueue::Notify (if this entry is popped) and a data-race will not occur.
     wn->task = nullptr;
     lk->lock();
+    if (task) {
+        task->Wake();
+    }
     return ret;
 }
 
@@ -86,8 +85,8 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 {
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     TaskBase* task = ctx->task;
-    if (ThreadWaitMode(task)) {
-        ThreadWait(&ctx->wn, lk, LegacyMode(task), task);
+    if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
+        ThreadWait(&ctx->wn, lk, task);
         return;
     }
     CoTask* coTask = static_cast<CoTask*>(task);
@@ -112,7 +111,7 @@ bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
     bool toWake = true;
 
     // two kinds: 1) notify was not called, timeout grabbed the lock first;
-    if (wue->status.load(std::memory_order_acquire) == WaitEntryStatus::INIT) {
+    if (wue->status.load(std::memory_order_acquire) == we_status::INIT) {
         // timeout processes wue first, cv will not be processed again. timeout is responsible for destroying wue.
         wq->remove(wue);
         delete wue;
@@ -120,7 +119,7 @@ bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
     } else {
         // 2) notify enters the critical section, first writes the notify status, and then releases the lock
         // notify is responsible for destroying wue.
-        wue->status.store(WaitEntryStatus::TIMEOUT_DONE, std::memory_order_release);
+        wue->status.store(we_status::TIMEOUT_DONE, std::memory_order_release);
         toWake = false;
     }
     return toWake;
@@ -131,9 +130,8 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     TaskBase* task = ctx->task;
     int ret = ffrt_success;
-    if (ThreadWaitMode(task)) {
-        ret = ThreadWaitUntil(&ctx->wn, lk, tp, LegacyMode(task), task) ? ffrt_error_timedout : ffrt_success;
-        return ret;
+    if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
+        return ThreadWaitUntil(&ctx->wn, lk, tp, task) ? ffrt_error_timedout : ffrt_success;
     }
     CoTask* coTask = static_cast<CoTask*>(task);
     coTask->wue = new WaitUntilEntry(task);
@@ -191,9 +189,9 @@ void WaitQueue::WeNotifyProc(WaitUntilEntry* we)
     if (!DelayedRemove(we->tp, dwe)) {
         // Deletion of timer failed during the notify process, indicating that timer cb has been executed at this time
         // waiting for cb execution to complete, and marking notify as being processed.
-        we->status.store(WaitEntryStatus::NOTIFYING, std::memory_order_release);
+        we->status.store(we_status::NOTIFING, std::memory_order_release);
         wqlock.unlock();
-        while (we->status.load(std::memory_order_acquire) != WaitEntryStatus::TIMEOUT_DONE) {
+        while (we->status.load(std::memory_order_acquire) != we_status::TIMEOUT_DONE) {
         }
         wqlock.lock();
     }
@@ -220,13 +218,9 @@ void WaitQueue::Notify(bool one) noexcept
         }
         bool isEmpty = empty();
         TaskBase* task = we->task;
-        if (ThreadNotifyMode(task) || we->weType == 2) {
+        if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             std::unique_lock<std::mutex> lk(we->wl);
-            we->status.store(WaitEntryStatus::NOTIFYING, std::memory_order_release);
-            if (BlockThread(task)) {
-                static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
-                we->task = nullptr;
-            }
+            we->status.store(we_status::NOTIFING, std::memory_order_release);
             wqlock.unlock();
             we->cv.notify_one();
         } else {

@@ -30,7 +30,6 @@
 #include "util/slab.h"
 #include "sched/sched_deadline.h"
 #include "sync/perf_counter.h"
-#include "sync/io_poller.h"
 #include "dfx/bbox/bbox.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "co_routine_factory.h"
@@ -100,11 +99,17 @@ CoRoutineEnv* GetCoEnv()
 namespace {
 bool IsTaskLocalEnable(ffrt::CoTask* task)
 {
-    if ((task->type != ffrt_normal_task) || (!static_cast<CPUEUTask*>(task)->taskLocal)) {
+    if ((task->type != ffrt_normal_task)) {
         return false;
     }
 
-    if (static_cast<CPUEUTask*>(task)->tsd == nullptr) {
+    TaskLocalAttr* attr = static_cast<CPUEUTask*>(task)->tlsAttr;
+
+    if (attr == nullptr || !attr->taskLocal) {
+        return false;
+    }
+
+    if (attr->tsd == nullptr) {
         FFRT_SYSEVENT_LOGE("taskLocal enabled but task tsd invalid");
         return false;
     }
@@ -128,8 +133,8 @@ void InitWorkerTsdValueToTask(void** taskTsd)
 void SwitchTsdAddrToTask(ffrt::CPUEUTask* task)
 {
     auto threadTsd = pthread_gettsd();
-    task->threadTsd = threadTsd;
-    pthread_settsd(task->tsd);
+    task->tlsAttr->threadTsd = threadTsd;
+    pthread_settsd(task->tlsAttr->tsd);
 }
 
 void SwitchTsdToTask(ffrt::CoTask* task)
@@ -140,7 +145,7 @@ void SwitchTsdToTask(ffrt::CoTask* task)
 
     CPUEUTask* cpuTask = static_cast<CPUEUTask*>(task);
 
-    InitWorkerTsdValueToTask(cpuTask->tsd);
+    InitWorkerTsdValueToTask(cpuTask->tlsAttr->tsd);
 
     SwitchTsdAddrToTask(cpuTask);
 
@@ -150,12 +155,12 @@ void SwitchTsdToTask(ffrt::CoTask* task)
 
 bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 {
-    if (!task->threadTsd) {
+    if (!task->tlsAttr->threadTsd) {
         FFRT_SYSEVENT_LOGE("threadTsd is null");
         return false;
     }
-    pthread_settsd(task->threadTsd);
-    task->threadTsd = nullptr;
+    pthread_settsd(task->tlsAttr->threadTsd);
+    task->tlsAttr->threadTsd = nullptr;
     return true;
 }
 
@@ -191,7 +196,7 @@ void SwitchTsdToThread(ffrt::CoTask* task)
         return;
     }
 
-    UpdateWorkerTsdValueToThread(cpuTask->tsd);
+    UpdateWorkerTsdValueToThread(cpuTask->tlsAttr->tsd);
 
     cpuTask->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
@@ -212,10 +217,10 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
     }
 
     TaskTsdRunDtors(task);
-    if (task->tsd != nullptr) {
-        free(task->tsd);
-        task->tsd = nullptr;
-        task->taskLocal = false;
+    if (task->tlsAttr->tsd != nullptr) {
+        free(task->tlsAttr->tsd);
+        task->tlsAttr->tsd = nullptr;
+        task->tlsAttr->taskLocal = false;
     }
     FFRT_LOGD("tsd deconstruct done, task[%lu], name[%s]", task->gid, task->GetLabel().c_str());
 }
@@ -445,12 +450,13 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         /* thread to co start */
         __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
 #endif
-        task->SetTaskStatus(TaskStatus::EXECUTING);
+        // mark tasks as EXECUTING which waked by CoWakeFunc that blocked by CoWait before
+        task->SetStatus(TaskStatus::EXECUTING);
         /* thread switch to co */
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
 #ifdef ASAN_MODE
         /* co to thread finish */
-		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void **)&co->asanFiberAddr, &co->asanFiberSize);
+		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
@@ -498,8 +504,6 @@ void CoYield(void)
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
     GetCoEnv()->runningCo = nullptr;
     CoSwitchOutTransaction(co->task);
-    co->task->SetTaskStatus(TaskStatus::COROUTINE_BLOCK);
-    co->task->SetStatus(ffrt::TaskStatus::COROUTINE_BLOCK);
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE
     SwitchTsdToThread(co->task);

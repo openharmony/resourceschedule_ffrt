@@ -27,7 +27,6 @@
 #include <memory>
 #include <unistd.h>
 #include "task_base.h"
-#include "sched/task_state.h"
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -42,20 +41,25 @@ constexpr uint64_t MASK_FOR_HCS_TASK = 0xFF000000000000;
 struct VersionCtx;
 class SCPUEUTask;
 
+#ifdef FFRT_TASK_LOCAL_ENABLE
+struct TaskLocalAttr {
+    bool taskLocal = false; // 是否开启taskLocal特性
+    void** threadTsd = nullptr; // 指向保存线程tsd数据内存空间的指针
+    void** tsd = nullptr; // 指向task自身tsd数据内存空间的指针
+};
+#endif
+
 class CPUEUTask : public CoTask {
 public:
     CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id);
+    ~CPUEUTask();
     SkipStatus skipped = SkipStatus::SUBMITTED;
 
-    uint8_t func_storage[ffrt_auto_managed_function_storage_size]; // 函数闭包、指针或函数对象
     CPUEUTask* parent = nullptr;
-    const uint64_t rank = 0x0;
     uint64_t delayTime = 0;
-    std::mutex lock; // used in coroute
-    std::vector<CPUEUTask*> in_handles;
-    TaskState state; // not used
     TimeoutTask timeoutTask;
 
+    std::vector<CPUEUTask*>* in_handles_ = nullptr;
     /* The current number of child nodes does not represent the real number of child nodes,
      * because the dynamic graph child nodes will grow to assist in the generation of id
      */
@@ -64,15 +68,30 @@ public:
     bool notifyWorker_ = true;
     bool isDelaying = false;
 
-    void** threadTsd = nullptr;
-    void** tsd = nullptr;
-    bool taskLocal = false;
+#ifdef FFRT_TASK_LOCAL_ENABLE
+    TaskLocalAttr* tlsAttr = nullptr;
+#endif
 
-    uint64_t reserved[8];
-
-    inline bool IsRoot()
+    inline bool IsRoot() const
     {
         return parent == nullptr;
+    }
+
+    inline void SetInHandles(std::vector<CPUEUTask*>& in_handles)
+    {
+        if (in_handles.empty()) {
+            return;
+        }
+        in_handles_ = new std::vector<CPUEUTask*>(in_handles);
+    }
+
+    inline const std::vector<CPUEUTask*>& GetInHandles()
+    {
+        static const std::vector<CPUEUTask*> empty;
+        if (!in_handles_) {
+            return empty;
+        }
+        return *in_handles_;
     }
 
     void Submit() override;
@@ -80,41 +99,45 @@ public:
 
     void Pop() override
     {
-        SetTaskStatus(TaskStatus::POPPED);
+        SetStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;
 
+    BlockType Block() override
+    {
+        if (USE_COROUTINE && !IsRoot() && legacyCountNum <= 0) {
+            blockType = BlockType::BLOCK_COROUTINE;
+            SetStatus(TaskStatus::COROUTINE_BLOCK);
+        } else {
+            blockType = BlockType::BLOCK_THREAD;
+            SetStatus(TaskStatus::THREAD_BLOCK);
+        }
+        return blockType;
+    }
+
+    void Wake() override
+    {
+        SetStatus(TaskStatus::EXECUTING);
+        blockType = BlockType::BLOCK_COROUTINE;
+    }
+
     void Cancel() override
     {
-        SetTaskStatus(TaskStatus::CANCELED);
+        SetStatus(TaskStatus::CANCELED);
     }
 
     void FreeMem() override;
     void SetQos(const QoS& newQos) override;
+
+    BlockType GetBlockType() const override
+    {
+        if (IsRoot()) {
+            return BlockType::BLOCK_THREAD;
+        }
+        return blockType;
+    }
 };
-
-inline bool ExecutedOnWorker(TaskBase* task)
-{
-    return task && (task->type != ffrt_normal_task || !static_cast<CPUEUTask*>(task)->IsRoot());
-}
-
-inline bool ThreadWaitMode(TaskBase* task)
-{
-    if constexpr(!USE_COROUTINE) {
-        // static switch controlled by macro
-        return true;
-    }
-    if (!IsCoTask(task) || !ExecutedOnWorker(task)) {
-        // task is executed on user thread
-        return true;
-    }
-    if (LegacyMode(task)) {
-        // set_legacy_mode controlled by user
-        return true;
-    }
-    return false;
-}
 
 inline bool NeedNotifyWorker(TaskBase* task)
 {

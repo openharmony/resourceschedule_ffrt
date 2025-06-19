@@ -31,8 +31,9 @@ private:
 
     TaskBase* PopTaskGlobal() override
     {
-        std::lock_guard<std::mutex> lock(*GetMutex());
+        std::unique_lock<std::mutex> lock(*GetMutex());
         TaskBase* task = que->DeQueue();
+        lock.unlock();
         if (task && task->type == ffrt_uv_task) {
             return GetUVTask(task);
         }

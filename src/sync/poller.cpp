@@ -278,7 +278,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
     FFRT_COND_DO_ERR((maxevents < EPOLL_EVENT_SIZE), return -1, "maxEvents:%d cannot be less than 1024", maxevents);
 
     int nfds = 0;
-    if (ThreadWaitMode(task)) {
+    if (task->Block() == BlockType::BLOCK_THREAD) {
         std::unique_lock<std::mutex> lck(task->mutex_);
         m_mapMutex.lock();
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
@@ -286,16 +286,15 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             m_mapMutex.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
                 task->GetLabel().c_str(), task->gid, cachedNfds);
+            task->Wake();
             return cachedNfds;
         }
 
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_SYSEVENT_LOGE("task has waited before");
             m_mapMutex.unlock();
+            task->Wake();
             return 0;
-        }
-        if (FFRT_UNLIKELY(LegacyMode(task))) {
-            task->blockType = BlockType::BLOCK_THREAD;
         }
         auto currTime = std::chrono::steady_clock::now();
         m_waitTaskMap[task] = {static_cast<void*>(eventsVec), maxevents, &nfds, currTime};
@@ -306,6 +305,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
         m_mapMutex.unlock();
         task->waitCond_.wait(lck);
         FFRT_LOGD("task[%s] id[%d] has [%d] events", task->GetLabel().c_str(), task->gid, nfds);
+        task->Wake();
         return nfds;
     }
 
@@ -376,11 +376,8 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CoTask*, EventVec>& s
 namespace {
 void WakeTask(CoTask* task)
 {
-    if (ThreadNotifyMode(task)) {
+    if (task->GetBlockType() == BlockType::BLOCK_THREAD) {
         std::unique_lock<std::mutex> lck(task->mutex_);
-        if (BlockThread(task)) {
-            task->blockType = BlockType::BLOCK_COROUTINE;
-        }
         task->waitCond_.notify_one();
     } else {
         CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);

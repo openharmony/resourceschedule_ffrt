@@ -67,8 +67,8 @@ private:
 
 private:
     void WeNotifyProc(WaitUntilEntry* we);
-    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, bool legacyMode, TaskBase* task);
-    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, bool legacyMode, TaskBase* task);
+    void ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, TaskBase* task);
+    bool ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, TaskBase* task);
     void Notify(bool one) noexcept;
 
     inline bool empty() const

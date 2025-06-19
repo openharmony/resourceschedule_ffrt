@@ -19,7 +19,6 @@
 
 #include "ffrt_inner.h"
 #include "internal_inc/osal.h"
-#include "sync/io_poller.h"
 #include "qos.h"
 #include "sched/task_scheduler.h"
 #include "task_attr_private.h"
@@ -74,7 +73,7 @@ void DestroyFunctionWrapper(ffrt_function_header_t* f,
 API_ATTRIBUTE((visibility("default")))
 void sync_io(int fd)
 {
-    ffrt_wait_fd(fd);
+    FFRTFacade::GetPPInstance().WaitFdEvent(fd);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -714,7 +713,7 @@ void ffrt_disable_worker_escape(void)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
 {
-    if (mode == ffrt_sched_energy_saving_mode || qos < ffrt::QoS::Min() || qos >= ffrt::QoS::Max()) {
+    if (qos < ffrt::QoS::Min() || qos >= ffrt::QoS::Max()) {
         FFRT_LOGE("Currently, the energy saving mode is unavailable or qos [%d] is invalid..", qos);
         return;
     }

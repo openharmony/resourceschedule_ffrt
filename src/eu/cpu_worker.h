@@ -27,8 +27,7 @@
 #include "dfx_dump_catcher.h"
 #endif
 #include "qos.h"
-#include "sync/poller.h"
-#include "tm/cpu_task.h"
+#include "tm/task_base.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/executor_task.h"
 #include "util/spmc_queue.h"
@@ -58,7 +57,6 @@ struct CpuWorkerOps {
     std::function<WorkerAction (CPUWorker*)> WorkerIdleAction;
     std::function<void (CPUWorker*)> WorkerRetired;
     std::function<void (CPUWorker*)> WorkerPrepare;
-    std::function<PollerRet (const CPUWorker*, int timeout)> TryPoll;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     std::function<bool (void)> IsBlockAwareInit;
 #endif
@@ -185,14 +183,13 @@ public:
 #endif
 
     void SetThreadAttr(const QoS& newQos);
+    static void SetThreadPriority(int priority, pid_t tid);
 
     TaskBase* curTask = nullptr;
     uintptr_t curTaskType_ = ffrt_invalid_task;
     std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值
     uint64_t curTaskGid_ = UINT64_MAX;
     unsigned int tick = 0;
-    unsigned int global_interval = 60;
-    unsigned int budget = 10;
 
 private:
     void NativeConfig();
@@ -201,7 +198,7 @@ private:
     void WorkerSetup();
     static void Dispatch(CPUWorker* worker);
     static void RunTask(TaskBase* task, CPUWorker* worker);
-    static PollerRet TryPoll(CPUWorker* worker, int timeout);
+    static bool RunSingleTask(int qos, CPUWorker *worker);
 #ifdef FFRT_SEND_EVENT
     int cacheQos; // cache int qos
     std::string cacheLabel; // cache string label

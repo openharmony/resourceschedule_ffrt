@@ -61,7 +61,7 @@ QueueTask::~QueueTask()
 
 void QueueTask::Submit()
 {
-    SetTaskStatus(TaskStatus::ENQUEUED);
+    SetStatus(TaskStatus::ENQUEUED);
     FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(qos_, &createTime, &fromTid);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
     if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
@@ -74,7 +74,7 @@ void QueueTask::Ready()
 {
     QoS taskQos = qos_;
     FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(taskQos);
-    SetTaskStatus(TaskStatus::READY);
+    this->SetStatus(TaskStatus::READY);
     FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
     FFRTTraceRecord::TaskEnqueue<ffrt_queue_task>(taskQos);
     FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(taskQos);
@@ -97,7 +97,7 @@ void QueueTask::FreeMem()
 {
     // only tasks which called ffrt_poll_ctl may have cached events
     if (pollerEnable) {
-        FFRTFacade::GetPPInstance().GetPoller(qos_).ClearCachedEvents(this);
+        FFRTFacade::GetPPInstance().ClearCachedEvents(this);
     }
     TaskFactory<QueueTask>::Free(this);
 }

@@ -39,13 +39,9 @@ int ffrt_epoll_ctl(ffrt_qos_t qos, int op, int fd, uint32_t events, void* data, 
         return -1;
     }
     if (op == EPOLL_CTL_DEL) {
-        return ffrt::FFRTFacade::GetPPInstance().GetPoller(ffrtQos).DelFdEvent(fd);
+        return ffrt::FFRTFacade::GetPPInstance().DelFdEvent(fd);
     } else if (op == EPOLL_CTL_ADD || op == EPOLL_CTL_MOD) {
-        int ret = ffrt::FFRTFacade::GetPPInstance().GetPoller(ffrtQos).AddFdEvent(op, events, fd, data, cb);
-        if (ret == 0) {
-            ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(ffrtQos);
-        }
-        return ret;
+        return ffrt::FFRTFacade::GetPPInstance().AddFdEvent(op, events, fd, data, cb);
     } else {
         FFRT_SYSEVENT_LOGE("ffrt_epoll_ctl input error: op=%d, fd=%d", op, fd);
         return -1;
@@ -59,7 +55,7 @@ int ffrt_epoll_wait(ffrt_qos_t qos, struct epoll_event* events, int max_events, 
     if (!QosConvert(qos, ffrtQos)) {
         return -1;
     }
-    return ffrt::FFRTFacade::GetPPInstance().GetPoller(ffrtQos).WaitFdEvent(events, max_events, timeout);
+    return ffrt::FFRTFacade::GetPPInstance().WaitFdEvent(events, max_events, timeout);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -70,7 +66,7 @@ void ffrt_poller_wakeup(ffrt_qos_t qos)
         return;
     }
 
-    ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).WakeUp();
+    ffrt::FFRTFacade::GetPPInstance().WakeUp();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -81,7 +77,7 @@ uint8_t ffrt_epoll_get_count(ffrt_qos_t qos)
         return 0;
     }
 
-    return ffrt::FFRTFacade::GetPPInstance().GetPoller(pollerQos).GetPollCount() % UINT8_MAX;
+    return ffrt::FFRTFacade::GetPPInstance().GetPollCount() % UINT8_MAX;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -93,5 +89,5 @@ uint64_t ffrt_epoll_get_wait_time(void* taskHandle)
     }
 
     auto task = reinterpret_cast<ffrt::CoTask*>(taskHandle);
-    return ffrt::FFRTFacade::GetPPInstance().GetPoller(task->qos_).GetTaskWaitTime(task);
+    return ffrt::FFRTFacade::GetPPInstance().GetTaskWaitTime(task);
 }

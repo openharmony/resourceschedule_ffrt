@@ -100,11 +100,8 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
 {
     auto ctx = ExecuteCtx::Cur();
     auto task = ctx->task;
-    if (ThreadWaitMode(task)) {
-        if (FFRT_UNLIKELY(LegacyMode(task))) {
-            static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_THREAD;
-            ctx->wn.task = task;
-        }
+    if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
+        ctx->wn.task = task;
         ctx->wn.wtType = wtType;
         wList.PushBack(ctx->wn.node);
 
@@ -112,11 +109,14 @@ void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)
         mut.unlock();
         ctx->wn.cv.wait(lk);
         ctx->wn.task = nullptr;
+        if (task) {
+            task->Wake();
+        }
     } else {
         FFRT_BLOCK_TRACER(task->gid, smx);
         CoWait([&](CoTask* task) -> bool {
-            task->fq_we.wtType = wtType;
-            wList.PushBack(task->fq_we.node);
+            task->we.wtType = wtType;
+            wList.PushBack(task->we.node);
             mut.unlock();
             return true;
         });
@@ -130,12 +130,7 @@ void SharedMutexPrivate::NotifyOne(LinkedList& wList)
 
     if (we != nullptr) {
         auto task = we->task;
-        if (ThreadNotifyMode(task) || we->weType == 2) { // 2 is weType
-            if (BlockThread(task)) {
-                static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
-                we->task = nullptr;
-            }
-
+        if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
@@ -151,12 +146,7 @@ void SharedMutexPrivate::NotifyAll(LinkedList& wList)
 
     while (we != nullptr) {
         auto task = we->task;
-        if (ThreadNotifyMode(task) || we->weType == 2) { // 2 is weType
-            if (BlockThread(task)) {
-                static_cast<CoTask*>(task)->blockType = BlockType::BLOCK_COROUTINE;
-                we->task = nullptr;
-            }
-
+        if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
             std::unique_lock<std::mutex> lk(wue->wl);
             wue->cv.notify_one();

@@ -30,17 +30,5 @@ typedef struct {
     ffrt_function_t destroy;
     void* data;
 } ffrt_io_callable_t;
-
-struct IOTaskExecutor: public ffrt_executor_task {
-    IOTaskExecutor(const QoS &qos) : qos(qos)
-    {
-        type = ffrt_io_task;
-        work = {nullptr, nullptr, nullptr};
-    }
-
-    QoS qos;
-    ffrt_io_callable_t work;
-    ExecTaskStatus status = ExecTaskStatus::ET_PENDING;
-};
 } /* namespace ffrt */
 #endif

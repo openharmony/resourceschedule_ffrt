@@ -35,7 +35,7 @@ class FIFOQueue : public RunQueue {
 public:
     void EnQueue(TaskBase* task) override
     {
-        list.PushBack(task->fq_we.node);
+        list.PushBack(task->node);
         auto curSize = size.load(std::memory_order_relaxed);
         size.store(curSize + 1, std::memory_order_relaxed);
     }
@@ -50,7 +50,7 @@ public:
             return nullptr;
         }
 
-        TaskBase* task = node->ContainerOf(&WaitEntry::node)->task;
+        TaskBase* task = node->ContainerOf(&TaskBase::node);
         auto curSize = size.load(std::memory_order_relaxed);
         assert(curSize > 0);
         size.store(curSize - 1, std::memory_order_relaxed);

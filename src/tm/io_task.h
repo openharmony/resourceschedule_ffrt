@@ -32,7 +32,7 @@ public:
     {
         QoS taskQos = qos_;
         FFRTTraceRecord::TaskSubmit<ffrt_io_task>(taskQos);
-        SetTaskStatus(TaskStatus::READY);
+        SetStatus(TaskStatus::READY);
         FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
         FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(taskQos);
         FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_LOCAL>(taskQos);
@@ -40,10 +40,21 @@ public:
 
     void Pop() override
     {
-        SetTaskStatus(TaskStatus::POPPED);
+        SetStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;
+
+    BlockType Block() override
+    {
+        SetStatus(TaskStatus::THREAD_BLOCK);
+        return BlockType::BLOCK_THREAD;
+    }
+
+    void Wake() override
+    {
+        SetStatus(TaskStatus::EXECUTING);
+    }
 
     void Finish() override {}
     void Cancel() override {}
@@ -62,6 +73,12 @@ public:
     {
         return "io-task";
     }
+
+    BlockType GetBlockType() const override
+    {
+        return BlockType::BLOCK_THREAD;
+    }
+
 private:
     ffrt_io_callable_t work;
 };

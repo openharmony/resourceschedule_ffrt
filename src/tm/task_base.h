@@ -70,10 +70,18 @@ public:
     virtual void Submit() = 0;
     virtual void Ready() = 0;
     virtual void Pop() = 0;
-    virtual void Cancel() = 0;
-    virtual void Finish() = 0;
+    // must be called by a sync primitive when blocking this task.
+    // return value indicates this task need to be blocked on thread or yield from it's coroutine.
+    virtual BlockType Block() = 0;
+    virtual void Wake() = 0;
     virtual void Execute() = 0;
+    virtual void Finish() = 0;
+    virtual void Cancel() = 0;
     virtual void FreeMem() = 0;
+
+    // must be called by a sync primitive when it wakes a blocking task.
+    // return value indicates this task has been blocked whether on thread or yield from it's coroutine.
+    virtual BlockType GetBlockType() const = 0;
 
     // getters and setters
     virtual std::string GetLabel() const = 0;
@@ -82,6 +90,13 @@ public:
     inline int GetQos() const
     {
         return qos_();
+    }
+
+    inline void SetStatus(TaskStatus statusIn)
+    {
+        statusTime = TimeStampCntvct();
+        preStatus = curStatus;
+        curStatus = statusIn;
     }
 
     // delete ref setter functions, for memory management
@@ -100,28 +115,17 @@ public:
         return v;
     }
 
-    inline void SetTaskStatus(TaskStatus s)
-    {
-        // Note: check if stronger barriers are needed
-        taskStatus.store(s, std::memory_order_relaxed);
-    }
-
-    inline TaskStatus GetTaskStatus()
-    {
-        // Note: check if stronger barriers are needed
-        return taskStatus.load(std::memory_order_relaxed);
-    }
-
     // returns the current g_taskId value
     static uint32_t GetLastGid();
 
     // properties
-    WaitEntry fq_we; // used on fifo fast que
+    LinkedList node; // used on fifo fast que
     ffrt_executor_task_type_t type;
     const uint64_t gid; // global unique id in this process
-    QoS qos_ = qos_inherit;
+    QoS qos_ = qos_default;
     std::atomic_uint32_t rc = 1; // reference count for delete
-    std::atomic<TaskStatus> taskStatus = TaskStatus::PENDING; // can be updated by threads in parallel
+    TaskStatus curStatus = TaskStatus::PENDING;
+    TaskStatus preStatus = TaskStatus::PENDING;
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
@@ -129,6 +133,7 @@ public:
 
     struct HiTraceIdStruct traceId_ = {};
 
+    uint64_t statusTime = TimeStampCntvct();
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
@@ -139,16 +144,20 @@ public:
     CoTask(ffrt_executor_task_type_t type, const task_attr_private *attr)
         : TaskBase(type, attr)
     {
+        we.task = this;
         if (attr) {
             stack_size = std::max(attr->stackSize_, MIN_STACK_SIZE);
         }
     }
     ~CoTask() override = default;
 
+    uint8_t func_storage[ffrt_auto_managed_function_storage_size]; // 函数闭包、指针或函数对象
+
     std::string label;
     CoWakeType coWakeType { CoWakeType::NO_TIMEOUT_WAKE };
     int cpuBoostCtxId = -1;
-    WaitUntilEntry* wue = nullptr;
+    WaitEntry we; // Used on syncprimitive wait que
+    WaitUntilEntry* wue = nullptr; // used on syncprimitive wait que and delayed wait que
     // lifecycle connection between task and coroutine is shown as below:
     // |*task pending*|*task ready*|*task executing*|*task done*|*task release*|
     //                             |**********coroutine*********|
@@ -156,12 +165,8 @@ public:
     uint64_t stack_size = STACK_SIZE;
     std::atomic<pthread_t> runningTid = 0;
     int legacyCountNum = 0; // dynamic switch controlled by set_legacy_mode api
-    BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
     std::mutex mutex_; // used in coroute
     std::condition_variable waitCond_; // cv for thread wait
-    std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
-    TaskStatus preStatus = TaskStatus::PENDING;
-    uint64_t statusTime = TimeStampCntvct();
 
     bool pollerEnable = false; // set true if task call ffrt_epoll_ctl
     std::string GetLabel() const override
@@ -175,36 +180,17 @@ public:
         preStatus = curStatus;
         curStatus = statusIn;
     }
+protected:
+    BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };
+
+std::string StatusToString(TaskStatus status);
 
 void ExecuteTask(TaskBase* task);
 
 inline bool IsCoTask(TaskBase* task)
 {
     return task && (task->type == ffrt_normal_task || task->type == ffrt_queue_task);
-}
-
-inline bool LegacyMode(TaskBase* task)
-{
-    return IsCoTask(task) && (static_cast<CoTask*>(task)->legacyCountNum > 0);
-}
-
-inline bool BlockThread(TaskBase* task)
-{
-    return IsCoTask(task) && static_cast<CoTask*>(task)->blockType == BlockType::BLOCK_THREAD;
-}
-
-inline bool ThreadNotifyMode(TaskBase* task)
-{
-    if constexpr(!USE_COROUTINE) {
-        // static switch controlled by macro
-        return true;
-    }
-    if (!IsCoTask(task) || BlockThread(task)) {
-        // thread wait happended when task in legacy mode
-        return true;
-    }
-    return false;
 }
 } // namespace ffrt
 #endif

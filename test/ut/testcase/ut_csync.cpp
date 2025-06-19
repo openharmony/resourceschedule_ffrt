@@ -217,13 +217,14 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level0)
         ffrt_this_task_set_legacy_mode(true);
         ffrt_this_task_set_legacy_mode(true);
         ffrt::CPUEUTask* ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
-        bool result = ffrt::LegacyMode(ctx);
-        EXPECT_TRUE(result);
+        EXPECT_EQ(ctx->Block() == ffrt::BlockType::BLOCK_THREAD, true);
+        EXPECT_EQ(ctx->GetBlockType() == ffrt::BlockType::BLOCK_THREAD, true);
+        ctx->Wake();
         ffrt::submit([&]() {
             ffrt_this_task_set_legacy_mode(true);
             ffrt::CPUEUTask* ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
-            bool result = ffrt::LegacyMode(ctx);
-            EXPECT_TRUE(result);
+            EXPECT_EQ(ctx->Block() == ffrt::BlockType::BLOCK_THREAD, true);
+            EXPECT_EQ(ctx->GetBlockType() == ffrt::BlockType::BLOCK_THREAD, true);
             x++;
             EXPECT_EQ(x, 1);
             ffrt_this_task_set_legacy_mode(false);
@@ -231,14 +232,16 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level0)
             ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
             int legacycount = ctx->legacyCountNum;
             EXPECT_EQ(legacycount, -1);
-            }, {}, {}, ffrt::task_attr().qos(3));
+            }, {}, {});
         ffrt::wait();
         ffrt_this_task_set_legacy_mode(false);
         ffrt_this_task_set_legacy_mode(false);
         ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
         int legacycount = ctx->legacyCountNum;
         EXPECT_EQ(legacycount, 0);
-        }, {}, {}, ffrt::task_attr().qos(3));
+        EXPECT_EQ(ctx->Block() == ffrt::BlockType::BLOCK_COROUTINE, true);
+        EXPECT_EQ(ctx->GetBlockType() == ffrt::BlockType::BLOCK_COROUTINE, true);
+        }, {}, {});
     ffrt::wait();
     EXPECT_EQ(x, 1);
 }

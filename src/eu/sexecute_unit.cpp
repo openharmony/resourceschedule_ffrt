@@ -87,8 +87,6 @@ SExecuteUnit::~SExecuteUnit()
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
-            workerGroup[qos].pollersMtx.unlock();
-            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
             {
                 std::lock_guard lk(workerGroup[qos].mutex);
                 workerGroup[qos].cv.notify_all();
@@ -130,14 +128,7 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
 #endif
     if (group.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(thread->GetQos());
-        bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
-	    /* note that polling_ is not protected by lk, hence it needs to be defined as atomic
-         * we use seq_cst barrier here to ensure the atomic store from which the value is read
-         * cannot be observed to occur in the critical section of IntoPollWait.
-         * see ExecuteUnit::TryPoll
-         */
-        (!workerGroup[thread->GetQos()].polling_);
-        return tearDown || taskExistence || needPoll;
+        return tearDown || taskExistence;
     })) {
         workerGroup[thread->GetQos()].OutOfSleep();
         thread->SetWorkerState(WorkerStatus::EXECUTING);
@@ -234,9 +225,6 @@ void SExecuteUnit::HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS
             manager->WakeupWorkers(qos);
         }
     } else {
-        if (workerCtrl.pollWaitFlag) {
-            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
-        }
         workerCtrl.lock.unlock();
     }
 }
@@ -304,9 +292,6 @@ void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType n
         SubmitEscape(qos, totalNum);
         workerCtrl.lock.unlock();
     } else {
-        if (workerCtrl.pollWaitFlag) {
-            FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
-        }
         workerCtrl.lock.unlock();
     }
 }
@@ -331,9 +316,6 @@ void SExecuteUnit::ExecuteEscape(int qos)
             }
             ReportEscapeEvent(qos, totalNum);
         } else {
-            if (workerCtrl.pollWaitFlag) {
-                FFRTFacade::GetPPInstance().GetPoller(qos).WakeUp();
-            }
             workerCtrl.lock.unlock();
         }
     }

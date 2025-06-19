@@ -45,8 +45,8 @@ void SCPUEUTask::DecDepRef()
 {
     if (--dataRefCnt.submitDep == 0) {
         FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
-        FFRT_WAKE_TRACER(this->gid);
-        this->Ready();
+        FFRT_WAKE_TRACER(gid);
+        Ready();
     }
 }
 
@@ -68,7 +68,7 @@ void SCPUEUTask::DecChildRef()
         }
     }
 
-    if (!parent->IsRoot() && parent->GetTaskStatus() == TaskStatus::WAIT_RELEASING && parent->childRefCnt == 0) {
+    if (!parent->IsRoot() && parent->curStatus == TaskStatus::WAIT_RELEASING && parent->childRefCnt == 0) {
         FFRT_LOGD("free CPUEUTask:%s gid=%lu", parent->GetLabel().c_str(), parent->gid);
         lck.unlock();
         parent->DecDeleteRef();
@@ -79,10 +79,7 @@ void SCPUEUTask::DecChildRef()
     }
     parent->dependenceStatus = Dependence::DEPENDENCE_INIT;
 
-    if (ThreadNotifyMode(parent) || parent->IsRoot()) {
-        if (BlockThread(parent)) {
-            parent->blockType = BlockType::BLOCK_COROUTINE;
-        }
+    if (parent->GetBlockType() == BlockType::BLOCK_THREAD) {
         parent->waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(parent->gid);
@@ -104,14 +101,11 @@ void SCPUEUTask::DecWaitDataRef()
         dependenceStatus = Dependence::DEPENDENCE_INIT;
     }
 
-    if (ThreadNotifyMode(this) || IsRoot()) {
-        if (BlockThread(this)) {
-            blockType = BlockType::BLOCK_COROUTINE;
-        }
+    if (GetBlockType() == BlockType::BLOCK_THREAD) {
         waitCond_.notify_all();
     } else {
-        FFRT_WAKE_TRACER(this->gid);
-        this->Ready();
+        FFRT_WAKE_TRACER(gid);
+        Ready();
     }
 }
 
@@ -124,13 +118,12 @@ void SCPUEUTask::Finish()
         DecDeleteRef();
     } else {
         SetStatus(TaskStatus::WAIT_RELEASING);
-        SetTaskStatus(TaskStatus::WAIT_RELEASING);
     }
 }
 
 void SCPUEUTask::MultiDependenceAdd(Dependence depType)
 {
-    FFRT_LOGD("task(%s) ADD_DENPENCE(%s)", this->GetLabel().c_str(), DependenceStr(depType));
+    FFRT_LOGD("task(%s) ADD_DENPENCE(%s)", label.c_str(), DependenceStr(depType));
     dependenceStatus = depType;
 }
 } /* namespace ffrt */

@@ -55,10 +55,22 @@ public:
 
     void Pop() override
     {
-        SetTaskStatus(TaskStatus::POPPED);
+        SetStatus(TaskStatus::POPPED);
     }
 
     void Execute() override;
+
+    BlockType Block() override
+    {
+        SetStatus(TaskStatus::THREAD_BLOCK);
+        return BlockType::BLOCK_THREAD;
+    }
+
+    void Wake() override
+    {
+        SetStatus(TaskStatus::EXECUTING);
+    }
+
     void Finish() override {}
     void Cancel() override {}
 
@@ -75,6 +87,11 @@ public:
     std::string GetLabel() const override
     {
         return "uv-task";
+    }
+
+    BlockType GetBlockType() const override
+    {
+        return BlockType::BLOCK_THREAD;
     }
 
     inline void SetDequeued()

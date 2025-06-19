@@ -48,13 +48,6 @@ public:
         group.lock.unlock();
     }
 
-    void IntoPollWait(const QoS& qos) override
-    {
-        CPUWorkerGroup& group = workerGroup[qos];
-        std::lock_guard lk(group.lock);
-        group.pollWaitFlag = true;
-    }
-
     /* strategy options for handling task notify events */
     static void HandleTaskNotifyDefault(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType);
     static void HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType);
@@ -71,7 +64,7 @@ private:
     {
         handleTaskNotify(this, qos, TaskNotifyType::TASK_PICKED);
     }
-    void PokePoller(const QoS& qos) override
+    void PokeLocal(const QoS& qos) override
     {
         if (FFRTFacade::GetSchedInstance()->GetScheduler(qos).stealWorkers.load(std::memory_order_relaxed) == 0) {
             handleTaskNotify(this, qos, TaskNotifyType::TASK_LOCAL);

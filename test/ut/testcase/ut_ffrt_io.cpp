@@ -529,3 +529,37 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_valid, TestSize.Level0)
     EXPECT_EQ(ret, 0);
     ffrt::wait();
 }
+
+typedef struct {
+    int timerId;
+    int result;
+} TimerDataT;
+
+static void TimerCb(void* data)
+{
+    (reinterpret_cast<TimerDataT*>(data))->result++;
+}
+
+/*
+* 测试用例名称：timer_repeat
+* 测试用例描述：测试注册repeat的定时器后，进程能正确推出
+* 预置条件    ：无
+* 操作步骤    ：1.子进程提交若干个repeat为true的timer，sleep1秒后退出
+               2.父进程等待子进程完成
+* 预期结果    ：子进程结束码为0（不发生crash）
+*/
+HWTEST_F(ffrtIoTest, timer_repeat, TestSize.Level0)
+{
+    const int timerCount = 1000;
+    static TimerDataT timerDatas[timerCount];
+    for (auto& timerData : timerDatas) {
+        timerData.result = 0;
+        timerData.timerId = ffrt_timer_start(ffrt_qos_default,
+            0, reinterpret_cast<void*>(&timerData), TimerCb, true);
+    }
+    while (timerDatas[0].result == 0) {
+        usleep(1);
+    }
+    sleep(1);
+    EXPECT_GT(timerDatas[0].result, 0);
+}

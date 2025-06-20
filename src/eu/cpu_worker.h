@@ -69,12 +69,12 @@ public:
 
     bool Exited() const
     {
-        return exited;
+        return exited.load(std::memory_order_relaxed);
     }
 
-    void SetExited(bool var)
+    void SetExited()
     {
-        this->exited = var;
+        exited.store(true, std::memory_order_relaxed);
     }
 
     pid_t Id() const

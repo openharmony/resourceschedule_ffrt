@@ -25,9 +25,14 @@
 #include <array>
 #include "qos.h"
 #include "sync/sync.h"
+#include "tm/task_base.h"
 #include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"
 #include "c/timer.h"
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
+
 namespace ffrt {
 enum class PollerRet {
     RET_NULL,
@@ -52,27 +57,45 @@ struct WakeDataWithCb {
     WakeDataWithCb() {}
     WakeDataWithCb(int fdVal, void *dataVal, std::function<void(void *, uint32_t)> cbVal, CoTask *taskVal)
         : fd(fdVal), data(dataVal), cb(cbVal), task(taskVal)
-    {}
+    {
+        if (cb != nullptr) {
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
+                traceId = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
+            };
+#endif
+        }
+    }
 
     int fd = 0;
     void* data = nullptr;
     std::function<void(void*, uint32_t)> cb = nullptr;
     CoTask* task = nullptr;
     uint32_t monitorEvents = 0;
+    HiTraceIdStruct traceId;
 };
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void *dataVal, void (*cbVal)(void *), CoTask *taskVal, bool repeat, uint64_t timeout)
+    TimerDataWithCb(void *dataVal, std::function<void(void*)> cbVal, CoTask *taskVal, bool repeat, uint64_t timeout)
         : data(dataVal), cb(cbVal), task(taskVal), repeat(repeat), timeout(timeout)
-    {}
+    {
+        if (cb != nullptr) {
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
+                traceId = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
+            };
+#endif
+        }
+    }
 
     void* data = nullptr;
-    void(*cb)(void*) = nullptr;
+    std::function<void(void*)> cb = nullptr;
     int handle = -1;
     CoTask* task = nullptr;
     bool repeat = false;
     uint64_t timeout = 0;
+    HiTraceIdStruct traceId;
 };
 
 struct SyncData {

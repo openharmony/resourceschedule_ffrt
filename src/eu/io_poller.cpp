@@ -182,7 +182,17 @@ int IOPoller::PollOnce(int timeout) noexcept
             // async io callback
             timeOutReport.cbStartTime = FFRTTraceRecord::TimeStamp();
             timeOutReport.reportCount = 0;
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (data->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainRestoreId(&data->traceId);
+            }
+#endif
             data->cb(data->data, waitedEvents[i].events);
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (data->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
+#endif
             timeOutReport.cbStartTime = 0;
             continue;
         }

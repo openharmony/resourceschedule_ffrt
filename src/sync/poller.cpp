@@ -17,6 +17,9 @@
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
 #include <securec.h>
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
 
 constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
 
@@ -358,7 +361,17 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CoTask*, EventVec>& s
         }
 
         if (data->cb != nullptr) {
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (data->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainRestoreId(&data->traceId);
+            }
+#endif
             data->cb(data->data, waitedEvents[i].events);
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (data->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
+#endif
             continue;
         }
 
@@ -614,7 +627,17 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
 
         if (data.cb != nullptr) {
             timerMutex_.unlock();
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (data.traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainRestoreId(&data.traceId);
+            }
+#endif
             data.cb(data.data);
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (data.traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
+#endif
             timerMutex_.lock();
             executedHandle_[data.handle] = TimerStatus::EXECUTED;
         } else if (data.task != nullptr) {

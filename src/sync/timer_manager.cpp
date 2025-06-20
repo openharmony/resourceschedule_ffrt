@@ -64,7 +64,17 @@ void TimerManager::InitWorkQueAndCb(int qos)
             timerMapValue->state = TimerState::EXECUTING;
             if (timerMapValue->cb != nullptr) {
                 timerMutex_.unlock();
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainRestoreId(&timerMapValue->traceId);
+            }
+#endif
                 timerMapValue->cb(timerMapValue->data);
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
+#endif
                 timerMutex_.lock();
             }
             timerMapValue->state = TimerState::EXECUTED;

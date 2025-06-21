@@ -25,7 +25,6 @@
 #include "eu/blockaware.h"
 #include "eu/execute_unit.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "internal_inc/assert.h"
 #include "util/name_manager.h"
 #include "sched/scheduler.h"
 #include "util/ffrt_facade.h"

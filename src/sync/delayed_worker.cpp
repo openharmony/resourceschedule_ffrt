@@ -196,7 +196,6 @@ DelayedWorker::DelayedWorker()
     DelayedWorker::ThreadEnvCreate();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     monitorfd_ = BlockawareMonitorfd(-1, ExecuteUnit::Instance().WakeupCond());
-    FFRT_ASSERT(monitorfd_ >= 0);
     FFRT_LOGI("timerfd:%d, monitorfd:%d", timerfd_, monitorfd_);
     /* monitorfd does not support 'CLOEXEC', and current kernel does not inherit monitorfd after 'fork'.
      * 1. if user calls 'exec' directly after 'fork' and does not use ffrt, it's ok.

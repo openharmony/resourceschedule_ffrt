@@ -487,7 +487,7 @@ private:
      */
     static bool submit_to_master_suspend_func(void* p)
     {
-        auto partner = ((job_t*)p)->local().partner;
+        auto partner = (static_cast<job_t*>(p))->local().partner;
         partner->master_q.template push<0>(master_run_func, p);
         partner->notify_master();
         return true;
@@ -551,7 +551,7 @@ _re_run_partner:
      */
     static void suspendable_job_func(void* p_)
     {
-        auto p = (job_t*)p_;
+        auto p = (static_cast<job_t*>(p_));
         FFRT_API_LOGD("run partner job %lu", p->id);
         FFRT_API_TRACE_SCOPE("pjob%lu", p->id);
         if (p->start()) { // job done
@@ -572,7 +572,7 @@ _re_run_partner:
      */
     static void non_suspendable_job_func(void* p_)
     {
-        auto p = (non_suspendable_job_t*)p_;
+        auto p = static_cast<non_suspendable_job_t*>(p_);
         FFRT_API_LOGD("run non-suspendable job %p", p);
         FFRT_API_TRACE_SCOPE("nsjob");
         (p->fn)();
@@ -592,7 +592,7 @@ _re_run_partner:
      */
     static void master_run_func(void* p_)
     {
-        auto p = (job_t*)p_;
+        auto p = static_cast<job_t*>(p_);
         {
             FFRT_API_LOGD("run master job %lu", p->id);
             FFRT_API_TRACE_SCOPE("mjob%lu", p->id);

@@ -18,6 +18,7 @@
 #include <chrono>
 #include <iostream>
 
+constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100year
 namespace ffrt {
 TimerManager& TimerManager::Instance()
 {
@@ -41,12 +42,14 @@ TimerManager::~TimerManager()
 void TimerManager::InitWorkQueAndCb(int qos)
 {
     workCb[qos] = [this, qos](WaitEntry* we) {
-        int handle = (int)reinterpret_cast<uint64_t>(we);
-        std::lock_guard lock(timerMutex_);
-        if (teardown) {
-            return;
+        {
+            std::lock_guard lock(timerMutex_);
+            if (teardown) {
+                return;
+            }
         }
 
+        int handle = (int)reinterpret_cast<uint64_t>(we);
         submit([this, handle]() {
             std::lock_guard lock(timerMutex_);
             if (teardown) {
@@ -88,6 +91,10 @@ int TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_time
         return -1;
     }
 
+    if (timeout > MAX_TIMER_MS_COUNT) {
+        FFRT_LOGW("timeout exceeds maximum allowed value %llu ms. Clamping to %llu ms.", timeout, MAX_TIMER_MS_COUNT);
+        timeout = MAX_TIMER_MS_COUNT;
+    }
     std::shared_ptr<TimerData> timerMapValue = std::make_shared<TimerData>(data, cb, repeat, qos, timeout);
     timerMapValue->handle = ++timerHandle_;
     timerMapValue->state = TimerState::NOT_EXECUTED;

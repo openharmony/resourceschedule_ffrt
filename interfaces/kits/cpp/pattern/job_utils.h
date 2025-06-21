@@ -40,12 +40,12 @@
 #include <climits>
 #include <unistd.h>
 #include <sys/syscall.h>
-#include <linux/futex.h>
 #include <functional>
 #include <string>
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <linux/futex.h>
 #include "c/fiber.h"
 
 #ifndef FFRT_API_LOGE
@@ -170,7 +170,7 @@ struct atomic_wait : std::atomic<int> {
      */
     inline void wait(int val)
     {
-        futex::wait((int*)this, val);
+        futex::wait(reinterpret_cast<int*>(this), val);
     }
 
     /**
@@ -178,7 +178,7 @@ struct atomic_wait : std::atomic<int> {
      */
     inline auto notify_one()
     {
-        futex::wake((int*)this, 1);
+        futex::wake(reinterpret_cast<int*>(this), 1);
     }
 
     /**
@@ -186,7 +186,7 @@ struct atomic_wait : std::atomic<int> {
      */
     inline void notify_all()
     {
-        futex::wake((int*)this, INT_MAX);
+        futex::wake(reinterpret_cast<int*>(this), INT_MAX);
     }
 };
 
@@ -215,7 +215,7 @@ struct ref_obj {
          *
          * @param p Raw pointer to the managed object.
          */
-        ptr(void* p) : p((T*)p) {}
+        ptr(void* p) : p(static_cast<T*>(p)) {}
 
         /**
          * @brief Destructor. Decreases the reference count and deletes the object if necessary.
@@ -381,7 +381,7 @@ struct ref_obj {
     {
         if (ref.fetch_sub(1, std::memory_order_relaxed) == 1) {
             FFRT_API_LOGD("%s delete %p", __PRETTY_FUNCTION__, this);
-            delete (T*)this;
+            delete static_cast<T*>(this);
         }
     }
 
@@ -405,7 +405,7 @@ struct mpmc_queue : detail::non_copyable {
     mpmc_queue(uint64_t cap) : capacity(align2n(cap)), mask(capacity - 1)
     {
         if (std::is_pod_v<Item>) {
-            q = (Item*)malloc(sizeof(Item) * capacity);
+            q = static_cast<Item*>(malloc(capacity * sizeof(Item)));
         } else {
             q = new Item [capacity];
         }
@@ -646,9 +646,9 @@ struct fiber : detail::non_copyable {
         if (stack == nullptr || stack_size < sizeof(fiber) + min_stack_size) {
             return nullptr;
         }
-        auto c = new (stack) fiber(std::forward<std::function<void()>>(f), stack_size);
-        if (ffrt_fiber_init(&c->fb, (void(*)(void*))fiber_entry, c, (char*)stack + sizeof(fiber),
-            stack_size - sizeof(fiber))) {
+        auto c = new (stack) fiber(std::forward<std::function<void()>>(f));
+        if (ffrt_fiber_init(&c->fb, reinterpret_cast<void(*)(void*)>(fiber_entry), c,
+            static_cast<char*>(stack) + sizeof(fiber), stack_size - sizeof(fiber))) {
             c->~fiber<UsageId, FiberLocal, ThreadLocal>();
             return nullptr;
         }
@@ -738,9 +738,8 @@ private:
      * @brief Constructs a fiber object with the given function and stack size.
      *
      * @param f Function to execute in the fiber.
-     * @param stack_size Size of the stack memory.
      */
-    fiber(std::function<void()>&& f, size_t stack_size)
+    fiber(std::function<void()>&& f)
     {
         fn = std::forward<std::function<void()>>(f);
         id = idx.fetch_add(1, std::memory_order_relaxed);

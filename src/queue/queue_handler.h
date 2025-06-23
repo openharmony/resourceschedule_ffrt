@@ -136,7 +136,7 @@ private:
     void RemoveTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
-    void ReportTimeout(const std::vector<uint64_t>& timeoutTaskId);
+    void ReportTimeout(const std::vector<std::pair<uint64_t, std::string>>& timeoutTaskId);
     void CheckSchedDeadline();
     bool CheckExecutingTask();
     void SendSchedTimer(TimePoint delay);

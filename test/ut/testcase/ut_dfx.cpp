@@ -19,10 +19,13 @@
 #include "dfx/bbox/bbox.h"
 #define private public
 #include "util/worker_monitor.h"
+#include "sync/poller.h"
 #undef private
 #include "c/queue_ext.h"
 #include "../common.h"
-
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
 using namespace ffrt;
 
 extern void SaveTheBbox();
@@ -289,4 +292,85 @@ HWTEST_F(DfxTest, normaltsk_timeout_delay, TestSize.Level1)
     ffrt::wait();
     EXPECT_EQ(x, 2);
     ffrt::WorkerMonitor::GetInstance().timeoutUs_ = 30000000;
+}
+
+void MyCallback1(uint64_t id, const char* message, uint32_t length)
+{
+    FFRT_LOGE("call ffrt_queue_monitor timeout_callback");
+}
+
+static void Testfun(void* data)
+{
+    int* testData = static_cast<int*>(data);
+    *testData += 1;
+    printf("%d, timeout callback\n", *testData);
+}
+static void (*g_cb)(void*) = Testfun;
+
+HWTEST_F(DfxTest, hitrace_test_normal, TestSize.Level0)
+{
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    int HITRACE_FLAG_INCLUDE_ASYNC = 1 << 0;
+    const HiTraceIdStruct traceId = TraceChainAdapter::Instance().HiTraceChainBegin("ffrt_dfx_test",
+        HITRACE_FLAG_INCLUDE_ASYNC);
+    ffrt_task_timeout_set_cb(MyCallback1);
+    ffrt_task_timeout_set_threshold(1000);
+    FFRT_LOGE("hitrace_test begin");
+    std::atomic<std::uint64_t> x{0};
+    for (int i = 0; i < 5; i++) {
+        ffrt::submit(
+            [&]() {
+                stall_us(500000);
+                x.fetch_add(1);
+            }, {}, {});
+    }
+    ffrt::wait();
+
+    queue* testQueue = new queue("test_queue");
+    auto t = testQueue->submit_h([] { stall_us(1100000); FFRT_LOGE("done");}, {});
+    testQueue->wait(t);
+    FFRT_LOGE("hitrace_test end");
+    TraceChainAdapter::Instance().HiTraceChainEnd(&traceId);
+    EXPECT_EQ(x, 5);
+    delete testQueue;
+#endif
+}
+
+HWTEST_F(DfxTest, hitrace_test_poller, TestSize.Level0)
+{
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    int HITRACE_FLAG_INCLUDE_ASYNC = 1 << 0;
+    const HiTraceIdStruct traceId = TraceChainAdapter::Instance().HiTraceChainBegin("ffrt_dfx_test",
+        HITRACE_FLAG_INCLUDE_ASYNC);
+    Poller poller;
+    // 1.组装timeMap_
+    static int result0 = 0;
+    int* xf = &result0;
+    void* data = xf;
+    uint64_t timeout = 10;
+    uint64_t timeout1 = 11;
+    uint64_t timeout2 = 12;
+    uint64_t sleepTime = 25000;
+    poller.RegisterTimer(timeout, data, g_cb, false);
+    poller.RegisterTimer(timeout1, data, g_cb, false);
+    poller.RegisterTimer(timeout2, data, g_cb, false);
+    // 调用PollOnce,预计timerMap_为空，全部清除
+    usleep(sleepTime);
+    poller.PollOnce(1);
+    EXPECT_EQ(true, poller.DetermineEmptyMap());
+
+    uint64_t timeout3 = 10000;
+    uint64_t timeout4 = 100;
+    int loopNum = 2;
+    poller.RegisterTimer(timeout3, data, g_cb, false);
+    TimePoint start = std::chrono::steady_clock::now();
+    for (int i = 0; i < loopNum; ++i) {
+        poller.PollOnce(timeout4);
+    }
+    TimePoint end = std::chrono::steady_clock::now();
+    int m = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    // 预计等待时间为100，可能有几毫秒的误差
+    EXPECT_EQ(true, m >= timeout4 && m < timeout3);
+    TraceChainAdapter::Instance().HiTraceChainEnd(&traceId);
+#endif
 }

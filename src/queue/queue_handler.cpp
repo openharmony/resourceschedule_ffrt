@@ -528,7 +528,7 @@ void QueueHandler::ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss, 
     ss.str("");
     ss << GetDfxInfo(index) << ", timeout for[" << timeoutUs / MIN_TIMEOUT_THRESHOLD_US <<
         "]s, reported count: " << timeoutTaskVec_[index].timeoutCnt;
-    FFRT_LOGE("%s", ss.str().c_str());
+    FFRT_LOGW("%s", ss.str().c_str());
 #ifdef FFRT_SEND_EVENT
     if (timeoutTaskVec_[index].timeoutCnt == 1) {
         std::string senarioName = "Serial_Queue_Timeout";
@@ -594,7 +594,7 @@ void QueueHandler::SendSchedTimer(TimePoint delay)
 
 void QueueHandler::CheckSchedDeadline()
 {
-    std::vector<uint64_t> timeoutTaskId;
+    std::vector<std::pair<uint64_t, std::string>> timeoutTaskInfo;
     // Collecting Timeout Tasks
     {
         std::unique_lock lock(mutex_);
@@ -605,7 +605,7 @@ void QueueHandler::CheckSchedDeadline()
         uint64_t nextDeadline = UINT64_MAX;
         while (it != schedDeadline_.end()) {
             if (it->second < threshold) {
-                timeoutTaskId.push_back(it->first->gid);
+                timeoutTaskInfo.push_back(std::make_pair(it->first->gid, it->first->label));
                 it = schedDeadline_.erase(it);
             } else {
                 nextDeadline = std::min(nextDeadline, it->second);
@@ -625,8 +625,8 @@ void QueueHandler::CheckSchedDeadline()
     }
 
     // Reporting Timeout Information
-    if (!timeoutTaskId.empty()) {
-        ReportTimeout(timeoutTaskId);
+    if (!timeoutTaskInfo.empty()) {
+        ReportTimeout(timeoutTaskInfo);
     }
 }
 
@@ -659,12 +659,12 @@ void QueueHandler::RemoveSchedDeadline(QueueTask* task)
     schedDeadline_.erase(task);
 }
 
-void QueueHandler::ReportTimeout(const std::vector<uint64_t>& timeoutTaskId)
+void QueueHandler::ReportTimeout(const std::vector<std::pair<uint64_t, std::string>>& timeoutTaskInfo)
 {
     std::stringstream ss;
     ss << "Queue_Schedule_Timeout, queueId=" << GetQueueId() << ", timeout task gid: ";
-    for (auto& id : timeoutTaskId) {
-        ss << id << " ";
+    for (auto& info : timeoutTaskInfo) {
+        ss << info.first << ", name " << info.second.c_str() << " ";
     }
 
     FFRT_LOGE("%s", ss.str().c_str());

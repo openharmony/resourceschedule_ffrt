@@ -67,8 +67,8 @@ private:
             while (std::getline(file, whiteProcess)) {
                 size_t pos = whiteProcess.find("{");
                 if (pos != std::string::npos) {
-                    whiteList_[whiteProcess.substr(0, pos - 1)] = false;
                     functionName = whiteProcess.substr(0, pos - 1);
+                    whiteList_[functionName] = false;
                 } else if ((whiteProcess != "}" && whiteProcess != "") &&
                     processName.find(whiteProcess.substr(INDENT_SPACE_NUM)) != std::string::npos) {
                     whiteList_[functionName] = true;

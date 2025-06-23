@@ -172,6 +172,10 @@ bool CPUWorker::RunSingleTask(int qos, CPUWorker *worker)
 void CPUWorker::WorkerLooper(CPUWorker* worker)
 {
     for (;;) {
+        if (worker->Exited()) {
+            break;
+        }
+
         TaskBase* task = FFRTFacade::GetSchedInstance()->PopTask(worker->GetQos());
         worker->tick++;
         if (task) {

@@ -80,6 +80,9 @@ SExecuteUnit::SExecuteUnit() : ExecuteUnit(), handleTaskNotify(SExecuteUnit::Han
 SExecuteUnit::~SExecuteUnit()
 {
     tearDown = true;
+    for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
+        workerGroup[qos].SetTearDown();
+    }
     // Before destroying this object, we need to make sure that all threads that
     // might access this object or its members have exited.
     // If the destruction of this object happens before or in parallel of

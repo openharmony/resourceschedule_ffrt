@@ -377,7 +377,7 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_04, TestSize.Level1)
     ffrt_task_attr_init(&attr);
     ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
     ffrt_executor_task_register_func(UVCbSleep, ffrt_uv_task);
-    ffrt_executor_task_t works[taskCount];
+    static ffrt_executor_task_t works[taskCount]; // 取消的任务可能还没有被取出，不能使用临时变量保存
 
     for (int i = 0; i < taskCount; i++) {
         ffrt_executor_task_submit(&works[i], &attr);

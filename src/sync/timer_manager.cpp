@@ -13,10 +13,11 @@
  * limitations under the License.
  */
 
-#include "../sync/timer_manager.h"
 #include <mutex>
 #include <chrono>
 #include <iostream>
+#include "timer_manager.h"
+#include "dfx/log/ffrt_log_api.h"
 
 constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100year
 namespace ffrt {
@@ -107,11 +108,8 @@ int TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_time
 void TimerManager::RegisterTimerImpl(std::shared_ptr<TimerData> data)
 {
     TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data->timeout);
-    if (!DelayedWakeup(absoluteTime, reinterpret_cast<WaitEntry*>(data->handle), workCb[data->qos])) {
-        timerMutex_.unlock();
-        // delay_worker teardown or absoluteTime already expired
-        workCb[data->qos](reinterpret_cast<WaitEntry*>(data->handle));
-        timerMutex_.lock();
+    if (!DelayedWakeup(absoluteTime, reinterpret_cast<WaitEntry*>(data->handle), workCb[data->qos], true)) {
+        FFRT_LOGW("timer start failed, process may be exiting now");
     }
 }
 
@@ -142,7 +140,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
                 it = timerMap_.find(handle);
                 if (it == timerMap_.end()) {
                     // timer already erased
-                    return -1;
+                    return 0;
                 }
             }
             // executed, delete timer data

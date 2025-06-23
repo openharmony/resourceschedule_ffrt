@@ -305,10 +305,10 @@ int ThreadSafeRand(const int min, const int max)
 */
 HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level0)
 {
-    int taskCount = 10000;
+    const int taskCount = 10000;
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
-    ffrt_executor_task_t work[taskCount];
+    static ffrt_executor_task_t work[taskCount];
     init_once_sleep();
     std::atomic_int cancelCount {0};
     ffrt::task_attr task_attr;
@@ -494,4 +494,72 @@ HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Leve
 void AddOne(void* args)
 {
     *(static_cast<int*>(args)) += 1;
+}
+
+namespace {
+ffrt::mutex uv_block_mtx;
+std::atomic_int uv_block_result = 0;
+const unsigned int UV_BLOCK_SLEEP_TIME = 10;
+void UVBlockCb(ffrt_executor_task_t* data, ffrt_qos_t qos)
+{
+    (void)qos;
+    std::unique_lock lk(uv_block_mtx);
+    usleep(UV_BLOCK_SLEEP_TIME);
+    uv_block_result.fetch_add(1);
+}
+}
+
+HWTEST_F(DependencyTest, uv_task_block_ffrt_mutex, TestSize.Level0)
+{
+    ffrt_executor_task_register_func(UVBlockCb, ffrt_uv_task);
+    const int taskCount = 4000;
+
+    auto rand = []() -> int {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<int> dis(1, 20);
+        return dis(gen);
+    };
+
+    auto submitNormal = [rand]() {
+        for (int qos = ffrt_qos_background; qos <= ffrt_qos_user_initiated; qos++) {
+            ffrt::submit([]() {
+                usleep(1);
+            }, {}, {}, ffrt::task_attr().qos(qos));
+            usleep(rand());
+        }
+    };
+    std::thread{[submitNormal]() {
+        for (int i = 0; i < taskCount; i++) {
+            if (uv_block_result >= taskCount * 4) {
+                break;
+            }
+            submitNormal();
+        }
+    }}.detach();
+
+    static ffrt_executor_task_t uvWork[taskCount * 4];
+    std::thread{[rand]() {
+        ffrt_task_attr_t attr;
+        ffrt_task_attr_init(&attr);
+        for (int i = 0; i < taskCount; i++) {
+            ffrt_task_attr_set_qos(&attr, ffrt_qos_background);
+            ffrt_executor_task_submit(&uvWork[i * 4], &attr);
+            usleep(rand());
+            ffrt_task_attr_set_qos(&attr, ffrt_qos_utility);
+            ffrt_executor_task_submit(&uvWork[i * 4 + 1], &attr);
+            usleep(rand());
+            ffrt_task_attr_set_qos(&attr, ffrt_qos_default);
+            ffrt_executor_task_submit(&uvWork[i * 4 + 2], &attr);
+            usleep(rand());
+            ffrt_task_attr_set_qos(&attr, ffrt_qos_user_initiated);
+            ffrt_executor_task_submit(&uvWork[i * 4 + 3], &attr);
+        }
+    }}.detach();
+
+    while (uv_block_result < taskCount * 4) {
+        usleep(1000);
+    }
+
+    EXPECT_EQ(uv_block_result, taskCount * 4);
 }

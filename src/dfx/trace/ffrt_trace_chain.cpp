@@ -73,6 +73,21 @@ HiTraceIdStruct TraceChainAdapter::HiTraceChainCreateSpan()
     return {};
 }
 
+HiTraceIdStruct TraceChainAdapter::HiTraceChainBegin(const char* name, int flags)
+{
+    if (beginChainFunc_ != nullptr) {
+        return beginChainFunc_(name, flags);
+    }
+    return {};
+}
+
+void TraceChainAdapter::HiTraceChainEnd(const HiTraceIdStruct* pId)
+{
+    if (endChainFunc_ != nullptr) {
+        return endChainFunc_(pId);
+    }
+}
+
 void TraceChainAdapter::Load()
 {
     if (handle_ != nullptr) {
@@ -113,6 +128,20 @@ void TraceChainAdapter::Load()
         UnLoad();
         return;
     }
+
+    beginChainFunc_ = reinterpret_cast<HiTraceChainBeginFunc>(dlsym(handle_, "HiTraceChainBegin"));
+    if (beginChainFunc_ == nullptr) {
+        FFRT_LOGE("load func HiTraceChainBegin from %s failed", TRACE_CHAIN_LIB_PATH);
+        UnLoad();
+        return;
+    }
+
+    endChainFunc_ = reinterpret_cast<HiTraceChainEndFunc>(dlsym(handle_, "HiTraceChainEnd"));
+    if (endChainFunc_ == nullptr) {
+        FFRT_LOGE("load func HiTraceChainEnd from %s failed", TRACE_CHAIN_LIB_PATH);
+        UnLoad();
+        return;
+    }
 }
 
 void TraceChainAdapter::UnLoad()
@@ -121,6 +150,8 @@ void TraceChainAdapter::UnLoad()
     clearIdFunc_ = nullptr;
     restoreIdFunc_ = nullptr;
     createSpanFunc_ = nullptr;
+    beginChainFunc_ = nullptr;
+    endChainFunc_ = nullptr;
     if (handle_ != nullptr) {
         if (dlclose(handle_) == 0) {
             handle_ = nullptr;

@@ -29,7 +29,21 @@
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 using namespace OHOS::HiviewDFX;
 #endif
+namespace {
+ffrt::HiTraceIdStruct traceid;
+ffrt_task_timeout_cb timeoutCb = nullptr;
 
+void HitraceChainCbWrap(uint64_t gid, const char *msg, uint32_t size)
+{
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    if (traceid.valid == ffrt::HITRACE_ID_VALID) {
+        ffrt::TraceChainAdapter::Instance().HiTraceChainRestoreId(&traceid);
+    }
+    timeoutCb(gid, msg, size);
+    ffrt::TraceChainAdapter::Instance().HiTraceChainClearId();
+#endif
+}
+}
 namespace ffrt {
 constexpr uint32_t DEFAULT_TIMEOUT_MS = 30000;
 struct TimeoutCfg {
@@ -174,7 +188,17 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb)
 {
     FFRT_COND_DO_ERR((cb == nullptr), return, "input invalid, cb is nullptr");
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    if (ffrt::TraceChainAdapter::Instance().HiTraceChainGetId().valid == ffrt::HITRACE_ID_VALID) {
+        traceid = ffrt::TraceChainAdapter::Instance().HiTraceChainCreateSpan();
+        timeoutCb = cb;
+        ffrt::TimeoutCfg::Instance()->callback = HitraceChainCbWrap;
+    } else {
+        ffrt::TimeoutCfg::Instance()->callback = cb;
+    }
+#else
     ffrt::TimeoutCfg::Instance()->callback = cb;
+#endif
 }
 
 API_ATTRIBUTE((visibility("default")))

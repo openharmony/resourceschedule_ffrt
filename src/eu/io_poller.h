@@ -29,6 +29,10 @@
 #include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"
 #include "sync/poller.h"
+#include "tm/task_base.h"
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
 
 namespace ffrt {
 enum class PollerState {
@@ -58,6 +62,11 @@ struct WakeData {
             mode = PollerType::ASYNC_IO;
         } else {
             mode = PollerType::ASYNC_CB;
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
+                traceId = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
+            };
+#endif
         }
     }
 
@@ -67,6 +76,7 @@ struct WakeData {
     std::function<void(void*, uint32_t)> cb = nullptr;
     CoTask* task = nullptr;
     uint32_t monitorEvents = 0;
+    HiTraceIdStruct traceId;
 };
 
 struct TimeOutReport {

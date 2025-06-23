@@ -9,7 +9,7 @@
 
 这便是Job Partner并发范式产生的原因。
 
-    ![image](figures/ffrt_figure8.png)
+![image](figures/ffrt_figure8.png)
 
 Job Partner中定义原先的线程为master线程，并支持动态管理partner线程（伙伴线程），它有两个特性：
 

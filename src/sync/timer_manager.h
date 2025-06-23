@@ -25,6 +25,10 @@
 #include "cpp/queue.h"
 #include "sync/sync.h"
 #include "sched/execute_ctx.h"
+#include "tm/task_base.h"
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+#include "dfx/trace/ffrt_trace_chain.h"
+#endif
 
 namespace ffrt {
 /** un-repeat timer: not_executed -> executintg -> executed -> ereased **/
@@ -37,17 +41,26 @@ enum class TimerState {
 };
 
 struct TimerData {
-    TimerData(void *dataVal, void (*cbVal)(void *), bool repeat, int qos, uint64_t timeout)
+    TimerData(void *dataVal, std::function<void(void*)> cbVal, bool repeat, int qos, uint64_t timeout)
         : data(dataVal), cb(cbVal), repeat(repeat), qos(qos), timeout(timeout)
-    {}
+    {
+        if (cb != nullptr) {
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
+                traceId = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
+            };
+#endif
+        }
+    }
 
     void* data;
-    void(*cb)(void*);
+    std::function<void(void*)> cb;
     bool repeat;
     int qos;
     uint64_t timeout;
     int handle;
     TimerState state;
+    HiTraceIdStruct traceId;
 };
 
 class TimerManager : private NonCopyable {

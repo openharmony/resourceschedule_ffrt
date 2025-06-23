@@ -363,7 +363,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
 
     {
         std::unique_lock<std::shared_mutex> lck(workerGroup[qos].tgMutex);
-        thread->SetExited(true);
+        thread->SetExited();
         thread->Detach();
         auto worker = std::move(workerGroup[qos].threads[thread]);
         int ret = workerGroup[qos].threads.erase(thread);

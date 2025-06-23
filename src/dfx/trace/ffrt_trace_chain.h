@@ -32,6 +32,8 @@ public:
     void HiTraceChainClearId();
     void HiTraceChainRestoreId(const HiTraceIdStruct* pId);
     HiTraceIdStruct HiTraceChainCreateSpan();
+    HiTraceIdStruct HiTraceChainBegin(const char* name, int flags);
+    void HiTraceChainEnd(const HiTraceIdStruct* pId);
 
 private:
     void Load();
@@ -43,11 +45,15 @@ private:
     using HiTraceChainClearIdFunc = void (*)();
     using HiTraceChainRestoreIdFunc = void (*)(const HiTraceIdStruct*);
     using HiTraceChainCreateSpanFunc = HiTraceIdStruct (*)();
+    using HiTraceChainBeginFunc = HiTraceIdStruct (*)(const char*, int);
+    using HiTraceChainEndFunc = void (*)(const HiTraceIdStruct*);
 
     HiTraceChainGetIdFunc getIdFunc_ = nullptr;
     HiTraceChainClearIdFunc clearIdFunc_ = nullptr;
     HiTraceChainRestoreIdFunc restoreIdFunc_ = nullptr;
     HiTraceChainCreateSpanFunc createSpanFunc_ = nullptr;
+    HiTraceChainBeginFunc beginChainFunc_ = nullptr;
+    HiTraceChainEndFunc endChainFunc_ = nullptr;
 };
 } // namespace ffrt
 

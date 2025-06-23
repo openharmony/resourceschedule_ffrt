@@ -13,11 +13,13 @@
  * limitations under the License.
  */
 
-#include "../sync/timer_manager.h"
 #include <mutex>
 #include <chrono>
 #include <iostream>
+#include "timer_manager.h"
+#include "dfx/log/ffrt_log_api.h"
 
+constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100year
 namespace ffrt {
 TimerManager& TimerManager::Instance()
 {
@@ -41,12 +43,14 @@ TimerManager::~TimerManager()
 void TimerManager::InitWorkQueAndCb(int qos)
 {
     workCb[qos] = [this, qos](WaitEntry* we) {
-        int handle = (int)reinterpret_cast<uint64_t>(we);
-        std::lock_guard lock(timerMutex_);
-        if (teardown) {
-            return;
+        {
+            std::lock_guard lock(timerMutex_);
+            if (teardown) {
+                return;
+            }
         }
 
+        int handle = (int)reinterpret_cast<uint64_t>(we);
         submit([this, handle]() {
             std::lock_guard lock(timerMutex_);
             if (teardown) {
@@ -64,7 +68,17 @@ void TimerManager::InitWorkQueAndCb(int qos)
             timerMapValue->state = TimerState::EXECUTING;
             if (timerMapValue->cb != nullptr) {
                 timerMutex_.unlock();
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainRestoreId(&timerMapValue->traceId);
+            }
+#endif
                 timerMapValue->cb(timerMapValue->data);
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
+#endif
                 timerMutex_.lock();
             }
             timerMapValue->state = TimerState::EXECUTED;
@@ -88,6 +102,10 @@ int TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_time
         return -1;
     }
 
+    if (timeout > MAX_TIMER_MS_COUNT) {
+        FFRT_LOGW("timeout exceeds maximum allowed value %llu ms. Clamping to %llu ms.", timeout, MAX_TIMER_MS_COUNT);
+        timeout = MAX_TIMER_MS_COUNT;
+    }
     std::shared_ptr<TimerData> timerMapValue = std::make_shared<TimerData>(data, cb, repeat, qos, timeout);
     timerMapValue->handle = ++timerHandle_;
     timerMapValue->state = TimerState::NOT_EXECUTED;
@@ -100,11 +118,8 @@ int TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_time
 void TimerManager::RegisterTimerImpl(std::shared_ptr<TimerData> data)
 {
     TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data->timeout);
-    if (!DelayedWakeup(absoluteTime, reinterpret_cast<WaitEntry*>(data->handle), workCb[data->qos])) {
-        timerMutex_.unlock();
-        // delay_worker teardown or absoluteTime already expired
-        workCb[data->qos](reinterpret_cast<WaitEntry*>(data->handle));
-        timerMutex_.lock();
+    if (!DelayedWakeup(absoluteTime, reinterpret_cast<WaitEntry*>(data->handle), workCb[data->qos], true)) {
+        FFRT_LOGW("timer start failed, process may be exiting now");
     }
 }
 
@@ -135,7 +150,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
                 it = timerMap_.find(handle);
                 if (it == timerMap_.end()) {
                     // timer already erased
-                    return -1;
+                    return 0;
                 }
             }
             // executed, delete timer data

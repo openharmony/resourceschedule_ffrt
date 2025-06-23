@@ -147,6 +147,14 @@ struct CPUWorkerGroup {
         }
         executingNum++;
     }
+
+    inline void SetTearDown()
+    {
+        std::shared_lock<std::shared_mutex> lck(tgMutex);
+        for (const auto& pair : threads) {
+            pair.second->SetExited();
+        }
+    }
 };
 
 struct EscapeConfig {

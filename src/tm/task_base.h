@@ -100,13 +100,11 @@ public:
          * combat data-races without incurring performance
          * overhead. Currently statusTime & preStatus
          * are only used in printing debug information
-         * and don't play a role in the logic. curStatus
-         * plays a role, so one needs to check if stronger
-         * barriers are needed.
+         * and don't play a role in the logic.
          */
-        UpdateStatusTime();
-        preStatus.store(GetStatus(), std::memory_order_relaxed);
-        curStatus.store(statusIn, std::memory_order_relaxed);
+        statusTime.store(TimeStampCntvct(), std::memory_order_relaxed);
+        preStatus.store(curStatus, std::memory_order_relaxed);
+        curStatus = statusIn;
     }
 
     // delete ref setter functions, for memory management
@@ -124,25 +122,7 @@ public:
         }
         return v;
     }
-
-    inline void UpdateStatusTime()
-    {
-        auto t = TimeStampCntvct();
-        statusTime.store(t, std::memory_order_relaxed);
-    }
-    inline uint64_t GetStatusTime()
-    {
-        return statusTime.load(std::memory_order_relaxed);
-    }
-    inline TaskStatus GetStatus()
-    {
-        return curStatus.load(std::memory_order_relaxed);
-    }
-    inline TaskStatus GetPreStatus()
-    {
-        return preStatus.load(std::memory_order_relaxed);
-    }
-
+    
     // returns the current g_taskId value
     static uint32_t GetLastGid();
 
@@ -154,6 +134,7 @@ public:
     std::atomic_uint32_t rc = 1; // reference count for delete
     std::atomic<TaskStatus> preStatus = TaskStatus::PENDING;
     std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
+    std::atomic<uint64_t> statusTime = TimeStampCntvct();
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
@@ -163,8 +144,6 @@ public:
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
-    private:
-    std::atomic<uint64_t> statusTime = TimeStampCntvct();
 };
 
 class CoTask : public TaskBase {

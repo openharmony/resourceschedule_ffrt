@@ -99,7 +99,7 @@ void CPUEUTask::Execute()
     }
     FFRT_TASKDONE_MARKER(gid);
     // skipped task can not be marked as finish
-    if (GetStatus() == TaskStatus::EXECUTING) {
+    if (curStatus == TaskStatus::EXECUTING) {
         SetStatus(TaskStatus::FINISH);
     }
     if (!USE_COROUTINE) {

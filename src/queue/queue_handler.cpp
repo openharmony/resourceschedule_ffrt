@@ -229,7 +229,7 @@ bool QueueHandler::CheckExecutingTask()
 {
     std::unique_lock lock(mutex_);
     for (const auto& curTask : curTaskVec_) {
-        if (curTask != nullptr && curTask->GetStatus() == TaskStatus::EXECUTING) {
+        if (curTask != nullptr && curTask->curStatus == TaskStatus::EXECUTING) {
             return true;
         }
     }
@@ -453,9 +453,9 @@ std::string QueueHandler::GetDfxInfo(int index) const
 {
     std::stringstream ss;
     if (queue_ != nullptr && curTaskVec_[index] != nullptr) {
-        uint64_t curTaskTime = curTaskVec_[index]->GetStatusTime();
-        TaskStatus curTaskStatus = curTaskVec_[index]->GetStatus();
-        TaskStatus preTaskStatus = curTaskVec_[index]->GetPreStatus();
+        TaskStatus curTaskStatus = curTaskVec_[index]->curStatus;
+        uint64_t curTaskTime = curTaskVec_[index]->statusTime.load(std::memory_order_relaxed);
+        TaskStatus preTaskStatus = curTaskVec_[index]->preStatus.load(std::memory_order_relaxed);
         ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], gid=[" << curTaskVec_[index]->gid <<
             "], with delay of[" << curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
             "], current task status[" << StatusToString(curTaskStatus) << "], start at[" <<
@@ -482,7 +482,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
             continue;
         }
 
-        uint64_t curTaskTime = curTask->GetStatusTime();
+        uint64_t curTaskTime = curTask->statusTime.load(std::memory_order_relaxed);
         if (curTaskTime == 0 || CheckDelayStatus()) {
             curTaskInfo.first.emplace_back(INVALID_GID);
             // The next inspection time needs to be updated if current task is a delayed task and there are
@@ -497,12 +497,12 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
         if (curTaskTime < timeoutThreshold) {
             TimeoutTask& timeoutTaskInfo = timeoutTaskVec_[i];
             if (curTask->gid == timeoutTaskInfo.taskGid &&
-                curTask->GetStatus() == timeoutTaskInfo.taskStatus) {
+                curTask->curStatus == timeoutTaskInfo.taskStatus) {
                     timeoutTaskInfo.timeoutCnt += 1;
             } else {
                 timeoutTaskInfo.timeoutCnt = 1;
                 timeoutTaskInfo.taskGid = curTask->gid;
-                timeoutTaskInfo.taskStatus = curTask->GetStatus();
+                timeoutTaskInfo.taskStatus = curTask->curStatus;
             }
 
             ReportTaskTimeout(timeoutUs, ss, i);

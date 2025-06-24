@@ -68,7 +68,7 @@ void SCPUEUTask::DecChildRef()
         }
     }
 
-    if (!parent->IsRoot() && parent->GetStatus() == TaskStatus::WAIT_RELEASING && parent->childRefCnt == 0) {
+    if (!parent->IsRoot() && parent->curStatus == TaskStatus::WAIT_RELEASING && parent->childRefCnt == 0) {
         FFRT_LOGD("free CPUEUTask:%s gid=%lu", parent->GetLabel().c_str(), parent->gid);
         lck.unlock();
         parent->DecDeleteRef();

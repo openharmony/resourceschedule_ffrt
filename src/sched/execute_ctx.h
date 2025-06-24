@@ -46,7 +46,7 @@ enum class SharedMutexWaitType {
 
 enum class we_status {
     INIT,
-    NOTIFING,
+    NOTIFYING,
     TIMEOUT_DONE
 };
 

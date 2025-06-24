@@ -94,8 +94,16 @@ public:
 
     inline void SetStatus(TaskStatus statusIn)
     {
-        statusTime = TimeStampCntvct();
-        preStatus = curStatus;
+        /* Note this function can be called concurrently.
+         * The following accesses can be interleaved.
+         * We use atomic relaxed accesses in order to
+         * combat data-races without incurring performance
+         * overhead. Currently statusTime & preStatus
+         * are only used in printing debug information
+         * and don't play a role in the logic.
+         */
+        statusTime.store(TimeStampCntvct(), std::memory_order_relaxed);
+        preStatus.store(curStatus, std::memory_order_relaxed);
         curStatus = statusIn;
     }
 
@@ -114,7 +122,7 @@ public:
         }
         return v;
     }
-
+    
     // returns the current g_taskId value
     static uint32_t GetLastGid();
 
@@ -124,16 +132,15 @@ public:
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_default;
     std::atomic_uint32_t rc = 1; // reference count for delete
-    TaskStatus curStatus = TaskStatus::PENDING;
-    TaskStatus preStatus = TaskStatus::PENDING;
+    std::atomic<TaskStatus> preStatus = TaskStatus::PENDING;
+    std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
+    std::atomic<uint64_t> statusTime = TimeStampCntvct();
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;
 #endif
 
     struct HiTraceIdStruct traceId_ = {};
-
-    uint64_t statusTime = TimeStampCntvct();
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
@@ -174,12 +181,6 @@ public:
         return label;
     }
 
-    void SetStatus(TaskStatus statusIn)
-    {
-        statusTime = TimeStampCntvct();
-        preStatus = curStatus;
-        curStatus = statusIn;
-    }
 protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };

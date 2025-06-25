@@ -53,6 +53,13 @@ extern "C" {
 int co2_save_context(ffrt_fiber_t* ctx);
 
 void co2_restore_context(ffrt_fiber_t* ctx);
+
+static inline void co2_switch_context(ffrt_fiber_t* from, co2_context* to)
+{
+    if (co2_save_context(from) == 0) {
+        co2_restore_context(to);
+    }
+}
 #ifdef  __cplusplus
 }
 #endif

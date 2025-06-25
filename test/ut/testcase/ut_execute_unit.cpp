@@ -207,3 +207,32 @@ HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level0)
     ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(*qos1);
     EXPECT_EQ(*qos1, qos_default);
 }
+
+HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
+{
+    CpuWorkerOps ops{
+        [](CPUWorker* thread) { return WorkerAction::RETIRE; },
+        [](CPUWorker* thread) {},
+        [](CPUWorker* thread) {},
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        []() { return false; },
+#endif
+    };
+
+    SExecuteUnit* manager = new SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    workerCtrl.workerShareConfig.push_back({5, true});
+    CPUWorker* worker = new CPUWorker(5, std::move(ops), 0);
+
+    std::function<bool(int, CPUWorker*)> trueFunc = [](int qos, CPUWorker* worker) { return true; };
+    std::function<bool(int, CPUWorker*)> falseFunc = [](int qos, CPUWorker* worker) { return false; };
+
+#ifndef FFRT_GITEE
+    EXPECT_EQ(manager->WorkerShare(worker, trueFunc), true);
+    EXPECT_EQ(manager->WorkerShare(worker, falseFunc), false);
+#endif
+
+    workerCtrl.workerShareConfig[0].second = false;
+    EXPECT_EQ(manager->WorkerShare(worker, trueFunc), true);
+    EXPECT_EQ(manager->WorkerShare(worker, falseFunc), false);
+}

@@ -335,7 +335,7 @@ private:
 
     // worker escape
     EscapeConfig escapeConfig;
-    bool submittedDelayedTask_[QoS::MaxNum()] = {0};
+    std::atomic<bool> submittedDelayedTask_[QoS::MaxNum()] = {0};
     WaitUntilEntry *we_[QoS::MaxNum()] = {nullptr};
     virtual void ExecuteEscape(int qos) = 0;
 

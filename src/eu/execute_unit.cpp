@@ -255,7 +255,7 @@ void ExecuteUnit::SubmitEscape(int qos, uint64_t totalWorkerNum)
         we_[qos]->cb = [this, qos](WaitEntry *we) {
             (void)we;
             ExecuteEscape(qos);
-            submittedDelayedTask_[qos] = false;
+            submittedDelayedTask_[qos].store(false, std::memory_order_relaxed);
         };
     }
 
@@ -264,7 +264,7 @@ void ExecuteUnit::SubmitEscape(int qos, uint64_t totalWorkerNum)
         return;
     }
 
-    submittedDelayedTask_[qos] = true;
+    submittedDelayedTask_[qos].store(true, std::memory_order_relaxed);
 }
 
 std::array<sched_mode_type, QoS::MaxNum()> ExecuteUnit::schedMode{};

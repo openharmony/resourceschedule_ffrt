@@ -37,6 +37,7 @@
 #include "../common.h"
 
 using namespace std;
+using namespace ffrt;
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
@@ -485,7 +486,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_in_task, TestSize.Level0)
     ffrt::submit([&]() {
         uint64_t expected = 0xabacadae;
         int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-        struct WakeData m_wakeData;
+        struct ffrt::WakeData m_wakeData;
         m_wakeData.data = nullptr;
         m_wakeData.fd = testFd;
         ffrt_qos_t qos_level = ffrt_qos_user_initiated;
@@ -562,4 +563,88 @@ HWTEST_F(ffrtIoTest, timer_repeat, TestSize.Level0)
     }
     sleep(1);
     EXPECT_GT(timerDatas[0].result, 0);
+}
+
+HWTEST_F(ffrtIoTest, ffrt_epoll_wait_test, TestSize.Level0)
+{
+    uint64_t expected = 0x3;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    int op = EPOLL_CTL_ADD;
+    ffrt_qos_t qos = ffrt_qos_user_initiated;
+
+    struct TestData testData {.fd = testFd, .expected = expected};
+    ffrt::submit([=]() {
+        int ret = ffrt_epoll_ctl(qos, op, testFd, EPOLLIN, nullptr, nullptr);
+        EXPECT_EQ(ret, 0);
+        // sleep to wait event
+        ffrt_usleep(50000);
+        // get fds
+        struct epoll_event events[1024];
+        int nfds = ffrt_epoll_wait(qos, events, 1024, -1);
+        EXPECT_EQ(nfds, 1);
+        ret = ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
+        EXPECT_EQ(ret, 0);
+        // read vaule from fd and check
+        uint64_t value = 0;
+        ssize_t n = read(testFd, &value, sizeof(uint64_t));
+        EXPECT_EQ(n, sizeof(value));
+        EXPECT_EQ(value, expected);
+        close(testFd);
+    }, {}, {}, ffrt::task_attr().qos(ffrt_qos_user_initiated));
+
+    stall_us(200);
+    // write value to trigger poller mask
+    uint8_t startCnt = ffrt_epoll_get_count(ffrt_qos_user_initiated);
+    uint64_t u1 = 1;
+    ssize_t n = write(testFd, &u1, sizeof(uint64_t));
+    uint64_t u2 = 2;
+    n = write(testFd, &u2, sizeof(uint64_t));
+    EXPECT_EQ(n, sizeof(uint64_t));
+    ffrt::wait();
+    uint8_t endCnt = ffrt_epoll_get_count(ffrt_qos_user_initiated);
+    auto wakeCnt = endCnt - startCnt;
+    EXPECT_TRUE(wakeCnt < 10);
+}
+
+HWTEST_F(ffrtIoTest, ffrt_epoll_wait_test_legacy_mode, TestSize.Level0)
+{
+    uint64_t expected = 0x3;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    int op = EPOLL_CTL_ADD;
+    ffrt_qos_t qos = ffrt_qos_user_initiated;
+
+    struct TestData testLegacyData {.fd = testFd, .expected = expected};
+    ffrt::submit([=]() {
+        ffrt_this_task_set_legacy_mode(true);
+        int ret = ffrt_epoll_ctl(qos, op, testFd, EPOLLIN, nullptr, nullptr);
+        EXPECT_EQ(ret, 0);
+        // sleep to wait event
+        ffrt_usleep(50000);
+        // get fds
+        struct epoll_event events[1024];
+        int nfds = ffrt_epoll_wait(qos, events, 1024, -1);
+        EXPECT_EQ(nfds, 1);
+        ret = ffrt_epoll_ctl(qos, EPOLL_CTL_DEL, testFd, 0, nullptr, nullptr);
+        EXPECT_EQ(ret, 0);
+        // read vaule from fd and check
+        uint64_t value = 0;
+        ssize_t n = read(testFd, &value, sizeof(uint64_t));
+        EXPECT_EQ(n, sizeof(value));
+        EXPECT_EQ(value, expected);
+        close(testFd);
+        ffrt_this_task_set_legacy_mode(false);
+    }, {}, {}, ffrt::task_attr().qos(ffrt_qos_user_initiated));
+
+    stall_us(200);
+    // write value to trigger poller mask
+    uint8_t startCnt = ffrt_epoll_get_count(ffrt_qos_user_initiated);
+    uint64_t u1 = 1;
+    ssize_t n = write(testFd, &u1, sizeof(uint64_t));
+    uint64_t u2 = 2;
+    n = write(testFd, &u2, sizeof(uint64_t));
+    EXPECT_EQ(n, sizeof(uint64_t));
+    ffrt::wait();
+    uint8_t endCnt = ffrt_epoll_get_count(ffrt_qos_user_initiated);
+    auto wakeCnt = endCnt - startCnt;
+    EXPECT_TRUE(wakeCnt < 10);
 }

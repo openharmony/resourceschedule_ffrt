@@ -610,23 +610,17 @@ void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
             return;
         }
         case ffrt_io_task: {
-            TaskFactory<IOTask>::LockMem();
             ss << "        qos "
                 << qos << ": worker tid "
                 << tid << " io task is running"
-                << " status " << StatusToString(t->curStatus).c_str()
                 << std::endl;
-            TaskFactory<IOTask>::UnlockMem();
             return;
         }
         case ffrt_uv_task: {
-            TaskFactory<UVTask>::LockMem();
             ss << "        qos " << qos
                 << ": worker tid " << tid
                 << " uv task is running"
-                << " status " << StatusToString(t->curStatus).c_str()
                 << std::endl;
-            TaskFactory<UVTask>::UnlockMem();
             return;
         }
         default: {

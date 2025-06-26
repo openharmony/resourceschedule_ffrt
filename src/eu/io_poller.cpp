@@ -80,8 +80,15 @@ IOPoller& IOPoller::Instance()
 
 IOPoller::IOPoller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
 {
+#ifdef OHOS_STANDARD_SYSTEM
+    fdsan_exchange_owner_tag(m_epFd, 0, fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, static_cast<uint64_t>(m_epFd)));
+#endif
     m_wakeData.mode = PollerType::WAKEUP;
     m_wakeData.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+#ifdef OHOS_STANDARD_SYSTEM
+    fdsan_exchange_owner_tag(m_wakeData.fd, 0, fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE,
+        static_cast<uint64_t>(m_wakeData.fd)));
+#endif
     epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
     if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
         FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
@@ -99,8 +106,14 @@ IOPoller::~IOPoller() noexcept
     if (m_runner != nullptr && m_runner->joinable()) {
         m_runner->join();
     }
+#ifdef OHOS_STANDARD_SYSTEM
+    fdsan_close_with_tag(m_wakeData.fd, fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE,
+        static_cast<uint64_t>(m_wakeData.fd)));
+    fdsan_close_with_tag(m_epFd, fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, static_cast<uint64_t>(m_epFd)));
+#else
     ::close(m_wakeData.fd);
     ::close(m_epFd);
+#endif
 }
 
 void IOPoller::ThreadInit()

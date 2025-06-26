@@ -60,8 +60,12 @@ void UVTask::Execute()
 
 void UVTask::ExecuteImpl(UVTask* task, ffrt_executor_task_func func)
 {
+    ExecuteCtx* ctx = ExecuteCtx::Cur();
     QoS taskQos = task->qos_;
     while (task != nullptr) {
+        ctx->task = task;
+        ctx->lastGid_ = task->gid;
+        task->SetStatus(TaskStatus::EXECUTING);
         FFRTTraceRecord::TaskExecute<ffrt_uv_task>(taskQos);
         FFRT_EXECUTOR_TASK_BEGIN(task->uvWork);
         func(task->uvWork, taskQos);

@@ -16,6 +16,8 @@
 #ifndef FFRT_TYPES_HPP
 #define FFRT_TYPES_HPP
 
+#include <cstdint>
+
 namespace ffrt {
 #ifdef CLOSE_COROUTINE_MODE
 constexpr bool USE_COROUTINE = false;

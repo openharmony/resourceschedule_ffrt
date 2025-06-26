@@ -64,7 +64,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
     // notify scenarios WaitUntilEntry `wn` is already popped
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
-    if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFING) {
+    if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFYING) {
         wqlock.lock();
         remove(wn);
         wqlock.unlock();
@@ -189,7 +189,7 @@ void WaitQueue::WeNotifyProc(WaitUntilEntry* we)
     if (!DelayedRemove(we->tp, dwe)) {
         // Deletion of timer failed during the notify process, indicating that timer cb has been executed at this time
         // waiting for cb execution to complete, and marking notify as being processed.
-        we->status.store(we_status::NOTIFING, std::memory_order_release);
+        we->status.store(we_status::NOTIFYING, std::memory_order_release);
         wqlock.unlock();
         while (we->status.load(std::memory_order_acquire) != we_status::TIMEOUT_DONE) {
         }
@@ -220,7 +220,7 @@ void WaitQueue::Notify(bool one) noexcept
         TaskBase* task = we->task;
         if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             std::unique_lock<std::mutex> lk(we->wl);
-            we->status.store(we_status::NOTIFING, std::memory_order_release);
+            we->status.store(we_status::NOTIFYING, std::memory_order_release);
             wqlock.unlock();
             we->cv.notify_one();
         } else {

@@ -137,6 +137,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.L
     manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
     sch->PopTask(ffrt::QoS(2));
 }
+
 /*
 * 测试用例名称：ffrt_escape_submit_execute
 * 测试用例描述：调用EU的逃生函数
@@ -241,6 +242,7 @@ HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
     workerCtrl.workerShareConfig[0].second = false;
     EXPECT_EQ(manager->WorkerShare(worker, trueFunc), true);
     EXPECT_EQ(manager->WorkerShare(worker, falseFunc), false);
+}
 
 HWTEST_F(ExecuteUnitTest, HandleTaskNotifyConservative, TestSize.Level0)
 {

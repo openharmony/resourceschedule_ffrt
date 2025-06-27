@@ -24,6 +24,7 @@
 #include "ffrt.h"
 #include "tm/scpu_task.h"
 #include "eu/sexecute_unit.h"
+#include "sched/stask_scheduler.h"
 #include "../common.h"
 
 using namespace std;
@@ -62,6 +63,9 @@ protected:
 HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level0)
 {
     EXPECT_EQ(ffrt::enable_worker_escape(0, 0, 0, 0, 0), 1);
+    EXPECT_EQ(ffrt::enable_worker_escape(10, 0, 0, 0, 0), 1);
+    EXPECT_EQ(ffrt::enable_worker_escape(10, 100, 0, 0, 0), 1);
+    EXPECT_EQ(ffrt::enable_worker_escape(10, 100, 1000, 10, 0), 1);
     EXPECT_EQ(ffrt::enable_worker_escape(), 0);
     EXPECT_EQ(ffrt::enable_worker_escape(), 1);
     ffrt::disable_worker_escape();
@@ -82,6 +86,7 @@ HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level0)
         ffrt::submit([&]() {});
     }
     sleep(1);
+    ffrt::notify_workers(1, 6);
     ffrt::notify_workers(2, 6);
 }
 
@@ -151,6 +156,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level0)
     }
     manager->ExecuteEscape(qos_default);
     manager->SubmitEscape(qos_default, 1);
+    manager->SubmitEscape(qos_default, 1);
     manager->ReportEscapeEvent(qos_default, 1);
 
     ffrt::wait();
@@ -206,4 +212,44 @@ HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level0)
     auto qos1 = std::make_unique<QoS>();
     ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(*qos1);
     EXPECT_EQ(*qos1, qos_default);
+}
+
+HWTEST_F(ExecuteUnitTest, HandleTaskNotifyConservative, TestSize.Level0)
+{
+    SExecuteUnit* manager = new SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+
+    SExecuteUnit::HandleTaskNotifyConservative(manager, 5, TaskNotifyType::TASK_ADDED);
+    SExecuteUnit::HandleTaskNotifyUltraConservative(manager, 5, TaskNotifyType::TASK_ADDED);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+
+    workerCtrl.sleepingNum++;
+    workerCtrl.executingNum = workerCtrl.maxConcurrency;
+    manager->PokeImpl(5, 1, TaskNotifyType::TASK_ADDED);
+    EXPECT_EQ(workerCtrl.executingNum, workerCtrl.maxConcurrency);
+
+    workerCtrl.sleepingNum = 0;
+    manager->PokeImpl(5, 1, TaskNotifyType::TASK_ADDED);
+    EXPECT_EQ(workerCtrl.executingNum, workerCtrl.maxConcurrency);
+
+    workerCtrl.maxConcurrency = 20;
+    workerCtrl.executingNum = workerCtrl.hardLimit;
+    manager->PokeImpl(5, 1, TaskNotifyType::TASK_ADDED);
+    EXPECT_EQ(workerCtrl.executingNum, workerCtrl.hardLimit);
+
+    if (manager->we_[0] != nullptr) {
+        delete manager->we_[0];
+        manager->we_[0] = nullptr;
+    }
+    delete manager;
+}
+
+HWTEST_F(ExecuteUnitTest, SetWorkerStackSize, TestSize.Level0)
+{
+    SExecuteUnit* manager = new SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+
+    manager->SetWorkerStackSize(5, 4096);
+    EXPECT_EQ(workerCtrl.workerStackSize, 4096);
 }

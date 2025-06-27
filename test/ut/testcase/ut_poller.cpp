@@ -18,10 +18,14 @@
 #include <gtest/gtest.h>
 #include "ffrt_inner.h"
 #include "c/loop.h"
+#include "c/ffrt_ipc.h"
 #define private public
+#define protected public
 #include "sync/poller.h"
-#undef private
 #include "tm/cpu_task.h"
+#include "tm/scpu_task.h"
+#undef private
+#undef protected
 #include "util.h"
 #include "../common.h"
 
@@ -349,4 +353,184 @@ HWTEST_F(PollerTest, TestCacheDelFd003, TestSize.Level0)
     EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap[currTask].size());
 
     free(currTask);
+}
+
+HWTEST_F(PollerTest, GetTaskWaitTime, TestSize.Level1)
+{
+    Poller poller;
+    SCPUEUTask task(nullptr, nullptr, 0);
+    poller.m_waitTaskMap[&task] = SyncData();
+    poller.m_waitTaskMap[&task].waitTP = std::chrono::steady_clock::now();
+    EXPECT_EQ(poller.GetTaskWaitTime(nullptr), 0);
+    EXPECT_GT(poller.GetTaskWaitTime(&task), 0);
+}
+
+HWTEST_F(PollerTest, WaitFdEventTest, TestSize.Level0)
+{
+    Poller poller;
+    std::thread th([&] { poller.PollOnce(30000); });
+
+    uint64_t expected = 0x3;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    int op = EPOLL_CTL_ADD;
+    ffrt_qos_t qos = ffrt_qos_user_initiated;
+
+    ffrt::submit([&]() {
+        int ret = poller.AddFdEvent(op, EPOLLIN, testFd, nullptr, nullptr);
+        EXPECT_EQ(ret, 0);
+        // sleep to wait event
+        ffrt_usleep(50000);
+        // get fds
+        struct epoll_event events[1024];
+        int nfds = poller.WaitFdEvent(events, 1024, -1);
+        EXPECT_EQ(nfds, 1);
+        ret = poller.DelFdEvent(testFd);
+        EXPECT_EQ(ret, 0);
+        // read vaule from fd and check
+        uint64_t value = 0;
+        ssize_t n = read(testFd, &value, sizeof(uint64_t));
+        EXPECT_EQ(n, sizeof(value));
+        EXPECT_EQ(value, expected);
+        close(testFd);
+    }, {}, {}, ffrt::task_attr().qos(ffrt_qos_user_initiated));
+
+    stall_us(200);
+    uint64_t u1 = 1;
+    ssize_t n = write(testFd, &u1, sizeof(uint64_t));
+    uint64_t u2 = 2;
+    n = write(testFd, &u2, sizeof(uint64_t));
+    EXPECT_EQ(n, sizeof(uint64_t));
+    ffrt::wait();
+    th.detach();
+}
+
+HWTEST_F(PollerTest, WaitFdEventTestLegacyMode, TestSize.Level0)
+{
+    Poller poller;
+    std::thread th([&] { poller.PollOnce(30000); });
+
+    uint64_t expected = 0x3;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    int op = EPOLL_CTL_ADD;
+    ffrt_qos_t qos = ffrt_qos_user_initiated;
+
+    ffrt::submit([&]() {
+        ffrt_this_task_set_legacy_mode(true);
+        int ret = poller.AddFdEvent(op, EPOLLIN, testFd, nullptr, nullptr);
+        EXPECT_EQ(ret, 0);
+        // sleep to wait event
+        ffrt_usleep(50000);
+        // get fds
+        struct epoll_event events[1024];
+        int nfds = poller.WaitFdEvent(events, 1024, -1);
+        EXPECT_EQ(nfds, 1);
+        ret = poller.DelFdEvent(testFd);
+        EXPECT_EQ(ret, 0);
+        // read vaule from fd and check
+        uint64_t value = 0;
+        ssize_t n = read(testFd, &value, sizeof(uint64_t));
+        EXPECT_EQ(n, sizeof(value));
+        EXPECT_EQ(value, expected);
+        close(testFd);
+        ffrt_this_task_set_legacy_mode(false);
+    }, {}, {}, ffrt::task_attr().qos(ffrt_qos_user_initiated));
+
+    stall_us(200);
+    uint64_t u1 = 1;
+    ssize_t n = write(testFd, &u1, sizeof(uint64_t));
+    uint64_t u2 = 2;
+    n = write(testFd, &u2, sizeof(uint64_t));
+    EXPECT_EQ(n, sizeof(uint64_t));
+    ffrt::wait();
+    th.detach();
+}
+
+HWTEST_F(PollerTest, ProcessTimerDataCb, TestSize.Level0)
+{
+    Poller poller;
+    SCPUEUTask task(nullptr, nullptr, 0);
+    task.blockType = BlockType::BLOCK_THREAD;
+    poller.m_waitTaskMap[&task] = SyncData();
+    EXPECT_EQ(poller.m_waitTaskMap.size(), 1);
+
+    poller.ProcessTimerDataCb(nullptr);
+    EXPECT_EQ(poller.m_waitTaskMap.size(), 1);
+    poller.ProcessTimerDataCb(&task);
+    EXPECT_EQ(poller.m_waitTaskMap.size(), 0);
+}
+
+HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level0)
+{
+    Poller poller;
+    SCPUEUTask task(nullptr, nullptr, 0);
+    task.blockType = BlockType::BLOCK_THREAD;
+    EventVec eventVec(1);
+    std::unordered_map<CoTask*, EventVec> syncTaskEvents = { { &task, eventVec } };
+
+    int nfds = 0;
+    struct epoll_event event;
+    poller.m_waitTaskMap[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
+    poller.WakeSyncTask(syncTaskEvents);
+    EXPECT_EQ(nfds, 1);
+}
+
+HWTEST_F(PollerTest, ClearMaskWakeData, TestSize.Level0)
+{
+    Poller poller;
+    SCPUEUTask task(nullptr, nullptr, 0);
+    task.blockType = BlockType::BLOCK_THREAD;
+
+    std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+    poller.m_maskWakeDataWithCbMap[&task].emplace_back(std::move(wakeData));
+    poller.CacheMaskFdAndEpollDel(0, nullptr);
+    poller.ClearMaskWakeDataWithCbCacheWithFd(nullptr, 0);
+    EXPECT_EQ(poller.m_delFdCacheMap.size(), 0);
+
+    poller.CacheMaskFdAndEpollDel(0, &task);
+    poller.ClearMaskWakeDataWithCbCacheWithFd(&task, 0);
+    EXPECT_EQ(poller.m_delFdCacheMap.size(), 1);
+    EXPECT_EQ(poller.m_delFdCacheMap[0], &task);
+
+    poller.ClearDelFdCache(0);
+    EXPECT_EQ(poller.m_delFdCacheMap.size(), 0);
+}
+
+HWTEST_F(PollerTest, ReleaseFdWakeData, TestSize.Level0)
+{
+    Poller poller;
+    for (int i = 0; i < 3; i++) {
+        poller.m_delCntMap[i] = i;
+        std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+        std::unique_ptr<WakeDataWithCb> wakeData2 = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+        poller.m_wakeDataMap[i].emplace_back(std::move(wakeData));
+        poller.m_wakeDataMap[i].emplace_back(std::move(wakeData2));
+    }
+
+    poller.ReleaseFdWakeData();
+    EXPECT_EQ(poller.m_delCntMap[0], 0);
+    EXPECT_EQ(poller.m_delCntMap[1], 1);
+    EXPECT_EQ(poller.m_delCntMap.size(), 2);
+}
+
+HWTEST_F(PollerTest, DeterminePollerReady, TestSize.Level0)
+{
+    Poller poller;
+    EXPECT_FALSE(poller.DeterminePollerReady());
+    auto timePoint = std::chrono::steady_clock::now() + std::chrono::minutes(3);
+    poller.timerMap_.emplace(timePoint, TimerDataWithCb());
+    EXPECT_FALSE(poller.DeterminePollerReady());
+    poller.fdEmpty_ = false;
+    EXPECT_TRUE(poller.DeterminePollerReady());
+}
+
+HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level0)
+{
+    Poller poller;
+    TimerDataWithCb data;
+    data.handle = 1;
+    poller.timerMap_.emplace(std::chrono::steady_clock::now(), data);
+    poller.executedHandle_[2] = TimerStatus::EXECUTED;
+    EXPECT_EQ(poller.GetTimerStatus(0), ffrt_timer_notfound);
+    EXPECT_EQ(poller.GetTimerStatus(1), ffrt_timer_not_executed);
+    EXPECT_EQ(poller.GetTimerStatus(2), ffrt_timer_executed);
 }

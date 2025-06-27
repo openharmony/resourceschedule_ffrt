@@ -51,6 +51,15 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
 #ifdef FFRT_WORKER_MONITOR
     WorkerMonitor::GetInstance();
 #endif
+    /* By calling `FuncManager::Instance()` we force the construction
+     * of FunManager singleton static object to complete before static object `SExecuteUnit` construction.
+     * This implies that the destruction of `SExecuteUnit` will happen before `FuncManager`.
+     * And the destructor of `SExecuteUnit` waits for all threads/CPUWorkers to finish. This way
+     * we prevent use-after-free on `func_map` in `FuncManager`, when accessed by
+     * `CPUWorker` objects while being destructed. Note that `CPUWorker` destruction
+     * is managed by `unique_ptr` and we don't know exactly when it happens.
+     */
+    FuncManager::Instance();
     ExecuteUnit::Instance();
 
 #ifdef FFRT_OH_TRACE_ENABLE

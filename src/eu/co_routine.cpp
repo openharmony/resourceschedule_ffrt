@@ -228,7 +228,7 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
 
 static inline void CoSwitch(CoCtx* from, CoCtx* to)
 {
-    ffrt_fiber_switch(from, to);
+    co2_switch_context(from, to);
 }
 
 static inline void CoExit(CoRoutine* co, bool isNormalTask)

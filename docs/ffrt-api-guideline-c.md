@@ -2700,3 +2700,4 @@ FFRT_C_API void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to);
 描述
 
 - 切换纤程上下文，调用该函数的线程会暂停当前任务的执行，保存当前上下文到`from`指向的纤程，并将`to`指向的纤程恢复到当前上下文，执行`to`对应的任务。
+- 注意：本接口对`from`、`to`的有效性无法做判断，调用方需自行校验地址有效性，否则会导致该进程崩溃。

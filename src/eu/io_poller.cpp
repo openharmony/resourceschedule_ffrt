@@ -193,7 +193,7 @@ int IOPoller::PollOnce(int timeout) noexcept
 
         if (data->mode == PollerType::ASYNC_CB) {
             // async io callback
-            timeOutReport.cbStartTime = FFRTTraceRecord::TimeStamp();
+            timeOutReport.cbStartTime.store(FFRTTraceRecord::TimeStamp(), std::memory_order_relaxed);
             timeOutReport.reportCount = 0;
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
             if (data->traceId.valid == HITRACE_ID_VALID) {
@@ -201,6 +201,7 @@ int IOPoller::PollOnce(int timeout) noexcept
             }
 #endif
             data->cb(data->data, waitedEvents[i].events);
+            timeOutReport.cbStartTime.store(0, std::memory_order_relaxed);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
             if (data->traceId.valid == HITRACE_ID_VALID) {
                 TraceChainAdapter::Instance().HiTraceChainClearId();

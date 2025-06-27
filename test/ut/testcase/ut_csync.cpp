@@ -1145,6 +1145,61 @@ HWTEST_F(SyncTest, thread_with_ref, TestSize.Level0)
     t.join();
 }
 
+HWTEST_F(SyncTest, future_wait, TestSize.Level0)
+{
+    ffrt::packaged_task<int()> task([] { return 7; });
+    ffrt::future<int> f1 = task.get_future();
+    ffrt::thread t(std::move(task));
+
+    ffrt::future<int> f2 = ffrt::async([] { return 8; });
+
+    ffrt::promise<int> p;
+    ffrt::future<int> f3 = p.get_future();
+    ffrt::thread([&p] { p.set_value(9); }).detach();
+
+    std::cout << "Waiting..." << std::flush;
+    EXPECT_TRUE(f1.valid());
+    EXPECT_TRUE(f2.valid());
+    f1.wait();
+    f2.wait();
+    f3.wait();
+    std::cout << "Done!\nResults are: "
+        << f1.get() << ' ' << f2.get() << ' ' << f3.get() << '\n';
+    t.join();
+}
+
+HWTEST_F(SyncTest, future_wait_void, TestSize.Level1)
+{
+    vector<int> result(3, 0);
+    ffrt::packaged_task<void()> task([&] { result[0] = 1; });
+    ffrt::future<void> f1 = task.get_future();
+    ffrt::thread t(std::move(task));
+    ffrt::thread t1;
+    t1 = std::move(t);
+
+    ffrt::future<void> f2 = ffrt::async([&] { result[1] = 2; });
+
+    ffrt::promise<void> p;
+    ffrt::future<void> f3 = p.get_future();
+    ffrt::promise<void> p1;
+    ffrt::future<void> f4;
+    p1 = std::move(p);
+    f4 = std::move(f3);
+    ffrt::thread([&] { result[2] = 3; p1.set_value(); }).detach();
+
+    EXPECT_TRUE(f1.valid());
+    EXPECT_TRUE(f2.valid());
+    EXPECT_TRUE(f4.valid());
+    f1.wait();
+    f2.wait();
+    f4.wait();
+    f1.get();
+    EXPECT_EQ(result[0], 1);
+    EXPECT_EQ(result[1], 2);
+    EXPECT_EQ(result[2], 3);
+    t1.join();
+}
+
 /*
 * 测试用例名称：ffrt_sleep_test
 * 测试用例描述：测试ffrt_usleep接口

@@ -291,7 +291,7 @@ void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType n
         if (!IncWorker(qos)) {
             workerCtrl.RollBackCreate();
         }
-    } else if (IsEscapeEnable() && (runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
+    } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
         SubmitEscape(qos, totalNum);
         workerCtrl.lock.unlock();
     } else {
@@ -301,7 +301,7 @@ void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType n
 
 void SExecuteUnit::ExecuteEscape(int qos)
 {
-    if (IsEscapeEnable() && FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos) > 0) {
+    if (FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos) > 0) {
         CPUWorkerGroup& workerCtrl = workerGroup[qos];
         workerCtrl.lock.lock();
 
@@ -311,11 +311,15 @@ void SExecuteUnit::ExecuteEscape(int qos)
             workerCtrl.lock.unlock();
             WakeupWorkers(qos);
         } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
-            workerCtrl.WorkerCreate();
-            FFRTTraceRecord::WorkRecord(qos, workerCtrl.executingNum);
-            workerCtrl.lock.unlock();
-            if (!IncWorker(qos)) {
-                workerCtrl.RollBackCreate();
+            if (IsEscapeEnable()) {
+                workerCtrl.WorkerCreate();
+                FFRTTraceRecord::WorkRecord(qos, workerCtrl.executingNum);
+                workerCtrl.lock.unlock();
+                if (!IncWorker(qos)) {
+                    workerCtrl.RollBackCreate();
+                }
+            } else {
+                workerCtrl.lock.unlock();
             }
             ReportEscapeEvent(qos, totalNum);
         } else {

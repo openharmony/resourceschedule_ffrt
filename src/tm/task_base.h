@@ -104,7 +104,7 @@ public:
          */
         statusTime.store(TimeStampCntvct(), std::memory_order_relaxed);
         preStatus.store(curStatus, std::memory_order_relaxed);
-        curStatus = statusIn;
+        curStatus.store(statusIn, std::memory_order_relaxed);
     }
 
     // delete ref setter functions, for memory management

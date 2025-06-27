@@ -469,6 +469,12 @@ HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level0)
 
     int nfds = 0;
     struct epoll_event event;
+    poller.m_waitTaskMap[&task] = SyncData(nullptr, 1024, nullptr, std::chrono::steady_clock::now());
+    poller.WakeSyncTask(syncTaskEvents);
+    poller.m_waitTaskMap[&task] = SyncData(&event, 1024, nullptr, std::chrono::steady_clock::now());
+    poller.WakeSyncTask(syncTaskEvents);
+    poller.m_waitTaskMap[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
+    poller.m_waitTaskMap[&task].timerHandle = 0;
     poller.m_waitTaskMap[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
     poller.WakeSyncTask(syncTaskEvents);
     EXPECT_EQ(nfds, 1);
@@ -533,4 +539,36 @@ HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level0)
     EXPECT_EQ(poller.GetTimerStatus(0), ffrt_timer_notfound);
     EXPECT_EQ(poller.GetTimerStatus(1), ffrt_timer_not_executed);
     EXPECT_EQ(poller.GetTimerStatus(2), ffrt_timer_executed);
+
+    poller.flag_ = EpollStatus::TEARDOWN;
+    EXPECT_EQ(poller.RegisterTimer(0, nullptr, nullptr, false), -1);
+    EXPECT_EQ(poller.UnregisterTimer(0), -1);
+    EXPECT_EQ(poller.GetTimerStatus(0), ffrt_timer_notfound);
+}
+
+HWTEST_F(PollerTest, FetchCachedEventAndDoUnmask, TestSize.Level0)
+{
+    Poller poller;
+    EventVec eventVec;
+    epoll_event events[1024];
+    for (int i = 0; i < 3; i++) {
+        epoll_event event;
+        event.data.fd = i / 2;
+        eventVec.push_back(event);
+    }
+    std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+    poller.m_wakeDataMap[0].emplace_back(std::move(wakeData));
+    poller.m_delFdCacheMap[0] = nullptr;
+    EXPECT_EQ(poller.FetchCachedEventAndDoUnmask(eventVec, events), 2);
+}
+
+HWTEST_F(PollerTest, DelFdEvent, TestSize.Level0)
+{
+    Poller poller;
+    EXPECT_EQ(poller.DelFdEvent(0), -1);
+
+    std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+    poller.m_wakeDataMap[0].emplace_back(std::move(wakeData));
+    poller.m_delCntMap[0] = 1;
+    EXPECT_EQ(poller.DelFdEvent(0), -1);
 }

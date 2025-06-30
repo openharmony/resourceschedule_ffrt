@@ -284,6 +284,15 @@ public:
         return (next != nullptr && next != this);
     }
 
+    void PushBack(LinkedList& first, LinkedList& last) noexcept
+    {
+        // push back multiple linked nodes to list
+        last.next = this;
+        first.prev = this->prev;
+        this->prev->next = &first;
+        this->prev = &last;
+    }
+
 private:
     LinkedList* prev;
     LinkedList* next;

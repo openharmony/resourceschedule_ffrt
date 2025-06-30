@@ -22,11 +22,21 @@ class STaskScheduler : public TaskScheduler {
 public:
     STaskScheduler()
     {
-        que = new FIFOQueue();
+        que = std::make_unique<FIFOQueue>();
+    }
+
+    void SetQos(QoS &q) override
+    {
+        qos = q;
+    }
+
+    uint64_t GetGlobalTaskCnt() override
+    {
+        return que->Size();
     }
 
 private:
-    bool PushTaskGlobal(TaskBase* task) override;
+    bool PushTaskGlobal(TaskBase* task, bool rtb) override;
     TaskBase* PopTaskHybridProcess() override;
 
     TaskBase* PopTaskGlobal() override
@@ -39,6 +49,8 @@ private:
         }
         return task;
     }
+private:
+    std::unique_ptr<FIFOQueue> que { nullptr };
 };
 }
 #endif

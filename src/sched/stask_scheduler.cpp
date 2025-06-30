@@ -21,8 +21,9 @@ constexpr int TASK_OVERRUN_ALARM_FREQ = 500;
 }
 
 namespace ffrt {
-bool STaskScheduler::PushTaskGlobal(TaskBase* task)
+bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
 {
+    (void)rtb; // rtb is deprecated here
     FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
 
     int level = task->GetQos();
@@ -32,7 +33,7 @@ bool STaskScheduler::PushTaskGlobal(TaskBase* task)
     FFRT_READY_MARKER(gid); // ffrt normal task ready to enque
     (*GetMutex()).lock();
     que->EnQueue(task);
-    int taskCount = GetGlobalTaskCnt();
+    int taskCount = que->Size();
     (*GetMutex()).unlock();
 
     // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
@@ -41,7 +42,7 @@ bool STaskScheduler::PushTaskGlobal(TaskBase* task)
             level, label.c_str(), taskCount);
     }
 
-    return true;
+    return taskCount == 1; // whether it's rising edge
 }
 
 TaskBase* STaskScheduler::PopTaskHybridProcess()

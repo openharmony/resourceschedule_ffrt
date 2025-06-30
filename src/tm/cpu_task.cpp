@@ -55,10 +55,10 @@ void CPUEUTask::Ready()
     int qos = qos_();
     bool notifyWorker = notifyWorker_;
     this->SetStatus(TaskStatus::READY);
-    FFRTFacade::GetSchedInstance()->GetScheduler(qos_).PushTaskGlobal(this);
+    bool isRisingEdge = FFRTFacade::GetSchedInstance()->GetScheduler(qos_).PushTaskGlobal(this, false);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     if (notifyWorker) {
-        FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(qos);
+        FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED_RTQ>(qos, false, isRisingEdge);
     }
 }
 

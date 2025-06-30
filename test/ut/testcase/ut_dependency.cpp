@@ -398,8 +398,8 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_04, TestSize.Level1)
         usleep(100);
     }
     while (uv_result + cancelCount < taskCount) {
-        uv_cancel_cv.notify_all();
         usleep(1000);
+        uv_cancel_cv.notify_all();
     }
     printf("canceled: %d, result: %d\n", cancelCount.load(), uv_result.load());
     EXPECT_GT(cancelCount, 0);

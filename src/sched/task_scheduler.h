@@ -30,12 +30,7 @@ enum class TaskSchedMode : uint8_t {
 class TaskScheduler {
 public:
     TaskScheduler() = default;
-    virtual ~TaskScheduler()
-    {
-        if (que != nullptr) {
-            delete que;
-        }
-    }
+    virtual ~TaskScheduler() {}
 
     void PushTask(TaskBase *task)
     {
@@ -48,11 +43,7 @@ public:
 
     TaskBase* PopTask();
 
-    void SetQos(QoS &q)
-    {
-        qos = q;
-        que->SetQos(q);
-    }
+    virtual void SetQos(QoS &q) = 0;
 
     int qos {0};
 
@@ -65,17 +56,15 @@ public:
     // global_queue.size + totalLocalTaskCnt, not include the PriorityTaskCnt
     uint64_t GetTotalTaskCnt()
     {
-        uint64_t totalTaskCnt = que->Size();
+        uint64_t totalTaskCnt = GetGlobalTaskCnt();
         for (auto &localQueue : localQueues) {
             totalTaskCnt += localQueue.second->GetLength();
         }
         return totalTaskCnt;
     }
     // global_queue.size
-    inline uint64_t GetGlobalTaskCnt()
-    {
-        return que->Size();
-    }
+    virtual uint64_t GetGlobalTaskCnt() = 0;
+
     // thread_local local_queue.size, not totalLocalTaskCnt
     inline uint64_t GetLocalTaskCnt()
     {
@@ -100,7 +89,7 @@ public:
         return localQueues[pid];
     }
 
-    virtual bool PushTaskGlobal(TaskBase* task) = 0;
+    virtual bool PushTaskGlobal(TaskBase* task, bool rtb = true) = 0;
     virtual TaskBase* PopTaskGlobal() = 0;
 
     bool CancelUVWork(ffrt_executor_task_t* uvWork);
@@ -113,7 +102,6 @@ public:
     std::atomic_uint64_t stealWorkers { 0 };
 
 protected:
-    RunQueue *que;
     std::unordered_map<pid_t, SpmcQueue*> localQueues;
     TaskSchedMode taskSchedMode = TaskSchedMode::DEFAULT_TASK_SCHED_MODE;
 

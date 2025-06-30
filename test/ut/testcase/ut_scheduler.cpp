@@ -88,7 +88,7 @@ HWTEST_F(SchedulerTest, ffrt_sched_local_push_pop, TestSize.Level1)
     attr.notifyWorker_ = false;
     for (int i = 0; i < taskCount; i++) {
         TaskBase* task = new SCPUEUTask(&attr, nullptr, 0);
-        scheduler.PushTaskGlobal(task);
+        scheduler.PushTaskGlobal(task, false);
     }
 
     EXPECT_EQ(scheduler.GetTotalTaskCnt(), taskCount);

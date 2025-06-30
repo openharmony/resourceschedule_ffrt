@@ -53,6 +53,7 @@ enum class TaskNotifyType {
     TASK_ADDED,
     TASK_LOCAL,
     TASK_ESCAPED,
+    TASK_ADDED_RTQ,
 };
 
 struct CPUWorkerGroup {
@@ -178,7 +179,7 @@ public:
 
     // event notify
     template <TaskNotifyType TYPE>
-    void NotifyTask(const QoS &qos, bool isPollWait = false)
+    void NotifyTask(const QoS &qos, bool isPollWait = false, bool isRisingEdge = false)
     {
         if constexpr (TYPE == TaskNotifyType::TASK_ADDED) {
             PokeAdd(qos);
@@ -188,6 +189,8 @@ public:
             PokeEscape(qos, isPollWait);
         } else if constexpr (TYPE == TaskNotifyType::TASK_LOCAL) {
             PokeLocal(qos);
+        } else if constexpr (TYPE == TaskNotifyType::TASK_ADDED_RTQ) {
+            PokeAddRtq(qos, isRisingEdge);
         }
     }
 
@@ -259,7 +262,9 @@ public:
 
     inline void SetTaskBacklog(const std::set<QoS> userTaskBacklogConfig)
     {
-        taskBacklogConfig = userTaskBacklogConfig;
+        for (const QoS& qos : userTaskBacklogConfig) {
+            taskBacklogConfig[qos] = true;
+        }
     }
 
     void RestoreThreadConfig();
@@ -321,7 +326,7 @@ protected:
 #endif
 
     // eu sched task bacllog array
-    std::set<QoS> taskBacklogConfig;
+    bool taskBacklogConfig[QoS::MaxNum()] = {};
 private:
     CPUWorker *CreateCPUWorker(const QoS &qos);
 
@@ -329,6 +334,7 @@ private:
     virtual void PokePick(const QoS &qos) = 0;
     virtual void PokeLocal(const QoS &qos) = 0;
     virtual void PokeEscape(const QoS &qos, bool isPollWait) = 0;
+    virtual void PokeAddRtq(const QoS &qos, bool isRisingEdge) = 0;
 
     // eu sched mode array
     static std::array<sched_mode_type, QoS::MaxNum()> schedMode;

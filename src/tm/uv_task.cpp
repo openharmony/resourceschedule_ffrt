@@ -30,9 +30,9 @@ void UVTask::Ready()
         return;
     }
     SetStatus(TaskStatus::READY);
-    FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this);
+    bool isRisingEdge = FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this, false);
     FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(taskQos);
-    FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED>(taskQos);
+    FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED_RTQ>(taskQos, false, isRisingEdge);
 }
 
 void UVTask::Execute()

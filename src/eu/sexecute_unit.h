@@ -75,6 +75,12 @@ private:
         handleTaskNotify(this, qos, TaskNotifyType::TASK_ESCAPED);
     }
 
+    void PokeAddRtq(const QoS &qos, bool isRisingEdge) override
+    {
+        (void)isRisingEdge; // deprecated
+        handleTaskNotify(this, qos, TaskNotifyType::TASK_ADDED);
+    }
+
     void PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
     void ExecuteEscape(int qos) override;
 

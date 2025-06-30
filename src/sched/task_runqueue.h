@@ -21,26 +21,22 @@
 #include <cassert>
 
 namespace ffrt {
-class RunQueue {
+class FIFOQueue {
 public:
-    virtual ~RunQueue() = default;
-    virtual void EnQueue(TaskBase* task) = 0;
-    virtual TaskBase* DeQueue() = 0;
-    virtual bool Empty() = 0;
-    virtual int Size() = 0;
-    virtual void SetQos(QoS &newQos) = 0;
-};
-
-class FIFOQueue : public RunQueue {
-public:
-    void EnQueue(TaskBase* task) override
+    void EnQueue(TaskBase* task)
     {
         list.PushBack(task->node);
         auto curSize = size.load(std::memory_order_relaxed);
         size.store(curSize + 1, std::memory_order_relaxed);
     }
 
-    TaskBase* DeQueue() override
+    void EnQueueBatch(TaskBase* first, TaskBase* last, size_t cnt)
+    {
+        list.PushBack(first->node, last->node);
+        size += static_cast<int>(cnt);
+    }
+
+    TaskBase* DeQueue()
     {
         if (list.Empty()) {
             return nullptr;
@@ -57,16 +53,15 @@ public:
         return task;
     }
 
-    bool Empty() override
+    bool Empty()
     {
         return list.Empty();
     }
 
-    int Size() override
+    int Size()
     {
         return size.load(std::memory_order_relaxed);
     }
-    void SetQos(QoS &newQos) override {}
 
 private:
     LinkedList list;

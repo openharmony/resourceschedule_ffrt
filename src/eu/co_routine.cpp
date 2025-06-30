@@ -346,12 +346,6 @@ static inline void BindNewCoRoutione(ffrt::CoTask* task)
     task->coRoutine->thEnv = GetCoEnv();
 }
 
-static inline void UnbindCoRoutione(ffrt::CoTask* task)
-{
-    task->coRoutine->task = nullptr;
-    task->coRoutine = nullptr;
-}
-
 static inline int CoAlloc(ffrt::CoTask* task)
 {
     if (task->coRoutine) { // use allocated coroutine stack

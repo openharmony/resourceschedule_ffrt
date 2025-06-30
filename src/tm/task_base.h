@@ -181,6 +181,12 @@ public:
         return label;
     }
 
+    inline void UnbindCoRoutione()
+    {
+        std::lock_guard lck(mutex_);
+        coRoutine = nullptr;
+    }
+
 protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };
@@ -192,6 +198,17 @@ void ExecuteTask(TaskBase* task);
 inline bool IsCoTask(TaskBase* task)
 {
     return task && (task->type == ffrt_normal_task || task->type == ffrt_queue_task);
+}
+
+inline bool IncDeleteRefIfPositive(TaskBase* task)
+{
+    uint32_t expected = task->rc.load();
+    while (expected > 0) {
+        if (task->rc.compare_exchange_weak(expected, expected + 1)) {
+            return true;
+        }
+    }
+    return false;
 }
 } // namespace ffrt
 #endif

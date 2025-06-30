@@ -51,6 +51,22 @@ public:
         return {};
     }
 
+    static std::vector<void*> GetUnfreedTasksFiltered()
+    {
+        LockMem();
+        std::vector<void*> unfreed = GetUnfreedMem();
+        // Filter out tasks where the reference count increment failed.
+        unfreed.erase(
+            std::remove_if(unfreed.begin(), unfreed.end(),
+                [](void* task) {
+                    return !IncDeleteRefIfPositive(reinterpret_cast<TaskBase*>(task));
+                }),
+            unfreed.end()
+        );
+        UnlockMem();
+        return unfreed;
+    }
+
     static bool HasBeenFreed(T* task)
     {
         if (Instance().hasBeenFreed_ != nullptr) {
@@ -95,6 +111,20 @@ private:
     typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed_;
     typename TaskAllocCB<T>::LockMem lockMem_;
     typename TaskAllocCB<T>::UnlockMem unlockMem_;
+};
+
+template <typename T>
+class TaskMemScopedLock {
+public:
+    TaskMemScopedLock()
+    {
+        TaskFactory<T>::LockMem();
+    }
+
+    ~TaskMemScopedLock()
+    {
+        TaskFactory<T>::UnlockMem();
+    }
 };
 } // namespace ffrt
 

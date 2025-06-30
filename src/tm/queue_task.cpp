@@ -132,6 +132,7 @@ void QueueTask::Execute()
         return;
     }
     handler_->Dispatch(this);
+    UnbindCoRoutione();
     DecDeleteRef();
 }
 

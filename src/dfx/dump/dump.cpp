@@ -58,7 +58,7 @@ struct TimeoutCfg {
 };
 
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
-void DumpTask(CPUEUTask* task, std::string& stackInfo, uint8_t flag)
+void DumpTask(CoTask* task, std::string& stackInfo, uint8_t flag)
 {
     ucontext_t ctx;
 

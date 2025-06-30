@@ -377,7 +377,7 @@ HWTEST_F(DependencyTest, executor_task_submit_cancel_04, TestSize.Level1)
     ffrt_task_attr_init(&attr);
     ffrt_task_attr_set_qos(&attr, static_cast<int>(ffrt::qos_user_initiated));
     ffrt_executor_task_register_func(UVCbSleep, ffrt_uv_task);
-    static ffrt_executor_task_t works[taskCount]; // 取消的任务可能还没有被取出，不能使用临时变量保存
+    ffrt_executor_task_t works[taskCount];
 
     for (int i = 0; i < taskCount; i++) {
         ffrt_executor_task_submit(&works[i], &attr);
@@ -538,8 +538,8 @@ HWTEST_F(DependencyTest, uv_task_block_ffrt_mutex, TestSize.Level0)
         }
     }}.detach();
 
-    static ffrt_executor_task_t uvWork[taskCount * 4];
-    std::thread{[rand]() {
+    ffrt_executor_task_t uvWork[taskCount * 4];
+    std::thread{[&]() {
         ffrt_task_attr_t attr;
         ffrt_task_attr_init(&attr);
         for (int i = 0; i < taskCount; i++) {

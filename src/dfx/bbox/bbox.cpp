@@ -470,18 +470,12 @@ static void SignalHandler(int signo, siginfo_t* info, void* context __attribute_
         pid_t childPid = static_cast<pid_t>(syscall(SYS_clone, SIGCHLD, 0));
         if (childPid == 0) {
             HandleChildProcess();
-#ifdef OHOS_STANDARD_SYSTEM
-            FaultLoggerFdManager::CloseFd();
-#endif
             _exit(0);
         } else if (childPid > 0) {
             g_bbox_tid_is_dealing.store(g_cur_tid);
             waitpid(childPid, nullptr, 0);
             g_bbox_tid_is_dealing.store(0);
         }
-#ifdef OHOS_STANDARD_SYSTEM
-        FaultLoggerFdManager::CloseFd();
-#endif
     }
     // we need to deregister our signal handler for that signal before continuing.
     sigaction(signo, &s_oldSa[signo], nullptr);

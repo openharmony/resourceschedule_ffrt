@@ -113,6 +113,7 @@ void CPUEUTask::Execute()
             Because it needs to use this task and it's coRoutine to perform some action after it task finished.
         */
         coRoutine->isTaskDone = true;
+        UnbindCoRoutione();
     }
 }
 

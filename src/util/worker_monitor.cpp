@@ -223,9 +223,8 @@ void WorkerMonitor::CheckTaskStatus()
         return;
     }
 
-    TaskFactory<CPUEUTask>::LockMem();
     std::vector<CPUEUTask*> activeTask;
-    auto unfree = TaskFactory<CPUEUTask>::GetUnfreedMem();
+    auto unfree = TaskFactory<CPUEUTask>::GetUnfreedTasksFiltered();
     for (auto task : unfree) {
         auto t = reinterpret_cast<CPUEUTask*>(task);
         if (t->type == ffrt_normal_task) {
@@ -247,7 +246,9 @@ void WorkerMonitor::CheckTaskStatus()
         }
         if (noWorkerThreads && activeTask.empty()) {
             taskMonitorExit_ = true;
-            TaskFactory<CPUEUTask>::UnlockMem();
+            for (auto& task : unfree) {
+                reinterpret_cast<CPUEUTask*>(task)->DecDeleteRef();
+            }
             return;
         }
     }
@@ -260,7 +261,9 @@ void WorkerMonitor::CheckTaskStatus()
         uint64_t curTimeStamp = CalculateTaskTimeout(task, minStart);
         curMinTimeStamp = curTimeStamp < curMinTimeStamp ? curTimeStamp : curMinTimeStamp;
     }
-    TaskFactory<CPUEUTask>::UnlockMem();
+    for (auto& task : unfree) {
+        reinterpret_cast<CPUEUTask*>(task)->DecDeleteRef();
+    }
 
     // 下次检查时间为所有当前任务中的最小状态时间
     uint64_t nextTimeout = (curMinTimeStamp == UINT64_MAX) ? timeoutUs_ :

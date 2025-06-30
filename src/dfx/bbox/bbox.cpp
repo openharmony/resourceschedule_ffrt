@@ -241,7 +241,7 @@ static void DumpQueueTask(const char* tag, const std::vector<QueueTask*>& tasks,
         if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
             std::string dumpInfo;
-            DumpTask(reinterpret_cast<CPUEUTask*>(t), dumpInfo, 1);
+            DumpTask(t, dumpInfo, 1);
             if (!dumpInfo.empty()) {
                 FFRT_BBOX_LOG("%s", dumpInfo.c_str());
             }
@@ -567,6 +567,55 @@ std::string SaveKeyInfo(void)
     return oss.str();
 }
 
+void DumpNormalTaskInfo(std::ostringstream& ss, int qos, pid_t tid, TaskBase* t)
+{
+    {
+        TaskMemScopedLock<CPUEUTask> lock;
+        if (TaskFactory<CPUEUTask>::HasBeenFreed(static_cast<CPUEUTask*>(t))) {
+            return;
+        }
+        if (t->curStatus == TaskStatus::FINISH) {
+            return;
+        }
+        if (!IncDeleteRefIfPositive(t)) {
+            return;
+        }
+    }
+    ss << "        qos " << qos
+        << ": worker tid " << tid
+        << " normal task is running, task id " << t->gid
+        << " name " << t->GetLabel().c_str()
+        << " status " << StatusToString(t->curStatus).c_str();
+    AppendTaskInfo(ss, t);
+    t->DecDeleteRef();
+    ss << std::endl;
+}
+
+void DumpQueueTaskInfo(std::ostringstream& ss, int qos, pid_t tid, TaskBase* t)
+{
+    {
+        TaskMemScopedLock<QueueTask> lock;
+        auto queueTask = reinterpret_cast<QueueTask*>(t);
+        if (TaskFactory<QueueTask>::HasBeenFreed(queueTask)) {
+            return;
+        }
+        if (queueTask->GetFinishStatus()) {
+            return;
+        }
+        if (!IncDeleteRefIfPositive(queueTask)) {
+            return;
+        }
+    }
+    ss << "        qos " << qos
+        << ": worker tid " << tid
+        << " queue task is running, task id " << t->gid
+        << " name " << t->GetLabel().c_str()
+        << " status " << StatusToString(t->curStatus).c_str();
+    AppendTaskInfo(ss, t);
+    t->DecDeleteRef();
+    ss << std::endl;
+}
+
 void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
 {
     TaskBase* t = thread->curTask;
@@ -578,35 +627,11 @@ void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
 
     switch (thread->curTaskType_) {
         case ffrt_normal_task: {
-            TaskFactory<CPUEUTask>::LockMem();
-            auto cpuTask = static_cast<CPUEUTask*>(t);
-            if ((!TaskFactory<CPUEUTask>::HasBeenFreed(cpuTask)) && (cpuTask->curStatus != TaskStatus::FINISH)) {
-                ss << "        qos " << qos
-                    << ": worker tid " << tid
-                    << " normal task is running, task id " << t->gid
-                    << " name " << t->GetLabel().c_str()
-                    << " status " << StatusToString(t->curStatus).c_str();
-                AppendTaskInfo(ss, t);
-            }
-            TaskFactory<CPUEUTask>::UnlockMem();
-            ss << std::endl;
+            DumpNormalTaskInfo(ss, qos, tid, t);
             return;
         }
         case ffrt_queue_task: {
-            {
-                TaskFactory<QueueTask>::LockMem();
-                auto queueTask = reinterpret_cast<QueueTask*>(t);
-                if ((!SimpleAllocator<QueueTask>::HasBeenFreed(queueTask)) && (!queueTask->GetFinishStatus())) {
-                    ss << "        qos " << qos
-                        << ": worker tid " << tid
-                        << " queue task is running, task id " << t->gid
-                        << " name " << t->GetLabel().c_str()
-                        << " status " << StatusToString(t->curStatus).c_str();
-                    AppendTaskInfo(ss, t);
-                }
-                TaskFactory<QueueTask>::UnlockMem();
-            }
-            ss << std::endl;
+            DumpQueueTaskInfo(ss, qos, tid, t);
             return;
         }
         case ffrt_io_task: {
@@ -660,12 +685,26 @@ std::string SaveWorkerStatusInfo(void)
     return oss.str();
 }
 
+void DumpCoYieldTaskBacktrace(CoTask* coTask, std::ostringstream& oss)
+{
+    std::string dumpInfo;
+    std::unique_lock<std::mutex> lck(coTask->mutex_);
+    if (coTask->coRoutine && (coTask->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
+        DumpTask(coTask, dumpInfo, 1);
+        lck.unlock();
+        oss << dumpInfo.c_str();
+    }
+}
+
 std::string SaveNormalTaskStatusInfo(void)
 {
     std::string ffrtStackInfo;
     std::ostringstream ss;
-    TaskFactory<CPUEUTask>::LockMem();
-    auto unfree = TaskFactory<CPUEUTask>::GetUnfreedMem();
+    std::vector<void*> unfree = TaskFactory<CPUEUTask>::GetUnfreedTasksFiltered();
+    if (unfree.size() == 0) {
+        return ffrtStackInfo;
+    }
+
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         std::vector<CPUEUTask*> tmp;
         for (auto task : unfree) {
@@ -689,12 +728,8 @@ std::string SaveNormalTaskStatusInfo(void)
                 AppendTaskInfo(ss, t);
                 ss << std::endl;
             }
+            DumpCoYieldTaskBacktrace(t, ss);
             ffrtStackInfo += ss.str();
-            if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
-                std::string dumpInfo;
-                DumpTask(t, dumpInfo, 1);
-                ffrtStackInfo += dumpInfo;
-            }
         }
     };
 
@@ -715,8 +750,9 @@ std::string SaveNormalTaskStatusInfo(void)
     apply("blocked by synchronization primitive(mutex etc) or wait dependence", [](CPUEUTask* t) {
         return (t->curStatus == TaskStatus::THREAD_BLOCK) || (t->curStatus == TaskStatus::COROUTINE_BLOCK);
     });
-    TaskFactory<CPUEUTask>::UnlockMem();
-
+    for (auto& task : unfree) {
+        reinterpret_cast<CPUEUTask*>(task)->DecDeleteRef();
+    }
     return ffrtStackInfo;
 }
 
@@ -745,35 +781,25 @@ void DumpQueueTaskInfo(std::string& ffrtStackInfo, const char* tag, const std::v
             AppendTaskInfo(ss, t);
             ss << std::endl;
         }
+        DumpCoYieldTaskBacktrace(t, ss);
         ffrtStackInfo += ss.str();
-        if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
-            std::string dumpInfo;
-            DumpTask(reinterpret_cast<CPUEUTask*>(t), dumpInfo, 1);
-            ffrtStackInfo += dumpInfo;
-        }
     }
 }
 
 std::string SaveQueueTaskStatusInfo()
 {
     std::string ffrtStackInfo;
-    TaskFactory<QueueTask>::LockMem();
-    auto unfreeQueueTask = TaskFactory<QueueTask>::GetUnfreedMem();
-    if (unfreeQueueTask.size() == 0) {
-        TaskFactory<QueueTask>::UnlockMem();
+    std::vector<void*> unfree = TaskFactory<QueueTask>::GetUnfreedTasksFiltered();
+    if (unfree.size() == 0) {
         return ffrtStackInfo;
     }
 
     std::map<QueueHandler*, std::vector<QueueTask*>> taskMap;
-    for (auto t : unfreeQueueTask) {
+    for (auto t : unfree) {
         auto task = reinterpret_cast<QueueTask*>(t);
         if (task->type == ffrt_queue_task && task->GetFinishStatus() == false && task->GetHandler() != nullptr) {
             taskMap[task->GetHandler()].push_back(task);
         }
-    }
-    if (taskMap.empty()) {
-        TaskFactory<QueueTask>::UnlockMem();
-        return ffrtStackInfo;
     }
 
     for (auto entry : taskMap) {
@@ -806,7 +832,10 @@ std::string SaveQueueTaskStatusInfo()
                 return (t->curStatus == TaskStatus::THREAD_BLOCK) || (t->curStatus == TaskStatus::COROUTINE_BLOCK);
         });
     }
-    TaskFactory<QueueTask>::UnlockMem();
+
+    for (auto& task : unfree) {
+        reinterpret_cast<QueueTask*>(task)->DecDeleteRef();
+    }
     return ffrtStackInfo;
 }
 

@@ -122,7 +122,7 @@ public:
         }
         return v;
     }
-    
+
     // returns the current g_taskId value
     static uint32_t GetLastGid();
 
@@ -190,8 +190,6 @@ public:
 protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };
-
-std::string StatusToString(TaskStatus status);
 
 void ExecuteTask(TaskBase* task);
 

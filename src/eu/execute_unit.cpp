@@ -36,12 +36,14 @@ const std::map<QoS, std::vector<std::pair<QoS, bool>>> DEFAULT_WORKER_SHARE_CONF
     {4, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(3, false)}},
 };
 const std::map<QoS, std::vector<std::pair<QoS, bool>>> WORKER_SHARE_CONFIG = {
-    {2, {std::make_pair(0, false)}},
-    {3, {std::make_pair(2, false)}},
+    {1, {std::make_pair(0, false), std::make_pair(2, false), std::make_pair(3, false), std::make_pair(4, false)}},
+    {2, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(3, false), std::make_pair(4, false)}},
+    {3, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(4, false)}},
+    {4, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(3, false)}},
     {6, {std::make_pair(5, false)}},
 };
 const std::set<QoS> DEFAULT_TASK_BACKLOG_CONFIG = {0, 1, 2, 3, 4, 5};
-const std::set<QoS> TASK_BACKLOG_CONFIG = {0, 2, 4, 5, 6};
+const std::set<QoS> TASK_BACKLOG_CONFIG = {0, 2, 4, 5};
 
 ExecuteUnit::ExecuteUnit()
 {

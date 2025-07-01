@@ -160,7 +160,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
     }
 
     // timer already erased
-    return -1;
+    return 0;
 }
 
 ffrt_timer_query_t TimerManager::GetTimerStatus(int handle) noexcept

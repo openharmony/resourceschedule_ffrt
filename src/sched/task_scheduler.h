@@ -137,7 +137,6 @@ protected:
     {
         std::lock_guard<std::mutex> lg(uvMtx);
         UVTask* uvTask = static_cast<UVTask*>(task);
-        uvTask->SetDequeued();
         auto it = cancelMap_.find(uvTask->uvWork);
         if (it != cancelMap_.end()) {
             uvTask->FreeMem();
@@ -149,6 +148,7 @@ protected:
             return nullptr;
         }
 
+        uvTask->SetDequeued();
         return task;
     }
 

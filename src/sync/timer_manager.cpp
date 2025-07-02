@@ -130,7 +130,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
         return -1;
     }
 
-    if (handle > timerHandle_) { // invalid handle
+    if (handle > timerHandle_ || handle <= -1) { // invalid handle
         return -1;
     }
 

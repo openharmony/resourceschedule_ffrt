@@ -130,7 +130,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
         return -1;
     }
 
-    if (handle > timerHandle_) { // invalid handle
+    if (handle > timerHandle_ || handle <= -1) { // invalid handle
         return -1;
     }
 
@@ -160,7 +160,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
     }
 
     // timer already erased
-    return -1;
+    return 0;
 }
 
 ffrt_timer_query_t TimerManager::GetTimerStatus(int handle) noexcept

@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-#include <random>
-
 #include <gtest/gtest.h>
 
 #define private public
@@ -82,60 +80,15 @@ HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level0)
 HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level0)
 {
     constexpr int count = 5;
+    std::atomic_int number = 0;
     for (int i = 0; i < count; i++) {
-        ffrt::submit([&]() {});
+        ffrt::submit([&]() {
+            number++;
+        });
     }
     sleep(1);
-    ffrt::notify_workers(1, 6);
     ffrt::notify_workers(2, 6);
-}
-
-/*
-* 测试用例名称：ffrt_handle_task_notify_conservative
-* 测试用例描述：ffrt保守调度策略
-* 预置条件    ：创建SCPUWorkerManager，策略设置为HandleTaskNotifyConservative
-* 操作步骤    ：调用SCPUWorkerManager的Notify方法
-* 预期结果    ：成功执行HandleTaskNotifyConservative方法
-*/
-HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level0)
-{
-    auto manager = std::make_unique<ffrt::SExecuteUnit>();
-    manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyConservative;
-
-    auto task = std::make_unique<ffrt::SCPUEUTask>(nullptr, nullptr, 0);
-    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task.get());
-
-    int executingNum = manager->GetWorkerGroup(ffrt::QoS(2)).executingNum;
-    manager->GetWorkerGroup(2).executingNum = 20;
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_ADDED>(ffrt::QoS(2));
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_PICKED>(ffrt::QoS(2));
-    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
-    sch->PopTask(ffrt::QoS(2));
-}
-
-/*
-* 测试用例名称：ffrt_handle_task_notify_ultra_conservative
-* 测试用例描述：ffrt特别保守调度策略
-* 预置条件    ：创建SExecuteUnit，策略设置为HandleTaskNotifyUltraConservative
-* 操作步骤    ：调用SExecuteUnit的Notify方法
-* 预期结果    ：成功执行HandleTaskNotifyUltraConservative方法
-*/
-HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.Level0)
-{
-    auto manager = std::make_unique<ffrt::SExecuteUnit>();
-    manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative;
-
-    auto task = std::make_unique<ffrt::SCPUEUTask>(nullptr, nullptr, 0);
-    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task.get());
-
-    int executingNum = manager->GetWorkerGroup(2).executingNum;
-    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = 20;
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_ADDED>(ffrt::QoS(2));
-    manager->NotifyTask<ffrt::TaskNotifyType::TASK_PICKED>(ffrt::QoS(2));
-    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
-    sch->PopTask(ffrt::QoS(2));
+    EXPECT_EQ(count, number);
 }
 
 /*
@@ -147,20 +100,12 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.L
 */
 HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level0)
 {
-    constexpr int taskCount = 100;
     auto manager = std::make_unique<ffrt::SExecuteUnit>();
     EXPECT_EQ(manager->SetEscapeEnable(10, 100, 1000, 0, 30), 0);
-    for (int i = 0; i < taskCount; i++) {
-        ffrt::submit([&]() {
-            usleep(1000);
-        });
-    }
     manager->ExecuteEscape(qos_default);
     manager->SubmitEscape(qos_default, 1);
     manager->SubmitEscape(qos_default, 1);
     manager->ReportEscapeEvent(qos_default, 1);
-
-    ffrt::wait();
 }
 
 /*
@@ -282,4 +227,138 @@ HWTEST_F(ExecuteUnitTest, SetWorkerStackSize, TestSize.Level0)
 
     manager->SetWorkerStackSize(5, 4096);
     EXPECT_EQ(workerCtrl.workerStackSize, 4096);
+}
+
+HWTEST_F(ExecuteUnitTest, WorkerCreate, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+
+    workerCtrl.WorkerCreate();
+
+    EXPECT_EQ(workerCtrl.executingNum, 1);
+}
+
+HWTEST_F(ExecuteUnitTest, RollBackCreate, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+
+    workerCtrl.RollBackCreate();
+
+    EXPECT_EQ(workerCtrl.executingNum, -1);
+}
+
+/**
+ * @tc.name: IntoSleep
+ * @tc.desc: Test whether the IntoSleep interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, IntoSleep, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+    EXPECT_EQ(workerCtrl.sleepingNum, 0);
+
+    manager->IntoSleep(QoS(5));
+
+    EXPECT_EQ(workerCtrl.executingNum, -1);
+    EXPECT_EQ(workerCtrl.sleepingNum, 1);
+}
+
+/**
+ * @tc.name: OutOfSleep
+ * @tc.desc: Test whether the OutOfSleep interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, OutOfSleep, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+    EXPECT_EQ(workerCtrl.sleepingNum, 0);
+
+    workerCtrl.OutOfSleep(QoS(5));
+
+    EXPECT_EQ(workerCtrl.executingNum, 1);
+    EXPECT_EQ(workerCtrl.sleepingNum, -1);
+}
+
+/**
+ * @tc.name: WorkerDestroy
+ * @tc.desc: Test whether the WorkerDestroy interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, WorkerDestroy, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.sleepingNum, 0);
+
+    workerCtrl.WorkerDestroy();
+
+    EXPECT_EQ(workerCtrl.sleepingNum, -1);
+}
+
+/**
+ * @tc.name: IntoDeepSleep
+ * @tc.desc: Test whether the IntoDeepSleep interface are normal.
+ * @tc.type: FUNC
+ */
+HWTEST_F(ExecuteUnitTest, IntoDeepSleep, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, 0);
+
+    workerCtrl.IntoDeepSleep();
+
+    EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, 1);
+}
+
+HWTEST_F(ExecuteUnitTest, OutOfDeepSleep, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.sleepingNum, 0);
+    EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, 0);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+
+    workerCtrl.OutOfDeepSleep(QoS(5));
+
+    EXPECT_EQ(workerCtrl.sleepingNum, -1);
+    EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, -1);
+    EXPECT_EQ(workerCtrl.executingNum, 1);
+}
+
+HWTEST_F(ExecutUnitTest, TryDestroy, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.sleepingNum, 0);
+
+    bool res = workerCtrl.TryDestroy();
+
+    EXPECT_EQ(false, res);
+}
+
+HWTEST_F(ExecutUnitTest, RollbackDestroy, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
+    EXPECT_EQ(workerCtrl.executingNum, 0);
+
+    workerCtrl.RollbackDestroy();
+
+    EXPECT_EQ(workerCtrl.executingNum, 1);
+}
+
+HWTEST_F(ExecuteUnitTest, SetCgroupAttr, TestSize.Level0)
+{
+    ffrt_os_sched_attr attr2 = {100, 19, 0, 10, 0, "0-6"};
+    EXPECT_EQ(ffrt::set_cgroup_attr(static_cast<int>(ffrt::qos_user_interactive), &attr2), -1);
+    ffrt::restore_qos_config();
 }

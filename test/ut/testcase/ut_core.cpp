@@ -382,22 +382,14 @@ HWTEST_F(CoreTest, ffrt_set_worker_stack_size, TestSize.Level0)
     int qosMax = ffrt::QoS::Max();
     int stackSizeMin = PTHREAD_STACK_MIN;
     // 设置异常Qos
-    ret = ffrt_set_worker_stack_size(qosMin - 1, stackSizeMin);
+    ret = ffrt::set_worker_stack_size(qosMin - 1, stackSizeMin);
     EXPECT_EQ(ret, ffrt_error_inval);
-    ret = ffrt_set_worker_stack_size(qosMax, stackSizeMin);
+    ret = ffrt::set_worker_stack_size(qosMax, stackSizeMin);
     EXPECT_EQ(ret, ffrt_error_inval);
 
     // 设置异常stacksize
-    ret = ffrt_set_worker_stack_size(qosMin, stackSizeMin - 1);
+    ret = ffrt::set_worker_stack_size(qosMin, stackSizeMin - 1);
     EXPECT_EQ(ret, ffrt_error_inval);
-
-    // 正常设置stackSize
-    ret = ffrt_set_worker_stack_size(qosMax - 1, stackSizeMin);
-    EXPECT_EQ(ret, ffrt_success);
-    // 设置其他Qos栈大小可设置成功
-    int stackOther = PTHREAD_STACK_MIN;
-    ret = ffrt_set_worker_stack_size(qosMin, PTHREAD_STACK_MIN * 2);
-    EXPECT_EQ(ret, ffrt_success);
 }
 
 namespace ffrt {

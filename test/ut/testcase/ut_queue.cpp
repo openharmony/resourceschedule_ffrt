@@ -426,12 +426,15 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level0)
  */
 HWTEST_F(QueueTest, get_queue_id_from_task, TestSize.Level0)
 {
+    int x = 0;
     queue* testQueue = new queue("test_queue");
-    auto t = testQueue->submit_h([] {
+    auto t = testQueue->submit_h([&] {
+        x++;
         (void)ffrt::get_queue_id();
     }, {});
     testQueue->wait(t);
     delete testQueue;
+    EXPECT_EQ(x, 1);
 }
 
 /*
@@ -681,6 +684,7 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
     serialQueue->wait(handle);
     EXPECT_EQ(result, 1);
     delete serialQueue;
+    usleep(100000);
 }
 
 HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level0)

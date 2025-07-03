@@ -112,7 +112,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     }
 #endif
     worker->curTask = task;
-    worker->curTaskType_ = task->type;
+    worker->curTaskType_.store(task->type, std::memory_order_relaxed);
 #ifdef WORKER_CACHE_TASKNAMEID
     if (isNotUv) {
         worker->curTaskLabel_ = task->GetLabel();
@@ -123,7 +123,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     ExecuteTask(task);
 
     worker->curTask = nullptr;
-    worker->curTaskType_ = ffrt_invalid_task;
+    worker->curTaskType_.store(ffrt_invalid_task, std::memory_order_relaxed);
 #ifdef FFRT_SEND_EVENT
     if (isBetaVersion) {
         uint64_t execDur = ((FFRTTraceRecord::TimeStamp() - startExecuteTime) / worker->cacheFreq);

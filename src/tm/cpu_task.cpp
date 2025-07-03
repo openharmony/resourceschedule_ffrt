@@ -151,6 +151,8 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         }
 #endif
     }
+
+    aliveStatus.store(AliveStatus::INITED, std::memory_order_relaxed);
 }
 
 CPUEUTask::~CPUEUTask()
@@ -165,5 +167,6 @@ CPUEUTask::~CPUEUTask()
         delete in_handles_;
         in_handles_ = nullptr;
     }
+    aliveStatus.store(AliveStatus::RELEASED, std::memory_order_relaxed);
 }
 } /* namespace ffrt */

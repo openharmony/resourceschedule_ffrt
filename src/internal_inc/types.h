@@ -80,6 +80,12 @@ enum class TaskStatus : uint8_t {
     CANCELED,        // 任务未执行前被取消 (cancel/skip语义)
 };
 
+enum class AliveStatus : uint8_t {
+    UNITINITED,
+    INITED,
+    RELEASED,
+};
+
 inline const char* StatusToString(TaskStatus status)
 {
     constexpr size_t STATUS_LEN = static_cast<uint8_t>(TaskStatus::CANCELED) + 1;

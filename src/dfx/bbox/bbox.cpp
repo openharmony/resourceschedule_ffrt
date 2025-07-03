@@ -262,7 +262,7 @@ static inline void SaveQueueTaskStatus()
     std::map<QueueHandler*, std::vector<QueueTask*>> taskMap;
     for (auto t : unfreeQueueTask) {
         auto task = reinterpret_cast<QueueTask*>(t);
-        if (task->type == ffrt_queue_task && task->GetFinishStatus() == false && task->GetHandler() != nullptr) {
+        if (task->type == ffrt_queue_task && task->curStatus != TaskStatus::FINISH && task->GetHandler() != nullptr) {
             taskMap[task->GetHandler()].push_back(task);
         }
     }
@@ -619,7 +619,7 @@ void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
         return;
     }
 
-    switch (thread->curTaskType_) {
+    switch (thread->curTaskType_.load(std::memory_order_relaxed)) {
         case ffrt_normal_task: {
             DumpNormalTaskInfo(ss, qos, tid, t);
             return;

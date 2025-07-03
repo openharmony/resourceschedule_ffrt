@@ -227,7 +227,7 @@ void WorkerMonitor::CheckTaskStatus()
     auto unfree = TaskFactory<CPUEUTask>::GetUnfreedTasksFiltered();
     for (auto task : unfree) {
         auto t = reinterpret_cast<CPUEUTask*>(task);
-        if (t->type == ffrt_normal_task) {
+        if (t->type == ffrt_normal_task && t->aliveStatus.load(std::memory_order_relaxed) == AliveStatus::INITED) {
             activeTask.emplace_back(t);
         }
     }
@@ -372,7 +372,8 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, 
 
         taskInfo.sampledTimes_ = 0;
         if (++taskInfo.executionTime_ % TIMEOUT_RECORD_CYCLE_LIST[taskInfo.recordLevel_] == 0) {
-            WorkerInfo workerInfo(worker->Id(), worker->curTaskGid_, worker->curTaskType_, worker->curTaskLabel_);
+            WorkerInfo workerInfo(worker->Id(), worker->curTaskGid_,
+                worker->curTaskType_.load(std::memory_order_relaxed), worker->curTaskLabel_);
             timeoutFunctions.emplace_back(coWorkerInfo, workerInfo, taskInfo.executionTime_);
             if (taskInfo.recordLevel_ < static_cast<int>(TIMEOUT_RECORD_CYCLE_LIST.size()) - 1) {
                 taskInfo.recordLevel_++;

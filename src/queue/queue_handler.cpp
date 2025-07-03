@@ -318,6 +318,11 @@ void QueueHandler::Dispatch(QueueTask* inTask)
                 std::chrono::steady_clock::now().time_since_epoch()).count());
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
         }
+
+        if (task != inTask) {
+            task->SetStatus(TaskStatus::FINISH);
+        }
+
         task->Finish();
         RemoveTimeoutMonitor(task);
         trafficRecord_.DoneTraffic();
@@ -336,6 +341,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
             }
         }
     }
+    inTask->SetStatus(TaskStatus::FINISH);
 }
 
 void QueueHandler::Deliver()

@@ -198,7 +198,7 @@ void SDependenceManager::onWait()
 
     auto childDepFun = [](CoTask* task) -> bool {
         auto sTask = static_cast<SCPUEUTask*>(task);
-        std::unique_lock<std::mutex> lck(sTask->mutex_);
+        std::lock_guard<std::mutex> lck(sTask->mutex_);
         if (sTask->childRefCnt == 0) {
             return false;
         }
@@ -255,7 +255,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         auto sTask = static_cast<SCPUEUTask*>(task);
         dataDepFun();
         FFRT_LOGD("onWait name:%s gid=%lu", sTask->GetLabel().c_str(), sTask->gid);
-        std::unique_lock<std::mutex> lck(sTask->mutex_);
+        std::lock_guard<std::mutex> lck(sTask->mutex_);
         if (sTask->dataRefCnt.waitDep == 0) {
             return false;
         }

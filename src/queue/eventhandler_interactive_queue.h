@@ -51,7 +51,7 @@ public:
 
     void Stop() override
     {
-        std::unique_lock lock(mutex_);
+        std::lock_guard lock(mutex_);
         isExit_ = true;
     }
 

@@ -115,7 +115,7 @@ void QueueTask::Destroy()
 
 void QueueTask::Notify()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     isFinished_.store(true);
     if (onWait_) {
         waitCond_.notify_all();

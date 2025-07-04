@@ -132,7 +132,7 @@ void SharedMutexPrivate::NotifyOne(LinkedList& wList)
         auto task = we->task;
         if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
-            std::unique_lock<std::mutex> lk(wue->wl);
+            std::lock_guard<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
             CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
@@ -148,7 +148,7 @@ void SharedMutexPrivate::NotifyAll(LinkedList& wList)
         auto task = we->task;
         if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
-            std::unique_lock<std::mutex> lk(wue->wl);
+            std::lock_guard<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
             CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);

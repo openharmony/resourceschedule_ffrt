@@ -27,14 +27,14 @@ public:
 
     T* emplace_back(T&& val)
     {
-        std::unique_lock<std::shared_mutex> lck(mtx_);
+        std::lock_guard<std::shared_mutex> lck(mtx_);
         list_.emplace_back(std::move(val));
         return &list_.back();
     }
 
     void push_back(T val)
     {
-        std::unique_lock<std::shared_mutex> lck(mtx_);
+        std::lock_guard<std::shared_mutex> lck(mtx_);
         list_.push_back(val);
     }
 
@@ -46,7 +46,7 @@ public:
 
     std::list<T> claim()
     {
-        std::unique_lock<std::shared_mutex> lck(mtx_);
+        std::lock_guard<std::shared_mutex> lck(mtx_);
         std::list<T> copy = list_;
         list_.clear();
         return copy;

@@ -124,7 +124,7 @@ QueueTask* ConcurrentQueue::Pull()
 
 int ConcurrentQueue::Remove()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     uint64_t removeCount = 0;
     for (auto& currentMap : whenMapVec_) {
         removeCount += BaseQueue::Remove(currentMap);
@@ -134,7 +134,7 @@ int ConcurrentQueue::Remove()
 
 int ConcurrentQueue::Remove(const char* name)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     uint64_t removeCount = 0;
     for (auto& currentMap : whenMapVec_) {
         removeCount += BaseQueue::Remove(name, currentMap);
@@ -144,7 +144,7 @@ int ConcurrentQueue::Remove(const char* name)
 
 int ConcurrentQueue::Remove(const QueueTask* task)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     for (auto& currentMap : whenMapVec_) {
         if (BaseQueue::Remove(task, currentMap) == SUCC) {
             return SUCC;
@@ -155,7 +155,7 @@ int ConcurrentQueue::Remove(const QueueTask* task)
 
 void ConcurrentQueue::Stop()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     isExit_ = true;
 
     for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
@@ -277,7 +277,7 @@ std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
 
 bool ConcurrentQueue::HasTask(const char* name)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     for (auto& currentMap : whenMapVec_) {
         if (BaseQueue::HasTask(name, currentMap)) {
             return true;
@@ -288,7 +288,7 @@ bool ConcurrentQueue::HasTask(const char* name)
 
 std::vector<QueueTask*> ConcurrentQueue::GetHeadTask()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     if (WhenMapVecEmpty(whenMapVec_)) {
         return {};
     }

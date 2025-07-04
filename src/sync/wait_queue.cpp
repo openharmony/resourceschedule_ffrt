@@ -219,7 +219,7 @@ void WaitQueue::Notify(bool one) noexcept
         bool isEmpty = empty();
         TaskBase* task = we->task;
         if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
-            std::unique_lock<std::mutex> lk(we->wl);
+            std::lock_guard<std::mutex> lg(we->wl);
             we->status.store(we_status::NOTIFYING, std::memory_order_release);
             wqlock.unlock();
             we->cv.notify_one();

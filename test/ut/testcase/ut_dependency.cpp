@@ -106,6 +106,7 @@ HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level0)
     });
     int ret2 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 4);
     EXPECT_EQ(ret2, 0);
+    ffrt::wait();
 }
 
 HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level0)

@@ -63,7 +63,7 @@ private:
     ~ProcessExitManager()
     {
         FFRT_LOGW("ProcessExitManager destruction enter");
-        std::unique_lock lock(g_exitMtx);
+        std::lock_guard lock(g_exitMtx);
         g_exitFlag.store(true);
     }
 };

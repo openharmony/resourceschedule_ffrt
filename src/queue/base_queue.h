@@ -63,7 +63,7 @@ public:
 
      virtual inline uint64_t GetMapSize()
     {
-        std::unique_lock lock(mutex_);
+        std::lock_guard lock(mutex_);
         return whenMap_.size();
     }
 

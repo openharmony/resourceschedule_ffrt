@@ -238,17 +238,18 @@ HWTEST_F(DfxTest, normaltsk_timeout_pending, TestSize.Level1)
 {
     ffrt_task_timeout_set_threshold(1000);
     ffrt_set_cpu_worker_max_num(qos_default, 2);
-    int x = 0;
-    for (int i = 0; i < 3; i++) {
+    constexpr int numTasks = 3;
+    std::atomic<int> x = 0;
+
+    for (int i = 0; i < numTasks; i++) {
         ffrt::submit(
             [&]() {
                 stall_us(2000000);
-                x++;
+                x.fetch_add(1, std::memory_order_relaxed);
             }, {}, {});
     }
     ffrt::wait();
-
-    EXPECT_EQ(x, 3);
+    EXPECT_EQ(x, numTasks);
 }
 
 /*
@@ -260,16 +261,17 @@ HWTEST_F(DfxTest, normaltsk_timeout_pending, TestSize.Level1)
 HWTEST_F(DfxTest, normaltsk_timeout_multi, TestSize.Level1)
 {
     ffrt_task_timeout_set_threshold(1000);
-    int x = 0;
-    for (int i = 0; i < 5; i++) {
+    constexpr int numTasks = 5;
+    std::atomic<int> x = 0;
+    for (int i = 0; i < numTasks; i++) {
         ffrt::submit(
             [&]() {
                 stall_us(1500000);
-                x++;
+                x.fetch_add(1, std::memory_order_relaxed);
             }, {}, {});
     }
     ffrt::wait();
-    EXPECT_EQ(x, 5);
+    EXPECT_EQ(x, numTasks);
 }
 
 /*
@@ -281,16 +283,17 @@ HWTEST_F(DfxTest, normaltsk_timeout_multi, TestSize.Level1)
 HWTEST_F(DfxTest, normaltsk_timeout_delay, TestSize.Level1)
 {
     ffrt_task_timeout_set_threshold(1000);
-    int x = 0;
-    for (int i = 0; i < 2; i++) {
+    constexpr int numTasks = 2;
+    std::atomic<int> x = 0;
+    for (int i = 0; i < numTasks; i++) {
         ffrt::submit([&]() {
             std::cout << "delay " << 1500 << " us\n";
-            x = x + 1;
+            x.fetch_add(1, std::memory_order_relaxed);
             stall_us(1500000);
         }, {}, {}, ffrt::task_attr().delay(1500000));
     }
     ffrt::wait();
-    EXPECT_EQ(x, 2);
+    EXPECT_EQ(x, numTasks);
     ffrt::WorkerMonitor::GetInstance().timeoutUs_ = 30000000;
 }
 

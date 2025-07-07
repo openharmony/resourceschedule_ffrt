@@ -114,7 +114,7 @@ ThreadGroup *ExecuteUnit::BindTG(QoS& qos)
         return nullptr;
     }
 
-    std::unique_lock<std::shared_mutex> lck(tgwrap.tgMutex);
+    std::lock_guard<std::shared_mutex> lck(tgwrap.tgMutex);
 
     if (tgwrap.tgRefCount++ > 0) {
         return tgwrap.tg.get();
@@ -153,7 +153,7 @@ void ExecuteUnit::UnbindTG(QoS& qos)
         return;
     }
 
-    std::unique_lock<std::shared_mutex> lck(tgwrap.tgMutex);
+    std::lock_guard<std::shared_mutex> lck(tgwrap.tgMutex);
 
     if (tgwrap.tgRefCount == 0) {
         return;
@@ -178,7 +178,7 @@ void ExecuteUnit::UnbindTG(QoS& qos)
 int ExecuteUnit::SetWorkerStackSize(const QoS &qos, size_t stack_size)
 {
     CPUWorkerGroup &group = workerGroup[qos];
-    std::unique_lock<std::shared_mutex> lck(group.tgMutex);
+    std::lock_guard<std::shared_mutex> lck(group.tgMutex);
     if (!group.threads.empty()) {
         FFRT_SYSEVENT_LOGE("stack size can be set only when there is no worker.");
         return -1;
@@ -315,7 +315,7 @@ void ExecuteUnit::RestoreThreadConfig()
 {
     for (auto qos = ffrt::QoS::Min(); qos < ffrt::QoS::Max(); ++qos) {
         ffrt::CPUWorkerGroup &group = workerGroup[qos];
-        std::unique_lock<std::shared_mutex> lck(group.tgMutex);
+        std::lock_guard<std::shared_mutex> lck(group.tgMutex);
         for (auto &thread : group.threads) {
             thread.first->SetThreadAttr(qos);
         }
@@ -364,7 +364,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
     int qos = static_cast<int>(thread->GetQos());
 
     {
-        std::unique_lock<std::shared_mutex> lck(workerGroup[qos].tgMutex);
+        std::lock_guard<std::shared_mutex> lck(workerGroup[qos].tgMutex);
         thread->SetExited();
         thread->Detach();
         auto worker = std::move(workerGroup[qos].threads[thread]);

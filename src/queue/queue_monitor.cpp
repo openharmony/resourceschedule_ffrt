@@ -55,14 +55,14 @@ QueueMonitor& QueueMonitor::GetInstance()
 
 void QueueMonitor::RegisterQueue(QueueHandler* queue)
 {
-    std::unique_lock lock(infoMutex_);
+    std::lock_guard lock(infoMutex_);
     queuesInfo_.push_back(queue);
     FFRT_LOGD("queue [%s] register in QueueMonitor", queue->GetName().c_str());
 }
 
 void QueueMonitor::DeregisterQueue(QueueHandler* queue)
 {
-    std::unique_lock lock(infoMutex_);
+    std::lock_guard lock(infoMutex_);
     auto it = std::find(queuesInfo_.begin(), queuesInfo_.end(), queue);
     if (it != queuesInfo_.end()) {
         queuesInfo_.erase(it);
@@ -106,7 +106,7 @@ void QueueMonitor::ScheduleAlarm()
 
 void QueueMonitor::CheckTimeout(uint64_t& nextTaskStart)
 {
-    std::unique_lock lock(infoMutex_);
+    std::lock_guard lock(infoMutex_);
 
     // 未来ALLOW_ACC_ERROR_US可能超时的任务，一起上报
     uint64_t now = TimeStampCntvct();

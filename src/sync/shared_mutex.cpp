@@ -24,7 +24,7 @@
 namespace ffrt {
 void SharedMutexPrivate::Lock()
 {
-    mut.lock();
+    std::lock_guard lg(mut);
     while (state & writeEntered) {
         Wait(wList1, SharedMutexWaitType::WRITE);
     }
@@ -32,50 +32,43 @@ void SharedMutexPrivate::Lock()
     while (state & readersMax) {
         Wait(wList2, SharedMutexWaitType::NORMAL);
     }
-    mut.unlock();
 }
 
 bool SharedMutexPrivate::TryLock()
 {
-    mut.lock();
+    std::lock_guard lg(mut);
     if (state == 0) {
         state = writeEntered;
-        mut.unlock();
         return true;
     }
-    mut.unlock();
     return false;
 }
 
 void SharedMutexPrivate::LockShared()
 {
-    mut.lock();
+    std::lock_guard lg(mut);
     while (state >= readersMax) {
         Wait(wList1, SharedMutexWaitType::READ);
     }
     ++state;
-    mut.unlock();
 }
 
 bool SharedMutexPrivate::TryLockShared()
 {
-    mut.lock();
+    std::lock_guard lg(mut);
     if (state < readersMax) {
         ++state;
-        mut.unlock();
         return true;
     }
-    mut.unlock();
     return false;
 }
 
 void SharedMutexPrivate::Unlock()
 {
-    mut.lock();
+    std::lock_guard lg(mut);
     if (state == writeEntered) {
         state = 0;
         NotifyAll(wList1);
-        mut.unlock();
         return;
     }
 
@@ -93,7 +86,6 @@ void SharedMutexPrivate::Unlock()
             }
         }
     }
-    mut.unlock();
 }
 
 void SharedMutexPrivate::Wait(LinkedList& wList, SharedMutexWaitType wtType)

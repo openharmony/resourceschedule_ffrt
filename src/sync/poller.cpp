@@ -296,10 +296,10 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
     int nfds = 0;
     if (task->Block() == BlockType::BLOCK_THREAD) {
         std::unique_lock<std::mutex> lck(task->mutex_);
-        m_mapMutex.lock();
+        std::unique_lock mapLock(m_mapMutex);
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
-            m_mapMutex.unlock();
+            mapLock.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
                 task->GetLabel().c_str(), task->gid, cachedNfds);
             task->Wake();
@@ -308,7 +308,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_SYSEVENT_LOGE("task has waited before");
-            m_mapMutex.unlock();
+            mapLock.unlock();
             task->Wake();
             return 0;
         }
@@ -318,7 +318,7 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             m_waitTaskMap[task].timerHandle = RegisterTimer(timeout, nullptr, nullptr);
         }
-        m_mapMutex.unlock();
+        mapLock.unlock();
         task->waitCond_.wait(lck);
         FFRT_LOGD("task[%s] id[%d] has [%d] events", task->GetLabel().c_str(), task->gid, nfds);
         task->Wake();
@@ -326,10 +326,10 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
     }
 
     CoWait([&](CoTask *task)->bool {
-        m_mapMutex.lock();
+        std::unique_lock mapLock(m_mapMutex);
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
-            m_mapMutex.unlock();
+            mapLock.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
                 task->GetLabel().c_str(), task->gid, cachedNfds);
             nfds = cachedNfds;
@@ -338,7 +338,6 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
 
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_SYSEVENT_LOGE("task has waited before");
-            m_mapMutex.unlock();
             return false;
         }
         auto currTime = std::chrono::steady_clock::now();
@@ -347,7 +346,6 @@ int Poller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int timeou
             FFRT_LOGD("poller meet timeout={%d}", timeout);
             m_waitTaskMap[task].timerHandle = RegisterTimer(timeout, nullptr, nullptr);
         }
-        m_mapMutex.unlock();
         // The ownership of the task belongs to m_waitTaskMap, and the task cannot be accessed any more.
         return true;
     });
@@ -481,24 +479,24 @@ void Poller::WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEvents)
 
     std::unordered_set<int> timerHandlesToRemove;
     std::unordered_set<CoTask*> tasksToWake;
-    m_mapMutex.lock();
-    for (auto& taskEventPair : syncTaskEvents) {
-        CoTask* currTask = taskEventPair.first;
-        auto iter = m_waitTaskMap.find(currTask);
-        if (iter == m_waitTaskMap.end()) {
-            CacheEventsAndDoMask(currTask, taskEventPair.second);
-            continue;
+    {
+        std::lock_guard lg(m_mapMutex);
+        for (auto& taskEventPair : syncTaskEvents) {
+            CoTask* currTask = taskEventPair.first;
+            auto iter = m_waitTaskMap.find(currTask);
+            if (iter == m_waitTaskMap.end()) {
+                CacheEventsAndDoMask(currTask, taskEventPair.second);
+                continue;
+            }
+            CopyEventsInfoToConsumer(iter->second, taskEventPair.second);
+            auto timerHandle = iter->second.timerHandle;
+            if (timerHandle > -1) {
+                timerHandlesToRemove.insert(timerHandle);
+            }
+            tasksToWake.insert(currTask);
+            m_waitTaskMap.erase(iter);
         }
-        CopyEventsInfoToConsumer(iter->second, taskEventPair.second);
-        auto timerHandle = iter->second.timerHandle;
-        if (timerHandle > -1) {
-            timerHandlesToRemove.insert(timerHandle);
-        }
-        tasksToWake.insert(currTask);
-        m_waitTaskMap.erase(iter);
     }
-
-    m_mapMutex.unlock();
     if (timerHandlesToRemove.size() > 0) {
         std::lock_guard lock(timerMutex_);
         for (auto it = timerMap_.begin(); it != timerMap_.end();) {
@@ -532,27 +530,27 @@ PollerRet Poller::PollOnce(int timeout) noexcept
 {
     int realTimeout = timeout;
     int timerHandle = -1;
+    {
+        std::lock_guard lg(timerMutex_);
+        if (!timerMap_.empty()) {
+            auto cur = timerMap_.begin();
+            timerHandle = cur->second.handle;
+            TimePoint now = std::chrono::steady_clock::now();
+            realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+                cur->first - now).count();
+            if (realTimeout <= 0) {
+                ExecuteTimerCb(now);
+                return PollerRet::RET_TIMER;
+            }
 
-    timerMutex_.lock();
-    if (!timerMap_.empty()) {
-        auto cur = timerMap_.begin();
-        timerHandle = cur->second.handle;
-        TimePoint now = std::chrono::steady_clock::now();
-        realTimeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-            cur->first - now).count();
-        if (realTimeout <= 0) {
-            ExecuteTimerCb(now);
-            return PollerRet::RET_TIMER;
+            if (timeout != -1 && realTimeout > timeout) {
+                timerHandle = -1;
+                realTimeout = timeout;
+            }
+
+            flag_ = EpollStatus::WAIT;
         }
-
-        if (timeout != -1 && realTimeout > timeout) {
-            timerHandle = -1;
-            realTimeout = timeout;
-        }
-
-        flag_ = EpollStatus::WAIT;
     }
-    timerMutex_.unlock();
 
     pollerCount_++;
     std::array<epoll_event, EPOLL_EVENT_SIZE> waitedEvents;
@@ -566,14 +564,13 @@ PollerRet Poller::PollOnce(int timeout) noexcept
     }
     if (nfds == 0) {
         if (timerHandle != -1) {
-            timerMutex_.lock();
+            std::lock_guard lg(timerMutex_);
             for (auto it = timerMap_.begin(); it != timerMap_.end(); it++) {
                 if (it->second.handle == timerHandle) {
                     ExecuteTimerCb(it->first);
                     return PollerRet::RET_TIMER;
                 }
             }
-            timerMutex_.unlock();
         }
         return PollerRet::RET_NULL;
     }
@@ -613,13 +610,12 @@ void Poller::ReleaseFdWakeData() noexcept
 
 void Poller::ProcessTimerDataCb(CoTask* task) noexcept
 {
-    m_mapMutex.lock();
+    std::lock_guard lg(m_mapMutex);
     auto iter = m_waitTaskMap.find(task);
     if (iter != m_waitTaskMap.end()) {
         WakeTask(task);
         m_waitTaskMap.erase(iter);
     }
-    m_mapMutex.unlock();
 }
 
 void Poller::ExecuteTimerCb(TimePoint timer) noexcept

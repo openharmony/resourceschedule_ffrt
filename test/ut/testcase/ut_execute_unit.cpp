@@ -217,31 +217,43 @@ HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level0)
 
 HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
 {
+    std::atomic<bool> done = false;
     CpuWorkerOps ops{
         [](CPUWorker* thread) { return WorkerAction::RETIRE; },
-        [](CPUWorker* thread) {},
+        [&done](CPUWorker* thread) {
+            // prevent thread leak and UAF
+            // by sync. via done and detaching the thread
+            thread->SetExited();
+            thread->Detach();
+            done = true;
+        },
         [](CPUWorker* thread) {},
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         []() { return false; },
 #endif
     };
 
-    SExecuteUnit* manager = new SExecuteUnit();
-    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
-    workerCtrl.workerShareConfig.push_back({5, true});
-    CPUWorker* worker = new CPUWorker(5, std::move(ops), 0);
+    const auto qos = QoS(5);
+    auto manager = std::make_unique<SExecuteUnit>();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(qos);
+    workerCtrl.workerShareConfig.push_back({qos, true});
+    auto worker =  std::make_unique<CPUWorker>(qos, std::move(ops), 0);
 
     std::function<bool(int, CPUWorker*)> trueFunc = [](int qos, CPUWorker* worker) { return true; };
     std::function<bool(int, CPUWorker*)> falseFunc = [](int qos, CPUWorker* worker) { return false; };
 
 #ifndef FFRT_GITEE
-    EXPECT_EQ(manager->WorkerShare(worker, trueFunc), true);
-    EXPECT_EQ(manager->WorkerShare(worker, falseFunc), false);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), trueFunc), true);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), falseFunc), false);
 #endif
 
     workerCtrl.workerShareConfig[0].second = false;
-    EXPECT_EQ(manager->WorkerShare(worker, trueFunc), true);
-    EXPECT_EQ(manager->WorkerShare(worker, falseFunc), false);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), trueFunc), true);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), falseFunc), false);
+    while (!done) {
+        // busy wait for the worker thread to be done.
+        // delay the destruction of main thread till the retirement of the worker.
+    }
 }
 
 HWTEST_F(ExecuteUnitTest, HandleTaskNotifyConservative, TestSize.Level0)

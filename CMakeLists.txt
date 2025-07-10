@@ -58,9 +58,9 @@ include_directories(${securec_includes})
 
 #compiler flags
 if(FFRT_SANITIZE STREQUAL address)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-recover=address,all -fno-omit-frame-pointer")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-recover=address,all -fno-omit-frame-pointer -DASAN_MODE")
 elseif(FFRT_SANITIZE STREQUAL thread)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer -DTSAN_MODE -DCLOSE_COROUTINE_MODE")
 endif()
 
 if(FFRT_UT_ENABLE STREQUAL OFF AND FFRT_ST_ENABLE STREQUAL OFF)

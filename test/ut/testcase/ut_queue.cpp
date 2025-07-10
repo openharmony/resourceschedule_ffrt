@@ -164,6 +164,9 @@ HWTEST_F(QueueTest, ffrt_task_attr_set_get_delay, TestSize.Level0)
     // succ free
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr); // attr 缺少 init 无法看护
+    uint64_t maxUsCount = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+    ffrt_task_attr_set_delay(&task_attr, UINT64_MAX); // 测试时间溢出截断功能
+    EXPECT_EQ(ffrt_task_attr_get_delay(&task_attr), maxUsCount);
     // set_attr_delay
     uint64_t delay = 100;
     ffrt_task_attr_set_delay(nullptr, delay);
@@ -371,6 +374,9 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level0)
     ffrt_queue_attr_set_timeout(nullptr, 10000);
     uint64_t time = ffrt_queue_attr_get_timeout(&queue_attr);
     EXPECT_EQ(time, 0);
+    ffrt_queue_attr_set_timeout(&queue_attr, UINT64_MAX); // 测试时间溢出截断功能
+    uint64_t maxUsCount = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+    EXPECT_EQ(ffrt_queue_attr_get_timeout(&queue_attr), maxUsCount);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
     EXPECT_TRUE(queue_handle != nullptr);
 
@@ -678,6 +684,33 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
             result = result + 1;
             ffrt_queue_submit(mainQueue, ffrt::create_function_wrapper(basicFunc, ffrt_function_kind_queue),
                               &attr);
+        },
+        ffrt::task_attr().qos(3).name("ffrt main_queue."));
+
+    serialQueue->wait(handle);
+    EXPECT_EQ(result, 1);
+    delete serialQueue;
+    usleep(100000);
+}
+
+HWTEST_F(QueueTest, get_main_queue, TestSize.Level0)
+{
+    ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
+    queue* mainQueue = ffrt::queue::get_main_queue();
+    int result = 0;
+    std::function<void()>&& basicFunc = [&result]() {
+        OnePlusForTest(static_cast<void*>(&result));
+        OnePlusForTest(static_cast<void*>(&result));
+        EXPECT_EQ(result, 3);
+        usleep(3000);
+    };
+
+    ffrt::task_handle handle = serialQueue->submit_h(
+        [&] {
+            result = result + 1;
+            if (mainQueue != nullptr) {
+                mainQueue->submit(basicFunc);
+            }
         },
         ffrt::task_attr().qos(3).name("ffrt main_queue."));
 

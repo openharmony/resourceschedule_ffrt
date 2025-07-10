@@ -177,7 +177,7 @@ void QueueHandler::Submit(QueueTask* task)
     if (task->GetDelay() == 0) {
         FFRT_LOGD("task [%llu] activate %s", gid, name_.c_str());
         {
-            std::unique_lock lock(mutex_);
+            std::lock_guard lock(mutex_);
             UpdateCurTask(task);
         }
         TransferTask(task);
@@ -194,7 +194,7 @@ void QueueHandler::Submit(QueueTask* task)
 void QueueHandler::Cancel()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     std::vector<QueueTask*> taskVec = queue_->GetHeadTask();
     for (auto& task : taskVec) {
         for (auto& curtask : curTaskVec_) {
@@ -216,7 +216,7 @@ void QueueHandler::CancelAndWait()
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
         desWaitCnt_++;
         if (desWaitCnt_ == TASK_WAIT_COUNT) {
-            std::unique_lock lock(mutex_);
+            std::lock_guard lock(mutex_);
             for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
                 FFRT_LOGI("Queue Destruct blocked for 5s, %s", GetDfxInfo(i).c_str());
             }
@@ -227,7 +227,7 @@ void QueueHandler::CancelAndWait()
 
 bool QueueHandler::CheckExecutingTask()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     for (const auto& curTask : curTaskVec_) {
         if (curTask != nullptr && curTask->curStatus == TaskStatus::EXECUTING) {
             return true;
@@ -240,7 +240,7 @@ int QueueHandler::Cancel(const char* name)
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
          "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     std::vector<QueueTask*> taskVec = queue_->GetHeadTask();
     for (auto& task : taskVec) {
         for (auto& curtask : curTaskVec_) {
@@ -273,7 +273,7 @@ int QueueHandler::Cancel(QueueTask* task)
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
         for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
-            std::unique_lock lock(mutex_);
+            std::lock_guard lock(mutex_);
             if (curTaskVec_[i] == task) {
                 curTaskVec_[i] = nullptr;
                 break;
@@ -330,7 +330,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         // run task batch
         nextTask = task->GetNextTask();
         {
-            std::unique_lock lock(mutex_);
+            std::lock_guard lock(mutex_);
             curTaskVec_[task->curTaskIdx] = nextTask;
         }
         task->DecDeleteRef();
@@ -349,7 +349,7 @@ void QueueHandler::Deliver()
     deliverCnt_.fetch_add(1);
     {
         // curtask has to be updated to headtask of whenmap before pull
-        std::unique_lock lock(mutex_);
+        std::lock_guard lock(mutex_);
         std::vector<QueueTask*> taskMap = queue_->GetHeadTask();
         if (!taskMap.empty()) {
             std::unordered_set<QueueTask*> curTaskSet(curTaskVec_.begin(), curTaskVec_.end());
@@ -477,8 +477,8 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
     uint64_t timeoutUs, std::stringstream& ss)
 {
     uint64_t whenmapTskCount = GetTaskCnt();
-    std::unique_lock lock(mutex_);
-    std::unique_lock mapLock(queue_->mutex_);
+    std::lock_guard lock(mutex_);
+    std::lock_guard mapLock(queue_->mutex_);
     std::pair<std::vector<uint64_t>, uint64_t> curTaskInfo;
     uint64_t minTime = UINT64_MAX;
     for (int i = 0;i < static_cast<int>(curTaskVec_.size()); i++) {
@@ -603,7 +603,7 @@ void QueueHandler::CheckSchedDeadline()
     std::vector<std::pair<uint64_t, std::string>> timeoutTaskInfo;
     // Collecting Timeout Tasks
     {
-        std::unique_lock lock(mutex_);
+        std::lock_guard lock(mutex_);
         uint64_t threshold = std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count() + SCHED_TIME_ACC_ERROR_US;
 
@@ -643,7 +643,7 @@ void QueueHandler::AddSchedDeadline(QueueTask* task)
         return;
     }
 
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     schedDeadline_.insert({task, task->GetSchedTimeout() + task->GetUptime()});
 
     if (!initSchedTimer_) {
@@ -661,7 +661,7 @@ void QueueHandler::AddSchedDeadline(QueueTask* task)
 
 void QueueHandler::RemoveSchedDeadline(QueueTask* task)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     schedDeadline_.erase(task);
 }
 
@@ -689,7 +689,7 @@ void QueueHandler::ReportTimeout(const std::vector<std::pair<uint64_t, std::stri
 
 void QueueHandler::SetCurTask(QueueTask* task)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     if (task != nullptr) {
         curTaskVec_[task->curTaskIdx] = task;
     }

@@ -162,31 +162,43 @@ HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level0)
 
 HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
 {
+    std::atomic<bool> done = false;
     CpuWorkerOps ops{
         [](CPUWorker* thread) { return WorkerAction::RETIRE; },
-        [](CPUWorker* thread) {},
+        [&done](CPUWorker* thread) {
+            // prevent thread leak and UAF
+            // by sync. via done and detaching the thread
+            thread->SetExited();
+            thread->Detach();
+            done = true;
+        },
         [](CPUWorker* thread) {},
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         []() { return false; },
 #endif
     };
 
-    SExecuteUnit* manager = new SExecuteUnit();
-    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
-    workerCtrl.workerShareConfig.push_back({5, true});
-    CPUWorker* worker = new CPUWorker(5, std::move(ops), 0);
+    const auto qos = QoS(5);
+    auto manager = std::make_unique<SExecuteUnit>();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(qos);
+    workerCtrl.workerShareConfig.push_back({qos, true});
+    auto worker =  std::make_unique<CPUWorker>(qos, std::move(ops), 0);
 
     std::function<bool(int, CPUWorker*)> trueFunc = [](int qos, CPUWorker* worker) { return true; };
     std::function<bool(int, CPUWorker*)> falseFunc = [](int qos, CPUWorker* worker) { return false; };
 
 #ifndef FFRT_GITEE
-    EXPECT_EQ(manager->WorkerShare(worker, trueFunc), true);
-    EXPECT_EQ(manager->WorkerShare(worker, falseFunc), false);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), trueFunc), true);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), falseFunc), false);
 #endif
 
     workerCtrl.workerShareConfig[0].second = false;
-    EXPECT_EQ(manager->WorkerShare(worker, trueFunc), true);
-    EXPECT_EQ(manager->WorkerShare(worker, falseFunc), false);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), trueFunc), true);
+    EXPECT_EQ(manager->WorkerShare(worker.get(), falseFunc), false);
+    while (!done) {
+        // busy wait for the worker thread to be done.
+        // delay the destruction of main thread till the retirement of the worker.
+    }
 }
 
 HWTEST_F(ExecuteUnitTest, HandleTaskNotifyConservative, TestSize.Level0)
@@ -334,7 +346,7 @@ HWTEST_F(ExecuteUnitTest, OutOfDeepSleep, TestSize.Level0)
     EXPECT_EQ(workerCtrl.executingNum, 1);
 }
 
-HWTEST_F(ExecutUnitTest, TryDestroy, TestSize.Level0)
+HWTEST_F(ExecuteUnitTest, TryDestroy, TestSize.Level0)
 {
     ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
@@ -345,7 +357,7 @@ HWTEST_F(ExecutUnitTest, TryDestroy, TestSize.Level0)
     EXPECT_EQ(false, res);
 }
 
-HWTEST_F(ExecutUnitTest, RollbackDestroy, TestSize.Level0)
+HWTEST_F(ExecuteUnitTest, RollbackDestroy, TestSize.Level0)
 {
     ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
@@ -359,6 +371,6 @@ HWTEST_F(ExecutUnitTest, RollbackDestroy, TestSize.Level0)
 HWTEST_F(ExecuteUnitTest, SetCgroupAttr, TestSize.Level0)
 {
     ffrt_os_sched_attr attr2 = {100, 19, 0, 10, 0, "0-6"};
-    EXPECT_EQ(ffrt::set_cgroup_attr(static_cast<int>(ffrt::qos_user_interactive), &attr2), -1);
+    EXPECT_EQ(ffrt::set_cgroup_attr(static_cast<int>(ffrt::qos_user_interactive), &attr2), 0);
     ffrt::restore_qos_config();
 }

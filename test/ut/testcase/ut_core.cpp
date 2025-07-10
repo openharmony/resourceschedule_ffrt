@@ -137,6 +137,9 @@ HWTEST_F(CoreTest, task_attr_set_timeout, TestSize.Level0)
     ffrt_task_attr_set_timeout(attr, 1000);
     uint64_t timeout = ffrt_task_attr_get_timeout(attr);
     EXPECT_EQ(timeout, 1000);
+    ffrt_task_attr_set_timeout(attr, UINT64_MAX); // 测试时间溢出截断功能
+    uint64_t maxUsCount = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+    EXPECT_EQ(ffrt_task_attr_get_timeout(attr), maxUsCount);
     free(attr);
 }
 
@@ -582,4 +585,56 @@ HWTEST_F(CoreTest, ffrt_submit_f, TestSize.Level0)
     ffrt_submit_f(OnePlusForTest, &result, nullptr, nullptr, &attr);
     ffrt::wait();
     EXPECT_EQ(result, 1);
+}
+
+/*
+ * 测试用例名称: ffrt_task_factory_deleteRef_test
+ * 测试用例描述: 测试使用自定义管理器时，在并发情况下增减引用计数接口正常
+ * 预置条件    : 注册自定义Task内存分配函数
+ * 操作步骤    : 创建2批线程，分别使用自定义管理器创建任务并减少引用计数和获取尝试增加引用计数成功的任务并减少引用计数
+ * 预期结果    : 任务引用计数符合预期
+*/
+HWTEST_F(CoreTest, ffrt_task_factory_deleteRef_test, TestSize.Level0)
+{
+    ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
+        ffrt::SimpleAllocator<TmTest::MyTask>::AllocMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem_,
+        ffrt::SimpleAllocator<TmTest::MyTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::HasBeenFreed,
+        ffrt::SimpleAllocator<TmTest::MyTask>::LockMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::UnlockMem);
+
+    int threadCnt = 100;
+    std::thread decDeleteRefThreads[threadCnt];
+    std::thread incDeleteRefThreads[threadCnt];
+    for (int threadIndex = 0; threadIndex < threadCnt; threadIndex++) {
+        decDeleteRefThreads[threadIndex] = std::thread([&] {
+            std::vector<TmTest::MyTask*> tasks;
+            int taskCount = 1000;
+            for (int i = 0; i < taskCount; i++) {
+                TmTest::MyTask* task = ffrt::TaskFactory<TmTest::MyTask>::Alloc();
+                new(task) TmTest::MyTask();
+                tasks.push_back(task);
+            }
+            for (auto& task : tasks) {
+                EXPECT_TRUE(task->DecDeleteRef() > 0);
+            }
+        });
+
+        incDeleteRefThreads[threadIndex] = std::thread([&] {
+            std::vector<void*> unfreeVec = TaskFactory<TmTest::MyTask>::GetUnfreedTasksFiltered();
+            for (auto& unfree : unfreeVec) {
+                auto t = reinterpret_cast<TmTest::MyTask*>(unfree);
+                EXPECT_TRUE(t->DecDeleteRef() > 0);
+            }
+        });
+    }
+
+    for (auto& t : decDeleteRefThreads) {
+        t.join();
+    }
+    for (auto& t : incDeleteRefThreads) {
+        t.join();
+    }
 }

@@ -120,14 +120,14 @@ DefaultInterval::DefaultInterval(uint64_t deadlineUs, const QoS& qos) : Interval
 
 DefaultInterval::~DefaultInterval()
 {
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
     ctrl.Update(1, 0, true);
 }
 
 int DefaultInterval::Begin()
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalBegin);
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
 
     if (Enabled()) {
         FFRT_SYSEVENT_LOGE("interval already begin\n");
@@ -152,7 +152,7 @@ int DefaultInterval::Begin()
 void DefaultInterval::Update(uint64_t deadlineUs)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalUpdate);
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
 
     if (!Enabled()) {
         return;
@@ -165,7 +165,7 @@ void DefaultInterval::Update(uint64_t deadlineUs)
 void DefaultInterval::End()
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalEnd);
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
 
     if (!Enabled()) {
         return;
@@ -181,7 +181,7 @@ void DefaultInterval::End()
 void DefaultInterval::CheckPoint()
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalCheckPoint);
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
 
     if (!Enabled()) {
         return;
@@ -194,7 +194,7 @@ void DefaultInterval::CheckPoint()
 void DefaultInterval::Join()
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalJoin);
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
     if (!ctrl.Join()) {
         FFRT_SYSEVENT_LOGE("Failed to Join Thread %d", ThreadGroup::GetTID());
     }
@@ -203,7 +203,7 @@ void DefaultInterval::Join()
 void DefaultInterval::Leave()
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalLeave);
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
     if (!ctrl.Leave()) {
         FFRT_SYSEVENT_LOGE("Failed to Leave Thread %d", ThreadGroup::GetTID());
     }
@@ -212,7 +212,7 @@ void DefaultInterval::Leave()
 void DefaultInterval::UpdateTaskSwitch(TaskSwitchState state)
 {
     FFRT_TRACE_SCOPE(TRACE_LEVEL1, IntervalUpdateTaskSwitch);
-    std::unique_lock lock(mutex);
+    std::lock_guard lock(mutex);
 
     switch (state) {
         case TaskSwitchState::BEGIN:

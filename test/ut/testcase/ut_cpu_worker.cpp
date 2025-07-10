@@ -27,9 +27,9 @@
 #include "sync/perf_counter.h"
 #include "sync/wait_queue.h"
 
-#define private public
+#define PRIVATE PUBLIC
 #include "eu/cpu_worker.h"
-#undef private
+#undef PRIVATE
 #include "../common.h"
 
 using namespace testing;
@@ -69,16 +69,16 @@ protected:
     }
 };
 
-static int conunter = 0;
-int simple_thd_func(void *)
+static int g_counter = 0;
+int SimpleThdFunc(void *)
 {
-    counter++;
+    g_counter++;
     return 0;
 }
 
-static void* tmp_func(void *)
+static void* TempFunc(void *)
 {
-    ++counter;
+    ++g_counter;
     return nullptr;
 }
 
@@ -170,7 +170,7 @@ HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level0)
 
 HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level0)
 {
-    CpuWorkerQos ops;
+    CpuWorkerOps ops;
     ops.WorkerIdleAction = WorkerIdleAction;
     ops.WorkerRetired = WorkerRetired;
     ops.WorkerPrepare = WorkerPrepare;
@@ -180,4 +180,42 @@ HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level0)
 #endif
     CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
     EXPECT_EQ(worker->GetQos(), 6);
+}
+
+HWTEST_F(CpuWorkerTest, SetCpuAffinity, TestSize.Level0)
+{
+    CpuWorkerOps ops{
+        [](CPUWorker* thread) { return WorkerAction::RETIRE; },
+        [](CPUWorker* thread) {},
+        [](CPUWorker* thread) {},
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        []() { return false; },
+#endif
+    };
+
+    CPUWorker* worker = new CPUWorker(2, std::move(ops), 0);
+    int originPolicy = 0;
+    sched_param param;
+    pthread_getschedparam(worker->thread_, &originPolicy, &param);
+    int originPrio = param.sched_priority;
+
+    int policy = 0;
+    worker->SetThreadPriority(0, worker->Id());
+    worker->SetThreadPriority(140, worker->Id());
+    pthread_getschedparam(worker->thread_, &policy, &param);
+    EXPECT_EQ(originPolicy, policy);
+
+    worker->SetThreadPriority(1, worker->Id());
+    worker->SetThreadPriority(41, worker->Id());
+    worker->SetThreadPriority(51, worker->Id());
+
+    worker->SetThreadAttr(qos_max + 1);
+    worker->SetThreadAttr(GetFuncQosMax()() - 1);
+    worker->SetThreadAttr(GetFuncQosMax()());
+#ifndef OHOS_STANDARD_SYSTEM
+    pthread_getschedparam(worker->thread_, &policy, &param);
+    int prio = param.sched_priority;
+    EXPECT_EQ(originPolicy, policy);
+#endif
+    worker->SetExited();
 }

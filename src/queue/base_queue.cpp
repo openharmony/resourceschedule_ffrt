@@ -57,7 +57,7 @@ BaseQueue::BaseQueue() : queueId_(g_queueId++)
 
 void BaseQueue::Stop()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     Stop(whenMap_);
     FFRT_LOGI("clear [queueId=%u] succ", queueId_);
 }
@@ -70,7 +70,7 @@ void BaseQueue::Stop(std::multimap<uint64_t, QueueTask*>& whenMap)
 
 int BaseQueue::Remove()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     return Remove(whenMap_);
 }
 
@@ -85,7 +85,7 @@ int BaseQueue::Remove(std::multimap<uint64_t, QueueTask*>& whenMap)
 
 int BaseQueue::Remove(const char* name)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     return Remove(name, whenMap_);
 }
 
@@ -110,7 +110,7 @@ int BaseQueue::Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whe
 
 int BaseQueue::Remove(const QueueTask* task)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     return Remove(task, whenMap_);
 }
 
@@ -131,7 +131,7 @@ int BaseQueue::Remove(const QueueTask* task, std::multimap<uint64_t, QueueTask*>
 
 bool BaseQueue::HasTask(const char* name)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     return HasTask(name, whenMap_);
 }
 
@@ -152,7 +152,7 @@ std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* a
 
 uint32_t BaseQueue::GetDueTaskCount()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     uint32_t count = GetDueTaskCount(whenMap_);
     if (count != 0) {
         FFRT_LOGD("qid = %u Current Due Task Count %u", GetQueueId(), count);
@@ -171,7 +171,7 @@ uint32_t BaseQueue::GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap
 
 std::vector<QueueTask*> BaseQueue::GetHeadTask()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     if (whenMap_.empty()) {
         return {};
     }

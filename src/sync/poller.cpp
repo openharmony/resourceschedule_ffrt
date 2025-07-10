@@ -58,14 +58,14 @@ Poller::~Poller() noexcept
 #endif
     timerHandle_ = -1;
     {
-        std::unique_lock lock(m_mapMutex);
+        std::lock_guard lg(m_mapMutex);
         m_wakeDataMap.clear();
         m_delCntMap.clear();
         m_waitTaskMap.clear();
         m_cachedTaskEvents.clear();
     }
     {
-        std::unique_lock lock(timerMutex_);
+        std::lock_guard lg(timerMutex_);
         timerMap_.clear();
         executedHandle_.clear();
     }
@@ -93,7 +93,7 @@ int Poller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_poller_
     wakeData->monitorEvents = events;
 
     epoll_event ev = { .events = events, .data = { .ptr = ptr } };
-    std::unique_lock lock(m_mapMutex);
+    std::lock_guard lg(m_mapMutex);
     if (epoll_ctl(m_epFd, op, fd, &ev) != 0) {
         FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, fd, errno);
         return -1;
@@ -167,7 +167,7 @@ int Poller::ClearDelFdCache(int fd) noexcept
 
 int Poller::DelFdEvent(int fd) noexcept
 {
-    std::unique_lock lock(m_mapMutex);
+    std::lock_guard lg(m_mapMutex);
     ClearDelFdCache(fd);
     auto wakeDataIter = m_wakeDataMap.find(fd);
     if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 0) {
@@ -210,7 +210,7 @@ int Poller::DelFdEvent(int fd) noexcept
 
 void Poller::ClearCachedEvents(CoTask* task) noexcept
 {
-    std::unique_lock lock(m_mapMutex);
+    std::lock_guard lg(m_mapMutex);
     auto iter = m_cachedTaskEvents.find(task);
     if (iter == m_cachedTaskEvents.end()) {
         return;
@@ -392,7 +392,7 @@ void Poller::ProcessWaitedFds(int nfds, std::unordered_map<CoTask*, EventVec>& s
             epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = currFd} };
             syncTaskEvents[data->task].push_back(ev);
             if (waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) {
-                std::unique_lock lock(m_mapMutex);
+                std::lock_guard lg(m_mapMutex);
                 CacheMaskFdAndEpollDel(currFd, data->task);
             }
         }
@@ -403,7 +403,7 @@ namespace {
 void WakeTask(CoTask* task)
 {
     if (task->GetBlockType() == BlockType::BLOCK_THREAD) {
-        std::unique_lock<std::mutex> lck(task->mutex_);
+        std::lock_guard<std::mutex> lg(task->mutex_);
         task->waitCond_.notify_one();
     } else {
         CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
@@ -518,7 +518,7 @@ void Poller::WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEvents)
 
 uint64_t Poller::GetTaskWaitTime(CoTask* task) noexcept
 {
-    std::unique_lock lock(m_mapMutex);
+    std::lock_guard lg(m_mapMutex);
     auto iter = m_waitTaskMap.find(task);
     if (iter == m_waitTaskMap.end()) {
         return 0;
@@ -587,7 +587,7 @@ PollerRet Poller::PollOnce(int timeout) noexcept
 
 void Poller::ReleaseFdWakeData() noexcept
 {
-    std::unique_lock lock(m_mapMutex);
+    std::lock_guard lg(m_mapMutex);
     for (auto delIter = m_delCntMap.begin(); delIter != m_delCntMap.end();) {
         int delFd = delIter->first;
         unsigned int delCnt = static_cast<unsigned int>(delIter->second);

@@ -106,7 +106,7 @@ void TrafficRecord::CalculateTraffic(QueueHandler* handler, const uint64_t& time
             FFRT_LOGW("%s", ss.str().c_str());
 
             {
-                std::unique_lock lock(mtx_);
+                std::lock_guard lock(mtx_);
                 if (trafficRecordInfo.size() > MAX_RECORD_LIMIT) {
                     trafficRecordInfo.erase(trafficRecordInfo.begin());
                 }

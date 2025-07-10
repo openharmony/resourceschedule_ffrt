@@ -267,7 +267,7 @@ void mutexPrivate::wake()
     TaskBase* task = we->task;
     if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
-        std::unique_lock lk(wue->wl);
+        std::lock_guard lk(wue->wl);
         wlock.unlock();
         wue->cv.notify_one();
     } else {

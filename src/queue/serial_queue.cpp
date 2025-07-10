@@ -35,7 +35,7 @@ SerialQueue::~SerialQueue()
 
 int SerialQueue::Push(QueueTask* task)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot push task, [queueId=%u] is exiting", queueId_);
 
     if (!isActiveState_.load()) {

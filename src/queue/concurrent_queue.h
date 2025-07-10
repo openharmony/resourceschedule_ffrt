@@ -49,7 +49,7 @@ public:
 
     inline uint64_t GetMapSize() override
     {
-        std::unique_lock lock(mutex_);
+        std::lock_guard lock(mutex_);
         return whenMap_.size() + waitingMap_.size();
     }
 

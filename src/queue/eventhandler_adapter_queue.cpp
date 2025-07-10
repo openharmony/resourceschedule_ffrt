@@ -144,7 +144,7 @@ EventHandlerAdapterQueue::~EventHandlerAdapterQueue()
 
 void EventHandlerAdapterQueue::Stop()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     for (auto& currentMap : whenMapVec_) {
         BaseQueue::Stop(currentMap);
     }
@@ -153,7 +153,7 @@ void EventHandlerAdapterQueue::Stop()
 
 int EventHandlerAdapterQueue::Push(QueueTask* task)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     FFRT_COND_DO_ERR(isExit_, return FAILED, "cannot push task, [queueId=%u] is exiting", queueId_);
 
     int taskPriority = task->GetPriority();
@@ -208,7 +208,7 @@ QueueTask* EventHandlerAdapterQueue::Pull()
 
 int EventHandlerAdapterQueue::Remove()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     int count = 0;
     for (auto& currentMap : whenMapVec_) {
         count += BaseQueue::Remove(currentMap);
@@ -218,7 +218,7 @@ int EventHandlerAdapterQueue::Remove()
 
 int EventHandlerAdapterQueue::Remove(const char* name)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     int count = 0;
     for (auto& currentMap : whenMapVec_) {
         count += BaseQueue::Remove(name, currentMap);
@@ -228,7 +228,7 @@ int EventHandlerAdapterQueue::Remove(const char* name)
 
 int EventHandlerAdapterQueue::Remove(const QueueTask* task)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     int count = 0;
     for (auto& currentMap : whenMapVec_) {
         count += BaseQueue::Remove(task, currentMap);
@@ -238,7 +238,7 @@ int EventHandlerAdapterQueue::Remove(const QueueTask* task)
 
 bool EventHandlerAdapterQueue::HasTask(const char* name)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     for (auto& currentMap : whenMapVec_) {
         if (BaseQueue::HasTask(name, currentMap)) {
             return true;
@@ -249,7 +249,7 @@ bool EventHandlerAdapterQueue::HasTask(const char* name)
 
 bool EventHandlerAdapterQueue::IsIdle()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
 
     for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
         if (!whenMapVec_[idx].empty()) {
@@ -261,7 +261,7 @@ bool EventHandlerAdapterQueue::IsIdle()
 
 uint32_t EventHandlerAdapterQueue::GetDueTaskCount()
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     uint32_t count = 0;
     for (auto& currentMap : whenMapVec_) {
         count += BaseQueue::GetDueTaskCount(currentMap);
@@ -274,7 +274,7 @@ uint32_t EventHandlerAdapterQueue::GetDueTaskCount()
 
 int EventHandlerAdapterQueue::Dump(const char* tag, char* buf, uint32_t len, bool historyInfo)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     std::ostringstream oss;
     if (historyInfo) {
         DumpRunningTaskInfo(tag, currentRunningTask_, oss);
@@ -286,7 +286,7 @@ int EventHandlerAdapterQueue::Dump(const char* tag, char* buf, uint32_t len, boo
 
 int EventHandlerAdapterQueue::DumpSize(ffrt_inner_queue_priority_t priority)
 {
-    std::unique_lock lock(mutex_);
+    std::lock_guard lock(mutex_);
     return static_cast<int>(whenMapVec_[priority].size());
 }
 

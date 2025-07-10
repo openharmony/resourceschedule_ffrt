@@ -216,7 +216,7 @@ int IOPoller::PollOnce(int timeout) noexcept
             epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = data->fd} };
             syncTaskEvents[data->task].push_back(ev);
             if ((waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) != 0) {
-                std::unique_lock lock(m_mapMutex);
+                std::lock_guard lock(m_mapMutex);
                 CacheMaskFdAndEpollDel(data->fd, data->task);
             }
         }
@@ -275,7 +275,7 @@ int IOPoller::AddFdEvent(int op, uint32_t events, int fd, void* data, ffrt_polle
 
 int IOPoller::DelFdEvent(int fd) noexcept
 {
-    std::unique_lock lock(m_mapMutex);
+    std::lock_guard lock(m_mapMutex);
     ClearDelFdCache(fd);
     auto wakeDataIter = m_wakeDataMap.find(fd);
     if (wakeDataIter == m_wakeDataMap.end() || wakeDataIter->second.size() == 0) {
@@ -494,7 +494,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
 
 void IOPoller::ReleaseFdWakeData() noexcept
 {
-    std::unique_lock lock(m_mapMutex);
+    std::lock_guard lock(m_mapMutex);
     for (auto delIter = m_delCntMap.begin(); delIter != m_delCntMap.end();) {
         int delFd = delIter->first;
         unsigned int delCnt = static_cast<unsigned int>(delIter->second);

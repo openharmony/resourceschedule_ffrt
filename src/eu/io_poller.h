@@ -105,7 +105,7 @@ public:
 
     inline uint64_t GetTaskWaitTime(CoTask* task) noexcept
     {
-        std::unique_lock lock(m_mapMutex);
+        std::lock_guard lock(m_mapMutex);
         auto iter = m_waitTaskMap.find(task);
         if (iter == m_waitTaskMap.end()) {
             return 0;
@@ -116,7 +116,7 @@ public:
 
     inline void ClearCachedEvents(CoTask* task) noexcept
     {
-        std::unique_lock lock(m_mapMutex);
+        std::lock_guard lock(m_mapMutex);
         auto iter = m_cachedTaskEvents.find(task);
         if (iter == m_cachedTaskEvents.end()) {
             return;

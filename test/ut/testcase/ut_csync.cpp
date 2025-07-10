@@ -426,34 +426,66 @@ HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level0)
     delete lock;
 }
 
+void WaitforInThreadMode(std::function<void(std::atomic<bool>& ready)> waitFunc, std::function<void()> notifyFunc)
+{
+    std::atomic<bool> ready(false);
+    std::thread th1([&waitFunc, &ready] {
+        waitFunc(ready);
+    });
+    while (!ready.load()) {
+        std::this_thread::yield();
+    }
+    std::thread th2(notifyFunc);
+    th1.join();
+    th2.join();
+}
+
+void WaitforInCoroutineMode(std::function<void(std::atomic<bool>& ready)> waitFunc, std::function<void()> notifyFunc)
+{
+    std::atomic<bool> ready(false);
+    ffrt::submit([&waitFunc, &ready]() {
+        waitFunc(ready);
+    });
+    while (!ready.load()) {
+        std::this_thread::yield();
+    }
+    ffrt::submit(notifyFunc);
+    ffrt::wait();
+}
+
 HWTEST_F(SyncTest, conditionTestWaitfor, TestSize.Level0)
 {
-    ffrt::condition_variable cond;
-    std::atomic_int a = 0;
     ffrt::mutex lock_;
+    ffrt::condition_variable cond;
+    std::atomic_bool flag {false};
+    auto waitFunc = [&lock_, &cond, &flag] (std::atomic<bool>& ready) {
+        std::unique_lock lck(lock_);
+        bool ret = cond.wait_for(lck, std::chrono::nanoseconds::min(), [&flag] { return flag.load(); });
+        EXPECT_FALSE(ret);
 
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait_for(lck, 100ms, [&] { return a == 1; });
-            EXPECT_EQ(a, 2);
-        },
-        {}, {});
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            cond.wait_for(lck, 150ms, [&] { return a == 2; });
-            EXPECT_EQ(a, 2);
-        },
-        {}, {});
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lck(lock_);
-            a = 2;
-            cond.notify_all();
-        },
-        {}, {});
-    ffrt::wait();
+        auto start = std::chrono::high_resolution_clock::now();
+        ret = cond.wait_for(lck, 100ms, [&flag] { return flag.load(); });
+        auto end = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        EXPECT_GE(elapsed, 100);
+
+        ready.store(true);
+
+        ret = cond.wait_for(lck, std::chrono::nanoseconds::max(), [&] { return flag.load(); });
+        EXPECT_TRUE(ret);
+        EXPECT_TRUE(flag.load());
+    };
+    auto notifyFunc = [&lock_, &cond, &flag] () {
+        std::unique_lock lck(lock_);
+        flag.store(true);
+        cond.notify_all();
+    };
+
+    // Running test in Thread Mode
+    WaitforInThreadMode(waitFunc, notifyFunc);
+    flag.store(false);
+    // Running test in Coroutine Mode
+    WaitforInCoroutineMode(waitFunc, notifyFunc);
 }
 
 HWTEST_F(SyncTest, conditionTestDataRace, TestSize.Level0)

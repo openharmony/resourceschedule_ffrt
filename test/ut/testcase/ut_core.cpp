@@ -594,3 +594,25 @@ HWTEST_F(CoreTest, ffrt_submit_f, TestSize.Level0)
     ffrt::wait();
     EXPECT_EQ(result, 1);
 }
+
+HWTEST_F(CoreTest, ffrt_core_test, TestSize.Level0)
+{
+    std::function<void()> cbOne = []() { printf("callback\n"); };
+    ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
+    uint64_t size = 1 * 1024 * 1024;
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr);
+    ffrt_task_handle_t handle = ffrt_submit_h_base(func, {}, {}, &task_attr);
+    ffrt_task_handle_get_id(handle);
+
+    ffrt_task_attr_init(nullptr);
+    ffrt_task_attr_destroy(nullptr);
+    ffrt_task_attr_set_name(&task_attr, nullptr);
+    ffrt_task_attr_get_name(&task_attr);
+    const char * name = ffrt_task_attr_get_name(nullptr);
+    EXPECT_EQ(name, nullptr);
+    ffrt_task_attr_set_stack_size(&task_attr, size);
+    ffrt_task_attr_set_stack_size(nullptr, size);
+    uint64_t id = ffrt_task_handle_get_id(nullptr);
+    EXPECT_EQ(id, 0);
+}

@@ -22,7 +22,9 @@
 #include "c/executor_task.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
+#define private public
 #include "dm/sdependence_manager.h"
+#undef private
 #include "util/ffrt_facade.h"
 #ifndef WITH_NO_MOCKER
 extern "C" int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr);
@@ -563,4 +565,20 @@ HWTEST_F(DependencyTest, uv_task_block_ffrt_mutex, TestSize.Level0)
     }
 
     EXPECT_EQ(uv_block_result, taskCount * 4);
+}
+
+HWTEST_F(DependencyTest, onsubmit_test, TestSize.Level0)
+{
+    ffrt_task_handle_t handle = nullptr;
+    std::function<void()> cbOne = []() { printf("callback\n"); };
+    ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
+    ffrt::SDependenceManager* manager = new ffrt::SDependenceManager();
+    manager->onSubmit(true, handle, func, nullptr, nullptr, nullptr);
+
+    const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, handle}};
+    ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
+    manager->onSubmit(true, handle, func, nullptr, &wait, nullptr);
+    manager->onWait(&wait);
+    EXPECT_NE(func, nullptr);
+    delete manager;
 }

@@ -541,6 +541,8 @@ HWTEST_F(SyncTest, sharedMutexTestInit, TestSize.Level0)
     attr.storage = 1;
     x = ffrt_rwlock_init(&smut, &attr);
     EXPECT_EQ(x, ffrt_error_inval);
+    x = ffrt_rwlock_init(nullptr, &attr);
+    EXPECT_EQ(x, ffrt_error_inval);
 }
 
 /*
@@ -1272,4 +1274,21 @@ HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level0)
         ffrt::this_task::yield();
     });
     ffrt::wait();
+}
+
+HWTEST_F(SyncTest, rwlock_api_test, TestSize.Level0)
+{
+    int x = 0;
+    x = ffrt_rwlock_wrlock(nullptr);
+    EXPECT_EQ(x, ffrt_error_inval);
+    x = ffrt_rwlock_trywrlock(nullptr);
+    EXPECT_EQ(x, ffrt_error_inval);
+    x = ffrt_rwlock_rdlock(nullptr);
+    EXPECT_EQ(x, ffrt_error_inval);
+    x = ffrt_rwlock_tryrdlock(nullptr);
+    EXPECT_EQ(x, ffrt_error_inval);
+    x = ffrt_rwlock_unlock(nullptr);
+    EXPECT_EQ(x, ffrt_error_inval);
+    x = ffrt_rwlock_destroy(nullptr);
+    EXPECT_EQ(x, ffrt_error_inval);
 }

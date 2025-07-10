@@ -66,11 +66,12 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);
 #endif
-    DelayedWorker::GetInstance();
+    FFRT_LOGD("Construction completed.");
 }
 
 SDependenceManager::~SDependenceManager()
 {
+    FFRT_LOGD("Destruction completed.");
 }
 
 void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles, const ffrt_deps_t* ins, const ffrt_deps_t* outs,

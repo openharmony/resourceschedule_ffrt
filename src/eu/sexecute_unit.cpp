@@ -75,6 +75,7 @@ SExecuteUnit::SExecuteUnit() : ExecuteUnit(), handleTaskNotify(SExecuteUnit::Han
         blockAwareInit = true;
     }
 #endif
+    FFRT_LOGD("Construction completed.");
 }
 
 SExecuteUnit::~SExecuteUnit()
@@ -113,7 +114,8 @@ SExecuteUnit::~SExecuteUnit()
     // alive when that happens. Hence, we
     // delay the destruction till we ensure
     // this access cannot happen.
-    DelayedWorker::GetInstance().Terminate();
+    FFRTFacade::GetDWInstance().Terminate();
+    FFRT_LOGD("Destruction completed.");
 }
 
 WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)

@@ -25,6 +25,7 @@
 #include "queue/queue_monitor.h"
 #undef private
 #include "util/spmc_queue.h"
+#include "util/ffrt_facade.h"
 
 using namespace std;
 using namespace ffrt;
@@ -729,8 +730,8 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level0)
  */
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level0)
 {
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     ffrt_queue_attr_t queue_attr;
     ffrt_task_handle_t handle;
     ffrt_task_attr_t task_attr;
@@ -869,8 +870,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000000);
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 4);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     for (int i = 0; i < 9; i++) {
         ffrt::submit([]() {
@@ -899,14 +900,14 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     auto t = testQueue->submit_h([&x] { x = x + 1; usleep(2000000); FFRT_LOGE("done");}, {});
     FFRT_LOGE("submitted");
     testQueue->wait(t);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
 
@@ -922,15 +923,15 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
     auto t = testQueue->submit_h([&x] { FFRT_LOGE("delay end"); usleep(2100000);
         x = x + 1;}, task_attr().delay(1200000));
     testQueue->wait(t);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
 
@@ -946,8 +947,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
     testQueue->submit([&x] { x = x + 1; FFRT_LOGE("start"); });
@@ -956,7 +957,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
     testQueue->wait(t);
     usleep(1200000);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
 
@@ -987,8 +988,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 1);
 
@@ -1178,8 +1179,8 @@ HWTEST_F(QueueTest, ffrt_queue_concurrent_recordtraffic_delay_trigger, TestSize.
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_all, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1223,8 +1224,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_all, TestSize
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_part, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1268,8 +1269,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_part, TestSiz
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_delay, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1311,8 +1312,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_delay, TestSi
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1360,8 +1361,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_cancel_timeout_all, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1405,8 +1406,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_cancel_timeout_all, TestSize.L
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_mixed_conditions_timeout, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1446,7 +1447,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_mixed_conditions_timeout, Test
 
     EXPECT_EQ(y, 11);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
 }
 
 HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSize.Level1)

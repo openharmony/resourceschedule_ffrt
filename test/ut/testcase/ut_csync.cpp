@@ -1200,7 +1200,7 @@ HWTEST_F(SyncTest, future_wait, TestSize.Level0)
     t.join();
 }
 
-HWTEST_F(SyncTest, future_wait_void, TestSize.Level1)
+HWTEST_F(SyncTest, future_wait_void, TestSize.Level0)
 {
     vector<int> result(3, 0);
     ffrt::packaged_task<void()> task([&] { result[0] = 1; });

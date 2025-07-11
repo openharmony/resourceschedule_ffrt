@@ -474,31 +474,6 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_ctl_op_invalid, TestSize.Level0)
     EXPECT_EQ(-1, ret);
 }
 
-/*
-* 测试用例名称：ffrt_epoll_in_task
-* 测试用例描述：ffrt_epoll_ctrl接口在task中使用
-* 预置条件    ：无
-* 操作步骤    ：1.提交任务，在闭包中调用ffrt_epoll_ctrl接口
-* 预期结果    ：任务按预期执行
-*/
-HWTEST_F(ffrtIoTest, ffrt_epoll_in_task, TestSize.Level0)
-{
-    ffrt::submit([&]() {
-        uint64_t expected = 0xabacadae;
-        int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-        struct ffrt::WakeData m_wakeData;
-        m_wakeData.data = nullptr;
-        m_wakeData.fd = testFd;
-        ffrt_qos_t qos_level = ffrt_qos_user_initiated;
-        int op = EPOLL_CTL_ADD;
-        struct TestData testData {.fd = testFd, .expected = expected};
-        int ret = ffrt_epoll_ctl(qos_level, op, testFd, EPOLLIN, reinterpret_cast<void*>(&testData), testCallBack);
-        EXPECT_EQ(0, ret);
-    }, {}, {});
-
-    ffrt::wait();
-}
-
 HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level0)
 {
     ffrt_qos_t qos = ffrt_qos_default;

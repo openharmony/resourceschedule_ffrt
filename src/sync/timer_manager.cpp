@@ -52,7 +52,7 @@ void TimerManager::InitWorkQueAndCb(int qos)
 
         int handle = (int)reinterpret_cast<uint64_t>(we);
         submit([this, handle]() {
-            std::lock_guard lock(timerMutex_);
+            std::unique_lock timerLock(timerMutex_);
             if (teardown) {
                 return;
             }
@@ -67,19 +67,19 @@ void TimerManager::InitWorkQueAndCb(int qos)
             std::shared_ptr<TimerData> timerMapValue = it->second;
             timerMapValue->state = TimerState::EXECUTING;
             if (timerMapValue->cb != nullptr) {
-                timerMutex_.unlock();
+                timerLock.unlock();
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
-            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
-                TraceChainAdapter::Instance().HiTraceChainRestoreId(&timerMapValue->traceId);
-            }
+                if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                    TraceChainAdapter::Instance().HiTraceChainRestoreId(&timerMapValue->traceId);
+                }
 #endif
                 timerMapValue->cb(timerMapValue->data);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
-            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
-                TraceChainAdapter::Instance().HiTraceChainClearId();
-            }
+                if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                    TraceChainAdapter::Instance().HiTraceChainClearId();
+                }
 #endif
-                timerMutex_.lock();
+                timerLock.lock();
             }
             timerMapValue->state = TimerState::EXECUTED;
 
@@ -125,7 +125,7 @@ void TimerManager::RegisterTimerImpl(std::shared_ptr<TimerData> data)
 
 int TimerManager::UnregisterTimer(int handle) noexcept
 {
-    std::lock_guard lock(timerMutex_);
+    std::unique_lock timerLock(timerMutex_);
     if (teardown) {
         return -1;
     }
@@ -144,9 +144,9 @@ int TimerManager::UnregisterTimer(int handle) noexcept
         if (it->second->state == TimerState::EXECUTING) {
             // timer executing, spin wait it done
             while (it->second->state == TimerState::EXECUTING) {
-                timerMutex_.unlock();
+                timerLock.unlock();
                 std::this_thread::yield();
-                timerMutex_.lock();
+                timerLock.lock();
                 it = timerMap_.find(handle);
                 if (it == timerMap_.end()) {
                     // timer already erased
@@ -165,7 +165,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
 
 ffrt_timer_query_t TimerManager::GetTimerStatus(int handle) noexcept
 {
-    std::lock_guard lock(timerMutex_);
+    std::unique_lock timerLock(timerMutex_);
     if (teardown) {
         return ffrt_timer_notfound;
     }
@@ -184,9 +184,9 @@ ffrt_timer_query_t TimerManager::GetTimerStatus(int handle) noexcept
             // timer executing or has been executed (don't spin wait executing)
             // timer executing, spin wait it done
             while (it->second->state == TimerState::EXECUTING) {
-                timerMutex_.unlock();
+                timerLock.unlock();
                 std::this_thread::yield();
-                timerMutex_.lock();
+                timerLock.lock();
                 it = timerMap_.find(handle);
                 if (it == timerMap_.end()) {
                     // timer already erased

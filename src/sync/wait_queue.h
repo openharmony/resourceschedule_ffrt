@@ -54,11 +54,10 @@ public:
 
     ~WaitQueue()
     {
-        wqlock.lock();
+        std::lock_guard lg(wqlock);
         ReleaseAll();
         delete whead;
         whead = nullptr;
-        wqlock.unlock();
     }
 
 private:

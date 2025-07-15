@@ -30,10 +30,11 @@ TaskWithNode::TaskWithNode()
 
 void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, TaskBase* task)
 {
-    wqlock.lock();
-    wn->task = task;
-    push_back(wn);
-    wqlock.unlock();
+    {
+        std::lock_guard lg(wqlock);
+        wn->task = task;
+        push_back(wn);
+    }
     {
         std::unique_lock<std::mutex> nl(wn->wl);
         lk->unlock();
@@ -49,11 +50,12 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, TaskBase* task)
 bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const TimePoint& tp, TaskBase* task)
 {
     bool ret = false;
-    wqlock.lock();
-    wn->status.store(we_status::INIT, std::memory_order_release);
-    wn->task = task;
-    push_back(wn);
-    wqlock.unlock();
+    {
+        std::lock_guard lg(wqlock);
+        wn->status.store(we_status::INIT, std::memory_order_release);
+        wn->task = task;
+        push_back(wn);
+    }
     {
         std::unique_lock<std::mutex> nl(wn->wl);
         lk->unlock();
@@ -65,9 +67,8 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
     if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFYING) {
-        wqlock.lock();
+        std::lock_guard lg(wqlock);
         remove(wn);
-        wqlock.unlock();
     }
     // note that one wn->task can be set to nullptr only either after wn is removed from the queue,
     // i.e. after the timeout occurred, or after the notify of the condition variable.
@@ -94,10 +95,9 @@ void WaitQueue::SuspendAndWait(mutexPrivate* lk)
     FFRT_COND_RETURN_VOID(coTask->wue == nullptr, "new WaitUntilEntry failed");
     FFRT_BLOCK_TRACER(coTask->gid, cnd);
     CoWait([&](CoTask* task) -> bool {
-        wqlock.lock();
+        std::lock_guard lg(wqlock);
         push_back(task->wue);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
-        wqlock.unlock();
         // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
         return true;
     });
@@ -140,33 +140,29 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
     coTask->wue->cb = ([&](WaitEntry* we) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         ffrt::TaskBase* task = wue->task;
-        wqlock.lock();
+        std::unique_lock lock(wqlock);
         if (!WeTimeoutProc(this, wue)) {
-            wqlock.unlock();
             return;
         }
-        wqlock.unlock();
+        lock.unlock();
         FFRT_LOGD("task(%d) time is up", task->gid);
         CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::TIMEOUT_WAKE);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
     CoWait([&](CoTask* task) -> bool {
         WaitUntilEntry* we = task->wue;
-        wqlock.lock();
+        std::lock_guard lg(wqlock);
         push_back(we);
         lk->unlock(); // Unlock needs to be in wqlock protection, guaranteed to be executed before lk.lock after CoWake
         if (DelayedWakeup(we->tp, we, we->cb)) {
-            wqlock.unlock();
             // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
             return true;
         } else {
             if (!WeTimeoutProc(this, we)) {
-                wqlock.unlock();
                 // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
                 return true;
             }
             task->coWakeType = CoWakeType::TIMEOUT_WAKE;
-            wqlock.unlock();
             // The ownership of the task belongs to WaitQueue list, and the task cannot be accessed anymore.
             return false;
         }
@@ -205,15 +201,14 @@ void WaitQueue::Notify(bool one) noexcept
     // that mean the last wait thread/co may destroy the WaitQueue.
     // all the break-out should assure the wqlock is in unlock state.
     // the continue should assure the wqlock is in lock state.
-    wqlock.lock();
+
+    std::unique_lock lock(wqlock);
     for (; ;) {
         if (empty()) {
-            wqlock.unlock();
             break;
         }
         WaitUntilEntry* we = pop_front();
         if (we == nullptr) {
-            wqlock.unlock();
             break;
         }
         bool isEmpty = empty();
@@ -221,17 +216,17 @@ void WaitQueue::Notify(bool one) noexcept
         if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             std::lock_guard<std::mutex> lg(we->wl);
             we->status.store(we_status::NOTIFYING, std::memory_order_release);
-            wqlock.unlock();
+            lock.unlock();
             we->cv.notify_one();
         } else {
             WeNotifyProc(we);
-            wqlock.unlock();
+            lock.unlock();
             CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
         }
         if (isEmpty || one) {
             break;
         }
-        wqlock.lock();
+        lock.lock();
     }
 }
 

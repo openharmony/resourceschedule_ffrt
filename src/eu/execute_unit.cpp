@@ -325,8 +325,7 @@ void ExecuteUnit::RestoreThreadConfig()
 void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
 {
     CPUWorkerGroup &group = workerGroup[qos];
-    group.lock.lock();
-
+    std::lock_guard lg(group.lock);
     int increasableNumber = static_cast<int>(group.maxConcurrency) - (group.executingNum + group.sleepingNum);
     int wakeupNumber = std::min(number, group.sleepingNum);
     for (int idx = 0; idx < wakeupNumber; idx++) {
@@ -338,8 +337,6 @@ void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
         group.executingNum++;
         IncWorker(qos);
     }
-
-    group.lock.unlock();
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 

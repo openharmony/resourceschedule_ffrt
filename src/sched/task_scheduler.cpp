@@ -81,23 +81,19 @@ unsigned int **TaskScheduler::GetWorkerTick()
 int TaskScheduler::StealTask()
 {
     std::lock_guard<std::mutex> lock(*GetMutex());
-    if (GetStealingWorkers() > localQueues.size() / STEAL_LOCAL_HALF) {
-        return 0;
-    }
-
-    AddStealingWorker();
+    stealingInProgress = true;
     std::unordered_map<pid_t, SpmcQueue *>::iterator iter = localQueues.begin();
     while (iter != localQueues.end()) {
         SpmcQueue* queue = iter->second;
         unsigned int queueLen = queue->GetLength();
         if (queue != GetLocalQueue() && queueLen > 0) {
             unsigned int popLen = queue->PopHeadToAnotherQueue(*GetLocalQueue(), (queueLen + 1) / 2, InsertTask);
-            SubStealingWorker();
+            stealingInProgress = false;
             return popLen;
         }
         iter++;
     }
-    SubStealingWorker();
+    stealingInProgress = false;
     return 0;
 }
 
@@ -231,7 +227,7 @@ bool TaskScheduler::CancelUVWork(ffrt_executor_task_t* uvWork)
         uvTaskWaitingQueue_.erase(iter, uvTaskWaitingQueue_.end());
         return true;
     }
-    
+
     auto it = cancelMap_.find(uvWork);
     if (it != cancelMap_.end()) {
         it->second++;

@@ -99,7 +99,10 @@ public:
 
     std::mutex* GetMutex();
 
-    std::atomic_uint64_t stealWorkers { 0 };
+    inline bool IsStealerActive()
+    {
+        return stealingInProgress.load(std::memory_order_relaxed);
+    }
 
 protected:
     std::unordered_map<pid_t, SpmcQueue*> localQueues;
@@ -111,27 +114,6 @@ protected:
     // gloabl queue -> local queue -> priority slot
     virtual TaskBase* PopTaskHybridProcess() = 0;
     bool PushTaskToPriorityStack(TaskBase *executorTask);
-
-    inline void AddStealingWorker()
-    {
-        stealWorkers.fetch_add(1);
-    }
-
-    void SubStealingWorker()
-    {
-        while (1) {
-            uint64_t stealWorkersNum = stealWorkers.load();
-            if (stealWorkersNum == 0) {
-                return;
-            }
-            if (atomic_compare_exchange_weak(&stealWorkers, &stealWorkersNum, stealWorkersNum - 1)) return;
-        }
-    }
-
-    inline uint64_t GetStealingWorkers()
-    {
-        return stealWorkers.load(std::memory_order_relaxed);
-    }
 
     TaskBase* GetUVTask(TaskBase* task)
     {
@@ -158,6 +140,7 @@ private:
     std::unordered_map<ffrt_executor_task_t*, uint32_t> cancelMap_;
     int uvTaskConcurrency_ = 0;
     std::deque<UVTask*> uvTaskWaitingQueue_;
+    std::atomic<bool> stealingInProgress { false }; /* indicates whether a stealer is in progress or not */
 };
 
 class SchedulerFactory {

@@ -177,7 +177,7 @@ public:
     std::condition_variable waitCond_; // cv for thread wait
 
     bool pollerEnable = false; // set true if task call ffrt_epoll_ctl
-    bool legacyMode = false;
+    bool legacyMode_ = false;
     std::string GetLabel() const override
     {
         return label;

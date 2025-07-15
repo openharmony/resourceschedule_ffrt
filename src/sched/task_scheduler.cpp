@@ -19,10 +19,9 @@
 #include "util/ffrt_facade.h"
 
 namespace {
-const unsigned int LOCAL_QUEUE_SIZE = 128;
-const int INSERT_GLOBAL_QUEUE_FREQ = 5;
-const int GLOBAL_INTERVAL = 60;
-const int STEAL_LOCAL_HALF = 2;
+constexpr std::size_t LOCAL_QUEUE_SIZE = 128;
+constexpr int INSERT_GLOBAL_QUEUE_FREQ = 5;
+constexpr int GLOBAL_INTERVAL = 60;
 constexpr int UV_TASK_MAX_CONCURRENCY = 8;
 
 void InsertTask(void *task)
@@ -124,7 +123,7 @@ bool TaskScheduler::PushTaskToPriorityStack(TaskBase *executorTask)
 
 void TaskScheduler::PushTaskLocalOrPriority(TaskBase *task)
 {
-    // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yeild function
+    // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yield function
     bool selfWakeup = (ffrt::ExecuteCtx::Cur()->task == task);
     if (!selfWakeup) {
         if (PushTaskToPriorityStack(task)) {
@@ -182,7 +181,7 @@ bool TaskScheduler::PushUVTaskToWaitingQueue(UVTask* task)
 bool TaskScheduler::CheckUVTaskConcurrency(UVTask* task)
 {
     std::lock_guard lg(uvMtx);
-    // the number of workers are executing UV tasks has reached the upper limit.
+    // the number of workers executing UV tasks has reached the upper limit.
     // therefore, the current task is placed back to the head of the waiting queue (be preferentially obtained later).
     if (uvTaskConcurrency_ >= UV_TASK_MAX_CONCURRENCY) {
         uvTaskWaitingQueue_.push_front(task);

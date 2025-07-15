@@ -64,7 +64,7 @@ void* SpmcQueue::PopHead()
             return nullptr;
         }
         void* res = buf_[head % capacity_];
-        if(head_.compare_exchange_weak(head, head + 1)) {
+        if (head_.compare_exchange_weak(head, head + 1)) {
             return res;
         }
     }

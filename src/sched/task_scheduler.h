@@ -111,7 +111,7 @@ protected:
     void PushTaskLocalOrPriority(TaskBase* task);
     TaskBase* PopTaskLocalOrPriority();
 
-    // gloabl queue -> local queue -> priority slot
+    // global queue -> local queue -> priority slot
     virtual TaskBase* PopTaskHybridProcess() = 0;
     bool PushTaskToPriorityStack(TaskBase *executorTask);
 

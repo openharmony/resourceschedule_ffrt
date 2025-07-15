@@ -291,7 +291,6 @@ static bool _IsTagEnabled(uint64_t label)
     { \
         FFRT_TRACE_END(); \
     }
-
 // DFX Trace for FFRT Executor Task
 #define FFRT_EXECUTOR_TASK_SUBMIT_MARKER(gid) \
     { \

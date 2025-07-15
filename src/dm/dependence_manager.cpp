@@ -32,10 +32,10 @@ void DependenceManager::RegistInsCb(SingleInsCB<DependenceManager>::Instance &&c
 
 void DependenceManager::onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
 {
-    FFRT_EXECUTOR_TASK_SUBMIT_MARKER(task);
     FFRT_TRACE_SCOPE(1, onSubmitUV);
     UVTask* uvTask = TaskFactory<UVTask>::Alloc();
     new(uvTask) UVTask(task, attr);
+    FFRT_EXECUTOR_TASK_SUBMIT_MARKER(uvTask->gid);
     uvTask->Ready();
 }
 

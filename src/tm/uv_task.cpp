@@ -67,10 +67,10 @@ void UVTask::ExecuteImpl(UVTask* task, ffrt_executor_task_func func)
         ctx->lastGid_ = task->gid;
         task->SetStatus(TaskStatus::EXECUTING);
         FFRTTraceRecord::TaskExecute<ffrt_uv_task>(taskQos);
-        FFRT_EXECUTOR_TASK_BEGIN(task->uvWork);
+        FFRT_EXECUTOR_TASK_BEGIN(task->gid);
         func(task->uvWork, taskQos);
-        FFRT_EXECUTOR_TASK_END();
-        FFRT_EXECUTOR_TASK_FINISH_MARKER(task->uvWork); // task finish marker for uv task
+        FFRT_TASK_END();
+        FFRT_TASKDONE_MARKER(task->gid); // task finish marker for uv task
         FFRTTraceRecord::TaskDone<ffrt_uv_task>(taskQos);
         task->DecDeleteRef();
         task = FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PickWaitingUVTask();

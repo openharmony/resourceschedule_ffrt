@@ -23,15 +23,15 @@ class SpmcQueue {
 public:
     ~SpmcQueue();
 
-    unsigned int GetLength() const;
-    unsigned int GetCapacity() const;
+    std::size_t GetLength() const;
+    std::size_t GetCapacity() const;
 
     /**
     * @brief 初始化队列。
     * @param capacity 队列容量。
     * @retval 成功返回0，失败返回-1。
     */
-    int Init(unsigned int capacity);
+    int Init(std::size_t capacity);
 
     /**
     * @brief 取出队列首部元素。
@@ -59,9 +59,9 @@ public:
 
 private:
     void** buf_ = nullptr;
-    unsigned int capacity_ = 0;
-    std::atomic<unsigned int> head_ {0};
-    std::atomic<unsigned int> tail_ {0};
+    std::size_t capacity_ = 0;
+    std::atomic<std::size_t> head_ {0};
+    std::atomic<std::size_t> tail_ {0};
 };
 }
 #endif

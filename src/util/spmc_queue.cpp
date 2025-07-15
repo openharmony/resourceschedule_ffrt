@@ -25,7 +25,7 @@ SpmcQueue::~SpmcQueue()
     }
 }
 
-int SpmcQueue::Init(unsigned int capacity)
+int SpmcQueue::Init(std::size_t capacity)
 {
     if (capacity == 0) {
         return -1;
@@ -41,12 +41,12 @@ int SpmcQueue::Init(unsigned int capacity)
     return 0;
 }
 
-unsigned int SpmcQueue::GetLength() const
+std::size_t SpmcQueue::GetLength() const
 {
     return tail_.load() - head_.load();
 }
 
-unsigned int SpmcQueue::GetCapacity() const
+std::size_t SpmcQueue::GetCapacity() const
 {
     return capacity_;
 }
@@ -58,14 +58,13 @@ void* SpmcQueue::PopHead()
     }
 
     while (true) {
-        unsigned int head = head_.load();
-        unsigned int tail = tail_.load();
+        auto head = head_.load();
+        auto tail = tail_.load();
         if (tail == head) {
             return nullptr;
         }
-
         void* res = buf_[head % capacity_];
-        if (atomic_compare_exchange_weak(&head_, &head, head + 1)) {
+        if(head_.compare_exchange_weak(head, head + 1)) {
             return res;
         }
     }
@@ -77,8 +76,8 @@ int SpmcQueue::PushTail(void* object)
         return -1;
     }
 
-    unsigned int head = head_.load();
-    unsigned int tail = tail_.load();
+    auto head = head_.load();
+    auto tail = tail_.load();
     if ((tail - head) < capacity_) {
         buf_[tail % capacity_] = object;
         tail_.store(tail + 1);

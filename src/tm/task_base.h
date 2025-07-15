@@ -177,6 +177,7 @@ public:
     std::condition_variable waitCond_; // cv for thread wait
 
     bool pollerEnable = false; // set true if task call ffrt_epoll_ctl
+    bool legacyMode = false;
     std::string GetLabel() const override
     {
         return label;
@@ -196,7 +197,8 @@ void ExecuteTask(TaskBase* task);
 
 inline bool IsCoTask(TaskBase* task)
 {
-    return task && (task->type == ffrt_normal_task || task->type == ffrt_queue_task);
+    return task && (task->type == ffrt_normal_task 
+        || (task->type == ffrt_queue_task && (!!reinterpret_cast<ffrt::CoTask*>(task)->legacyMode_)));
 }
 
 inline bool IncDeleteRefIfPositive(TaskBase* task)

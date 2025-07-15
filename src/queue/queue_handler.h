@@ -130,6 +130,11 @@ public:
         return queue_->GetQueueType();
     }
 
+    inline bool GetMode()
+    {
+        return legacyMode_;
+    }
+
 private:
     void Deliver();
     void SetTimeoutMonitor(QueueTask* task);
@@ -171,6 +176,7 @@ private:
     WaitUntilEntry* we_ = nullptr;
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
     std::atomic_int deliverCnt_ = {0};
+    bool legacyMode_ = false;
 };
 } // namespace ffrt
 

@@ -26,7 +26,8 @@ public:
     }
 
     explicit queue_attr_private(const queue_attr attr)
-        : qos_(attr.qos())
+        : qos_(attr.qos()),
+        legacyMode_(attr.mode())
     {
     }
 
@@ -34,6 +35,7 @@ public:
     uint64_t timeout_ = 0;
     int maxConcurrency_ = 1;
     ffrt_function_header_t* timeoutCb_ = nullptr;
+    bool legacyMode_ = false;
 };
 }
 #endif

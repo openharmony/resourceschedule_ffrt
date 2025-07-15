@@ -50,6 +50,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
         timeout_ = ffrt_queue_attr_get_timeout(attr);
         timeoutCb_ = ffrt_queue_attr_get_callback(attr);
         maxConcurrency_ = ffrt_queue_attr_get_max_concurrency(attr);
+        legacyMode_ = ffrt_queue_attr_get_mode(attr);
     }
 
     // callback reference counting is to ensure life cycle

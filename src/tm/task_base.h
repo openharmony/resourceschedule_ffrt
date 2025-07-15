@@ -197,8 +197,8 @@ void ExecuteTask(TaskBase* task);
 
 inline bool IsCoTask(TaskBase* task)
 {
-    return task && (task->type == ffrt_normal_task 
-        || (task->type == ffrt_queue_task && (!!reinterpret_cast<ffrt::CoTask*>(task)->legacyMode_)));
+    return task && (task->type == ffrt_normal_task
+        || (->type == ffrt_queue && (!reinterpret_cast<ffrt::CoTask*>(task)->legacyMode_)));
 }
 
 inline bool IncDeleteRefIfPositive(TaskBase* task)

@@ -209,7 +209,8 @@ public:
      * @param Returns the queue mode.
      * @since 20
      */
-    inline bool mode() const{
+    inline bool mode() const
+    {
         return ffrt_queue_attr_get_mode(this);
     }
 };

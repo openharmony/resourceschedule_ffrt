@@ -36,7 +36,7 @@
 #ifndef FFRT_API_C_QUEUE_H
 #define FFRT_API_C_QUEUE_H
 
-#iclude <stdbool.h>
+#include <stdbool.h>
 #include "type_def.h"
 
 /**

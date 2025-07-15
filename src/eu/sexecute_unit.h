@@ -42,10 +42,9 @@ public:
     void IntoSleep(const QoS& qos) override
     {
         CPUWorkerGroup& group = workerGroup[qos];
-        group.lock.lock();
+        std::lock_guard lg(group.lock);
         group.sleepingNum++;
         group.executingNum--;
-        group.lock.unlock();
     }
 
     /* strategy options for handling task notify events */

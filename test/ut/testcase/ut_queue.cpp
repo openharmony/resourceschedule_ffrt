@@ -1573,7 +1573,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
         result++;
-    }, ffrt::task_attr("Task_on_Thread");
+    }, ffrt::task_attr("Task_on_Thread"));
 
     testQueue->wait(handle);
 
@@ -1598,7 +1598,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, false);
         result++;
-    }, ffrt::task_attr("Task_on_Thread");
+    }, ffrt::task_attr("Task_on_Coroutine"));
 
     testQueue->wait(handle);
 
@@ -1631,7 +1631,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
         EXPECT_EQ(task->preStatus, ffrt::TaskStatus::THREAD_BLOCK);
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
         result++;
-    }, ffrt::task_attr("Task_on_Thread");
+    }, ffrt::task_attr("Task_on_Thread"));
 
     while (!flag) {
         usleep(100);

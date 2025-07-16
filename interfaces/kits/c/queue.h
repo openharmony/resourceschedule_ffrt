@@ -165,7 +165,7 @@ FFRT_C_API int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr
         - <b>false</b>: Tasks are executed as coroutines (default).
  * @since 20
  */
-FFRT_C_API void ffrt_queue_attr_set_mode(const ffrt_queue_attr_t* attr, const bool legacy_mode);
+FFRT_C_API void ffrt_queue_attr_set_mode(ffrt_queue_attr_t* attr, const bool legacy_mode);
 
 /**
  * @brief Gets the execution mode of a queue attribute.

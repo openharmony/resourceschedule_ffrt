@@ -171,7 +171,7 @@ void ffrt_queue_attr_set_mode(ffrt_queue_attr_t* attr, const bool legacy_mode)
 }
 
 API_ATTRIBUTE((visibility("default")))
-bool ffrt_queue_attr_get_mode(ffrt_queue_attr_t* attr)
+bool ffrt_queue_attr_get_mode(const ffrt_queue_attr_t* attr)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return 0, "input invalid, attr == nullptr");
     ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);

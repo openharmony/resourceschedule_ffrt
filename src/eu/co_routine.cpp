@@ -466,7 +466,6 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
 
         // 1. coroutine task done, exit normally, need to exec next coroutine task
         if (co->isTaskDone) {
-            task->SetStatus(TaskStatus::FINISH);
             ffrt::FFRTFacade::GetDMInstance().onTaskDone(static_cast<CPUEUTask*>(task));
             co->isTaskDone = false;
             return 0;

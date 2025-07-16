@@ -1555,3 +1555,96 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
     EXPECT_EQ(result, 1);
     delete testQueue;
 }
+
+/*
+ * 测试用例名称 : ffrt_queue_with_legacy_mode
+ * 测试用例描述 : 队列设置leagcymode为true，验证任务不在协程上执行
+ * 操作步骤     : 1、创建队列， attr设置legacymode为true
+ *               2、提交队列任务，验证当前是在线程上执行任务
+ * 预期结果    : 任务成功执行，任务在线程上执行
+ */
+HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+        "concurrent_legacy_queue", ffrt::queue_attr().mode(true));
+    int result = 0;
+    auto handle = testQueue->submit_h([&result] {
+        ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
+        result++;
+    }, ffrt::task_attr("Task_on_Thread");
+
+    testQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_with_legacy_mode_off
+ * 测试用例描述 : 队列设置leagcymode为true，验证任务在协程上执行
+ * 操作步骤     : 1、创建队列， attr设置legacymode为false
+ *               2、提交队列任务，验证当前是在协程上执行任务
+ * 预期结果    : 任务成功执行，任务在协程上执行
+ */
+HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+        "concurrent_normal_queue", ffrt::queue_attr());
+    int result = 0;
+    auto handle = testQueue->submit_h([&result] {
+        ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, false);
+        result++;
+    }, ffrt::task_attr("Task_on_Thread");
+
+    testQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_with_legacy_mode_mutex
+ * 测试用例描述 : 队列设置leagcymode为true，任务等锁并解锁后，判断任务之前状态是线程阻塞
+ * 操作步骤     : 1、创建队列， attr设置legacymode为true
+ *               2、提交延时的队列任务，验证当前是在线程上执行任务
+ * 预期结果    : 任务成功执行，能够正确使用线程方式阻塞
+ */
+HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+        "serial_legacy_queue", ffrt::queue_attr().mode(true));
+
+    ffrt::mutex mtx;
+    int result = 0;
+    bool flag = false;
+    auto handle = testQueue->submit_h([&] {
+        flag = true;
+        while (flag) {
+            usleep(100);
+        }
+        mtx.lock();
+        ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
+        EXPECT_EQ(task->preStatus, ffrt::TaskStatus::THREAD_BLOCK);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
+        result++;
+    }, ffrt::task_attr("Task_on_Thread");
+
+    while (!flag) {
+        usleep(100);
+    }
+
+    {
+        std::lock_guard lg(mtx);
+        flag = false;
+        usleep(10000);
+    }
+
+    testQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+    delete testQueue;
+}

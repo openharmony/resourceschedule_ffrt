@@ -300,7 +300,6 @@ void QueueHandler::Dispatch(QueueTask* inTask)
     for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
         // dfx watchdog
         SetTimeoutMonitor(task);
-        task->SetStatus(TaskStatus::EXECUTING);
         SetCurTask(task);
         execTaskId_.store(task->gid);
 

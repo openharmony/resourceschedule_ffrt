@@ -138,7 +138,7 @@ public:
 
     BlockType Block() override
     {
-        if (USE_COROUTINE && legacyCountNum <= 0 && (handler_ && !handler_->IsOnLoop())) {
+        if (USE_COROUTINE && !legacyMode_ && legacyCountNum <= 0 && (handler_ && !handler_->IsOnLoop())) {
             blockType = BlockType::BLOCK_COROUTINE;
             SetStatus(TaskStatus::COROUTINE_BLOCK);
         } else {

@@ -24,7 +24,7 @@ IOTask::IOTask(const ffrt_io_callable_t& work, const task_attr_private* attr)
 void IOTask::Execute()
 {
     FFRTTraceRecord::TaskExecute<ffrt_io_task>(qos_);
-    FFRT_EXECUTOR_TASK_BEGIN(this);
+    FFRT_EXECUTOR_TASK_BEGIN(gid);
     SetStatus(TaskStatus::EXECUTING);
     ffrt_coroutine_ptr_t coroutine = work.exec;
     ffrt_coroutine_ret_t ret = coroutine(work.data);
@@ -32,16 +32,16 @@ void IOTask::Execute()
         SetStatus(TaskStatus::FINISH);
         work.destroy(work.data);
         DecDeleteRef();
-        FFRT_EXECUTOR_TASK_END();
+        FFRT_TASK_END();
         FFRTTraceRecord::TaskDone<ffrt_io_task>(qos_);
         return;
     }
-    FFRT_EXECUTOR_TASK_BLOCK_MARKER(this);
+    FFRT_BLOCK_MARKER(gid);
     SetStatus(TaskStatus::PENDING);
 #ifdef FFRT_BBOX_ENABLE
     TaskPendingCounterInc();
 #endif
-    FFRT_EXECUTOR_TASK_END();
+    FFRT_TASK_END();
     FFRTTraceRecord::TaskDone<ffrt_io_task>(qos_);
 }
 } // namespace ffrt

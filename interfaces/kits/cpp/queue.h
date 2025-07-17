@@ -197,7 +197,7 @@ public:
      * @return Returns the current queue_attr object for chaining.
      * @since 20
      */
-    inline queue_attr& mode(const int legacy_mode)
+    inline queue_attr& mode(const bool legacy_mode)
     {
         ffrt_queue_attr_set_mode(this, legacy_mode);
         return *this;

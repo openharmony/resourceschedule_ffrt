@@ -173,7 +173,7 @@ FFRT_C_API void ffrt_queue_attr_set_mode(ffrt_queue_attr_t* attr, const bool leg
  * This interface returns whether tasks in the queue are configured to run in thread-based execution mode (legacy mode).
  *
  * @param attr Queue attribute pointer.
- * @param Returns <b>true</b> if tasks are executed as native threads (legacy mode).
+ * @param Returns <b>true</b> if tasks are executed as native threads (legacy mode);
           returns <b>false</b> if tasks are executed as coroutines (default).
  * @since 20
  */

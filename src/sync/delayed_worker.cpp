@@ -207,6 +207,7 @@ DelayedWorker::DelayedWorker()
         FFRT_SYSEVENT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
     }
 #endif
+    FFRT_LOGD("Construction completed.");
 }
 
 void DelayedWorker::Terminate()
@@ -233,6 +234,7 @@ DelayedWorker::~DelayedWorker()
     ::close(monitorfd_);
 #endif
     ::close(timerfd_);
+    FFRT_LOGD("Destruction completed.");
 }
 
 DelayedWorker& DelayedWorker::GetInstance()

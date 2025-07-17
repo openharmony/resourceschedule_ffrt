@@ -1595,7 +1595,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
     int result = 0;
     auto handle = testQueue->submit_h([&result] {
         ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
-        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
+        EXPECT_NE(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, false);
         result++;
     }, ffrt::task_attr("Task_on_Coroutine"));
@@ -1615,7 +1615,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
  */
 HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
 {
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_serial,
         "serial_legacy_queue", ffrt::queue_attr().mode(true));
 
     ffrt::mutex mtx;

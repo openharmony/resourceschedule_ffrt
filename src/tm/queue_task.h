@@ -115,8 +115,6 @@ public:
     {
         return isWeStart_;
     }
-
-    std::atomic_bool protectMem_ = {false};
     int curTaskIdx = 0;
 
     void Submit() override;

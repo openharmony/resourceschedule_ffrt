@@ -241,7 +241,7 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level0)
         EXPECT_EQ(legacycount, 0);
         auto expectedBlockType = ffrt::USE_COROUTINE? ffrt::BlockType::BLOCK_COROUTINE: ffrt::BlockType::BLOCK_THREAD;
         EXPECT_EQ(ctx->Block(), expectedBlockType);
-        EXPECT_EQ(ctx->GetBlockType() , expectedBlockType);
+        EXPECT_EQ(ctx->GetBlockType(), expectedBlockType);
         }, {}, {});
     ffrt::wait();
     EXPECT_EQ(x, 1);

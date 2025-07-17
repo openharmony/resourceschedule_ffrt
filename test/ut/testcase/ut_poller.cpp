@@ -355,7 +355,7 @@ HWTEST_F(PollerTest, TestCacheDelFd003, TestSize.Level0)
     free(currTask);
 }
 
-HWTEST_F(PollerTest, GetTaskWaitTime, TestSize.Level1)
+HWTEST_F(PollerTest, GetTaskWaitTime, TestSize.Level0)
 {
     Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);

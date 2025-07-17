@@ -80,7 +80,7 @@ HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level0)
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
         printf("id is  %" PRIu64 "\n", ffrt::this_task::get_id());
     });
-    ffrt_this_task_get_id();
+    ffrt::this_task::get_id();
     ffrt::wait();
     ffrt_this_task_update_qos(static_cast<int>(ffrt::qos_user_initiated));
 #ifndef WITH_NO_MOCKER

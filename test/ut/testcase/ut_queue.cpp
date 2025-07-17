@@ -432,12 +432,15 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level0)
  */
 HWTEST_F(QueueTest, get_queue_id_from_task, TestSize.Level0)
 {
+    int x = 0;
     queue* testQueue = new queue("test_queue");
-    auto t = testQueue->submit_h([] {
+    auto t = testQueue->submit_h([&] {
+        x++;
         (void)ffrt::get_queue_id();
     }, {});
     testQueue->wait(t);
     delete testQueue;
+    EXPECT_EQ(x, 1);
 }
 
 /*
@@ -687,6 +690,34 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
     serialQueue->wait(handle);
     EXPECT_EQ(result, 1);
     delete serialQueue;
+    usleep(100000);
+}
+
+HWTEST_F(QueueTest, get_main_queue, TestSize.Level0)
+{
+    ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
+    queue* mainQueue = ffrt::queue::get_main_queue();
+    int result = 0;
+    std::function<void()>&& basicFunc = [&result]() {
+        OnePlusForTest(static_cast<void*>(&result));
+        OnePlusForTest(static_cast<void*>(&result));
+        EXPECT_EQ(result, 3);
+        usleep(3000);
+    };
+
+    ffrt::task_handle handle = serialQueue->submit_h(
+        [&] {
+            result = result + 1;
+            if (mainQueue != nullptr) {
+                mainQueue->submit(basicFunc);
+            }
+        },
+        ffrt::task_attr().qos(3).name("ffrt main_queue."));
+
+    serialQueue->wait(handle);
+    EXPECT_EQ(result, 1);
+    delete serialQueue;
+    usleep(100000);
 }
 
 HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level0)

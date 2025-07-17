@@ -332,10 +332,10 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
     int nfds = 0;
     std::unique_lock<std::mutex> lck(task->mutex_);
     if (task->Block() == BlockType::BLOCK_THREAD) {
-        m_mapMutex.lock();
+        std::unique_lock mapLock(m_mapMutex);
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
-            m_mapMutex.unlock();
+            mapLock.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
                 task->GetLabel().c_str(), task->gid, cachedNfds);
             task->Wake();
@@ -344,7 +344,7 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
 
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_SYSEVENT_LOGE("task has waited before");
-            m_mapMutex.unlock();
+            mapLock.unlock();
             task->Wake();
             return 0;
         }
@@ -355,7 +355,7 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
             m_waitTaskMap[task].timerHandle = FFRTFacade::GetTMInstance().RegisterTimer(task->qos_, timeout,
                 reinterpret_cast<void*>(task), TimeoutProc);
         }
-        m_mapMutex.unlock();
+        mapLock.unlock();
         task->waitCond_.wait(lck);
         FFRT_LOGD("task[%s] id[%d] has [%d] events", task->GetLabel().c_str(), task->gid, nfds);
         task->Wake();
@@ -364,10 +364,10 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
     lck.unlock();
 
     CoWait([&](CoTask *task)->bool {
-        m_mapMutex.lock();
+        std::unique_lock mapLock(m_mapMutex);
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
-            m_mapMutex.unlock();
+            mapLock.unlock();
             FFRT_LOGD("task[%s] id[%d] has [%d] cached events, return directly",
                 task->GetLabel().c_str(), task->gid, cachedNfds);
             nfds = cachedNfds;
@@ -376,7 +376,6 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
 
         if (m_waitTaskMap.find(task) != m_waitTaskMap.end()) {
             FFRT_SYSEVENT_LOGE("task has waited before");
-            m_mapMutex.unlock();
             return false;
         }
         auto currTime = std::chrono::steady_clock::now();
@@ -386,7 +385,6 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
             m_waitTaskMap[task].timerHandle = FFRTFacade::GetTMInstance().RegisterTimer(task->qos_, timeout,
                 reinterpret_cast<void*>(task), TimeoutProc);
         }
-        m_mapMutex.unlock();
         // The ownership of the task belongs to m_waitTaskMap, and the task cannot be accessed any more.
         return true;
     });
@@ -396,16 +394,13 @@ int IOPoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int time
 
 void IOPoller::WakeTimeoutTask(CoTask* task) noexcept
 {
-    m_mapMutex.lock();
+    std::unique_lock mapLock(m_mapMutex);
     auto iter = m_waitTaskMap.find(task);
     if (iter != m_waitTaskMap.end()) {
         // wake task, erase from wait map
         m_waitTaskMap.erase(iter);
-        m_mapMutex.unlock();
+        mapLock.unlock();
         WakeTask(task);
-    } else {
-        // already erase from wait map
-        m_mapMutex.unlock();
     }
 }
 
@@ -417,25 +412,25 @@ void IOPoller::WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEvent
 
     std::unordered_set<int> timerHandlesToRemove;
     std::unordered_set<CoTask*> tasksToWake;
-    m_mapMutex.lock();
-    for (auto& taskEventPair : syncTaskEvents) {
-        CoTask* currTask = taskEventPair.first;
-        auto iter = m_waitTaskMap.find(currTask);
-        if (iter == m_waitTaskMap.end()) { // task not in wait map
-            CacheEventsAndDoMask(currTask, taskEventPair.second);
-            continue;
+    {
+        std::lock_guard lg(m_mapMutex);
+        for (auto& taskEventPair : syncTaskEvents) {
+            CoTask* currTask = taskEventPair.first;
+            auto iter = m_waitTaskMap.find(currTask);
+            if (iter == m_waitTaskMap.end()) { // task not in wait map
+                CacheEventsAndDoMask(currTask, taskEventPair.second);
+                continue;
+            }
+            CopyEventsInfoToConsumer(iter->second, taskEventPair.second);
+            // remove timer, wake task, erase from wait map
+            auto timerHandle = iter->second.timerHandle;
+            if (timerHandle > -1) {
+                timerHandlesToRemove.insert(timerHandle);
+            }
+            tasksToWake.insert(currTask);
+            m_waitTaskMap.erase(iter);
         }
-        CopyEventsInfoToConsumer(iter->second, taskEventPair.second);
-        // remove timer, wake task, erase from wait map
-        auto timerHandle = iter->second.timerHandle;
-        if (timerHandle > -1) {
-            timerHandlesToRemove.insert(timerHandle);
-        }
-        tasksToWake.insert(currTask);
-        m_waitTaskMap.erase(iter);
     }
-    m_mapMutex.unlock();
-
     for (auto timerHandle : timerHandlesToRemove) {
         FFRTFacade::GetTMInstance().UnregisterTimer(timerHandle);
     }

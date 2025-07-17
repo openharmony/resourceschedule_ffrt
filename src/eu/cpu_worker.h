@@ -208,7 +208,7 @@ private:
     std::atomic<pid_t> tid {-1};
     QoS qos;
     CpuWorkerOps ops;
-    WorkerStatus state;
+    WorkerStatus state {WorkerStatus::EXECUTING};
 #ifdef FFRT_PTHREAD_ENABLE
     pthread_t thread_{0};
     pthread_attr_t attr_;

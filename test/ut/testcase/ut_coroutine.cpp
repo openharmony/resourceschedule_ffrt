@@ -155,9 +155,15 @@ HWTEST_F(CoroutineTest, ffrt_get_current_coroutine_stack_success, TestSize.Level
         void* stackAddr = nullptr;
         size_t size = 0;
         bool ret = ffrt_get_current_coroutine_stack(&stackAddr, &size);
-        EXPECT_EQ(ret, true);
-        EXPECT_FALSE(stackAddr == nullptr);
-        EXPECT_NE(size, 0);
+        if(ffrt::USE_COROUTINE) {
+            EXPECT_EQ(ret, true);
+            EXPECT_NE(stackAddr, nullptr);
+            EXPECT_NE(size, 0);
+        } else {
+            EXPECT_EQ(ret, false);
+            EXPECT_EQ(stackAddr, nullptr);
+            EXPECT_EQ(size, 0);
+        }
     };
     ffrt_task_handle_t task = ffrt_queue_submit_h(queue_handle,
         ffrt::create_function_wrapper(OnePlusFunc, ffrt_function_kind_queue), nullptr);

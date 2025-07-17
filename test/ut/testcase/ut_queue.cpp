@@ -1621,7 +1621,8 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
 
     ffrt::mutex mtx;
     int result = 0;
-    bool flag = false;
+    std::atomic<bool> flag = false;
+
     auto handle = testQueue->submit_h([&] {
         flag = true;
         while (flag) {
@@ -1649,6 +1650,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
     EXPECT_EQ(result, 1);
     delete testQueue;
 }
+
 
 /*
  * 测试用例名称 : ffrt_eventhandler_adapter_queue_get_task_cnt

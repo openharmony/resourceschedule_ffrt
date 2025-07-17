@@ -14,7 +14,7 @@
  */
 #ifdef FFRT_BBOX_ENABLE
 
-#include "bbox.h"
+#include "dfx/bbox/bbox.h"
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -457,9 +457,13 @@ static void HandleChildProcess()
 
 static void SignalHandler(int signo, siginfo_t* info, void* context __attribute__((unused)))
 {
-    if (FFRTIsWork() && g_bbox_called_times.fetch_add(1) == 0) { // only save once
-        g_cur_pid = static_cast<unsigned int>(getpid());
-        g_cur_tid = static_cast<unsigned int>(gettid());
+    unsigned int pid = static_cast<unsigned int>(getpid());
+    unsigned int tid = static_cast<unsigned int>(gettid());
+    unsigned int defaultTid = 0;
+    if (g_bbox_tid_is_dealing.compare_exchange_strong(defaultTid, tid)&&
+        FFRTIsWork() && g_bbox_called_times.fetch_add(1) == 0) { // only save once
+        g_cur_pid = pid;
+        g_cur_tid = tid;
         g_cur_signame = GetSigName(info);
         if (getKeyStatus != nullptr) {
             getKeyStatus();
@@ -472,9 +476,19 @@ static void SignalHandler(int signo, siginfo_t* info, void* context __attribute_
             HandleChildProcess();
             _exit(0);
         } else if (childPid > 0) {
-            g_bbox_tid_is_dealing.store(g_cur_tid);
             waitpid(childPid, nullptr, 0);
             g_bbox_tid_is_dealing.store(0);
+        }
+    } else {
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = WAIT_PID_SLEEP_MS * 1000000;
+        if (tid == g_bbox_tid_is_dealing.load()) {
+            g_bbox_tid_is_dealing.store(0);
+        } else {
+            while (g_bbox_tid_is_dealing.load() != 0) {
+                nanosleep(&ts, nullptr);
+            }
         }
     }
     // we need to deregister our signal handler for that signal before continuing.

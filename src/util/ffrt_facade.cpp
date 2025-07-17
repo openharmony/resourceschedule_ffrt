@@ -71,6 +71,14 @@ private:
 FFRTFacade::FFRTFacade()
 {
     DependenceManager::Instance();
+    /* Note that by constructing `DependenceManager` before `DelayedWorker`,
+     * we make sure that the lifetime of `DependenceManager` is longer than `DelayedWorker`.
+     * That is necessary because `DelayedWorker` may create async tasks (CPUWorker objects) which
+     * call `SDependenceManager::onTaskDone`. When that happens `SDependenceManager` must still
+     * be alive. `DelayedWorker` destructor waits for all async tasks to complete first, so the
+     * order will be (completion of async tasks) -> `~DelayedWorker()` -> `~SDependenceManager`.
+     */
+    DelayedWorker::GetInstance();
     ProcessExitManager::Instance();
     InitWhiteListFlag();
 }

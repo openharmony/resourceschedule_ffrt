@@ -15,7 +15,7 @@
 #ifndef FFRT_EVENTHANDLER_INTERACTIVE_QUEUE_H
 #define FFRT_EVENTHANDLER_INTERACTIVE_QUEUE_H
 
-#include "base_queue.h"
+#include "queue/base_queue.h"
 #include "tm/queue_task.h"
 #include "util/event_handler_adapter.h"
 

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "graph_check.h"
+#include "util/graph_check.h"
 
 namespace ffrt {
 void GraphCheckCyclic::AddVetexByLabel(uint64_t label)

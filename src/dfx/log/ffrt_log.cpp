@@ -21,7 +21,7 @@
 #include <fstream>
 #include <sstream>
 #include <atomic>
-#include "ffrt_log_api.h"
+#include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
 #include "util/white_list.h"
 

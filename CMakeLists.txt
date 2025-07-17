@@ -42,6 +42,7 @@ endif()
 
 # project-specific variables
 set(FFRT_CODE_PATH ${PROJECT_SOURCE_DIR}/src)
+set(FFRT_INNER_INCLUDE_PATH ${PROJECT_SOURCE_DIR}/include)
 set(FFRT_INNER_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/inner_api)
 set(FFRT_API_PATH ${PROJECT_SOURCE_DIR}/interfaces/kits)
 set(FFRT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
@@ -75,6 +76,7 @@ endif()
 # add the binary tree to the search path for include files
 include_directories(${FFRT_API_PATH})
 include_directories(${FFRT_INNER_API_PATH})
+include_directories(${FFRT_INNER_INCLUDE_PATH})
 include_directories(${FFRT_CODE_PATH})
 include_directories(${TRACE_PATH})
 include_directories(${QOS_PATH})

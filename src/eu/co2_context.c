@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "co2_context.h"
+#include "eu/co2_context.h"
 #include "c/fiber.h"
 
 #include <errno.h>

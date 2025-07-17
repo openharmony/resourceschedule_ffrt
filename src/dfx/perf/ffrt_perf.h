@@ -15,7 +15,7 @@
 
 #ifndef __FFRT_PERF_H__
 #define __FFRT_PERF_H__
-#include "ffrt_trace.h"
+#include "dfx/trace/ffrt_trace.h"
 
 // default disabled for ffrt, enable it for debugging or playback
 #ifdef FFRT_PERF_ENABLE

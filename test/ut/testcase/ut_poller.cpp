@@ -571,4 +571,17 @@ HWTEST_F(PollerTest, DelFdEvent, TestSize.Level0)
     poller.m_wakeDataMap[0].emplace_back(std::move(wakeData));
     poller.m_delCntMap[0] = 1;
     EXPECT_EQ(poller.DelFdEvent(0), -1);
+    CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
+    poller.ClearCachedEvents(currTask);
+}
+
+HWTEST_F(PollerTest, Qos_Test, TestSize.Level0)
+{
+    ffrt_qos_t qos = qos_default;
+    ffrt::QoS ffrtQos;
+    ffrt::SetFuncQosMap(nullptr);
+    ffrt_poller_wakeup(qos);
+    int ret = ffrt_epoll_get_count(qos);
+    EXPECT_EQ(ret, 0);
+    ffrt::SetFuncQosMap(ffrt::QoSMap);
 }

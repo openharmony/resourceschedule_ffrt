@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "co_routine.h"
+#include "eu/co_routine.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -21,7 +21,7 @@
 #include <string>
 #include <sys/mman.h>
 #include "util/cpu_boost_wrapper.h"
-#include "ffrt_trace.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "dm/dependence_manager.h"
 #include "core/entity.h"
 #include "tm/queue_task.h"
@@ -32,7 +32,7 @@
 #include "sync/perf_counter.h"
 #include "dfx/bbox/bbox.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
-#include "co_routine_factory.h"
+#include "eu/co_routine_factory.h"
 #include "util/ffrt_facade.h"
 #ifdef FFRT_TASK_LOCAL_ENABLE
 #include "pthread_ffrt.h"
@@ -466,7 +466,6 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
 
         // 1. coroutine task done, exit normally, need to exec next coroutine task
         if (co->isTaskDone) {
-            task->SetStatus(TaskStatus::FINISH);
             ffrt::FFRTFacade::GetDMInstance().onTaskDone(static_cast<CPUEUTask*>(task));
             co->isTaskDone = false;
             return 0;

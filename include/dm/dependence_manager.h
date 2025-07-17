@@ -25,7 +25,7 @@
 #include "core/version_ctx.h"
 #include "sched/execute_ctx.h"
 #include "qos.h"
-#include "ffrt_trace.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"
 #include "core/entity.h"

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ffrt_trace.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "internal_inc/osal.h"
 
 namespace ffrt {

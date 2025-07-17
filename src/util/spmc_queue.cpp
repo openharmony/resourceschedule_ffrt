@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "spmc_queue.h"
+#include "util/spmc_queue.h"
 #include <cstdlib>
 #include "dfx/log/ffrt_log_api.h"
 namespace ffrt {

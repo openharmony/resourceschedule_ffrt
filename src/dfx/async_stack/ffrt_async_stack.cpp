@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "ffrt_async_stack.h"
+#include "dfx/async_stack/ffrt_async_stack.h"
 
 #include <cstdlib>
 #include <mutex>

@@ -15,7 +15,7 @@
 
 #include "sched/interval.h"
 #include "util/ffrt_facade.h"
-#include "ffrt_trace.h"
+#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
 void Deadline::Update(uint64_t deadlineUs)

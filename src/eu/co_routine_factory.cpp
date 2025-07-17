@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "co_routine_factory.h"
+#include "eu/co_routine_factory.h"
 #include "util/slab.h"
 
 namespace ffrt {

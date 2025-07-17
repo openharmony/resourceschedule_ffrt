@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "task_factory.h"
+#include "tm/task_factory.h"
 #include "tm/cpu_task.h"
 #include "tm/queue_task.h"
 #include "tm/io_task.h"

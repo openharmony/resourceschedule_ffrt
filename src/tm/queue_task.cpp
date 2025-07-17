@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "queue_task.h"
-#include "ffrt_trace.h"
+#include "tm/queue_task.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "c/task.h"
@@ -48,6 +48,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         } else if (attr->timeout_) {
             schedTimeout_ = std::max(attr->timeout_, MIN_SCHED_TIMEOUT); // min 0.1s
         }
+        legacyMode_ = handler->GetMode();
     }
 
     FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus", gid, delay_, type, prio_,

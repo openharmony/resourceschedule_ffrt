@@ -25,6 +25,7 @@
 #include "queue/queue_monitor.h"
 #undef private
 #include "util/spmc_queue.h"
+#include "util/ffrt_facade.h"
 
 using namespace std;
 using namespace ffrt;
@@ -760,8 +761,8 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level0)
  */
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level0)
 {
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     ffrt_queue_attr_t queue_attr;
     ffrt_task_handle_t handle;
     ffrt_task_attr_t task_attr;
@@ -900,8 +901,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000000);
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 4);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     for (int i = 0; i < 9; i++) {
         ffrt::submit([]() {
@@ -930,14 +931,14 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     auto t = testQueue->submit_h([&x] { x = x + 1; usleep(2000000); FFRT_LOGE("done");}, {});
     FFRT_LOGE("submitted");
     testQueue->wait(t);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
 
@@ -953,15 +954,15 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
     auto t = testQueue->submit_h([&x] { FFRT_LOGE("delay end"); usleep(2100000);
         x = x + 1;}, task_attr().delay(1200000));
     testQueue->wait(t);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
 
@@ -977,8 +978,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
     queue* testQueue = new queue("test_queue");
     FFRT_LOGE("submit");
     testQueue->submit([&x] { x = x + 1; FFRT_LOGE("start"); });
@@ -987,7 +988,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
     testQueue->wait(t);
     usleep(1200000);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
 
@@ -1018,8 +1019,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_two_stage_timeout, TestSize.Level0)
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);
     ffrt_task_timeout_set_threshold(1000);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 1);
 
@@ -1209,8 +1210,8 @@ HWTEST_F(QueueTest, ffrt_queue_concurrent_recordtraffic_delay_trigger, TestSize.
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_all, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1254,8 +1255,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_all, TestSize
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_part, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1299,8 +1300,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_part, TestSiz
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_delay, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1342,8 +1343,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_delay, TestSi
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1391,8 +1392,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_cancel_timeout_all, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1436,8 +1437,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_cancel_timeout_all, TestSize.L
 HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_mixed_conditions_timeout, TestSize.Level1)
 {
     ffrt_task_timeout_set_cb(MyCallback);
-    ffrt::DelayedWorker::GetInstance();
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 1000000;
+    FFRTFacade::GetDMInstance();
+    FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
@@ -1477,7 +1478,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_mixed_conditions_timeout, Test
 
     EXPECT_EQ(y, 11);
     delete testQueue;
-    ffrt::QueueMonitor::GetInstance().timeoutUs_ = 30000000;
+    FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
 }
 
 HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSize.Level1)
@@ -1554,4 +1555,121 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
 
     EXPECT_EQ(result, 1);
     delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_with_legacy_mode
+ * 测试用例描述 : 队列设置leagcymode为true，验证任务不在协程上执行
+ * 操作步骤     : 1、创建队列， attr设置legacymode为true
+ *               2、提交队列任务，验证当前是在线程上执行任务
+ * 预期结果    : 任务成功执行，任务在线程上执行
+ */
+HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+        "concurrent_legacy_queue", ffrt::queue_attr().mode(true));
+    int result = 0;
+    auto handle = testQueue->submit_h([&result] {
+        ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
+        result++;
+    }, ffrt::task_attr("Task_on_Thread"));
+
+    testQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_with_legacy_mode_off
+ * 测试用例描述 : 队列设置leagcymode为true，验证任务在协程上执行
+ * 操作步骤     : 1、创建队列， attr设置legacymode为false
+ *               2、提交队列任务，验证当前是在协程上执行任务
+ * 预期结果    : 任务成功执行，任务在协程上执行
+ */
+HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+        "concurrent_normal_queue", ffrt::queue_attr());
+    int result = 0;
+    auto handle = testQueue->submit_h([&result] {
+        ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
+        EXPECT_NE(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, false);
+        result++;
+    }, ffrt::task_attr("Task_on_Coroutine"));
+
+    testQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_queue_with_legacy_mode_mutex
+ * 测试用例描述 : 队列设置leagcymode为true，任务等锁并解锁后，判断任务之前状态是线程阻塞
+ * 操作步骤     : 1、创建队列， attr设置legacymode为true
+ *               2、提交延时的队列任务，验证当前是在线程上执行任务
+ * 预期结果    : 任务成功执行，能够正确使用线程方式阻塞
+ */
+HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
+{
+    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_serial,
+        "serial_legacy_queue", ffrt::queue_attr().mode(true));
+
+    ffrt::mutex mtx;
+    int result = 0;
+    bool flag = false;
+    auto handle = testQueue->submit_h([&] {
+        flag = true;
+        while (flag) {
+            usleep(100);
+        }
+        mtx.lock();
+        ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
+        EXPECT_EQ(task->preStatus, ffrt::TaskStatus::THREAD_BLOCK);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
+        result++;
+    }, ffrt::task_attr("Task_on_Thread"));
+
+    while (!flag) {
+        usleep(100);
+    }
+
+    {
+        std::lock_guard lg(mtx);
+        flag = false;
+        usleep(10000);
+    }
+
+    testQueue->wait(handle);
+
+    EXPECT_EQ(result, 1);
+    delete testQueue;
+}
+
+/*
+ * 测试用例名称 : ffrt_eventhandler_adapter_queue_get_task_cnt
+ * 测试用例描述 : eventhandler adapter队列获取任务数量
+ * 预置条件     ：创建一个eventhandler adapter队列
+ * 操作步骤     : 1、调用get_task_cnt接口
+ *               2、提交若干延时任务后，再次调用get_task_cnt接口
+ * 预期结果    : 1、初始get_task_cnt返回0，后续get_task_cnt返回提交的任务数
+ *              2、提交延时任务后，get_task_cnt返回提交的任务数
+ */
+HWTEST_F(QueueTest, ffrt_eventhandler_adapter_queue_get_task_cnt, TestSize.Level0)
+{
+    std::shared_ptr<queue> testQueue = std::make_shared<queue>(
+        static_cast<queue_type>(ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "test_queue"
+    );
+    EXPECT_EQ(testQueue->get_task_cnt(), 0);
+
+    for (int i = 0; i < 10; i++) {
+        testQueue->submit([] { int x = 0; }, task_attr().delay(10 * 1000 * 1000));
+        EXPECT_EQ(testQueue->get_task_cnt(), i + 1);
+    }
+
+    testQueue = nullptr;
 }

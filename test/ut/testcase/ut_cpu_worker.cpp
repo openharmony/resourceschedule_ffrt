@@ -23,13 +23,12 @@
 #include <sys/syscall.h>
 #include <sys/resource.h>
 #include "c/thread.h"
-#include "eu/parse_ini.h"
 #include "sync/perf_counter.h"
 #include "sync/wait_queue.h"
 
-#define PRIVATE PUBLIC
+#define private public
 #include "eu/cpu_worker.h"
-#undef PRIVATE
+#undef private
 #include "../common.h"
 
 using namespace testing;
@@ -95,11 +94,6 @@ void WorkerPrepare(CPUWorker* thread)
 {
 }
 
-PollerRet TryPoll(const CPUWorker*, int timeout)
-{
-    return PollerRet::RET_NULL;
-}
-
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 bool IsBlockAwareInit()
 {
@@ -113,13 +107,13 @@ HWTEST_F(CpuWorkerTest, WorkerStatusTest, TestSize.Level0)
     ops.WorkerIdleAction = WorkerIdleAction;
     ops.WorkerRetired = WorkerRetired;
     ops.WorkerPrepare = WorkerPrepare;
-    ops.TryPoll = TryPoll;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
     CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
     WorkerStatus status = worker->GetWorkerState();
     EXPECT_EQ(WorkerStatus::EXECUTING, status);
+    worker->SetExited();
 }
 
 HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level0)
@@ -128,13 +122,13 @@ HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level0)
     ops.WorkerIdleAction = WorkerIdleAction;
     ops.WorkerRetired = WorkerRetired;
     ops.WorkerPrepare = WorkerPrepare;
-    ops.TryPoll = TryPoll;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
     CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
     worker->SetWorkerState(WorkerStatus::SLEEPING);
     EXPECT_EQ(WorkerStatus::SLEEPING, worker->state);
+    worker->SetExited();
 }
 
 HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level0)
@@ -143,13 +137,13 @@ HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level0)
     ops.WorkerIdleAction = WorkerIdleAction;
     ops.WorkerRetired = WorkerRetired;
     ops.WorkerPrepare = WorkerPrepare;
-    ops.TryPoll = TryPoll;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
     CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
     bool ret = worker->Exited();
     EXPECT_FALSE(ret);
+    worker->SetExited();
 }
 
 HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level0)
@@ -158,14 +152,12 @@ HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level0)
     ops.WorkerIdleAction = WorkerIdleAction;
     ops.WorkerRetired = WorkerRetired;
     ops.WorkerPrepare = WorkerPrepare;
-    ops.TryPoll = TryPoll;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
     CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
-    bool var = false;
-    worker->SetExited(var);
-    EXPECT_FALSE(worker->exited);
+    worker->SetExited();
+    EXPECT_TRUE(worker->exited.load());
 }
 
 HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level0)
@@ -174,48 +166,10 @@ HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level0)
     ops.WorkerIdleAction = WorkerIdleAction;
     ops.WorkerRetired = WorkerRetired;
     ops.WorkerPrepare = WorkerPrepare;
-    ops.TryPoll = TryPoll;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
     CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
     EXPECT_EQ(worker->GetQos(), 6);
-}
-
-HWTEST_F(CpuWorkerTest, SetCpuAffinity, TestSize.Level0)
-{
-    CpuWorkerOps ops{
-        [](CPUWorker* thread) { return WorkerAction::RETIRE; },
-        [](CPUWorker* thread) {},
-        [](CPUWorker* thread) {},
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        []() { return false; },
-#endif
-    };
-
-    CPUWorker* worker = new CPUWorker(2, std::move(ops), 0);
-    int originPolicy = 0;
-    sched_param param;
-    pthread_getschedparam(worker->thread_, &originPolicy, &param);
-    int originPrio = param.sched_priority;
-
-    int policy = 0;
-    worker->SetThreadPriority(0, worker->Id());
-    worker->SetThreadPriority(140, worker->Id());
-    pthread_getschedparam(worker->thread_, &policy, &param);
-    EXPECT_EQ(originPolicy, policy);
-
-    worker->SetThreadPriority(1, worker->Id());
-    worker->SetThreadPriority(41, worker->Id());
-    worker->SetThreadPriority(51, worker->Id());
-
-    worker->SetThreadAttr(qos_max + 1);
-    worker->SetThreadAttr(GetFuncQosMax()() - 1);
-    worker->SetThreadAttr(GetFuncQosMax()());
-#ifndef OHOS_STANDARD_SYSTEM
-    pthread_getschedparam(worker->thread_, &policy, &param);
-    int prio = param.sched_priority;
-    EXPECT_EQ(originPolicy, policy);
-#endif
     worker->SetExited();
 }

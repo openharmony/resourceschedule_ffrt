@@ -26,7 +26,7 @@
 #include "internal_inc/osal.h"
 #include "internal_inc/types.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "ffrt_trace.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "tm/cpu_task.h"
 #include "cpp/sleep.h"
 

@@ -189,6 +189,30 @@ public:
     {
         return ffrt_queue_attr_get_max_concurrency(this);
     }
+
+    /**
+     * @brief Sets the mode for this queue attribute.
+     *
+     * @param legacy_mode Indicates the queue mode.
+     * @return Returns the current queue_attr object for chaining.
+     * @since 20
+     */
+    inline queue_attr& mode(const bool legacy_mode)
+    {
+        ffrt_queue_attr_set_mode(this, legacy_mode);
+        return *this;
+    }
+
+    /**
+     * @brief Gets the mode for this queue attribute.
+     *
+     * @param Returns the queue mode.
+     * @since 20
+     */
+    inline bool mode() const
+    {
+        return ffrt_queue_attr_get_mode(this);
+    }
 };
 
 /**

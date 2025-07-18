@@ -24,6 +24,7 @@
 
 #include "core/entity.h"
 #include "sched/task_scheduler.h"
+#include "sched/scheduler.h"
 #include "core/task_attr_private.h"
 #include "tm/scpu_task.h"
 #include "sched/stask_scheduler.h"
@@ -233,4 +234,18 @@ HWTEST_F(SchedulerTest, task_runqueue_pop_to_another_fail_test, TestSize.Level0)
         delete reinterpret_cast<TaskBase*>(task);
         task = anotherQueue.PopHead();
     }
+}
+
+HWTEST_F(SchedulerTest, sched_test, TestSize.Level0)
+{
+    STaskScheduler* scheduler = new STaskScheduler();
+    scheduler->SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
+    ffrt_executor_task_t work;
+    bool ret = scheduler->CancelUVWork(&work);
+    EXPECT_EQ(ret, false);
+    ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    scheduler->PushTask(task);
+    scheduler->GetPriorityTaskCnt();
+    scheduler->PushTaskLocalOrPriority(task);
+    delete scheduler;
 }

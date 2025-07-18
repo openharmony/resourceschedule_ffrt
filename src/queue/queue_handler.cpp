@@ -80,9 +80,8 @@ QueueHandler::~QueueHandler()
 {
     FFRT_LOGI("destruct %s enter", name_.c_str());
     // clear tasks in queue
-    FFRTFacade::GetQMInstance().DeregisterQueue(this);
     CancelAndWait();
-
+    FFRTFacade::GetQMInstance().DeregisterQueue(this);
     // release callback resource
     if (timeout_ > 0) {
         // wait for all delayedWorker to complete.
@@ -213,7 +212,7 @@ void QueueHandler::CancelAndWait()
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
     queue_->Stop();
-    while (deliverCnt_.load() > 0 || CheckExecutingTask() || queue_->GetActiveStatus()) {
+    while (CheckExecutingTask() || queue_->GetActiveStatus() || deliverCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
         desWaitCnt_++;
         if (desWaitCnt_ == TASK_WAIT_COUNT) {
@@ -222,12 +221,6 @@ void QueueHandler::CancelAndWait()
                 FFRT_LOGI("Queue Destruct blocked for 5s, %s", GetDfxInfo(i).c_str());
             }
             desWaitCnt_ = 0;
-        }
-    }
-
-    for (auto& curtask : curTaskVec_) {
-        if (curtask != nullptr && curtask->protectMem_.load()) {
-            curtask->DecDeleteRef();
         }
     }
 }
@@ -362,22 +355,17 @@ void QueueHandler::Deliver()
             for (auto& task : taskMap) {
                 if (curTaskSet.find(task) == curTaskSet.end()) {
                     UpdateCurTask(task);
-                    task->protectMem_.exchange(true);
-                    task->IncDeleteRef();
                     break;
                 }
             }
         }
     }
     QueueTask* task = queue_->Pull();
+    deliverCnt_.fetch_sub(1);
     if (task != nullptr) {
-        if (task->protectMem_.exchange(false)) {
-            task->DecDeleteRef();
-        }
         SetCurTask(task);
         TransferTask(task);
     }
-    deliverCnt_.fetch_sub(1);
 }
 
 void QueueHandler::TransferTask(QueueTask* task)

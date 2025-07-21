@@ -61,7 +61,7 @@ public:
         return -1;
     }
 
-     virtual inline uint64_t GetMapSize()
+    virtual inline uint64_t GetMapSize()
     {
         std::lock_guard lock(mutex_);
         return whenMap_.size();

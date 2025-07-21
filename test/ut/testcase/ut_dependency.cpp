@@ -510,24 +510,27 @@ void UVBlockCb(ffrt_executor_task_t* data, ffrt_qos_t qos)
     usleep(UV_BLOCK_SLEEP_TIME);
     uv_block_result.fetch_add(1);
 }
+int Rand()
+{
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        constexpr int min = 1;
+        constexpr int max = 20;
+        std::uniform_int_distribution<int> dis(min, max);
+        return dis(gen);
+}
 }
 
 HWTEST_F(DependencyTest, uv_task_block_ffrt_mutex, TestSize.Level0)
 {
     ffrt_executor_task_register_func(UVBlockCb, ffrt_uv_task);
     const int taskCount = 4000;
-    auto rand = []() -> int {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<int> dis(1, 20);
-        return dis(gen);
-    };
-    auto submitNormal = [rand]() {
+    auto submitNormal = []() {
         for (int qos = ffrt_qos_background; qos <= ffrt_qos_user_initiated; qos++) {
             ffrt::submit([]() {
                 usleep(1);
             }, {}, {}, ffrt::task_attr().qos(qos));
-            usleep(rand());
+            usleep(Rand());
         }
     };
     auto t1 = std::thread{[submitNormal]() {
@@ -546,13 +549,13 @@ HWTEST_F(DependencyTest, uv_task_block_ffrt_mutex, TestSize.Level0)
         for (int i = 0; i < taskCount; i++) {
             ffrt_task_attr_set_qos(&attr, ffrt_qos_background);
             ffrt_executor_task_submit(&uvWork[i * 4], &attr);
-            usleep(rand());
+            usleep(Rand());
             ffrt_task_attr_set_qos(&attr, ffrt_qos_utility);
             ffrt_executor_task_submit(&uvWork[i * 4 + 1], &attr);
-            usleep(rand());
+            usleep(Rand());
             ffrt_task_attr_set_qos(&attr, ffrt_qos_default);
             ffrt_executor_task_submit(&uvWork[i * 4 + 2], &attr);
-            usleep(rand());
+            usleep(Rand());
             ffrt_task_attr_set_qos(&attr, ffrt_qos_user_initiated);
             ffrt_executor_task_submit(&uvWork[i * 4 + 3], &attr);
         }

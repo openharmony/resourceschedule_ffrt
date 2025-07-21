@@ -240,7 +240,7 @@ HWTEST_F(SchedulerTest, sched_test, TestSize.Level0)
 {
     STaskScheduler* scheduler = new STaskScheduler();
     scheduler->SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
-    ffrt_executor_task_t work;
+    ffrt_executor_task_t work = {};
     bool ret = scheduler->CancelUVWork(&work);
     EXPECT_EQ(ret, false);
     ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);

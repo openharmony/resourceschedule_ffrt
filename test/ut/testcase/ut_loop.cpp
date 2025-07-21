@@ -229,7 +229,7 @@ int RemoveFdListener(void* handler, uint32_t fd)
 {
     return 0;
 }
-
+#if !defined(LIB_EVENT_HANDLER_DNE)
 HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
@@ -269,3 +269,4 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level0)
     GlobalMockObject::verify();
 #endif
 }
+#endif

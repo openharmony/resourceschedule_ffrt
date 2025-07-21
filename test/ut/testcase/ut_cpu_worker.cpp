@@ -85,9 +85,21 @@ WorkerAction WorkerIdleAction(CPUWorker *thread)
 {
     return WorkerAction::RETRY;
 }
-
+ /* a flag used to stall main thread till the worker is done. This prevents UAF */
+std::atomic<bool> workerDone = false;
 void WorkerRetired(CPUWorker* thread)
 {
+    thread->SetExited();
+    thread->Detach();
+    /* worker is done, set flag to true */
+    workerDone = true;
+}
+void WaitForWorker()
+{
+    /* Stall till worker is done to prevent UAF */
+    while (!workerDone) {
+
+    }
 }
 
 void WorkerPrepare(CPUWorker* thread)
@@ -110,10 +122,12 @@ HWTEST_F(CpuWorkerTest, WorkerStatusTest, TestSize.Level0)
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
-    CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
+    workerDone = false;
+    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
     WorkerStatus status = worker->GetWorkerState();
     EXPECT_EQ(WorkerStatus::EXECUTING, status);
     worker->SetExited();
+    WaitForWorker();
 }
 
 HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level0)
@@ -125,10 +139,12 @@ HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level0)
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
-    CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
+    workerDone = false;
+    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
     worker->SetWorkerState(WorkerStatus::SLEEPING);
     EXPECT_EQ(WorkerStatus::SLEEPING, worker->state);
     worker->SetExited();
+    WaitForWorker();
 }
 
 HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level0)
@@ -140,10 +156,12 @@ HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level0)
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
-    CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
+    workerDone = false;
+    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
     bool ret = worker->Exited();
     EXPECT_FALSE(ret);
     worker->SetExited();
+    WaitForWorker();
 }
 
 HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level0)
@@ -155,9 +173,11 @@ HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level0)
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
-    CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
+    workerDone = false;
+    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
     worker->SetExited();
     EXPECT_TRUE(worker->exited.load());
+    WaitForWorker();
 }
 
 HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level0)
@@ -169,7 +189,10 @@ HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level0)
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     ops.IsBlockAwareInit = IsBlockAwareInit;
 #endif
-    CPUWorker *worker = new CPUWorker(QoS(6), std::move(ops), 1024);
-    EXPECT_EQ(worker->GetQos(), 6);
+    workerDone = false;
+    auto qos = QoS(6);
+    auto worker = std::make_unique<CPUWorker>(qos, std::move(ops), 1024);
+    EXPECT_EQ(worker->GetQos(), qos);
     worker->SetExited();
+    WaitForWorker();
 }

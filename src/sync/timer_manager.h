@@ -68,9 +68,9 @@ public:
     ~TimerManager();
     static TimerManager& Instance();
 
-    int RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat = false) noexcept;
-    int UnregisterTimer(int handle) noexcept;
-    ffrt_timer_query_t GetTimerStatus(int handle) noexcept;
+    ffrt_timer_t RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat = false) noexcept;
+    int UnregisterTimer(ffrt_timer_t handle) noexcept;
+    ffrt_timer_query_t GetTimerStatus(ffrt_timer_t handle) noexcept;
 
 private:
     TimerManager();
@@ -79,7 +79,7 @@ private:
     void RegisterTimerImpl(std::shared_ptr<TimerData> data);
 
     mutable spin_mutex timerMutex_;
-    int timerHandle_ { -1 };
+    ffrt_timer_t timerHandle_ { -1 };
     bool teardown { false };
     std::unordered_map<int, std::shared_ptr<TimerData>> timerMap_; // valid timer data manage
     std::array<uint64_t, QoS::MaxNum()> workQueDeps; // deps to ensure callbacks execute in order

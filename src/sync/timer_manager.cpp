@@ -95,7 +95,7 @@ void TimerManager::InitWorkQueAndCb(int qos)
     };
 }
 
-int TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
+ffrt_timer_t TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
 {
     std::lock_guard lock(timerMutex_);
     if (teardown) {
@@ -123,7 +123,7 @@ void TimerManager::RegisterTimerImpl(std::shared_ptr<TimerData> data)
     }
 }
 
-int TimerManager::UnregisterTimer(int handle) noexcept
+int TimerManager::UnregisterTimer(ffrt_timer_t handle) noexcept
 {
     std::unique_lock timerLock(timerMutex_);
     if (teardown) {
@@ -163,7 +163,7 @@ int TimerManager::UnregisterTimer(int handle) noexcept
     return 0;
 }
 
-ffrt_timer_query_t TimerManager::GetTimerStatus(int handle) noexcept
+ffrt_timer_query_t TimerManager::GetTimerStatus(ffrt_timer_t handle) noexcept
 {
     std::unique_lock timerLock(timerMutex_);
     if (teardown) {

@@ -98,7 +98,7 @@ void WaitForWorker()
 {
     /* Stall till worker is done to prevent UAF */
     while (!workerDone) {
-
+        // spin till the worker is done
     }
 }
 

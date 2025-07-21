@@ -516,7 +516,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_valid, TestSize.Level0)
 
 typedef struct {
     int timerId;
-    int result;
+    std::atomic<int> result;
 } TimerDataT;
 
 static void TimerCb(void* data)

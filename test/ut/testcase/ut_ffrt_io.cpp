@@ -27,8 +27,8 @@
 #include "ffrt_inner.h"
 #include "c/ffrt_ipc.h"
 #include "eu/co_routine.h"
-#include "eu/io_poller.h"
 #define private public
+#include "eu/io_poller.h"
 #include "sync/timer_manager.h"
 #define protect public
 #include "util/ffrt_facade.h"
@@ -477,6 +477,14 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_ctl_op_invalid, TestSize.Level0)
 HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level0)
 {
     ffrt_qos_t qos = ffrt_qos_default;
+    /* If this test is run in isolation, one can expect the poll count to be one.
+     * However, if this test is run in the same environment of preceding tests e.g.,  ffrt_timer_start_succ_map_null the
+     * count is expected to be larger than one. Considering both run modes, we expect a non-zero value, instead of a
+     * specific value.
+     * Note: In general, it is a better idea to make test run oblivious and function independently from
+     * each-other.
+     */
+    ffrt::FFRTFacade::GetPPInstance().PollOnce(0);
     int ret = ffrt_epoll_get_count(qos);
     EXPECT_NE(ret, 0);
 }

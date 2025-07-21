@@ -16,6 +16,7 @@
 #define FFRT_EVENTHANDLER_ADAPTER_QUEUE_H
 
 #include <vector>
+#include <numeric>
 #include "tm/queue_task.h"
 #include "base_queue.h"
 #include "eventhandler_interactive_queue.h"
@@ -62,6 +63,13 @@ public:
     int GetQueueType() const override
     {
         return ffrt_queue_eventhandler_adapter;
+    }
+
+    inline uint64_t GetMapSize() override
+    {
+        std::unique_lock lock(mutex_);
+        return std::accumulate(std::begin(whenMapVec_), std::end(whenMapVec_), 0u,
+            [] (uint64_t size, const std::multimap<uint64_t, QueueTask*>& whenMap) { return size + whenMap.size(); });
     }
 
     void Stop() override;

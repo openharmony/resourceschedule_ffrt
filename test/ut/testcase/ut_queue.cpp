@@ -1649,3 +1649,27 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
     EXPECT_EQ(result, 1);
     delete testQueue;
 }
+
+/*
+ * 测试用例名称 : ffrt_eventhandler_adapter_queue_get_task_cnt
+ * 测试用例描述 : eventhandler adapter队列获取任务数量
+ * 预置条件     ：创建一个eventhandler adapter队列
+ * 操作步骤     : 1、调用get_task_cnt接口
+ *               2、提交若干延时任务后，再次调用get_task_cnt接口
+ * 预期结果    : 1、初始get_task_cnt返回0，后续get_task_cnt返回提交的任务数
+ *              2、提交延时任务后，get_task_cnt返回提交的任务数
+ */
+HWTEST_F(QueueTest, ffrt_eventhandler_adapter_queue_get_task_cnt, TestSize.Level0)
+{
+    std::shared_ptr<queue> testQueue = std::make_shared<queue>(
+        static_cast<queue_type>(ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "test_queue"
+    );
+    EXPECT_EQ(testQueue->get_task_cnt(), 0);
+
+    for (int i = 0; i < 10; i++) {
+        testQueue->submit([] { int x = 0; }, task_attr().delay(10 * 1000 * 1000));
+        EXPECT_EQ(testQueue->get_task_cnt(), i + 1);
+    }
+
+    testQueue = nullptr;
+}

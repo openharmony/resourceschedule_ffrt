@@ -16,7 +16,7 @@
 #ifndef FFRT_SDEPENDENCE_MANAGER_H
 #define FFRT_SDEPENDENCE_MANAGER_H
 
-#include "dependence_manager.h"
+#include "dm/dependence_manager.h"
 
 namespace ffrt {
 class SDependenceManager : public DependenceManager {

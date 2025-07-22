@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "queue_task.h"
-#include "ffrt_trace.h"
+#include "tm/queue_task.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "c/task.h"

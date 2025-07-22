@@ -16,7 +16,7 @@
 #ifndef UTIL_SINGLETON_H
 #define UTIL_SINGLETON_H
 
-#include "cb_func.h"
+#include "util/cb_func.h"
 namespace ffrt {
 template <typename T>
 class SingletonRegister {

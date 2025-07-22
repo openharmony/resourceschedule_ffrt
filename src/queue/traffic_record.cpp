@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 
-#include "traffic_record.h"
+#include "queue/traffic_record.h"
 #include <future>
 #include <sstream>
-#include "queue_handler.h"
+#include "queue/queue_handler.h"
 #include "dfx/sysevent/sysevent.h"
 #include "util/time_format.h"
 

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "queue_handler.h"
+#include "queue/queue_handler.h"
 #include <sys/syscall.h>
 #include <sstream>
 #include "concurrent_queue.h"

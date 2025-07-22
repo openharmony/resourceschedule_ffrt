@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "serial_queue.h"
+#include "queue/serial_queue.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "tm/queue_task.h"
 

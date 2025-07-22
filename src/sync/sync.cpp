@@ -23,9 +23,9 @@
 #include <map>
 #include <functional>
 #include <linux/futex.h>
-#include "delayed_worker.h"
+#include "sync/delayed_worker.h"
 #include "util/ffrt_facade.h"
-#include "sync.h"
+#include "sync/sync.h"
 
 #ifdef NS_PER_SEC
 #undef NS_PER_SEC

@@ -18,7 +18,7 @@
 #include <vector>
 #include <numeric>
 #include "tm/queue_task.h"
-#include "base_queue.h"
+#include "queue/base_queue.h"
 #include "eventhandler_interactive_queue.h"
 
 namespace ffrt {

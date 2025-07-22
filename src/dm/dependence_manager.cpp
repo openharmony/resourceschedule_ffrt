@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "dependence_manager.h"
+#include "dm/dependence_manager.h"
 #include "util/ffrt_facade.h"
 #include "util/singleton_register.h"
 #include "tm/io_task.h"

@@ -16,13 +16,14 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/resource.h>
-#include "cpu_worker.h"
+#include "eu/cpu_worker.h"
 #include "eu/osattr_manager.h"
 #include "eu/qos_interface.h"
 #include "util/name_manager.h"
 #include "util/ffrt_facade.h"
 #include "internal_inc/osal.h"
 #include "util/white_list.h"
+#include "staging_qos/sched/qos_register_impl.h"
 
 namespace {
 constexpr int CFS_PRIO_MIN = 1;

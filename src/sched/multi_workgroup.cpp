@@ -16,7 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
-#include "workgroup_internal.h"
+#include "sched/workgroup_internal.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "task_client_adapter.h"
 

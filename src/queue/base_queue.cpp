@@ -16,12 +16,12 @@
 #include <unordered_map>
 #include "dfx/log/ffrt_log_api.h"
 #include "tm/queue_task.h"
-#include "serial_queue.h"
+#include "queue/serial_queue.h"
 #include "concurrent_queue.h"
 #include "eventhandler_adapter_queue.h"
 #include "eventhandler_interactive_queue.h"
 #include "util/time_format.h"
-#include "base_queue.h"
+#include "queue/base_queue.h"
 
 namespace {
 // 0预留为非法值

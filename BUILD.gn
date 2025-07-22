@@ -18,8 +18,9 @@ defines = []
 config("ffrt_config") {
   visibility = [ ":*" ]
   include_dirs = [
+    "include",
     "interfaces/kits",
-    "interfaces/inner_api",
+    "interfaces/inner_api"
   ]
 
   ffrt_defaults_cflags = [
@@ -88,10 +89,10 @@ config("ffrt_config") {
 
 config("ffrt_inner_config") {
   include_dirs = [
+    "include",
     "src",
     "src/dfx/log",
-    "src/dfx/trace",
-    "src/dfx/trace_record",
+    "src_ext",
     "src/sched",
   ]
 

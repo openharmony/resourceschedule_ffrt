@@ -14,7 +14,7 @@
  */
 #ifdef FFRT_BBOX_ENABLE
 
-#include "bbox.h"
+#include "dfx/bbox/bbox.h"
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>

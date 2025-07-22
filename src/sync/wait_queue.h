@@ -15,7 +15,7 @@
 
 #ifndef __WAITQUEUE_H__
 #define __WAITQUEUE_H__
-#include "sync.h"
+#include "sync/sync.h"
 #include "cpp/mutex.h"
 #include "sched/execute_ctx.h"
 #include "util/IntrusiveList.h"

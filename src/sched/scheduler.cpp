@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "scheduler.h"
+#include "sched/scheduler.h"
 #include "util/singleton_register.h"
 #include "util/ffrt_facade.h"
 

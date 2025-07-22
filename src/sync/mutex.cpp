@@ -27,7 +27,7 @@
 #include "internal_inc/types.h"
 #include "sync/mutex_private.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "ffrt_trace.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "tm/cpu_task.h"
 
 namespace ffrt {

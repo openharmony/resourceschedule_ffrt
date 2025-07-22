@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "cpu_worker.h"
+#include "eu/cpu_worker.h"
 #include <algorithm>
 #include <sched.h>
 #include <sys/syscall.h>

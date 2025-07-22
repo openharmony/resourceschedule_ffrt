@@ -21,6 +21,7 @@
 #include "eu/co_routine_factory.h"
 #include "util/ffrt_facade.h"
 #include "dfx/sysevent/sysevent.h"
+#include "staging_qos/sched/qos_register_impl.h"
 
 namespace {
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;

@@ -12,7 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "poller.h"
+
+#include "sync/poller.h"
 #include "sched/execute_ctx.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"

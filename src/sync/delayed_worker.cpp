@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "delayed_worker.h"
+#include "sync/delayed_worker.h"
 
 #include <array>
 #include <unistd.h>

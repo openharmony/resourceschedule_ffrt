@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "queue_monitor.h"
-#include "queue_handler.h"
+#include "queue/queue_monitor.h"
+#include "queue/queue_handler.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "util/slab.h"
 #include "sync/sync.h"

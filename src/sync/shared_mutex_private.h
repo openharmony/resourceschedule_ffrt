@@ -17,7 +17,7 @@
 #define _SHARED_MUTEX_PRIVATE_H_
 
 #include "sched/execute_ctx.h"
-#include "sync.h"
+#include "sync/sync.h"
 
 namespace ffrt {
 class SharedMutexPrivate {

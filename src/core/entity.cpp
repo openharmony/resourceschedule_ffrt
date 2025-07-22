@@ -12,8 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "entity.h"
-#include "version_ctx.h"
+
+#include "core/entity.h"
+#include "core/version_ctx.h"
 #include "util/slab.h"
 
 namespace ffrt {

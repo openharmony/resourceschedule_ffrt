@@ -15,7 +15,7 @@
 
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
 
-#include "ffrt_trace_chain.h"
+#include "dfx/trace/ffrt_trace_chain.h"
 #include <dlfcn.h>
 
 #ifdef APP_USE_ARM

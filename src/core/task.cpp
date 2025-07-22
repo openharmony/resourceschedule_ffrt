@@ -20,7 +20,7 @@
 #include "internal_inc/osal.h"
 #include "qos.h"
 #include "sched/task_scheduler.h"
-#include "task_attr_private.h"
+#include "core/task_attr_private.h"
 #include "internal_inc/config.h"
 #include "eu/osattr_manager.h"
 #include "eu/cpu_worker.h"

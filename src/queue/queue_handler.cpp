@@ -211,6 +211,15 @@ void QueueHandler::CancelAndWait()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot cancelAndWait, [queueId=%u] constructed failed",
         GetQueueId());
+
+    {
+        std::unique_lock lock(mutex_);
+        for (auto& curTask : curTaskVec_) {
+            if (curTask != nullptr && curTask->curStatus != TaskStatus::EXECUTING) {
+                curTask = nullptr;
+            }
+        }
+    }
     queue_->Stop();
     while (CheckExecutingTask() || queue_->GetActiveStatus() || deliverCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));

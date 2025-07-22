@@ -239,8 +239,9 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level0)
         ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
         int legacycount = ctx->legacyCountNum;
         EXPECT_EQ(legacycount, 0);
-        EXPECT_EQ(ctx->Block() == ffrt::BlockType::BLOCK_COROUTINE, true);
-        EXPECT_EQ(ctx->GetBlockType() == ffrt::BlockType::BLOCK_COROUTINE, true);
+        auto expectedBlockType = ffrt::USE_COROUTINE? ffrt::BlockType::BLOCK_COROUTINE: ffrt::BlockType::BLOCK_THREAD;
+        EXPECT_EQ(ctx->Block(), expectedBlockType);
+        EXPECT_EQ(ctx->GetBlockType(), expectedBlockType);
         }, {}, {});
     ffrt::wait();
     EXPECT_EQ(x, 1);
@@ -1275,6 +1276,7 @@ HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level0)
     });
     ffrt::wait();
 }
+
 
 HWTEST_F(SyncTest, rwlock_api_test, TestSize.Level0)
 {

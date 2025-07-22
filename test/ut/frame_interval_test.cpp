@@ -100,11 +100,11 @@ HWTEST_F(FrameIntervalTest, EndTest, TestSize.Level0)
 {
     FrameInterval* fi = new FrameInterval(100000, QoS(5));
     fi->End();
-    EXPECT_FALSE(fi->isBegun);
+    EXPECT_FALSE(fi->isBegin);
 
-    fi->isBegun = true;
+    fi->isBegin = true;
     fi->End();
-    EXPECT_FALSE(fi->isBegun);
+    EXPECT_FALSE(fi->isBegin);
     delete fi;
 }
 /**

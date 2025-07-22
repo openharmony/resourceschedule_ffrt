@@ -55,7 +55,7 @@ public:
 
 private:
     struct WorkGroup* wg = nullptr;
-    bool isBegun = false;
+    bool isBegin = false;
     QoS qos;
 
     void OnQoSIntervals(IntervalState state);

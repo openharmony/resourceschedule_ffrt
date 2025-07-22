@@ -95,29 +95,30 @@ HWTEST_F(CoreTest, TaskBlockTypeCheck, TestSize.Level0)
     SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0);
 
     // when executing task is root
-    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_THREAD, true);
+    EXPECT_EQ(task->GetBlockType(), BlockType::BLOCK_THREAD);
 
     // when executing task is nullptr
-    EXPECT_EQ(task->Block() == BlockType::BLOCK_THREAD, true);
+    EXPECT_EQ(task->Block(), BlockType::BLOCK_THREAD);
 
     auto parent = new SCPUEUTask(nullptr, nullptr, 0);
     task->parent = parent;
 
+    auto expectedBlockType = USE_COROUTINE? BlockType::BLOCK_COROUTINE :  BlockType::BLOCK_THREAD;
     // when task is not in legacy mode
-    EXPECT_EQ(task->Block() == BlockType::BLOCK_COROUTINE, true);
-    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_COROUTINE, true);
+    EXPECT_EQ(task->Block(), expectedBlockType);
+    EXPECT_EQ(task->GetBlockType(), expectedBlockType);
     task->Wake();
 
     // when task is in legacy mode
     task->legacyCountNum++;
-    EXPECT_EQ(task->Block() == BlockType::BLOCK_THREAD, true);
-    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_THREAD, true);
+    EXPECT_EQ(task->Block(), BlockType::BLOCK_THREAD);
+    EXPECT_EQ(task->GetBlockType(), BlockType::BLOCK_THREAD);
     task->Wake();
 
     // when task's legacy mode canceled
     task->legacyCountNum--;
-    EXPECT_EQ(task->Block() == BlockType::BLOCK_COROUTINE, true);
-    EXPECT_EQ(task->GetBlockType() == BlockType::BLOCK_COROUTINE, true);
+    EXPECT_EQ(task->Block(), expectedBlockType);
+    EXPECT_EQ(task->GetBlockType(), expectedBlockType);
 
     delete parent;
     delete task;

@@ -24,7 +24,7 @@ namespace ffrt {
 FrameInterval::FrameInterval(uint64_t deadline, const QoS& qos) : Interval(deadline, qos), qos(qos)
 {
     wg = nullptr;
-    isBegun = false;
+    isBegin = false;
     wg = WorkgroupCreate(deadline, qos);
     if (wg == nullptr) {
         FFRT_LOGE("[WorkGroup][Interface] Create WorkGroup Failed");
@@ -57,11 +57,11 @@ void FrameInterval::OnQoSIntervals(IntervalState state)
 
 int FrameInterval::Begin()
 {
-    if (isBegun) {
+    if (isBegin) {
         FFRT_LOGD("[Error] Interval is already begun");
         return -1;
     }
-    isBegun = true;
+    isBegin = true;
     OnQoSIntervals(ffrt::IntervalState::DEADLINE_BEGIN);
 
     return 0;
@@ -69,11 +69,11 @@ int FrameInterval::Begin()
 
 void FrameInterval::End()
 {
-    if (!isBegun) {
+    if (!isBegin) {
         FFRT_LOGD("[Error] Interval is already end");
         return;
     }
-    isBegun = false;
+    isBegin = false;
     OnQoSIntervals(ffrt::IntervalState::DEADLINE_END);
 }
 

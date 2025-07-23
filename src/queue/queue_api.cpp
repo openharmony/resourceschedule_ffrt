@@ -163,19 +163,19 @@ int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr)
 }
 
 API_ATTRIBUTE((visibility("default")))
-void ffrt_queue_attr_set_mode(ffrt_queue_attr_t* attr, const bool legacy_mode)
+void ffrt_queue_attr_set_thread_mode(ffrt_queue_attr_t* attr, bool mode)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
 
-    (reinterpret_cast<ffrt::queue_attr_private*>(attr))->legacyMode_ = legacy_mode;
+    (reinterpret_cast<ffrt::queue_attr_private*>(attr))->threadMode_ = mode;
 }
 
 API_ATTRIBUTE((visibility("default")))
-bool ffrt_queue_attr_get_mode(const ffrt_queue_attr_t* attr)
+bool ffrt_queue_attr_get_thread_mode(const ffrt_queue_attr_t* attr)
 {
     FFRT_COND_DO_ERR((attr == nullptr), return 0, "input invalid, attr == nullptr");
     ffrt_queue_attr_t* p = const_cast<ffrt_queue_attr_t*>(attr);
-    return (reinterpret_cast<ffrt::queue_attr_private*>(p))->legacyMode_;
+    return (reinterpret_cast<ffrt::queue_attr_private*>(p))->threadMode_;
 }
 
 API_ATTRIBUTE((visibility("default")))

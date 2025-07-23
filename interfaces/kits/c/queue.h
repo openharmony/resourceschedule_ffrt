@@ -157,27 +157,27 @@ FFRT_C_API int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr
  *
  * This interface sepcifies whether tasks in the queue are excuted in coroutine mode or thread mode.
  * By default, tasks are executed in coroutine mode.
- * Set <b>legacy_mode</b> to <b>true</b> to enable thread-based execution.
+ * Set <b>mode</b> to <b>true</b> to enable thread-based execution.
  *
  * @param attr Queue attribute pointer.
- * @param legacy_mode Indicates whether to enable thread-based execution mode.
-        - <b>true</b>: Tasks are executed as native threads (legacy mode).
-        - <b>false</b>: Tasks are executed as coroutines (default).
+ * @param mode Indicates whether to enable thread-based execution mode.
+ *           - <b>true</b>: Tasks are executed as native threads (thread mode).
+ *           - <b>false</b>: Tasks are executed as coroutines (default).
  * @since 20
  */
-FFRT_C_API void ffrt_queue_attr_set_mode(ffrt_queue_attr_t* attr, const bool legacy_mode);
+FFRT_C_API void ffrt_queue_attr_set_thread_mode(ffrt_queue_attr_t* attr, bool mode);
 
 /**
  * @brief Gets the execution mode of a queue attribute.
  *
- * This interface returns whether tasks in the queue are configured to run in thread-based execution mode (legacy mode).
+ * This interface returns whether tasks in the queue are configured to run in thread-based execution mode (thread mode).
  *
  * @param attr Queue attribute pointer.
- * @return Returns <b>true</b> if tasks are executed as native threads (legacy mode);
-          returns <b>false</b> if tasks are executed as coroutines (default).
+ * @return Returns <b>true</b> if tasks are executed as native threads (thread mode);
+ *         returns <b>false</b> if tasks are executed as coroutines (default).
  * @since 20
  */
-FFRT_C_API bool ffrt_queue_attr_get_mode(const ffrt_queue_attr_t* attr);
+FFRT_C_API bool ffrt_queue_attr_get_thread_mode(const ffrt_queue_attr_t* attr);
 
 /**
  * @brief Creates a queue.

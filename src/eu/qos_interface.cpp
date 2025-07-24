@@ -241,7 +241,7 @@ int FFRTQosApplyForOther(unsigned int level, int tid)
 
     ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
-        FFRT_LOGW("tid %d, %s, ret:%d, eno:%d\n", tid, strerror(errno), ret, errno);
+        FFRT_LOGD("tid %d, %s, ret:%d, eno:%d\n", tid, strerror(errno), ret, errno);
     }
     close(fd);
     return ret;

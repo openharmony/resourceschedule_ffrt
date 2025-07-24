@@ -37,7 +37,7 @@
 namespace {
 constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
-constexpr unsigned int RECORD_POLLER_INFO_FREQ = 120;
+constexpr unsigned int RECORD_WORKER_STATUS_INFO_FREQ = 120;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
@@ -45,7 +45,6 @@ constexpr int BACKTRACE_TASK_QOS = 7;
 constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
 const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60 };
-unsigned int g_samplingTaskCount = 0;
 constexpr uint32_t US_PER_MS = 1000;
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000 * US_PER_MS; // 1s
 constexpr uint64_t ALLOW_ACC_ERROR_US = 10 * US_PER_MS; // 10ms
@@ -186,6 +185,10 @@ void WorkerMonitor::CheckWorkerStatus()
             samplingTaskExit_ = true;
             return;
         }
+    }
+
+    if (samplingTaskCount_++ % RECORD_WORKER_STATUS_INFO_FREQ == 0) {
+        RecordWorkerStatusInfo();
     }
 
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
@@ -456,5 +459,72 @@ void WorkerMonitor::RecordKeyInfo(const std::string& dumpInfo)
     std::string keyInfo = SaveKeyInfo();
     FFRT_LOGW("%s", keyInfo.c_str());
 #endif
+}
+
+void WorkerMonitor::ProcessWorkerInfo(std::ostringstream& oss, bool& firstQos, int qos, unsigned int cnt,
+    const std::deque<pid_t>& tids)
+{
+    if (cnt == 0) {
+        return;
+    }
+
+    if (!firstQos) {
+        oss << " ";
+    }
+    firstQos = false;
+
+    oss << "qos:" << qos << " cnt:" << cnt << " tids:";
+    bool firstTid = true;
+    for (const auto& tid : tids) {
+        if (!firstTid) {
+            oss << ",";
+        }
+        firstTid = false;
+        oss << tid;
+    }
+}
+
+void WorkerMonitor::RecordWorkerStatusInfo()
+{
+    std::ostringstream startedOss;
+    std::ostringstream exitedOss;
+    bool startedFirstQos = true;
+    bool exitedFirstQos = true;
+
+    for (int qos = 0; qos < QoS::MaxNum(); qos++) {
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(qos);
+        unsigned int startedCnt = 0;
+        unsigned int exitedCnt = 0;
+        std::deque<pid_t> startedTids;
+        std::deque<pid_t> exitedTids;
+
+        {
+            std::lock_guard lk(workerGroup.workerStatusMutex);
+            if (workerGroup.startedCnt != 0) {
+                startedCnt = workerGroup.startedCnt;
+                startedTids = workerGroup.startedTids;
+                workerGroup.startedCnt = 0;
+                std::deque<pid_t> emptyDeque;
+                workerGroup.startedTids.swap(emptyDeque);
+            }
+            if (workerGroup.exitedCnt != 0) {
+                exitedCnt = workerGroup.exitedCnt;
+                exitedTids = workerGroup.exitedTids;
+                workerGroup.exitedCnt = 0;
+                std::deque<pid_t> emptyDeque;
+                workerGroup.exitedTids.swap(emptyDeque);
+            }
+        }
+
+        ProcessWorkerInfo(startedOss, startedFirstQos, qos, startedCnt, startedTids);
+        ProcessWorkerInfo(exitedOss, exitedFirstQos, qos, exitedCnt, exitedTids);
+    }
+
+    if (!startedOss.str().empty()) {
+        FFRT_LOGW("worker start: %s", startedOss.str().c_str());
+    }
+    if (!exitedOss.str().empty()) {
+        FFRT_LOGW("worker exit: %s", exitedOss.str().c_str());
+    }
 }
 }

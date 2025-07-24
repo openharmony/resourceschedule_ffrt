@@ -608,6 +608,7 @@ HWTEST_F(CoreTest, ffrt_core_test, TestSize.Level0)
     ffrt_task_attr_set_stack_size(nullptr, size);
     uint64_t id = ffrt_task_handle_get_id(nullptr);
     EXPECT_EQ(id, 0);
+    ffrt::wait({handle});
 }
 
 /*

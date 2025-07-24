@@ -21,7 +21,6 @@
 #include "eu/co_routine_factory.h"
 #include "util/ffrt_facade.h"
 #include "dfx/sysevent/sysevent.h"
-#include "staging_qos/sched/qos_register_impl.h"
 
 namespace {
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
@@ -382,7 +381,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         worker = nullptr;
         workerNum.fetch_sub(1);
     }
-    FFRT_LOGI("to exit, qos[%d], tid[%d]", qos, tid);
+    FFRT_LOGD("to exit, qos[%d], tid[%d]", qos, tid);
 }
 
 void ExecuteUnit::WorkerJoinTg(const QoS &qos, pid_t pid)

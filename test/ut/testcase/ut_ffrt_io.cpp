@@ -27,8 +27,8 @@
 #include "ffrt_inner.h"
 #include "c/ffrt_ipc.h"
 #include "eu/co_routine.h"
-#include "eu/io_poller.h"
 #define private public
+#include "eu/io_poller.h"
 #include "sync/timer_manager.h"
 #define protect public
 #include "util/ffrt_facade.h"

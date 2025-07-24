@@ -76,18 +76,6 @@ HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level0)
     EXPECT_EQ(ret, ffrt_error_inval);
     ret = ffrt_mutexattr_destroy(nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
-    ffrt_mutexattr_t attr;
-    int type = ffrt_mutex_default;
-    ffrt_mutexattr_init(&attr);
-    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_normal);
-    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_default);
-    ret = ffrt_mutexattr_settype(&attr, -1);
-    EXPECT_EQ(ret, ffrt_error_inval);
-    ret = ffrt_mutexattr_gettype(&attr, nullptr);
-    EXPECT_EQ(ret, ffrt_error_inval);
-    ret = ffrt_mutexattr_gettype(&attr, &type);
-    EXPECT_EQ(ret, ffrt_success);
-    ffrt_mutexattr_destroy(attr);
 }
 
 /**

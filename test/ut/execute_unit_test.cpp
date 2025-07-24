@@ -21,7 +21,7 @@
 #include "common.h"
 
 namespace OHOS {
-namesapce FFRT_TEST {
+namespace FFRT_TEST {
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
 using namespace testing::ext;
@@ -78,7 +78,7 @@ HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level0)
  * @tc.desc: Test whether the BindTG interface are normal.
  * @tc.type: FUNC
  */
-HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level0)
+HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level0)
 {
     QoS *qos1 = new QoS();
     ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(*qos1);

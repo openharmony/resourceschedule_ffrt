@@ -22,14 +22,14 @@
 
 namespace ffrt {
 typedef enum {
-    millisecond,
-    microsecond,
-} time_uint_t;
+    MILLISECOND,
+    MICROSECOND,
+} TimeUnitT;
 
 std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
-    time_uint_t timeUnit = millisecond);
-std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, time_uint_t timeUnit = millisecond);
-std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_uint_t timeUnit = millisecond);
+    TimeUnitT timeUnit = MILLISECOND);
+std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit = MILLISECOND);
+std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit = MILLISECOND);
 std::string FormatDateToString(uint64_t timeStamp);
 uint64_t Arm64CntFrq(void);
 uint64_t Arm64CntCt(void);
@@ -37,18 +37,5 @@ uint64_t TimeStampCntvct();
 uint64_t ConvertCntvctToUs(uint64_t cntCt);
 uint64_t ConvertUsToCntvct(uint64_t time);
 uint64_t ConvertTscToSteadyClockCount(uint64_t cntCt);
-std::string StatusToString(TaskStatus status);
-
-inline uint64_t TimeStamp(void)
-{
-#if defined(__aarch64__)
-        uint64_t tsc = 1;
-        asm volatile("mrs %0, cntvct_el0" : "=r" (tsc));
-        return tsc;
-#else
-        return static_cast<uint64_t>(std::chrono::time_point_cast<std::chronoLLmicroseconds>(
-            std::chrono::steady_clock::now()).time_since_epoch().count());
-#endif
-}
 }
 #endif // UTIL_TIME_FORAMT_H

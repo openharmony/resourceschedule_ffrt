@@ -374,3 +374,51 @@ HWTEST_F(ExecuteUnitTest, SetCgroupAttr, TestSize.Level0)
     EXPECT_EQ(ffrt::set_cgroup_attr(static_cast<int>(ffrt::qos_user_interactive), &attr2), 0);
     ffrt::restore_qos_config();
 }
+
+/*
+ * 测试用例名称 : WorkerStart
+ * 测试用例描述：测试worker启动信息记录
+ * 操作步骤    : 触发WorkerStart方法
+ * 预期结果    : worker启动计数和tid队列记录正确
+ */
+HWTEST_F(ExecuteUnitTest, WorkerStart, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(static_cast<int>(qos_default));
+    EXPECT_EQ(workerCtrl.startedCnt, 0);
+    EXPECT_EQ(workerCtrl.startedTids.size(), 0);
+    workerCtrl.WorkerStart();
+    EXPECT_EQ(workerCtrl.startedCnt, 1);
+    EXPECT_EQ(workerCtrl.startedTids.size(), 1);
+    EXPECT_EQ(workerCtrl.startedTids.front(), gettid());
+    for (int i = 0; i < 100; i++) {
+        workerCtrl.WorkerStart();
+    }
+    EXPECT_EQ(workerCtrl.startedCnt, 101);
+    EXPECT_EQ(workerCtrl.startedTids.size(), 100);
+    delete manager;
+}
+
+/*
+ * 测试用例名称 : WorkerExit
+ * 测试用例描述：测试worker退出信息记录
+ * 操作步骤    : WorkerExit
+ * 预期结果    : worker退出计数和tid队列记录正确
+ */
+HWTEST_F(ExecuteUnitTest, WorkerExit, TestSize.Level0)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(static_cast<int>(qos_default));
+    EXPECT_EQ(workerCtrl.exitedCnt, 0);
+    EXPECT_EQ(workerCtrl.exitedTids.size(), 0);
+    workerCtrl.WorkerExit();
+    EXPECT_EQ(workerCtrl.exitedCnt, 1);
+    EXPECT_EQ(workerCtrl.exitedTids.size(), 1);
+    EXPECT_EQ(workerCtrl.exitedTids.front(), gettid());
+    for (int i = 0; i < 100; i++) {
+        workerCtrl.WorkerExit();
+    }
+    EXPECT_EQ(workerCtrl.exitedCnt, 101);
+    EXPECT_EQ(workerCtrl.exitedTids.size(), 100);
+    delete manager;
+}

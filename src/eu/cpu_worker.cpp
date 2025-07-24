@@ -134,6 +134,8 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
+    QoS qos = worker->GetQos();
+    FFRTFacade::GetEUInstance().GetWorkerGroup(qos()).WorkerStart();
     worker->WorkerSetup();
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -145,16 +147,17 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     }
 #endif
     auto ctx = ExecuteCtx::Cur();
-    ctx->qos = worker->GetQos();
-    *(FFRTFacade::GetSchedInstance()->GetScheduler(worker->GetQos()).GetWorkerTick()) = &(worker->tick);
+    ctx->qos = qos;
+    *(FFRTFacade::GetSchedInstance()->GetScheduler(qos).GetWorkerTick()) = &(worker->tick);
 
     worker->ops.WorkerPrepare(worker);
 #ifndef OHOS_STANDARD_SYSTEM
-    FFRT_LOGI("qos[%d] thread start succ", static_cast<int>(worker->GetQos()));
+    FFRT_LOGI("qos[%d] thread start succ", static_cast<int>(qos));
 #endif
-    FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->GetQos()));
+    FFRT_PERF_WORKER_AWAKE(static_cast<int>(qos));
     WorkerLooper(worker);
     CoWorkerExit();
+    FFRTFacade::GetEUInstance().GetWorkerGroup(qos()).WorkerExit();
     worker->ops.WorkerRetired(worker);
 }
 

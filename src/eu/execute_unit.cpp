@@ -382,7 +382,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         worker = nullptr;
         workerNum.fetch_sub(1);
     }
-    FFRT_LOGI("to exit, qos[%d], tid[%d]", qos, tid);
+    FFRT_LOGD("to exit, qos[%d], tid[%d]", qos, tid);
 }
 
 void ExecuteUnit::WorkerJoinTg(const QoS &qos, pid_t pid)

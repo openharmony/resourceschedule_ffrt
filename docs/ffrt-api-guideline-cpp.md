@@ -699,6 +699,38 @@ int queue_attr::max_concurrency() const
 
 - 获取当前属性中设置的最大并发数（仅支持并发队列）。
 
+##### set queue thread_mode
+
+```cpp
+queue_attr& queue_attr::thread_mode(bool mode)
+```
+
+参数
+
+- `bool`设置队列任务运行方式（`true`以线程模式运行, `false`以协程模式运行）。
+
+返回值
+
+- 返回当前对象以支持链式调用。
+
+描述
+
+- 设置队列中的任务是以协程模式还是以线程模式运行。
+
+##### get queue thread_mode
+
+```cpp
+bool queue_attr::thread_mode() const
+```
+
+返回值
+
+- `true`表示以线程模式运行，`false`表示以协程模式运行。
+
+描述
+
+- 获取队列中的任务是以协程模式还是以线程模式运行。
+
 #### 样例
 
 ```cpp

@@ -48,7 +48,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         } else if (attr->timeout_) {
             schedTimeout_ = std::max(attr->timeout_, MIN_SCHED_TIMEOUT); // min 0.1s
         }
-        legacyMode_ = handler->GetMode();
+        threadMode_ = handler->GetMode();
     }
 
     FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus", gid, delay_, type, prio_,

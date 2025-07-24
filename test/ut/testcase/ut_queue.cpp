@@ -1567,12 +1567,12 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
 HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
 {
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
-        "concurrent_legacy_queue", ffrt::queue_attr().mode(true));
+        "concurrent_legacy_queue", ffrt::queue_attr().thread_mode(true));
     int result = 0;
     auto handle = testQueue->submit_h([&result] {
         ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
-        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->threadMode_, true);
         result++;
     }, ffrt::task_attr("Task_on_Thread"));
 
@@ -1601,7 +1601,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
         } else {
             EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->coRoutine, nullptr);
         }
-        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, false);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->threadMode_, false);
         result++;
     }, ffrt::task_attr("Task_on_Coroutine"));
 
@@ -1621,7 +1621,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
 HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
 {
     ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_serial,
-        "serial_legacy_queue", ffrt::queue_attr().mode(true));
+        "serial_legacy_queue", ffrt::queue_attr().thread_mode(true));
 
     ffrt::mutex mtx;
     int result = 0;
@@ -1635,7 +1635,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
         mtx.lock();
         ffrt::TaskBase* task = ffrt::ExecuteCtx::Cur()->task;
         EXPECT_EQ(task->preStatus, ffrt::TaskStatus::THREAD_BLOCK);
-        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->legacyMode_, true);
+        EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->threadMode_, true);
         result++;
     }, ffrt::task_attr("Task_on_Thread"));
 

@@ -107,10 +107,10 @@ void CPUEUTask::Execute()
     } else {
         /*
             if we call onTaskDone inside coroutine, the memory of task may be recycled.
-            1.recycled memory of task can be used by another submit
-            2.task->coRoutine will be recycled and can be used by another task
+            1. recycled memory of task can be used by another submit
+            2. task->coRoutine will be recycled and can be used by another task
             In this scenario, CoStart will crash.
-            Because it needs to use this task and it's coRoutine to perform some action after it task finished.
+            Because it needs to use this task and it's coRoutine to perform some action after it finished.
         */
         coRoutine->isTaskDone = true;
         UnbindCoRoutione();
@@ -154,7 +154,6 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
 
     aliveStatus.store(AliveStatus::INITED, std::memory_order_relaxed);
 }
-
 CPUEUTask::~CPUEUTask()
 {
 #ifdef FFRT_TASK_LOCAL_ENABLE

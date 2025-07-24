@@ -98,12 +98,11 @@ void TrafficRecord::CalculateTraffic(QueueHandler* handler, const uint64_t& time
 
     if (inflows > outflows && (submitCnt_ - doneCnt_ > MIN_OVERLOAD_INTERVAL * (reportInterval / timeInterval_))
         && handler->GetTaskCnt() > MIN_OVERLOAD_INTERVAL) {
-            std::stringstream ss;
-            ss << "[" << handler->GetName().c_str() << "]overload over[" <<
-                ConvertCntvctToUs(reportInterval) / US_TO_MS <<
-                "]ms, in[" << inflows << "], out[" << outflows << "], subcnt[" << submitCnt_.load() << "], doncnt[" <<
-                doneCnt_.load() << "]";
-            FFRT_LOGW("%s", ss.str().c_str());
+        std::stringstream ss;
+        ss << "[" << handler->GetName().c_str() << "]overload over[" << reportInterval / US_TO_MS <<
+            "]ms, in[" << inflows << "], out[" << outflows << "], subcnt[" << submitCnt_.load() << "], doncnt[" <<
+            doneCnt_.load() << "]";
+        FFRT_LOGW("%s", ss.str().c_str());
 
             {
                 std::lock_guard lock(mtx_);
@@ -113,14 +112,14 @@ void TrafficRecord::CalculateTraffic(QueueHandler* handler, const uint64_t& time
                 trafficRecordInfo.emplace_back(std::make_pair(time, ss.str()));
             }
 
-            if (submitCnt_ - doneCnt_ > outflows && handler->GetQueueDueCount() > outflows) {
-                if (time - lastReportTime_ > REPORT_INTERVAL) {
-                    ReportOverload(ss);
-                    lastReportTime_ = time;
-                }
-                FFRT_LOGE("Queue overload syswarning is triggerred, duecnt %u", handler->GetQueueDueCount());
+        if (submitCnt_ - doneCnt_ > outflows && handler->GetQueueDueCount() > outflows) {
+            if (time - lastReportTime_ > REPORT_INTERVAL) {
+                ReportOverload(ss);
+                lastReportTime_ = time;
             }
+            FFRT_LOGE("Queue overload syswarning is triggerred, duecnt %llu", handler->GetQueueDueCount());
         }
+    }
 }
 
 void TrafficRecord::DetectCountThreshold()

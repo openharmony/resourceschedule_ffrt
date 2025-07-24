@@ -58,9 +58,9 @@ uint64_t ConvertUsToCntvct(uint64_t time)
     // 将微秒数转成CPU cycle数
 #if defined(__aarch64__)
     uint64_t freq = Arm64CntFrq();
-    constexpr int ratio = 1000 * 1000;
+    constexpr int Ratio = 1000 * 1000;
 
-    return static_cast<uint64_t>((time * freq) / ratio);
+    return static_cast<uint64_t>((time * freq) / Ratio);
 #else
     return time;
 #endif
@@ -76,9 +76,9 @@ uint64_t TimeStampCntvct()
 std::string FormatDateToString(uint64_t timeStamp)
 {
 #if defined(__aarch64__)
-    return FormatDateString4CntCt(timeStamp, MICROSECOND);
+    return FormatDateString4CntCt(timeStamp, microsecond);
 #else
-    return FormatDateString4SteadyClock(timeStamp, MICROSECOND);
+    return FormatDateString4SteadyClock(timeStamp, microsecond);
 #endif
 }
 
@@ -101,28 +101,28 @@ uint64_t Arm64CntCt(void)
 }
 
 std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
-    TimeUnitT timeUnit)
+    time_unit_t timeUnit)
 {
-    constexpr int maxMsLength = 3;
-    constexpr int msPerSecond = 1000;
-    constexpr int datetimeStringLength = 80;
-    constexpr int maxUsLength = 6;
-    constexpr int usPerSecond = 1000 * 1000;
+    constexpr int MaxMsLength = 3;
+    constexpr int MsPerSecond = 1000;
+    constexpr int DatetimeStringLength = 80;
+    constexpr int MaxUsLength = 6;
+    constexpr int UsPerSecond = 1000 * 1000;
 
     std::string remainder;
-    if (timeUnit == MICROSECOND) {
+    if (timeUnit == microsecond) {
         auto tp = std::chrono::time_point_cast<std::chrono::microseconds>(timePoint);
-        auto us = tp.time_since_epoch().count() % usPerSecond;
+        auto us = tp.time_since_epoch().count() % UsPerSecond;
         remainder = std::to_string(us);
-        if (remainder.length() < maxUsLength) {
-            remainder = std::string(maxUsLength - remainder.length(), '0') + remainder;
+        if (remainder.length() < MaxUsLength) {
+            remainder = std::string(MaxUsLength - remainder.length(), '0') + remainder;
         }
     } else {
         auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
-        auto ms = tp.time_since_epoch().count() % msPerSecond;
+        auto ms = tp.time_since_epoch().count() % MsPerSecond;
         remainder = std::to_string(ms);
-        if (remainder.length() < maxMsLength) {
-            remainder = std::string(maxMsLength - remainder.length(), '0') + remainder;
+        if (remainder.length() < MaxMsLength) {
+            remainder = std::string(MaxMsLength - remainder.length(), '0') + remainder;
         }
     }
     auto tt = std::chrono::system_clock::to_time_t(timePoint);
@@ -132,12 +132,12 @@ std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_p
         return "";
     }
     localtime_r(&tt, &curTime);
-    char sysTime[datetimeStringLength];
-    std::strftime(sysTime, sizeof(char) * datetimeStringLength, "%Y-%m-%d %H:%M:%S.", &curTime);
+    char sysTime[DatetimeStringLength];
+    std::strftime(sysTime, sizeof(char) * DatetimeStringLength, "%Y-%m-%d %H:%M:%S.", &curTime);
     return std::string(sysTime) + remainder;
 }
 
-std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit)
+std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, time_unit_t timeUnit)
 {
     auto referenceTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -147,9 +147,9 @@ std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnit
     return FormatDateString4SystemClock(referenceTp + us, timeUnit);
 }
 
-std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit)
+std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, time_unit_t timeUnit)
 {
-    constexpr int ratio = 1000 * 1000;
+    constexpr int Ratio = 1000 * 1000;
 
     int64_t referenceFreq = static_cast<int64_t>(Arm64CntFrq());
     if (referenceFreq == 0) {
@@ -157,7 +157,7 @@ std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit)
     }
     uint64_t referenceCntCt = Arm64CntCt();
     auto globalTp = std::chrono::system_clock::now();
-    std::chrono::microseconds us(static_cast<int64_t>(cntCtTimeStamp - referenceCntCt) * ratio / referenceFreq);
+    std::chrono::microseconds us(static_cast<int64_t>(cntCtTimeStamp - referenceCntCt) * Ratio / referenceFreq);
     return FormatDateString4SystemClock(globalTp + us, timeUnit);
 }
 } // namespace ffrt

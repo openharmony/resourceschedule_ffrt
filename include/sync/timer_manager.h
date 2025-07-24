@@ -41,7 +41,7 @@ enum class TimerState {
 };
 
 struct TimerData {
-    TimerData(void *dataVal, std::function<void(void*)> cbVal, bool repeat, int qos, uint64_t timeout)
+    TimerData(void *dataVal, std::function<void(void *)> cbVal, bool repeat, int qos, uint64_t timeout)
         : data(dataVal), cb(cbVal), repeat(repeat), qos(qos), timeout(timeout)
     {
         if (cb != nullptr) {
@@ -59,7 +59,7 @@ struct TimerData {
     int qos;
     uint64_t timeout;
     int handle;
-    TimerState state;
+    TimerState state {TimerState::NOT_EXECUTED};
     HiTraceIdStruct traceId;
 };
 

@@ -22,13 +22,14 @@
 #include <sstream>
 #include <atomic>
 #include "dfx/log/ffrt_log_api.h"
-#include "internal_inc/osal.h"
-#include "util/white_list.h"
 
 #ifdef FFRT_SEND_EVENT
 #include <securec.h>
 #include "hisysevent.h"
 #endif
+#include "internal_inc/osal.h"
+#include "util/white_list.h"
+
 static int g_ffrtLogLevel = FFRT_LOG_DEBUG;
 static std::atomic<unsigned int> g_ffrtLogId(0);
 static bool g_whiteListFlag = false;

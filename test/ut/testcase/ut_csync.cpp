@@ -76,6 +76,18 @@ HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level0)
     EXPECT_EQ(ret, ffrt_error_inval);
     ret = ffrt_mutexattr_destroy(nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
+    ffrt_mutexattr_t attr;
+    int type = ffrt_mutex_default;
+    ffrt_mutexattr_init(&attr);
+    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_normal);
+    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_default);
+    ret = ffrt_mutexattr_settype(&attr, -1);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_mutexattr_gettype(&attr, nullptr);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_mutexattr_gettype(&attr, &type);
+    EXPECT_EQ(ret, ffrt_success);
+    ffrt_mutexattr_destroy(attr);
 }
 
 /**
@@ -239,9 +251,8 @@ HWTEST_F(SyncTest, set_legacy_mode_within_nested_task, TestSize.Level0)
         ctx = static_cast<ffrt::CPUEUTask*>(ffrt::ExecuteCtx::Cur()->task);
         int legacycount = ctx->legacyCountNum;
         EXPECT_EQ(legacycount, 0);
-        auto expectedBlockType = ffrt::USE_COROUTINE? ffrt::BlockType::BLOCK_COROUTINE: ffrt::BlockType::BLOCK_THREAD;
-        EXPECT_EQ(ctx->Block(), expectedBlockType);
-        EXPECT_EQ(ctx->GetBlockType(), expectedBlockType);
+        EXPECT_EQ(ctx->Block() == ffrt::BlockType::BLOCK_COROUTINE, true);
+        EXPECT_EQ(ctx->GetBlockType() == ffrt::BlockType::BLOCK_COROUTINE, true);
         }, {}, {});
     ffrt::wait();
     EXPECT_EQ(x, 1);
@@ -547,14 +558,14 @@ HWTEST_F(SyncTest, sharedMutexTestInit, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：sharedMutexTest
-* 测试用例描述：legacy任务调用shared_mutex加解锁接口
-* 预置条件    ：无
-* 操作步骤    ：1.初始化shared_mutex
-               2.提交任务
-               3.调用shared_mutex加解锁接口
-               4.设置legacy模式后，调用shared_mutex加解锁接口
-* 预期结果    ：任务按预期执行
+ * 测试用例名称：sharedMutexTest
+ * 测试用例描述：legacy任务调用shared_mutex加解锁接口
+ * 预置条件    ：无
+ * 操作步骤    ：1、初始化shared_mutex
+                2、提交任务
+                3、调用shared_mutex加解锁接口
+                4、设置legacy模式后，调用shared_mutex加解锁接口
+ * 预期结果    ：任务按预期执行
 */
 HWTEST_F(SyncTest, mutexTest, TestSize.Level0)
 {
@@ -580,14 +591,14 @@ HWTEST_F(SyncTest, mutexTest, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：sharedMutexTest
-* 测试用例描述：legacy任务调用shared_mutex加解锁接口
-* 预置条件    ：无
-* 操作步骤    ：1.初始化shared_mutex
-               2.提交任务
-               3.调用shared_mutex加解锁接口
-               4.设置legacy模式后，调用shared_mutex加解锁接口
-* 预期结果    ：任务按预期执行
+ * 测试用例名称：sharedMutexTest
+ * 测试用例描述：legacy任务调用shared_mutex加解锁接口
+ * 预置条件    ：无
+ * 操作步骤    ：1、初始化shared_mutex
+                2、提交任务
+                3、调用shared_mutex加解锁接口
+                4、设置legacy模式后，调用shared_mutex加解锁接口
+ * 预期结果    ：任务按预期执行
 */
 HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level0)
 {
@@ -1199,7 +1210,7 @@ HWTEST_F(SyncTest, future_wait, TestSize.Level0)
     f2.wait();
     f3.wait();
     std::cout << "Done!\nResults are: "
-        << f1.get() << ' ' << f2.get() << ' ' << f3.get() << '\n';
+            << f1.get() << ' ' << f2.get() << ' ' << f3.get() << '\n';
     t.join();
 }
 
@@ -1240,7 +1251,7 @@ HWTEST_F(SyncTest, future_wait_void, TestSize.Level0)
 * 测试用例描述：测试ffrt_usleep接口
 * 预置条件    ：无
 * 操作步骤    ：1.提交两个普通任务，一个设置为legacy任务
-               2.分别调用ffrt_usleep接口
+                2.分别调用ffrt_usleep接口
 * 预期结果    ：任务调用成功
 */
 HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level0)
@@ -1253,15 +1264,16 @@ HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level0)
     ffrt::submit([]() {
         ffrt::this_task::sleep_for(30ms);
     });
+
     ffrt::wait();
 }
 
 /*
-* 测试用例名称：ffrt_yied_test
-* 测试用例描述：测试ffrt_yied_test接口
+* 测试用例名称：ffrt_yield_test
+* 测试用例描述：测试ffrt_yield_test接口
 * 预置条件    ：无
 * 操作步骤    ：1.提交两个普通任务，一个设置为legacy任务
-               2.分别调用ffrt_yield接口
+                2.分别调用ffrt_yield接口
 * 预期结果    ：任务调用成功
 */
 HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level0)
@@ -1274,9 +1286,9 @@ HWTEST_F(SyncTest, ffrt_yield_test, TestSize.Level0)
     ffrt::submit([]() {
         ffrt::this_task::yield();
     });
+
     ffrt::wait();
 }
-
 
 HWTEST_F(SyncTest, rwlock_api_test, TestSize.Level0)
 {

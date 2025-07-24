@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include <climits>
 #include <memory>
 #include <vector>
 #include "ffrt_inner.h"
@@ -483,7 +482,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_notify_workers(ffrt_qos_t qos, int number)
 {
     if (qos < ffrt::QoS::Min() || qos >= ffrt::QoS::Max() || number <= 0) {
-        FFRT_SYSEVENT_LOGE("qos [%d] or number [%d] or is invalid.", qos, number);
+        FFRT_LOGE("qos [%d] or number [%d] or is invalid.", qos, number);
         return;
     }
 

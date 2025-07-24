@@ -152,25 +152,25 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #endif
 
 #ifdef FFRT_SEND_EVENT
-#define FFRT_SYSEVENT_LOGE(format, ...)           \
+#define FFRT_SYSEVENT_LOGE(format, ...)        \
     do {                                       \
-        FFRT_LOGE(format, ##__VA_ARGS__);         \
-        ReportSysEvent(format, ##__VA_ARGS__);    \
+        FFRT_LOGE(format, ##__VA_ARGS__);      \
+        ReportSysEvent(format, ##__VA_ARGS__); \
     } while (0)
-#define FFRT_SYSEVENT_LOGW(format, ...)           \
+#define FFRT_SYSEVENT_LOGW(format, ...)        \
     do {                                       \
-        FFRT_LOGW(format, ##__VA_ARGS__);         \
-        ReportSysEvent(format, ##__VA_ARGS__);    \
+        FFRT_LOGW(format, ##__VA_ARGS__);      \
+        ReportSysEvent(format, ##__VA_ARGS__); \
     } while (0)
-#define FFRT_SYSEVENT_LOGI(format, ...)           \
+#define FFRT_SYSEVENT_LOGI(format, ...)        \
     do {                                       \
-        FFRT_LOGI(format, ##__VA_ARGS__);         \
-        ReportSysEvent(format, ##__VA_ARGS__);    \
+        FFRT_LOGI(format, ##__VA_ARGS__);      \
+        ReportSysEvent(format, ##__VA_ARGS__); \
     } while (0)
-#define FFRT_SYSEVENT_LOGD(format, ...)           \
+#define FFRT_SYSEVENT_LOGD(format, ...)        \
     do {                                       \
-        FFRT_LOGD(format, ##__VA_ARGS__);         \
-        ReportSysEvent(format, ##__VA_ARGS__);    \
+        FFRT_LOGD(format, ##__VA_ARGS__);      \
+        ReportSysEvent(format, ##__VA_ARGS__); \
     } while (0)
 #else // FFRT_SEND_EVENT
 #define FFRT_SYSEVENT_LOGE(format, ...) FFRT_LOGE(format, ##__VA_ARGS__)
@@ -238,7 +238,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
             FFRT_LOGE(fmt, ##__VA_ARGS__); \
         } \
     } while (0)
-#endif // FFRT_ENG_DEBUG && OHOS_STANDARD_SYSTEM
+#endif // FFRT_ENG_DEBUG
 
 #if defined(FFRT_ENG_DEBUG) && defined(OHOS_STANDARD_SYSTEM)
 #define FFRT_COND_TERMINATE(cond, fmt, ...) \
@@ -259,5 +259,5 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
             std::terminate(); \
         } \
     } while (0)
-#endif // FFRT_ENG_DEBUG && OHOS_STANDARD_SYSTEM
+#endif // FFRT_ENG_DEBUG
 #endif // __FFRT_LOG_API_H__

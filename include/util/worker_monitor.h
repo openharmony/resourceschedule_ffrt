@@ -16,6 +16,7 @@
 #ifndef FFRT_WORKER_MONITOR_H
 #define FFRT_WORKER_MONITOR_H
 
+#include <deque>
 #include <mutex>
 #include <map>
 #include "eu/cpu_worker.h"
@@ -94,6 +95,9 @@ private:
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
     void RecordIpcInfo(const std::string& dumpInfo, int tid);
     void RecordKeyInfo(const std::string& dumpInfo);
+    void ProcessWorkerInfo(std::ostringstream& oss, bool& firstQos, int qos, unsigned int cnt,
+        const std::deque<pid_t>& tids);
+    void RecordWorkerStatusInfo();
 
 private:
     std::mutex mutex_;
@@ -108,6 +112,7 @@ private:
     bool samplingTaskExit_ = true;
     bool taskMonitorExit_ = true;
     bool memReleaseTaskExit_ = true;
+    unsigned int samplingTaskCount_ = 0;
 };
 }
 #endif

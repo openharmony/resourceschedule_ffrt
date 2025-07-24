@@ -486,7 +486,6 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
 {
     uint64_t whenmapTskCount = GetTaskCnt();
     std::lock_guard lock(mutex_);
-    std::lock_guard mapLock(queue_->mutex_);
     std::pair<std::vector<uint64_t>, uint64_t> curTaskInfo;
     uint64_t minTime = UINT64_MAX;
     for (int i = 0;i < static_cast<int>(curTaskVec_.size()); i++) {

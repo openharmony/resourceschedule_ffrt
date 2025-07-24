@@ -186,9 +186,9 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     while (!WhenMapVecEmpty(whenMapVec_) && now < minMaptime && !isExit_) {
         uint64_t diff = minMaptime - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        delayStatus_ = true;
+        delayStatus_.store(true);
         cond_.wait_for(lock, std::chrono::microseconds(diff));
-        delayStatus_ = false;
+        delayStatus_.store(false);
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
         minMaptime = GetMinMapTime(whenMapVec_);

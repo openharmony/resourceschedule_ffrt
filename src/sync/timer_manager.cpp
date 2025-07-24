@@ -95,7 +95,7 @@ void TimerManager::InitWorkQueAndCb(int qos)
     };
 }
 
-int TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
+ffrt_timer_t TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat) noexcept
 {
     std::lock_guard lock(timerMutex_);
     if (teardown) {
@@ -123,7 +123,7 @@ void TimerManager::RegisterTimerImpl(std::shared_ptr<TimerData> data)
     }
 }
 
-int TimerManager::UnregisterTimer(int handle) noexcept
+int TimerManager::UnregisterTimer(ffrt_timer_t handle) noexcept
 {
     std::unique_lock timerLock(timerMutex_);
     if (teardown) {
@@ -135,35 +135,36 @@ int TimerManager::UnregisterTimer(int handle) noexcept
     }
 
     auto it = timerMap_.find(handle);
-    if (it != timerMap_.end()) {
-        if (it->second->state == TimerState::NOT_EXECUTED || it->second->state == TimerState::EXECUTED) {
-            // timer not executed or executed, delete timer data
-            timerMap_.erase(it);
-            return 0;
-        }
-        if (it->second->state == TimerState::EXECUTING) {
-            // timer executing, spin wait it done
-            while (it->second->state == TimerState::EXECUTING) {
-                timerLock.unlock();
-                std::this_thread::yield();
-                timerLock.lock();
-                it = timerMap_.find(handle);
-                if (it == timerMap_.end()) {
-                    // timer already erased
-                    return 0;
-                }
-            }
-            // executed, delete timer data
-            timerMap_.erase(it);
-            return 0;
-        }
+    if (it == timerMap_.end()) {
+        return 0;
     }
 
+    if (it->second->state == TimerState::NOT_EXECUTED || it->second->state == TimerState::EXECUTED) {
+        // timer not executed or executed, delete timer data
+        timerMap_.erase(it);
+        return 0;
+    }
+    if (it->second->state == TimerState::EXECUTING) {
+        // timer executing, spin wait it done
+        while (it->second->state == TimerState::EXECUTING) {
+            timerLock.unlock();
+            std::this_thread::yield();
+            timerLock.lock();
+            it = timerMap_.find(handle);
+            if (it == timerMap_.end()) {
+                // timer already erased
+                return 0;
+            }
+        }
+        // executed, delete timer data
+        timerMap_.erase(it);
+        return 0;
+    }
     // timer already erased
     return 0;
 }
 
-ffrt_timer_query_t TimerManager::GetTimerStatus(int handle) noexcept
+ffrt_timer_query_t TimerManager::GetTimerStatus(ffrt_timer_t handle) noexcept
 {
     std::unique_lock timerLock(timerMutex_);
     if (teardown) {
@@ -175,28 +176,29 @@ ffrt_timer_query_t TimerManager::GetTimerStatus(int handle) noexcept
     }
 
     auto it = timerMap_.find(handle);
-    if (it != timerMap_.end()) {
-        if (it->second->state == TimerState::NOT_EXECUTED) {
-            // timer has not been executed
-            return ffrt_timer_not_executed;
-        }
-        if (it->second->state == TimerState::EXECUTING || it->second->state == TimerState::EXECUTED) {
-            // timer executing or has been executed (don't spin wait executing)
-            // timer executing, spin wait it done
-            while (it->second->state == TimerState::EXECUTING) {
-                timerLock.unlock();
-                std::this_thread::yield();
-                timerLock.lock();
-                it = timerMap_.find(handle);
-                if (it == timerMap_.end()) {
-                    // timer already erased
-                    break;
-                }
-            }
-            return ffrt_timer_executed;
-        }
+    if (it == timerMap_.end()) {
+        return ffrt_timer_executed;
     }
 
+    if (it->second->state == TimerState::NOT_EXECUTED) {
+        // timer has not been executed
+        return ffrt_timer_not_executed;
+    }
+    if (it->second->state == TimerState::EXECUTING || it->second->state == TimerState::EXECUTED) {
+        // timer executing or has been executed (don't spin wait executing)
+        // timer executing, spin wait it done
+        while (it->second->state == TimerState::EXECUTING) {
+            timerLock.unlock();
+            std::this_thread::yield();
+            timerLock.lock();
+            it = timerMap_.find(handle);
+            if (it == timerMap_.end()) {
+                // timer already erased
+                break;
+            }
+        }
+        return ffrt_timer_executed;
+    }
     // timer has been executed or unregistered
     return ffrt_timer_executed;
 }

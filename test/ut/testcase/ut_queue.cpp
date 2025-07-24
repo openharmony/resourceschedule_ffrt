@@ -1167,7 +1167,7 @@ HWTEST_F(QueueTest, ffrt_queue_concurrent_recordtraffic_delay_trigger, TestSize.
     ffrt_task_handle_t handle;
     ffrt_task_attr_t task_attr;
     ffrt_task_attr_t task_attr_1;
-    int result = 0;
+    std::atomic<int> result = 0;
     uint64_t concurrency = 4;
     (void)ffrt_task_attr_init(&task_attr_1);
     (void)ffrt_task_attr_init(&task_attr);

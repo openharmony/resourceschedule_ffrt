@@ -48,7 +48,7 @@ ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt
 }
 
 API_ATTRIBUTE((visibility("default")))
-int ffrt_timer_stop(ffrt_qos_t qos, int handle)
+int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle)
 {
     ffrt::QoS convertQos;
     if (!QosConvert(qos, convertQos)) {

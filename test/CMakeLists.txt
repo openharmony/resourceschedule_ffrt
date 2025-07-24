@@ -40,6 +40,10 @@ if(NOT EXISTS "/dev/auth_ctrl")
   set(COMPILE_DEFS ${COMPILE_DEFS} AUTH_CTRL_DNE)
 endif()
 
+if(NOT EXISTS "/lib/libeventhandler.z.so")
+  set(COMPILE_DEFS ${COMPILE_DEFS} LIB_EVENT_HANDLER_DNE)
+endif()
+
 # add compile definitions/macros
 add_compile_definitions(${TEST_NAME} ${COMPILE_DEFS})
 

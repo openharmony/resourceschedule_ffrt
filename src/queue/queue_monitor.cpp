@@ -71,7 +71,6 @@ void QueueMonitor::DeregisterQueue(QueueHandler* queue)
 
 void QueueMonitor::UpdateQueueInfo()
 {
-    std::shared_lock lock(infoMutex_);
     if (suspendAlarm_.exchange(false)) {
         uint64_t alarmTime = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now()).time_since_epoch().count()) + timeoutUs_;
@@ -106,27 +105,36 @@ void QueueMonitor::ScheduleAlarm()
 
 void QueueMonitor::CheckTimeout(uint64_t& nextTaskStart)
 {
-    std::lock_guard lock(infoMutex_);
-
     // 未来ALLOW_ACC_ERROR_US可能超时的任务，一起上报
     uint64_t now = TimeStampCntvct();
     uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
-    for (auto& queueInfo : queuesInfo_) {
-        // first为gid, second为下次触发超时的时间
-        auto curTaskTimeStamp = queueInfo->EvaluateTaskTimeout(minStart, timeoutUs_,
+    std::vector<std::pair<std::pair<std::vector<uint64_t>, uint64_t>, std::stringstream>> curTaskTimeInfoVec;
+
+    {
+        std::shared_lock lock(infoMutex_);
+        for (auto& queueInfo : queuesInfo_) {
+            auto curTaskTimeStamp = queueInfo->EvaluateTaskTimeout(minStart, timeoutUs_,
             timeoutMSG_);
-        for (int i = 0; i < static_cast<int>(curTaskTimeStamp.first.size()); i++) {
-            if (curTaskTimeStamp.second < UINT64_MAX && curTaskTimeStamp.first[i] != 0) {
-                ReportEventTimeout(curTaskTimeStamp.first[i], timeoutMSG_);
-            }
+            curTaskTimeInfoVec.emplace_back(std::make_pair(curTaskTimeStamp, timeoutMSG_.str()));
+        }
+    }
 
-            if (taskTimeoutInfo_.size() > MAX_RECORD_LIMIT) {
-                taskTimeoutInfo_.erase(taskTimeoutInfo_.begin());
-            }
-            taskTimeoutInfo_.emplace_back(std::make_pair(now, timeoutMSG_.str()));
+    {
+        std::unique_lock lock(infoMutex_);
+        for (auto& curTaskTimeInfo : curTaskTimeInfoVec) {
+            // first为gid，second为下次触发超时的时间
+            for (size_t i = 0; i < curTaskTimeInfo.first.first.size(); i++) {
+                if (curTaskTimeInfo.first.second < UINT64_MAX && curTaskTimeInfo.first.first[i] != 0) {
+                    ReportEventTimeout(curTaskTimeInfo.first.first[i], curTaskTimeInfo.second);
+                    if (taskTimeoutInfo_.size() > MAX_RECORD_LIMIT) {
+                        taskTimeoutInfo_.erase(taskTimeoutInfo_.begin());
+                    }
+                    taskTimeoutInfo_.emplace_back(std::make_pair(now, curTaskTimeInfo.second.str()));
+                }
 
-            if (curTaskTimeStamp.second < nextTaskStart) {
-                nextTaskStart = curTaskTimeStamp.second;
+                if (curTaskTimeInfo.first.second < nextTaskStart) {
+                    nextTaskStart = curTaskTimeInfo.first.second;
+                }
             }
         }
     }
@@ -147,7 +155,7 @@ void QueueMonitor::ReportEventTimeout(uint64_t curGid, const std::stringstream& 
 
 std::string QueueMonitor::DumpQueueTimeoutInfo()
 {
-    std::lock_guard lock(infoMutex_);
+    std::shared_lock<std::shared_mutex> lock(infoMutex_);
     std::stringstream ss;
     if (taskTimeoutInfo_.size() != 0) {
         for (auto it = taskTimeoutInfo_.rbegin(); it != taskTimeoutInfo_.rend(); ++it) {

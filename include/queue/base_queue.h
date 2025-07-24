@@ -74,7 +74,7 @@ public:
 
     inline bool DelayStatus()
     {
-        return delayStatus_;
+        return delayStatus_.load();
     }
 
     virtual bool HasTask(const char* name);
@@ -95,7 +95,7 @@ protected:
     uint32_t GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap);
 
     const uint32_t queueId_;
-    bool delayStatus_ { false };
+    std::atomic_bool delayStatus_ { false };
     bool isExit_ { false };
     std::atomic_bool isActiveState_ { false };
     std::multimap<uint64_t, QueueTask*> whenMap_;

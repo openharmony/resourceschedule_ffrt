@@ -74,9 +74,9 @@ QueueTask* SerialQueue::Pull()
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
-        delayStatus_ = true;
+        delayStatus_.store(true);
         cond_.wait_for(lock, std::chrono::microseconds(diff));
-        delayStatus_ = false;
+        delayStatus_.store(false);
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
     }

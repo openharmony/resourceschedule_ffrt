@@ -35,7 +35,7 @@ public:
     {
         uint16_t exp = NOT_SUBMIT;
         uint16_t des = ALREADY_SUBMIT;
-        return rc.compare_exchange_weak(exp, des, std::memory_order_relaxed);
+        return rc.compare_exchange_strong(exp, des, std::memory_order_relaxed);
     }
     void DecDeleteRef()
     {

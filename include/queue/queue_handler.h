@@ -132,7 +132,7 @@ public:
 
     inline bool GetMode()
     {
-        return legacyMode_;
+        return threadMode_;
     }
 
 private:
@@ -176,7 +176,7 @@ private:
     WaitUntilEntry* we_ = nullptr;
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
     std::atomic_int deliverCnt_ = {0};
-    bool legacyMode_ = false;
+    bool threadMode_ = false;
 };
 } // namespace ffrt
 

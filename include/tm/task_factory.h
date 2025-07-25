@@ -77,12 +77,16 @@ public:
 
     static void LockMem()
     {
-        return Instance().lockMem_();
+        if (Instance().lockMem_ != nullptr) {
+            return Instance().lockMem_();
+        }
     }
 
     static void UnlockMem()
     {
-        return Instance().unlockMem_();
+        if (Instance().unlockMem_ != nullptr) {
+            return Instance().unlockMem_();
+        }
     }
 
     static void RegistCb(
@@ -90,7 +94,7 @@ public:
         typename TaskAllocCB<T>::Free &&free,
         typename TaskAllocCB<T>::Free_ &&free_ = nullptr,
         typename TaskAllocCB<T>::GetUnfreedMem &&getUnfreedMem = nullptr,
-        typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed = nullptr,
+        typename TaskAllocCB<T>::HasBeenFreed &&hasBeenFreed = nullptr,
         typename TaskAllocCB<T>::LockMem &&lockMem = nullptr,
         typename TaskAllocCB<T>::UnlockMem &&unlockMem = nullptr)
     {

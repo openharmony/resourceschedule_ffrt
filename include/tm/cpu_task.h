@@ -52,7 +52,7 @@ struct TaskLocalAttr {
 class CPUEUTask : public CoTask {
 public:
     CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uint64_t &id);
-    ~CPUEUTask();
+    ~CPUEUTask() override;
     SkipStatus skipped = SkipStatus::SUBMITTED;
 
     CPUEUTask* parent = nullptr;

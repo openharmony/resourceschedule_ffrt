@@ -88,12 +88,12 @@ HWTEST_F(ffrtIoTest, IoPoller_1Producer_1Consumer, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：IoPoller_1Producer_1Consumer_Legacy_Mode
-* 测试用例描述：sync_io接口，线程阻塞模式测试
-* 预置条件    ：无
-* 操作步骤    ：1.提交一个读任务，一个写任务
-               2.读任务使设置legacy_mode后调用sync_io接口
-* 预期结果    ：任务正确执行
+ * 测试用例名称：IoPoller_1Producer_1Consumer_Legacy_Mode
+ * 测试用例描述：sync_io接口，线程阻塞模式测试
+ * 预置条件    ：无
+ * 操作步骤    ：1、提交一个读任务，一个写任务
+                2、读任务使设置legacy_mode后调用sync_io接口
+ * 预期结果    ：任务正确执行
 */
 HWTEST_F(ffrtIoTest, IoPoller_1Producer_1Consumer_Legacy_Mode, TestSize.Level0)
 {
@@ -254,7 +254,6 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_fail_flag_teardown, TestSize.Level0)
     EXPECT_EQ(-1, ffrt_timer_start(qos, timeout, data, cb, false));
     ffrt::FFRTFacade::GetTMInstance().teardown = false;
 }
-
 
 HWTEST_F(ffrtIoTest, ffrt_timer_stop_fail, TestSize.Level0)
 {
@@ -498,12 +497,12 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_invalid, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：ffrt_epoll_get_wait_time_valid
-* 测试用例描述：使用有效任务指针调用ffrt_epoll_get_wait_time
-* 预置条件    ：无
-* 操作步骤    ：1.提交任务
-               2、调用ffrt_epoll_get_wait_time接口
-* 预期结果    ：结果为0
+ * 测试用例名称：ffrt_epoll_get_wait_time_valid
+ * 测试用例描述：使用有效任务指针调用ffrt_epoll_get_wait_time
+ * 预置条件    ：无
+ * 操作步骤    ：1、提交任务
+                2、调用ffrt_epoll_get_wait_time接口
+ * 预期结果    ：结果为0
 */
 HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_valid, TestSize.Level0)
 {

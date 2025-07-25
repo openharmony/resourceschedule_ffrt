@@ -27,7 +27,7 @@ typedef void (*FuncGetKeyStatus)();
 typedef void (*FuncSaveKeyStatus)();
 typedef std::string (*FuncSaveKeyStatusInfo)();
 std::string SaveKeyInfo(void);
-void SetFuncSaveKeyStatus(FuncGetKeyStatus getFunc, FuncSaveKeyStatus func, FuncSaveKeyStatusInfo infoFunc);
+void SetFuncSaveKeyStatus(FuncGetKeyStatus getFunc, FuncSaveKeyStatus saveFunc, FuncSaveKeyStatusInfo infoFunc);
 
 // undefine in header for non-inline to explain why stop
 void BboxFreeze(void);

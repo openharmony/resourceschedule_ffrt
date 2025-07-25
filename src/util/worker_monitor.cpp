@@ -71,11 +71,11 @@ WorkerMonitor::WorkerMonitor()
     }
 
     watchdogWaitEntry_.cb = ([this](WaitEntry* we) {
+        (void)we;
         CheckWorkerStatus();
         FFRTFacade::GetPPInstance().MonitTimeOut();
     });
     tskMonitorWaitEntry_.cb = ([this](WaitEntry* we) { CheckTaskStatus(); });
-
     memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
         std::lock_guard lock(mutex_);
         if (skipSampling_) {
@@ -247,6 +247,8 @@ void WorkerMonitor::CheckTaskStatus()
                 break;
             }
         }
+
+        // no active worker, no active normal task, no need to monitor
         if (noWorkerThreads && activeTask.empty()) {
             taskMonitorExit_ = true;
             for (auto& task : unfree) {
@@ -334,12 +336,6 @@ void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
         timeoutUs_ / MIN_TIMEOUT_THRESHOLD_US << "]s, reported count: " << timeoutTskInfo.timeoutCnt;
     FFRT_LOGW("%s", ss.str().c_str());
 
-#ifdef FFRT_SEND_EVENT
-    if (timeoutTskInfo.timeoutCnt == 1) {
-        std::string senarioName = "Normal_Task_Timeout";
-        TaskTimeoutReport(ss, GetCurrentProcessName(), senarioName);
-    }
-#endif
     return;
 }
 

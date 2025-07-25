@@ -53,6 +53,8 @@ using namespace ffrt;
 static inline void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
+        FFRT_SYSEVENT_LOGE("sp offset:%llx .\n", co->stkMem.stk +
+            co->stkMem.size - co->ctx.storage[FFRT_REG_SP]);
         FFRT_SYSEVENT_LOGE("stack over flow, check local variable in you tasks"
             " or use api 'ffrt_task_attr_set_stack_size'.\n");
         if (ExecuteCtx::Cur()->task != nullptr) {
@@ -418,6 +420,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
     if (!CoBboxPreCheck(task)) {
         return 0;
     }
+
     if (CoCreat(task) != 0) {
         return -1;
     }
@@ -450,7 +453,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
 #ifdef ASAN_MODE
         /* co to thread finish */
-		__sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
+        __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
 #ifdef FFRT_ENABLE_HITRACE_CHAIN

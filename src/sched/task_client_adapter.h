@@ -46,7 +46,7 @@ enum QueryIntervalItem {
     QUERY_SELF_RENDER_ADD_THREAD = 9,
     QUERY_SELF_RENDER_FRAME_START = 12,
     QUERY_SELF_RENDER_FRAME_END = 13,
-    QURRY_TYPE_MAX,
+    QUERY_TYPE_MAX,
 };
 
 extern "C" {

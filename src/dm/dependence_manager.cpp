@@ -64,4 +64,4 @@ int DependenceManager::onSkip(ffrt_task_handle_t handle)
     FFRT_LOGW("skip task [%lu] faild", task->gid);
     return ffrt_error;
 }
-}
+} // namespace ffrt

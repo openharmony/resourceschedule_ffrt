@@ -165,7 +165,7 @@ public:
     {
         return ffrt_queue_attr_get_callback(this);
     }
-    
+
     /**
      * @brief Sets the maximum concurrency level for this queue attribute.
      *
@@ -204,9 +204,9 @@ public:
     }
 
     /**
-     * @brief Gets the mode for this queue attribute.
+     * @brief Gets the mode of this queue attribute.
      *
-     * @param Returns the queue mode.
+     * @return Returns the queue mode.
      * @since 20
      */
     inline bool thread_mode() const

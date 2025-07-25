@@ -155,7 +155,7 @@ FFRT_C_API int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr
 /**
  * @brief Sets the execution mode of a queue attribute.
  *
- * This interface sepcifies whether tasks in the queue are excuted in coroutine mode or thread mode.
+ * This interface specifies whether tasks in the queue are executed in coroutine mode or thread mode.
  * By default, tasks are executed in coroutine mode.
  * Set <b>mode</b> to <b>true</b> to enable thread-based execution.
  *

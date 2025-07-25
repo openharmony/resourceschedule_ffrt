@@ -253,8 +253,8 @@ private:
         auto dur_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(dur);
 
         std::chrono::nanoseconds ns;
-        if (now_ns.count() > std::chrono::nanoseconds::max().count() - dur_ns.count()) {
-            ns = std::chrono::nanoseconds::max();
+        if (now_ns.count() > (std::chrono::nanoseconds::max)().count() - dur_ns.count()) {
+            ns = (std::chrono::nanoseconds::max)();
         } else {
             ns = now_ns + dur_ns;
         }

@@ -20,10 +20,10 @@
 #include <vector>
 #include <deque>
 #include <mutex>
+#include <securec.h>
 #ifdef FFRT_BBOX_ENABLE
 #include <unordered_set>
 #endif
-#include <securec.h>
 #include <sys/mman.h>
 #include "sync/sync.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -170,7 +170,6 @@ private:
             if (basePtr != nullptr) {
                 t = reinterpret_cast<T*>(std::calloc(1, TSize));
                 FFRT_COND_TERMINATE((t == nullptr), "t calloc failed");
-
 #ifdef FFRT_BBOX_ENABLE
                 secondaryCache.insert(t);
 #endif

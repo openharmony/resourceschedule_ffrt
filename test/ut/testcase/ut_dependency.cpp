@@ -24,6 +24,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #define private public
 #include "dm/sdependence_manager.h"
+#include "sched/task_scheduler.h"
 #undef private
 #include "util/ffrt_facade.h"
 #ifndef WITH_NO_MOCKER
@@ -350,6 +351,7 @@ struct UvQueue {
 // libuv's uv__queue_empty
 inline int UvQueueEmpty(const struct UvQueue* q)
 {
+    std::lock_guard lg(ffrt::FFRTFacade::GetSchedInstance()->GetScheduler(ffrt::qos_user_initiated).uvMtx);
     return q == q->next || q != q->next->prev;
 }
 

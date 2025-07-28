@@ -44,7 +44,7 @@ void CPUEUTask::SetQos(const QoS& newQos)
     FFRT_LOGD("Change task %s QoS %d", label.c_str(), qos_());
 }
 
-void CPUEUTask::Submit()
+void CPUEUTask::Prepare()
 {
     this->SetStatus(TaskStatus::SUBMITTED);
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos_, &createTime, &fromTid);

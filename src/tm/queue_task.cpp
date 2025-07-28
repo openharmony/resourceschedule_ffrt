@@ -60,7 +60,7 @@ QueueTask::~QueueTask()
     FFRT_LOGD("dtor task [gid=%llu]", gid);
 }
 
-void QueueTask::Submit()
+void QueueTask::Prepare()
 {
     SetStatus(TaskStatus::ENQUEUED);
     FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(qos_, &createTime, &fromTid);

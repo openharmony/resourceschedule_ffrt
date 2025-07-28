@@ -67,7 +67,7 @@ public:
     virtual ~TaskBase() = default;
 
     // lifecycle actions
-    virtual void Submit() = 0;
+    virtual void Prepare() = 0;
     virtual void Ready() = 0;
     virtual void Pop() = 0;
     // must be called by a sync primitive when blocking this task.

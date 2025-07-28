@@ -411,7 +411,7 @@ public:
     MyTask() : ffrt::TaskBase(ffrt_invalid_task, nullptr) {}
 private:
     void FreeMem() override { ffrt::TaskFactory<MyTask>::Free(this); }
-    void Submit() override {}
+    void Prepare() override {}
     void Ready() override {}
     void Pop() override {}
     void Cancel() override {}

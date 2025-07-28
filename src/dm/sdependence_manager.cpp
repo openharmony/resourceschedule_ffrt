@@ -124,7 +124,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 #endif
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
     task->SetQos(qos);
-    task->Submit();
+    task->Prepare();
 
     std::vector<CPUEUTask*> inHandles;
     std::vector<const void*> insNoDup;

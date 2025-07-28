@@ -42,6 +42,8 @@
 /**
  * @brief Starts a timer on ffrt worker
  *
+ * @warning Do not call `exit` in `cb` - this my cause unexpected behavior.
+ *
  * @param qos Indicates qos of the worker that runs timer.
  * @param timeout Indicates the number of milliseconds that specifies timeout.
  * @param data Indicates user data used in cb.

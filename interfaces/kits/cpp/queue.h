@@ -145,6 +145,8 @@ public:
     /**
      * @brief Sets the timeout callback function for this queue attribute.
      *
+     * @warning Do not call `exit` in `func` - this my cause unexpected behavior.
+     *
      * @param func Indicates the callback function.
      * @return Returns the current queue_attr object for chaining.
      * @since 10

@@ -119,6 +119,8 @@ FFRT_C_API uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
 /**
  * @brief Sets the timeout callback function of a serial queue attribute.
  *
+ * @warning Do not call `exit` in `f` - this my cause unexpected behavior.
+ *
  * @param attr Serial queue attribute pointer.
  * @param f Serial queue timeout callback function.
  * @since 10

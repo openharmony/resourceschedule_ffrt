@@ -107,6 +107,8 @@ FFRT_C_API ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t hand
  *     FFRT will monitor the fd event and then execute the cb function.
  * In Mode 2, both ffrt_epoll_ctl and ffrt_epoll_wait must be called in the same ffrt task.
  *
+ * @warning Do not call `exit` in `cb` - this my cause unexpected behavior.
+ *
  * @param qos Indicates the qos of the poller.
  * @param op Indicates the option of the event.
  * @param fd Indicates the fd of the event. Only supports eventfd, timerfd, and harware I/O.

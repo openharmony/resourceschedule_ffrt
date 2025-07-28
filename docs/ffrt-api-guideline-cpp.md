@@ -652,6 +652,7 @@ queue_attr& queue_attr::callback(const std::function<void()>& func);
 描述
 
 - 设置检测到队列任务超时后执行的回调函数。
+- 不建议在`func`中调用`exit`函数，可能导致未定义行为。
 
 ##### get queue callback
 

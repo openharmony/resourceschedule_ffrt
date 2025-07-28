@@ -183,8 +183,6 @@ public:
 #endif
 
     void SetThreadAttr(const QoS& newQos);
-    static void SetThreadPriority(int priority, pid_t tid);
-
     TaskBase* curTask = nullptr;
     std::atomic<uintptr_t> curTaskType_ {ffrt_invalid_task};
     std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值

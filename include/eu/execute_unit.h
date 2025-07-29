@@ -273,12 +273,12 @@ public:
 
     inline void SetSchedMode(const QoS qos, const sched_mode_type mode)
     {
-        schedMode[qos] = mode;
+        schedMode[qos].store(mode);
     }
 
-    inline const sched_mode_type &GetSchedMode(const QoS qos)
+    inline sched_mode_type GetSchedMode(const QoS qos)
     {
-        return schedMode[qos];
+        return schedMode[qos].load();
     }
 
     inline void SetWorkerShare(const std::map<QoS, std::vector<std::pair<QoS, bool>>> workerShareConfig)
@@ -365,7 +365,7 @@ private:
     virtual void PokeAddRtq(const QoS &qos, bool isRisingEdge) = 0;
 
     // eu sched mode array
-    static std::array<sched_mode_type, QoS::MaxNum()> schedMode;
+    static std::array<std::atomic<sched_mode_type>, QoS::MaxNum()> schedMode;
 
     // worker escape
     EscapeConfig escapeConfig;

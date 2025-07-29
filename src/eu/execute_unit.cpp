@@ -269,7 +269,7 @@ void ExecuteUnit::SubmitEscape(int qos, uint64_t totalWorkerNum)
     submittedDelayedTask_[qos].store(true, std::memory_order_relaxed);
 }
 
-std::array<sched_mode_type, QoS::MaxNum()> ExecuteUnit::schedMode{};
+std::array<std::atomic<sched_mode_type>, QoS::MaxNum()> ExecuteUnit::schedMode{};
 
 bool ExecuteUnit::IncWorker(const QoS &qos)
 {

@@ -117,7 +117,7 @@ public:
     }
     int curTaskIdx = 0;
 
-    void Submit() override;
+    void Prepare() override;
     void Ready() override;
 
     // dequeue means task has been pulled out from it's queue

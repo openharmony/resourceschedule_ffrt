@@ -49,7 +49,7 @@ public:
     }
     ffrt_executor_task* uvWork;
 
-    void Submit() override {}
+    void Prepare() override {}
 
     void Ready() override;
 

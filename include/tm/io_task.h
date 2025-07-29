@@ -26,7 +26,7 @@ class IOTask : public TaskBase {
 public:
     IOTask(const ffrt_io_callable_t& work, const task_attr_private* attr);
 
-    void Submit() override {}
+    void Prepare() override {}
 
     void Ready() override
     {

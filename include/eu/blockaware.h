@@ -20,6 +20,7 @@
 #include <cstring>
 #include <sys/prctl.h>
 #include <cerrno>
+#include "dfx/log/ffrt_log_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,7 +61,7 @@ struct BlockawareKinfoPageS {
 static inline int BlockawareInit(unsigned long *keyPtr);
 static inline int BlockawareRegister(unsigned int domain);
 static inline int BlockawareUnregister(void);
-static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *infoArea);
+static int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *infoArea);
 static inline int BlockawareEnterSleeping(void);
 static inline int BlockawareLeaveSleeping(void);
 static inline int BlockawareWaitCond(struct BlockawareWakeupCond *cond);
@@ -223,15 +224,20 @@ static inline bool seqlock_check(const uint32_t *seq_ptr, uint32_t seq_prev)
     return (*seq_ptr == seq_prev);
 }
 
-static inline int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *infoArea)
+static int BlockawareLoadSnapshot(unsigned long key, struct BlockawareDomainInfoArea *infoArea)
 {
     struct BlockawareKinfoPageS *kinfoPage = reinterpret_cast<struct BlockawareKinfoPageS *>(key);
     uint32_t seq;
+    int ret = 0;
     do {
         seq = seqlock_start_read(&kinfoPage->seq);
-        memcpy_s(infoArea, sizeof(BlockawareDomainInfoArea), &kinfoPage->infoArea, sizeof(BlockawareDomainInfoArea));
+        ret = memcpy_s(infoArea, sizeof(BlockawareDomainInfoArea),
+            &kinfoPage->infoArea, sizeof(BlockawareDomainInfoArea));
     } while (!seqlock_check(&kinfoPage->seq, seq));
-    return 0;
+    if (ret != EOK) {
+        FFRT_SYSEVENT_LOGE("The memcpy operation failed for the infoArea.");
+    }
+    return ret;
 }
 
 static inline unsigned int BlockawareLoadSnapshotNrRunningFast(unsigned long key, int domainId)

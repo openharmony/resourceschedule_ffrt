@@ -86,18 +86,6 @@ enum class AliveStatus : uint8_t {
     RELEASED,
 };
 
-inline const char* StatusToString(TaskStatus status)
-{
-    constexpr size_t STATUS_LEN = static_cast<uint8_t>(TaskStatus::CANCELED) + 1;
-    constexpr const char* statusMap[STATUS_LEN] = {
-        "PENDING", "SUBMITTED", "ENQUEUED", "DEQUEUED",
-        "READY", "POPPED", "EXECUTING", "THREAD_BLOCK",
-        "COROUTINE_BLOCK", "FINISH", "WAIT_RELEASING", "CANCELED"
-    };
-    auto idx = static_cast<uint8_t>(status);
-    return idx < STATUS_LEN? statusMap[idx] : "UNKNOWN";
-}
-
 enum class BlockType : uint8_t {
     BLOCK_COROUTINE,
     BLOCK_THREAD

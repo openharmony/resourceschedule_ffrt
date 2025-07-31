@@ -76,6 +76,18 @@ HWTEST_F(SyncTest, mutexattr_nullptr_fail, TestSize.Level0)
     EXPECT_EQ(ret, ffrt_error_inval);
     ret = ffrt_mutexattr_destroy(nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
+    ffrt_mutexattr_t attr;
+    int type = ffrt_mutex_default;
+    ffrt_mutexattr_init(&attr);
+    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_normal);
+    ret = ffrt_mutexattr_settype(&attr, ffrt_mutex_default);
+    ret = ffrt_mutexattr_settype(&attr, -1);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_mutexattr_gettype(&attr, nullptr);
+    EXPECT_EQ(ret, ffrt_error_inval);
+    ret = ffrt_mutexattr_gettype(&attr, &type);
+    EXPECT_EQ(ret, ffrt_success);
+    ffrt_mutexattr_destroy(&attr);
 }
 
 /**
@@ -551,11 +563,11 @@ HWTEST_F(SyncTest, sharedMutexTestInit, TestSize.Level0)
  * 测试用例描述：legacy任务调用shared_mutex加解锁接口
  * 预置条件    ：无
  * 操作步骤    ：1、初始化shared_mutex
-                2、提交任务
-                3、调用shared_mutex加解锁接口
-                4、设置legacy模式后，调用shared_mutex加解锁接口
+                 2、提交任务
+                 3、调用shared_mutex加解锁接口
+                 4、设置legacy模式后，调用shared_mutex加解锁接口
  * 预期结果    ：任务按预期执行
-*/
+ */
 HWTEST_F(SyncTest, mutexTest, TestSize.Level0)
 {
     ffrt::mutex mut;
@@ -584,11 +596,11 @@ HWTEST_F(SyncTest, mutexTest, TestSize.Level0)
  * 测试用例描述：legacy任务调用shared_mutex加解锁接口
  * 预置条件    ：无
  * 操作步骤    ：1、初始化shared_mutex
-                2、提交任务
-                3、调用shared_mutex加解锁接口
-                4、设置legacy模式后，调用shared_mutex加解锁接口
+                 2、提交任务
+                 3、调用shared_mutex加解锁接口
+                 4、设置legacy模式后，调用shared_mutex加解锁接口
  * 预期结果    ：任务按预期执行
-*/
+ */
 HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level0)
 {
     ffrt::shared_mutex smut;
@@ -1180,7 +1192,7 @@ HWTEST_F(SyncTest, thread_with_ref, TestSize.Level0)
     t.join();
 }
 
-HWTEST_F(SyncTest, future_wait, TestSize.Level0)
+HWTEST_F(SyncTest, future_wait, TestSize.Level1)
 {
     ffrt::packaged_task<int()> task([] { return 7; });
     ffrt::future<int> f1 = task.get_future();
@@ -1199,11 +1211,11 @@ HWTEST_F(SyncTest, future_wait, TestSize.Level0)
     f2.wait();
     f3.wait();
     std::cout << "Done!\nResults are: "
-            << f1.get() << ' ' << f2.get() << ' ' << f3.get() << '\n';
+              << f1.get() << ' ' << f2.get() << ' ' << f3.get() << '\n';
     t.join();
 }
 
-HWTEST_F(SyncTest, future_wait_void, TestSize.Level0)
+HWTEST_F(SyncTest, future_wait_void, TestSize.Level1)
 {
     vector<int> result(3, 0);
     ffrt::packaged_task<void()> task([&] { result[0] = 1; });
@@ -1259,7 +1271,7 @@ HWTEST_F(SyncTest, ffrt_sleep_test, TestSize.Level0)
 
 /*
 * 测试用例名称：ffrt_yield_test
-* 测试用例描述：测试ffrt_yield_test接口
+* 测试用例描述：测试ffrt_yield接口
 * 预置条件    ：无
 * 操作步骤    ：1.提交两个普通任务，一个设置为legacy任务
                 2.分别调用ffrt_yield接口

@@ -17,13 +17,12 @@
 
 #include <atomic>
 #include <memory>
-#include <shared_mutex>
 #include <string>
+#include <shared_mutex>
 #include <unordered_map>
 #include "c/queue.h"
 #include "c/queue_ext.h"
 #include "cpp/task.h"
-#include "internal_inc/types.h"
 #include "base_queue.h"
 #include "sched/execute_ctx.h"
 #include "traffic_record.h"
@@ -102,7 +101,7 @@ public:
         return queue_->WaitAll();
     }
 
-    inline uint32_t GetQueueDueCount()
+    inline uint64_t GetQueueDueCount()
     {
         FFRT_COND_DO_ERR((queue_ == nullptr), return 0, "[queueId=%u] constructed failed", GetQueueId());
         return queue_->GetDueTaskCount();
@@ -141,7 +140,8 @@ private:
     void RemoveTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
-    void ReportTimeout(const std::vector<std::pair<uint64_t, std::string>>& timeoutTaskId);
+    void ReportTimeout(const std::vector<std::pair<uint64_t, std::string>>& timeoutTaskInfo);
+    bool ControlTimeoutFreq(uint64_t timeoutCnt);
     void CheckSchedDeadline();
     bool CheckExecutingTask();
     void SendSchedTimer(TimePoint delay);

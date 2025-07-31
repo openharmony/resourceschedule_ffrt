@@ -17,7 +17,11 @@
 #include <string>
 #include "c/type_def_ext.h"
 #include "cpp/task_ext.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "eu/co_routine.h"
 
 namespace ffrt {

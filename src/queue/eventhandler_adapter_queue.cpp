@@ -259,15 +259,15 @@ bool EventHandlerAdapterQueue::IsIdle()
     return true;
 }
 
-uint32_t EventHandlerAdapterQueue::GetDueTaskCount()
+uint64_t EventHandlerAdapterQueue::GetDueTaskCount()
 {
     std::lock_guard lock(mutex_);
-    uint32_t count = 0;
+    uint64_t count = 0;
     for (auto& currentMap : whenMapVec_) {
         count += BaseQueue::GetDueTaskCount(currentMap);
     }
     if (count != 0) {
-        FFRT_LOGI("qid = %lu Current Due Task Count %u", GetQueueId(), count);
+        FFRT_LOGI("qid = %llu Current eh queueDue Task Count %u", GetQueueId(), count);
     }
     return count;
 }

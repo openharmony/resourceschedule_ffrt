@@ -151,11 +151,11 @@ HWTEST_F(DumpTest, dump_task_stat_stop_invalid_addr, TestSize.Level1)
 }
 
 /*
- * 测试用例名称：dump_threshold_failed
- * 测试用例描述：设置与获取task_timeout_threshold失败，小于设置阈值1000
+ * 测试用例名称 ：dump_threshold_failed
+ * 测试用例描述：设置与获取task_timout_threshold失败，小于设置阈值1000
  * 预期结果    ：用例通过
  */
-HWTEST_F(DumpTest, dump_threshold_failed, TestSize.Level0)
+HWTEST_F(DumpTest, dump_thre_failed, TestSize.Level1)
 {
     ffrt_task_timeout_set_threshold(500);
     uint32_t ret = ffrt_task_timeout_get_threshold();

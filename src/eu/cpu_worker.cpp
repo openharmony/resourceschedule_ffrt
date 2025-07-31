@@ -105,7 +105,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     static bool isBetaVersion = IsBeta();
     uint64_t startExecuteTime = 0;
     if (isBetaVersion) {
-        startExecuteTime = FFRTTraceRecord::TimeStamp();
+        startExecuteTime = TimeStamp();
         if (likely(isNotUv)) {
             worker->cacheLabel = task->GetLabel();
         }
@@ -126,7 +126,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     worker->curTaskType_.store(ffrt_invalid_task, std::memory_order_relaxed);
 #ifdef FFRT_SEND_EVENT
     if (isBetaVersion) {
-        uint64_t execDur = ((FFRTTraceRecord::TimeStamp() - startExecuteTime) / worker->cacheFreq);
+        uint64_t execDur = ((TimeStamp() - startExecuteTime) / worker->cacheFreq);
         TaskBlockInfoReport(execDur, isNotUv ? worker->cacheLabel : "uv_task", worker->cacheQos, worker->cacheFreq);
     }
 #endif
@@ -189,13 +189,12 @@ void CPUWorker::WorkerLooper(CPUWorker* worker)
             RunTask(task, worker);
             continue;
         }
-        //It is about to enter the idle state.
+        // It is about to enter the idle state.
         if (FFRTFacade::GetEUInstance().GetSchedMode(worker->GetQos()) == sched_mode_type::sched_energy_saving_mode) {
             if (FFRTFacade::GetEUInstance().WorkerShare(worker, RunSingleTask)) {
                 continue;
             }
         }
-
         FFRT_PERF_WORKER_IDLE(static_cast<int>(worker->qos));
         auto action = worker->ops.WorkerIdleAction(worker);
         if (action == WorkerAction::RETRY) {

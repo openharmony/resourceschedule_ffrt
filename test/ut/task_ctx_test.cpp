@@ -15,7 +15,11 @@
 #include <gtest/gtest.h>
 #include <thread>
 #include "dm/dependence_manager.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "ffrt_inner.h"
 #include "internal_inc/types.h"
 #include "common.h"

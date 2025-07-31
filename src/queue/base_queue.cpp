@@ -150,22 +150,22 @@ std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* a
     return iter->second(attr);
 }
 
-uint32_t BaseQueue::GetDueTaskCount()
+uint64_t BaseQueue::GetDueTaskCount()
 {
     std::lock_guard lock(mutex_);
-    uint32_t count = GetDueTaskCount(whenMap_);
+    uint64_t count = GetDueTaskCount(whenMap_);
     if (count != 0) {
-        FFRT_LOGD("qid = %u Current Due Task Count %u", GetQueueId(), count);
+        FFRT_LOGD("qid = %llu Current Due Task Count %llu", GetQueueId(), count);
     }
     return count;
 }
 
-uint32_t BaseQueue::GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap)
+uint64_t BaseQueue::GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap)
 {
     const uint64_t& time = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now()).time_since_epoch().count());
     auto it = whenMap.lower_bound(time);
-    uint32_t count = static_cast<uint32_t>(std::distance(whenMap.begin(), it));
+    uint64_t count = static_cast<uint64_t>(std::distance(whenMap.begin(), it));
     return count;
 }
 

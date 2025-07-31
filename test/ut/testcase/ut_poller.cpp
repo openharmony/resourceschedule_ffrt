@@ -365,7 +365,7 @@ HWTEST_F(PollerTest, GetTaskWaitTime, TestSize.Level0)
     EXPECT_GT(poller.GetTaskWaitTime(&task), 0);
 }
 
-HWTEST_F(PollerTest, WaitFdEventTest, TestSize.Level0)
+HWTEST_F(PollerTest, WaitFdEventTest, TestSize.Level1)
 {
     Poller poller;
     std::thread th([&] { poller.PollOnce(30000); });
@@ -404,7 +404,7 @@ HWTEST_F(PollerTest, WaitFdEventTest, TestSize.Level0)
     th.detach();
 }
 
-HWTEST_F(PollerTest, WaitFdEventTestLegacyMode, TestSize.Level0)
+HWTEST_F(PollerTest, WaitFdEventTestLegacyMode, TestSize.Level1)
 {
     Poller poller;
     std::thread th([&] { poller.PollOnce(30000); });
@@ -445,7 +445,7 @@ HWTEST_F(PollerTest, WaitFdEventTestLegacyMode, TestSize.Level0)
     th.detach();
 }
 
-HWTEST_F(PollerTest, ProcessTimerDataCb, TestSize.Level0)
+HWTEST_F(PollerTest, ProcessTimerDataCb, TestSize.Level1)
 {
     Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);
@@ -459,7 +459,7 @@ HWTEST_F(PollerTest, ProcessTimerDataCb, TestSize.Level0)
     EXPECT_EQ(poller.m_waitTaskMap.size(), 0);
 }
 
-HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level0)
+HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level1)
 {
     Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);
@@ -480,7 +480,7 @@ HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level0)
     EXPECT_EQ(nfds, 1);
 }
 
-HWTEST_F(PollerTest, ClearMaskWakeData, TestSize.Level0)
+HWTEST_F(PollerTest, ClearMaskWakeData, TestSize.Level1)
 {
     Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);
@@ -501,7 +501,7 @@ HWTEST_F(PollerTest, ClearMaskWakeData, TestSize.Level0)
     EXPECT_EQ(poller.m_delFdCacheMap.size(), 0);
 }
 
-HWTEST_F(PollerTest, ReleaseFdWakeData, TestSize.Level0)
+HWTEST_F(PollerTest, ReleaseFdWakeData, TestSize.Level1)
 {
     Poller poller;
     for (int i = 0; i < 3; i++) {
@@ -518,7 +518,7 @@ HWTEST_F(PollerTest, ReleaseFdWakeData, TestSize.Level0)
     EXPECT_EQ(poller.m_delCntMap.size(), 2);
 }
 
-HWTEST_F(PollerTest, DeterminePollerReady, TestSize.Level0)
+HWTEST_F(PollerTest, DeterminePollerReady, TestSize.Level1)
 {
     Poller poller;
     EXPECT_FALSE(poller.DeterminePollerReady());
@@ -529,7 +529,7 @@ HWTEST_F(PollerTest, DeterminePollerReady, TestSize.Level0)
     EXPECT_TRUE(poller.DeterminePollerReady());
 }
 
-HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level0)
+HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level1)
 {
     Poller poller;
     TimerDataWithCb data;
@@ -546,7 +546,7 @@ HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level0)
     EXPECT_EQ(poller.GetTimerStatus(0), ffrt_timer_notfound);
 }
 
-HWTEST_F(PollerTest, FetchCachedEventAndDoUnmask, TestSize.Level0)
+HWTEST_F(PollerTest, FetchCachedEventAndDoUnmask, TestSize.Level1)
 {
     Poller poller;
     EventVec eventVec;
@@ -562,7 +562,7 @@ HWTEST_F(PollerTest, FetchCachedEventAndDoUnmask, TestSize.Level0)
     EXPECT_EQ(poller.FetchCachedEventAndDoUnmask(eventVec, events), 2);
 }
 
-HWTEST_F(PollerTest, DelFdEvent, TestSize.Level0)
+HWTEST_F(PollerTest, DelFdEvent, TestSize.Level1)
 {
     Poller poller;
     EXPECT_EQ(poller.DelFdEvent(0), -1);
@@ -575,7 +575,7 @@ HWTEST_F(PollerTest, DelFdEvent, TestSize.Level0)
     poller.ClearCachedEvents(currTask);
 }
 
-HWTEST_F(PollerTest, Qos_Test, TestSize.Level0)
+HWTEST_F(PollerTest, Qos_Test, TestSize.Level1)
 {
     ffrt_qos_t qos = qos_default;
     ffrt::QoS ffrtQos;

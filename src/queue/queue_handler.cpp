@@ -14,7 +14,6 @@
  */
 
 #include "queue/queue_handler.h"
-#include <sys/syscall.h>
 #include <sstream>
 #include "concurrent_queue.h"
 #include "eventhandler_adapter_queue.h"
@@ -27,10 +26,6 @@
 #include "util/time_format.h"
 #include "tm/queue_task.h"
 #include "sched/scheduler.h"
-
-#ifdef FFRT_ENABLE_HITRACE_CHAIN
-#include "dfx/trace/ffrt_trace_chain.h"
-#endif
 
 namespace {
 constexpr uint32_t STRING_SIZE_MAX = 128;
@@ -82,6 +77,7 @@ QueueHandler::~QueueHandler()
     // clear tasks in queue
     CancelAndWait();
     FFRTFacade::GetQMInstance().DeregisterQueue(this);
+
     // release callback resource
     if (timeout_ > 0) {
         // wait for all delayedWorker to complete.
@@ -131,12 +127,6 @@ void QueueHandler::Submit(QueueTask* task)
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
-
-#ifdef FFRT_ENABLE_HITRACE_CHAIN
-    if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
-        task->traceId_ = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
-    }
-#endif
 
     // if qos not specified, qos of the queue is inherited by task
     if (task->GetQos() == qos_inherit || task->GetQos() == qos_default) {
@@ -248,7 +238,7 @@ bool QueueHandler::CheckExecutingTask()
 int QueueHandler::Cancel(const char* name)
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return INACTIVE,
-         "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
+        "cannot cancel, [queueId=%u] constructed failed", GetQueueId());
     std::lock_guard lock(mutex_);
     std::vector<QueueTask*> taskVec = queue_->GetHeadTask();
     for (auto& task : taskVec) {
@@ -264,7 +254,6 @@ int QueueHandler::Cancel(const char* name)
     } else {
         trafficRecord_.DoneTraffic(ret);
     }
-
     return ret > 0 ? SUCC : FAILED;
 }
 
@@ -321,6 +310,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         }
 
         f->exec(f);
+
         if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
             uint64_t completeTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
@@ -333,8 +323,8 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
         task->Finish();
         RemoveTimeoutMonitor(task);
-        trafficRecord_.DoneTraffic();
 
+        trafficRecord_.DoneTraffic();
         // run task batch
         nextTask = task->GetNextTask();
         {
@@ -344,7 +334,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         task->DecDeleteRef();
         if (nextTask == nullptr) {
             if (!queue_->IsOnLoop()) {
-                execTaskId_.store(0);
+            execTaskId_.store(0);
                 Deliver();
             }
         }
@@ -470,11 +460,11 @@ std::string QueueHandler::GetDfxInfo(int index) const
         TaskStatus curTaskStatus = curTaskVec_[index]->curStatus;
         uint64_t curTaskTime = curTaskVec_[index]->statusTime.load(std::memory_order_relaxed);
         TaskStatus preTaskStatus = curTaskVec_[index]->preStatus.load(std::memory_order_relaxed);
-        ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], gid=[" << curTaskVec_[index]->gid <<
-            "], with delay of[" << curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
-            "], current task status[" << StatusToString(curTaskStatus) << "], start at[" <<
-            FormatDateString4SteadyClock(curTaskTime) << "], last status[" << StatusToString(preTaskStatus)
-            << "]";
+        ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], qname=[" << name_ <<
+                "], with delay of[" <<  curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
+                "], current status[" << StatusToString(curTaskStatus) << "], start at[" <<
+                FormatDateString4SteadyClock(curTaskTime) << "], last status[" << StatusToString(preTaskStatus)
+                << "], type=[" << queue_->GetQueueType() << "]";
     } else {
         ss << "Current queue or task nullptr";
     }
@@ -488,7 +478,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
     std::lock_guard lock(mutex_);
     std::pair<std::vector<uint64_t>, uint64_t> curTaskInfo;
     uint64_t minTime = UINT64_MAX;
-    for (int i = 0;i < static_cast<int>(curTaskVec_.size()); i++) {
+    for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
         QueueTask* curTask = curTaskVec_[i];
         if (curTask == nullptr) {
             curTaskInfo.first.emplace_back(INVALID_GID);
@@ -498,42 +488,56 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
         uint64_t curTaskTime = curTask->statusTime.load(std::memory_order_relaxed);
         if (curTaskTime == 0 || CheckDelayStatus()) {
             curTaskInfo.first.emplace_back(INVALID_GID);
-            // The next inspection time needs to be updated if current task is a delayed task and there are
-            // still tasks in the whenMap, otherwise pause the inspection.
+            // Update the next inspection time if current task is delaying and there are still tasks in whenMap.
+            // Otherwise, pause the monitor timer.
             if (whenmapTskCount > 0) {
-                uint64_t now = TimeStampCntvct();
-                minTime = std::min(minTime, now);
+                minTime = std::min(minTime, TimeStampCntvct());
             }
             continue;
         }
 
-        if (curTaskTime < timeoutThreshold) {
-            TimeoutTask& timeoutTaskInfo = timeoutTaskVec_[i];
-            if (curTask->gid == timeoutTaskInfo.taskGid &&
-                curTask->curStatus == timeoutTaskInfo.taskStatus) {
+        if (curTaskTime > timeoutThreshold) {
+            curTaskInfo.first.emplace_back(INVALID_GID);
+            minTime = std::min(minTime, curTaskTime);
+            continue;
+        }
+
+        TimeoutTask& timeoutTaskInfo = timeoutTaskVec_[i];
+        if (curTask->gid == timeoutTaskInfo.taskGid &&
+            curTask->curStatus == timeoutTaskInfo.taskStatus) {
+                // Check if current timeout task needs to update timeout count.
+                uint64_t nextSchedule = curTaskTime + timeoutUs * timeoutTaskInfo.timeoutCnt;
+                if (nextSchedule < timeoutThreshold) {
                     timeoutTaskInfo.timeoutCnt += 1;
-            } else {
-                timeoutTaskInfo.timeoutCnt = 1;
-                timeoutTaskInfo.taskGid = curTask->gid;
-                timeoutTaskInfo.taskStatus = curTask->curStatus;
-            }
-
-            ReportTaskTimeout(timeoutUs, ss, i);
-
-            // When the same task is reported mutiple times, the next inspection time is updated by adding the
-            // accumulated time based on the current status time.
-            uint64_t nextTimeSchedule = curTaskTime + (timeoutUs * timeoutTaskInfo.timeoutCnt);
-            curTaskInfo.first.emplace_back(timeoutTaskInfo.taskGid);
-            minTime = std::min(minTime, nextTimeSchedule);
-            continue;
+                } else {
+                    curTaskInfo.first.emplace_back(INVALID_GID);
+                    minTime = std::min(minTime, nextSchedule);
+                    continue;
+                }
+        } else {
+            timeoutTaskInfo.timeoutCnt = 1;
+            timeoutTaskInfo.taskGid = curTask->gid;
+            timeoutTaskInfo.taskStatus = curTask->curStatus;
         }
 
-        curTaskInfo.first.emplace_back(INVALID_GID);
-        minTime = std::min(minTime, curTaskTime);
+        // When the same task is reported multiple times, the next inspection time is updated by adding the
+        // accumulated time based on the current status time.
+        curTaskInfo.first.emplace_back(timeoutTaskInfo.taskGid);
+        uint64_t nextTimeSchedule = curTaskTime + (timeoutUs * timeoutTaskInfo.timeoutCnt);
+        minTime = std::min(minTime, nextTimeSchedule);
+
+        if (ControlTimeoutFreq(timeoutTaskInfo.timeoutCnt)) {
+            ReportTaskTimeout(timeoutUs, ss, i);
+        }
     }
 
     curTaskInfo.second = minTime;
     return curTaskInfo;
+}
+
+bool QueueHandler::ControlTimeoutFreq(uint64_t timeoutCnt)
+{
+    return (timeoutCnt < 10) || (timeoutCnt < 100 && timeoutCnt % 10 == 0) || (timeoutCnt % 100 == 0);
 }
 
 void QueueHandler::ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss, int index)

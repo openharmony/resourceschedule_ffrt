@@ -15,7 +15,11 @@
 #ifndef QUEUE_ATTR_PRIVATE_H
 #define QUEUE_ATTR_PRIVATE_H
 #include <string>
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 
 namespace ffrt {
 class queue_attr_private {
@@ -27,7 +31,7 @@ public:
 
     explicit queue_attr_private(const queue_attr attr)
         : qos_(attr.qos()),
-        threadMode_(attr.thread_mode())
+          threadMode_(attr.thread_mode())
     {
     }
 

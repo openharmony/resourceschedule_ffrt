@@ -16,7 +16,11 @@
 #ifndef GLOBAL_CONFIG_H
 #define GLOBAL_CONFIG_H
 
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "types.h"
 
 namespace ffrt {

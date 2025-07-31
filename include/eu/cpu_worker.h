@@ -26,7 +26,11 @@
 #include <sstream>
 #include "dfx_dump_catcher.h"
 #endif
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "tm/task_base.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/executor_task.h"

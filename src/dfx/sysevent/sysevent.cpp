@@ -115,7 +115,7 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
 {
     static std::once_flag firstCallFlag;
     if (unlikely(passed > lONG_TASK_TIME_LIMIT)) {
-        uint64_t now = FFRTTraceRecord::TimeStamp();
+        uint64_t now = TimeStamp();
         {
             std::lock_guard<std::mutex> lock(mtx);
             static uint64_t firstCallTime = 0;

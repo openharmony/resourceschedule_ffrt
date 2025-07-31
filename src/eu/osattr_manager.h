@@ -20,7 +20,11 @@
 #include <cstring>
 #include <fcntl.h>
 #include "ffrt_inner.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "dfx/log/ffrt_log_api.h"
 
 namespace ffrt {

@@ -78,14 +78,14 @@ public:
     static void LockMem()
     {
         if (Instance().lockMem_ != nullptr) {
-            return Instance().lockMem_();
+            Instance().lockMem_();
         }
     }
 
     static void UnlockMem()
     {
         if (Instance().unlockMem_ != nullptr) {
-            return Instance().unlockMem_();
+            Instance().unlockMem_();
         }
     }
 

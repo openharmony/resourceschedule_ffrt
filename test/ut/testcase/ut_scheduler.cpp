@@ -71,13 +71,13 @@ HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level0)
 
 /*
  * 测试用例名称：ffrt_sched_local_push_pop
- * 测试用例描述：TaskScheduler, 开启本地队列后push和pop
+ * 测试用例描述：TaskSchduler, 开启本地队列后push和pop
  * 预置条件    ：无
  * 操作步骤    ：1、初始化STaskScheduler
- *              2、push和pop任务
+                 2、push和pop任务
  * 预期结果    ：push和pop后的任务数量符合预期
  */
-HWTEST_F(SchedulerTest, ffrt_sched_local_push_pop, TestSize.Level1)
+HWTEST_F(SchedulerTest, ffrt_sched_local_push_pop, TestSize.Level0)
 {
     STaskScheduler scheduler;
     scheduler.SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
@@ -163,9 +163,9 @@ HWTEST_F(SchedulerTest, ffrt_sched_local_steal, TestSize.Level0)
  * 测试用例描述：TaskSchduler, 开启本地队列后向优先槽推任务
  * 预置条件    ：无
  * 操作步骤    ：1、初始化STaskScheduler
- *              2、push任务到localQueue后保存到本地队列容器中
- *              3、调用PopTask触发偷取任务
- * 预期结果    : 偷取任务成功
+                 2、push任务到localQueue后保存到本地队列容器中
+                 3、调用PopTask触发偷取任务
+ * 预期结果    ：偷取任务成功
  */
 HWTEST_F(SchedulerTest, ffrt_sched_local_priority, TestSize.Level0)
 {
@@ -203,8 +203,8 @@ namespace {
  * 测试用例名称：task_runqueue_pop_to_another_full_test
  * 测试用例描述：SpmcQueue, 向另一个即将满任务的队列中push任务
  * 预置条件    ：无
- * 操作步骤    ：1、初始化两个队列， 一个填10个，一个空间未初始化
- *              2、调用PopHeadToAnotherQueue向另一个队列中push任务
+ * 操作步骤    ：1、初始化两个队列，一个填10个，一个空间未初始化
+                 2、调用PopHeadToAnotherQueue向另一个队列中push任务
  * 预期结果    ：Push任务失败，原队列任务数量符合预期
  */
 HWTEST_F(SchedulerTest, task_runqueue_pop_to_another_fail_test, TestSize.Level0)
@@ -237,7 +237,7 @@ HWTEST_F(SchedulerTest, task_runqueue_pop_to_another_fail_test, TestSize.Level0)
     }
 }
 
-HWTEST_F(SchedulerTest, sched_test, TestSize.Level0)
+HWTEST_F(SchedulerTest, sched_test, TestSize.Level1)
 {
     STaskScheduler* scheduler = new STaskScheduler();
     scheduler->SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);

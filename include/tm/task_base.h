@@ -19,12 +19,16 @@
 #include <vector>
 #include "eu/co_routine.h"
 #include "internal_inc/types.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "sched/execute_ctx.h"
-#include "internal_inc/types.h"
-#include "core/task_attr_private.h"
 #include "internal_inc/non_copyable.h"
 #include "util/time_format.h"
+#include "internal_inc/types.h"
+#include "core/task_attr_private.h"
 
 namespace ffrt {
 static constexpr uint64_t cacheline_size = 64;
@@ -193,12 +197,14 @@ protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };
 
+std::string StatusToString(TaskStatus status);
+
 void ExecuteTask(TaskBase* task);
 
 inline bool IsCoTask(TaskBase* task)
 {
-    return task && (task->type == ffrt_normal_task
-        || (task->type == ffrt_queue_task && (!reinterpret_cast<ffrt::CoTask*>(task)->threadMode_)));
+    return task && (task->type == ffrt_normal_task ||
+        (task->type == ffrt_queue_task && (!reinterpret_cast<ffrt::CoTask*>(task)->threadMode_)));
 }
 
 inline bool IncDeleteRefIfPositive(TaskBase* task)

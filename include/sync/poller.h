@@ -23,7 +23,11 @@
 #include <map>
 #include <unordered_map>
 #include <array>
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "sync/sync.h"
 #include "tm/task_base.h"
 #include "internal_inc/non_copyable.h"
@@ -77,7 +81,7 @@ struct WakeDataWithCb {
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void *dataVal, std::function<void(void*)> cbVal, CoTask *taskVal, bool repeat, uint64_t timeout)
+    TimerDataWithCb(void *dataVal, std::function<void(void *)> cbVal, CoTask *taskVal, bool repeat, uint64_t timeout)
         : data(dataVal), cb(cbVal), task(taskVal), repeat(repeat), timeout(timeout)
     {
         if (cb != nullptr) {

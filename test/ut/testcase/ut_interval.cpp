@@ -227,3 +227,18 @@ HWTEST_F(IntervalTest, loadPredict_basic_test, TestSize.Level0)
     // max among average and recent 2 load
     EXPECT_EQ(load, 300);
 }
+
+HWTEST_F(IntervalTest, update_task_test, TestSize.Level0)
+{
+    FrameInterval interval = FrameInterval(100, QoS(static_cast<int>(qos_user_interactive)));
+    int ret = interval.Begin();
+    EXPECT_EQ(ret, 0);
+
+    TaskSwitchState state = TaskSwitchState::BEGIN;
+
+    interval.UpdateTaskSwitch(state);
+    state = TaskSwitchState::UPDATE;
+    interval.UpdateTaskSwitch(state);
+    state = TaskSwitchState::END;
+    interval.UpdateTaskSwitch(state);
+}

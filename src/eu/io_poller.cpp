@@ -14,6 +14,7 @@
  */
 
 #include "eu/io_poller.h"
+#include <securec.h>
 #include <sys/prctl.h>
 #include "eu/blockaware.h"
 #include "eu/execute_unit.h"
@@ -29,7 +30,7 @@
 #endif
 
 namespace {
-const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60};
+const std::vector<uint64_t> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60 };
 }
 namespace ffrt {
 namespace {
@@ -52,7 +53,7 @@ void WakeTask(CoTask* task)
 
 int CopyEventsToConsumer(EventVec& cachedEventsVec, struct epoll_event* eventsVec) noexcept
 {
-    int nfds = cachedEventsVec.size();
+    int nfds = static_cast<int>(cachedEventsVec.size());
     for (int i = 0; i < nfds; i++) {
         eventsVec[i].events = cachedEventsVec[i].events;
         eventsVec[i].data.fd = cachedEventsVec[i].data.fd;
@@ -90,10 +91,8 @@ IOPoller::IOPoller() noexcept: m_epFd { ::epoll_create1(EPOLL_CLOEXEC) }
         static_cast<uint64_t>(m_wakeData.fd)));
 #endif
     epoll_event ev { .events = EPOLLIN, .data = { .ptr = static_cast<void*>(&m_wakeData) } };
-    if (epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0) {
-        FFRT_SYSEVENT_LOGE("epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
-        std::terminate();
-    }
+    FFRT_COND_TERMINATE((epoll_ctl(m_epFd, EPOLL_CTL_ADD, m_wakeData.fd, &ev) < 0),
+        "epoll_ctl add fd error: efd=%d, fd=%d, errorno=%d", m_epFd, m_wakeData.fd, errno);
 }
 
 IOPoller::~IOPoller() noexcept
@@ -193,7 +192,7 @@ int IOPoller::PollOnce(int timeout) noexcept
 
         if (data->mode == PollerType::ASYNC_CB) {
             // async io callback
-            timeOutReport.cbStartTime.store(FFRTTraceRecord::TimeStamp(), std::memory_order_relaxed);
+            timeOutReport.cbStartTime.store(TimeStamp(), std::memory_order_relaxed);
             timeOutReport.reportCount = 0;
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
             if (data->traceId.valid == HITRACE_ID_VALID) {
@@ -494,7 +493,7 @@ void IOPoller::ReleaseFdWakeData() noexcept
         int delFd = delIter->first;
         unsigned int delCnt = static_cast<unsigned int>(delIter->second);
         auto& wakeDataList = m_wakeDataMap[delFd];
-        int diff = wakeDataList.size() - delCnt;
+        unsigned int diff = wakeDataList.size() - delCnt;
         if (diff == 0) {
             m_wakeDataMap.erase(delFd);
             m_delCntMap.erase(delIter++);
@@ -675,7 +674,7 @@ void IOPoller::MonitTimeOut()
     if (timeOutReport.cbStartTime == 0) {
         return;
     }
-    uint64_t now = FFRTTraceRecord::TimeStamp();
+    uint64_t now = TimeStamp();
     static const uint64_t freq = [] {
         uint64_t f = Arm64CntFrq();
         return (f == 1) ? 1000000 : f;

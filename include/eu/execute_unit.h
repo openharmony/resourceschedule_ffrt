@@ -46,7 +46,6 @@ constexpr uint64_t THREE_STAGE_INTERVAL = 1000;
 constexpr uint64_t ONE_STAGE_WORKER_NUM = 128;
 constexpr uint64_t TWO_STAGE_WORKER_NUM = 256;
 constexpr int DEEP_SLEEP_NUM_DOUBLE = 2;
-constexpr size_t MAX_TID_SIZE = 100;
 }
 
 namespace ffrt {
@@ -56,6 +55,13 @@ enum class TaskNotifyType {
     TASK_LOCAL,
     TASK_ESCAPED,
     TASK_ADDED_RTQ,
+};
+
+struct WorkerStatusInfo {
+    unsigned int startedCnt = 0;
+    unsigned int exitedCnt = 0;
+    std::deque<pid_t> startedTids;
+    std::deque<pid_t> exitedTids;
 };
 
 struct CPUWorkerGroup {
@@ -72,12 +78,6 @@ struct CPUWorkerGroup {
     std::unordered_map<CPUWorker *, std::unique_ptr<CPUWorker>> threads;
     std::mutex mutex;
     std::condition_variable cv;
-
-    fast_mutex workerStatusMutex;
-    unsigned int startedCnt = 0;
-    unsigned int exitedCnt = 0;
-    std::deque<pid_t> startedTids;
-    std::deque<pid_t> exitedTids;
 
     // group status parameters
     alignas(cacheline_size) fast_mutex lock;
@@ -162,26 +162,6 @@ struct CPUWorkerGroup {
         std::shared_lock<std::shared_mutex> lck(tgMutex);
         for (const auto& pair : threads) {
             pair.second->SetExited();
-        }
-    }
-
-    inline void WorkerStart()
-    {
-        std::lock_guard lk(workerStatusMutex);
-        startedCnt++;
-        startedTids.push_back(ExecuteCtx::Cur()->tid);
-        if (startedTids.size() > MAX_TID_SIZE) {
-            startedTids.pop_front();
-        }
-    }
-
-    inline void WorkerExit()
-    {
-        std::lock_guard lk(workerStatusMutex);
-        exitedCnt++;
-        exitedTids.push_back(ExecuteCtx::Cur()->tid);
-        if (exitedTids.size() > MAX_TID_SIZE) {
-            exitedTids.pop_front();
         }
     }
 };
@@ -305,6 +285,10 @@ public:
     void MonitorMain();
     BlockawareWakeupCond *WakeupCond(void);
 #endif
+    void WorkerStart(int qos);
+    void WorkerExit(int qos);
+    WorkerStatusInfo GetWorkerStatusInfoAndReset(int qos);
+
 protected:
     virtual void WakeupWorkers(const QoS &qos) = 0;
 

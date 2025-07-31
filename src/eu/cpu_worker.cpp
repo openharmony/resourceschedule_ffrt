@@ -135,7 +135,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     QoS qos = worker->GetQos();
-    FFRTFacade::GetEUInstance().GetWorkerGroup(qos()).WorkerStart();
+    FFRTFacade::GetEUInstance().WorkerStart(qos());
     worker->WorkerSetup();
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -157,7 +157,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(qos));
     WorkerLooper(worker);
     CoWorkerExit();
-    FFRTFacade::GetEUInstance().GetWorkerGroup(qos()).WorkerExit();
+    FFRTFacade::GetEUInstance().WorkerExit(qos());
     worker->ops.WorkerRetired(worker);
 }
 

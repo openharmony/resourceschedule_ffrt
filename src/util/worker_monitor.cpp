@@ -492,32 +492,9 @@ void WorkerMonitor::RecordWorkerStatusInfo()
     bool exitedFirstQos = true;
 
     for (int qos = 0; qos < QoS::MaxNum(); qos++) {
-        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(qos);
-        unsigned int startedCnt = 0;
-        unsigned int exitedCnt = 0;
-        std::deque<pid_t> startedTids;
-        std::deque<pid_t> exitedTids;
-
-        {
-            std::lock_guard lk(workerGroup.workerStatusMutex);
-            if (workerGroup.startedCnt != 0) {
-                startedCnt = workerGroup.startedCnt;
-                startedTids = workerGroup.startedTids;
-                workerGroup.startedCnt = 0;
-                std::deque<pid_t> emptyDeque;
-                workerGroup.startedTids.swap(emptyDeque);
-            }
-            if (workerGroup.exitedCnt != 0) {
-                exitedCnt = workerGroup.exitedCnt;
-                exitedTids = workerGroup.exitedTids;
-                workerGroup.exitedCnt = 0;
-                std::deque<pid_t> emptyDeque;
-                workerGroup.exitedTids.swap(emptyDeque);
-            }
-        }
-
-        ProcessWorkerInfo(startedOss, startedFirstQos, qos, startedCnt, startedTids);
-        ProcessWorkerInfo(exitedOss, exitedFirstQos, qos, exitedCnt, exitedTids);
+        auto workerStatusInfo = FFRTFacade::GetEUInstance().GetWorkerStatusInfoAndReset(qos);
+        ProcessWorkerInfo(startedOss, startedFirstQos, qos, workerStatusInfo.startedCnt, workerStatusInfo.startedTids);
+        ProcessWorkerInfo(exitedOss, exitedFirstQos, qos, workerStatusInfo.exitedCnt, workerStatusInfo.exitedTids);
     }
 
     if (!startedOss.str().empty()) {

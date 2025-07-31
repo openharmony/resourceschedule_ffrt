@@ -25,6 +25,9 @@
 namespace {
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
 constexpr uint64_t MAX_ESCAPE_INTERVAL_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+constexpr size_t MAX_TID_SIZE = 100;
+ffrt::WorkerStatusInfo g_workerStatusInfo[ffrt::QoS::MaxNum()];
+ffrt::fast_mutex g_workerStatusMutex[ffrt::QoS::MaxNum()];
 }
 
 namespace ffrt {
@@ -493,5 +496,44 @@ void ExecuteUnit::ReportEscapeEvent(int qos, size_t totalNum)
 #ifdef FFRT_SEND_EVENT
     WorkerEscapeReport(GetCurrentProcessName(), qos, totalNum);
 #endif
+}
+
+void ExecuteUnit::WorkerStart(int qos)
+{
+    auto& workerStatusInfo = g_workerStatusInfo[qos];
+    std::lock_guard lk(g_workerStatusMutex[qos]);
+    workerStatusInfo.startedCnt++;
+    auto& tids = workerStatusInfo.startedTids;
+    tids.push_back(ExecuteCtx::Cur()->tid);
+    if (tids.size() > MAX_TID_SIZE) {
+        tids.pop_front();
+    }
+}
+
+void ExecuteUnit::WorkerExit(int qos)
+{
+    auto& workerStatusInfo = g_workerStatusInfo[qos];
+    std::lock_guard lk(g_workerStatusMutex[qos]);
+    workerStatusInfo.exitedCnt++;
+    auto& tids = workerStatusInfo.exitedTids;
+    tids.push_back(ExecuteCtx::Cur()->tid);
+    if (tids.size() > MAX_TID_SIZE) {
+        tids.pop_front();
+    }
+}
+
+WorkerStatusInfo ExecuteUnit::GetWorkerStatusInfoAndReset(int qos)
+{
+    auto& workerStatusInfo = g_workerStatusInfo[qos];
+    WorkerStatusInfo result;
+    std::lock_guard<fast_mutex> lock(g_workerStatusMutex[qos]);
+    result = workerStatusInfo;
+    workerStatusInfo.startedCnt = 0;
+    workerStatusInfo.exitedCnt = 0;
+    std::deque<pid_t> startedEmptyDeque;
+    workerStatusInfo.startedTids.swap(startedEmptyDeque);
+    std::deque<pid_t> exitedEmptyDeque;
+    workerStatusInfo.exitedTids.swap(exitedEmptyDeque);
+    return result;
 }
 } // namespace ffrt

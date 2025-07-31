@@ -27,6 +27,9 @@
 #include "eu/blockaware.h"
 #endif
 #include "util/ffrt_facade.h"
+#ifdef OHOS_THREAD_STACK_DUMP
+#include "dfx_dump_catcher.h"
+#endif
 namespace {
 const unsigned int TRY_POLL_FREQ = 51;
 const unsigned int LOCAL_QUEUE_SIZE = 128;

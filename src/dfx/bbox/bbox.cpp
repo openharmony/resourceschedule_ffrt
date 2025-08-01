@@ -139,6 +139,7 @@ static inline void SaveWorkerStatus()
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
     for (int i = 0; i < QoS::MaxNum(); i++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        std::shared_lock lck(workerGroup.tgMutex); /* acquire the lock in RO */
         for (auto& thread : workerGroup.threads) {
             SaveLocalFifoStatus(i, thread.first);
             TaskBase* t = thread.first->curTask;

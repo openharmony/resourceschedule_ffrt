@@ -49,7 +49,7 @@ public:
     virtual int Remove(const char* name);
     virtual int Remove(const QueueTask* task);
     virtual void Stop();
-    virtual uint32_t GetDueTaskCount();
+    virtual uint64_t GetDueTaskCount();
 
     virtual bool IsOnLoop()
     {
@@ -92,7 +92,7 @@ protected:
     int Remove(const QueueTask* task, std::multimap<uint64_t, QueueTask*>& whenMap);
     int Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whenMap);
     bool HasTask(const char* name, std::multimap<uint64_t, QueueTask*> whenMap);
-    uint32_t GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap);
+    uint64_t GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap);
 
     const uint32_t queueId_;
     std::atomic_bool delayStatus_ { false };

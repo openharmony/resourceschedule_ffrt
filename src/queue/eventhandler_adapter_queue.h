@@ -65,7 +65,7 @@ public:
         return ffrt_queue_eventhandler_adapter;
     }
 
-    inline uint64_t GetMapSize() override
+    uint64_t GetMapSize() override
     {
         std::unique_lock lock(mutex_);
         return std::accumulate(std::begin(whenMapVec_), std::end(whenMapVec_), 0u,
@@ -77,7 +77,7 @@ public:
     int Remove() override;
     int Remove(const char* name) override;
     int Remove(const QueueTask* task) override;
-    uint32_t GetDueTaskCount() override;
+    uint64_t GetDueTaskCount() override;
 
     bool IsIdle();
     int Dump(const char* tag, char* buf, uint32_t len, bool historyInfo = true);

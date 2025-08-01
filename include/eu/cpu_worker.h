@@ -25,7 +25,11 @@
 #ifdef OHOS_THREAD_STACK_DUMP
 #include <sstream>
 #endif
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "tm/task_base.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/executor_task.h"

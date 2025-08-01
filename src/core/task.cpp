@@ -15,9 +15,14 @@
 
 #include <memory>
 #include <vector>
+
 #include "ffrt_inner.h"
 #include "internal_inc/osal.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "sched/task_scheduler.h"
 #include "core/task_attr_private.h"
 #include "internal_inc/config.h"
@@ -500,6 +505,7 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
     if (ffrt::FFRTFacade::GetEUInstance().SetWorkerStackSize(ffrt::QoS(qos), stack_size) != 0) {
         return ffrt_error;
     }
+
     return ffrt_success;
 }
 

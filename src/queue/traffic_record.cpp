@@ -104,13 +104,13 @@ void TrafficRecord::CalculateTraffic(QueueHandler* handler, const uint64_t& time
             doneCnt_.load() << "]";
         FFRT_LOGW("%s", ss.str().c_str());
 
-            {
-                std::lock_guard lock(mtx_);
-                if (trafficRecordInfo.size() > MAX_RECORD_LIMIT) {
-                    trafficRecordInfo.erase(trafficRecordInfo.begin());
-                }
-                trafficRecordInfo.emplace_back(std::make_pair(time, ss.str()));
+        {
+            std::lock_guard lock(mtx_);
+            if (trafficRecordInfo.size() > MAX_RECORD_LIMIT) {
+                trafficRecordInfo.erase(trafficRecordInfo.begin());
             }
+            trafficRecordInfo.emplace_back(std::make_pair(time, ss.str()));
+        }
 
         if (submitCnt_ - doneCnt_ > outflows && handler->GetQueueDueCount() > outflows) {
             if (time - lastReportTime_ > REPORT_INTERVAL) {

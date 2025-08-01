@@ -24,7 +24,11 @@
 #include <thread>
 #include <unordered_map>
 #include <array>
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "sync/sync.h"
 #include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"

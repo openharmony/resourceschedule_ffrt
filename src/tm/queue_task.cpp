@@ -33,6 +33,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         } else {
             label = handler->GetName() + "_" + std::to_string(gid);
         }
+        threadMode_ = handler->GetMode();
     }
 
     uptime_ = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -48,7 +49,6 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         } else if (attr->timeout_) {
             schedTimeout_ = std::max(attr->timeout_, MIN_SCHED_TIMEOUT); // min 0.1s
         }
-        threadMode_ = handler->GetMode();
     }
 
     FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus", gid, delay_, type, prio_,

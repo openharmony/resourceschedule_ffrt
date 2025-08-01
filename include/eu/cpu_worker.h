@@ -186,7 +186,7 @@ public:
 #endif
 
     void SetThreadAttr(const QoS& newQos);
-    TaskBase* curTask = nullptr;
+    std::atomic<TaskBase*> curTask = nullptr;
     std::atomic<uintptr_t> curTaskType_ {ffrt_invalid_task};
     std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值
     uint64_t curTaskGid_ = UINT64_MAX;

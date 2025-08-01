@@ -19,7 +19,7 @@ class task_attr;
 ##### set task name
 
 ```cpp
-inline task_attr& task_attr::name(const char* name);
+task_attr& task_attr::name(const char* name);
 ```
 
 参数
@@ -37,7 +37,7 @@ inline task_attr& task_attr::name(const char* name);
 ##### get task name
 
 ```cpp
-inline const char* task_attr::name() const;
+const char* task_attr::name() const;
 ```
 
 返回值
@@ -51,7 +51,7 @@ inline const char* task_attr::name() const;
 ##### set task qos
 
 ```cpp
-inline task_attr& task_attr::qos(qos qos_);
+task_attr& task_attr::qos(qos qos_);
 ```
 
 参数
@@ -69,7 +69,7 @@ inline task_attr& task_attr::qos(qos qos_);
 ##### get task qos
 
 ```cpp
-inline int task_attr::qos() const;
+int task_attr::qos() const;
 ```
 
 返回值
@@ -83,7 +83,7 @@ inline int task_attr::qos() const;
 ##### set task delay
 
 ```cpp
-inline task_attr& task_attr::delay(uint64_t delay_us);
+task_attr& task_attr::delay(uint64_t delay_us);
 ```
 
 参数
@@ -101,7 +101,7 @@ inline task_attr& task_attr::delay(uint64_t delay_us);
 ##### get task delay
 
 ```cpp
-inline uint64_t task_attr::delay() const;
+uint64_t task_attr::delay() const;
 ```
 
 返回值
@@ -115,7 +115,7 @@ inline uint64_t task_attr::delay() const;
 ##### set task priority
 
 ```cpp
-inline task_attr& task_attr::priority(ffrt_queue_priority_t prio);
+task_attr& task_attr::priority(ffrt_queue_priority_t prio);
 ```
 
 参数
@@ -133,7 +133,7 @@ inline task_attr& task_attr::priority(ffrt_queue_priority_t prio);
 ##### get task priority
 
 ```cpp
-inline ffrt_queue_priority_t task_attr::priority() const;
+ffrt_queue_priority_t task_attr::priority() const;
 ```
 
 返回值
@@ -147,7 +147,7 @@ inline ffrt_queue_priority_t task_attr::priority() const;
 ##### set task stack_size
 
 ```cpp
-inline task_attr& task_attr::stack_size(uint64_t size);
+task_attr& task_attr::stack_size(uint64_t size);
 ```
 
 参数
@@ -165,7 +165,7 @@ inline task_attr& task_attr::stack_size(uint64_t size);
 ##### get task stack_size
 
 ```cpp
-inline uint64_t task_attr::stack_size() const;
+uint64_t task_attr::stack_size() const;
 ```
 
 返回值
@@ -179,7 +179,7 @@ inline uint64_t task_attr::stack_size() const;
 ##### set task timeout
 
 ```cpp
-inline task_attr& task_attr::timeout(uint64_t timeout_us);
+task_attr& task_attr::timeout(uint64_t timeout_us);
 ```
 
 参数
@@ -197,7 +197,7 @@ inline task_attr& task_attr::timeout(uint64_t timeout_us);
 ##### get task timeout
 
 ```cpp
-inline uint64_t task_attr::timeout() const;
+uint64_t task_attr::timeout() const;
 ```
 
 返回值
@@ -239,7 +239,7 @@ class task_handle;
 ##### get_id
 
 ```cpp
-inline uint64_t task_handle::get_id() const;
+uint64_t task_handle::get_id() const;
 ```
 
 返回值
@@ -274,7 +274,7 @@ int ret = testQueue->cancel(t);
 
 ```cpp
 template<class T>
-inline ffrt_function_header_t* create_function_wrapper(T&& func, ffrt_function_kind_t kind = ffrt_function_kind_general);
+ffrt_function_header_t* create_function_wrapper(T&& func, ffrt_function_kind_t kind = ffrt_function_kind_general);
 ```
 
 #### 参数
@@ -299,16 +299,16 @@ inline ffrt_function_header_t* create_function_wrapper(T&& func, ffrt_function_k
 #### 声明
 
 ```cpp
-static inline void submit(std::function<void()>&& func, const task_attr& attr = {});
-static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
-static inline void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
-static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
-static inline void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
-static inline void submit(const std::function<void()>& func, const task_attr& attr = {});
-static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
-static inline void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
-static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
-static inline void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
+static void submit(std::function<void()>&& func, const task_attr& attr = {});
+static void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
+static void submit(std::function<void()>&& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
+static void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
+static void submit(std::function<void()>&& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
+static void submit(const std::function<void()>& func, const task_attr& attr = {});
+static void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
+static void submit(const std::function<void()>& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
+static void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
+static void submit(const std::function<void()>& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
 ```
 
 #### 参数
@@ -366,16 +366,16 @@ ffrt::submit([&]() { y = std::cos(x); z = std::tan(x); }, indeps, outdeps);
 #### 声明
 
 ```cpp
-static inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {});
-static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
-static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
-static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
-static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
-static inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {});
-static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
-static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
-static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
-static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
+static task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {});
+static task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
+static task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
+static task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
+static task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
+static task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {});
+static task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps, const task_attr& attr = {});
+static task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps, std::initializer_list<dependence> out_deps, const task_attr& attr = {});
+static task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps, const task_attr& attr = {});
+static task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps, const std::vector<dependence>& out_deps, const task_attr& attr = {});
 ```
 
 #### 参数
@@ -412,9 +412,9 @@ ffrt::submit([&]() { z += y; }, {t1, t2}); // 第三个任务，使用前两个�
 #### 声明
 
 ```cpp
-static inline void wait();
-static inline void wait(std::initializer_list<dependence> deps);
-static inline void wait(const std::vector<dependence>& deps);
+static void wait();
+static void wait(std::initializer_list<dependence> deps);
+static void wait(const std::vector<dependence>& deps);
 ```
 
 #### 参数
@@ -477,7 +477,7 @@ ffrt::submit([]() {
 #### 声明
 
 ```cpp
-static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size);
+static ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size);
 ```
 
 #### 参数
@@ -505,7 +505,7 @@ ffrt_error_t ret = set_worker_stack_size(qos_default, 2 * 1024 * 1024);
 #### 声明
 
 ```cpp
-static inline int this_task::update_qos(qos qos_);
+static int this_task::update_qos(qos qos_);
 ```
 
 #### 参数
@@ -536,7 +536,7 @@ ffrt::submit([]() {
 #### 声明
 
 ```cpp
-static inline uint64_t this_task::get_id();
+static uint64_t this_task::get_id();
 ```
 
 #### 返回值
@@ -823,8 +823,8 @@ task_handle queue::submit_h(std::function<void()>&& func, const task_attr& attr 
 ##### submit_head
 
 ```cpp
-inline void queue::submit_head(const std::function<void()>& func, const task_attr& attr = {});
-inline void queue::submit_head(std::function<void()>&& func, const task_attr& attr = {});
+void queue::submit_head(const std::function<void()>& func, const task_attr& attr = {});
+void queue::submit_head(std::function<void()>&& func, const task_attr& attr = {});
 ```
 
 参数
@@ -839,8 +839,8 @@ inline void queue::submit_head(std::function<void()>&& func, const task_attr& at
 ##### submit_head_h
 
 ```cpp
-inline task_handle queue::submit_head_h(const std::function<void()>& func, const task_attr& attr = {});
-inline task_handle queue::submit_head_h(std::function<void()>&& func, const task_attr& attr = {});
+task_handle queue::submit_head_h(const std::function<void()>& func, const task_attr& attr = {});
+task_handle queue::submit_head_h(std::function<void()>&& func, const task_attr& attr = {});
 ```
 
 参数
@@ -877,7 +877,7 @@ int queue::cancel(const task_handle& handle);
 ##### wait
 
 ```cpp
-inline void queue::wait(const task_handle& handle);
+void queue::wait(const task_handle& handle);
 ```
 
 参数
@@ -905,7 +905,7 @@ uint64_t queue::get_task_cnt();
 ##### get_main_queue
 
 ```cpp
-static inline queue* queue::get_main_queue();
+static queue* queue::get_main_queue();
 ```
 
 返回值
@@ -961,7 +961,7 @@ class mutex;
 ##### try_lock
 
 ```cpp
-inline bool mutex::try_lock();
+bool mutex::try_lock();
 ```
 
 返回值
@@ -975,7 +975,7 @@ inline bool mutex::try_lock();
 ##### lock
 
 ```cpp
-inline void mutex::lock();
+void mutex::lock();
 ```
 
 描述
@@ -985,7 +985,7 @@ inline void mutex::lock();
 ##### unlock
 
 ```cpp
-inline void mutex::unlock();
+void mutex::unlock();
 ```
 
 描述
@@ -1060,7 +1060,7 @@ class shared_mutex;
 ##### try_lock
 
 ```cpp
-inline bool shared_mutex::try_lock();
+bool shared_mutex::try_lock();
 ```
 
 返回值
@@ -1074,7 +1074,7 @@ inline bool shared_mutex::try_lock();
 ##### lock
 
 ```cpp
-inline void shared_mutex::lock();
+void shared_mutex::lock();
 ```
 
 描述
@@ -1084,7 +1084,7 @@ inline void shared_mutex::lock();
 ##### unlock
 
 ```cpp
-inline void shared_mutex::unlock();
+void shared_mutex::unlock();
 ```
 
 描述
@@ -1094,7 +1094,7 @@ inline void shared_mutex::unlock();
 ##### lock_shared
 
 ```cpp
-inline void shared_mutex::lock_shared();
+void shared_mutex::lock_shared();
 ```
 
 描述
@@ -1104,7 +1104,7 @@ inline void shared_mutex::lock_shared();
 ##### try_lock_shared
 
 ```cpp
-inline void shared_mutex::try_lock_shared();
+void shared_mutex::try_lock_shared();
 ```
 
 描述
@@ -1114,7 +1114,7 @@ inline void shared_mutex::try_lock_shared();
 ##### unlock_shared
 
 ```cpp
-inline void shared_mutex::unlock_shared();
+void shared_mutex::unlock_shared();
 ```
 
 描述
@@ -1184,7 +1184,7 @@ class recursive_mutex;
 ##### try_lock
 
 ```cpp
-inline bool recursive_mutex::try_lock();
+bool recursive_mutex::try_lock();
 ```
 
 返回值
@@ -1198,7 +1198,7 @@ inline bool recursive_mutex::try_lock();
 ##### lock
 
 ```cpp
-inline void recursive_mutex::lock();
+void recursive_mutex::lock();
 ```
 
 描述
@@ -1208,7 +1208,7 @@ inline void recursive_mutex::lock();
 ##### unlock
 
 ```cpp
-inline bool recursive_mutex::unlock();
+bool recursive_mutex::unlock();
 ```
 
 描述
@@ -1398,7 +1398,7 @@ int main()
 
 ```cpp
 template <class _Rep, class _Period>
-inline void this_task::sleep_for(const std::chrono::duration<_Rep, _Period>& d);
+void this_task::sleep_for(const std::chrono::duration<_Rep, _Period>& d);
 ```
 
 参数
@@ -1413,7 +1413,7 @@ inline void this_task::sleep_for(const std::chrono::duration<_Rep, _Period>& d);
 
 ```cpp
 template<class _Clock, class _Duration>
-inline void this_task::sleep_until(
+void this_task::sleep_until(
     const std::chrono::time_point<_Clock, _Duration>& abs_time);
 ```
 
@@ -1448,7 +1448,7 @@ int main()
 #### 声明
 
 ```cpp
-static inline void this_task::yield();
+static void this_task::yield();
 ```
 
 #### 描述

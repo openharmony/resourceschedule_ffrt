@@ -187,7 +187,7 @@ bool TaskScheduler::CheckUVTaskConcurrency(UVTask* task)
 {
     std::lock_guard lg(uvMtx);
     // the number of workers are executing UV tasks has reached the upper limit.
-    // therefore, the current task is placed back to the head of the waiting queue (be preferentually obtained later).
+    // therefore, the current task is placed back to the head of the waiting queue (be preferentially obtained later).
     if (uvTaskConcurrency_ >= UV_TASK_MAX_CONCURRENCY) {
         uvTaskWaitingQueue_.push_front(task);
         return false;

@@ -15,6 +15,7 @@
 
 #include "eu/execute_unit.h"
 #include "eu/sexecute_unit.h"
+
 #include <climits>
 #include <cstring>
 #include <sys/stat.h>
@@ -123,7 +124,6 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
     if (tearDown) {
         return WorkerAction::RETIRE;
     }
-
     auto& group = workerGroup[thread->GetQos()];
     std::unique_lock lk(group.mutex);
     IntoSleep(thread->GetQos());
@@ -134,7 +134,7 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
     if (group.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(thread->GetQos());
         return tearDown || taskExistence;
-    })) {
+        })) {
         workerGroup[thread->GetQos()].OutOfSleep();
         thread->SetWorkerState(WorkerStatus::EXECUTING);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -184,7 +184,7 @@ void SExecuteUnit::HandleTaskNotifyDefault(SExecuteUnit* manager, const QoS& qos
             }
             break;
         case TaskNotifyType::TASK_LOCAL:
-            manager->PokeImpl(qos, taskCount, notifyType);
+                manager->PokeImpl(qos, taskCount, notifyType);
             break;
         default:
             break;

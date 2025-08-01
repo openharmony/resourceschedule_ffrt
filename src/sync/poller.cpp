@@ -14,10 +14,10 @@
  */
 
 #include "sync/poller.h"
+#include <securec.h>
 #include "sched/execute_ctx.h"
 #include "tm/scpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
-#include <securec.h>
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
 #include "dfx/trace/ffrt_trace_chain.h"
 #endif

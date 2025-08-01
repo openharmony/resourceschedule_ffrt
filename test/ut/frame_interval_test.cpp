@@ -139,3 +139,12 @@ HWTEST_F(FrameIntervalTest, JoinTest, TestSize.Level0)
     fi->Leave();
     delete fi;
 }
+
+HWTEST_F(FrameIntervalTest, JoinSubTest, TestSize.Level0)
+{
+    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    EXPECT_NE(fi, nullptr);
+    fi->wg = nullptr;
+    fi->OnQoSIntervals(ffrt::IntervalState::DEADLINE_BEGIN);
+    fi->Join();
+}

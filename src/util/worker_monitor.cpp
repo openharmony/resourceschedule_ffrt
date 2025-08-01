@@ -335,7 +335,6 @@ void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
     ss << ", last status[" << StatusToString(preTaskStatus) << "], timeout for[" <<
         timeoutUs_ / MIN_TIMEOUT_THRESHOLD_US << "]s, reported count: " << timeoutTskInfo.timeoutCnt;
     FFRT_LOGW("%s", ss.str().c_str());
-
     return;
 }
 

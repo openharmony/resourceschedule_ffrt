@@ -24,7 +24,11 @@
 #include "internal_inc/osal.h"
 #include "core/version_ctx.h"
 #include "sched/execute_ctx.h"
+#ifdef USE_OHOS_QOS
 #include "qos.h"
+#else
+#include "staging_qos/sched/qos.h"
+#endif
 #include "dfx/trace/ffrt_trace.h"
 #include "sched/scheduler.h"
 #include "eu/execute_unit.h"

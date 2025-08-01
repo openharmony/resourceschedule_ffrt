@@ -21,7 +21,6 @@
 #include <unordered_map>
 #include "internal_inc/osal.h"
 #include "util/ffrt_facade.h"
-
 namespace {
 constexpr char CONF_FILEPATH[] = "/etc/ffrt/ffrt_whitelist.conf";
 constexpr int INDENT_SPACE_NUM = 4;
@@ -75,7 +74,7 @@ private:
                 }
             }
         } else {
-            // 当文件不存在或者无权限时时默认都关
+            // 当文件不存在或者无权限时默认都关
             FFRT_LOGW("white_list.conf does not exist or file permission denied");
         }
 #else

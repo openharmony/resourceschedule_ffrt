@@ -24,7 +24,6 @@
 #include <thread>
 #ifdef OHOS_THREAD_STACK_DUMP
 #include <sstream>
-#include "dfx_dump_catcher.h"
 #endif
 #include "qos.h"
 #include "tm/task_base.h"

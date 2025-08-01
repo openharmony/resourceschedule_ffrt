@@ -103,8 +103,8 @@ FFRT_C_API ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t hand
  * FFRT provides two ways to deal with fd events:
  *     - Mode 1: execute the cb function
  *     - Mode 2: register fd event into FFRT by ffrt_epoll_ctl, then wait for fd event by ffrt_epoll_wait
- * In Mode 1, ffrt_epoll_ctl can be called in user thread or ffrt task;
- *     FFRT will monitor the fd event and then execute the cb function.
+ * In Mode 1, ffrt_epoll_ctl can be called in user thread or ffrt task
+ *            FFRT will monitor the fd event and then execute the cb function.
  * In Mode 2, both ffrt_epoll_ctl and ffrt_epoll_wait must be called in the same ffrt task.
  *
  * @warning Do not call `exit` in `cb` - this my cause unexpected behavior.

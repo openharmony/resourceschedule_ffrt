@@ -43,6 +43,10 @@ typedef enum {
 /**
  * @brief Checks whether a task with the given name can be found in the queue.
  *
+ * @note Task names are constructed by concatenating the business-provided name with the queue name and task ID.
+ *       To avoid task name conflicts, the business must ensure name uniqueness and avoid conflicts with 
+ *       the concatenated queue name and task ID.
+ *
  * @param queue Indicates a queue handle.
  * @param name Indicates name to be searched for, regular expressions are supported.
  * @return Returns whether the task is found.
@@ -75,7 +79,11 @@ FFRT_C_API int ffrt_queue_cancel_by_name(ffrt_queue_t queue, const char* name);
 
 /**
  * @brief Checks whether the queue is idle.
- *
+ * 
+ * @note Task names are constructed by concatenating the business-provided name with the queue name and task ID.
+ *       To avoid task name conflicts, the business must ensure name uniqueness and avoid conflicts with 
+ *       the concatenated queue name and task ID.
+ * 
  * @param queue Indicates a queue handle.
  * @return Returns whether the queue is idle.
  */

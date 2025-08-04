@@ -2577,6 +2577,7 @@ FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);
         ffrt_loop_t loop = ffrt_loop_create(queue_handle);
 
         // 启动独立线程来执行loop
+        pthread_t thread;
         int ret = pthread_create(&thread, 0, ThreadFunc, loop);
         if (ret != 0) {
             printf("pthread_create failed!");

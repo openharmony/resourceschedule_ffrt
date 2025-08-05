@@ -42,8 +42,8 @@
  * @brief Initializes a rwlock.
  *
  * @param rwlock Indicates a pointer to the rwlock.
- * @param attr Indicates a pointer to the rwlock attribute.
- * @return Returns <b>ffrt_success</b> if the rwlock is initialized;
+ * @param attr Indicates a pointer to the rwlock attribute, only supports default mode, set to null pointer.
+ * @return Returns <b>ffrt_success</b> if the rwlock is initialized and the attr is nullptr;
            returns <b>ffrt_error_inval</b> otherwise.
  * @since 18
  */

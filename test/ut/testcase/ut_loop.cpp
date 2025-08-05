@@ -195,7 +195,14 @@ HWTEST_F(LoopTest, loop_run_destroy_success, TestSize.Level0)
     EXPECT_NE(loop, nullptr);
 
     pthread_t thread;
-    pthread_create(&thread, 0, ThreadFunc, loop);
+    int createRet = pthread_create(&thread, 0, ThreadFunc, loop);
+    if (createRet != 0) {
+        printf("pthread_create failed!");
+        ffrt_loop_destroy(loop);
+        ffrt_queue_attr_destroy(&queue_attr);
+        ffrt_queue_destroy(queue_handle);
+        return;
+    }
 
     ffrt_loop_stop(loop);
     pthread_join(thread, nullptr);

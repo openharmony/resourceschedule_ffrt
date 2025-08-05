@@ -55,7 +55,11 @@
 FFRT_C_API ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
 
 /**
- * @brief Stops a timer on ffrt worker
+ * @brief Stops a timer on ffrt worker.
+ *
+ * @note Blocking interface. Avoid using in callbacks to prevent deadlock or synchronization issues.
+ *       When the callback corresponding to the provided handle is executing,
+ *       this function will wait for the callback to complete before continuing.
  *
  * @param qos Indicates qos of the worker that runs timer.
  * @param handle Indicates the target timer handle.

@@ -32,20 +32,23 @@ constexpr int VIP_PRIO_MIN = 41;
 constexpr int VIP_PRIO_MAX = 50;
 constexpr int RT_PRIO_MIN = 51;
 constexpr int RT_PRIO_MAX = 139;
+constexpr int THREAD_INDEX_MAX = 99999;
 }
 
 namespace ffrt {
 void CPUWorker::WorkerSetup()
 {
-    static std::atomic<int> threadIndex[QoS::MaxNum()] = {0};
+    static std::atomic<uint64_t> threadIndex[QoS::MaxNum()] = {0};
     std::string qosStr = std::to_string(qos());
-    int index = threadIndex[qos()];
+    uint64_t index = threadIndex[qos()].fetch_add(1, std::memory_order_seq_cst);
+    if (index > THREAD_INDEX_MAX) {
+        index %= THREAD_INDEX_MAX;
+    }
     std::string threadName = std::string(WORKER_THREAD_NAME_PREFIX) + qosStr +
         std::string(WORKER_THREAD_SYMBOL) + std::to_string(index);
     if (qosStr == "") {
         FFRT_SYSEVENT_LOGE("ffrt threadName qos[%d] index[%d]", qos(), index);
     }
-    threadIndex[qos()].fetch_add(1, std::memory_order_relaxed);
     pthread_setname_np(pthread_self(), threadName.c_str());
 }
 

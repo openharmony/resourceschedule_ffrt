@@ -79,7 +79,7 @@ FFRT_C_API int ffrt_queue_cancel_by_name(ffrt_queue_t queue, const char* name);
 
 /**
  * @brief Checks whether the queue is idle.
- * 
+ *
  * @note Task names are constructed by concatenating the business-provided name with the queue name and task ID.
  *       To avoid task name conflicts, the business must ensure name uniqueness and avoid conflicts with
  *       the concatenated queue name and task ID.

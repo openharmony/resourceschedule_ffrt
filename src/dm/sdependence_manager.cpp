@@ -60,7 +60,6 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
      * is managed by `unique_ptr` and we don't know exactly when it happens.
      */
     FuncManager::Instance();
-    ExecuteUnit::Instance();
 
 #ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace

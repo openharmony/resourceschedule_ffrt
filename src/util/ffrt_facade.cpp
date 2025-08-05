@@ -79,6 +79,12 @@ FFRTFacade::FFRTFacade()
      * order will be (completion of async tasks) -> `~DelayedWorker()` -> `~SDependenceManager`.
      */
     DelayedWorker::GetInstance();
+    /* Same argument as above for ExecuteUnit. ExecuteUnit destructor is what waits on all
+     * threads to be done and delays destruction of main objects. It also initiates the
+     * tearDown. We must avoid the situation where detached threads or timer tasks
+     * are calling `SDependenceManager::onTaskDone` on destroyed SDependenceManager object.
+     */
+    ExecuteUnit::Instance();
     ProcessExitManager::Instance();
     InitWhiteListFlag();
 }

@@ -80,7 +80,7 @@ int ConcurrentQueue::Push(QueueTask* task)
         }
         return PushDelayTaskToTimer(task);
     }
-    return PushAndCalConcurrency(task, taskPriority, lock);
+    return PushAndCalConcurrency(task, taskPriority, lock, true);
 }
 
 QueueTask* ConcurrentQueue::Pull()
@@ -197,7 +197,7 @@ int ConcurrentQueue::WaitAll()
     for (const auto& iter : waitingMap_) {
         QueueTask* task = iter.second;
         QueueHandler* handler = task->GetHandler();
-        int ret = PushAndCalConcurrency(task, task->GetPriority(), lock);
+        int ret = PushAndCalConcurrency(task, task->GetPriority(), lock, false);
         if (ret == CONCURRENT) {
             if (task->GetDelay() == 0) {
                 handler->TransferTask(task);
@@ -206,7 +206,6 @@ int ConcurrentQueue::WaitAll()
             }
         }
     }
-
     waitingAll_ = false;
     waitingMap_.clear();
     return 0;
@@ -235,7 +234,8 @@ int ConcurrentQueue::PushDelayTaskToTimer(QueueTask* task)
     return SUCC;
 }
 
-int ConcurrentQueue::PushAndCalConcurrency(QueueTask* task, ffrt_queue_priority_t taskPriority, std::unique_lock<ffrt::mutex>& lock)
+int ConcurrentQueue::PushAndCalConcurrency(QueueTask* task, ffrt_queue_priority_t taskPriority,
+    std::unique_lock<ffrt::mutex>& lock, bool needUnlock)
 {
     if (concurrency_.load() < maxConcurrency_) {
         int oldValue = concurrency_.fetch_add(1);
@@ -250,10 +250,11 @@ int ConcurrentQueue::PushAndCalConcurrency(QueueTask* task, ffrt_queue_priority_
 
     whenMapVec_[taskPriority].insert({task->GetUptime(), task});
     if (task == whenMapVec_[taskPriority].begin()->second) {
-        lock.unlock();
+        if (needUnlock) {
+            lock.unlock();
+        }
         cond_.notify_all();
     }
-
     return SUCC;
 }
 

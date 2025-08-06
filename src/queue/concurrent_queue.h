@@ -73,7 +73,8 @@ public:
 
 private:
     int PushDelayTaskToTimer(QueueTask* task);
-    int PushAndCalConcurrency(QueueTask* task, ffrt_queue_priority_t taskPriority, std::unique_lock<ffrt::mutex>& lock);
+    int PushAndCalConcurrency(QueueTask* task, ffrt_queue_priority_t taskPriority, std::unique_lock<ffrt::mutex>& lock,
+        bool needUnlock);
     void Stop(std::multimap<uint64_t, QueueTask*>& whenMap);
 
     Loop* loop_ { nullptr };

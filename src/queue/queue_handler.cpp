@@ -81,8 +81,8 @@ QueueHandler::~QueueHandler()
     // release callback resource
     if (timeout_ > 0) {
         // wait for all delayedWorker to complete.
-        while (delayedCbCnt_.load() > 0) {
-            this_task::sleep_for(std::chrono::microseconds(timeout_));
+        while ((delayedCbCnt_.load() > 0) && !GetDelayedWorkerExitFlag()) {
+            std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
         }
 
         if (timeoutCb_ != nullptr) {
@@ -412,7 +412,9 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     timeoutWe->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
     task->SetMonitorTask(timeoutWe);
 
+    delayedCbCnt_.fetch_add(1);
     if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb, true)) {
+        delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe);
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
@@ -445,10 +447,11 @@ void QueueHandler::RunTimeOutCallback(QueueTask* task)
         << task->label << "], execution time exceeds[" << timeout_ << "] us";
     FFRT_LOGE("%s", ss.str().c_str());
     if (timeoutCb_ != nullptr) {
-        delayedCbCnt_.fetch_add(1);
-        FFRTFacade::GetDWInstance().SubmitAsyncTask([this] {
-            timeoutCb_->exec(timeoutCb_);
-            delayedCbCnt_.fetch_sub(1);
+        QueueTask* cbTask = GetQueueTaskByFuncStorageOffset(timeoutCb_);
+        cbTask->IncDeleteRef();
+        FFRTFacade::GetDWInstance().SubmitAsyncTask([timeoutCb = timeoutCb_, cbTask] {
+            timeoutCb->exec(timeoutCb);
+            cbTask->DecDeleteRef();
         });
     }
 }

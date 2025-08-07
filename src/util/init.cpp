@@ -37,72 +37,15 @@ extern "C" {
 #endif
 void RegistCommonTaskFactory()
 {
-    ffrt::TaskFactory<ffrt::QueueTask>::RegistCb(
-        [] () -> ffrt::QueueTask* {
-            return ffrt::SimpleAllocator<ffrt::QueueTask>::AllocMem();
-        },
-        [] (ffrt::QueueTask* task) {
-            ffrt::SimpleAllocator<ffrt::QueueTask>::FreeMem(task);
-        },
-        [] (ffrt::QueueTask* task) {
-            ffrt::SimpleAllocator<ffrt::QueueTask>::FreeMem_(task);
-        },
-        ffrt::SimpleAllocator<ffrt::QueueTask>::getUnfreedMem,
-        ffrt::SimpleAllocator<ffrt::QueueTask>::HasBeenFreed,
-        ffrt::SimpleAllocator<ffrt::QueueTask>::LockMem,
-        ffrt::SimpleAllocator<ffrt::QueueTask>::UnlockMem);
-
-    ffrt::TaskFactory<ffrt::IOTask>::RegistCb(
-        [] () -> ffrt::IOTask* {
-            return ffrt::SimpleAllocator<ffrt::IOTask>::AllocMem();
-        },
-        [] (ffrt::IOTask* task) {
-            ffrt::SimpleAllocator<ffrt::IOTask>::FreeMem(task);
-        },
-        [] (ffrt::IOTask* task) {
-            ffrt::SimpleAllocator<ffrt::IOTask>::FreeMem_(task);
-        },
-        ffrt::SimpleAllocator<ffrt::IOTask>::getUnfreedMem,
-        ffrt::SimpleAllocator<ffrt::IOTask>::HasBeenFreed,
-        ffrt::SimpleAllocator<ffrt::IOTask>::LockMem,
-        ffrt::SimpleAllocator<ffrt::IOTask>::UnlockMem);
-
-    ffrt::TaskFactory<ffrt::UVTask>::RegistCb(
-        [] () -> ffrt::UVTask* {
-            return ffrt::SimpleAllocator<ffrt::UVTask>::AllocMem();
-        },
-        [] (ffrt::UVTask* task) {
-            ffrt::SimpleAllocator<ffrt::UVTask>::FreeMem(task);
-        },
-        [] (ffrt::UVTask* task) {
-            ffrt::SimpleAllocator<ffrt::UVTask>::FreeMem_(task);
-        },
-        ffrt::SimpleAllocator<ffrt::UVTask>::getUnfreedMem,
-        [] (ffrt::UVTask* task) {
-            return ffrt::SimpleAllocator<ffrt::UVTask>::HasBeenFreed(task);
-        },
-        ffrt::SimpleAllocator<ffrt::UVTask>::LockMem,
-        ffrt::SimpleAllocator<ffrt::UVTask>::UnlockMem);
+    ffrt::RegisterTaskFactoryCallbacks<ffrt::QueueTask>();
+    ffrt::RegisterTaskFactoryCallbacks<ffrt::IOTask>();
+    ffrt::RegisterTaskFactoryCallbacks<ffrt::UVTask>();
 }
 
 __attribute__((constructor)) static void ffrt_init()
 {
     RegistCommonTaskFactory();
-    ffrt::TaskFactory<ffrt::CPUEUTask>::RegistCb(
-        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::AllocMem,
-        [] (ffrt::CPUEUTask* task) {
-            ffrt::SimpleAllocator<ffrt::SCPUEUTask>::FreeMem(static_cast<ffrt::SCPUEUTask*>(task));
-        },
-        [] (ffrt::CPUEUTask* task) {
-            ffrt::SimpleAllocator<ffrt::SCPUEUTask>::
-                FreeMem_(static_cast<ffrt::SCPUEUTask*>(task));
-        },
-        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::getUnfreedMem,
-        [] (ffrt::CPUEUTask* task) {
-            return ffrt::SimpleAllocator<ffrt::SCPUEUTask>::HasBeenFreed(static_cast<ffrt::SCPUEUTask*>(task));
-        },
-        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::LockMem,
-        ffrt::SimpleAllocator<ffrt::SCPUEUTask>::UnlockMem);
+    ffrt::RegisterTaskFactoryCallbacks<ffrt::CPUEUTask, ffrt::SCPUEUTask>();
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::STaskScheduler(); },
         [] (ffrt::TaskScheduler* schd) { delete schd; });

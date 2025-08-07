@@ -79,6 +79,11 @@ public:
         return Instance()->getUnfreed();
     }
 
+    static std::size_t getUnfreedMemSize()
+    {
+        return Instance()->getUnfreedSize();
+    }
+
     static bool HasBeenFreed(T* t)
     {
         return Instance()->BeenFreed(t);
@@ -118,6 +123,19 @@ private:
         for (auto ite = secondaryCache.cbegin(); ite != secondaryCache.cend(); ite++) {
             ret.push_back(reinterpret_cast<void *>(*ite));
         }
+#endif
+        return ret;
+    }
+
+    std::size_t getUnfreedSize()
+    {
+        std::lock_guard<decltype(lock)> lk(lock);
+        std::size_t ret = 0;
+#ifdef FFRT_BBOX_ENABLE
+        if (basePtr != nullptr) {
+            ret += MmapSz / TSize - primaryCache.size();
+        }
+        ret += secondaryCache.size();
 #endif
         return ret;
     }

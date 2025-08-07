@@ -146,7 +146,7 @@ void CoYield(void);
 void CoWait(const std::function<bool(ffrt::CoTask*)>& pred);
 void CoWake(ffrt::CoTask* task, CoWakeType type);
 
-CoRoutineEnv* GetCoEnv(void);
+CoRoutineEnv* GetCoRoutineEnv(void);
 
 inline void* GetCoStackAddr(CoRoutine* co)
 {

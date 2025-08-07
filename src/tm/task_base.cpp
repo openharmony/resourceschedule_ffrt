@@ -43,7 +43,7 @@ void ExecuteTask(TaskBase* task)
 
     // run task with coroutine
     if (USE_COROUTINE && isCoTask) {
-        while (CoStart(static_cast<CoTask*>(task), GetCoEnv()) != 0) {
+        while (CoStart(static_cast<CoTask*>(task), GetCoRoutineEnv()) != 0) {
             usleep(CO_CREATE_RETRY_INTERVAL);
         }
     } else {

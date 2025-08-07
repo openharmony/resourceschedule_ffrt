@@ -65,7 +65,7 @@ private:
     }
     void PokeLocal(const QoS& qos) override
     {
-        if (FFRTFacade::GetSchedInstance()->GetScheduler(qos).stealWorkers.load(std::memory_order_relaxed) == 0) {
+        if (!FFRTFacade::GetSchedInstance()->GetScheduler(qos).IsStealerActive()) {
             handleTaskNotify(this, qos, TaskNotifyType::TASK_LOCAL);
         }
     }

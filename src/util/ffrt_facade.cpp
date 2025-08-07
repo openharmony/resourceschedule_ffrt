@@ -20,6 +20,7 @@ namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 char g_processName[PROCESS_NAME_BUFFER_LENGTH] {};
 std::atomic<bool> g_exitFlag { false };
+std::atomic<bool> g_delayedWorkerExitFlag { false };
 std::shared_mutex g_exitMtx;
 std::once_flag g_processNameInitFlag;
 }
@@ -44,6 +45,16 @@ const char* GetCurrentProcessName()
         }
     });
     return g_processName;
+}
+
+bool GetDelayedWorkerExitFlag()
+{
+    return g_delayedWorkerExitFlag;
+}
+
+void SetDelayedWorkerExitFlag()
+{
+    g_delayedWorkerExitFlag.store(true);
 }
 
 class ProcessExitManager {

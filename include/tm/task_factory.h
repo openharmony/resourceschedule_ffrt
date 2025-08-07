@@ -51,6 +51,14 @@ public:
         return {};
     }
 
+    static std::size_t GetUnfreedMemSize()
+    {
+        if (Instance().getUnfreedMemSize_ != nullptr) {
+            return Instance().getUnfreedMemSize_();
+        }
+        return 0;
+    }
+
     static std::vector<void*> GetUnfreedTasksFiltered()
     {
         LockMem();
@@ -94,6 +102,7 @@ public:
         typename TaskAllocCB<T>::Free &&free,
         typename TaskAllocCB<T>::Free_ &&free_ = nullptr,
         typename TaskAllocCB<T>::GetUnfreedMem &&getUnfreedMem = nullptr,
+        typename TaskAllocCB<T>::GetUnfreedMemSize &&getUnfreedMemSize = nullptr,
         typename TaskAllocCB<T>::HasBeenFreed &&hasBeenFreed = nullptr,
         typename TaskAllocCB<T>::LockMem &&lockMem = nullptr,
         typename TaskAllocCB<T>::UnlockMem &&unlockMem = nullptr)
@@ -102,6 +111,7 @@ public:
         Instance().free_ = std::move(free);
         Instance().free__ = std::move(free_);
         Instance().getUnfreedMem_ = std::move(getUnfreedMem);
+        Instance().getUnfreedMemSize_ = std::move(getUnfreedMemSize);
         Instance().hasBeenFreed_ = std::move(hasBeenFreed);
         Instance().lockMem_ = std::move(lockMem);
         Instance().unlockMem_ = std::move(unlockMem);
@@ -112,6 +122,7 @@ private:
     typename TaskAllocCB<T>::Free free_;
     typename TaskAllocCB<T>::Free_ free__;
     typename TaskAllocCB<T>::GetUnfreedMem getUnfreedMem_;
+    typename TaskAllocCB<T>::GetUnfreedMemSize getUnfreedMemSize_;
     typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed_;
     typename TaskAllocCB<T>::LockMem lockMem_;
     typename TaskAllocCB<T>::UnlockMem unlockMem_;
@@ -130,6 +141,28 @@ public:
         TaskFactory<T>::UnlockMem();
     }
 };
+
+template <typename FactoryTaskType, typename AllocatorTaskType = FactoryTaskType>
+void RegisterTaskFactoryCallbacks()
+{
+    ffrt::TaskFactory<FactoryTaskType>::RegistCb(
+        [] () -> FactoryTaskType* {
+            return ffrt::SimpleAllocator<AllocatorTaskType>::AllocMem();
+        },
+        [] (FactoryTaskType* task) {
+            ffrt::SimpleAllocator<AllocatorTaskType>::FreeMem(static_cast<AllocatorTaskType*>(task));
+        },
+        [] (FactoryTaskType* task) {
+            ffrt::SimpleAllocator<AllocatorTaskType>::FreeMem_(static_cast<AllocatorTaskType*>(task));
+        },
+        ffrt::SimpleAllocator<AllocatorTaskType>::getUnfreedMem,
+        ffrt::SimpleAllocator<AllocatorTaskType>::getUnfreedMemSize,
+        [] (FactoryTaskType* task) {
+            return ffrt::SimpleAllocator<AllocatorTaskType>::HasBeenFreed(static_cast<AllocatorTaskType*>(task));
+        },
+        ffrt::SimpleAllocator<AllocatorTaskType>::LockMem,
+        ffrt::SimpleAllocator<AllocatorTaskType>::UnlockMem);
+}
 } // namespace ffrt
 
 #endif

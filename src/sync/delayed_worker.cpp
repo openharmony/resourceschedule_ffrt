@@ -227,6 +227,7 @@ void DelayedWorker::Terminate()
 DelayedWorker::~DelayedWorker()
 {
     Terminate();
+    SetDelayedWorkerExitFlag();
     while (asyncTaskCnt_.load() > 0) {
         std::this_thread::sleep_for(std::chrono::microseconds(ASYNC_TASK_SLEEP_MS));
     }

@@ -428,6 +428,7 @@ void TestTaskFactory(bool isSimpleAllocator)
 {
     MyTask* task = ffrt::TaskFactory<MyTask>::Alloc();
     uint32_t taskCount = ffrt::TaskFactory<MyTask>::GetUnfreedMem().size();
+    EXPECT_EQ(taskCount, ffrt::TaskFactory<MyTask>::GetUnfreedMemSize());
 #ifdef FFRT_BBOX_ENABLE
     EXPECT_FALSE(ffrt::TaskFactory<MyTask>::HasBeenFreed(task));
 #else
@@ -442,6 +443,7 @@ void TestTaskFactory(bool isSimpleAllocator)
     }
 
     uint32_t newCount = ffrt::TaskFactory<MyTask>::GetUnfreedMem().size();
+    EXPECT_EQ(newCount, ffrt::TaskFactory<MyTask>::GetUnfreedMemSize());
 #ifdef FFRT_BBOX_ENABLE
     EXPECT_GT(taskCount, newCount);
 #else
@@ -490,11 +492,16 @@ public:
     std::vector<void*> GetUnfreedMem()
     {
         std::vector<void*> res;
-        res.resize(allocedTask.size());
+        res.reserve(allocedTask.size());
         std::transform(allocedTask.begin(), allocedTask.end(), std::inserter(res, res.end()), [](T* ptr) {
             return static_cast<void*>(ptr);
         });
         return res;
+    }
+
+    std::size_t GetUnfreedMemSize()
+    {
+        return allocedTask.size();
     }
 
 private:
@@ -517,6 +524,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level0)
         ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem,
         ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem_,
         ffrt::SimpleAllocator<TmTest::MyTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::getUnfreedMemSize,
         ffrt::SimpleAllocator<TmTest::MyTask>::HasBeenFreed,
         ffrt::SimpleAllocator<TmTest::MyTask>::LockMem,
         ffrt::SimpleAllocator<TmTest::MyTask>::UnlockMem);
@@ -539,6 +547,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level0)
         [&] (TmTest::MyTask* task) { custom_manager.Free(task); },
         [&] (TmTest::MyTask* task) { custom_manager.Free(task); },
         [&] () -> std::vector<void*> { return custom_manager.GetUnfreedMem(); },
+        [&] () -> std::size_t { return custom_manager.GetUnfreedMemSize(); },
         [&] (TmTest::MyTask* task) { return custom_manager.HasBeenFreed(task); },
         [&] () { custom_manager.LockMem(); },
         [&] () { custom_manager.UnlockMem(); });
@@ -625,6 +634,7 @@ HWTEST_F(CoreTest, ffrt_task_factory_deleteRef_test, TestSize.Level0)
         ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem,
         ffrt::SimpleAllocator<TmTest::MyTask>::FreeMem_,
         ffrt::SimpleAllocator<TmTest::MyTask>::getUnfreedMem,
+        ffrt::SimpleAllocator<TmTest::MyTask>::getUnfreedMemSize,
         ffrt::SimpleAllocator<TmTest::MyTask>::HasBeenFreed,
         ffrt::SimpleAllocator<TmTest::MyTask>::LockMem,
         ffrt::SimpleAllocator<TmTest::MyTask>::UnlockMem);

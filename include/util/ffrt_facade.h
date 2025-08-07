@@ -79,11 +79,7 @@ public:
 private:
     FFRTFacade();
 
-    static FFRTFacade& Instance()
-    {
-        static FFRTFacade facade;
-        return facade;
-    }
+    static FFRTFacade& Instance();
 
     inline ExecuteUnit& GetEUInstanceImpl()
     {

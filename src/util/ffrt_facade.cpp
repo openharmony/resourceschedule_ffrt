@@ -13,8 +13,14 @@
  * limitations under the License.
  */
 #include "util/ffrt_facade.h"
+#include "core/version_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
+#include "sched/execute_ctx.h"
+#include "tm/io_task.h"
+#include "tm/queue_task.h"
+#include "tm/uv_task.h"
+#include "util/slab.h"
 
 namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
@@ -68,9 +74,44 @@ private:
     }
 };
 
+FFRTFacade& FFRTFacade::Instance()
+{
+    static FFRTFacade facade;
+    return facade;
+}
 FFRTFacade::FFRTFacade()
 {
+// control construct sequences of singletons
+#ifdef FFRT_OH_TRACE_ENABLE
+    TraceAdapter::Instance();
+#endif
+    SimpleAllocator<QueueTask>::Instance();
+    SimpleAllocator<IOTask>::Instance();
+    SimpleAllocator<UVTask>::Instance();
+    SimpleAllocator<VersionCtx>::Instance();
+    SimpleAllocator<WaitUntilEntry>::Instance();
+    TaskFactory<CPUEUTask>::Instance();
+    TaskFactory<QueueTask>::Instance();
+    TaskFactory<IOTask>::Instance();
+    TaskFactory<UVTask>::Instance();
     DependenceManager::Instance();
+    QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
+    CoRoutineFactory::Instance();
+    IOPoller::Instance();
+    TimerManager::Instance();
+    Scheduler::Instance();
+#ifdef FFRT_WORKER_MONITOR
+    WorkerMonitor::GetInstance();
+#endif
+    /* By calling `FuncManager::Instance()` we force the construction
+     * of FunManager singleton static object to complete before static object `SExecuteUnit` construction.
+     * This implies that the destruction of `SExecuteUnit` will happen before `FuncManager`.
+     * And the destructor of `SExecuteUnit` waits for all threads/CPUWorkers to finish. This way
+     * we prevent use-after-free on `func_map` in `FuncManager`, when accessed by
+     * `CPUWorker` objects while being destructed. Note that `CPUWorker` destruction
+     * is managed by `unique_ptr` and we don't know exactly when it happens.
+     */
+    FuncManager::Instance();
     /* Note that by constructing `DependenceManager` before `DelayedWorker`,
      * we make sure that the lifetime of `DependenceManager` is longer than `DelayedWorker`.
      * That is necessary because `DelayedWorker` may create async tasks (CPUWorker objects) which

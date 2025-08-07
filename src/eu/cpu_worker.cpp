@@ -114,7 +114,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
         }
     }
 #endif
-    worker->curTask = task;
+    worker->curTask.store(task, std::memory_order_relaxed);
     worker->curTaskType_.store(task->type, std::memory_order_relaxed);
 #ifdef WORKER_CACHE_TASKNAMEID
     if (isNotUv) {
@@ -125,7 +125,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 
     ExecuteTask(task);
 
-    worker->curTask = nullptr;
+    worker->curTask.store(nullptr, std::memory_order_relaxed);
     worker->curTaskType_.store(ffrt_invalid_task, std::memory_order_relaxed);
 #ifdef FFRT_SEND_EVENT
     if (isBetaVersion) {

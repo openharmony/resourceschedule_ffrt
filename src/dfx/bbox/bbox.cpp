@@ -139,6 +139,7 @@ static inline void SaveWorkerStatus()
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
     for (int i = 0; i < QoS::MaxNum(); i++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        std::shared_lock lck(workerGroup.tgMutex); /* acquire the lock in RO */
         for (auto& thread : workerGroup.threads) {
             SaveLocalFifoStatus(i, thread.first);
             TaskBase* t = thread.first->curTask;
@@ -163,7 +164,9 @@ static inline void SaveKeyStatus()
 
 static inline void SaveNormalTaskStatus()
 {
+    TaskFactory<CPUEUTask>::LockMem();
     auto unfree = TaskFactory<CPUEUTask>::GetUnfreedMem();
+    TaskFactory<CPUEUTask>::UnlockMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         std::vector<CPUEUTask*> tmp;
         for (auto task : unfree) {
@@ -173,7 +176,6 @@ static inline void SaveNormalTaskStatus()
                 tmp.emplace_back(t);
             }
         }
-
         if (tmp.size() > 0) {
             FFRT_BBOX_LOG("<<<=== %s ===>>>", tag);
         }
@@ -198,7 +200,6 @@ static inline void SaveNormalTaskStatus()
             }
         }
     };
-
     // Do not dump tasks marked with a final status (e.g., FINISH or CANCELED),
     // as they may be allocated by another submit and not initialized yet.
     apply("pending task", [](CPUEUTask* t) {
@@ -254,7 +255,9 @@ static void DumpQueueTask(const char* tag, const std::vector<QueueTask*>& tasks,
 
 static inline void SaveQueueTaskStatus()
 {
-    auto unfreeQueueTask = SimpleAllocator<QueueTask>::getUnfreedMem();
+    TaskFactory<QueueTask>::LockMem();
+    auto unfreeQueueTask = TaskFactory<QueueTask>::GetUnfreedMem();
+    TaskFactory<QueueTask>::UnlockMem();
     if (unfreeQueueTask.size() == 0) {
         return;
     }

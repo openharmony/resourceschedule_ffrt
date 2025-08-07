@@ -198,7 +198,7 @@ void WorkerMonitor::CheckWorkerStatus()
         CoWorkerInfo coWorkerInfo(i, workerGroup.threads.size(), workerGroup.executingNum, workerGroup.sleepingNum);
         for (auto& thread : workerGroup.threads) {
             CPUWorker* worker = thread.first;
-            TaskBase* workerTask = worker->curTask;
+            TaskBase* workerTask = worker->curTask.load(std::memory_order_relaxed);
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
                 continue;

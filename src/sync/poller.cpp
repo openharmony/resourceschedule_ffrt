@@ -661,7 +661,6 @@ void Poller::ExecuteTimerCb(TimePoint timer) noexcept
             RegisterTimerImpl(data);
         }
     }
-    timerMutex_.unlock();
 }
 
 void Poller::RegisterTimerImpl(const TimerDataWithCb& data) noexcept

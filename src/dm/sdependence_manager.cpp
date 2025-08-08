@@ -45,7 +45,6 @@ SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->cr
     SimpleAllocator<VersionCtx>::Instance();
     SimpleAllocator<WaitUntilEntry>::Instance();
     QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
-    IOPoller::Instance();
     TimerManager::Instance();
     Scheduler::Instance();
 #ifdef FFRT_WORKER_MONITOR

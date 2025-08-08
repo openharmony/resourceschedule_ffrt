@@ -96,6 +96,13 @@ FFRTFacade::FFRTFacade()
      * are calling `SDependenceManager::onTaskDone` on destroyed SDependenceManager object.
      */
     ExecuteUnit::Instance();
+    /* Ensure that IOPoller is destructed after SExecuteUnit.
+     * We need to make sure that the runner in IOPoller is not
+     * going to call `SExecuteUnit::WakeupWorkers`
+     * or `ffrt::SExecuteUnit::PokeImpl`, while SExecuteUnit
+     * is being destroyed.
+     */
+    IOPoller::Instance();
     ProcessExitManager::Instance();
     InitWhiteListFlag();
 }

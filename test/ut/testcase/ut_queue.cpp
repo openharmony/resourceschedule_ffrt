@@ -337,7 +337,9 @@ HWTEST_F(QueueTest, serial_double_cancel_failed, TestSize.Level0)
     std::function<void()>&& basicFunc = [&result]() { OnePlusForTest(static_cast<void*>(&result)); };
     ffrt_task_attr_t task_attr;
     (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
-    ffrt_task_attr_set_delay(&task_attr, 100); // 设置任务0.1ms后才执行，非必须
+    constexpr uint64_t delayMs = 1000 * 100; // 100 milliseconds delay
+    // we delay the task to make sure it does not complete before the first cancel.
+    ffrt_task_attr_set_delay(&task_attr, delayMs);
 
     ffrt_task_handle_t t1 =
         ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);

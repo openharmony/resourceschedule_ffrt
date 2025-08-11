@@ -38,7 +38,7 @@ void ffrt_this_task_set_legacy_mode(bool mode)
     } else {
         coTask->legacyCountNum--;
         if (coTask->legacyCountNum < 0) {
-            FFRT_SYSEVENT_LOGE("Legacy count num less than zero");
+            FFRT_SYSEVENT_LOGE("Legacy count num less than zero.");
         }
     }
 }

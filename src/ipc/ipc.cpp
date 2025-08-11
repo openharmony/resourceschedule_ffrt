@@ -18,6 +18,11 @@
 #include "sched/execute_ctx.h"
 #include "tm/cpu_task.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "util/ffrt_facade.h"
+
+namespace {
+constexpr char EXCLUSIVE_MODE_TASK_NAME[] = "VSyncGenerator";
+}
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,8 +43,13 @@ void ffrt_this_task_set_legacy_mode(bool mode)
     } else {
         coTask->legacyCountNum--;
         if (coTask->legacyCountNum < 0) {
-            FFRT_SYSEVENT_LOGE("Legacy count num less than zero.");
+            FFRT_SYSEVENT_LOGE("Legacy count num less than zero");
         }
+    }
+
+    if (task->GetLabel() == EXCLUSIVE_MODE_TASK_NAME) {
+        task->monitorTimeout_ = false;
+        ffrt::FFRTFacade::GetEUInstance().DisableWorkerMonitor(task->GetQos(), ffrt::ExecuteCtx::Cur()->tid);
     }
 }
 

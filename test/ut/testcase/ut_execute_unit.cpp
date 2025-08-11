@@ -182,7 +182,7 @@ HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
     auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(qos);
     workerCtrl.workerShareConfig.push_back({qos, true});
-    auto worker =  std::make_unique<CPUWorker>(qos, std::move(ops), 0);
+    auto worker = std::make_unique<CPUWorker>(qos, std::move(ops), 0);
 
     std::function<bool(int, CPUWorker*)> trueFunc = [](int qos, CPUWorker* worker) { return true; };
     std::function<bool(int, CPUWorker*)> falseFunc = [](int qos, CPUWorker* worker) { return false; };
@@ -373,4 +373,45 @@ HWTEST_F(ExecuteUnitTest, SetCgroupAttr, TestSize.Level0)
     ffrt_os_sched_attr attr2 = {100, 19, 0, 10, 0, "0-6"};
     EXPECT_EQ(ffrt::set_cgroup_attr(static_cast<int>(ffrt::qos_user_interactive), &attr2), 0);
     ffrt::restore_qos_config();
+}
+
+/*
+* 测试用例名称：ffrt_disable_worker_monitor
+* 测试用例描述：调用EU的DisableWorkerMonitor函数
+* 预置条件    ：创建SExecuteUnit
+* 操作步骤    ：1.调用方法DisableWorkerMonitor，传入异常参数
+* 预期结果    ：monitor相关参数被设置为false
+*/
+HWTEST_F(ExecuteUnitTest, ffrt_disable_worker_monitor, TestSize.Level1)
+{
+    std::atomic<bool> done = false;
+    CpuWorkerOps ops {
+        [](CPUWorker* thread) { return WorkerAction::RETIRE; },
+        [&done](CPUWorker* thread) {
+            // prevent thread leak and UAF
+            // by sync. via done and detaching the thread
+            thread->SetExited();
+            thread->Detach();
+            done = true;
+        },
+        [](CPUWorker* thread) {},
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        []() { return false; },
+#endif
+    };
+
+    const auto qos = QoS(5);
+    auto manager = std::make_unique<SExecuteUnit>();
+    CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(qos);
+    CPUWorker* worker = new CPUWorker(qos, std::move(ops), 0);
+    workerCtrl.threads[worker] = std::unique_ptr<CPUWorker>(worker);
+    EXPECT_TRUE(worker->monitor_);
+
+    manager->DisableWorkerMonitor(qos, worker->Id());
+    EXPECT_FALSE(worker->monitor_);
+
+    while (!done) {
+        // busy wait for the worker thread to be done.
+        // delay the destruction of main thread till the retirement of the worker.
+    }
 }

@@ -140,6 +140,7 @@ public:
     std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
     std::atomic<uint64_t> statusTime = TimeStampCntvct();
     std::atomic<AliveStatus> aliveStatus {AliveStatus::UNITINITED};
+    bool monitorTimeout_ = true;
 
 #ifdef FFRT_ASYNC_STACKTRACE
     uint64_t stackId = 0;

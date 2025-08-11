@@ -328,6 +328,9 @@ typedef struct {
 typedef struct {
     /** An array of uint32_t used to store the fiber. */
     uintptr_t storage[ffrt_fiber_storage_size];
+#ifdef TSAN_MODE
+    void *tsanFiber = nullptr;
+#endif
 } ffrt_fiber_t;
 
 /**

@@ -316,6 +316,10 @@ static inline void CoMemFree(CoRoutine* co)
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
     std::size_t defaultStackSize = FFRTFacade::GetCSAInstance()->size;
+    #if defined(TSAN_MODE)
+        assert(co->ctx.tsanFiber != nullptr);
+        __tsan_destroy_fiber(co->ctx.tsanFiber);
+    #endif
     if (likely(co->allocatedSize == defaultStackSize)) {
         ffrt::CoRoutineFreeMem(co);
     } else {
@@ -368,8 +372,8 @@ static inline int CoAlloc(ffrt::CoTask* task)
     return 0;
 }
 
-// call CoCreat when task creat
-static inline int CoCreat(ffrt::CoTask* task)
+// call CoCreate when task create
+static inline int CoCreate(ffrt::CoTask* task)
 {
     CoAlloc(task);
     if (GetCoEnv()->runningCo == nullptr) { // retry once if alloc failed
@@ -421,13 +425,12 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         return 0;
     }
 
-    if (CoCreat(task) != 0) {
+    if (CoCreate(task) != 0) {
         return -1;
     }
     auto co = task->coRoutine;
 
     FFRTTraceRecord::TaskRun(task->GetQos(), task);
-
     for (;;) {
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -474,7 +477,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
             return 0;
         }
 
-        // 2. couroutine task block, switch to thread
+        // 2. coroutine task block, switch to thread
         // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = coRoutineEnv->pending;
         if (pending == nullptr) {

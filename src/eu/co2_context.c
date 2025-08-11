@@ -210,14 +210,11 @@ int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* st
 
     data[0] = (uintptr_t)arg;
     data[1] = (uintptr_t)func;
-
     return 0;
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_fiber_switch(ffrt_fiber_t* from, ffrt_fiber_t* to)
 {
-    if (co2_save_context(from) == 0) {
-        co2_restore_context(to);
-    }
+    co2_switch_context(from, to);
 }

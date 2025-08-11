@@ -19,7 +19,7 @@
 #include "dfx/bbox/bbox.h"
 #define private public
 #include "util/worker_monitor.h"
-#include "sync/poller.h"
+#include "eu/loop_poller.h"
 #undef private
 #include "c/queue_ext.h"
 #include "../common.h"

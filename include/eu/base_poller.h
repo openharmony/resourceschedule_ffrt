@@ -48,7 +48,7 @@ enum class PollerType {
 
 struct PollerData {
     PollerData() {}
-    PollerData(int fdVal, CoTask *taskVal) : fd(fdVal), task(taskVal)
+    PollerData(int fdVal, CoTask* taskVal) : fd(fdVal), task(taskVal)
     {
         mode = PollerType::SYNC_IO;
     }

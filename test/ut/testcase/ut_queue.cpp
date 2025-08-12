@@ -1555,6 +1555,7 @@ HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSi
 
     EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue)), 0);
     EXPECT_EQ(submitThreadTaskCount.load(), 16);
+    delete testQueue;
 }
 /*
  * 测试用例名称 : ffrt_queue_cancel_with_ffrt_skip_fail

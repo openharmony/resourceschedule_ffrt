@@ -195,7 +195,7 @@ static inline void SaveNormalTaskStatus()
                     FFRT_BBOX_LOG("%s", dumpInfo.c_str());
                 }
 #else
-                CoStart(t, GetCoEnv());
+                CoStart(t, GetCoRoutineEnv());
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
             }
         }
@@ -247,7 +247,7 @@ static void DumpQueueTask(const char* tag, const std::vector<QueueTask*>& tasks,
                 FFRT_BBOX_LOG("%s", dumpInfo.c_str());
             }
 #else
-            CoStart(reinterpret_cast<CPUEUTask*>(t), GetCoEnv());
+            CoStart(reinterpret_cast<CPUEUTask*>(t), GetCoRoutineEnv());
 #endif // FFRT_CO_BACKTRACE_OH_ENABLE
         }
     }

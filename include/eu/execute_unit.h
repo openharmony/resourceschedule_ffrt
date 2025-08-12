@@ -275,6 +275,7 @@ public:
         }
     }
 
+    void DisableWorkerMonitor(const QoS& qos, int tid);
     void RestoreThreadConfig();
 
     void NotifyWorkers(const QoS &qos, int number);

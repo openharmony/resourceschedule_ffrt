@@ -314,6 +314,26 @@ create_success:
     return true;
 }
 
+void ExecuteUnit::DisableWorkerMonitor(const QoS& qos, int tid)
+{
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    if (IsBlockAwareInit()) {
+        ret = BlockawareUnregister();
+        if (ret != 0) {
+            FFRT_SYSEVENT_LOGE("blockaware unregister fail, ret[%d]", ret);
+        }
+    }
+#endif
+
+    ffrt::CPUWorkerGroup& group = workerGroup[qos];
+    std::lock_guard<std::shared_mutex> lck(group.tgMutex);
+    for (const auto& thread : group.threads) {
+        if (thread.first->Id() == tid) {
+            thread.first->SetWorkerMonitorStatus(false);
+        }
+    }
+}
+
 void ExecuteUnit::RestoreThreadConfig()
 {
     for (auto qos = ffrt::QoS::Min(); qos < ffrt::QoS::Max(); ++qos) {

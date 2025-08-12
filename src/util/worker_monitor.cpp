@@ -198,6 +198,10 @@ void WorkerMonitor::CheckWorkerStatus()
         CoWorkerInfo coWorkerInfo(i, workerGroup.threads.size(), workerGroup.executingNum, workerGroup.sleepingNum);
         for (auto& thread : workerGroup.threads) {
             CPUWorker* worker = thread.first;
+            if (!worker->Monitor()) {
+                continue;
+            }
+
             TaskBase* workerTask = worker->curTask.load(std::memory_order_relaxed);
             if (workerTask == nullptr) {
                 workerStatus_.erase(worker);
@@ -280,7 +284,8 @@ void WorkerMonitor::CheckTaskStatus()
 uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold)
 {
     // 主动延时的任务不检测
-    if (isDelayingTask(task) || (task->delayTime > 0 && task->curStatus == TaskStatus::SUBMITTED)) {
+    if (!task->monitorTimeout_ || isDelayingTask(task) ||
+        (task->delayTime > 0 && task->curStatus == TaskStatus::SUBMITTED)) {
         return UINT64_MAX;
     }
 

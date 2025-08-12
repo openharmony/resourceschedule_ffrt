@@ -102,8 +102,8 @@ public:
     static inline CPUEUTask* Root()
     {
         // Within an ffrt process, different threads may have different QoS interval
-        thread_local static RootTaskCtxWrapper root_wraper;
-        return root_wraper.Root();
+        thread_local static RootTaskCtxWrapper rootWrapper;
+        return rootWrapper.Root();
     }
 
 protected:

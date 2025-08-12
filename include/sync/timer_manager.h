@@ -30,8 +30,8 @@
 #endif
 
 namespace ffrt {
-/** un-repeat timer: not_executed -> executintg -> executed -> ereased **/
-/** repeat timer: not_executed -> executintg -> executed -> executing -> executed ... **/
+/** un-repeat timer: not_executed -> executing -> executed -> erased **/
+/** repeat timer: not_executed -> executing -> executed -> executing -> executed ... **/
 enum class TimerState {
     NOT_EXECUTED, // the timer has not expired (in the initialization state).
     EXECUTING,    // The timer has expired and is executing the callback.

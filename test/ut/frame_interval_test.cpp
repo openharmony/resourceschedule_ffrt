@@ -56,9 +56,8 @@ protected:
  */
 HWTEST_F(FrameIntervalTest, FrameIntervalTest, TestSize.Level0)
 {
-    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    auto fi = std::make_unique<FrameInterval>(100000, QoS(5));
     EXPECT_NE(fi, nullptr);
-    delete fi;
 }
 
 /**
@@ -68,11 +67,10 @@ HWTEST_F(FrameIntervalTest, FrameIntervalTest, TestSize.Level0)
  */
 HWTEST_F(FrameIntervalTest, OnQoSIntervalsTest, TestSize.Level0)
 {
-    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    auto fi = std::make_unique<FrameInterval>(100000, QoS(5));
     fi->OnQoSIntervals(ffrt::IntervalState::DEADLINE_BEGIN);
     fi->OnQoSIntervals(ffrt::IntervalState::DEADLINE_END);
     EXPECT_NE(fi, nullptr);
-    delete fi;
 }
 
 /**
@@ -82,13 +80,12 @@ HWTEST_F(FrameIntervalTest, OnQoSIntervalsTest, TestSize.Level0)
  */
 HWTEST_F(FrameIntervalTest, BeginTest, TestSize.Level0)
 {
-    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    auto fi = std::make_unique<FrameInterval>(100000, QoS(5));
     int ret = fi->Begin();
     EXPECT_EQ(0, ret);
 
     int ret1 = fi->Begin();
     EXPECT_EQ(-1, ret1);
-    delete fi;
 }
 
 /**
@@ -98,14 +95,13 @@ HWTEST_F(FrameIntervalTest, BeginTest, TestSize.Level0)
  */
 HWTEST_F(FrameIntervalTest, EndTest, TestSize.Level0)
 {
-    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    auto fi = std::make_unique<FrameInterval>(100000, QoS(5));
     fi->End();
     EXPECT_FALSE(fi->isBegin);
 
     fi->isBegin = true;
     fi->End();
     EXPECT_FALSE(fi->isBegin);
-    delete fi;
 }
 /**
  * @tc.name: updateTest
@@ -114,7 +110,7 @@ HWTEST_F(FrameIntervalTest, EndTest, TestSize.Level0)
  */
 HWTEST_F(FrameIntervalTest, updateTest, TestSize.Level0)
 {
-    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    auto fi = std::make_unique<FrameInterval>(100000, QoS(5));
     EXPECT_NE(fi, nullptr);
     uint64_t deadline = 900;
     fi->Update(deadline);
@@ -123,7 +119,6 @@ HWTEST_F(FrameIntervalTest, updateTest, TestSize.Level0)
 
     deadline = 100000;
     fi->Update(deadline);
-    delete fi;
 }
 
 /**
@@ -133,17 +128,17 @@ HWTEST_F(FrameIntervalTest, updateTest, TestSize.Level0)
  */
 HWTEST_F(FrameIntervalTest, JoinTest, TestSize.Level0)
 {
-    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    auto fi = std::make_unique<FrameInterval>(100000, QoS(5));
     EXPECT_NE(fi, nullptr);
     fi->Join();
     fi->Leave();
-    delete fi;
 }
 
 HWTEST_F(FrameIntervalTest, JoinSubTest, TestSize.Level0)
 {
-    FrameInterval* fi = new FrameInterval(100000, QoS(5));
+    auto fi = std::make_unique<FrameInterval>(100000, QoS(5));
     EXPECT_NE(fi, nullptr);
+    delete fi->wg;
     fi->wg = nullptr;
     fi->OnQoSIntervals(ffrt::IntervalState::DEADLINE_BEGIN);
     fi->Join();

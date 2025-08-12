@@ -618,6 +618,7 @@ HWTEST_F(CoreTest, ffrt_core_test, TestSize.Level0)
     uint64_t id = ffrt_task_handle_get_id(nullptr);
     EXPECT_EQ(id, 0);
     ffrt::wait({handle});
+    ffrt_task_handle_destroy(handle);
 }
 
 /*

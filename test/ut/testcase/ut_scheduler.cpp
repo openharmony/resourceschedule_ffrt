@@ -230,10 +230,10 @@ HWTEST_F(SchedulerTest, task_runqueue_pop_to_another_fail_test, TestSize.Level0)
     EXPECT_EQ(anotherQueue.GetLength(), 0);
     EXPECT_EQ(pushCount, 0);
 
-    auto task = anotherQueue.PopHead();
+    auto task = localQueue.PopHead();
     while (task != nullptr) {
         delete reinterpret_cast<TaskBase*>(task);
-        task = anotherQueue.PopHead();
+        task = localQueue.PopHead();
     }
 }
 

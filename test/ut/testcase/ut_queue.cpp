@@ -1387,11 +1387,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.
     for (uint32_t i = 4; i < 15; i++) {
         testQueue->wait(handles[i]);
     }
-
     EXPECT_EQ(y, 20);
-
 }
-
 /*
  * 测试用例名称 : ffrt_queue_concurrent_monitor_cancel_timeout_all
  * 测试用例描述 : 并行队列QueueMonitor检测到任务超时
@@ -1542,7 +1539,6 @@ HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSi
 
     EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue.get())), 0);
     EXPECT_EQ(submitThreadTaskCount.load(), 16);
-
 }
 /*
  * 测试用例名称 : ffrt_queue_cancel_with_ffrt_skip_fail
@@ -1562,9 +1558,7 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
 
     EXPECT_EQ(ffrt::skip(handle), ffrt_error);
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-
 }
 
 /*
@@ -1585,11 +1579,8 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->threadMode_, true);
         result++;
     }, ffrt::task_attr("Task_on_Thread"));
-
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-
 }
 
 /*
@@ -1614,11 +1605,8 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->threadMode_, false);
         result++;
     }, ffrt::task_attr("Task_on_Coroutine"));
-
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-
 }
 
 /*
@@ -1658,11 +1646,8 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
         flag = false;
         usleep(10000);
     }
-
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-
 }
 
 

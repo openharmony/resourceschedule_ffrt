@@ -75,14 +75,12 @@ HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level0)
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     task_attr_private attr;
     attr.qos_ = qos_user_interactive;
-    SCPUEUTask *task1 = new SCPUEUTask(&attr, nullptr, 0);
+    auto task1 = std::make_unique<SCPUEUTask>(&attr, nullptr, 0);
     auto func2 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
-    SCPUEUTask *task2 = new SCPUEUTask(nullptr, task1, 0);
+    auto task2 = std::make_unique<SCPUEUTask>(nullptr, task1.get(), 0);
     QoS qos = QoS(static_cast<int>(qos_inherit));
     task2->SetQos(qos);
     EXPECT_EQ(task2->qos_, static_cast<int>(qos_user_interactive));
-    delete task1;
-    delete task2;
 }
 
 /**
@@ -92,7 +90,7 @@ HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level0)
  */
 HWTEST_F(CoreTest, TaskBlockTypeCheck, TestSize.Level0)
 {
-    SCPUEUTask* task = new SCPUEUTask(nullptr, nullptr, 0);
+    auto task = std::make_unique<SCPUEUTask>(nullptr, nullptr, 0);
 
     // when executing task is root
     EXPECT_EQ(task->GetBlockType(), BlockType::BLOCK_THREAD);
@@ -100,8 +98,8 @@ HWTEST_F(CoreTest, TaskBlockTypeCheck, TestSize.Level0)
     // when executing task is nullptr
     EXPECT_EQ(task->Block(), BlockType::BLOCK_THREAD);
 
-    auto parent = new SCPUEUTask(nullptr, nullptr, 0);
-    task->parent = parent;
+    auto parent = std::make_unique<SCPUEUTask>(nullptr, nullptr, 0);
+    task->parent = parent.get();
 
     auto expectedBlockType = USE_COROUTINE? BlockType::BLOCK_COROUTINE :  BlockType::BLOCK_THREAD;
     // when task is not in legacy mode
@@ -119,9 +117,6 @@ HWTEST_F(CoreTest, TaskBlockTypeCheck, TestSize.Level0)
     task->legacyCountNum--;
     EXPECT_EQ(task->Block(), expectedBlockType);
     EXPECT_EQ(task->GetBlockType(), expectedBlockType);
-
-    delete parent;
-    delete task;
 }
 
 /**
@@ -261,19 +256,16 @@ HWTEST_F(CoreTest, WaitFailWhenReuseHandle, TestSize.Level0)
  */
 HWTEST_F(CoreTest, ffrt_task_get_tid_test, TestSize.Level0)
 {
-    ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
-    ffrt::QueueTask* queueTask = new ffrt::QueueTask(nullptr);
-    pthread_t tid = ffrt_task_get_tid(task);
+    auto task = std::make_unique<ffrt::SCPUEUTask>(nullptr, nullptr, 0);
+    auto queueTask = std::make_unique<ffrt::QueueTask>(nullptr);
+    pthread_t tid = ffrt_task_get_tid(task.get());
     EXPECT_EQ(tid, 0);
 
-    tid = ffrt_task_get_tid(queueTask);
+    tid = ffrt_task_get_tid(queueTask.get());
     EXPECT_EQ(tid, 0);
 
     tid = ffrt_task_get_tid(nullptr);
     EXPECT_EQ(tid, 0);
-
-    delete task;
-    delete queueTask;
 }
 
 /*

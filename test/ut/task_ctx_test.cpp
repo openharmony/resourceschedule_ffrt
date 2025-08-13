@@ -53,6 +53,7 @@ protected:
     }
 };
 
+
 /**
  * @tc.name: ChargeQoSSubmit
  * @tc.desc: Test whether the ChargeQoSSubmit interface are normal.
@@ -80,7 +81,6 @@ HWTEST_F(TaskCtxTest, ChargeQoSSubmit, TestSize.Level0)
     QoS qos3 = QoS(static_cast<int>(qos_user_interactive));
     task3->SetQos(qos3);
     EXPECT_EQ(task3->qos_, static_cast<int>(qos_user_interactive));
-
 }
 }
 }

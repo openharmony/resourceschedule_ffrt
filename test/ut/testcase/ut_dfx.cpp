@@ -329,13 +329,12 @@ HWTEST_F(DfxTest, hitrace_test_normal, TestSize.Level0)
     }
     ffrt::wait();
 
-    queue* testQueue = new queue("test_queue");
+    auto testQueue = std::make_unique<queue>("test_queue");
     auto t = testQueue->submit_h([] { stall_us(1100000); FFRT_LOGE("done");}, {});
     testQueue->wait(t);
     FFRT_LOGE("hitrace_test end");
     TraceChainAdapter::Instance().HiTraceChainEnd(&traceId);
     EXPECT_EQ(x, 5);
-    delete testQueue;
 #endif
 }
 

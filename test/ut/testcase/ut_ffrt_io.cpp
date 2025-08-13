@@ -540,12 +540,12 @@ HWTEST_F(ffrtIoTest, timer_repeat, TestSize.Level0)
         timerData.timerId = ffrt_timer_start(ffrt_qos_default,
             0, reinterpret_cast<void*>(&timerData), TimerCb, true);
     }
-    for(auto& timerData : timerDatas) {
-        while(timerData.result == 0) {
+    for (auto& timerData : timerDatas) {
+        while (timerData.result == 0) {
             usleep(1);
         }
     }
-    for(auto& timerData : timerDatas) {
+    for (auto& timerData : timerDatas) {
         ffrt_timer_stop(ffrt_qos_default, timerData.timerId);
         EXPECT_GT(timerData.result, 0);
     }

@@ -575,7 +575,7 @@ HWTEST_F(DependencyTest, onsubmit_test, TestSize.Level0)
     ffrt_task_handle_t handle = nullptr;
     std::function<void()> cbOne = []() { printf("callback\n"); };
     ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
-    ffrt::SDependenceManager* manager = new ffrt::SDependenceManager();
+    auto manager = std::make_unique<ffrt::SDependenceManager>();
     manager->onSubmit(true, handle, func, nullptr, nullptr, nullptr);
 
     const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, handle}};
@@ -584,5 +584,4 @@ HWTEST_F(DependencyTest, onsubmit_test, TestSize.Level0)
     manager->onWait(&wait);
     EXPECT_NE(func, nullptr);
     ffrt_task_handle_destroy(handle);
-    delete manager;
 }

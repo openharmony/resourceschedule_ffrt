@@ -336,7 +336,7 @@ HWTEST_F(SyncTest, lock_stress_c_api, TestSize.Level0)
     const int N = 10;
     const int M = 1000;
     const int J = 10000;
-    ffrt::mutex* lock = new ffrt::mutex;
+    auto lock = std::make_unique<ffrt::mutex>();
     int acc = 0;
     for (int i = 0; i < N; ++i) {
         ffrt::submit(
@@ -358,7 +358,6 @@ HWTEST_F(SyncTest, lock_stress_c_api, TestSize.Level0)
 
     ffrt::wait();
     EXPECT_EQ(acc, (M * N + J));
-    delete lock;
 }
 
 /**
@@ -414,7 +413,7 @@ HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level0)
     const int N = 10;
     const int M = 1000;
     const int J = 10000;
-    ffrt::recursive_mutex* lock = new ffrt::recursive_mutex;
+    auto lock = std::make_unique<ffrt::recursive_mutex>();
     int acc = 0;
     for (int i = 0; i < N; ++i) {
         ffrt::submit(
@@ -436,7 +435,6 @@ HWTEST_F(SyncTest, recursive_lock_stress_c_api, TestSize.Level0)
 
     ffrt::wait();
     EXPECT_EQ(acc, (M * N + J));
-    delete lock;
 }
 
 void WaitforInThreadMode(std::function<void(std::atomic<bool>& ready)> waitFunc, std::function<void()> notifyFunc)

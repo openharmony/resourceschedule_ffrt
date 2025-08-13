@@ -58,20 +58,19 @@ protected:
 
 HWTEST_F(SchedulerTest, ffrt_task_runqueue_test, TestSize.Level0)
 {
-    ffrt::FIFOQueue *fifoqueue = new ffrt::FIFOQueue();
-    int aimnum = 10;
+    auto fifoqueue = std::make_unique<ffrt::FIFOQueue>();
+    constexpr int enqCount = 10;
     SCPUEUTask task(nullptr, nullptr, 0);
-    for (int i = 0; i < aimnum ; i++) {
+    for (int i = 0; i < enqCount ; i++) {
         fifoqueue->EnQueue(&task);
     }
-    EXPECT_EQ(fifoqueue->Size(), aimnum);
+    EXPECT_EQ(fifoqueue->Size(), enqCount);
     EXPECT_EQ(fifoqueue->Empty(), false);
-    delete fifoqueue;
 }
 
 /*
  * 测试用例名称：ffrt_sched_local_push_pop
- * 测试用例描述：TaskSchduler, 开启本地队列后push和pop
+ * 测试用例描述：TaskScheduler, 开启本地队列后push和pop
  * 预置条件    ：无
  * 操作步骤    ：1、初始化STaskScheduler
                  2、push和pop任务
@@ -241,7 +240,7 @@ HWTEST_F(SchedulerTest, task_runqueue_pop_to_another_fail_test, TestSize.Level0)
 
 HWTEST_F(SchedulerTest, sched_test, TestSize.Level1)
 {
-    STaskScheduler* scheduler = new STaskScheduler();
+    auto scheduler = std::make_unique<STaskScheduler>();
     scheduler->SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
     ffrt_executor_task_t work = {};
     bool ret = scheduler->CancelUVWork(&work);
@@ -252,5 +251,4 @@ HWTEST_F(SchedulerTest, sched_test, TestSize.Level1)
     scheduler->PushTask(task);
     scheduler->GetPriorityTaskCnt();
     scheduler->PushTaskLocalOrPriority(task);
-    delete scheduler;
 }

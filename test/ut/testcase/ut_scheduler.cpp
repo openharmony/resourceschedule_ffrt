@@ -171,24 +171,26 @@ HWTEST_F(SchedulerTest, ffrt_sched_local_priority, TestSize.Level0)
 {
     STaskScheduler scheduler;
     scheduler.SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
-
-    int taskCount = 10;
-
+    constexpr int taskCount = 10;
     for (int i = 0; i < taskCount; i++) {
         TaskBase* task = new SCPUEUTask(nullptr, nullptr, 0);
-        scheduler.PushTaskToPriorityStack(task);
+        /* Note that currently there is only one priority slot.
+         * Hence, there can be at most one task pushed.
+         */
+        auto pushed = scheduler.PushTaskToPriorityStack(task);
+        if (!pushed) {
+            delete task;
+        }
     }
 
     auto task = scheduler.PopTask();
-
     EXPECT_NE(task, nullptr);
 
     while (task != nullptr) {
         delete task;
         task = scheduler.PopTask();
     }
-
-    EXPECT_LE(scheduler.GetLocalTaskCnt(), 0);
+    EXPECT_EQ(scheduler.GetLocalTaskCnt(), 0);
 }
 
 namespace {

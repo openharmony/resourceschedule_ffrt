@@ -533,18 +533,23 @@ static void TimerCb(void* data)
 */
 HWTEST_F(ffrtIoTest, timer_repeat, TestSize.Level0)
 {
-    const int timerCount = 1000;
+    constexpr int timerCount = 1000;
     static TimerDataT timerDatas[timerCount];
     for (auto& timerData : timerDatas) {
         timerData.result = 0;
         timerData.timerId = ffrt_timer_start(ffrt_qos_default,
             0, reinterpret_cast<void*>(&timerData), TimerCb, true);
     }
-    while (timerDatas[0].result == 0) {
-        usleep(1);
+    for(auto& timerData : timerDatas) {
+        while(timerData.result == 0) {
+            usleep(1);
+        }
+    }
+    for(auto& timerData : timerDatas) {
+        ffrt_timer_stop(ffrt_qos_default, timerData.timerId);
+        EXPECT_GT(timerData.result, 0);
     }
     sleep(1);
-    EXPECT_GT(timerDatas[0].result, 0);
 }
 
 HWTEST_F(ffrtIoTest, ffrt_epoll_wait_test, TestSize.Level0)

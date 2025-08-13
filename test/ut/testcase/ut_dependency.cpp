@@ -583,5 +583,6 @@ HWTEST_F(DependencyTest, onsubmit_test, TestSize.Level0)
     manager->onSubmit(true, handle, func, nullptr, &wait, nullptr);
     manager->onWait(&wait);
     EXPECT_NE(func, nullptr);
+    ffrt_task_handle_destroy(handle);
     delete manager;
 }

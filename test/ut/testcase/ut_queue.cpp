@@ -1217,6 +1217,7 @@ HWTEST_F(QueueTest, ffrt_queue_concurrent_recordtraffic_delay_trigger, TestSize.
     handle = ffrt_queue_submit_h(queue_handle,
                 create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr_1);
     ffrt_queue_wait(handle);
+    ffrt_task_handle_destroy(handle);
     EXPECT_EQ(result, 2);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);

@@ -36,8 +36,13 @@ QueueMonitor::QueueMonitor()
 {
     FFRT_LOGI("QueueMonitor ctor enter");
     we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
-    timeoutUs_ = ffrt_task_timeout_get_threshold() * US_PER_MS;
-    FFRT_LOGI("queue monitor ctor leave, watchdog timeout of %llu us", timeoutUs_.load());
+    uint64_t timeout = ffrt_task_timeout_get_threshold() * US_PER_MS;
+    timeoutUs_ = timeout;
+    if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
+        FFRT_LOGE("invalid watchdog timeout [%llu] us, using 1s instead", timeout);
+        timeoutUs_ = MIN_TIMEOUT_THRESHOLD_US;
+    }
+    FFRT_LOGI("QueueMonitor ctor leave, watchdog timeout of %llu us has been set", timeoutUs_.load());
 }
 
 QueueMonitor::~QueueMonitor()

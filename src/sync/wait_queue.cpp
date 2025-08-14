@@ -52,7 +52,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
     bool ret = false;
     {
         std::lock_guard lg(wqlock);
-        wn->status.store(we_status::INIT, std::memory_order_release);
+        wn->status.store(WaitEntryStatus::INIT, std::memory_order_release);
         wn->task = task;
         push_back(wn);
     }
@@ -66,7 +66,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
     // notify scenarios WaitUntilEntry `wn` is already popped
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
-    if (ret || wn->status.load(std::memory_order_acquire) != we_status::NOTIFYING) {
+    if (ret || wn->status.load(std::memory_order_acquire) != WaitEntryStatus::NOTIFYING) {
         std::lock_guard lg(wqlock);
         remove(wn);
     }
@@ -111,7 +111,7 @@ bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
     bool toWake = true;
 
     // two kinds: 1) notify was not called, timeout grabbed the lock first;
-    if (wue->status.load(std::memory_order_acquire) == we_status::INIT) {
+    if (wue->status.load(std::memory_order_acquire) == WaitEntryStatus::INIT) {
         // timeout processes wue first, cv will not be processed again. timeout is responsible for destroying wue.
         wq->remove(wue);
         delete wue;
@@ -119,7 +119,7 @@ bool WeTimeoutProc(WaitQueue* wq, WaitUntilEntry* wue)
     } else {
         // 2) notify enters the critical section, first writes the notify status, and then releases the lock
         // notify is responsible for destroying wue.
-        wue->status.store(we_status::TIMEOUT_DONE, std::memory_order_release);
+        wue->status.store(WaitEntryStatus::TIMEOUT_DONE, std::memory_order_release);
         toWake = false;
     }
     return toWake;
@@ -186,9 +186,9 @@ void WaitQueue::WeNotifyProc(WaitUntilEntry* we)
     if (!DelayedRemove(we->tp, dwe)) {
         // Deletion of timer failed during the notify process, indicating that timer cb has been executed at this time
         // waiting for cb execution to complete, and marking notify as being processed.
-        we->status.store(we_status::NOTIFYING, std::memory_order_release);
+        we->status.store(WaitEntryStatus::NOTIFYING, std::memory_order_release);
         wqlock.unlock();
-        while (we->status.load(std::memory_order_acquire) != we_status::TIMEOUT_DONE) {
+        while (we->status.load(std::memory_order_acquire) != WaitEntryStatus::TIMEOUT_DONE) {
         }
         wqlock.lock();
     }
@@ -216,7 +216,7 @@ void WaitQueue::Notify(bool one) noexcept
         TaskBase* task = we->task;
         if (task == nullptr || task->GetBlockType() == BlockType::BLOCK_THREAD) {
             std::lock_guard<std::mutex> lg(we->wl);
-            we->status.store(we_status::NOTIFYING, std::memory_order_release);
+            we->status.store(WaitEntryStatus::NOTIFYING, std::memory_order_release);
             lock.unlock();
             we->cv.notify_one();
         } else {

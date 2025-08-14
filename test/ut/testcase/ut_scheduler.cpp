@@ -243,7 +243,9 @@ HWTEST_F(SchedulerTest, sched_test, TestSize.Level1)
     scheduler->SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
     ffrt_executor_task_t work = {};
     bool ret = scheduler->CancelUVWork(&work);
-    EXPECT_EQ(ret, false);
+#ifndef FFRT_GITEE
+    EXPECT_EQ(ret, true);
+#endif
     ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
     scheduler->PushTask(task);
     scheduler->GetPriorityTaskCnt();

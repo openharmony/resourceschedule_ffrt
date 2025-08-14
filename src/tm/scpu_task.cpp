@@ -90,6 +90,7 @@ void SCPUEUTask::DecChildRef()
 void SCPUEUTask::DecWaitDataRef()
 {
     FFRT_TRACE_SCOPE(2, taskDecWaitData);
+    BlockType taskBlockType;
     {
         std::lock_guard<decltype(mutex_)> lck(mutex_);
         if (--dataRefCnt.waitDep != 0) {
@@ -99,9 +100,11 @@ void SCPUEUTask::DecWaitDataRef()
             return;
         }
         dependenceStatus = Dependence::DEPENDENCE_INIT;
+        // Note that blockType has to be read inside the CS, because it
+        // might be modified by another thread on task->wake `ffrt::CPUEUTask::Wake()`
+        taskBlockType = GetBlockType();
     }
-
-    if (GetBlockType() == BlockType::BLOCK_THREAD) {
+    if (taskBlockType == BlockType::BLOCK_THREAD) {
         waitCond_.notify_all();
     } else {
         FFRT_WAKE_TRACER(gid);

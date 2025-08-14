@@ -170,21 +170,9 @@ void WorkerMonitor::CheckWorkerStatus()
         return;
     }
 
-    {
-        bool noWorkerThreads = true;
-        std::lock_guard submitTaskLock(submitTaskMutex_);
-        for (int i = 0; i < QoS::MaxNum(); i++) {
-            CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
-            std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
-            if (!workerGroup.threads.empty()) {
-                noWorkerThreads = false;
-                break;
-            }
-        }
-        if (noWorkerThreads) {
-            samplingTaskExit_ = true;
-            return;
-        }
+    if (SetExitFlagIfNoWorkers(samplingTaskExit_)) {
+        RecordWorkerStatusInfo();
+        return;
     }
 
     if (samplingTaskCount_++ % RECORD_WORKER_STATUS_INFO_FREQ == 0) {
@@ -507,5 +495,25 @@ void WorkerMonitor::RecordWorkerStatusInfo()
     if (!exitedOss.str().empty()) {
         FFRT_LOGW("worker exit: %s", exitedOss.str().c_str());
     }
+}
+
+bool WorkerMonitor::SetExitFlagIfNoWorkers(bool& exitFlag)
+{
+    bool noWorkerThreads = true;
+    {
+        std::lock_guard submitTaskLock(submitTaskMutex_);
+        for (int i = 0; i < QoS::MaxNum(); i++) {
+            CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+            std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
+            if (!workerGroup.threads.empty()) {
+                noWorkerThreads = false;
+                break;
+            }
+        }
+        if (noWorkerThreads) {
+            exitFlag = true;
+        }
+    }
+    return noWorkerThreads;
 }
 }

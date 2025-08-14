@@ -98,6 +98,7 @@ private:
     void ProcessWorkerInfo(std::ostringstream& oss, bool& firstQos, int qos, unsigned int cnt,
         const std::deque<pid_t>& tids);
     void RecordWorkerStatusInfo();
+    bool SetExitFlagIfNoWorkers(bool& exitFlag);
 
 private:
     std::mutex mutex_;

@@ -105,7 +105,7 @@ HWTEST_F(QueueTest, serial_queue_submit_cancel_succ, TestSize.Level0)
 
     int result = 0;
     std::function<void()> basicFunc = [&result]() { OnePlusForTest(static_cast<void*>(&result)); };
-    reinterpret_cast<ffrt::queue*>(&queue_handle)->submit(basicFunc);
+    ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
 
     ffrt_task_handle_t task1 =
         ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
@@ -113,9 +113,13 @@ HWTEST_F(QueueTest, serial_queue_submit_cancel_succ, TestSize.Level0)
     ffrt_task_handle_destroy(task1); // 销毁task_handle，必须
     EXPECT_EQ(result, 2);
 
-    ffrt::task_handle task2 =
-        reinterpret_cast<ffrt::queue*>(&queue_handle)->submit_h(basicFunc, ffrt::task_attr().delay(1000));
-    int cancel = reinterpret_cast<ffrt::queue*>(&queue_handle)->cancel(task2);
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
+    ffrt_task_attr_set_delay(&task_attr, 1000); // 设置任务1ms后才执行，非必须
+    ffrt_task_handle_t task2 =
+        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+    int cancel = ffrt_queue_cancel(task2);
+    ffrt_task_handle_destroy(task2); // 销毁task_handle，必须
     ffrt_queue_attr_destroy(&queue_attr);
     EXPECT_EQ(cancel, 0);
     EXPECT_EQ(result, 2);
@@ -622,8 +626,10 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level0)
  */
 HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level0)
 {
-    ffrt::queue* testQueue = new ffrt::queue(static_cast<ffrt::queue_type>(
-        ffrt_inner_queue_type_t::ffrt_queue_eventhandler_adapter), "test_queue");
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_adapter), "test_queue", &queue_attr);
 
     int result = 0;
     std::mutex lock;
@@ -638,30 +644,38 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level0)
         };
     }
 
-    ffrt::task_attr taskAttr;
-    taskAttr.priority(ffrt_queue_priority_immediate).name("basic_function");
-    testQueue->submit_head(basicFunc, taskAttr);
-    testQueue->submit_head(assignFuncs[0], taskAttr);
-    testQueue->submit_head(assignFuncs[1], taskAttr);
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_immediate);
+    ffrt_task_attr_set_name(&task_attr, "basic_function");
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
 
-    taskAttr.priority(ffrt_queue_priority_high);
-    testQueue->submit_head(assignFuncs[2], taskAttr);
-    testQueue->submit_head(assignFuncs[3], taskAttr);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[0], ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[1], ffrt_function_kind_queue), &task_attr);
 
-    taskAttr.priority(ffrt_queue_priority_low);
-    testQueue->submit_head(assignFuncs[4], taskAttr);
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_high);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[2], ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[3], ffrt_function_kind_queue), &task_attr);
 
-    taskAttr.priority(ffrt_queue_priority_immediate);
-    testQueue->submit_head(assignFuncs[5], taskAttr);
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_low);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[4], ffrt_function_kind_queue), &task_attr);
 
-    taskAttr.priority(ffrt_queue_priority_idle);
-    ffrt::task_handle handle = testQueue->submit_head_h(assignFuncs[6], taskAttr);
-    testQueue->submit_head(assignFuncs[7], taskAttr);
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_immediate);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[5], ffrt_function_kind_queue), &task_attr);
+
+    ffrt_task_attr_set_queue_priority(&task_attr, ffrt_queue_priority_idle);
+    ffrt_task_handle_t handle = ffrt_queue_submit_head_h(queue_handle,
+        create_function_wrapper(assignFuncs[6], ffrt_function_kind_queue), &task_attr);
+    ffrt_queue_submit_head(queue_handle, create_function_wrapper(assignFuncs[7], ffrt_function_kind_queue), &task_attr);
 
     lock.unlock();
-    testQueue->wait(handle);
+    ffrt_queue_wait(handle);
     EXPECT_EQ(results, expectResults);
-    delete testQueue;
+
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
 }
 
 HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
@@ -812,6 +826,9 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level0)
     (void)ffrt_task_attr_init(&task_attr);
     (void)ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    ffrt::QueueHandler* queueHandler = reinterpret_cast<ffrt::QueueHandler*>(queue_handle);
+    queueHandler->trafficRecordInterval_ = 1000000;
+    queueHandler->trafficRecord_.nextUpdateTime_ = TimeStampCntvct() + 1000000;
 
     std::function<void()>&& firstFunc = [&result]() {
         result = result + 1;
@@ -860,6 +877,9 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level0)
     ffrt_task_attr_set_delay(&task_attr, 1200000);
     (void)ffrt_queue_attr_init(&queue_attr);
     ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+    ffrt::QueueHandler* queueHandler = reinterpret_cast<ffrt::QueueHandler*>(queue_handle);
+    queueHandler->trafficRecordInterval_ = 1000000;
+    queueHandler->trafficRecord_.nextUpdateTime_ = TimeStampCntvct() + 1000000;
 
     std::function<void()>&& firstFunc = [&result]() {
         result = result + 1;

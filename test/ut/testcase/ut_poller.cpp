@@ -475,8 +475,6 @@ HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level1)
     poller.WakeSyncTask(syncTaskEvents);
     poller.waitTaskMap_[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
     poller.waitTaskMap_[&task].timerHandle = 0;
-    poller.waitTaskMap_[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
-    poller.WakeSyncTask(syncTaskEvents);
     EXPECT_EQ(nfds, 1);
 }
 

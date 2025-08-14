@@ -21,7 +21,6 @@
 #include <unordered_map>
 #include "internal_inc/osal.h"
 #include "internal_inc/non_copyable.h"
-#include "dfx/log/ffrt_log_api.h"
 #include "cpp/queue.h"
 #include "sync/sync.h"
 #include "sched/execute_ctx.h"

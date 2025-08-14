@@ -108,7 +108,6 @@ FFRTFacade::FFRTFacade()
     DependenceManager::Instance();
     QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
     CoRoutineFactory::Instance();
-    IOPoller::Instance();
     TimerManager::Instance();
     Scheduler::Instance();
 #ifdef FFRT_WORKER_MONITOR

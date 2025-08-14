@@ -23,15 +23,15 @@ class SpmcQueue {
 public:
     ~SpmcQueue();
 
-    unsigned int GetLength() const;
-    unsigned int GetCapacity() const;
+    std::size_t GetLength() const;
+    std::size_t GetCapacity() const;
 
     /**
     * @brief 初始化队列。
     * @param capacity 队列容量。
     * @retval 成功返回0，失败返回-1。
     */
-    int Init(unsigned int capacity);
+    int Init(std::size_t capacity);
 
     /**
     * @brief 取出队列首部元素。
@@ -50,7 +50,6 @@ public:
     * @brief 从队列首部批量取出元素后将元素批量推入目标队列尾部。
     * @param dstQueue 目标队列。
     * @param elementNum 取出元素数量。
-    * @param qos        全局队列qos等级。
     * @param func       元素入队操作。
     * @retval 返回被推入队列尾部的元素数量。
     */
@@ -59,9 +58,9 @@ public:
 
 private:
     void** buf_ = nullptr;
-    unsigned int capacity_ = 0;
-    std::atomic<unsigned int> head_ {0};
-    std::atomic<unsigned int> tail_ {0};
+    std::size_t capacity_ = 0;
+    std::atomic<std::size_t> head_ {0};
+    std::atomic<std::size_t> tail_ {0};
 };
 }
 #endif

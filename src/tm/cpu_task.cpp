@@ -74,9 +74,6 @@ void CPUEUTask::FreeMem()
 #endif
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     if ((f->reserve[0] & MASK_FOR_HCS_TASK) != MASK_FOR_HCS_TASK) {
-        if (f->destroy) {
-            f->destroy(f);
-        }
         TaskFactory<CPUEUTask>::Free(this);
         return;
     }
@@ -96,6 +93,11 @@ void CPUEUTask::Execute()
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
         SetStatus(TaskStatus::EXECUTING);
         f->exec(f);
+    }
+    if ((f->reserve[0] & MASK_FOR_HCS_TASK) != MASK_FOR_HCS_TASK) {
+        if (f->destroy) {
+            f->destroy(f);
+        }
     }
     FFRT_TASKDONE_MARKER(gid);
     // skipped task can not be marked as finish

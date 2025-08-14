@@ -82,7 +82,7 @@ void MakeCoEnvTlsKey()
     pthread_key_create(&g_coThreadTlsKey, CoEnvDestructor);
 }
 
-CoRoutineEnv* GetCoEnv()
+static inline CoRoutineEnv* GetCoEnv()
 {
     CoRoutineEnv* coEnv = nullptr;
     pthread_once(&g_coThreadTlsKeyOnce, MakeCoEnvTlsKey);
@@ -95,6 +95,11 @@ CoRoutineEnv* GetCoEnv()
         pthread_setspecific(g_coThreadTlsKey, coEnv);
     }
     return coEnv;
+}
+
+CoRoutineEnv* GetCoRoutineEnv()
+{
+    return GetCoEnv();
 }
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
@@ -316,6 +321,10 @@ static inline void CoMemFree(CoRoutine* co)
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
     std::size_t defaultStackSize = FFRTFacade::GetCSAInstance()->size;
+    #if defined(TSAN_MODE)
+        assert(co->ctx.tsanFiber != nullptr);
+        __tsan_destroy_fiber(co->ctx.tsanFiber);
+    #endif
     if (likely(co->allocatedSize == defaultStackSize)) {
         ffrt::CoRoutineFreeMem(co);
     } else {
@@ -328,11 +337,10 @@ static inline void CoMemFree(CoRoutine* co)
 
 void CoStackFree(void)
 {
-    if (GetCoEnv()) {
-        if (GetCoEnv()->runningCo) {
-            CoMemFree(GetCoEnv()->runningCo);
-            GetCoEnv()->runningCo = nullptr;
-        }
+    CoRoutineEnv* coEnv = GetCoEnv();
+    if (coEnv != nullptr && coEnv->runningCo != nullptr) {
+        CoMemFree(coEnv->runningCo);
+        coEnv->runningCo = nullptr;
     }
 }
 
@@ -343,33 +351,35 @@ void CoWorkerExit(void)
 
 static inline void BindNewCoRoutione(ffrt::CoTask* task)
 {
-    task->coRoutine = GetCoEnv()->runningCo;
+    CoRoutineEnv* coEnv = GetCoEnv();
+    task->coRoutine = coEnv->runningCo;
     task->coRoutine->task = task;
-    task->coRoutine->thEnv = GetCoEnv();
+    task->coRoutine->thEnv = coEnv;
 }
 
 static inline int CoAlloc(ffrt::CoTask* task)
 {
+    CoRoutineEnv* coEnv = GetCoEnv();
     if (task->coRoutine) { // use allocated coroutine stack
-        if (GetCoEnv()->runningCo) { // free cached stack if it exist
-            CoMemFree(GetCoEnv()->runningCo);
+        if (coEnv->runningCo) { // free cached stack if it exist
+            CoMemFree(coEnv->runningCo);
         }
-        GetCoEnv()->runningCo = task->coRoutine;
+        coEnv->runningCo = task->coRoutine;
     } else {
-        if (!GetCoEnv()->runningCo) { // if no cached stack, alloc one
-            GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
+        if (!coEnv->runningCo) { // if no cached stack, alloc one
+            coEnv->runningCo = AllocNewCoRoutine(task->stack_size);
         } else { // exist cached stack
-            if (GetCoEnv()->runningCo->allocatedSize != task->stack_size) { // stack size not match, alloc one
-                CoMemFree(GetCoEnv()->runningCo); // free cached stack
-                GetCoEnv()->runningCo = AllocNewCoRoutine(task->stack_size);
+            if (coEnv->runningCo->allocatedSize != task->stack_size) { // stack size not match, alloc one
+                CoMemFree(coEnv->runningCo); // free cached stack
+                coEnv->runningCo = AllocNewCoRoutine(task->stack_size);
             }
         }
     }
     return 0;
 }
 
-// call CoCreat when task creat
-static inline int CoCreat(ffrt::CoTask* task)
+// call CoCreate when task create
+static inline int CoCreate(ffrt::CoTask* task)
 {
     CoAlloc(task);
     if (GetCoEnv()->runningCo == nullptr) { // retry once if alloc failed
@@ -421,13 +431,12 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         return 0;
     }
 
-    if (CoCreat(task) != 0) {
+    if (CoCreate(task) != 0) {
         return -1;
     }
     auto co = task->coRoutine;
 
     FFRTTraceRecord::TaskRun(task->GetQos(), task);
-
     for (;;) {
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -474,7 +483,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
             return 0;
         }
 
-        // 2. couroutine task block, switch to thread
+        // 2. coroutine task block, switch to thread
         // need suspend the coroutine task or continue to execute the coroutine task.
         auto pending = coRoutineEnv->pending;
         if (pending == nullptr) {
@@ -496,9 +505,10 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
 // called by thread work
 void CoYield(void)
 {
-    CoRoutine* co = static_cast<CoRoutine*>(GetCoEnv()->runningCo);
+    CoRoutineEnv* coEnv = GetCoEnv();
+    CoRoutine* co = static_cast<CoRoutine*>(coEnv->runningCo);
     co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
-    GetCoEnv()->runningCo = nullptr;
+    coEnv->runningCo = nullptr;
     CoSwitchOutTransaction(co->task);
     FFRT_BLOCK_MARKER(co->task->gid);
 #ifdef FFRT_TASK_LOCAL_ENABLE

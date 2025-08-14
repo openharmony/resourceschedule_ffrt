@@ -102,6 +102,16 @@ public:
         this->state = newState;
     }
 
+    void SetWorkerMonitorStatus(bool monitor)
+    {
+        monitor_ = monitor;
+    }
+
+    bool Monitor() const
+    {
+        return monitor_;
+    }
+
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     unsigned int GetDomainId() const
     {
@@ -186,7 +196,7 @@ public:
 #endif
 
     void SetThreadAttr(const QoS& newQos);
-    TaskBase* curTask = nullptr;
+    std::atomic<TaskBase*> curTask = nullptr;
     std::atomic<uintptr_t> curTaskType_ {ffrt_invalid_task};
     std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值
     uint64_t curTaskGid_ = UINT64_MAX;
@@ -210,6 +220,7 @@ private:
     QoS qos;
     CpuWorkerOps ops;
     WorkerStatus state {WorkerStatus::EXECUTING};
+    bool monitor_ = true;
 #ifdef FFRT_PTHREAD_ENABLE
     pthread_t thread_{0};
     pthread_attr_t attr_;

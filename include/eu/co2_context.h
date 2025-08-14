@@ -19,6 +19,11 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "c/type_def.h"
+#include <assert.h>
+#include "dfx/log/ffrt_log_api.h"
+#ifdef TSAN_MODE
+    #include <sanitizer/tsan_interface.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +62,30 @@ void co2_restore_context(ffrt_fiber_t* ctx);
 static inline void co2_switch_context(ffrt_fiber_t* from, ffrt_fiber_t* to)
 {
     if (co2_save_context(from) == 0) {
+        #ifdef TSAN_MODE
+            /* save current fiber to the source fiber */
+            if (from->tsanFiber == nullptr) {
+                from->tsanFiber = __tsan_get_current_fiber();
+            }
+            assert(from->tsanFiber && "src fiber is nullptr");
+            if (to->tsanFiber == nullptr) {
+                to->tsanFiber = __tsan_create_fiber(0);
+            }
+            assert(to->tsanFiber != from->tsanFiber);
+            FFRT_LOGD("[Before switching] TSAN from: %p to %p. TSan current fiber = %p\n",
+                from->tsanFiber, to->tsanFiber, __tsan_get_current_fiber());
+            /* Switch to target fiber before the actual context switch
+             * Note: Investigate if passing `__tsan_switch_to_fiber_no_sync`
+             * and diabling happens before makes sense or not.
+             * when passing 0 as a flag to the fiber switching we establish
+             * a happens before relationship.
+             */
+            __tsan_switch_to_fiber(to->tsanFiber, 0);
+        #endif
         co2_restore_context(to);
+        #ifdef TSAN_MODE
+        assert(to->tsanFiber == __tsan_get_current_fiber());
+        #endif
     }
 }
 #ifdef  __cplusplus

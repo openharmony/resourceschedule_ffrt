@@ -28,6 +28,7 @@
 #else
 #include "log_base.h"
 #endif
+#include <stdbool.h>
 
 #define FFRT_LOG_ERROR (0)
 #define FFRT_LOG_WARN (1)

@@ -16,7 +16,7 @@
 #ifndef FFRT_LOOP_HPP
 #define FFRT_LOOP_HPP
 #include "queue/queue_handler.h"
-#include "sync/poller.h"
+#include "eu/loop_poller.h"
 
 namespace ffrt {
 class Loop {
@@ -35,7 +35,7 @@ public:
 
 private:
     QueueHandler* handler_ = nullptr;
-    Poller poller_;
+    LoopPoller poller_;
     std::atomic<bool> stopFlag_ { false };
 };
 }

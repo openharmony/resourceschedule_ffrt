@@ -140,11 +140,12 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
     coTask->wue->cb = ([&](WaitEntry* we) {
         WaitUntilEntry* wue = static_cast<WaitUntilEntry*>(we);
         ffrt::TaskBase* task = wue->task;
-        std::unique_lock lock(wqlock);
-        if (!WeTimeoutProc(this, wue)) {
-            return;
+        {
+            std::lock_guard lock(wqlock);
+            if (!WeTimeoutProc(this, wue)) {
+                return;
+            }
         }
-        lock.unlock();
         FFRT_LOGD("task(%d) time is up", task->gid);
         CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::TIMEOUT_WAKE);
     });

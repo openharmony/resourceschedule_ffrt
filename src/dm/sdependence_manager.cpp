@@ -18,8 +18,6 @@
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
-#include "tm/queue_task.h"
-#include "tm/io_task.h"
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
@@ -33,33 +31,7 @@ namespace ffrt {
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
-    // control construct sequences of singletons
-#ifdef FFRT_OH_TRACE_ENABLE
-    TraceAdapter::Instance();
-#endif
-    SimpleAllocator<CPUEUTask>::Instance();
     SimpleAllocator<SCPUEUTask>::Instance();
-    SimpleAllocator<QueueTask>::Instance();
-    SimpleAllocator<IOTask>::Instance();
-    SimpleAllocator<UVTask>::Instance();
-    SimpleAllocator<VersionCtx>::Instance();
-    SimpleAllocator<WaitUntilEntry>::Instance();
-    QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
-    TimerManager::Instance();
-    Scheduler::Instance();
-#ifdef FFRT_WORKER_MONITOR
-    WorkerMonitor::GetInstance();
-#endif
-    /* By calling `FuncManager::Instance()` we force the construction
-     * of FunManager singleton static object to complete before static object `SExecuteUnit` construction.
-     * This implies that the destruction of `SExecuteUnit` will happen before `FuncManager`.
-     * And the destructor of `SExecuteUnit` waits for all threads/CPUWorkers to finish. This way
-     * we prevent use-after-free on `func_map` in `FuncManager`, when accessed by
-     * `CPUWorker` objects while being destructed. Note that `CPUWorker` destruction
-     * is managed by `unique_ptr` and we don't know exactly when it happens.
-     */
-    FuncManager::Instance();
-
 #ifdef FFRT_OH_TRACE_ENABLE
     _StartTrace(HITRACE_TAG_FFRT, "dm_init", -1); // init g_tagsProperty for ohos ffrt trace
     _FinishTrace(HITRACE_TAG_FFRT);

@@ -23,6 +23,7 @@ constexpr std::size_t LOCAL_QUEUE_SIZE = 128;
 constexpr int INSERT_GLOBAL_QUEUE_FREQ = 5;
 constexpr int GLOBAL_INTERVAL = 60;
 constexpr int UV_TASK_MAX_CONCURRENCY = 8;
+constexpr unsigned int BUDGET = 10;
 
 void InsertTask(void *task)
 {
@@ -143,6 +144,7 @@ void TaskScheduler::PushTaskLocalOrPriority(TaskBase *task)
 TaskBase *TaskScheduler::PopTaskLocalOrPriority()
 {
     TaskBase *task = nullptr;
+    thread_local static unsigned int lifoCount = 0;
     unsigned int *workerTickPtr = *GetWorkerTick();
     if ((workerTickPtr != nullptr) && (*workerTickPtr % GLOBAL_INTERVAL == 0)) {
         *workerTickPtr = 0;
@@ -152,18 +154,22 @@ TaskBase *TaskScheduler::PopTaskLocalOrPriority()
             FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(qos);
         }
         if (task != nullptr) {
+            lifoCount = 0;
             return task;
         }
     }
     // preferentially pick up tasks from the priority unless the priority is empty or occupied
     void **priorityTaskPtr = GetPriorityTask();
     if (*priorityTaskPtr != nullptr) {
-        task = reinterpret_cast<TaskBase *>(*priorityTaskPtr);
-        *priorityTaskPtr = nullptr;
-        if (reinterpret_cast<void *>(task) != &PLACE_HOLDER) {
+        if (*priorityTaskPtr != &PLACE_HOLDER) {
+            lifoCount++;
+            task = reinterpret_cast<TaskBase *>(*priorityTaskPtr);
+            *priorityTaskPtr = (lifoCount > BUDGET) ? &PLACE_HOLDER : nullptr;
             return task;
         }
+        *priorityTaskPtr = nullptr;
     }
+    lifoCount = 0;
     return reinterpret_cast<TaskBase *>(GetLocalQueue()->PopHead());
 }
 

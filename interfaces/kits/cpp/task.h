@@ -290,7 +290,7 @@ public:
      *
      * @param h The task_handle object to copy from.
      * @return Returns the current task_handle object.
-     * @since 12     
+     * @since 12
      */
     task_handle& operator=(task_handle const& h)
     {

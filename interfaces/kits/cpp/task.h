@@ -265,24 +265,47 @@ public:
     /**
      * @brief Destroys the task_handle object, releasing any associated resources.
      *
-     * @since 10
+     * @since 12
      */
     ~task_handle()
     {
         if (p) {
-            ffrt_task_handle_destroy(p);
+            ffrt_task_handle_dec_ref(p);
         }
     }
 
     /**
-     * @brief Deleted copy constructor to prevent copying of the task_handle object.
+     * @brief Copy constructor for task_handle.
+     *
+     * @param h The task_handle object to copy from.
+     * @since 12
      */
-    task_handle(task_handle const&) = delete;
+    task_handle(task_handle const& h)
+    {
+        *this = h;
+    }
 
     /**
-     * @brief Deleted copy assignment operator to prevent assignment of the task_handle object.
+     * @brief Copy assignment operator for task_handle.
+     *
+     * @param h The task_handle object to copy from.
+     * @return Returns the current task_handle object.
+     * @since 12     
      */
-    task_handle& operator=(task_handle const&) = delete;
+    task_handle& operator=(task_handle const& h)
+    {
+        if (this != &h) {
+            if (p) {
+                ffrt_task_handle_dec_ref(this->p);
+            }
+
+            p = h.p;
+            if (p) {
+                ffrt_task_handle_inc_ref(p);
+            }
+        }
+        return *this;
+    }
 
     /**
      * @brief Move constructor for task_handle.
@@ -310,13 +333,13 @@ public:
      *
      * @param h The task_handle object to move from.
      * @return Returns the current task_handle object.
-     * @since 10
+     * @since 12
      */
     inline task_handle& operator=(task_handle&& h)
     {
         if (this != &h) {
             if (p) {
-                ffrt_task_handle_destroy(p);
+                ffrt_task_handle_dec_ref(p);
             }
             p = h.p;
             h.p = nullptr;

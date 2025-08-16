@@ -219,6 +219,73 @@ HWTEST_F(CoreTest, ffrt_task_handle_ref, TestSize.Level0)
     ffrt_task_handle_destroy(handle);
 }
 
+/*
+ * 测试用例名称: ffrt_task_handle_copy_constructor
+ * 测试用例描述: 验证task_handle的拷贝构造接口
+ * 预置条件    : 针对nullptr进行设置
+ * 操作步骤    : 对nullptr进行拷贝赋值
+ * 预期结果    : 接口调用拷贝赋值接口成功，用例正常执行结束
+*/
+HWTEST_F(CoreTest, ffrt_task_handle_copy_constructor, TestSize.Level0)
+{
+    ffrt::task_handle handle = nullptr;
+    ffrt::task_handle handle1 = handle;
+
+    EXPECT_EQ(handle1, nullptr);
+}
+
+/*
+ * 测试用例名称: ffrt_task_handle_copy_operator
+ * 测试用例描述: 验证task_handle的拷贝赋值接口
+ * 预置条件    : 针对nullptr进行设置
+ * 操作步骤    : 对nullptr进行拷贝赋值
+ * 预期结果    : 接口调用拷贝赋值接口成功，用例正常执行结束
+*/
+HWTEST_F(CoreTest, ffrt_task_handle_copy_operator, TestSize.Level0)
+{
+    ffrt::task_handle handle = nullptr;
+    ffrt::task_handle handle1 = nullptr;
+    handle1 = handle;
+
+    EXPECT_EQ(handle1, nullptr);
+}
+
+/*
+ * 测试用例名称: ffrt_task_handle_copy_success
+ * 测试用例描述: 验证task_handle的拷贝构造和拷贝赋值接口
+ * 预置条件    : 创建有效的task_handle
+ * 操作步骤    : 对task_handle进行拷贝赋值
+ * 预期结果    : 不同task_handle的rc值相同
+*/
+HWTEST_F(CoreTest, ffrt_task_handle_copy_operator, TestSize.Level0)
+{
+    std::function<void()> cbOne = []() { printf("callback\n"); };
+    ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
+    uint64_t size = 1 * 1024 * 1024;
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr);
+    ffrt::task_handle handle = ffrt_submit_h_base(func, {}, {}, &task_attr);
+    ffrt::wait();
+
+    auto task = static_cast<ffrt::CPUEUTask*>(static_cast<ffrt_task_handle_t>(handle));
+    EXPECT_EQ(task->rc.load(), 1); // 任务正常结束，预期rc为1
+
+    ffrt::task_handle handle1 = handle; // 调用拷贝构造
+    auto task1 = static_cast<ffrt::CPUEUTask*>(static_cast<ffrt_task_handle_t>(handle1));
+    EXPECT_EQ(task->rc.load(), task1->rc.load()); // 拷贝成功
+    EXPECT_EQ(task->rc.load(), 2); // 任务正常结束，预期rc为2
+
+    ffrt::task_handle handle2;
+    handle2 = handle; // 调用拷贝赋值
+    auto task2 = static_cast<ffrt::CPUEUTask*>(static_cast<ffrt_task_handle_t>(handle2));
+    EXPECT_EQ(task1->rc.load(), task2->rc.load()); // 拷贝成功
+    EXPECT_EQ(task1->rc.load(), 3); // 任务正常结束，预期rc为3
+
+    ffrt_task_handle_destroy(handle);
+    ffrt_task_handle_destroy(handle1);
+    ffrt_task_handle_destroy(handle2);
+}
+
 /**
  * 测试用例名称：WaitFailWhenReuseHandle
  * 测试用例描述：构造2个submit_h的任务，验证task_handle转成dependence后，调用ffrt::wait的场景

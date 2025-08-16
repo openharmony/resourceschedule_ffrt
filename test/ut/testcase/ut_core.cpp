@@ -257,7 +257,7 @@ HWTEST_F(CoreTest, ffrt_task_handle_copy_operator, TestSize.Level0)
  * 操作步骤    : 对task_handle进行拷贝赋值
  * 预期结果    : 不同task_handle的rc值相同
 */
-HWTEST_F(CoreTest, ffrt_task_handle_copy_operator, TestSize.Level0)
+HWTEST_F(CoreTest, ffrt_task_handle_copy_success, TestSize.Level0)
 {
     std::function<void()> cbOne = []() { printf("callback\n"); };
     ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);

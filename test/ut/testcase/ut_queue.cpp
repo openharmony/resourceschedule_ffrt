@@ -440,13 +440,12 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0004, TestSize.Level0)
 HWTEST_F(QueueTest, get_queue_id_from_task, TestSize.Level0)
 {
     int x = 0;
-    queue* testQueue = new queue("test_queue");
+    auto testQueue = std::make_unique<queue>("test_queue");
     auto t = testQueue->submit_h([&] {
         x++;
         (void)ffrt::get_queue_id();
     }, {});
     testQueue->wait(t);
-    delete testQueue;
     EXPECT_EQ(x, 1);
 }
 
@@ -682,8 +681,8 @@ HWTEST_F(QueueTest, ffrt_queue_submit_head, TestSize.Level0)
 
 HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
 {
- // ffrt test case begin
-    ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
+    // ffrt test case begin
+    auto serialQueue = std::make_unique<ffrt::queue>("ffrt_normal_queue");
     ffrt_queue_t mainQueue = ffrt_get_main_queue();
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
@@ -706,13 +705,12 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
 
     serialQueue->wait(handle);
     EXPECT_EQ(result, 1);
-    delete serialQueue;
     usleep(100000);
 }
 
 HWTEST_F(QueueTest, get_main_queue, TestSize.Level0)
 {
-    ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
+    auto serialQueue = std::make_unique<ffrt::queue>("ffrt_normal_queue");
     queue* mainQueue = ffrt::queue::get_main_queue();
     int result = 0;
     std::function<void()>&& basicFunc = [&result]() {
@@ -733,14 +731,13 @@ HWTEST_F(QueueTest, get_main_queue, TestSize.Level0)
 
     serialQueue->wait(handle);
     EXPECT_EQ(result, 1);
-    delete serialQueue;
     usleep(100000);
 }
 
 HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level0)
 {
- // ffrt test case begin
-    ffrt::queue *serialQueue = new ffrt::queue("ffrt_normal_queue", {});
+    // ffrt test case begin
+    auto serialQueue = std::make_unique<ffrt::queue>("ffrt_normal_queue");
     ffrt_queue_t currentQueue = ffrt_get_current_queue();
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
@@ -763,9 +760,7 @@ HWTEST_F(QueueTest, ffrt_get_current_queue, TestSize.Level0)
         ffrt::task_attr().qos(3).name("ffrt current_queue."));
 
     serialQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-    delete serialQueue;
 }
 
 /*
@@ -931,12 +926,11 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
             usleep(1100000);
         }, {}, {});
     }
-    queue* testQueue = new queue("test_queue");
+    auto testQueue = std::make_unique<queue>("test_queue");
 
     auto t = testQueue->submit_h([&x] {
         FFRT_LOGE("task start"); x = x + 1;}, {});
     testQueue->wait(t);
-    delete testQueue;
     EXPECT_EQ(x, 1);
     ffrt::wait();
 }
@@ -955,11 +949,10 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level0)
     ffrt_task_timeout_set_threshold(1000);
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
-    queue* testQueue = new queue("test_queue");
+    auto testQueue = std::make_unique<queue>("test_queue");
     auto t = testQueue->submit_h([&x] { x = x + 1; usleep(2000000); FFRT_LOGE("done");}, {});
     FFRT_LOGE("submitted");
     testQueue->wait(t);
-    delete testQueue;
     FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
@@ -978,12 +971,11 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level0)
     ffrt_task_timeout_set_threshold(1000);
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
-    queue* testQueue = new queue("test_queue");
+    auto testQueue = std::make_unique<queue>("test_queue");
     FFRT_LOGE("submit");
     auto t = testQueue->submit_h([&x] { FFRT_LOGE("delay end"); usleep(2100000);
         x = x + 1;}, task_attr().delay(1200000));
     testQueue->wait(t);
-    delete testQueue;
     FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
@@ -1002,14 +994,13 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
     ffrt_task_timeout_set_threshold(1000);
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
-    queue* testQueue = new queue("test_queue");
+    auto testQueue = std::make_unique<queue>("test_queue");
     FFRT_LOGE("submit");
     testQueue->submit([&x] { x = x + 1; FFRT_LOGE("start"); });
     auto t = testQueue->submit_h([&x] { x = x + 1; FFRT_LOGE("delay start"); }, task_attr().delay(5000000));
     testQueue->cancel(t);
     testQueue->wait(t);
     usleep(1200000);
-    delete testQueue;
     FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);
 }
@@ -1217,6 +1208,7 @@ HWTEST_F(QueueTest, ffrt_queue_concurrent_recordtraffic_delay_trigger, TestSize.
     handle = ffrt_queue_submit_h(queue_handle,
                 create_function_wrapper(fastFunc, ffrt_function_kind_queue), &task_attr_1);
     ffrt_queue_wait(handle);
+    ffrt_task_handle_destroy(handle);
     EXPECT_EQ(result, 2);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
@@ -1234,8 +1226,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_all, TestSize
     ffrt_task_timeout_set_cb(MyCallback);
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
-
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 2);
     std::atomic<std::uint64_t> y{0};
@@ -1262,9 +1253,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_all, TestSize
     for (uint32_t i = 0; i < 10; i++) {
         testQueue->wait(handles[i]);
     }
-
     EXPECT_EQ(y, 10);
-    delete testQueue;
 }
 
 /*
@@ -1280,8 +1269,9 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_part, TestSiz
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 2);
     std::atomic<std::uint64_t> y{0};
     std::array<ffrt::task_handle, 4> handles;
@@ -1309,7 +1299,6 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_part, TestSiz
     }
 
     EXPECT_EQ(y, 4);
-    delete testQueue;
 }
 
 /*
@@ -1325,7 +1314,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_delay, TestSi
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 3);
     std::atomic<std::uint64_t> y{0};
@@ -1352,7 +1341,6 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_schedule_timeout_delay, TestSi
     }
 
     EXPECT_EQ(y, 10);
-    delete testQueue;
 }
 
 /*
@@ -1368,7 +1356,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
     std::atomic<std::uint64_t> y{0};
     std::array<ffrt::task_handle, 20> handles;
@@ -1399,11 +1387,8 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_execute_timeout_all, TestSize.
     for (uint32_t i = 4; i < 15; i++) {
         testQueue->wait(handles[i]);
     }
-
     EXPECT_EQ(y, 20);
-    delete testQueue;
 }
-
 /*
  * 测试用例名称 : ffrt_queue_concurrent_monitor_cancel_timeout_all
  * 测试用例描述 : 并行队列QueueMonitor检测到任务超时
@@ -1417,7 +1402,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_cancel_timeout_all, TestSize.L
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
     ffrt_set_cpu_worker_max_num(ffrt_qos_default, 2);
     std::atomic<std::uint64_t> y{0};
@@ -1446,7 +1431,6 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_cancel_timeout_all, TestSize.L
     }
 
     EXPECT_EQ(y, 8);
-    delete testQueue;
 }
 
 /*
@@ -1462,7 +1446,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_mixed_conditions_timeout, Test
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
 
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
     "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
     std::atomic<std::uint64_t> y{0};
     std::array<ffrt::task_handle, 12> handles;
@@ -1499,13 +1483,13 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_concurrent_mixed_conditions_timeout, Test
     }
 
     EXPECT_EQ(y, 11);
-    delete testQueue;
+
     FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
 }
 
 HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSize.Level1)
 {
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
         "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
     bool notify = false;
     int waitingTaskCount = 0;
@@ -1524,7 +1508,7 @@ HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSi
     std::mutex threadMutex;
     std::thread waitingThread([&] {
         std::unique_lock tm(threadMutex);
-        EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue)), 0);
+        EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue.get())), 0);
     });
 
     std::thread submitThread([&] {
@@ -1534,7 +1518,7 @@ HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSi
         }
         usleep(100 * 1000);
 
-        EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue)), 1);
+        EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue.get())), 1);
         for (int i = 0; i < 16; i++) {
             testQueue->submit([&] {
                 submitThreadTaskCount.fetch_add(1);
@@ -1553,7 +1537,7 @@ HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSi
     waitingThread.join();
     EXPECT_EQ(waitingTaskCount, 16);
 
-    EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue)), 0);
+    EXPECT_EQ(ffrt_concurrent_queue_wait_all(*reinterpret_cast<ffrt_queue_t*>(testQueue.get())), 0);
     EXPECT_EQ(submitThreadTaskCount.load(), 16);
 }
 /*
@@ -1565,7 +1549,7 @@ HWTEST_F(QueueTest, submit_task_while_concurrency_queue_waiting_all_test, TestSi
  */
 HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
 {
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
         "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
     int result = 0;
     auto handle = testQueue->submit_h([&result] {
@@ -1574,9 +1558,7 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
 
     EXPECT_EQ(ffrt::skip(handle), ffrt_error);
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-    delete testQueue;
 }
 
 /*
@@ -1588,7 +1570,7 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
  */
 HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
 {
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
         "concurrent_legacy_queue", ffrt::queue_attr().thread_mode(true));
     int result = 0;
     auto handle = testQueue->submit_h([&result] {
@@ -1597,11 +1579,8 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->threadMode_, true);
         result++;
     }, ffrt::task_attr("Task_on_Thread"));
-
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-    delete testQueue;
 }
 
 /*
@@ -1613,7 +1592,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
  */
 HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
 {
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_concurrent,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
         "concurrent_normal_queue", ffrt::queue_attr());
     int result = 0;
     auto handle = testQueue->submit_h([&result] {
@@ -1626,11 +1605,8 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
         EXPECT_EQ(static_cast<ffrt::QueueTask*>(task)->threadMode_, false);
         result++;
     }, ffrt::task_attr("Task_on_Coroutine"));
-
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-    delete testQueue;
 }
 
 /*
@@ -1642,7 +1618,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
  */
 HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
 {
-    ffrt::queue* testQueue = new ffrt::queue(ffrt::queue_serial,
+    auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_serial,
         "serial_legacy_queue", ffrt::queue_attr().thread_mode(true));
 
     ffrt::mutex mtx;
@@ -1670,11 +1646,8 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
         flag = false;
         usleep(10000);
     }
-
     testQueue->wait(handle);
-
     EXPECT_EQ(result, 1);
-    delete testQueue;
 }
 
 

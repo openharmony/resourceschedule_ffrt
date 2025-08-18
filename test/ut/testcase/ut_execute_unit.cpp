@@ -203,12 +203,12 @@ HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
 
 HWTEST_F(ExecuteUnitTest, HandleTaskNotifyConservative, TestSize.Level0)
 {
-    SExecuteUnit* manager = new SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.executingNum, 0);
 
-    SExecuteUnit::HandleTaskNotifyConservative(manager, 5, TaskNotifyType::TASK_ADDED);
-    SExecuteUnit::HandleTaskNotifyUltraConservative(manager, 5, TaskNotifyType::TASK_ADDED);
+    SExecuteUnit::HandleTaskNotifyConservative(manager.get(), 5, TaskNotifyType::TASK_ADDED);
+    SExecuteUnit::HandleTaskNotifyUltraConservative(manager.get(), 5, TaskNotifyType::TASK_ADDED);
     EXPECT_EQ(workerCtrl.executingNum, 0);
 
     workerCtrl.sleepingNum++;
@@ -229,12 +229,11 @@ HWTEST_F(ExecuteUnitTest, HandleTaskNotifyConservative, TestSize.Level0)
         delete manager->we_[0];
         manager->we_[0] = nullptr;
     }
-    delete manager;
 }
 
 HWTEST_F(ExecuteUnitTest, SetWorkerStackSize, TestSize.Level0)
 {
-    SExecuteUnit* manager = new SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
 
     manager->SetWorkerStackSize(5, 4096);
@@ -243,23 +242,19 @@ HWTEST_F(ExecuteUnitTest, SetWorkerStackSize, TestSize.Level0)
 
 HWTEST_F(ExecuteUnitTest, WorkerCreate, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.executingNum, 0);
-
     workerCtrl.WorkerCreate();
-
     EXPECT_EQ(workerCtrl.executingNum, 1);
 }
 
 HWTEST_F(ExecuteUnitTest, RollBackCreate, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.executingNum, 0);
-
     workerCtrl.RollBackCreate();
-
     EXPECT_EQ(workerCtrl.executingNum, -1);
 }
 
@@ -270,7 +265,7 @@ HWTEST_F(ExecuteUnitTest, RollBackCreate, TestSize.Level0)
  */
 HWTEST_F(ExecuteUnitTest, IntoSleep, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.executingNum, 0);
     EXPECT_EQ(workerCtrl.sleepingNum, 0);
@@ -288,7 +283,7 @@ HWTEST_F(ExecuteUnitTest, IntoSleep, TestSize.Level0)
  */
 HWTEST_F(ExecuteUnitTest, OutOfSleep, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.executingNum, 0);
     EXPECT_EQ(workerCtrl.sleepingNum, 0);
@@ -306,7 +301,7 @@ HWTEST_F(ExecuteUnitTest, OutOfSleep, TestSize.Level0)
  */
 HWTEST_F(ExecuteUnitTest, WorkerDestroy, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.sleepingNum, 0);
 
@@ -322,7 +317,7 @@ HWTEST_F(ExecuteUnitTest, WorkerDestroy, TestSize.Level0)
  */
 HWTEST_F(ExecuteUnitTest, IntoDeepSleep, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, 0);
 
@@ -333,7 +328,7 @@ HWTEST_F(ExecuteUnitTest, IntoDeepSleep, TestSize.Level0)
 
 HWTEST_F(ExecuteUnitTest, OutOfDeepSleep, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.sleepingNum, 0);
     EXPECT_EQ(workerCtrl.deepSleepingWorkerNum, 0);
@@ -348,7 +343,7 @@ HWTEST_F(ExecuteUnitTest, OutOfDeepSleep, TestSize.Level0)
 
 HWTEST_F(ExecuteUnitTest, TryDestroy, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.sleepingNum, 0);
 
@@ -359,7 +354,7 @@ HWTEST_F(ExecuteUnitTest, TryDestroy, TestSize.Level0)
 
 HWTEST_F(ExecuteUnitTest, RollbackDestroy, TestSize.Level0)
 {
-    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(5);
     EXPECT_EQ(workerCtrl.executingNum, 0);
 

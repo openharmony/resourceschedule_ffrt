@@ -572,6 +572,7 @@ HWTEST_F(PollerTest, DelFdEvent, TestSize.Level1)
     EXPECT_EQ(poller.DelFdEvent(0), -1);
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
     poller.ClearCachedEvents(currTask);
+    free(currTask);
 }
 
 HWTEST_F(PollerTest, Qos_Test, TestSize.Level1)

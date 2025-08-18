@@ -18,6 +18,7 @@ option(FFRT_BENCHMARKS "Enables ffrt Benchmarks" OFF)
 option(FFRT_TEST_ENABLE "Enables ffrt test" OFF)
 option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" OFF)
 option(FFRT_SANITIZE "enable address or thread sanitizer" OFF)
+option(FFRT_USE_COROUTINE "Use coroutine mode" ON)
 
 # set compiler clang or gcc, must before project(ffrt)
 if(FFRT_CLANG_COMPILE STREQUAL ON)
@@ -56,6 +57,11 @@ aux_source_directory(${SECUREC_PATH}/src securec_srcs)
 add_library(securec SHARED ${securec_srcs})
 target_include_directories(securec PRIVATE ${securec_includes})
 include_directories(${securec_includes})
+
+if(NOT FFRT_USE_COROUTINE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCLOSE_COROUTINE_MODE")
+  message(WARNING "Compiling -DCLOSE_COROUTINE_MODE, disabling coroutines.")
+endif()
 
 #compiler flags
 if(FFRT_SANITIZE STREQUAL address)

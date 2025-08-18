@@ -100,6 +100,7 @@ void DelayedWorker::ThreadInit()
         delayedWorker->join();
     }
     delayedWorker = std::make_unique<std::thread>([this]() {
+        ExecuteCtx::Cur()->threadType = ffrt::ThreadType::TIMER;
         struct sched_param param;
         param.sched_priority = 1;
         int ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);

@@ -151,6 +151,7 @@ void CPUWorker::Dispatch(CPUWorker* worker)
 #endif
     auto ctx = ExecuteCtx::Cur();
     ctx->qos = qos;
+    ctx->threadType = ffrt::ThreadType::WORKER;
     *(FFRTFacade::GetSchedInstance()->GetScheduler(qos).GetWorkerTick()) = &(worker->tick);
 
     worker->ops.WorkerPrepare(worker);

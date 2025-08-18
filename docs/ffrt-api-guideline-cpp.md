@@ -1486,7 +1486,8 @@ int main()
 }
 ```
 
-## 任务伙伴
+
+## 细粒度任务伙伴
 
 ### job_partner_attr
 
@@ -1534,10 +1535,10 @@ int job_partner_attr::qos() const;
 
 - 获取当前属性中设置的QoS等级。
 
-##### set max_num
+##### set max_parallelism
 
 ```cpp
-job_partner_attr& job_partner_attr::max_num(uint64_t v);
+job_partner_attr& job_partner_attr::max_parallelism(uint64_t v);
 ```
 
 参数
@@ -1552,10 +1553,10 @@ job_partner_attr& job_partner_attr::max_num(uint64_t v);
 
 - 设置最大Worker数，以控制最多使用多少个Worker线程与master线程协同工作。
 
-##### get max_num
+##### get max_parallelism
 
 ```cpp
-uint64_t job_partner_attr::max_num() const;
+uint64_t job_partner_attr::max_parallelism() const;
 ```
 
 返回值
@@ -1662,44 +1663,12 @@ uint64_t job_partner_attr::busy() const;
 
 - 获取当前属性中设置的Worker退出前的繁忙重试时间。
 
-##### set queue_depth
-
-```cpp
-job_partner_attr& job_partner_attr::queue_depth(uint64_t depth);
-```
-
-参数
-
-- `depth`：用户指定的任务队列深度。
-
-返回值
-
-- 返回当前对象以支持链式调用。
-
-描述
-
-- 设置任务队列深度，当设置为非二的幂次方时，会扩大为二的幂次方数。
-
-##### get queue_depth
-
-```cpp
-uint64_t job_partner_attr::queue_depth() const;
-```
-
-返回值
-
-- 返回任务队列深度。
-
-描述
-
-- 获取当前属性中设置的任务队列深度。
-
 ### job_partner
 
 #### 声明
 
 ```cpp
-template <int UsageId = 0>
+template <uint64_t UsageId = 0>
 struct job_partner;
 ```
 
@@ -1711,10 +1680,30 @@ UsageId表示`job_partner`实例的不同用途。
 
 #### 方法
 
+##### get_main_partner
+
+```cpp
+static auto& job_partner::get_main_partner();
+static auto& job_partner::get_main_partner(const ffrt::job_partner_attr& attr);
+```
+
+参数
+
+- `attr`：用户指定的`job_partner`属性。
+
+返回值
+
+- 返回主线程的伙伴。
+
+描述
+
+- 两个方法都为`job_partner`的静态方法，用于获取主线程伙伴（即`job_partner`实例）;
+
 ##### get_partner_of_this_thread
 
 ```cpp
-static auto& job_partner::get_partner_of_this_thread(const ffrt::job_partner_attr& attr = {});
+static auto& job_partner::get_partner_of_this_thread();
+static auto& job_partner::get_partner_of_this_thread(const ffrt::job_partner_attr& attr);
 ```
 
 参数
@@ -1735,16 +1724,17 @@ static auto& job_partner::get_partner_of_this_thread(const ffrt::job_partner_att
 ##### submit suspendable job
 
 ```cpp
-template <bool boost = true>
-int job_partner::submit(std::function<void()>&& suspendable_job, void* stack, size_t stack_size);
+template <bool Boost = true>
+int job_partner::submit(std::function<void()>&& suspendable_job, void* stack, size_t stack_size, void (*on_done)(void*) = nullptr);
 ```
 
 参数
 
-- `boost`：可选参数，是否触发Worker按水线自动扩容。
+- `Boost`：可选参数，是否触发Worker按水线自动扩容。
 - `suspendable_job`：任务闭包。
 - `stack`：任务执行的栈空间起始地址。
 - `stack_size`：任务执行的栈的大小，和stack参数匹配。
+- `on_done`：任务执行完成之后回调函数地址。
 
 返回值
 
@@ -1757,18 +1747,39 @@ int job_partner::submit(std::function<void()>&& suspendable_job, void* stack, si
 ##### submit non_suspendable job
 
 ```cpp
-template <bool boost = true>
+template <bool Boost = true>
 void job_partner::submit(std::function<void()>&& non_suspendable_job);
 ```
 
 参数
 
-- `boost`：可选参数，是否触发Worker按水线自动扩容。
+- `Boost`：可选参数，是否触发Worker按水线自动扩容。
 - `job`：任务闭包。
 
 描述
 
 - 提交一个不可暂停的普通任务，即在`non_suspendable_job`任务闭包中不应该调用`submit_to_master`，若强行调用`submit_to_master`，并不会暂停当前任务的执行，而是直接执行`submit_to_master`入参中的闭包。
+
+##### submit_p
+
+```cpp
+template <bool Boost = true, class Function>
+auto job_partner::submit_p(Function&& non_suspendable_job);
+```
+
+参数
+
+- `Boost`：可选参数，是否触发Worker按水线自动扩容。
+- `Function`：`non_suspendable_job`任务类型。
+- `job`：任务闭包。
+
+返回值
+
+- 返回执行结果的`job_promise`，通过`job_promise`可获取执行函数闭包的返回值。
+
+描述
+
+- 提交一个不可暂停的普通任务，并返回`promise`，用户可以通过`promise`获取任务执行结果，如果任务还未执行，则立即执行。
 
 ##### submit_to_master
 
@@ -1789,14 +1800,14 @@ static void job_partner::submit_to_master(std::function<void()>&& job);
 ##### wait
 
 ```cpp
-template<bool help_partner = true, uint64_t busy_wait_us = 100>
+template<bool HelpPartner = true, uint64_t BusyWaitUS = 100>
 int job_partner::wait();
 ```
 
 参数
 
-- `help_partner`：当前等待线程是否帮助partner线程消费队列任务，从时延角度，设置为true会更优。
-- `busy_wait_us`：如果`help_partner`设置为true，该参数无效，如果`help_partner`为false，当前等待线程在等待`busy_wait_us`之后会进入睡眠，直到任务完成才被唤醒。
+- `HelpPartner`：当前等待线程是否帮助partner线程消费队列任务，从时延角度，设置为true会更优。
+- `BusyWaitUS`：如果`HelpPartner`设置为true，该参数无效，如果`HelpPartner`为false，当前等待线程在等待`BusyWaitUS`之后会进入睡眠，直到任务完成才被唤醒。
 
 返回值
 
@@ -1818,7 +1829,42 @@ static bool job_partner::this_thread_is_master();
 
 描述
 
-- 该方法为非静态方法，判断当前线程是否为`this job_partner`的是master线程。
+- 该方法为静态方法，判断当前线程是否为`this job_partner`的是master线程。
+
+##### flush
+
+```cpp
+void job_partner::flush();
+```
+
+描述
+
+- 用于在`job_partner`中的threshold为非0时，调用该函数触发Worker以执行尚未开始执行的任务，在threshold为0时，无需调用该接口。
+
+##### try_steal_one_job
+
+```cpp
+bool try_steal_one_job();
+```
+
+返回值
+
+- 处理任务成功时返回true，否则返回false，通常原因为队列中没有任务。
+
+描述
+
+- 尝试从队列中取一个任务处理，当任务队列为空时，会处理失败。
+  
+##### reset_queue
+
+```cpp
+void job_partner::reset_queue(uint64_t partner_queue_depth = 1024, uint64_t master_queue_depth = 1024)
+```
+
+描述
+
+- 重新设置job_partner内部的队列深度，用于极致调优。
+- 注意：这个接口只能在队列为空且Worker不在处理任务的时候调用，比如在submit之前或者wait之后。
 
 #### 样例
 
@@ -1847,6 +1893,335 @@ int main()
     }
     partner->wait();
     std::cout << "a = " << a.load() << std::endl; // expect a = 10100
+    return 0;
+}
+````
+
+## 细粒度任务队列
+
+### job_ring_attr
+
+#### 声明
+
+```cpp
+struct job_ring_attr;
+```
+
+#### 描述
+
+`job_ring`创建时使用的属性设置，包括QoS、Worker控制等设置。
+
+#### 方法
+
+##### set qos
+
+```cpp
+job_ring_attr& job_ring_attr::qos(qos q);
+```
+
+参数
+
+- `q`：用户指定的QoS等级。
+
+返回值
+
+- 返回当前对象以支持链式调用。
+
+描述
+
+- 设置`job_ring`执行时所使用的线程的的QoS等级。
+
+##### get qos
+
+```cpp
+int job_ring_attr::qos() const;
+```
+
+返回值
+
+- 返回当前QoS等级。
+
+描述
+
+- 获取当前属性中设置的QoS等级。
+
+##### set threshold
+
+```cpp
+job_ring_attr& job_ring_attr::threshold(uint64_t v);
+```
+
+参数
+
+- `v`：用户指定的threshold参数。
+
+返回值
+
+- 返回当前对象以支持链式调用。
+
+描述
+
+- 设置threshold参数，用于控制Worker数量。threshold表示任务堆积到指定数量之后才会启动Worker，用于任务粒度非常小时避免Worker被频繁唤醒。
+
+##### get threshold
+
+```cpp
+uint64_t job_ring_attr::threshold() const;
+```
+
+返回值
+
+- 返回用户指定的threshold参数。
+
+描述
+
+- 获取当前属性中设置的threshold参数。
+
+##### set busy
+
+```cpp
+job_ring_attr& job_ring_attr::busy(uint64_t us);
+```
+
+参数
+
+- `us`：繁忙重试的时长，单位是微秒。
+
+返回值
+
+- 返回当前对象以支持链式调用。
+
+描述
+
+- 设置Worker退出前的繁忙重试时间，在某些平台上会优化为低功耗模式，用于避免Worker频繁创建和退出。
+
+##### get busy
+
+```cpp
+uint64_t job_ring_attr::busy() const;
+```
+
+返回值
+
+- 返回Worker退出前的繁忙重试时间。
+
+描述
+
+- 获取当前属性中设置的Worker退出前的繁忙重试时间。
+
+### job_ring
+
+#### 声明
+
+```cpp
+template <bool MultiProducer = true>
+struct job_ring;
+```
+
+#### 描述
+
+`job_ring`实例，基于该类的方法可以实现任务的生产和消费。
+
+MultiProducer表示`job_ring`实例是否支持多生产者。
+
+#### 方法
+
+##### make
+
+```cpp
+static auto make(const job_ring_attr& attr = {}, uint64_t depth = 1024);
+```
+
+参数
+
+- `attr`：用户指定的`job_ring`属性。
+- `depth`：队列深度，默认1024
+
+返回值
+
+- 返回`job_ring`实例。
+
+描述
+
+- 该方法为`job_ring`的静态方法，用于获取`job_ring`实例。
+
+##### submit
+
+```cpp
+void job_ring::submit(std::function<void()>&& job);
+```
+
+参数
+
+- `job`：任务闭包。
+
+描述
+
+- 提交一个任务到`job_ring`中，如果目前没有线程执行任务，且任务数达到`threshold`数量，则会启动线程执行任务。
+
+##### flush
+
+```cpp
+void job_ring::flush();
+```
+
+描述
+
+- 启动线程执行任务，并且保证只有一个线程在执行任务。
+
+##### wait
+
+```cpp
+template<bool HelpWorker = true, uint64_t BusyWaitUS = 100>
+void job_ring::wait();
+```
+
+参数
+
+- `HelpWorker`：当前等待线程是否帮助ffrt线程消费队列任务，但是会保证只有一个线程在消费队列，从时延角度，设置为true会更优。
+- `BusyWaitUS`：当前等待线程在等待`BusyWaitUS`之后会进入睡眠，直到任务完成才被唤醒。
+
+描述
+
+- 在调用该接口时，会同步等待`job_ring`历史提交过的所有任务执行完成。
+
+##### commit_times_for_profiling
+
+```cpp
+uint64_t& commit_times_for_profiling();
+```
+
+描述
+
+- 此接口主要用来分析性能，查看ffrt线程启动次数。
+
+#### 样例
+
+````cpp
+#include <iostream>
+#include <array>
+#include <atomic>
+#include "ffrt/ffrt.h"
+
+int main()
+{
+    auto q = ffrt::job_ring<false>::make(ffrt::job_ring_attr().busy(20).threshold(15));
+    for (int l = 0; l < 10000; l++) {
+        int c = 0;
+        for (int i = 0; i < 20; i++) {
+            q->submit([i, &c] {
+                usleep(500);
+                std::cout << "c = " << c << std::endl;  // expect c = i
+                c++;
+            });
+        }
+        q->wait();
+        std::cout << "c = " << c << std::endl;  // expect c = 20
+    }
+    return 0;
+}
+````
+
+## 细粒度任务异步返回值
+
+### job_promise
+
+#### 声明
+
+```cpp
+struct job_promise;
+```
+
+#### 描述
+
+`job_promise`是任务的异步返回值，通过该类可以获取异步任务的返回值，或者在当前线程执行与之对应的任务。
+
+#### 方法
+
+##### is_ready
+
+```cpp
+bool is_ready() const;
+```
+
+返回值
+
+- 返回`true`表示该任务已经完成，`false`表示该任务未执行完成。
+
+描述
+
+- 该方法用于判断任务完成与否。
+
+##### get
+
+```cpp
+template <bool TryRun = true, uint64_t BusyWaitUS = 100>
+decltype(auto) get(const std::function<bool()>& on_wait = nullptr);
+```
+
+参数
+
+- `TryRun`：调用get的线程是否尝试执行`job_promise`依赖任务。设置为true时，如果任务尚未开始执行则尝试执行，否则会等待其他线程执行；从时延角度，设置为true会更优。
+- `BusyWaitUS`：调用get的线程在如果`TryRun`为`false`或没有抢到任务的执行权限，则会在`BusyWaitUS`内busy查询`job_promise`是否处于ready。若为ready则返回异步任务的返回值，反之进入睡眠，直到任务完成才被唤醒。
+- `on_wait`：等待promise闭包对应执行的任务闭包。
+
+返回值
+
+- 返回 `job_promise`对应的异步任务的返回值。
+
+描述
+
+- 通过调用get可以获得`job_promise`e对应的异步任务的返回值。
+- `job_promise`会保证与之对应的任务闭包任何情况下只会被执行一次。
+- get接口支持`TryRun`、`BusyWait`和`on_wait`参数用于极致调优，调用get时有以下情况：
+  - 初始阶段：如果任务已经ready，则直接返回异步任务的返回值，否则进入下一阶段;
+  - TryRun阶段：若`TryRun`为true，则尝试获取`job_promise`对应的异步任务的执行权限。如果成功获取执行权限，则执行该任务并返回，否则进入下一阶段;
+  - on_wait阶段：如果`on_wait`为空则进入下一阶段，否则执行`on_wait`回调，之后检查`job_promise`是否ready。如果任务已经ready，则返回；如果任务尚未ready且`on_wait`回调返回为`true`，则继续执行`on_wait`；如果`on_wait`返回`false`则进入下一阶段;
+  - BusyWaitUS阶段：如果`BusyWaitUS`不为0，则会在`BusyWaitUS`内busy查询`job_promise`是否处于ready，如果任务ready，则返回，否则进入下一阶段;
+  - 睡眠等待阶段：线程睡眠，等待任务完成之后唤醒，返回。
+
+##### execute
+
+```cpp
+bool try_execute();
+```
+
+返回值
+
+- 返回`true`表示成功执行该任务，`false`表示该任务已经执行完成或者正在执行中，无法再次执行。
+
+描述
+
+- 如果`job_promise`对应的异步任务还未执行，则尝试获取执行权限，如果成功获取执行权限则直接执行并返回`true`,否则返回`false`。
+
+#### 样例
+
+````cpp
+#include <iostream>
+#include <vector>
+#include "ffrt/ffrt.h"
+
+int main()
+{
+    auto job_partner = ffrt::job_partner<>::get_main_partner(ffrt::job_partner_attr().max_parallelism(1));
+
+    std::vector<ffrt::job_promise<int>> vp;
+    for (int i = 0; i < 100; i++) {
+        vp.emplace_back(job_partner->submit_p([i] {
+            usleep(rand() % 100);
+            static int a = 0;
+            return a++;
+        }));
+    }
+
+    for (int i = 0; i < 100; i++) {
+        auto a = vp[i].get<true>([&job_partner] {
+            // 如果任务正在执行则会窃取partner后面的任务开始执行
+            return job_partner->try_steal_one_job();
+        });
+        // i为提交序，一定是保序的；a为执行序，可能会乱序(因为等待时的任务窃取)
+        std::cout << "i = " << i << ", a = " << a << std::endl;
+    }
     return 0;
 }
 ````

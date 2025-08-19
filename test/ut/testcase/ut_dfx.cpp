@@ -345,7 +345,7 @@ HWTEST_F(DfxTest, hitrace_test_poller, TestSize.Level0)
     int HITRACE_FLAG_INCLUDE_ASYNC = 1 << 0;
     const HiTraceIdStruct traceId = TraceChainAdapter::Instance().HiTraceChainBegin("ffrt_dfx_test",
         HITRACE_FLAG_INCLUDE_ASYNC);
-    LoopPoller poller;
+    Poller poller;
     // 1.组装timeMap_
     static int result0 = 0;
     int* xf = &result0;

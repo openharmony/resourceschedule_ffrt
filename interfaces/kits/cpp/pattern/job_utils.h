@@ -40,13 +40,16 @@
 #include <climits>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <linux/futex.h>
 #include <functional>
 #include <string>
 #include <thread>
 #include <chrono>
 #include <atomic>
-#include <linux/futex.h>
+#if __has_include("c/fiber.h")
 #include "c/fiber.h"
+#define _ffrt_has_fiber_feature
+#endif
 
 #ifndef FFRT_API_LOGE
 #define FFRT_API_LOGE(fmt, ...)
@@ -92,6 +95,13 @@ static inline void wfe()
 {
 #if (defined __aarch64__ || defined __arm__)
     __asm__ volatile("wfe" : : : "memory");
+#endif
+}
+
+static inline void sev()
+{
+#if (defined __aarch64__ || defined __arm__)
+    __asm__ volatile ("sev" : : : "memory");
 #endif
 }
 
@@ -205,6 +215,7 @@ struct ref_obj {
      * Provides automatic reference counting and resource management for objects derived from ref_obj.
      */
     struct ptr {
+        using type = T;
         /**
          * @brief Default constructor. Initializes as a null pointer.
          */
@@ -244,6 +255,9 @@ struct ref_obj {
         inline ptr& operator=(ptr const& h)
         {
             if (this != &h) {
+                if (p) {
+                    p->dec_ref();
+                }
                 p = h.p;
                 if (p) {
                     p->inc_ref();
@@ -305,17 +319,7 @@ struct ref_obj {
          *
          * @return Raw pointer to the object.
          */
-        constexpr inline T* operator -> ()
-        {
-            return p;
-        }
-
-        /**
-         * @brief Arrow operator for member access (const version).
-         *
-         * @return Const raw pointer to the object.
-         */
-        constexpr inline const T* operator -> () const
+        constexpr inline T* operator -> () const
         {
             return p;
         }
@@ -352,7 +356,6 @@ struct ref_obj {
     static inline ptr make(Args&& ... args)
     {
         auto p = new T(std::forward<Args>(args)...);
-        FFRT_API_LOGD("%s new %p", __PRETTY_FUNCTION__, p);
         return ptr(p);
     }
 
@@ -379,8 +382,8 @@ struct ref_obj {
      */
     inline void dec_ref()
     {
-        if (ref.fetch_sub(1, std::memory_order_relaxed) == 1) {
-            FFRT_API_LOGD("%s delete %p", __PRETTY_FUNCTION__, this);
+        if (ref.fetch_sub(1, std::memory_order_release) == 1) {
+            std::atomic_thread_fence(std::memory_order_acquire);
             delete static_cast<T*>(this);
         }
     }
@@ -404,11 +407,19 @@ struct mpmc_queue : detail::non_copyable {
      */
     mpmc_queue(uint64_t cap) : capacity(align2n(cap)), mask(capacity - 1)
     {
-        if (std::is_pod_v<Item>) {
-            q = static_cast<Item*>(malloc(capacity * sizeof(Item)));
-        } else {
-            q = new Item [capacity];
+        uint64_t us = 1;
+        q = nullptr;
+        for (;;) {
+            if (std::is_pod_v<Item>) {
+                q = static_cast<Item*>(malloc(capacity * sizeof(Item)));
+            } else {
+                q = new (std::nothrow) Item[capacity];
+            }
+            if (q) break;
+            std::this_thread::sleep_for(std::chrono::microseconds(us));
+            us = us << 1;
         }
+
         for (size_t i = 0; i < capacity; ++i) {
             q[i].iwrite_exp.store(i, std::memory_order_relaxed);
             q[i].iread_exp.store(-1, std::memory_order_relaxed);
@@ -445,7 +456,8 @@ struct mpmc_queue : detail::non_copyable {
      * @param data Element to push.
      * @return True if successful, false otherwise.
      */
-    bool try_push(const T& data)
+    template <class Data>
+    inline bool try_push(Data&& data)
     {
         Item* i;
         auto iwrite = iwrite_.load(std::memory_order_relaxed);
@@ -458,7 +470,7 @@ struct mpmc_queue : detail::non_copyable {
                 break;
             }
         }
-        i->data = data;
+        i->data = std::forward<Data>(data);
         i->iread_exp.store(iwrite, std::memory_order_release);
         return true;
     }
@@ -469,7 +481,8 @@ struct mpmc_queue : detail::non_copyable {
      * @param result Output parameter for the popped element.
      * @return True if successful, false otherwise.
      */
-    bool try_pop(T& result)
+    template <class R>
+    inline bool try_pop(R& result)
     {
         Item* i;
         auto iread = iread_.load(std::memory_order_relaxed);
@@ -482,7 +495,11 @@ struct mpmc_queue : detail::non_copyable {
                 break;
             }
         }
-        result = i->data;
+        if constexpr(std::is_same_v<R, T>) {
+            result = std::move(i->data);
+        } else {
+            result(i->data);
+        }
         i->iwrite_exp.store(iread + capacity, std::memory_order_release);
         return true;
     }
@@ -506,15 +523,110 @@ private:
 };
 
 /**
- * @brief Function pointer type for tasks.
+ * @struct spsc_queue
+ * @brief Lock-free single-producer single-consumer queue.
+ *
+ * @tparam T Element type.
  */
-using func_ptr = void(*)(void*);
+template<class T>
+struct spsc_queue {
+    spsc_queue(uint64_t cap) : capacity(align2n(cap)), mask(capacity - 1)
+    {
+        cached_write = capacity - 1;
+        uint64_t us = 1;
+        q = nullptr;
+        for (;;) {
+            if (std::is_pod_v<Item>) {
+                q = static_cast<Item*>(malloc(sizeof(Item) * capacity));
+            } else {
+                q = new (std::nothrow) Item[capacity];
+            }
+            if (q) break;
+            std::this_thread::sleep_for(std::chrono::microseconds(us));
+            us = us << 1;
+        }
+        for (size_t i = 0; i < capacity; ++i) {
+            q[i].valid.store(false, std::memory_order_relaxed);
+        }
+
+        iwrite_ = 0;
+        iread_.store(0, std::memory_order_relaxed);
+    }
+
+    ~spsc_queue()
+    {
+        if (std::is_pod_v<Item>) {
+            free(q);
+        } else {
+            delete[] q;
+        }
+    }
+
+    template <class Data>
+    inline bool try_push(Data&& data)
+    {
+        if (cached_write == 0) {
+            uint64_t iread = iread_.load(std::memory_order_acquire);
+            cached_write = iread + capacity - 1 - iwrite_;
+            if (cached_write == 0) {
+                return false;
+            }
+        }
+
+        auto& i = q[iwrite_ & mask];
+        i.data = std::forward<Data>(data);
+        i.valid.store(true, std::memory_order_release);
+        iwrite_++;
+        cached_write--;
+        return true;
+    }
+
+    template <class R>
+    inline bool try_pop(R& result)
+    {
+        auto& i = q[iread_.load(std::memory_order_relaxed) & mask];
+        if (!i.valid.load(std::memory_order_acquire)) {
+            return false;
+        }
+
+        if constexpr(std::is_same_v<R, T>) {
+            result = std::move(i.data);
+        } else {
+            result(i.data);
+        }
+        i.valid.store(false, std::memory_order_relaxed);
+        iread_.fetch_add(1, std::memory_order_release);
+        return true;
+    }
+
+private:
+    uint64_t capacity;
+    uint64_t mask;
+    uint64_t cached_write;
+    struct Item {
+        T data;
+        std::atomic<bool> valid;
+    };
+    Item* q;
+
+    alignas(detail::cacheline_size) uint64_t iwrite_ = 0;
+    alignas(detail::cacheline_size) std::atomic<uint64_t> iread_ = 0;
+};
+
+template <bool MultiProducer, bool multi_consumer, typename T>
+struct lf_queue: mpmc_queue<T> {
+    using mpmc_queue<T>::mpmc_queue;
+};
+template <typename T>
+struct lf_queue<false, false, T>: spsc_queue<T> {
+    using spsc_queue<T>::spsc_queue;
+};
 
 /**
  * @brief Structure representing a pointer-based task.
  */
 struct ptr_task {
-    func_ptr f; ///< Function pointer.
+    void(*f)(void*); ///< Function pointer.
     void* arg;  ///< Argument pointer.
 };
 
@@ -543,13 +655,12 @@ struct runnable_queue : Queue<ptr_task> {
     {
         ptr_task job;
         auto suc = this->try_pop(job);
-        if (!suc) {
-            return false;
+        if (suc) {
+            FFRT_API_TRACE_INT64(name.c_str(), this->size());
+            job.f(job.arg);
+            return true;
         }
-
-        FFRT_API_TRACE_INT64(name.c_str(), this->size());
-        job.f(job.arg);
-        return true;
+        return false;
     }
 
     /**
@@ -559,15 +670,15 @@ struct runnable_queue : Queue<ptr_task> {
      * @param f Function pointer.
      * @param p Argument pointer.
      */
-    template <int policy>
-    inline void push(func_ptr f, void* p)
+    template <int Policy>
+    inline void push(void(*f)(void*), void* p)
     {
         uint64_t us = 1;
-        while (!this->try_push({f, p})) {
-            if constexpr(policy == 0) {
+        while (!this->try_push(ptr_task{f, p})) {
+            if constexpr(Policy == 0) {
                 std::this_thread::sleep_for(std::chrono::microseconds(us));
                 us = us << 1;
-            } else if constexpr(policy == 1) {
+            } else if constexpr(Policy == 1) {
                 try_run();
             }
         }
@@ -613,6 +724,7 @@ struct clock {
  * @tparam FiberLocal Type for fiber-local storage.
  * @tparam ThreadLocal Type for thread-local storage.
  */
+#ifdef _ffrt_has_fiber_feature
 template <int UsageId = 0, class FiberLocal = char, class ThreadLocal = char>
 struct fiber : detail::non_copyable {
     /**
@@ -643,17 +755,15 @@ struct fiber : detail::non_copyable {
      */
     static fiber* init(std::function<void()>&& f, void* stack, size_t stack_size)
     {
-        if (stack == nullptr || stack_size < sizeof(fiber) + min_stack_size) {
-            return nullptr;
-        }
-        auto c = new (stack) fiber(std::forward<std::function<void()>>(f));
+        auto c = static_cast<fiber*>(stack);
         if (ffrt_fiber_init(&c->fb, reinterpret_cast<void(*)(void*)>(fiber_entry), c,
             static_cast<char*>(stack) + sizeof(fiber), stack_size - sizeof(fiber))) {
-            c->~fiber<UsageId, FiberLocal, ThreadLocal>();
             return nullptr;
         }
-
-        FFRT_API_LOGD("job %lu create", c->id);
+        new(&c->fn) std::function<void()>(std::forward<std::function<void()>>(f));
+        new(&c->local_) FiberLocal;
+        c->id_ = idx.fetch_add(1, std::memory_order_relaxed);
+        FFRT_API_LOGD("fiber %lu create", c->id_);
         return c;
     }
 
@@ -662,8 +772,9 @@ struct fiber : detail::non_copyable {
      */
     inline void destroy()
     {
-        FFRT_API_LOGD("job %lu destroy", id);
-        this->~fiber<UsageId, FiberLocal, ThreadLocal>();
+        FFRT_API_LOGD("fiber %lu destroy", id_);
+        fn.~function<void()>();
+        local_.~FiberLocal();
     }
 
     /**
@@ -679,10 +790,10 @@ struct fiber : detail::non_copyable {
         do {
             e.cond = nullptr;
             e.cur = this;
-            FFRT_API_LOGD("job %lu switch in", id);
+            FFRT_API_LOGD("job %lu switch in", id_);
             ffrt_fiber_switch(&link, &fb);
-            FFRT_API_LOGD("job %lu switch out", id);
-            done = this->done;
+            FFRT_API_LOGD("job %lu switch out", id_);
+            done = this->id_ == 0;
         } while (e.cond && !(e.cond)(this));
         e.cond = nullptr;
         return done;
@@ -700,7 +811,7 @@ struct fiber : detail::non_copyable {
     {
         auto j = e.cur;
         if constexpr(is_final) {
-            j->done = true;
+            j->id_ = 0;
         } else {
             e.cond = cond;
         }
@@ -729,21 +840,12 @@ struct fiber : detail::non_copyable {
         return local_;
     }
 
-    uint64_t id; ///< Fiber identifier.
+    uint64_t id()
+    {
+        return id_;
+    }
 
 private:
-    static constexpr uint64_t min_stack_size = 32; ///< Minimum stack size required for a fiber.
-
-    /**
-     * @brief Constructs a fiber object with the given function and stack size.
-     *
-     * @param f Function to execute in the fiber.
-     */
-    fiber(std::function<void()>&& f)
-    {
-        fn = std::forward<std::function<void()>>(f);
-        id = idx.fetch_add(1, std::memory_order_relaxed);
-    }
 
     /**
      * @brief Fiber entry function. Executes the user function and suspends the fiber upon completion.
@@ -760,12 +862,195 @@ private:
     ffrt_fiber_t fb;          ///< Fiber context for execution.
     ffrt_fiber_t link;        ///< Link to the previous fiber context.
     std::function<void()> fn; ///< Function to be executed by the fiber.
-    bool done = false;        ///< Indicates whether the fiber has finished execution.
+    uint64_t id_;             ///< Fiber identifier.
     FiberLocal local_;        ///< Fiber-local storage.
-    static inline std::atomic_uint64_t idx{0}; ///< Atomic counter for generating unique fiber IDs.
+    static inline std::atomic_uint64_t idx{1}; ///< Atomic counter for generating unique fiber IDs.
+};
+#endif
+
+template <typename T>
+struct type_size {
+    static constexpr size_t value = sizeof(T);
+};
+template <>
+struct type_size<void> {
+    static constexpr size_t value = 0;
 };
 
-} // namespace ffrt
+template<class R>
+struct job_promise_obj : ref_obj<job_promise_obj<R>> {
+    ~job_promise_obj()
+    {
+        if (is_ready()) {
+            if constexpr(!std::is_void_v<R>) {
+                ((R*)blob)->~R();
+            }
+        }
+    }
 
-#endif // FFRT_JOB_UTILS_H
-/** @} */
+    inline bool is_ready() const
+    {
+        return stat.load(std::memory_order_acquire) == ready;
+    }
+
+    template <bool TryRun = true, uint64_t BusyWaitUS = 100>
+    inline decltype(auto) get(const std::function<bool()>& on_wait = nullptr)
+    {
+        if (!is_ready()) {
+            wait<TryRun, BusyWaitUS>(on_wait);
+        }
+        if constexpr(std::is_void_v<R>) {
+            return;
+        } else {
+            return (*(R*)blob);
+        }
+    }
+
+    inline bool try_execute()
+    {
+        if (try_acquire()) {
+            call();
+            release();
+            return true;
+        }
+        return false;
+    }
+
+    void* owner;
+private:
+    job_promise_obj(std::function<R()>&& func) : func(std::forward<std::function<R()>>(func)) {}
+    inline bool try_acquire()
+    {
+        int32_t exp = pending;
+        return stat.compare_exchange_strong(exp, executing, std::memory_order_acquire, std::memory_order_relaxed);
+    }
+
+    inline void release()
+    {
+        if (stat.load() != executing) abort();
+        stat.store(ready, std::memory_order_release);
+        sev();
+        if (waiter.exchange(0) == 1) {
+            waiter.notify_all();
+        }
+    }
+
+    inline void call()
+    {
+        if constexpr (std::is_void_v<R>) {
+            func();
+        } else {
+            new (blob) R(func());
+        }
+    }
+
+    template <bool TryRun = true, uint64_t BusyWaitUS = 100>
+    inline void wait(const std::function<bool()>& on_wait = nullptr)
+    {
+        if (TryRun && try_acquire()) {
+            call();
+            release();
+            return;
+        }
+
+        if (on_wait) {
+            while (!is_ready() && on_wait());
+            if (is_ready()) return;
+        }
+        if (BusyWaitUS) {
+            auto s = clock::now();
+            do {
+                if (is_ready()) return;
+                wfe();
+            } while (clock::ns(s) < BusyWaitUS * 1000);
+        }
+
+        while (!is_ready()) {
+            waiter = 1;
+            if (!is_ready()) {
+                waiter.wait(1);
+            }
+            if (waiter.exchange(0) == 1) {
+                waiter.notify_all();
+            }
+        }
+    }
+
+    enum {
+        pending,
+        executing,
+        ready
+    };
+
+    std::function<R()> func;
+    char blob[type_size<R>::value];
+    std::atomic_int32_t stat{pending};
+    atomic_wait waiter = 0;
+
+    friend ref_obj<job_promise_obj<R>>;
+};
+
+/**
+ * @struct job_promise
+ * @brief Provide the function of executing the task and getting the result of the task.
+ *
+ * @tparam R Element type.
+ */
+template<class R>
+struct job_promise : public job_promise_obj<R>::ptr {
+    using Base = typename job_promise_obj<R>::ptr;
+    using Base::Base;
+    job_promise(const Base& p) : Base(p) {}
+
+    /**
+    * @brief This function is used to determine whether a task has been completed or not.
+    *
+    * @return Returning `true` indicates that the task has been completed, while `false`
+    *         indicates that the task has not been executed completely.
+    * @since 20
+    */
+    inline bool is_ready() const
+    {
+        return Base::get()->is_ready();
+    }
+
+    /**
+    * @brief Obtain the execution results of dependent tasks.
+    *
+    * @tparam TryRun The waiting thread directly executes the `job_promise` dependent task or not.
+    * @tparam BusyWaitUS The current waiting thread will enter sleep after waiting for `BusyWaitUS`,
+    *         and will not be woken up until the task is completed.
+    * @param on_wait The function that needs to be executed by the current thread during the waiting
+    *        process for task execution.
+    * @return Task execution result.
+    * @since 20
+    */
+    template <bool TryRun = true, uint64_t BusyWaitUS = 100>
+    inline decltype(auto) get(const std::function<bool()>& on_wait = nullptr)
+    {
+        return Base::get()->template get<TryRun, BusyWaitUS>(on_wait);
+    }
+
+    /**
+    * @brief If the job hasn't been executed yet, execute it directly in the current thread;
+    *        otherwise, return directly.
+    *
+    * @return Return false if the job has executed or is executing, otherwise execute it and return true;
+    * @since 20
+    */
+    inline bool try_execute()
+    {
+        return Base::get()->try_execute();
+    }
+
+    template <uint64_t UsageId>
+    friend struct job_partner;
+};
+
+template<class R>
+static inline job_promise<R> make_job_promise(std::function<R()>&& func)
+{
+    return job_promise_obj<R>::make(std::forward<std::function<R()>>(func));
+}
+}
+#endif

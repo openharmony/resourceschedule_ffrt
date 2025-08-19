@@ -23,7 +23,6 @@ namespace ffrt {
 
 class TraceChainAdapter {
 public:
-    TraceChainAdapter();
     ~TraceChainAdapter();
 
     static TraceChainAdapter& Instance();
@@ -36,6 +35,7 @@ public:
     void HiTraceChainEnd(const HiTraceIdStruct* pId);
 
 private:
+    TraceChainAdapter();
     void Load();
     void UnLoad();
 

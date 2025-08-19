@@ -44,6 +44,12 @@ enum class SharedMutexWaitType {
     WRITE,
 };
 
+enum class ThreadType {
+    NORMAL,
+    WORKER,
+    TIMER,
+};
+
 enum class WaitEntryStatus {
     INIT,
     NOTIFYING,
@@ -90,6 +96,7 @@ struct ExecuteCtx {
     WaitUntilEntry wn;
     uint64_t lastGid_ = 0;
     pid_t tid;
+    ThreadType threadType = ffrt::ThreadType::NORMAL;
 
     /**
      * @param init Should ExecuteCtx be initialized if it cannot be obtained

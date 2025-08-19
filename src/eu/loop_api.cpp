@@ -14,7 +14,7 @@
  */
 
 #include "c/loop.h"
-#include "eu/loop.h"
+#include "loop.h"
 #include "queue/queue_handler.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"

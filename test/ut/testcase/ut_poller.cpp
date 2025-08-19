@@ -21,7 +21,7 @@
 #include "c/ffrt_ipc.h"
 #define private public
 #define protected public
-#include "eu/loop_poller.h"
+#include "sync/poller.h"
 #include "tm/cpu_task.h"
 #include "tm/scpu_task.h"
 #undef private
@@ -74,7 +74,7 @@ static void (*g_cb)(void*) = Testfun;
  */
 HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level0)
 {
-    LoopPoller poller;
+    Poller poller;
     // 1、组装timeMap_
     static int result0 = 0;
     int* xf = &result0;
@@ -115,7 +115,7 @@ HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level0)
  */
 HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level0)
 {
-    LoopPoller poller;
+    Poller poller;
     // 1、组装timeMap_
     static int result0 = 0;
     int* xf = &result0;
@@ -127,8 +127,8 @@ HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level0)
     for (int i = 0; i < maxIter; i++) {
         int timerHandle = poller.RegisterTimer(timeout, data, g_cb, true);
         EXPECT_FALSE(poller.timerMap_.empty());
-        auto boundPollonce = std::bind(&LoopPoller::PollOnce, &poller, timeout);
-        auto boundUnregister = std::bind(&LoopPoller::UnregisterTimer, &poller, timerHandle);
+        auto boundPollonce = std::bind(&Poller::PollOnce, &poller, timeout);
+        auto boundUnregister = std::bind(&Poller::UnregisterTimer, &poller, timerHandle);
         usleep(sleepTime);
         std::thread thread1(boundPollonce);
         std::thread thread2(boundUnregister);
@@ -178,7 +178,7 @@ HWTEST_F(PollerTest, multi_timer_dependency, TestSize.Level0)
     TimerDataWithCb data(&dependency, WaitCallback, nullptr, false, 100);
     data.handle = 0;
 
-    LoopPoller poller;
+    Poller poller;
     poller.timerMap_.emplace(timeout, data);
 
     data.handle++;
@@ -216,7 +216,7 @@ HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level0)
     TimerDataWithCb data(&dependency, WaitCallback, nullptr, false, 100);
     data.handle = 0;
 
-    LoopPoller poller;
+    Poller poller;
     poller.timerMap_.emplace(timeout, data);
 
     data.handle++;
@@ -251,32 +251,32 @@ HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level0)
  */
 HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level0)
 {
-    LoopPoller poller;
+    Poller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
     int fd = 1001;
     int fd1 = 1002;
-    poller.delFdCacheMap_.emplace(fd, currTask);
-    poller.delFdCacheMap_.emplace(fd1, currTask);
-    std::unique_ptr<struct PollerData> maskWakeData = std::make_unique<PollerData>(fd, nullptr,
+    poller.CacheDelFd(fd, currTask);
+    poller.CacheDelFd(fd1, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(fd, nullptr,
         nullptr, currTask);
-    std::unique_ptr<struct PollerData> maskWakeData1 = std::make_unique<PollerData>(fd1, nullptr,
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData1 = std::make_unique<WakeDataWithCb>(fd1, nullptr,
         nullptr, currTask);
-    poller.maskWakeDataMap_[currTask].emplace_back(std::move(maskWakeData));
-    poller.maskWakeDataMap_[currTask].emplace_back(std::move(maskWakeData1));
+    poller.CacheMaskWakeData(currTask, maskWakeData);
+    poller.CacheMaskWakeData(currTask, maskWakeData1);
 
-    EXPECT_EQ(2, poller.delFdCacheMap_.size());
-    EXPECT_EQ(1, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(2, poller.maskWakeDataMap_[currTask].size());
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(2, poller.m_maskWakeDataWithCbMap[currTask].size());
 
-    poller.ClearMaskWakeDataCacheWithFd(currTask, fd);
-    EXPECT_EQ(2, poller.delFdCacheMap_.size());
-    EXPECT_EQ(1, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(1, poller.maskWakeDataMap_[currTask].size());
+    poller.ClearMaskWakeDataWithCbCacheWithFd(currTask, fd);
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap[currTask].size());
 
-    poller.ClearMaskWakeDataCacheWithFd(currTask, fd1);
-    EXPECT_EQ(2, poller.delFdCacheMap_.size());
-    EXPECT_EQ(0, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(0, poller.maskWakeDataMap_[currTask].size());
+    poller.ClearMaskWakeDataWithCbCacheWithFd(currTask, fd1);
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap[currTask].size());
 
     free(currTask);
 }
@@ -290,28 +290,28 @@ HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level0)
  */
 HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level0)
 {
-    LoopPoller poller;
+    Poller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
     int fd = 1001;
     int fd1 = 1002;
-    poller.delFdCacheMap_.emplace(fd, currTask);
-    poller.delFdCacheMap_.emplace(fd1, currTask);
-    std::unique_ptr<struct PollerData> maskWakeData = std::make_unique<PollerData>(fd, nullptr,
+    poller.m_delFdCacheMap.emplace(fd, currTask);
+    poller.m_delFdCacheMap.emplace(fd1, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(fd, nullptr,
         nullptr, currTask);
-    std::unique_ptr<struct PollerData> maskWakeData1 = std::make_unique<PollerData>(fd1, nullptr,
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData1 = std::make_unique<WakeDataWithCb>(fd1, nullptr,
         nullptr, currTask);
-    poller.maskWakeDataMap_[currTask].emplace_back(std::move(maskWakeData));
-    poller.maskWakeDataMap_[currTask].emplace_back(std::move(maskWakeData1));
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData));
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData1));
 
-    EXPECT_EQ(2, poller.delFdCacheMap_.size());
-    EXPECT_EQ(1, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(2, poller.maskWakeDataMap_[currTask].size());
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(2, poller.m_maskWakeDataWithCbMap[currTask].size());
 
-    poller.ClearMaskWakeDataCache(currTask);
+    poller.ClearMaskWakeDataWithCbCache(currTask);
 
-    EXPECT_EQ(0, poller.delFdCacheMap_.size());
-    EXPECT_EQ(0, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(0, poller.maskWakeDataMap_[currTask].size());
+    EXPECT_EQ(0, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap[currTask].size());
 
     free(currTask);
 }
@@ -325,49 +325,49 @@ HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level0)
  */
 HWTEST_F(PollerTest, TestCacheDelFd003, TestSize.Level0)
 {
-    LoopPoller poller;
+    Poller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
     int fd = 1001;
     int fd1 = 1002;
-    poller.delFdCacheMap_.emplace(fd, currTask);
-    poller.delFdCacheMap_.emplace(fd1, currTask);
-    std::unique_ptr<struct PollerData> maskWakeData = std::make_unique<PollerData>(fd, nullptr,
+    poller.m_delFdCacheMap.emplace(fd, currTask);
+    poller.m_delFdCacheMap.emplace(fd1, currTask);
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData = std::make_unique<WakeDataWithCb>(fd, nullptr,
         nullptr, currTask);
-    std::unique_ptr<struct PollerData> maskWakeData1 = std::make_unique<PollerData>(fd1, nullptr,
+    std::unique_ptr<struct WakeDataWithCb> maskWakeData1 = std::make_unique<WakeDataWithCb>(fd1, nullptr,
         nullptr, currTask);
-    poller.maskWakeDataMap_[currTask].emplace_back(std::move(maskWakeData));
-    poller.maskWakeDataMap_[currTask].emplace_back(std::move(maskWakeData1));
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData));
+    poller.m_maskWakeDataWithCbMap[currTask].emplace_back(std::move(maskWakeData1));
 
-    EXPECT_EQ(2, poller.delFdCacheMap_.size());
-    EXPECT_EQ(1, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(2, poller.maskWakeDataMap_[currTask].size());
+    EXPECT_EQ(2, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(2, poller.m_maskWakeDataWithCbMap[currTask].size());
 
     poller.ClearDelFdCache(fd);
-    EXPECT_EQ(1, poller.delFdCacheMap_.size());
-    EXPECT_EQ(1, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(1, poller.maskWakeDataMap_[currTask].size());
+    EXPECT_EQ(1, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(1, poller.m_maskWakeDataWithCbMap[currTask].size());
 
     poller.ClearDelFdCache(fd1);
-    EXPECT_EQ(0, poller.delFdCacheMap_.size());
-    EXPECT_EQ(0, poller.maskWakeDataMap_.size());
-    EXPECT_EQ(0, poller.maskWakeDataMap_[currTask].size());
+    EXPECT_EQ(0, poller.m_delFdCacheMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap.size());
+    EXPECT_EQ(0, poller.m_maskWakeDataWithCbMap[currTask].size());
 
     free(currTask);
 }
 
 HWTEST_F(PollerTest, GetTaskWaitTime, TestSize.Level0)
 {
-    LoopPoller poller;
+    Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);
-    poller.waitTaskMap_[&task] = SyncData();
-    poller.waitTaskMap_[&task].waitTP = std::chrono::steady_clock::now();
+    poller.m_waitTaskMap[&task] = SyncData();
+    poller.m_waitTaskMap[&task].waitTP = std::chrono::steady_clock::now();
     EXPECT_EQ(poller.GetTaskWaitTime(nullptr), 0);
     EXPECT_GT(poller.GetTaskWaitTime(&task), 0);
 }
 
 HWTEST_F(PollerTest, WaitFdEventTest, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     std::thread th([&] { poller.PollOnce(30000); });
 
     uint64_t expected = 0x3;
@@ -406,7 +406,7 @@ HWTEST_F(PollerTest, WaitFdEventTest, TestSize.Level1)
 
 HWTEST_F(PollerTest, WaitFdEventTestLegacyMode, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     std::thread th([&] { poller.PollOnce(30000); });
 
     uint64_t expected = 0x3;
@@ -447,21 +447,21 @@ HWTEST_F(PollerTest, WaitFdEventTestLegacyMode, TestSize.Level1)
 
 HWTEST_F(PollerTest, ProcessTimerDataCb, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);
     task.blockType = BlockType::BLOCK_THREAD;
-    poller.waitTaskMap_[&task] = SyncData();
-    EXPECT_EQ(poller.waitTaskMap_.size(), 1);
+    poller.m_waitTaskMap[&task] = SyncData();
+    EXPECT_EQ(poller.m_waitTaskMap.size(), 1);
 
     poller.ProcessTimerDataCb(nullptr);
-    EXPECT_EQ(poller.waitTaskMap_.size(), 1);
+    EXPECT_EQ(poller.m_waitTaskMap.size(), 1);
     poller.ProcessTimerDataCb(&task);
-    EXPECT_EQ(poller.waitTaskMap_.size(), 0);
+    EXPECT_EQ(poller.m_waitTaskMap.size(), 0);
 }
 
 HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);
     task.blockType = BlockType::BLOCK_THREAD;
     EventVec eventVec(1);
@@ -469,57 +469,63 @@ HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level1)
 
     int nfds = 0;
     struct epoll_event event;
-    poller.waitTaskMap_[&task] = SyncData(nullptr, 1024, nullptr, std::chrono::steady_clock::now());
+    poller.m_waitTaskMap[&task] = SyncData(nullptr, 1024, nullptr, std::chrono::steady_clock::now());
     poller.WakeSyncTask(syncTaskEvents);
-    poller.waitTaskMap_[&task] = SyncData(&event, 1024, nullptr, std::chrono::steady_clock::now());
+    poller.m_waitTaskMap[&task] = SyncData(&event, 1024, nullptr, std::chrono::steady_clock::now());
     poller.WakeSyncTask(syncTaskEvents);
+<<<<<<< HEAD
     poller.waitTaskMap_[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
     poller.waitTaskMap_[&task].timerHandle = 0;
+=======
+    poller.m_waitTaskMap[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
+    poller.m_waitTaskMap[&task].timerHandle = 0;
+    poller.m_waitTaskMap[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
+>>>>>>> parent of eb16b58e (poller fix)
     poller.WakeSyncTask(syncTaskEvents);
     EXPECT_EQ(nfds, 1);
 }
 
 HWTEST_F(PollerTest, ClearMaskWakeData, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     SCPUEUTask task(nullptr, nullptr, 0);
     task.blockType = BlockType::BLOCK_THREAD;
 
-    std::unique_ptr<PollerData> wakeData = std::make_unique<PollerData>(0, nullptr, nullptr, nullptr);
-    poller.maskWakeDataMap_[&task].emplace_back(std::move(wakeData));
+    std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+    poller.m_maskWakeDataWithCbMap[&task].emplace_back(std::move(wakeData));
     poller.CacheMaskFdAndEpollDel(0, nullptr);
-    poller.ClearMaskWakeDataCacheWithFd(nullptr, 0);
-    EXPECT_EQ(poller.delFdCacheMap_.size(), 0);
+    poller.ClearMaskWakeDataWithCbCacheWithFd(nullptr, 0);
+    EXPECT_EQ(poller.m_delFdCacheMap.size(), 0);
 
     poller.CacheMaskFdAndEpollDel(0, &task);
-    poller.ClearMaskWakeDataCacheWithFd(&task, 0);
-    EXPECT_EQ(poller.delFdCacheMap_.size(), 1);
-    EXPECT_EQ(poller.delFdCacheMap_[0], &task);
+    poller.ClearMaskWakeDataWithCbCacheWithFd(&task, 0);
+    EXPECT_EQ(poller.m_delFdCacheMap.size(), 1);
+    EXPECT_EQ(poller.m_delFdCacheMap[0], &task);
 
     poller.ClearDelFdCache(0);
-    EXPECT_EQ(poller.delFdCacheMap_.size(), 0);
+    EXPECT_EQ(poller.m_delFdCacheMap.size(), 0);
 }
 
 HWTEST_F(PollerTest, ReleaseFdWakeData, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     for (int i = 0; i < 3; i++) {
-        poller.delCntMap_[i] = i;
-        std::unique_ptr<PollerData> wakeData = std::make_unique<PollerData>(0, nullptr, nullptr, nullptr);
-        std::unique_ptr<PollerData> wakeData2 = std::make_unique<PollerData>(0, nullptr, nullptr, nullptr);
-        poller.wakeDataMap_[i].emplace_back(std::move(wakeData));
-        poller.wakeDataMap_[i].emplace_back(std::move(wakeData2));
+        poller.m_delCntMap[i] = i;
+        std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+        std::unique_ptr<WakeDataWithCb> wakeData2 = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+        poller.m_wakeDataMap[i].emplace_back(std::move(wakeData));
+        poller.m_wakeDataMap[i].emplace_back(std::move(wakeData2));
     }
 
     poller.ReleaseFdWakeData();
-    EXPECT_EQ(poller.delCntMap_[0], 0);
-    EXPECT_EQ(poller.delCntMap_[1], 1);
-    EXPECT_EQ(poller.delCntMap_.size(), 2);
+    EXPECT_EQ(poller.m_delCntMap[0], 0);
+    EXPECT_EQ(poller.m_delCntMap[1], 1);
+    EXPECT_EQ(poller.m_delCntMap.size(), 2);
 }
 
 HWTEST_F(PollerTest, DeterminePollerReady, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     EXPECT_FALSE(poller.DeterminePollerReady());
     auto timePoint = std::chrono::steady_clock::now() + std::chrono::minutes(3);
     poller.timerMap_.emplace(timePoint, TimerDataWithCb());
@@ -530,7 +536,7 @@ HWTEST_F(PollerTest, DeterminePollerReady, TestSize.Level1)
 
 HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     TimerDataWithCb data;
     data.handle = 1;
     poller.timerMap_.emplace(std::chrono::steady_clock::now(), data);
@@ -547,7 +553,7 @@ HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level1)
 
 HWTEST_F(PollerTest, FetchCachedEventAndDoUnmask, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     EventVec eventVec;
     epoll_event events[1024];
     for (int i = 0; i < 3; i++) {
@@ -555,20 +561,20 @@ HWTEST_F(PollerTest, FetchCachedEventAndDoUnmask, TestSize.Level1)
         event.data.fd = i / 2;
         eventVec.push_back(event);
     }
-    std::unique_ptr<PollerData> wakeData = std::make_unique<PollerData>(0, nullptr, nullptr, nullptr);
-    poller.wakeDataMap_[0].emplace_back(std::move(wakeData));
-    poller.delFdCacheMap_[0] = nullptr;
+    std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+    poller.m_wakeDataMap[0].emplace_back(std::move(wakeData));
+    poller.m_delFdCacheMap[0] = nullptr;
     EXPECT_EQ(poller.FetchCachedEventAndDoUnmask(eventVec, events), 2);
 }
 
 HWTEST_F(PollerTest, DelFdEvent, TestSize.Level1)
 {
-    LoopPoller poller;
+    Poller poller;
     EXPECT_EQ(poller.DelFdEvent(0), -1);
 
-    std::unique_ptr<PollerData> wakeData = std::make_unique<PollerData>(0, nullptr, nullptr, nullptr);
-    poller.wakeDataMap_[0].emplace_back(std::move(wakeData));
-    poller.delCntMap_[0] = 1;
+    std::unique_ptr<WakeDataWithCb> wakeData = std::make_unique<WakeDataWithCb>(0, nullptr, nullptr, nullptr);
+    poller.m_wakeDataMap[0].emplace_back(std::move(wakeData));
+    poller.m_delCntMap[0] = 1;
     EXPECT_EQ(poller.DelFdEvent(0), -1);
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
     poller.ClearCachedEvents(currTask);

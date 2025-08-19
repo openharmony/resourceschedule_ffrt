@@ -37,7 +37,7 @@
 #include "eu/sexecute_unit.h"
 #include "core/task_io.h"
 #include "core/task_wrapper.h"
-#include "eu/loop_poller.h"
+#include "sync/poller.h"
 #include "util/spmc_queue.h"
 #include "tm/task_factory.h"
 #include "tm/queue_task.h"

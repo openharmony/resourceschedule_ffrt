@@ -473,14 +473,9 @@ HWTEST_F(PollerTest, WakeSyncTask, TestSize.Level1)
     poller.WakeSyncTask(syncTaskEvents);
     poller.m_waitTaskMap[&task] = SyncData(&event, 1024, nullptr, std::chrono::steady_clock::now());
     poller.WakeSyncTask(syncTaskEvents);
-<<<<<<< HEAD
-    poller.waitTaskMap_[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
-    poller.waitTaskMap_[&task].timerHandle = 0;
-=======
     poller.m_waitTaskMap[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
     poller.m_waitTaskMap[&task].timerHandle = 0;
     poller.m_waitTaskMap[&task] = SyncData(&event, 1024, &nfds, std::chrono::steady_clock::now());
->>>>>>> parent of eb16b58e (poller fix)
     poller.WakeSyncTask(syncTaskEvents);
     EXPECT_EQ(nfds, 1);
 }

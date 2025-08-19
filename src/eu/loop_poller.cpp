@@ -46,7 +46,7 @@ PollerProxy& PollerProxy::Instance()
 }
 
 void LoopPoller::ProcessWaitedFds(int nfds, std::unordered_map<CoTask*, EventVec>& syncTaskEvents,
-    std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept
+                              std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept
 {
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct PollerData* data = reinterpret_cast<struct PollerData*>(waitedEvents[i].data.ptr);
@@ -232,7 +232,7 @@ int LoopPoller::RegisterTimer(uint64_t timeout, void* data, ffrt_timer_cb cb, bo
     std::lock_guard lock(timerMutex_);
     timerHandle_ += 1;
 
-    CoTask* task = IsCoTask(ExecuteCtx::Cur()->task) ? static_cast<CoTask*>(ExecuteCtx::Cur()->task) : nullptr;
+    CoTask* task = IsCoTask(ExecuteCtx::Cur()->task) ? static_cast<CoTask*>(ExecuteCtx::Cur()->task) : nullptr; 
     TimerDataWithCb timerMapValue(data, cb, task, repeat, timeout);
     timerMapValue.handle = timerHandle_;
     RegisterTimerImpl(timerMapValue);

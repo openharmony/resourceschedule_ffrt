@@ -67,8 +67,8 @@ enum class NestType {
  */
 enum class TaskStatus : uint8_t {
     PENDING,         // 任务创建后的初始状态
-    ENQUEUED,         // 队列任务插入队列中 (串行/并发队列任务)
-    DEQUEUED,         // 队列任务从队列中取出 (串行/并发队列任务)
+    ENQUEUED,         // 队列任务插入队列中（串行/并发队列任务）
+    DEQUEUED,         // 队列任务从队列中取出（串行/并发队列任务）
     SUBMITTED,       // 任务存在数据依赖
     READY,           // 任务没有依赖/依赖解除
     POPPED,           // 任务从ReadyQueue中取出，等待执行
@@ -76,9 +76,21 @@ enum class TaskStatus : uint8_t {
     THREAD_BLOCK,    // 任务由于FFRT同步原语进入线程阻塞状态
     COROUTINE_BLOCK, // 任务由于FFRT同步原语进入协程阻塞状态
     FINISH,          // 任务执行完成，可解除依赖
-    WAIT_RELEASING,  // 任务资源等待回收 (父子嵌套依赖时，父任务完成但子任务还未完成，可以进入此状态)
-    CANCELED,        // 任务未执行前被取消 (cancel/skip语义)
+    WAIT_RELEASING,  // 任务资源等待回收（父子嵌套依赖时，父任务完成但子任务还未完成，可以进入此状态）
+    CANCELED,        // 任务未执行前被取消（cancel/skip语义）
 };
+
+inline const char* StatusToString(TaskStatus status)
+{
+    constexpr size_t STATUS_LEN = static_cast<uint8_t>(TaskStatus::CANCELED) + 1;
+    constexpr const char* statusMap[STATUS_LEN] = {
+        "PENDING", "SUBMITTED", "ENQUEUED", "DEQUEUED",
+        "READY", "POPPED", "EXECUTING", "THREAD_BLOCK",
+        "COROUTINE_BLOCK", "FINISH", "WAIT_RELEASING", "CANCELED"
+    };
+    auto idx = static_cast<uint8_t>(status);
+    return idx < STATUS_LEN ? statusMap[idx] : "UNKNOWN";
+}
 
 enum class AliveStatus : uint8_t {
     UNITINITED,

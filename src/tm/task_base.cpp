@@ -59,25 +59,4 @@ void ExecuteTask(TaskBase* task)
     // reset task info in context
     ctx->task = nullptr;
 }
-
-std::string StatusToString(TaskStatus status)
-{
-    static const std::unordered_map<TaskStatus, std::string> statusMap = {
-        {TaskStatus::PENDING,         "PENDING"},
-        {TaskStatus::SUBMITTED,       "SUBMITTED"},
-        {TaskStatus::ENQUEUED,        "ENQUEUED"},
-        {TaskStatus::DEQUEUED,        "DEQUEUED"},
-        {TaskStatus::READY,           "READY"},
-        {TaskStatus::POPPED,          "POPPED"},
-        {TaskStatus::EXECUTING,       "EXECUTING"},
-        {TaskStatus::THREAD_BLOCK,    "THREAD_BLOCK"},
-        {TaskStatus::COROUTINE_BLOCK, "COROUTINE_BLOCK"},
-        {TaskStatus::FINISH,          "FINISH"},
-        {TaskStatus::WAIT_RELEASING,  "WAIT_RELEASING"},
-        {TaskStatus::CANCELED,        "CANCELED"}
-    };
-
-    auto it = statusMap.find(status);
-    return (it != statusMap.end()) ? it->second : "Unknown";
-}
 } // namespace ffrt

@@ -139,7 +139,7 @@ EventHandlerAdapterQueue::EventHandlerAdapterQueue() : EventHandlerInteractiveQu
 
 EventHandlerAdapterQueue::~EventHandlerAdapterQueue()
 {
-    FFRT_LOGI("destruct eventhandler adapter queueId=%u leave", queueId_);
+    FFRT_LOGD("destruct eventhandler adapter queueId=%u leave", queueId_);
 }
 
 void EventHandlerAdapterQueue::Stop()

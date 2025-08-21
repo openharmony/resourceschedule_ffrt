@@ -227,9 +227,12 @@ WorkerAction SCPUWorkerManager::WorkerIdleAction(const WorkerThread* thread)
             ffrt::CoRoutineReleaseMem();
         }
         ctl.cv.wait(lk, [this, thread] {
+            bool needPoll = !FFRTFacade::GetPPInstance().GetPoller(thread->GetQos()).DetermineEmptyMap() &&
+                (polling_[thread->GetQos()] == 0);
             return tearDown || GetTaskCount(thread->GetQos()) ||
             reinterpret_cast<const CPUWorker*>(thread)->priority_task ||
-            reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength();
+            reinterpret_cast<const CPUWorker*>(thread)->localFifo.GetLength() ||
+            needPoll;
             });
         monitor->WakeupDeepSleep(thread->GetQos());
         return WorkerAction::RETRY;

@@ -66,7 +66,7 @@ static void SetLogLevel(void)
 
 void InitWhiteListFlag(void)
 {
-    g_whiteListFlag = WhiteList::GetInstance().IsEnabled("log_ctr", true);
+    g_whiteListFlag = ffrt::WhiteList::GetInstance().IsEnabled("log_ctr", true);
 }
 
 static __attribute__((constructor)) void LogInit(void)

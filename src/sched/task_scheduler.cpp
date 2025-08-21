@@ -106,7 +106,7 @@ void TaskScheduler::RemoveLocalQueue(SpmcQueue *localQueue)
 
 uint64_t TaskScheduler::GetPriorityTaskCnt()
 {
-    if (*GetPriorityTask() != nullptr) {
+    if (*GetPriorityTask() != nullptr && *GetPriorityTask() != &PLACE_HOLDER) {
         return 1;
     } else {
         return 0;
@@ -126,13 +126,16 @@ void TaskScheduler::PushTaskLocalOrPriority(TaskBase *task)
 {
     // in self-wakeup scenario, tasks are placed in local fifo to delay scheduling, implementing the yield function
     bool selfWakeup = (ffrt::ExecuteCtx::Cur()->task == task);
-    if (!selfWakeup) {
-        if (PushTaskToPriorityStack(task)) {
-            return;
-        }
+    if (selfWakeup) {
+        return;
+    }
+    if (PushTaskToPriorityStack(task)) {
+        return;
+    }
 
-        if ((rand() % INSERT_GLOBAL_QUEUE_FREQ > 0)) {
-            if (GetLocalQueue() != nullptr && GetLocalQueue()->PushTail(task) == 0) {
+    if ((rand() % INSERT_GLOBAL_QUEUE_FREQ > 0)) {
+        if (GetLocalQueue() != nullptr && GetLocalQueue()->PushTail(task) == 0) {
+            if (NeedNotifyWorker(task)) {
                 ffrt::FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_LOCAL>(task->qos_);
                 return;
             }

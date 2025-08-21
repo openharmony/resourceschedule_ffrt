@@ -54,7 +54,7 @@ static void DelayTaskCb(void* task)
 
 ConcurrentQueue::~ConcurrentQueue()
 {
-    FFRT_LOGI("destruct concurrent queueId=%u leave", queueId_);
+    FFRT_LOGD("destruct concurrent queueId=%u leave", queueId_);
 }
 
 int ConcurrentQueue::Push(QueueTask* task)

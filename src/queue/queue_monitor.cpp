@@ -34,7 +34,6 @@ constexpr uint32_t INITIAL_RECORD_LIMIT = 16;
 namespace ffrt {
 QueueMonitor::QueueMonitor()
 {
-    FFRT_LOGI("QueueMonitor ctor enter");
     we_ = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
     uint64_t timeout = ffrt_task_timeout_get_threshold() * US_PER_MS;
     timeoutUs_ = timeout;
@@ -42,7 +41,7 @@ QueueMonitor::QueueMonitor()
         FFRT_LOGE("invalid watchdog timeout [%llu] us, using 1s instead", timeout);
         timeoutUs_ = MIN_TIMEOUT_THRESHOLD_US;
     }
-    FFRT_LOGI("QueueMonitor ctor leave, watchdog timeout of %llu us has been set", timeoutUs_.load());
+    FFRT_LOGI("timeout:%llu us", timeoutUs_.load());
 }
 
 QueueMonitor::~QueueMonitor()

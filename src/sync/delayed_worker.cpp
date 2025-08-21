@@ -40,6 +40,7 @@ const int WAIT_EVENT_SIZE = 5;
 const int64_t EXECUTION_TIMEOUT_MILLISECONDS = 500;
 const int DUMP_MAP_MAX_COUNT = 3;
 constexpr int ASYNC_TASK_SLEEP_MS = 1;
+constexpr const char* BLUETOOTH_SERVICE = "bluetooth_service";
 }
 
 namespace ffrt {
@@ -195,8 +196,19 @@ DelayedWorker::DelayedWorker()
     }
     DelayedWorker::ThreadEnvCreate();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    monitorfd_ = BlockawareMonitorfd(-1, ExecuteUnit::Instance().WakeupCond());
-    FFRT_LOGI("timerfd:%d, monitorfd:%d", timerfd_, monitorfd_);
+    BlockawareWakeupCond* condPtr = ExecuteUnit::Instance().WakeupCond();
+    monitorfd_ = BlockawareMonitorfd(-1, condPtr);
+    if (monitorfd_ < 0) {
+        FFRT_LOGE("monitorfd create failed: monitorfd=%d", monitorfd_);
+        if (strstr(GetCurrentProcessName(), BLUETOOTH_SERVICE)) {
+            std::ostringstream oss;
+            for (int i = 0; i <= BLOCKAWARE_DOMAIN_ID_MAX; i++) {
+                oss << condPtr->local[i].low << " " << condPtr->local[i].high << " ";
+            }
+            oss << condPtr->global.low << " " << condPtr->global.high << " " << condPtr->check_ahead;
+            FFRT_LOGE("%s", oss.str().c_str());
+        }
+    }
     /* monitorfd does not support 'CLOEXEC', and current kernel does not inherit monitorfd after 'fork'.
      * 1. if user calls 'exec' directly after 'fork' and does not use ffrt, it's ok.
      * 2. if user calls 'exec' directly, the original process cannot close monitorfd automatically, and

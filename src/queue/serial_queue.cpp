@@ -30,7 +30,7 @@ SerialQueue::SerialQueue()
 
 SerialQueue::~SerialQueue()
 {
-    FFRT_LOGI("destruct serial queueId=%u leave", queueId_);
+    FFRT_LOGD("destruct serial queueId=%u leave", queueId_);
 }
 
 int SerialQueue::Push(QueueTask* task)

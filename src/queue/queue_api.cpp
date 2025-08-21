@@ -328,7 +328,7 @@ void* ffrt_get_current_queue_eventhandler(void)
 {
     TaskBase* curTask = ffrt::ExecuteCtx::Cur()->task;
     if (curTask == nullptr || curTask->type != ffrt_queue_task) {
-        FFRT_LOGW("Current task is nullptr or is not a serial task.");
+        FFRT_LOGD("Current task is nullptr or is not a serial task.");
         return nullptr;
     }
 

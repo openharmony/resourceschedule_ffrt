@@ -37,21 +37,22 @@
 namespace {
 constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
-constexpr unsigned int RECORD_WORKER_STATUS_INFO_FREQ = 120;
+constexpr unsigned int RECORD_WORKER_STATUS_INFO_FREQ = 600;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
 constexpr int BACKTRACE_TASK_QOS = 7;
 constexpr char IPC_STACK_NAME[] = "libipc_common";
 constexpr char TRANSACTION_PATH[] = "/proc/transaction_proc";
-const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 3, 5, 10, 30, 60, 10 * 60, 30 * 60 };
+const std::vector<int> TIMEOUT_RECORD_CYCLE_LIST = { 1, 5, 10, 30, 60, 10 * 60, 30 * 60 };
 constexpr uint32_t US_PER_MS = 1000;
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000 * US_PER_MS; // 1s
 constexpr uint64_t ALLOW_ACC_ERROR_US = 10 * US_PER_MS; // 10ms
 constexpr uint32_t INITIAL_RECORD_LIMIT = 16;
 constexpr uint32_t MAX_RECORD_LIMIT = 64;
-constexpr int FIRST_THRESHOLD = 10;
+constexpr int FIRST_THRESHOLD = 50;
 constexpr int SECOND_THRESHOLD = 100;
+constexpr size_t MAX_FRAME_NUMS = 8;
 }
 
 namespace ffrt {
@@ -302,8 +303,8 @@ uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutTh
 bool WorkerMonitor::ControlTimeoutFreq(CPUEUTask* task)
 {
     uint64_t timoutCnt = task->timeoutTask.timeoutCnt;
-    return (timoutCnt < FIRST_THRESHOLD) || (timoutCnt < SECOND_THRESHOLD && timoutCnt % FIRST_THRESHOLD == 0) ||
-        (timoutCnt % SECOND_THRESHOLD == 0);
+    return (timoutCnt < SECOND_THRESHOLD) ? ((timoutCnt % FIRST_THRESHOLD) == 1) :
+        ((timoutCnt % SECOND_THRESHOLD) == 1);
 }
 
 void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
@@ -397,28 +398,28 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
 {
     std::stringstream ss;
     std::string processNameStr = std::string(GetCurrentProcessName());
-    ss << "Task_Sch_Timeout: process name:[" << processNameStr << "], Tid:[" << timeoutFunction.workerInfo_.tid_ <<
-        "], Worker QoS Level:[" << timeoutFunction.coWorkerInfo_.qosLevel_ << "], Concurrent Worker Count:[" <<
-        timeoutFunction.coWorkerInfo_.coWorkerCount_ << "], Execution Worker Number:[" <<
-        timeoutFunction.coWorkerInfo_.executionNum_ << "], Sleeping Worker Number:[" <<
-        timeoutFunction.coWorkerInfo_.sleepingWorkerNum_ << "], Task Type:[" <<
-        timeoutFunction.workerInfo_.workerTaskType_ << "], ";
+    ss << "Process:" << processNameStr << ",Tid:" << timeoutFunction.workerInfo_.tid_ <<
+        ",Qos:" << timeoutFunction.coWorkerInfo_.qosLevel_ << ",CWorker:" <<
+        timeoutFunction.coWorkerInfo_.coWorkerCount_ << ",EWorker:" <<
+        timeoutFunction.coWorkerInfo_.executionNum_ << ",SWorker:" <<
+        timeoutFunction.coWorkerInfo_.sleepingWorkerNum_ << ",TaskType:" <<
+        timeoutFunction.workerInfo_.workerTaskType_ << ",";
 
 #ifdef WORKER_CACHE_TASKNAMEID
     if (timeoutFunction.workerInfo_.workerTaskType_ == ffrt_normal_task ||
         timeoutFunction.workerInfo_.workerTaskType_ == ffrt_queue_task) {
-        ss << "Task Name:[" << timeoutFunction.workerInfo_.label_ <<
-            "], Task Id:[" << timeoutFunction.workerInfo_.gid_ << "], ";
+        ss << "TaskName:" << timeoutFunction.workerInfo_.label_ <<
+            ",TaskId:" << timeoutFunction.workerInfo_.gid_ << ",";
     }
 #endif
 
-    ss << "occupies worker for more than [" << timeoutFunction.executionTime_ << "]s";
+    ss << "timeout:" << timeoutFunction.executionTime_ << "s";
     FFRT_LOGW("%s", ss.str().c_str());
 
 #ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;
-    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, 0, false)) {
-        FFRT_LOGW("Backtrace:\n%s", dumpInfo.c_str());
+    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, MAX_FRAME_NUMS, false)) {
+        FFRT_LOGW("%s", dumpInfo.c_str());
         if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
             RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);
         }
@@ -502,10 +503,10 @@ void WorkerMonitor::RecordWorkerStatusInfo()
     }
 
     if (!startedOss.str().empty()) {
-        FFRT_LOGW("worker start: %s", startedOss.str().c_str());
+        FFRT_LOGW("start:%s", startedOss.str().c_str());
     }
     if (!exitedOss.str().empty()) {
-        FFRT_LOGW("worker exit: %s", exitedOss.str().c_str());
+        FFRT_LOGW("exit:%s", exitedOss.str().c_str());
     }
 }
 }

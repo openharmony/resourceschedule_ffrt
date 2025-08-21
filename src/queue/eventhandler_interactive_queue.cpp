@@ -19,7 +19,7 @@
 namespace ffrt {
 EventHandlerInteractiveQueue::~EventHandlerInteractiveQueue()
 {
-    FFRT_LOGI("destruct eventhandler interactive queueId=%u leave", queueId_);
+    FFRT_LOGD("destruct eventhandler interactive queueId=%u leave", queueId_);
 }
 
 int EventHandlerInteractiveQueue::Push(QueueTask* task)

@@ -95,7 +95,7 @@ QueueHandler::~QueueHandler()
         DelayedRemove(we_->tp, we_);
         SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
     }
-    FFRT_LOGI("destruct %s leave", name_.c_str());
+    FFRT_LOGI("destruct %s", name_.c_str());
 }
 
 bool QueueHandler::SetLoop(Loop* loop)

@@ -103,7 +103,7 @@ bool LeaveRSWorkGroup(int tid, int qos)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr || rsWorkGroup->qos != qos) {
-        FFRT_LOGI("[RSWorkGroup] LeaveRSWorkGroup rsWorkGroup is null ,tid:%{public}d", tid);
+        FFRT_LOGD("[RSWorkGroup] LeaveRSWorkGroup rsWorkGroup is null ,tid:%{public}d", tid);
         return false;
     }
     int existIndex = FindThreadInWorkGroup(rsWorkGroup, tid);
@@ -118,7 +118,7 @@ bool JoinRSWorkGroup(int tid, int qos)
 {
     std::lock_guard<std::mutex> lck(wgLock);
     if (rsWorkGroup == nullptr || rsWorkGroup->qos != qos) {
-        FFRT_SYSEVENT_LOGE("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed; Create RSWorkGroup first",
+        FFRT_LOGD("[RSWorkGroup] join thread %{public}d into RSWorkGroup failed; Create RSWorkGroup first",
             tid);
         return false;
     }

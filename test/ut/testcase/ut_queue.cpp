@@ -709,7 +709,7 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
     usleep(100000);
 }
 
-HWTEST_F(QueueTest, get_main_queue, TestSize.Level0)
+HWTEST_F(QueueTest, get_main_queue, TestSize.Level1)
 {
     auto serialQueue = std::make_unique<ffrt::queue>("ffrt_normal_queue");
     queue* mainQueue = ffrt::queue::get_main_queue();
@@ -808,12 +808,13 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_trigger, TestSize.Level0)
 }
 
 /*
-* 测试用例名称 : ffrt_queue_recordtraffic_normal_corner
-* 测试用例描述 : 串行队列的traffic_interval并生效
-* 操作步骤     : 1、创建队列
-*               2、提交堆积任务
-* 预期结果    : 不触发流量监控告警
-*/
+ * 测试用例名称 : ffrt_queue_recordtraffic_normal_corner
+ * 测试用例描述 : 串行队列的traffic_interval并生效
+ * 操作步骤     : 1、创建队列
+ *               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口为0
+ *               3、提交堆积任务
+ * 预期结果    : 不触发流量监控告警
+ */
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;
@@ -846,7 +847,7 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level0)
         handle[i] = ffrt_queue_submit_h(queue_handle, create_function_wrapper(fastFunc,
             ffrt_function_kind_queue), &task_attr);
     }
-    ffrt_queue_wait(handle[numTasks -1]);
+    ffrt_queue_wait(handle[numTasks - 1]);
 
     EXPECT_EQ(result, 40);
     for (int i = 0; i < numTasks; i++) {
@@ -860,7 +861,8 @@ HWTEST_F(QueueTest, ffrt_queue_recordtraffic_normal_corner, TestSize.Level0)
  * 测试用例名称 : ffrt_queue_recordtraffic_delay_trigger
  * 测试用例描述 : 设置串行队列的traffic_interval并生效
  * 操作步骤     : 1、创建队列
- *               2、提交堆积任务
+ *               2、调用ffrt_queue_attr_set_traffic_interval接口设置串行队列的流量监控窗口
+ *               3、提交堆积任务
  * 预期结果    : 成功触发流量监控告警，但不触发上报
  */
 HWTEST_F(QueueTest, ffrt_queue_recordtraffic_delay_trigger, TestSize.Level0)
@@ -1564,10 +1566,10 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_with_ffrt_skip_fail, TestSize.Level0)
 
 /*
  * 测试用例名称 : ffrt_queue_with_legacy_mode
- * 测试用例描述 : 队列设置leagcymode为true，验证任务不在协程上执行
+ * 测试用例描述 : 队列设置legacymode为true，验证任务不在协程上执行
  * 操作步骤     : 1、创建队列， attr设置legacymode为true
  *               2、提交队列任务，验证当前是在线程上执行任务
- * 预期结果    : 任务成功执行，任务在线程上执行
+ * 预期结果    : 任务执行成功，任务在线程上执行
  */
 HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
 {
@@ -1586,7 +1588,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode, TestSize.Level0)
 
 /*
  * 测试用例名称 : ffrt_queue_with_legacy_mode_off
- * 测试用例描述 : 队列设置leagcymode为true，验证任务在协程上执行
+ * 测试用例描述 : 队列设置legacymode为true，验证任务在协程上执行
  * 操作步骤     : 1、创建队列， attr设置legacymode为false
  *               2、提交队列任务，验证当前是在协程上执行任务
  * 预期结果    : 任务成功执行，任务在协程上执行
@@ -1612,7 +1614,7 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_off, TestSize.Level0)
 
 /*
  * 测试用例名称 : ffrt_queue_with_legacy_mode_mutex
- * 测试用例描述 : 队列设置leagcymode为true，任务等锁并解锁后，判断任务之前状态是线程阻塞
+ * 测试用例描述 : 队列设置legacymode为true，任务等锁并解锁后，判断任务之前状态是线程阻塞
  * 操作步骤     : 1、创建队列， attr设置legacymode为true
  *               2、提交延时的队列任务，验证当前是在线程上执行任务
  * 预期结果    : 任务成功执行，能够正确使用线程方式阻塞
@@ -1650,7 +1652,6 @@ HWTEST_F(QueueTest, ffrt_queue_with_legacy_mode_mutex, TestSize.Level0)
     testQueue->wait(handle);
     EXPECT_EQ(result, 1);
 }
-
 
 /*
  * 测试用例名称 : ffrt_eventhandler_adapter_queue_get_task_cnt

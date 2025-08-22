@@ -410,13 +410,13 @@ HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：ffrt_set_sched_mode
-* 测试用例描述：ffrt_set_sched_mode EU调度模式设置
-* 预置条件    ：NA
-* 操作步骤    ：在非ffrt任务中调用ffrt_set_sched_mode接口
-* 预期结果    ：设置EU调度策略为默认模式、性能模式或节能模式
-*/
-HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level0)
+ * 测试用例名称：ffrt_set_sched_mode
+ * 测试用例描述：ffrt_set_sched_mode EU调度模式设置
+ * 预置条件    ：NA
+ * 操作步骤    ：在非ffrt任务中调用ffrt_set_sched_mode接口
+ * 预期结果    ：设置EU调度策略为默认模式、性能模式或节能模式
+ */
+HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level1)
 {
     ffrt::sched_mode_type sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
@@ -432,12 +432,12 @@ HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：ffrt_set_worker_stack_size
-* 测试用例描述：ffrt_set_worker_stack_size 设置worker线程栈大小
-* 预置条件    ：NA
-* 操作步骤    ：在非ffrt任务中调用ffrt_set_worker_stack_size接口
-* 预期结果    ：能够处理正常和异常stackSize和qos的值
-*/
+ * 测试用例名称：ffrt_set_worker_stack_size
+ * 测试用例描述：ffrt_set_worker_stack_size 设置worker线程栈大小
+ * 预置条件    ：NA
+ * 操作步骤    ：在非ffrt任务中调用ffrt_set_worker_stack_size接口
+ * 预期结果    ：能够处理正常和异常stackSize和qos值
+ */
 HWTEST_F(CoreTest, ffrt_set_worker_stack_size, TestSize.Level0)
 {
     ffrt_error_t ret;
@@ -630,14 +630,14 @@ HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：ffrt_task_factory_test_003
-* 测试用例描述：测试使用SimpleAllocator时，UVTask的TaskFactory接口正常
-* 预置条件    ：无
-* 操作步骤    ：1.向TaskFactory申请一个UVTask实例
+ * 测试用例名称：ffrt_task_factory_test_003
+ * 测试用例描述：测试使用SimpleAllocator时，UVTask的TaskFactory接口正常
+ * 预置条件    ：无
+ * 操作步骤    ：1.向TaskFactory申请一个UVTask实例
                2.调用TaskFactory的HasBeenFreed、Free_接口
-* 预期结果    ：任务是否释放符合预期
-*/
-HWTEST_F(CoreTest, ffrt_task_factory_test_003, TestSize.Level0)
+ * 预期结果    ：任务是否释放符合预期
+ */
+HWTEST_F(CoreTest, ffrt_task_factory_test_003, TestSize.Level1)
 {
     ffrt::UVTask* task = ffrt::TaskFactory<ffrt::UVTask>::Alloc();
     EXPECT_EQ(ffrt::TaskFactory<ffrt::UVTask>::HasBeenFreed(task), false);

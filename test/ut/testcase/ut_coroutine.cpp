@@ -139,12 +139,12 @@ static void testCallBack(void* token, uint32_t event)
 }
 
 /*
-* 测试用例名称：ffrt_get_current_coroutine_stack_success
-* 测试用例描述：ffrt_get_current_coroutine_stack获取当前协程栈成功
-* 预置条件    ：提交ffrt任务
-* 操作步骤    ：在ffrt任务中调用ffrt_get_current_coroutine_stack接口
-* 预期结果    ：获取协程栈地址和大小成功
-*/
+ * 测试用例名称：ffrt_get_current_coroutine_stack_success
+ * 测试用例描述：ffrt_get_current_coroutine_stack获取当前协程栈成功
+ * 预置条件    ：提交ffrt任务
+ * 操作步骤    ：在ffrt任务中调用ffrt_get_current_coroutine_stack接口
+ * 预期结果    ：获取协程栈地址和大小成功
+ */
 HWTEST_F(CoroutineTest, ffrt_get_current_coroutine_stack_success, TestSize.Level0)
 {
     ffrt_queue_attr_t queue_attr;

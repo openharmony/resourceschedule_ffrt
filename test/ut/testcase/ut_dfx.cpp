@@ -176,12 +176,12 @@ HWTEST_F(DfxTest, queue_dfx_bbox_queue_task_0001, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：dfx_bbox_normal_task_0002
-* 测试用例描述：提交有依赖关系的任务，测试SaveTheBbox和RecordDebugInfo函数
-* 预置条件    ：无
-* 操作步骤    ：提交嵌套任务，子任务等待cv和数据依赖，调用SaveTheBbox和RecordDebugInfo接口
-* 预期结果    ：SaveTheBbox()函数正确执行
-*/
+ * 测试用例名称：dfx_bbox_normal_task_0002
+ * 测试用例描述：提交有依赖关系的任务，测试SaveTheBbox和RecordDebugInfo函数
+ * 预置条件    ：无
+ * 操作步骤    ：提交嵌套任务，子任务等待cv和数据依赖，调用SaveTheBbox和RecordDebugInfo接口
+ * 预期结果    ：SaveTheBbox()函数正确执行
+ */
 HWTEST_F(DfxTest, dfx_bbox_normal_task_0002, TestSize.Level0)
 {
     SaveTheBbox();
@@ -207,11 +207,11 @@ void stall_us(size_t us)
 }
 
 /*
-* 测试用例名称：normaltsk_timeout_executing
-* 测试用例描述：并发任务WorkerMonitor检测到任务执行超时
-* 操作步骤    ：1、提交执行时间长任务
-* 预期结果    ：成功触发任务执行超时告警
-*/
+ * 测试用例名称：normaltsk_timeout_executing
+ * 测试用例描述：并发任务WorkerMonitor检测到任务执行超时
+ * 操作步骤    ：1、提交执行时间长任务
+ * 预期结果    ：成功触发任务执行超时告警
+ */
 HWTEST_F(DfxTest, normaltsk_timeout_executing, TestSize.Level1)
 {
     ffrt::WorkerMonitor::GetInstance().timeoutUs_ = 1000000;
@@ -228,12 +228,12 @@ HWTEST_F(DfxTest, normaltsk_timeout_executing, TestSize.Level1)
 }
 
 /*
-* 测试用例名称：normaltsk_timeout_pending
-* 测试用例描述：并发任务WorkerMonitor检测到任务调度超时
-* 操作步骤    ：1、限制worker数为1
+ * 测试用例名称：normaltsk_timeout_pending
+ * 测试用例描述：并发任务WorkerMonitor检测到任务调度超时
+ * 操作步骤    ：1、限制worker数为1
                2、提交1个执行时间长任务占住worker，1个即时任务等待
-* 预期结果    ：触发PENDING超时告警
-*/
+ * 预期结果    ：触发PENDING超时告警
+ */
 HWTEST_F(DfxTest, normaltsk_timeout_pending, TestSize.Level1)
 {
     ffrt_task_timeout_set_threshold(1000);
@@ -253,16 +253,17 @@ HWTEST_F(DfxTest, normaltsk_timeout_pending, TestSize.Level1)
 }
 
 /*
-* 测试用例名称：normaltsk_timeout_multi
-* 测试用例描述：多个并发任务WorkerMonitor检测超时
-* 操作步骤    ：1、提交多个执行时间长任务
-* 预期结果    ：正确触发多次超时告警
-*/
+ * 测试用例名称：normaltsk_timeout_multi
+ * 测试用例描述：多个并发任务WorkerMonitor检测到超时
+ * 操作步骤    ：1、提交多个执行时间长任务
+ * 预期结果    ：正确触发多次超时告警
+ */
 HWTEST_F(DfxTest, normaltsk_timeout_multi, TestSize.Level1)
 {
     ffrt_task_timeout_set_threshold(1000);
     constexpr int numTasks = 5;
     std::atomic<int> x = 0;
+
     for (int i = 0; i < numTasks; i++) {
         ffrt::submit(
             [&]() {
@@ -275,11 +276,11 @@ HWTEST_F(DfxTest, normaltsk_timeout_multi, TestSize.Level1)
 }
 
 /*
-* 测试用例名称：normaltsk_timeout_delay
-* 测试用例描述：并发任务WorkerMonitor不检测延时任务的主动延时
-* 操作步骤    ：1、提交延时任务
-* 预期结果    ：主动延时期间不触发超时告警，但任务执行期间触发
-*/
+ * 测试用例名称：normaltsk_timeout_delay
+ * 测试用例描述：并发任务WorkerMonitor不检测延时任务的主动延时
+ * 操作步骤    ：1、提交延时任务
+ * 预期结果    ：主动延时期间不触发超时告警，但任务执行期间触发
+ */
 HWTEST_F(DfxTest, normaltsk_timeout_delay, TestSize.Level1)
 {
     ffrt_task_timeout_set_threshold(1000);
@@ -290,7 +291,7 @@ HWTEST_F(DfxTest, normaltsk_timeout_delay, TestSize.Level1)
             std::cout << "delay " << 1500 << " us\n";
             x.fetch_add(1, std::memory_order_relaxed);
             stall_us(1500000);
-        }, {}, {}, ffrt::task_attr().delay(1500000));
+            }, {}, {}, ffrt::task_attr().delay(1500000));
     }
     ffrt::wait();
     EXPECT_EQ(x, numTasks);
@@ -310,7 +311,7 @@ static void Testfun(void* data)
 }
 static void (*g_cb)(void*) = Testfun;
 
-HWTEST_F(DfxTest, hitrace_test_normal, TestSize.Level0)
+HWTEST_F(DfxTest, hitrace_test_normal, TestSize.Level1)
 {
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
     int HITRACE_FLAG_INCLUDE_ASYNC = 1 << 0;
@@ -338,7 +339,7 @@ HWTEST_F(DfxTest, hitrace_test_normal, TestSize.Level0)
 #endif
 }
 
-HWTEST_F(DfxTest, hitrace_test_poller, TestSize.Level0)
+HWTEST_F(DfxTest, hitrace_test_poller, TestSize.Level1)
 {
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
     int HITRACE_FLAG_INCLUDE_ASYNC = 1 << 0;

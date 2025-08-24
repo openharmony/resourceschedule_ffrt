@@ -42,22 +42,20 @@
 #include "cpp/task.h"
 
 namespace ffrt {
-
 /**
  * @struct job_ring_attr
- * @brief Defines the job ring attribute structure for controlling worker concurrency.
+ * @brief Defines attributes for configuring job_ring behavior.
  *
- * This structure provides initialization and configuration for job ring attributes,
- * including QoS, threshold and busy wait time.
+ * Controls QoS, task threshold for worker activation, and busy wait time for workers.
  *
  * @since 20
  */
 struct job_ring_attr {
     /**
-     * @brief Set QoS level.
+     * @brief Set the Quality of Service (QoS) level for ring workers.
      *
-     * @param v QoS value.
-     * @return Reference to this attribute object.
+     * @param v QoS value (e.g., ffrt::qos_user_initiated).
+     * @return Reference to the updated job_ring_attr object.
      */
     inline job_ring_attr& qos(int v)
     {
@@ -66,10 +64,10 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Set the threshold parameter for controlling the number of workers.
+     * @brief Set the task count threshold for activating a worker.
      *
-     * @param v Threshold value.
-     * @return Reference to this attribute object.
+     * @param v Threshold value (≥ 0). Workers are activated when tasks exceed this value.
+     * @return Reference to the updated job_ring_attr object.
      */
     inline job_ring_attr& threshold(uint64_t v)
     {
@@ -78,10 +76,10 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Set last worker's retry busy time (in microseconds).
+     * @brief Set the busy wait time for the last active worker before exiting.
      *
-     * @param us Busy wait time in microseconds.
-     * @return Reference to this attribute object.
+     * @param us Busy wait duration in microseconds (≥ 0). Reduces worker churn.
+     * @return Reference to the updated job_ring_attr object.
      */
     inline job_ring_attr& busy(uint64_t us)
     {
@@ -90,7 +88,7 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Get QoS level.
+     * @brief Get the current QoS level.
      *
      * @return QoS value.
      */
@@ -100,7 +98,7 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Get the threshold parameter for controlling the number of workers.
+     * @brief Get the task threshold.
      *
      * @return Threshold value.
      */
@@ -110,20 +108,31 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Get last worker's retry busy time (in microseconds).
+     * @brief Get the busy wait time.
      *
-     * @return Busy wait time in microseconds.
+     * @return Busy wait duration in microseconds.
      */
     inline uint64_t busy() const
     {
         return this->busy_us_.load(std::memory_order_relaxed);
     }
 
+    /**
+     * @brief Default constructor.
+     */
     job_ring_attr() = default;
+
+    /**
+     * @brief Copy constructor.
+     */
     job_ring_attr(const job_ring_attr& other)
     {
         *this = other;
     }
+
+    /**
+     * @brief Copy assignment operator.
+     */
     inline job_ring_attr& operator=(job_ring_attr const& other)
     {
         if (this != &other) {
@@ -135,44 +144,52 @@ struct job_ring_attr {
     }
 
 private:
-    std::atomic_int qos_ = ffrt::qos_user_initiated;
-    std::atomic_uint64_t threshold_ = default_threshold;
-    std::atomic_uint64_t busy_us_ = default_busy_us;
+    std::atomic_int qos_ = ffrt::qos_user_initiated;     ///< QoS level.
+    std::atomic_uint64_t threshold_ = default_threshold; ///< Worker activation threshold.
+    std::atomic_uint64_t busy_us_ = default_busy_us;     ///< Worker busy wait time (us).
 
-    static constexpr uint64_t default_threshold = 0;
-    static constexpr uint64_t default_busy_us = 100;
+    static constexpr uint64_t default_threshold = 0;    ///< Default threshold.
+    static constexpr uint64_t default_busy_us = 100;    ///< Default busy wait time (us).
 };
 
 /**
  * @struct job_ring
- * @brief Provide the function of submitting tasks and waiting for task completion.
+ * @brief Bounded queue for task submission with automatic worker management.
  *
- * @tparam MultiProducer Indicates whether support that multiple producers submit jobs.
+ * Supports non-blocking task submission and blocking waits for completion. Workers are
+ * activated when the task count exceeds the configured threshold.
+ *
+ * @tparam MultiProducer If true, allows concurrent submissions from multiple threads;
+ *                       if false, restricts to single-producer for better performance.
  * @since 20
  */
 template <bool MultiProducer = true>
 struct job_ring : ref_obj<job_ring<MultiProducer>> {
-    using ptr = typename ref_obj<job_ring<MultiProducer>>::ptr;
     /**
-    * @brief Retrieve the job_ring instance.
-    *
-    * @param attr Indicates job_ring attr.
-    * @param depth Indicates the depth of job_ring
-    * @return Returns job_ring instance.
-    * @since 20
-    */
+     * @brief Type alias for the reference-counted pointer to job_ring.
+     */
+    using ptr = typename ref_obj<job_ring<MultiProducer>>::ptr;
+
+    /**
+     * @brief Create a new job_ring instance.
+     *
+     * @param attr Configuration attributes (default: default values).
+     * @param depth Queue capacity (must be a power of two, default: 1024).
+     * @return ptr to the new job_ring.
+     * @since 20
+     */
     static inline auto make(const job_ring_attr& attr = {}, uint64_t depth = 1024)
     {
         return ref_obj<job_ring<MultiProducer>>::make(attr, depth);
     }
 
     /**
-     * @brief Submits a job to the job ring.
+     * @brief Submit a non-suspendable task to the ring (non-blocking with backoff).
      *
-     * This function submits a job that cannot be suspended. The function is non-blocking:
-     * it will not block the current thread, and the job will be asynchronously executed by a worker thread.
+     * Retries with exponential backoff if the queue is full. Activates a worker if the
+     * task count exceeds the threshold.
      *
-     * @param job The job executor function closure.
+     * @param job The task function to execute.
      * @since 20
      */
     inline void submit(std::function<void()>&& job)
@@ -192,13 +209,10 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Try submits a job to the job ring.
+     * @brief Try to submit a non-suspendable task (non-blocking, no retries).
      *
-     * This function submits a job that cannot be suspended. The function is non-blocking:
-     * it will not block the current thread, and the job will be asynchronously executed by a worker thread.
-     *
-     * @param job The job executor function closure.
-     * @return true when submit success, false when ring is full.
+     * @param job The task function to execute.
+     * @return true if the task was queued; false if the queue is full.
      * @since 20
      */
     inline bool try_submit(std::function<void()>&& job)
@@ -218,10 +232,10 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Attempt to handle existing tasks.
+     * @brief Activate a worker to process queued tasks (if not already active).
      *
-     * If there is already a worker processing tasks, no new worker will be started.
-     * the job ring will ensure that only one worker is processing the task.
+     * Ensures only one worker is processing tasks at a time. The worker drains tasks
+     * until the queue is empty, then waits briefly for new tasks before exiting.
      *
      * @since 20
      */
@@ -234,12 +248,12 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
                 task_num++;
                 for (;;) {
                     uint64_t count = drain();
-                    if (num.fetch_sub(count, std::memory_order_release) == count) { // all job done
+                    if (num.fetch_sub(count, std::memory_order_release) == count) { // All tasks done
                         sev();
                         if (waiter.exchange(0) == 1) {
                             waiter.notify_all();
                         }
-                    } else { // has job again
+                    } else { // New tasks added
                         continue;
                     }
                     if (attr_.busy() > 0) {
@@ -253,13 +267,13 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
                         }
                     }
 
-                    // start to exit
+                    // Exit logic
                     int32_t exp = 1;
                     if (token.compare_exchange_strong(exp, 0, std::memory_order_release)) {
-                        if (!all_done()) { // have new task enqueue
+                        if (!all_done()) { // New tasks arrived during exit
                             int32_t exp = 0;
-                            if (token.compare_exchange_strong(exp, 1, std::memory_order_acquire)) { // get lock again
-                                continue;
+                            if (token.compare_exchange_strong(exp, 1, std::memory_order_acquire)) {
+                                continue; // Re-acquire token and process
                             }
                         }
                         break;
@@ -271,14 +285,10 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Waits until all submitted tasks are complete.
+     * @brief Wait for all submitted tasks to complete.
      *
-     * This function blocks the calling thread until all submitted jobs have finished execution.
-     *
-     * @tparam HelpPartner If true, the current thread will also consume jobs from the worker ring.
-     * @tparam BusyWaitUS If the worker ring is empty, the current thread will busy-wait for
-     *                      this duration (in microseconds) before sleeping.
-     *                      If a job is submitted during this time, the thread will consume it.
+     * @tparam HelpWorker If true, the calling thread helps process tasks while waiting.
+     * @tparam BusyWaitUS Duration (us) to busy-wait before sleeping (default: 100).
      * @since 20
      */
     template<bool HelpWorker = true, uint64_t BusyWaitUS = 100>
@@ -326,9 +336,12 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Get the attr of the current job_ring
+     * @brief Get the configuration attributes of the job_ring.
      *
-     * @return Reference to the job_ring_attr instance of the current job_ring.
+     * Provides mutable access to the current attributes (QoS, thresholds, busy-wait duration)
+     * allowing runtime modification of job_ring behavior.
+     *
+     * @return Reference to the job_ring_attr instance used by this job_ring
      * @since 20
      */
     inline job_ring_attr& attr()
@@ -337,9 +350,12 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Get the number of committed tasks for profiling
+     * @brief Get the count of processed tasks for profiling and monitoring.
      *
-     * @return Reference to number of committed tasks for profiling.
+     * Returns a mutable reference to the counter tracking the total number of tasks
+     * that have been executed. Useful for performance analysis and debugging.
+     *
+     * @return Reference to the task count variable
      * @since 20
      */
     inline uint64_t& commit_times_for_profiling()
@@ -348,14 +364,35 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
 private:
-    job_ring(const job_ring_attr& attr = {}, uint64_t depth = 1024) : attr_(attr), q(depth)
-    {}
+    /**
+     * @brief Private constructor for job_ring.
+     *
+     * @param attr Configuration attributes for the job ring
+     * @param depth Capacity of the internal lock-free queue (must be a power of two)
+     */
+    job_ring(const job_ring_attr& attr = {}, uint64_t depth = 1024) : attr_(attr), q(depth) {}
 
+    /**
+     * @brief Check if all submitted tasks have been completed.
+     *
+     * Determines if there are no pending or currently executing tasks by checking
+     * the atomic task counter with acquire memory order for proper synchronization.
+     *
+     * @return true if all tasks have finished execution; false if there are pending or running tasks.
+     */
     inline bool all_done()
     {
         return num.load(std::memory_order_acquire) == 0;
     }
 
+    /**
+     * @brief Execute a single task with tracing and cleanup.
+     *
+     * Wraps task execution with tracing macros for performance analysis and
+     * clears the function object after execution to release resources.
+     *
+     * @param f Reference to the std::function containing the task to execute.
+     */
     static void run_one(std::function<void()>& f)
     {
         FFRT_API_TRACE_SCOPE("ring_job");
@@ -363,6 +400,16 @@ private:
         f = nullptr;
         FFRT_API_LOGD("ring_job_done");
     }
+
+    /**
+     * @brief Process all available tasks in the queue.
+     *
+     * Removes and executes all currently pending tasks from the lock-free queue,
+     * returning the count of processed tasks. Used by worker threads and helping
+     * threads during wait() operations.
+     *
+     * @return uint64_t Number of tasks processed in this invocation.
+     */
     inline uint64_t drain()
     {
         uint64_t n = 0;
@@ -372,15 +419,16 @@ private:
         return n;
     }
 
-    job_ring_attr attr_;
-    alignas(detail::cacheline_size) std::atomic_int32_t token{0};
-    alignas(detail::cacheline_size) std::atomic_int32_t num{0};
-    uint64_t task_num{0};
-    lf_queue<MultiProducer, false, std::function<void()>> q;
-    atomic_wait waiter = 0;
+    job_ring_attr attr_;                                            ///< Configuration attributes for the job ring.
+    alignas(detail::cacheline_size) std::atomic_int32_t token{0};   ///< Atomic token to ensure single worker thread.
+    alignas(detail::cacheline_size) std::atomic_int32_t num{0};     ///< Atomic counter for pending tasks.
+    uint64_t task_num{0};                                           ///< Total count of processed tasks (profiling).
+    lf_queue<MultiProducer, false, std::function<void()>> q;        ///< Lock-free queue storing pending tasks.
+    atomic_wait waiter = 0;                                         ///< Synchronization primitive for wait operations.
 
-    friend ref_obj<job_ring<MultiProducer>>;
+    friend ref_obj<job_ring<MultiProducer>>;    ///< Allow base class to access private constructor.
 };
-}
-#endif
+} // namespace ffrt
+
+#endif // FFRT_JOB_RING_H
 /** @} */

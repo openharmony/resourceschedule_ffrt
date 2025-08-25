@@ -742,7 +742,7 @@ private:
     template <bool Boost, bool IgnoreThreshold = false>
     inline void trigger_partner()
     {
-        if (try_add_partner<Boost>()) {
+        if (try_add_partner<Boost, IgnoreThreshold>()) {
             add_partner();
         }
     }

@@ -696,7 +696,7 @@ static inline void submit(const std::function<void()>& func, const std::vector<d
  * @param func Indicates a task executor function closure.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
@@ -711,7 +711,7 @@ static inline task_handle submit_h(std::function<void()>&& func, const task_attr
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
@@ -729,7 +729,7 @@ static inline task_handle submit_h(std::function<void()>&& func, std::initialize
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(std::function<void()>&& func, std::initializer_list<dependence> in_deps,
@@ -747,7 +747,7 @@ static inline task_handle submit_h(std::function<void()>&& func, std::initialize
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
@@ -765,7 +765,7 @@ static inline task_handle submit_h(std::function<void()>&& func, const std::vect
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(std::function<void()>&& func, const std::vector<dependence>& in_deps,
@@ -782,7 +782,7 @@ static inline task_handle submit_h(std::function<void()>&& func, const std::vect
  * @param func Indicates a task executor function closure.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {})
@@ -797,7 +797,7 @@ static inline task_handle submit_h(const std::function<void()>& func, const task
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
@@ -815,7 +815,7 @@ static inline task_handle submit_h(const std::function<void()>& func, std::initi
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(const std::function<void()>& func, std::initializer_list<dependence> in_deps,
@@ -833,7 +833,7 @@ static inline task_handle submit_h(const std::function<void()>& func, std::initi
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
@@ -851,7 +851,7 @@ static inline task_handle submit_h(const std::function<void()>& func, const std:
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a task attribute.
  * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ *         returns a null pointer otherwise.
  * @since 10
  */
 static inline task_handle submit_h(const std::function<void()>& func, const std::vector<dependence>& in_deps,
@@ -902,8 +902,8 @@ static inline void wait(const std::vector<dependence>& deps)
  * @param qos_ Indicates the QoS.
  * @param stack_size Indicates the thread stack size.
  * @return Returns ffrt_success if the stack size set success;
-           returns ffrt_error_inval if qos_ or stack_size invalid;
-           returns ffrt_error otherwise.
+ *         returns ffrt_error_inval if qos_ or stack_size invalid;
+ *         returns ffrt_error otherwise.
  */
 static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size)
 {

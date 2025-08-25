@@ -193,7 +193,7 @@ public:
     }
 
     /**
-     * @brief Sets the mode for this queue attribute.
+     * @brief Sets the mode of this queue attribute.
      *
      * @param legacy_mode Indicates the queue mode.
      * @return Returns the current queue_attr object for chaining.
@@ -306,7 +306,7 @@ public:
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
-               returns a null pointer otherwise.
+     *         returns a null pointer otherwise.
      * @since 10
      */
     inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {})
@@ -320,7 +320,7 @@ public:
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
-               returns a null pointer otherwise.
+     *         returns a null pointer otherwise.
      * @since 10
      */
     inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
@@ -357,7 +357,7 @@ public:
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
-               returns a null pointer otherwise.
+     *         returns a null pointer otherwise.
      */
     inline task_handle submit_head_h(const std::function<void()>& func, const task_attr& attr = {})
     {
@@ -370,7 +370,7 @@ public:
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
      * @return Returns a non-null task handle if the task is submitted;
-               returns a null pointer otherwise.
+     *         returns a null pointer otherwise.
      */
     inline task_handle submit_head_h(std::function<void()>&& func, const task_attr& attr = {})
     {

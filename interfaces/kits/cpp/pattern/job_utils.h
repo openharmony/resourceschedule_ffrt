@@ -65,7 +65,6 @@
 #endif
 
 namespace ffrt {
-
 /**
  * @namespace ffrt::detail
  * @brief Internal implementation details for FFRT utilities.
@@ -89,7 +88,13 @@ namespace detail {
 } // ffrt::detail
 
 /**
- * @brief Wait for event (WFE) instruction for ARM architectures.
+ * @brief Wait for Event (WFE) instruction for ARM architectures.
+ *
+ * This function executes the ARM-specific "WFE" (Wait For Event) instruction, which puts the processor into a low-power
+ * state until an event (such as a memory write or SEV instruction from another processor) occurs. It ensures memory
+ * visibility across cores using a memory fence.
+ *
+ * @note This function is a no-op on non-ARM architectures.
  */
 static inline void wfe()
 {
@@ -98,6 +103,15 @@ static inline void wfe()
 #endif
 }
 
+/**
+ * @brief Sends a global event signal to wake up waiting threads.
+ *
+ * This function issues a "Send Event" instruction (specific to ARM architectures) to notify
+ * any threads waiting in a low-power state (e.g., after a wfe() call) that an event has occurred.
+ * It ensures memory visibility across threads using a memory fence.
+ *
+ * @note This function is a no-op on non-ARM architectures.
+ */
 static inline void sev()
 {
 #if (defined __aarch64__ || defined __arm__)
@@ -170,7 +184,14 @@ private:
  * @details Extends std::atomic<int> to support futex-based waiting and notification.
  */
 struct atomic_wait : std::atomic<int> {
+    /**
+     * @brief Inherit all constructors from std::atomic<int>.
+     */
     using std::atomic<int>::atomic;
+
+    /**
+     * @brief Inherit the assignment operator from std::atomic<int>.
+     */
     using std::atomic<int>::operator=;
 
     /**
@@ -215,7 +236,11 @@ struct ref_obj {
      * Provides automatic reference counting and resource management for objects derived from ref_obj.
      */
     struct ptr {
+        /**
+         * @brief Type alias for the template parameter type T.
+         */
         using type = T;
+
         /**
          * @brief Default constructor. Initializes as a null pointer.
          */
@@ -315,7 +340,18 @@ struct ref_obj {
         }
 
         /**
-         * @brief Arrow operator for member access.
+         * @brief Arrow operator for member access (const version).
+         *
+         * This operator is provided for a const `ptr` instance and returns a non-const
+         * raw pointer by explicitly casting away the const qualifier. This is a specific
+         * design choice for specialized classes like `job_partner` and `job_ring`,
+         * where all core public methods are designed to be mutable and non-const. It allows
+         * these methods to be called from a const `ptr` context, such as within a non-mutable
+         * lambda capture, without requiring the lambda to be declared as mutable.
+         *
+         * @warning This pattern is a significant break from C++ const correctness and is
+         * generally considered unsafe. It is only used here due to the specific, fully
+         * mutable nature of the managed objects, where modification is the intended behavior.
          *
          * @return Raw pointer to the object.
          */
@@ -453,8 +489,9 @@ struct mpmc_queue : detail::non_copyable {
     /**
      * @brief Attempts to push an element into the queue.
      *
+     * @tparam Data The type of data to be pushed into the queue. Must be movable.
      * @param data Element to push.
-     * @return True if successful, false otherwise.
+     * @return true if successful, false otherwise.
      */
     template <class Data>
     inline bool try_push(Data&& data)
@@ -478,8 +515,9 @@ struct mpmc_queue : detail::non_copyable {
     /**
      * @brief Attempts to pop an element from the queue.
      *
+     * @tparam R The type of data to be popped from the queue. Must be assignable from the queue's element type.
      * @param result Output parameter for the popped element.
-     * @return True if successful, false otherwise.
+     * @return true if successful, false otherwise.
      */
     template <class R>
     inline bool try_pop(R& result)
@@ -529,7 +567,12 @@ private:
  * @tparam T Element type.
  */
 template<class T>
-struct spsc_queue {
+struct spsc_queue : detail::non_copyable {
+    /**
+     * @brief Constructs a queue with the given capacity.
+     *
+     * @param cap Capacity of the queue.
+     */
     spsc_queue(uint64_t cap) : capacity(align2n(cap)), mask(capacity - 1)
     {
         cached_write = capacity - 1;
@@ -553,6 +596,9 @@ struct spsc_queue {
         iread_.store(0, std::memory_order_relaxed);
     }
 
+    /**
+     * @brief Destructor.
+     */
     ~spsc_queue()
     {
         if (std::is_pod_v<Item>) {
@@ -562,6 +608,13 @@ struct spsc_queue {
         }
     }
 
+    /**
+     * @brief Attempts to push an element into the queue.
+     *
+     * @tparam Data The type of data to be pushed into the queue. Must be movable.
+     * @param data Element to push.
+     * @return true if successful, false otherwise.
+     */
     template <class Data>
     inline bool try_push(Data&& data)
     {
@@ -581,6 +634,13 @@ struct spsc_queue {
         return true;
     }
 
+    /**
+     * @brief Attempts to pop an element from the queue.
+     *
+     * @tparam R The type of data to be popped from the queue. Must be assignable from the queue's element type.
+     * @param result Output parameter for the popped element.
+     * @return true if successful, false otherwise.
+     */
     template <class R>
     inline bool try_pop(R& result)
     {
@@ -600,23 +660,46 @@ struct spsc_queue {
     }
 
 private:
-    uint64_t capacity;
-    uint64_t mask;
-    uint64_t cached_write;
-    struct Item {
-        T data;
-        std::atomic<bool> valid;
-    };
-    Item* q;
+    uint64_t capacity;      ///< Capacity of the queue (must be a power of two).
+    uint64_t mask;          ///< Bitmask used for efficient index calculation (capacity - 1).
+    uint64_t cached_write;  ///< Producer's cached remaining capacity counter.
 
-    alignas(detail::cacheline_size) uint64_t iwrite_ = 0;
-    alignas(detail::cacheline_size) std::atomic<uint64_t> iread_ = 0;
+    /**
+     * @brief Internal storage structure for queue elements.
+     */
+    struct Item {
+        T data;                  ///< Stored element data.
+        std::atomic<bool> valid; ///< Atomic flag indicating element readiness (true when consumable).
+    };
+
+    Item* q;                                                            ///< Pointer to the ring buffer array.
+    alignas(detail::cacheline_size) uint64_t iwrite_ = 0;               ///< Producer's write index (thread-local).
+    alignas(detail::cacheline_size) std::atomic<uint64_t> iread_ = 0;   ///< Consumer's read index (atomic).
 };
 
+/**
+ * @brief Lock-free queue template with configurable producer/consumer modes.
+ *
+ * This template provides a flexible lock-free queue implementation that adapts to different
+ * concurrency scenarios through template parameters. It selects the optimal underlying implementation
+ * based on whether multiple producers and/or consumers are needed:
+ * - Multi-producer + Multi-consumer: inherits from mpmc_queue.
+ * - Single-producer + Single-consumer: inherits from spsc_queue.
+ *
+ * @tparam MultiProducer If true, queue supports multiple producer threads.
+ * @tparam MultiConsumer If true, queue supports multiple consumer threads.
+ * @tparam T Type of elements stored in the queue.
+ */
 template <bool MultiProducer, bool multi_consumer, typename T>
 struct lf_queue: mpmc_queue<T> {
     using mpmc_queue<T>::mpmc_queue;
 };
+
+/**
+ * @brief Specialization of lf_queue for single-producer single-consumer scenario.
+ *
+ * @tparam T Type of elements stored in the queue.
+ */
 template <typename T>
 struct lf_queue<false, false, T>: spsc_queue<T> {
     using spsc_queue<T>::spsc_queue;
@@ -627,7 +710,7 @@ struct lf_queue<false, false, T>: spsc_queue<T> {
  */
 struct ptr_task {
     void(*f)(void*); ///< Function pointer.
-    void* arg;  ///< Argument pointer.
+    void* arg;       ///< Argument pointer.
 };
 
 /**
@@ -649,7 +732,7 @@ struct runnable_queue : Queue<ptr_task> {
     /**
      * @brief Attempts to run a task from the queue.
      *
-     * @return True if a task was run, false otherwise.
+     * @return true if a task was run, false otherwise.
      */
     inline bool try_run()
     {
@@ -666,7 +749,7 @@ struct runnable_queue : Queue<ptr_task> {
     /**
      * @brief Pushes a task into the queue with a given policy.
      *
-     * @tparam policy Push policy (0: sleep, 1: run).
+     * @tparam Policy Push policy (0: sleep, 1: run).
      * @param f Function pointer.
      * @param p Argument pointer.
      */
@@ -716,6 +799,7 @@ struct clock {
     }
 };
 
+#ifdef _ffrt_has_fiber_feature
 /**
  * @struct fiber
  * @brief Lightweight fiber implementation.
@@ -724,7 +808,6 @@ struct clock {
  * @tparam FiberLocal Type for fiber-local storage.
  * @tparam ThreadLocal Type for thread-local storage.
  */
-#ifdef _ffrt_has_fiber_feature
 template <int UsageId = 0, class FiberLocal = char, class ThreadLocal = char>
 struct fiber : detail::non_copyable {
     /**
@@ -780,7 +863,7 @@ struct fiber : detail::non_copyable {
     /**
      * @brief Starts the fiber execution.
      *
-     * @return True if finished, false otherwise.
+     * @return true if finished, false otherwise.
      */
     bool start()
     {
@@ -840,13 +923,17 @@ struct fiber : detail::non_copyable {
         return local_;
     }
 
+    /**
+     * @brief Get the unique identifier of the fiber.
+     *
+     * @return Unique identifier of the fiber.
+     */
     uint64_t id()
     {
         return id_;
     }
 
 private:
-
     /**
      * @brief Fiber entry function. Executes the user function and suspends the fiber upon completion.
      *
@@ -868,17 +955,48 @@ private:
 };
 #endif
 
+/**
+ * @struct type_size
+ * @brief Template structure to retrieve the size of a type at compile time.
+ *
+ * @tparam T The type whose size will be retrieved.
+ */
 template <typename T>
 struct type_size {
+    /**
+     * @brief Compile-time constant representing the size of type T.
+     */
     static constexpr size_t value = sizeof(T);
 };
+
+/**
+ * @struct type_size
+ * @brief Template specialization of type_size for void type.
+ */
 template <>
 struct type_size<void> {
+    /**
+     * @brief Compile-time constant representing the size of void type.
+     */
     static constexpr size_t value = 0;
 };
 
+/**
+ * @struct job_promise_obj
+ * @brief Reference-counted object managing the lifecycle and result of an asynchronous job.
+ *
+ * This template struct implements the core logic for an asynchronous job promise, handling
+ * task execution, result storage, status tracking, and synchronization between producers
+ * and consumers of the job result. It uses reference counting (via inheritance from ref_obj)
+ * for automatic memory management.
+ *
+ * @tparam R The return type of the job. Special handling is provided for void return types.
+ */
 template<class R>
 struct job_promise_obj : ref_obj<job_promise_obj<R>> {
+    /**
+     * @brief Destructor for job_promise_obj.
+     */
     ~job_promise_obj()
     {
         if (is_ready()) {
@@ -888,11 +1006,31 @@ struct job_promise_obj : ref_obj<job_promise_obj<R>> {
         }
     }
 
+    /**
+     * @brief Check if the job has completed and the result is available.
+     *
+     * @return true if the job is complete (status is ready).
+     * @return false if the job is still pending or executing.
+     */
     inline bool is_ready() const
     {
         return stat.load(std::memory_order_acquire) == ready;
     }
 
+    /**
+     * @brief Retrieve the job result, waiting if necessary.
+     *
+     * Blocks until the job completes (if not already ready) and returns the result. Supports
+     * optional busy waiting, callback-based waiting, and automatic execution of the job if
+     * it's still pending (based on template parameters).
+     *
+     * @tparam TryRun If true, attempts to execute the job if it's still pending when waiting.
+     * @tparam BusyWaitUS Duration (in microseconds) to perform busy waiting before falling back to blocking.
+     * @param on_wait Optional callback function invoked periodically while waiting. If it returns false,
+     *                busy waiting is aborted early.
+     * @return For non-void R: The job's result (by reference).
+     * @return For void R: No return value.
+     */
     template <bool TryRun = true, uint64_t BusyWaitUS = 100>
     inline decltype(auto) get(const std::function<bool()>& on_wait = nullptr)
     {
@@ -906,6 +1044,15 @@ struct job_promise_obj : ref_obj<job_promise_obj<R>> {
         }
     }
 
+    /**
+     * @brief Attempt to execute the job if it's still pending.
+     *
+     * Atomically checks if the job is in the pending state and, if so, transitions it to executing,
+     * runs the job, and marks it as ready. Returns false if the job is already executing or completed.
+     *
+     * @return true if the job was successfully executed.
+     * @return false if the job could not be executed (already in progress or completed).
+     */
     inline bool try_execute()
     {
         if (try_acquire()) {
@@ -916,15 +1063,29 @@ struct job_promise_obj : ref_obj<job_promise_obj<R>> {
         return false;
     }
 
-    void* owner;
+    void* owner;  ///< Opaque pointer to the owner of this job promise (implementation-defined).
 private:
+    /**
+     * @brief Construct a job_promise_obj with a callable task.
+     *
+     * @param func The job task to execute, returning a value of type R.
+     */
     job_promise_obj(std::function<R()>&& func) : func(std::forward<std::function<R()>>(func)) {}
+
+    /**
+     * @brief Atomically attempt to acquire the job for execution.
+     *
+     * @return true if the state was successfully transitioned to executing, false otherwise.
+     */
     inline bool try_acquire()
     {
         int32_t exp = pending;
         return stat.compare_exchange_strong(exp, executing, std::memory_order_acquire, std::memory_order_relaxed);
     }
 
+    /**
+     * @brief Mark the job as completed and notify waiters.
+     */
     inline void release()
     {
         if (stat.load() != executing) abort();
@@ -935,6 +1096,9 @@ private:
         }
     }
 
+    /**
+     * @brief Execute the job and store its result.
+     */
     inline void call()
     {
         if constexpr (std::is_void_v<R>) {
@@ -944,6 +1108,13 @@ private:
         }
     }
 
+    /**
+     * @brief Wait for the job to complete with configurable waiting strategies.
+     *
+     * @tparam TryRun If true, attempts to execute the job if pending.
+     * @tparam BusyWaitUS Duration (in microseconds) for busy waiting.
+     * @param on_wait Optional callback for custom waiting logic.
+     */
     template <bool TryRun = true, uint64_t BusyWaitUS = 100>
     inline void wait(const std::function<bool()>& on_wait = nullptr)
     {
@@ -976,55 +1147,84 @@ private:
         }
     }
 
+    /**
+     * @brief Job execution states.
+     *
+     * - pending: Job has not started execution.
+     * - executing: Job is currently being executed by a thread.
+     * - ready: Job has completed and result is available.
+     */
     enum {
         pending,
         executing,
         ready
     };
 
-    std::function<R()> func;
-    char blob[type_size<R>::value];
-    std::atomic_int32_t stat{pending};
-    atomic_wait waiter = 0;
+    std::function<R()> func;            ///< The job task to execute.
+    char blob[type_size<R>::value];     ///< Storage for the job result (size 0 for void R).
+    std::atomic_int32_t stat{pending};  ///< Atomic state tracking (pending/executing/ready).
+    atomic_wait waiter = 0;             ///< Synchronization primitive for waiting threads.
 
-    friend ref_obj<job_promise_obj<R>>;
+    friend ref_obj<job_promise_obj<R>>; ///< Allow ref_obj base to access private constructor.
 };
 
 /**
  * @struct job_promise
- * @brief Provide the function of executing the task and getting the result of the task.
+ * @brief Reference-counted handle to an asynchronous job promise.
  *
- * @tparam R Element type.
+ * This template struct provides a type-safe wrapper around `job_promise_obj<R>::ptr`,
+ * exposing a simplified interface for interacting with asynchronous jobs. It inherits
+ * the reference-counting behavior from the base class while adding job-specific methods
+ * for status checking, result retrieval, and execution attempts.
+ *
+ * @tparam R The return type of the associated asynchronous job, matching the underlying `job_promise_obj`.
  */
 template<class R>
 struct job_promise : public job_promise_obj<R>::ptr {
+    /**
+     * @brief Type alias for the base class (`job_promise_obj<R>::ptr`).
+     */
     using Base = typename job_promise_obj<R>::ptr;
+
+    /**
+     * @brief Inherit base class constructors.
+     */
     using Base::Base;
+
+    /**
+     * @brief Copy constructor from a base class instance.
+     *
+     * @param p Base class pointer to wrap in this job_promise.
+     */
     job_promise(const Base& p) : Base(p) {}
 
     /**
-    * @brief This function is used to determine whether a task has been completed or not.
-    *
-    * @return Returning `true` indicates that the task has been completed, while `false`
-    *         indicates that the task has not been executed completely.
-    * @since 20
-    */
+     * @brief Check if the associated job has completed.
+     *
+     * Delegates to the underlying `job_promise_obj<R>::is_ready()` method to determine
+     * if the job has finished execution and its result (if any) is available.
+     *
+     * @return true if the job is complete and result is ready.
+     * @return false if the job is still pending or executing.
+     */
     inline bool is_ready() const
     {
         return Base::get()->is_ready();
     }
 
     /**
-    * @brief Obtain the execution results of dependent tasks.
-    *
-    * @tparam TryRun The waiting thread directly executes the `job_promise` dependent task or not.
-    * @tparam BusyWaitUS The current waiting thread will enter sleep after waiting for `BusyWaitUS`,
-    *         and will not be woken up until the task is completed.
-    * @param on_wait The function that needs to be executed by the current thread during the waiting
-    *        process for task execution.
-    * @return Task execution result.
-    * @since 20
-    */
+     * @brief Retrieve the job result, waiting if necessary.
+     *
+     * Forwards to the underlying `job_promise_obj<R>::get()` method to retrieve the job result,
+     * blocking until completion if the result is not yet available. Supports the same template
+     * parameters and callback mechanism as the underlying implementation.
+     *
+     * @tparam TryRun If true, attempts to execute the job if pending during waiting.
+     * @tparam BusyWaitUS Duration (in microseconds) for busy waiting before blocking.
+     * @param on_wait Optional callback invoked periodically while waiting; return false to abort early.
+     * @return For non-void R: The job's result (by reference).
+     * @return For void R: No return value.
+     */
     template <bool TryRun = true, uint64_t BusyWaitUS = 100>
     inline decltype(auto) get(const std::function<bool()>& on_wait = nullptr)
     {
@@ -1032,25 +1232,44 @@ struct job_promise : public job_promise_obj<R>::ptr {
     }
 
     /**
-    * @brief If the job hasn't been executed yet, execute it directly in the current thread;
-    *        otherwise, return directly.
-    *
-    * @return Return false if the job has executed or is executing, otherwise execute it and return true;
-    * @since 20
-    */
+     * @brief Attempt to execute the pending job.
+     *
+     * @return true if the job was successfully executed.
+     * @return false if the job was already executing or completed.
+     */
     inline bool try_execute()
     {
         return Base::get()->try_execute();
     }
 
+    /**
+     * @brief Allow job_partner access to private members.
+     *
+     * Grants friendship to `job_partner` with any UsageId to enable implementation-specific
+     * interactions with the job promise.
+     */
     template <uint64_t UsageId>
     friend struct job_partner;
 };
 
+/**
+ * @brief Factory function to create a new job_promise with a given task.
+ *
+ * Constructs a new `job_promise_obj<R>` instance wrapping the provided function,
+ * then returns a `job_promise<R>` handle to manage it. This function handles the
+ * proper initialization and reference counting setup of the underlying job promise object.
+ *
+ * @tparam R The return type of the job task, determining the specialization of job_promise.
+ * @param func Rvalue reference to a std::function representing the job task to execute.
+ *             The function will be forwarded to the job_promise_obj constructor.
+ * @return job_promise<R> A reference-counted handle to the newly created job promise.
+ */
 template<class R>
 static inline job_promise<R> make_job_promise(std::function<R()>&& func)
 {
     return job_promise_obj<R>::make(std::forward<std::function<R()>>(func));
 }
-}
-#endif
+} // namespace ffrt
+
+#endif // FFRT_JOB_UTILS_H
+/** @} */

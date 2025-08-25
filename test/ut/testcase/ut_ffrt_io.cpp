@@ -92,9 +92,9 @@ HWTEST_F(ffrtIoTest, IoPoller_1Producer_1Consumer, TestSize.Level0)
  * 测试用例描述：sync_io接口，线程阻塞模式测试
  * 预置条件    ：无
  * 操作步骤    ：1、提交一个读任务，一个写任务
-                2、读任务使设置legacy_mode后调用sync_io接口
+                 2、读任务使设置legacy_mode后调用sync_io接口
  * 预期结果    ：任务正确执行
-*/
+ */
 HWTEST_F(ffrtIoTest, IoPoller_1Producer_1Consumer_Legacy_Mode, TestSize.Level0)
 {
     uint64_t expected = 0xabacadae;
@@ -501,9 +501,9 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_invalid, TestSize.Level0)
  * 测试用例描述：使用有效任务指针调用ffrt_epoll_get_wait_time
  * 预置条件    ：无
  * 操作步骤    ：1、提交任务
-                2、调用ffrt_epoll_get_wait_time接口
+                 2、调用ffrt_epoll_get_wait_time接口
  * 预期结果    ：结果为0
-*/
+ */
 HWTEST_F(ffrtIoTest, ffrt_epoll_get_wait_time_valid, TestSize.Level0)
 {
     auto handle = ffrt::submit_h([]() {});

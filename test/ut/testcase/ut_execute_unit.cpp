@@ -52,12 +52,12 @@ protected:
 };
 
 /*
-* 测试用例名称：ffrt_worker_escape
-* 测试用例描述：ffrt_worker_escape接口测试
-* 预置条件    ：无
-* 操作步骤    ：调用enable和disable接口
-* 预期结果    ：正常参数enable成功，非法参数或者重复调用enable失败
-*/
+ * 测试用例名称：ffrt_worker_escape
+ * 测试用例描述：ffrt_worker_escape接口测试
+ * 预置条件    ：无
+ * 操作步骤    ：调用enable和disable接口
+ * 预期结果    ：正常参数enable成功，非法参数或者重复调用enable失败
+ */
 HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level0)
 {
     EXPECT_EQ(ffrt::enable_worker_escape(0, 0, 0, 0, 0), 1);
@@ -70,13 +70,13 @@ HWTEST_F(ExecuteUnitTest, ffrt_worker_escape, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：notify_workers
-* 测试用例描述：notify_workers接口测试
-* 预置条件    ：无
-* 操作步骤    ：1.提交5个任务，执行完等待worker休眠
-               2.调用notify_workers接口，传入number为6
-* 预期结果    ：接口调用成功
-*/
+ * 测试用例名称：notify_workers
+ * 测试用例描述：notify_workers接口测试
+ * 预置条件    ：无
+ * 操作步骤    ：1.提交5个任务，执行完等待worker休眠
+                2.调用notify_workers接口，传入number为6
+ * 预期结果    ：接口调用成功
+ */
 HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level0)
 {
     constexpr int count = 5;
@@ -92,12 +92,12 @@ HWTEST_F(ExecuteUnitTest, notify_workers, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：ffrt_escape_submit_execute
-* 测试用例描述：调用EU的逃生函数
-* 预置条件    ：创建SExecuteUnit
-* 操作步骤    ：调用ExecuteEscape、SubmitEscape、ReportEscapeEvent，包括异常分支
-* 预期结果    ：成功执行ExecuteEscape、SubmitEscape、ReportEscapeEvent方法
-*/
+ * 测试用例名称：ffrt_escape_submit_execute
+ * 测试用例描述：调用EU的逃生函数
+ * 预置条件    ：创建SExecuteUnit
+ * 操作步骤    ：调用ExecuteEscape、SubmitEscape、ReportEscapeEvent，包括异常分支
+ * 预期结果    ：成功执行ExecuteEscape、SubmitEscape、ReportEscapeEvent方法
+ */
 HWTEST_F(ExecuteUnitTest, ffrt_escape_submit_execute, TestSize.Level0)
 {
     auto manager = std::make_unique<ffrt::SExecuteUnit>();

@@ -423,7 +423,7 @@ HWTEST_F(DependencyTest, update_trace_tag_task_attr_success, TestSize.Level1)
     EXPECT_EQ(ffrt_task_attr_get_qos(&tmpTask), ffrt::qos_user_initiated);
 }
 
-HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Level0)
+HWTEST_F(DependencyTest, sample_pingpong_pipe_interval_checkpoint, TestSize.Level1)
 {
     int loops = 5;
     int frame_num = 2;

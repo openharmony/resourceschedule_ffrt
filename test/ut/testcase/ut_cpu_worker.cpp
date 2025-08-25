@@ -113,7 +113,7 @@ bool IsBlockAwareInit()
 }
 #endif
 
-HWTEST_F(CpuWorkerTest, WorkerStatusTest, TestSize.Level0)
+HWTEST_F(CpuWorkerTest, WorkerStatusTest, TestSize.Level1)
 {
     CpuWorkerOps ops;
     ops.WorkerIdleAction = WorkerIdleAction;
@@ -130,7 +130,7 @@ HWTEST_F(CpuWorkerTest, WorkerStatusTest, TestSize.Level0)
     WaitForWorker();
 }
 
-HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level0)
+HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level1)
 {
     CpuWorkerOps ops;
     ops.WorkerIdleAction = WorkerIdleAction;
@@ -147,7 +147,7 @@ HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level0)
     WaitForWorker();
 }
 
-HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level0)
+HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level1)
 {
     CpuWorkerOps ops;
     ops.WorkerIdleAction = WorkerIdleAction;
@@ -164,7 +164,7 @@ HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level0)
     WaitForWorker();
 }
 
-HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level0)
+HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level1)
 {
     CpuWorkerOps ops;
     ops.WorkerIdleAction = WorkerIdleAction;
@@ -180,7 +180,7 @@ HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level0)
     WaitForWorker();
 }
 
-HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level0)
+HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level1)
 {
     CpuWorkerOps ops;
     ops.WorkerIdleAction = WorkerIdleAction;

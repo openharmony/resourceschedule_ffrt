@@ -340,21 +340,22 @@ struct ref_obj {
         }
 
         /**
-         * @brief Arrow operator for member access.
+         * @brief Arrow operator for member access (const version).
+         *
+         * This operator is provided for a const `ptr` instance and returns a non-const
+         * raw pointer by explicitly casting away the const qualifier. This is a specific
+         * design choice for specialized classes like `job_partner` and `job_ring`,
+         * where all core public methods are designed to be mutable and non-const. It allows
+         * these methods to be called from a const `ptr` context, such as within a non-mutable
+         * lambda capture, without requiring the lambda to be declared as mutable.
+         *
+         * @warning This pattern is a significant break from C++ const correctness and is
+         * generally considered unsafe. It is only used here due to the specific, fully
+         * mutable nature of the managed objects, where modification is the intended behavior.
          *
          * @return Raw pointer to the object.
          */
-        constexpr inline T* operator -> ()
-        {
-            return p;
-        }
-
-        /**
-         * @brief Arrow operator for member access (const version).
-         *
-         * @return Const raw pointer to the object.
-         */
-        constexpr inline const T* operator -> () const
+        constexpr inline T* operator -> () const
         {
             return p;
         }

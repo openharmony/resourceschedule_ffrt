@@ -26,6 +26,7 @@
 #undef private
 #include "util/spmc_queue.h"
 #include "util/ffrt_facade.h"
+#include "util/white_list.h"
 
 using namespace std;
 using namespace ffrt;

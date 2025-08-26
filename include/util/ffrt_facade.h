@@ -26,6 +26,7 @@
 
 namespace ffrt {
 bool GetExitFlag();
+bool GetInitFlag();
 std::shared_mutex& GetExitMtx();
 const char* GetCurrentProcessName();
 bool GetDelayedWorkerExitFlag();

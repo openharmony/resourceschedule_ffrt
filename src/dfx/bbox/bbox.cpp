@@ -100,7 +100,7 @@ static inline void SaveCurrent()
     auto t = g_cur_task;
     if (t) {
         FFRT_BBOX_LOG("task id %lu, qos %d, name %s, status %s",
-            t->gid, t->qos_(), t->GetLabel().c_str(), StatusToString(t->curStatus).c_str());
+            t->gid, t->qos_(), t->GetLabel().c_str(), StatusToString(t->curStatus));
     }
 }
 
@@ -368,7 +368,7 @@ void RecordDebugInfo(void)
 
     if (t != nullptr) {
         FFRT_BBOX_LOG("debug log: tid %d, task id %lu, qos %d, name %s, status %s", gettid(), t->gid, t->qos_(),
-            t->GetLabel().c_str(), StatusToString(t->curStatus).c_str());
+            t->GetLabel().c_str(), StatusToString(t->curStatus));
     }
     FFRT_BBOX_LOG("<<<=== key status ===>>>");
     if (saveKeyStatusInfo == nullptr) {
@@ -596,7 +596,7 @@ void DumpNormalTaskInfo(std::ostringstream& ss, int qos, pid_t tid, TaskBase* t)
         << ": worker tid " << tid
         << " normal task is running, task id " << t->gid
         << " name " << t->GetLabel().c_str()
-        << " status " << StatusToString(t->curStatus).c_str();
+        << " status " << StatusToString(t->curStatus);
     AppendTaskInfo(ss, t);
     t->DecDeleteRef();
     ss << std::endl;
@@ -621,7 +621,7 @@ void DumpQueueTaskInfo(std::ostringstream& ss, int qos, pid_t tid, TaskBase* t)
         << ": worker tid " << tid
         << " queue task is running, task id " << t->gid
         << " name " << t->GetLabel().c_str()
-        << " status " << StatusToString(t->curStatus).c_str();
+        << " status " << StatusToString(t->curStatus);
     AppendTaskInfo(ss, t);
     t->DecDeleteRef();
     ss << std::endl;

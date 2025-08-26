@@ -198,8 +198,6 @@ protected:
     BlockType blockType { BlockType::BLOCK_COROUTINE }; // block type for lagacy mode changing
 };
 
-std::string StatusToString(TaskStatus status);
-
 void ExecuteTask(TaskBase* task);
 
 inline bool IsCoTask(TaskBase* task)

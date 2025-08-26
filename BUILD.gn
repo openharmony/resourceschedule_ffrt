@@ -207,6 +207,7 @@ ohos_shared_library("libffrt") {
       "src/util/init.cpp",
       "src/util/spmc_queue.cpp",
       "src/util/time_format.cpp",
+      "src/util/white_list.cpp",
       "src/util/worker_monitor.cpp",
     ]
 

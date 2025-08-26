@@ -22,7 +22,6 @@
 #include <sstream>
 #include <atomic>
 #include "dfx/log/ffrt_log_api.h"
-
 #ifdef FFRT_SEND_EVENT
 #include <securec.h>
 #include "hisysevent.h"
@@ -66,7 +65,7 @@ static void SetLogLevel(void)
 
 void InitWhiteListFlag(void)
 {
-    g_whiteListFlag = WhiteList::GetInstance().IsEnabled("log_ctr", true);
+    g_whiteListFlag = ffrt::WhiteList::GetInstance().IsEnabled("log_ctr", true);
 }
 
 static __attribute__((constructor)) void LogInit(void)

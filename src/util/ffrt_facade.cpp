@@ -21,10 +21,12 @@
 #include "tm/queue_task.h"
 #include "tm/uv_task.h"
 #include "util/slab.h"
+#include "util/white_list.h"
 
 namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 char g_processName[PROCESS_NAME_BUFFER_LENGTH] {};
+std::atomic<bool> g_initFlag { false };
 std::atomic<bool> g_exitFlag { false };
 std::atomic<bool> g_delayedWorkerExitFlag { false };
 std::shared_mutex g_exitMtx;
@@ -35,6 +37,11 @@ namespace ffrt {
 bool GetExitFlag()
 {
     return g_exitFlag.load();
+}
+
+bool GetInitFlag()
+{
+    return g_initFlag.load();
 }
 
 std::shared_mutex& GetExitMtx()
@@ -144,6 +151,7 @@ FFRTFacade::FFRTFacade()
      */
     IOPoller::Instance();
     ProcessExitManager::Instance();
+    g_initFlag.store(true);
     InitWhiteListFlag();
 }
 } // namespace FFRT

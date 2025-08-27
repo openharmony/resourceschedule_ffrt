@@ -44,6 +44,13 @@ enum class SharedMutexWaitType {
     WRITE,
 };
 
+enum class ThreadType {
+    USER_THREAD, // 非FFRT的线程，属于用户线程
+    FFRT_WORKER, // 执行ACPU任务的FFRT线程
+    DELAY_WORKER, // 执行定时和监控事件的FFRT线程
+    IO_POLLER // 执行fd监听的FFRT线程
+};
+
 enum class WaitEntryStatus {
     INIT,
     NOTIFYING,
@@ -90,6 +97,7 @@ struct ExecuteCtx {
     WaitUntilEntry wn;
     uint64_t lastGid_ = 0;
     pid_t tid;
+    ThreadType threadType_ = ffrt::ThreadType::USER_THREAD;
 
     /**
      * @param init Should ExecuteCtx be initialized if it cannot be obtained

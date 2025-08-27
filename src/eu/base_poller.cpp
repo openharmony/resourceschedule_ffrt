@@ -19,11 +19,17 @@
 namespace ffrt {
 BasePoller::BasePoller() noexcept: epFd_ { ::epoll_create1(EPOLL_CLOEXEC) }
 {
+    if (epFd_ < 0) {
+        FFRT_LOGE("epoll_create1 failed: errno=%d", errno);
+    }
 #ifdef OHOS_STANDARD_SYSTEM
     fdsan_exchange_owner_tag(epFd_, 0, fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE, static_cast<uint64_t>(epFd_)));
 #endif
     wakeData_.mode = PollerType::WAKEUP;
     wakeData_.fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (wakeData_.fd < 0) {
+        FFRT_LOGE("eventfd failed: errno=%d", errno);
+    }
 #ifdef OHOS_STANDARD_SYSTEM
     fdsan_exchange_owner_tag(wakeData_.fd, 0, fdsan_create_owner_tag(FDSAN_OWNER_TYPE_FILE,
         static_cast<uint64_t>(wakeData_.fd)));

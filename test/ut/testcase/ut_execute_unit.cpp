@@ -78,7 +78,7 @@ HWTEST_F(ExecuteUnitTest, coroutine_release_task_test, TestSize.Level1)
                 3.在线程完成工作后再次检测线程状态队列大小
  * 预期结果    ：完成工作后无效线程状态会被清空
  */
-HWTEST_F(ExecuteUnitTest, coroutine_release_worker_test, TestSize.Level1) 
+HWTEST_F(ExecuteUnitTest, coroutine_release_worker_test, TestSize.Level1)
 {
     ffrt::submit([&]() {
         usleep(2000000);
@@ -89,7 +89,7 @@ HWTEST_F(ExecuteUnitTest, coroutine_release_worker_test, TestSize.Level1)
     EXPECT_NE(x1, 0);
 
     ffrt::wait();
-	usleep(2000000);
+    usleep(2000000);
     FFRTFacade::GetWMInstance().CheckWorkerStatus();
     int x2 = FFRTFacade::GetWMInstance().workerStatus_.size();
     EXPECT_EQ(x2, 0);

@@ -62,7 +62,6 @@ protected:
  */
 HWTEST_F(ExecuteUnitTest, coroutine_release_task_test, TestSize.Level1)
 {
-    ffrt::wait();
     FFRTFacade::GetWMInstance().taskTimeoutInfo_.push_back({1, "test1"});
     FFRTFacade::GetWMInstance().taskTimeoutInfo_.push_back({2, "test2"});
     FFRTFacade::GetWMInstance().CheckTaskStatus();
@@ -82,10 +81,7 @@ HWTEST_F(ExecuteUnitTest, coroutine_release_task_test, TestSize.Level1)
 HWTEST_F(ExecuteUnitTest, coroutine_release_worker_test, TestSize.Level1) 
 {
     ffrt::submit([&]() {
-        auto start = std::chrono::steady_clock::now();
-        auto end = start + std::chrono::seconds(2);
-        while (std::chrono::steady_clock::now() < end) {
-        }
+        usleep(2000000);
     });
     usleep(1000000);
     FFRTFacade::GetWMInstance().CheckWorkerStatus();
@@ -93,6 +89,7 @@ HWTEST_F(ExecuteUnitTest, coroutine_release_worker_test, TestSize.Level1)
     EXPECT_NE(x1, 0);
 
     ffrt::wait();
+	usleep(2000000);
     FFRTFacade::GetWMInstance().CheckWorkerStatus();
     int x2 = FFRTFacade::GetWMInstance().workerStatus_.size();
     EXPECT_EQ(x2, 0);

@@ -58,12 +58,19 @@ constexpr size_t MAX_FRAME_NUMS = 8;
 namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
+    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
+        if (SetExitFlagIfNoWorkers(memReleaseTaskExit_)) {
+            CoRoutineReleaseMem();
+            return;
+        }
+        CoRoutineReleaseMem();
+        SubmitMemReleaseTask();
+    });
     if (WhiteList::GetInstance().IsEnabled("worker_monitor", false)) {
         FFRT_SYSEVENT_LOGW("Skip worker monitor.");
         skipSampling_ = true;
         return;
     }
-    taskTimeoutInfo_.reserve(INITIAL_RECORD_LIMIT);
     uint64_t timeout = ffrt_task_timeout_get_threshold() * US_PER_MS;
     timeoutUs_ = timeout;
     if (timeout < MIN_TIMEOUT_THRESHOLD_US) {
@@ -77,33 +84,6 @@ WorkerMonitor::WorkerMonitor()
         FFRTFacade::GetPPInstance().MonitTimeOut();
     });
     tskMonitorWaitEntry_.cb = ([this](WaitEntry* we) { CheckTaskStatus(); });
-    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
-        std::lock_guard lock(mutex_);
-        if (skipSampling_) {
-            return;
-        }
-
-        {
-            bool noWorkerThreads = true;
-            std::lock_guard submitTaskLock(submitTaskMutex_);
-            for (int i = 0; i < QoS::MaxNum(); i++) {
-                CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
-                std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
-                if (!workerGroup.threads.empty()) {
-                    noWorkerThreads = false;
-                    break;
-                }
-            }
-            if (noWorkerThreads) {
-                CoRoutineReleaseMem();
-                memReleaseTaskExit_ = true;
-                return;
-            }
-        }
-
-        CoRoutineReleaseMem();
-        SubmitMemReleaseTask();
-    });
 }
 
 WorkerMonitor::~WorkerMonitor()
@@ -121,18 +101,16 @@ WorkerMonitor& WorkerMonitor::GetInstance()
 
 void WorkerMonitor::SubmitTask()
 {
-    if (skipSampling_) {
-        return;
-    }
-
     std::lock_guard submitTaskLock(submitTaskMutex_);
-    if (samplingTaskExit_) {
-        SubmitSamplingTask();
-        samplingTaskExit_ = false;
-    }
-    if (taskMonitorExit_) {
-        SubmitTaskMonitor(timeoutUs_);
-        taskMonitorExit_ = false;
+    if (!skipSampling_) {
+        if (samplingTaskExit_) {
+            SubmitSamplingTask();
+            samplingTaskExit_ = false;
+        }
+        if (taskMonitorExit_) {
+            SubmitTaskMonitor(timeoutUs_);
+            taskMonitorExit_ = false;
+        }
     }
     if (memReleaseTaskExit_) {
         SubmitMemReleaseTask();
@@ -166,13 +144,10 @@ void WorkerMonitor::SubmitMemReleaseTask()
 
 void WorkerMonitor::CheckWorkerStatus()
 {
-    std::lock_guard lock(mutex_);
-    if (skipSampling_) {
-        return;
-    }
-
     if (SetExitFlagIfNoWorkers(samplingTaskExit_)) {
         RecordWorkerStatusInfo();
+        std::lock_guard lock(mutex_);
+        workerStatus_ = std::unordered_map<CPUWorker*, TaskTimeoutInfo>();
         return;
     }
 
@@ -214,11 +189,6 @@ void WorkerMonitor::CheckWorkerStatus()
 
 void WorkerMonitor::CheckTaskStatus()
 {
-    std::lock_guard lock(mutex_);
-    if (skipSampling_) {
-        return;
-    }
-
     std::vector<CPUEUTask*> activeTask;
     auto unfree = TaskFactory<CPUEUTask>::GetUnfreedTasksFiltered();
     for (auto task : unfree) {
@@ -228,27 +198,14 @@ void WorkerMonitor::CheckTaskStatus()
         }
     }
 
-    {
-        bool noWorkerThreads = true;
-        std::lock_guard submitTaskLock(submitTaskMutex_);
-
-        for (int i = 0; i < QoS::MaxNum(); i++) {
-            CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
-            std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
-            if (!workerGroup.threads.empty()) {
-                noWorkerThreads = false;
-                break;
-            }
+    // no active worker, no active normal task, no need to monitor
+    if (SetExitFlagIfNoWorkers(taskMonitorExit_) && activeTask.empty()) {
+        for (auto& task : unfree) {
+            reinterpret_cast<CPUEUTask*>(task)->DecDeleteRef();
         }
-
-        // no active worker, no active normal task, no need to monitor
-        if (noWorkerThreads && activeTask.empty()) {
-            taskMonitorExit_ = true;
-            for (auto& task : unfree) {
-                reinterpret_cast<CPUEUTask*>(task)->DecDeleteRef();
-            }
-            return;
-        }
+        std::lock_guard lock(mutex_);
+        taskTimeoutInfo_.clear();
+        return;
     }
 
     uint64_t now = TimeStampCntvct();
@@ -321,10 +278,13 @@ void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
         "], delay[" << task->delayTime << "]us, current status[" << StatusToString(curTaskStatus) <<
         "], start at[" << FormatDateString4SteadyClock(curTaskTime) << "]";
 
-    if (taskTimeoutInfo_.size() > MAX_RECORD_LIMIT) {
-        taskTimeoutInfo_.erase(taskTimeoutInfo_.begin());
+    {
+        std::lock_guard lock(mutex_);
+        if (taskTimeoutInfo_.size() > MAX_RECORD_LIMIT) {
+            taskTimeoutInfo_.pop_front();
+        }
+        taskTimeoutInfo_.emplace_back(time, ss.str());
     }
-    taskTimeoutInfo_.emplace_back(std::make_pair(time, ss.str()));
 
     ss << ", last status[" << StatusToString(preTaskStatus) << "], timeout for[" <<
         timeoutUs_ / MIN_TIMEOUT_THRESHOLD_US << "]s, reported count: " << timeoutTskInfo.timeoutCnt;

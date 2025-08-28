@@ -24,6 +24,7 @@
 #include "eu/sexecute_unit.h"
 #include "sched/stask_scheduler.h"
 #include "../common.h"
+#include "util/worker_monitor.h"
 
 using namespace std;
 using namespace testing;
@@ -50,6 +51,52 @@ protected:
     {
     }
 };
+
+/*
+ * 测试用例名称：coroutine_release_task_test
+ * 测试用例描述：超时任务队列清理操作
+ * 预置条件    ：无
+ * 操作步骤    ：1.向超时任务队列插入两条测试记录
+                2.调用WorkerMonitor的CheckTaskStatus方法清理超时任务队列
+ * 预期结果    ：此时处于无线程无活跃任务状态，超时任务队列会被清空
+ */
+HWTEST_F(ExecuteUnitTest, coroutine_release_task_test, TestSize.Level1)
+{
+    ffrt::wait();
+    FFRTFacade::GetWMInstance().taskTimeoutInfo_.push_back({1, "test1"});
+    FFRTFacade::GetWMInstance().taskTimeoutInfo_.push_back({2, "test2"});
+    FFRTFacade::GetWMInstance().CheckTaskStatus();
+    int x = FFRTFacade::GetWMInstance().taskTimeoutInfo_.size();
+    EXPECT_EQ(x, 0);
+}
+
+/*
+ * 测试用例名称：coroutine_release_task_test
+ * 测试用例描述：无效线程状态清理操作
+ * 预置条件    ：无
+ * 操作步骤    ：1.提交一个耗时2s的任务
+                2.在线程工作时检测线程状态队列大小
+                3.在线程完成工作后再次检测线程状态队列大小
+ * 预期结果    ：完成工作后无效线程状态会被清空
+ */
+HWTEST_F(ExecuteUnitTest, coroutine_release_worker_test, TestSize.Level1) 
+{
+    ffrt::submit([&]() {
+        auto start = std::chrono::steady_clock::now();
+        auto end = start + std::chrono::seconds(2);
+        while (std::chrono::steady_clock::now() < end) {
+        }
+    });
+    usleep(1000000);
+    FFRTFacade::GetWMInstance().CheckWorkerStatus();
+    int x1 = FFRTFacade::GetWMInstance().workerStatus_.size();
+    EXPECT_NE(x1, 0);
+
+    ffrt::wait();
+    FFRTFacade::GetWMInstance().CheckWorkerStatus();
+    int x2 = FFRTFacade::GetWMInstance().workerStatus_.size();
+    EXPECT_EQ(x2, 0);
+}
 
 /*
  * 测试用例名称：ffrt_worker_escape

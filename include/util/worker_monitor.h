@@ -18,7 +18,7 @@
 
 #include <deque>
 #include <mutex>
-#include <map>
+#include <unordered_map>
 #include "eu/cpu_worker.h"
 #include "tm/task_base.h"
 
@@ -105,11 +105,11 @@ private:
     std::mutex submitTaskMutex_;
     bool skipSampling_ = false;
     uint64_t timeoutUs_ = 0;
-    std::vector<std::pair<uint64_t, std::string>> taskTimeoutInfo_;
+    std::deque<std::pair<uint64_t, std::string>> taskTimeoutInfo_;
     WaitUntilEntry watchdogWaitEntry_;
     WaitUntilEntry tskMonitorWaitEntry_;
     WaitUntilEntry memReleaseWaitEntry_;
-    std::map<CPUWorker*, TaskTimeoutInfo> workerStatus_;
+    std::unordered_map<CPUWorker*, TaskTimeoutInfo> workerStatus_;
     bool samplingTaskExit_ = true;
     bool taskMonitorExit_ = true;
     bool memReleaseTaskExit_ = true;

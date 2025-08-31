@@ -622,373 +622,373 @@ HWTEST_F(SyncTest, sharedMutexTest, TestSize.Level0)
     ffrt::wait();
 }
 
-static void NotifyOneTest(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    FFRT_LOGE("[RUN ] notifyone");
-    int value = 0;
-    bool flag {false};
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            cv.wait(lk, [&] { return flag; });
-            EXPECT_TRUE(lk.owns_lock());
-            value = 123;
-        },
-        {}, {});
-
-    EXPECT_EQ(value, 0);
-
-    ffrt::submit(
-        [&]() {
-            {
-                std::unique_lock lk(mtx);
-                flag = true;
-            }
-            cv.notify_one();
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void WaitUntilTimeoutTest(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    constexpr auto eps = 3ms;
-
-    FFRT_LOGE("[RUN ] WaitUntil timeout&notifyone");
-    int value = 0;
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            EXPECT_EQ(static_cast<int>(cv.wait_until(lk, std::chrono::steady_clock::now() + 30ms)),
-                static_cast<int>(ffrt::cv_status::timeout));
-            EXPECT_TRUE(lk.owns_lock());
-            value = 123;
-        },
-        {}, {});
-
-    EXPECT_EQ(value, 0);
-
-    ffrt::submit(
-        [&]() {
-            ffrt::this_task::sleep_for(30ms + eps);
-            cv.notify_one();
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void WaitUtilFlagTest_1(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    constexpr auto eps = 3ms;
-
-    FFRT_LOGE("[RUN ] WaitUntil flag&notifyone");
-    int value = 0;
-    bool flag {false};
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            EXPECT_TRUE(!cv.wait_until(lk, std::chrono::steady_clock::now() + 30ms, [&] { return flag; }));
-            value = 123;
-        },
-        {}, {});
-
-    EXPECT_EQ(value, 0);
-
-    ffrt::submit(
-        [&]() {
-            ffrt::this_task::sleep_for(30ms + eps);
-            cv.notify_one();
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void WaitUtilFlagTest_2(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    int value = 0;
-    bool flag {false};
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            EXPECT_TRUE(cv.wait_until(lk, std::chrono::steady_clock::now() + 30ms, [&] { return flag; }));
-            value = 123;
-        },
-        {}, {});
-
-    EXPECT_EQ(value, 0);
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            flag = true;
-            cv.notify_one();
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void WaitForTest_1(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    constexpr auto eps = 3ms;
-
-    int value = 0;
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            EXPECT_EQ(static_cast<int>(cv.wait_for(lk, 30ms)), static_cast<int>(ffrt::cv_status::timeout));
-            EXPECT_TRUE(lk.owns_lock());
-            value = 123;
-        },
-        {}, {});
-
-    EXPECT_EQ(value, 0);
-
-    ffrt::submit(
-        [&]() {
-            ffrt::this_task::sleep_for(30ms + eps);
-            cv.notify_one();
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void WaitForTest_2(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    int value = 0;
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            ffrt::submit(
-                [&]() {
-                    std::unique_lock lk(mtx);
-                    cv.notify_one();
-                },
-                {}, {});
-            EXPECT_EQ(static_cast<int>(cv.wait_for(lk, 30ms)), static_cast<int>(ffrt::cv_status::no_timeout));
-            EXPECT_EQ(value, 0);
-            EXPECT_TRUE(lk.owns_lock());
-            value = 123;
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void WaitForTest_3(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    constexpr auto eps = 3ms;
-
-    int value = 0;
-    bool flag {false};
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            EXPECT_TRUE(!cv.wait_for(lk, 30ms, [&] { return flag; }));
-            value = 123;
-        },
-        {}, {});
-
-    EXPECT_EQ(value, 0);
-
-    ffrt::submit(
-        [&]() {
-            ffrt::this_task::sleep_for(30ms + eps);
-            cv.notify_one();
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void WaitForTest_4(ffrt::mutex& mtx, ffrt::condition_variable& cv)
-{
-    int value = 0;
-    bool flag {false};
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            EXPECT_TRUE(cv.wait_for(lk, 30ms, [&] { return flag; }));
-            value = 123;
-        },
-        {}, {});
-
-    EXPECT_EQ(value, 0);
-
-    ffrt::submit(
-        [&]() {
-            std::unique_lock lk(mtx);
-            flag = true;
-            cv.notify_one();
-        },
-        {}, {});
-
-    ffrt::wait();
-
-    EXPECT_EQ(value, 123);
-}
-
-static void LockTest(ffrt::shared_mutex& smtx)
-{
-    int x = 0;
-    const int N = 100;
-    const int R = 200;
-
-    ffrt::submit(
-        [&]() {
-            for (int i = 0; i < N; i++) {
-                smtx.lock();
-                x++;
-                smtx.unlock();
-            }
-        },
-        {}, {});
-
-    for (int j = 0; j < N; ++j) {
-        smtx.lock();
-        x++;
-        smtx.unlock();
-    }
-
-    ffrt::wait();
-    EXPECT_EQ(x, R);
-}
-
-static void TryLockTest(ffrt::shared_mutex& smtx)
-{
-    int x = 0;
-    const int N = 100;
-    ffrt::submit(
-        [&]() {
-            smtx.lock();
-            ffrt::this_task::sleep_for(20ms);
-            smtx.unlock();
-        },
-        {}, {});
-
-    ffrt::this_task::sleep_for(2ms);
-
-    bool ret = smtx.try_lock();
-    EXPECT_EQ(ret, false);
-    if (ret) {
-        smtx.unlock();
-    }
-    ffrt::wait();
-
-    ret = smtx.try_lock();
-    EXPECT_EQ(ret, true);
-    if (ret) {
-        smtx.unlock();
-    }
-}
-
-static void LockSharedTest(ffrt::shared_mutex& smtx)
-{
-    int x = 0;
-    const int N = 100;
-
-    ffrt::submit(
-        [&]() {
-            smtx.lock_shared();
-            ffrt::this_task::sleep_for(20ms);
-            x = N;
-            smtx.unlock_shared();
-        },
-        {}, {});
-    ffrt::this_task::sleep_for(2ms);
-
-    smtx.lock_shared();
-    EXPECT_EQ(x, 0);
-    smtx.unlock_shared();
-
-    smtx.lock();
-    EXPECT_EQ(x, N);
-    smtx.unlock();
-
-    ffrt::wait();
-
-    smtx.lock_shared();
-    EXPECT_EQ(x, N);
-    smtx.unlock_shared();
-}
-
-static void TryLockSharedTest(ffrt::shared_mutex& smtx)
-{
-    int x = 0;
-    const int N = 100;
-
-    ffrt::submit(
-        [&]() {
-            smtx.lock_shared();
-            ffrt::this_task::sleep_for(20ms);
-            x = N;
-            smtx.unlock_shared();
-        },
-        {}, {});
-    ffrt::this_task::sleep_for(2ms);
-
-    bool ret = smtx.try_lock_shared();
-    EXPECT_EQ(ret, true);
-    EXPECT_EQ(x, 0);
-    if (ret) {
-        smtx.unlock_shared();
-    }
-    ffrt::wait();
-
-    ret = smtx.try_lock_shared();
-    EXPECT_EQ(ret, true);
-    EXPECT_EQ(x, N);
-    if (ret) {
-        smtx.unlock_shared();
-    }
-
-    ffrt::submit(
-        [&]() {
-            smtx.lock();
-            ffrt::this_task::sleep_for(20ms);
-            x = 0;
-            smtx.unlock();
-        },
-        {}, {});
-    ffrt::this_task::sleep_for(2ms);
-
-    ret = smtx.try_lock_shared();
-    EXPECT_EQ(ret, false);
-    EXPECT_EQ(x, N);
-    if (ret) {
-        smtx.unlock_shared();
-    }
-    ffrt::wait();
-
-    ret = smtx.try_lock_shared();
-    EXPECT_EQ(ret, true);
-    EXPECT_EQ(x, 0);
-    if (ret) {
-        smtx.unlock_shared();
-    }
-}
+// static void NotifyOneTest(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     FFRT_LOGE("[RUN ] notifyone");
+//     int value = 0;
+//     bool flag {false};
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             cv.wait(lk, [&] { return flag; });
+//             EXPECT_TRUE(lk.owns_lock());
+//             value = 123;
+//         },
+//         {}, {});
+
+//     EXPECT_EQ(value, 0);
+
+//     ffrt::submit(
+//         [&]() {
+//             {
+//                 std::unique_lock lk(mtx);
+//                 flag = true;
+//             }
+//             cv.notify_one();
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void WaitUntilTimeoutTest(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     constexpr auto eps = 3ms;
+
+//     FFRT_LOGE("[RUN ] WaitUntil timeout&notifyone");
+//     int value = 0;
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             EXPECT_EQ(static_cast<int>(cv.wait_until(lk, std::chrono::steady_clock::now() + 30ms)),
+//                 static_cast<int>(ffrt::cv_status::timeout));
+//             EXPECT_TRUE(lk.owns_lock());
+//             value = 123;
+//         },
+//         {}, {});
+
+//     EXPECT_EQ(value, 0);
+
+//     ffrt::submit(
+//         [&]() {
+//             ffrt::this_task::sleep_for(30ms + eps);
+//             cv.notify_one();
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void WaitUtilFlagTest_1(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     constexpr auto eps = 3ms;
+
+//     FFRT_LOGE("[RUN ] WaitUntil flag&notifyone");
+//     int value = 0;
+//     bool flag {false};
+
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             EXPECT_TRUE(!cv.wait_until(lk, std::chrono::steady_clock::now() + 30ms, [&] { return flag; }));
+//             value = 123;
+//         },
+//         {}, {});
+
+//     EXPECT_EQ(value, 0);
+
+//     ffrt::submit(
+//         [&]() {
+//             ffrt::this_task::sleep_for(30ms + eps);
+//             cv.notify_one();
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void WaitUtilFlagTest_2(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     int value = 0;
+//     bool flag {false};
+
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             EXPECT_TRUE(cv.wait_until(lk, std::chrono::steady_clock::now() + 30ms, [&] { return flag; }));
+//             value = 123;
+//         },
+//         {}, {});
+
+//     EXPECT_EQ(value, 0);
+
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             flag = true;
+//             cv.notify_one();
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void WaitForTest_1(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     constexpr auto eps = 3ms;
+
+//     int value = 0;
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             EXPECT_EQ(static_cast<int>(cv.wait_for(lk, 30ms)), static_cast<int>(ffrt::cv_status::timeout));
+//             EXPECT_TRUE(lk.owns_lock());
+//             value = 123;
+//         },
+//         {}, {});
+
+//     EXPECT_EQ(value, 0);
+
+//     ffrt::submit(
+//         [&]() {
+//             ffrt::this_task::sleep_for(30ms + eps);
+//             cv.notify_one();
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void WaitForTest_2(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     int value = 0;
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             ffrt::submit(
+//                 [&]() {
+//                     std::unique_lock lk(mtx);
+//                     cv.notify_one();
+//                 },
+//                 {}, {});
+//             EXPECT_EQ(static_cast<int>(cv.wait_for(lk, 30ms)), static_cast<int>(ffrt::cv_status::no_timeout));
+//             EXPECT_EQ(value, 0);
+//             EXPECT_TRUE(lk.owns_lock());
+//             value = 123;
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void WaitForTest_3(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     constexpr auto eps = 3ms;
+
+//     int value = 0;
+//     bool flag {false};
+
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             EXPECT_TRUE(!cv.wait_for(lk, 30ms, [&] { return flag; }));
+//             value = 123;
+//         },
+//         {}, {});
+
+//     EXPECT_EQ(value, 0);
+
+//     ffrt::submit(
+//         [&]() {
+//             ffrt::this_task::sleep_for(30ms + eps);
+//             cv.notify_one();
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void WaitForTest_4(ffrt::mutex& mtx, ffrt::condition_variable& cv)
+// {
+//     int value = 0;
+//     bool flag {false};
+
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             EXPECT_TRUE(cv.wait_for(lk, 30ms, [&] { return flag; }));
+//             value = 123;
+//         },
+//         {}, {});
+
+//     EXPECT_EQ(value, 0);
+
+//     ffrt::submit(
+//         [&]() {
+//             std::unique_lock lk(mtx);
+//             flag = true;
+//             cv.notify_one();
+//         },
+//         {}, {});
+
+//     ffrt::wait();
+
+//     EXPECT_EQ(value, 123);
+// }
+
+// static void LockTest(ffrt::shared_mutex& smtx)
+// {
+//     int x = 0;
+//     const int N = 100;
+//     const int R = 200;
+
+//     ffrt::submit(
+//         [&]() {
+//             for (int i = 0; i < N; i++) {
+//                 smtx.lock();
+//                 x++;
+//                 smtx.unlock();
+//             }
+//         },
+//         {}, {});
+
+//     for (int j = 0; j < N; ++j) {
+//         smtx.lock();
+//         x++;
+//         smtx.unlock();
+//     }
+
+//     ffrt::wait();
+//     EXPECT_EQ(x, R);
+// }
+
+// static void TryLockTest(ffrt::shared_mutex& smtx)
+// {
+//     int x = 0;
+//     const int N = 100;
+//     ffrt::submit(
+//         [&]() {
+//             smtx.lock();
+//             ffrt::this_task::sleep_for(20ms);
+//             smtx.unlock();
+//         },
+//         {}, {});
+
+//     ffrt::this_task::sleep_for(2ms);
+
+//     bool ret = smtx.try_lock();
+//     EXPECT_EQ(ret, false);
+//     if (ret) {
+//         smtx.unlock();
+//     }
+//     ffrt::wait();
+
+//     ret = smtx.try_lock();
+//     EXPECT_EQ(ret, true);
+//     if (ret) {
+//         smtx.unlock();
+//     }
+// }
+
+// static void LockSharedTest(ffrt::shared_mutex& smtx)
+// {
+//     int x = 0;
+//     const int N = 100;
+
+//     ffrt::submit(
+//         [&]() {
+//             smtx.lock_shared();
+//             ffrt::this_task::sleep_for(20ms);
+//             x = N;
+//             smtx.unlock_shared();
+//         },
+//         {}, {});
+//     ffrt::this_task::sleep_for(2ms);
+
+//     smtx.lock_shared();
+//     EXPECT_EQ(x, 0);
+//     smtx.unlock_shared();
+
+//     smtx.lock();
+//     EXPECT_EQ(x, N);
+//     smtx.unlock();
+
+//     ffrt::wait();
+
+//     smtx.lock_shared();
+//     EXPECT_EQ(x, N);
+//     smtx.unlock_shared();
+// }
+
+// static void TryLockSharedTest(ffrt::shared_mutex& smtx)
+// {
+//     int x = 0;
+//     const int N = 100;
+
+//     ffrt::submit(
+//         [&]() {
+//             smtx.lock_shared();
+//             ffrt::this_task::sleep_for(20ms);
+//             x = N;
+//             smtx.unlock_shared();
+//         },
+//         {}, {});
+//     ffrt::this_task::sleep_for(2ms);
+
+//     bool ret = smtx.try_lock_shared();
+//     EXPECT_EQ(ret, true);
+//     EXPECT_EQ(x, 0);
+//     if (ret) {
+//         smtx.unlock_shared();
+//     }
+//     ffrt::wait();
+
+//     ret = smtx.try_lock_shared();
+//     EXPECT_EQ(ret, true);
+//     EXPECT_EQ(x, N);
+//     if (ret) {
+//         smtx.unlock_shared();
+//     }
+
+//     ffrt::submit(
+//         [&]() {
+//             smtx.lock();
+//             ffrt::this_task::sleep_for(20ms);
+//             x = 0;
+//             smtx.unlock();
+//         },
+//         {}, {});
+//     ffrt::this_task::sleep_for(2ms);
+
+//     ret = smtx.try_lock_shared();
+//     EXPECT_EQ(ret, false);
+//     EXPECT_EQ(x, N);
+//     if (ret) {
+//         smtx.unlock_shared();
+//     }
+//     ffrt::wait();
+
+//     ret = smtx.try_lock_shared();
+//     EXPECT_EQ(ret, true);
+//     EXPECT_EQ(x, 0);
+//     if (ret) {
+//         smtx.unlock_shared();
+//     }
+// }
 
 HWTEST_F(SyncTest, thread1, TestSize.Level0)
 {

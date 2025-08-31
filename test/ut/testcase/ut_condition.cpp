@@ -45,7 +45,7 @@ protected:
     }
 };
 
-HWTEST_F(CVTest, conditonV_wait_for_test2, TestSize.Level0)
+HWTEST_F(CVTest, conditonV_wait_for_ffrt_thread, TestSize.Level0)
 {
     ffrt::condition_variable cond;
     ffrt::mutex lock_;
@@ -62,7 +62,7 @@ HWTEST_F(CVTest, conditonV_wait_for_test2, TestSize.Level0)
     ffrt::wait();
 }
 
-HWTEST_F(CVTest, conditonV_wait_for_test3, TestSize.Level0)
+HWTEST_F(CVTest, conditonV_wait_for_thread, TestSize.Level0)
 {
     ffrt::condition_variable cond;
     ffrt::mutex lock_;
@@ -185,7 +185,7 @@ void* thd_func(void *arg)
 
 int g_data = 0;
 
-HWTEST_F(SleepTest, thread_test, TestSize.Level0)
+HWTEST_F(SleepTest, thread_basic_test, TestSize.Level0)
 {
     ffrt_thread_t detachThread;
     ffrt_thread_create(&detachThread, nullptr, thd_func, &g_data);
@@ -200,7 +200,7 @@ HWTEST_F(SleepTest, thread_test, TestSize.Level0)
     EXPECT_EQ(&a, result);
 }
 
-HWTEST_F(SleepTest, thread_test2, TestSize.Level0)
+HWTEST_F(SleepTest, thread_exception_test, TestSize.Level0)
 {
     int a = 0;
     ffrt_thread_t thread;

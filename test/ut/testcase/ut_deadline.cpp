@@ -76,7 +76,7 @@ HWTEST_F(DeadlineTest, interval_join_test, TestSize.Level0)
     qos_interval_destroy(it);
 }
 
-HWTEST_F(DeadlineTest, interval_exception_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, interval_repeat_begin_exception_test, TestSize.Level1)
 {
     auto it = qos_interval_create(100, static_cast<int>(ffrt::qos_user_interactive));
     int ret = qos_interval_begin(it);
@@ -92,7 +92,7 @@ HWTEST_F(DeadlineTest, interval_exception_test, TestSize.Level1)
     qos_interval_destroy(it);
 }
 
-HWTEST_F(DeadlineTest, interval_exception2_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, interval_function_before_begin_exception_test, TestSize.Level1)
 {
     auto it = qos_interval_create(100, static_cast<int>(ffrt::qos_user_interactive));
 
@@ -106,7 +106,7 @@ HWTEST_F(DeadlineTest, interval_exception2_test, TestSize.Level1)
     qos_interval_destroy(it);
 }
 
-HWTEST_F(DeadlineTest, interval_exception3_test, TestSize.Level1)
+HWTEST_F(DeadlineTest, interval_create_failed_exception_test, TestSize.Level1)
 {
     auto it = qos_interval_create(100, static_cast<int>(ffrt::qos_default));
 

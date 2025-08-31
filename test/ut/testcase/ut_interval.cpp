@@ -131,7 +131,7 @@ HWTEST_F(IntervalTest, interval_join_test, TestSize.Level0)
     interval.End();
 }
 
-HWTEST_F(IntervalTest, interval_exception_test, TestSize.Level0)
+HWTEST_F(IntervalTest, interval_begin_exception_test, TestSize.Level0)
 {
     // case interval begin while last interval not end
     DefaultInterval interval = DefaultInterval(100, QoS(static_cast<int>(qos_deadline_request)));
@@ -145,7 +145,7 @@ HWTEST_F(IntervalTest, interval_exception_test, TestSize.Level0)
     interval.End();
 }
 
-HWTEST_F(IntervalTest, interval_exception2_test, TestSize.Level0)
+HWTEST_F(IntervalTest, interval_end_exception_test, TestSize.Level0)
 {
     // case interval function called before begin
     DefaultInterval interval = DefaultInterval(100, QoS(static_cast<int>(qos_deadline_request)));
@@ -187,7 +187,7 @@ HWTEST_F(IntervalTest, fInterval_join_test, TestSize.Level0)
     interval.End();
 }
 
-HWTEST_F(IntervalTest, fInterval_exception_test, TestSize.Level0)
+HWTEST_F(IntervalTest, fInterval_repeat_begin_exception_test, TestSize.Level0)
 {
     // case interval begin while last interval not end
     FrameInterval interval = FrameInterval(100, QoS(static_cast<int>(qos_user_interactive)));
@@ -201,7 +201,7 @@ HWTEST_F(IntervalTest, fInterval_exception_test, TestSize.Level0)
     interval.End();
 }
 
-HWTEST_F(IntervalTest, fInterval_exception2_test, TestSize.Level0)
+HWTEST_F(IntervalTest, fInterval_function_before_begin_exception_test, TestSize.Level0)
 {
     // case interval function called before begin
     FrameInterval interval = FrameInterval(100, QoS(static_cast<int>(qos_user_interactive)));

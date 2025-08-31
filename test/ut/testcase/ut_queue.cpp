@@ -374,7 +374,7 @@ HWTEST_F(QueueTest, ffrt_queue_attr_des, TestSize.Level0)
     ffrt_queue_attr_destroy(&queue_attr);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level0)
+HWTEST_F(QueueTest, ffrt_queue_dfx_timeout, TestSize.Level0)
 {
     // ffrt_queue_attr_set_timeout接口attr为异常值
     ffrt_queue_attr_t queue_attr;
@@ -393,7 +393,7 @@ HWTEST_F(QueueTest, ffrt_queue_dfx_api_0001, TestSize.Level0)
     ffrt_queue_destroy(queue_handle);
 }
 
-HWTEST_F(QueueTest, ffrt_queue_dfx_api_0002, TestSize.Level0)
+HWTEST_F(QueueTest, ffrt_queue_dfx_callback, TestSize.Level0)
 {
     // ffrt_queue_attr_get_timeout接口attr为异常值
     ffrt_queue_attr_t queue_attr;

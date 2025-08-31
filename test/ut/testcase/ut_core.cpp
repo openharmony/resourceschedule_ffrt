@@ -70,7 +70,7 @@ void OPTIMIZE_OFF OnePlusForTest(void* data)
 }
 } // namespace
 
-HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level0)
+HWTEST_F(CoreTest, task_ctx_success, TestSize.Level0)
 {
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     task_attr_private attr;

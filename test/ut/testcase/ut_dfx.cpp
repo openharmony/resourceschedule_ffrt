@@ -184,11 +184,14 @@ HWTEST_F(DfxTest, queue_dfx_bbox_queue_task, TestSize.Level0)
  */
 HWTEST_F(DfxTest, dfx_bbox_save_record, TestSize.Level0)
 {
+    int x = 0;
     SaveTheBbox();
     ffrt::submit([]() {
         RecordDebugInfo();
+        x++;
     });
     ffrt::wait();
+    EXPECT_EQ(x, 1);
 }
 
 static inline void stall_us_impl(size_t us)

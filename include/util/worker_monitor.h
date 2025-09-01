@@ -84,7 +84,7 @@ private:
     WorkerMonitor &operator=(WorkerMonitor &&) = delete;
     void SubmitSamplingTask();
     void SubmitTaskMonitor(uint64_t nextTimeoutUs);
-    void SubmitMemReleaseTask();
+    void SubmitRecycleResource();
     void CheckWorkerStatus();
     void CheckTaskStatus();
     uint64_t CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold);
@@ -97,7 +97,7 @@ private:
     void RecordKeyInfo(const std::string& dumpInfo);
     void ProcessWorkerInfo(std::ostringstream& oss, bool& firstQos, int qos, unsigned int cnt,
         const std::deque<pid_t>& tids);
-    void RecordWorkerStatusInfo();
+    void WorkerStatus();
     bool SetExitFlagIfNoWorkers(bool& exitFlag);
 
 private:
@@ -108,11 +108,11 @@ private:
     std::deque<std::pair<uint64_t, std::string>> taskTimeoutInfo_;
     WaitUntilEntry watchdogWaitEntry_;
     WaitUntilEntry tskMonitorWaitEntry_;
-    WaitUntilEntry memReleaseWaitEntry_;
+    WaitUntilEntry recycleResourceWaitEntry_;
     std::unordered_map<CPUWorker*, TaskTimeoutInfo> workerStatus_;
     bool samplingTaskExit_ = true;
     bool taskMonitorExit_ = true;
-    bool memReleaseTaskExit_ = true;
+    bool recycleResourceExit_ = true;
     unsigned int samplingTaskCount_ = 0;
 };
 }

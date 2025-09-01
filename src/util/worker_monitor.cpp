@@ -37,7 +37,7 @@
 namespace {
 constexpr int HISYSEVENT_TIMEOUT_SEC = 60;
 constexpr int MONITOR_SAMPLING_CYCLE_US = 500 * 1000;
-constexpr unsigned int RECORD_WORKER_STATUS_INFO_FREQ = 600;
+constexpr unsigned int RECORD_WORKER_STATUS_INFO_FREQ = 5;
 constexpr int SAMPLING_TIMES_PER_SEC = 1000 * 1000 / MONITOR_SAMPLING_CYCLE_US;
 constexpr uint64_t TIMEOUT_MEMSHRINK_CYCLE_US = 60 * 1000 * 1000;
 constexpr int RECORD_IPC_INFO_TIME_THRESHOLD = 600;
@@ -58,13 +58,18 @@ constexpr size_t MAX_FRAME_NUMS = 8;
 namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
-    memReleaseWaitEntry_.cb = ([this](WaitEntry* we) {
-        if (SetExitFlagIfNoWorkers(memReleaseTaskExit_)) {
+    recycleResourceWaitEntry_.cb = ([this]([[maybe_unused]] WaitEntry* we) {
+        if (SetExitFlagIfNoWorkers(recycleResourceExit_)) {
             CoRoutineReleaseMem();
+            WorkerStatus();
             return;
         }
+
         CoRoutineReleaseMem();
-        SubmitMemReleaseTask();
+        if (samplingTaskCount_++ % RECORD_WORKER_STATUS_INFO_FREQ == 0) {
+            WorkerStatus();
+        }
+        SubmitRecycleResource();
     });
     if (WhiteList::GetInstance().IsEnabled("worker_monitor", false)) {
         FFRT_SYSEVENT_LOGW("Skip worker monitor.");
@@ -112,9 +117,9 @@ void WorkerMonitor::SubmitTask()
             taskMonitorExit_ = false;
         }
     }
-    if (memReleaseTaskExit_) {
-        SubmitMemReleaseTask();
-        memReleaseTaskExit_ = false;
+    if (recycleResourceExit_) {
+        SubmitRecycleResource();
+        recycleResourceExit_ = false;
     }
 }
 
@@ -134,10 +139,11 @@ void WorkerMonitor::SubmitTaskMonitor(uint64_t nextTimeoutUs)
     }
 }
 
-void WorkerMonitor::SubmitMemReleaseTask()
+void WorkerMonitor::SubmitRecycleResource()
 {
-    memReleaseWaitEntry_.tp = std::chrono::steady_clock::now() + std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
-    if (!DelayedWakeup(memReleaseWaitEntry_.tp, &memReleaseWaitEntry_, memReleaseWaitEntry_.cb, true)) {
+    recycleResourceWaitEntry_.tp = std::chrono::steady_clock::now() +
+        std::chrono::microseconds(TIMEOUT_MEMSHRINK_CYCLE_US);
+    if (!DelayedWakeup(recycleResourceWaitEntry_.tp, &recycleResourceWaitEntry_, recycleResourceWaitEntry_.cb, true)) {
         FFRT_LOGW("Set delayed worker failed.");
     }
 }
@@ -145,14 +151,9 @@ void WorkerMonitor::SubmitMemReleaseTask()
 void WorkerMonitor::CheckWorkerStatus()
 {
     if (SetExitFlagIfNoWorkers(samplingTaskExit_)) {
-        RecordWorkerStatusInfo();
         std::lock_guard lock(mutex_);
         workerStatus_ = std::unordered_map<CPUWorker*, TaskTimeoutInfo>();
         return;
-    }
-
-    if (samplingTaskCount_++ % RECORD_WORKER_STATUS_INFO_FREQ == 0) {
-        RecordWorkerStatusInfo();
     }
 
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
@@ -366,7 +367,10 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
 
 #ifdef FFRT_OH_TRACE_ENABLE
     std::string dumpInfo;
-    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, MAX_FRAME_NUMS, false)) {
+    // Set max frame nums to 8 for the first timeout level for shorter output
+    int maxFrameNums = (timeoutFunction.executionTime_ == TIMEOUT_RECORD_CYCLE_LIST[0]) ? MAX_FRAME_NUMS :
+        OHOS::HiviewDFX::DEFAULT_MAX_FRAME_NUM;
+    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, 0, false, maxFrameNums)) {
         FFRT_LOGW("%s", dumpInfo.c_str());
         if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
             RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);
@@ -426,7 +430,7 @@ void WorkerMonitor::ProcessWorkerInfo(std::ostringstream& oss, bool& firstQos, i
     }
     firstQos = false;
 
-    oss << "qos:" << qos << " cnt:" << cnt << " tids:";
+    oss << qos << "|" << cnt << "|";
     bool firstTid = true;
     for (const auto& tid : tids) {
         if (!firstTid) {
@@ -437,7 +441,7 @@ void WorkerMonitor::ProcessWorkerInfo(std::ostringstream& oss, bool& firstQos, i
     }
 }
 
-void WorkerMonitor::RecordWorkerStatusInfo()
+void WorkerMonitor::WorkerStatus()
 {
     std::ostringstream startedOss;
     std::ostringstream exitedOss;
@@ -451,10 +455,10 @@ void WorkerMonitor::RecordWorkerStatusInfo()
     }
 
     if (!startedOss.str().empty()) {
-        FFRT_LOGW("start:%s", startedOss.str().c_str());
+        FFRT_LOGW("%s", startedOss.str().c_str());
     }
     if (!exitedOss.str().empty()) {
-        FFRT_LOGW("exit:%s", exitedOss.str().c_str());
+        FFRT_LOGW("%s", exitedOss.str().c_str());
     }
 }
 

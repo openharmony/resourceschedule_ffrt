@@ -30,13 +30,13 @@ int GetFFRTLogLevel(void);
         if ((level) > GetFFRTLogLevel()) \
             break; \
         if (level == FFRT_LOG_ERROR) { \
-            LogErr("%u:%s:%d " format "\n", GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+            LogErr("%u:%s:%d " format "\n", GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
         } else if (level == FFRT_LOG_WARN) { \
-            LogWarn("%u:%s:%d " format "\n", GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+            LogWarn("%u:%s:%d " format "\n", GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
         } else if (level == FFRT_LOG_INFO) { \
-            LogInfo("%u:%s:%d " format "\n", GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+            LogInfo("%u:%s:%d " format "\n", GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
         } else if (level == FFRT_LOG_DEBUG) { \
-            LogDebug("%u:%s:%d " format "\n", GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+            LogDebug("%u:%s:%d " format "\n", GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
         } else { \
             printf("Log Level is Invalid!"); \
         } \

@@ -32,7 +32,6 @@ public:
     template<typename T>
     int Write(T data)
     {
-        std::lock_guard<std::mutex> lock(bufferMutex_);
         if (writtenSize_ + sizeof(T) > bufferLen_) {
             writtenSize_ = sizeof(T);
             return memcpy_s(buf_, bufferLen_, &data, sizeof(T));
@@ -57,7 +56,6 @@ private:
     char *buf_;
     uint32_t bufferLen_;
     uint32_t writtenSize_;
-    std::mutex bufferMutex_;
 };
 }
 #endif // FFRT_RING_BUFFER_H

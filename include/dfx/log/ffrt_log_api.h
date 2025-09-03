@@ -37,6 +37,7 @@
 #define FFRT_LOG_LEVEL_MAX (FFRT_LOG_DEBUG + 1)
 
 unsigned int GetLogId(void);
+unsigned int GetShortLogId(void);
 bool IsInWhitelist(void);
 void InitWhiteListFlag(void);
 #ifdef FFRT_SEND_EVENT
@@ -87,7 +88,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
     do { \
         if (unlikely(IsInWhitelist())) { \
             constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-            HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_DEBUG, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+            HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_DEBUG, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
         } \
     } while (0)
 #else
@@ -98,7 +99,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #define FFRT_LOGI(format, ...) \
     do { \
         constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_INFO, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_INFO, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
     } while (0)
 #else
 #define FFRT_LOGI(format, ...)
@@ -108,7 +109,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #define FFRT_LOGW(format, ...) \
     do { \
         constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_WARN, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_WARN, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
     } while (0)
 #else
 #define FFRT_LOGW(format, ...)
@@ -117,7 +118,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #define FFRT_LOGE(format, ...) \
     do { \
         constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_ERROR, fmtPub, GetLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_ERROR, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
     } while (0)
 #else
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)

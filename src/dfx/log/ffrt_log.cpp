@@ -35,11 +35,17 @@ static std::atomic<unsigned int> g_ffrtLogId(0);
 static bool g_whiteListFlag = false;
 namespace {
     constexpr int LOG_BUFFER_SIZE = 2048;
+    constexpr unsigned int LOG_ID_MAX = 100;
 }
 
 unsigned int GetLogId(void)
 {
     return ++g_ffrtLogId;
+}
+
+unsigned int GetShortLogId(void)
+{
+    return (++g_ffrtLogId) % LOG_ID_MAX; // Truncate the log ID to two digits for shorter output
 }
 
 bool IsInWhitelist(void)

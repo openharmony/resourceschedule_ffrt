@@ -68,12 +68,12 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
     }
 
     FFRTFacade::GetQMInstance().RegisterQueue(this);
-    FFRT_LOGI("construct %s succ, qos[%d]", name_.c_str(), qos_);
+    FFRT_LOGI("Ctor %s, qos %d", name_.c_str(), qos_);
 }
 
 QueueHandler::~QueueHandler()
 {
-    FFRT_LOGI("destruct %s enter", name_.c_str());
+    FFRT_LOGD("destruct %s enter", name_.c_str());
     // clear tasks in queue
     CancelAndWait();
     FFRTFacade::GetQMInstance().DeregisterQueue(this);
@@ -81,8 +81,12 @@ QueueHandler::~QueueHandler()
     // release callback resource
     if (timeout_ > 0) {
         // wait for all delayedWorker to complete.
+        uint64_t waitCbCnt = 0;
         while ((delayedCbCnt_.load() > 0) && !GetDelayedWorkerExitFlag()) {
             std::this_thread::sleep_for(std::chrono::microseconds(TASK_DONE_WAIT_UNIT));
+            if (waitCbCnt++ == TASK_WAIT_COUNT) {
+                FFRT_LOGW("Delayed callback wait timeout");
+            }
         }
 
         if (timeoutCb_ != nullptr) {
@@ -95,7 +99,7 @@ QueueHandler::~QueueHandler()
         DelayedRemove(we_->tp, we_);
         SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
     }
-    FFRT_LOGI("destruct %s", name_.c_str());
+    FFRT_LOGD("destruct %s", name_.c_str());
 }
 
 bool QueueHandler::SetLoop(Loop* loop)

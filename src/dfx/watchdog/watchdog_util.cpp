@@ -42,10 +42,10 @@ namespace ffrt {
         uint64_t timeout_ms = timeout_us / CONVERT_TIME_UNIT;
         // 当前有效的并行任务timeout时间范围是10-30s
         if (timeout_ms >= VALID_TIMEOUT_MIN && timeout_ms <= VALID_TIMEOUT_MAX) {
-            FFRT_LOGI("task gid=%llu with timeout [%llu ms] is valid", gid, timeout_ms);
+            FFRT_LOGD("task gid=%llu with timeout [%llu ms] is valid", gid, timeout_ms);
             return true;
         } else if (timeout_ms > 0) {
-            FFRT_LOGE("task gid=%llu with timeout [%llu ms] is invalid", gid, timeout_ms);
+            FFRT_LOGD("task gid=%llu with timeout [%llu ms] is invalid", gid, timeout_ms);
         }
         return false;
     }

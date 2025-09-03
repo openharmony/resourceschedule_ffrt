@@ -48,6 +48,7 @@ class FFRTTraceRecord {
 public:
     static const int TASK_TYPE_NUM = ffrt_queue_task + 1;
     static std::atomic<bool> ffrt_be_used_;
+    static std::mutex bufferMutex_;
     static bool stat_enable_;
     static int g_recordMaxWorkerNumber_[QoS::MaxNum()];
     static ffrt_record_task_counter_t g_recordTaskCounter_[TASK_TYPE_NUM][QoS::MaxNum()];
@@ -68,6 +69,7 @@ public:
             FFRT_LOGE("Buffer size is not enough, len = %u", len);
             return -1;
         }
+        std::lock_guard<std::mutex> lg(bufferMutex_);
         if (stat_enable_) {
             FFRT_LOGW("Statistics are already enabled.");
             return -1;
@@ -87,6 +89,7 @@ public:
     static int StatsDisable(char *buf)
     {
         FFRT_LOGW("StatsDisable");
+        std::lock_guard<std::mutex> lg(bufferMutex_);
         if (ringBuffer_ == nullptr) {
             FFRT_LOGW("StatsDisable: ringBuffer_ is already nullptr");
             return -1;
@@ -184,7 +187,10 @@ public:
             }
             stat.startTime = task->createTime;
             stat.endTime = endTime;
-            ringBuffer_->Write(stat);
+            std::lock_guard<std::mutex> lg(bufferMutex_);
+            if (stat_enable_) {
+                ringBuffer_->Write(stat);
+            }
         }
 
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_3)

@@ -32,6 +32,7 @@ const int COLUMN_WIDTH_18 = 18;
 const int COLUMN_WIDTH_19 = 19;
 const int COLUMN_WIDTH_22 = 22;
 std::atomic<bool> FFRTTraceRecord::ffrt_be_used_ = false;
+std::mutex FFRTTraceRecord::bufferMutex_;
 bool FFRTTraceRecord::stat_enable_ = false;
 std::unique_ptr<FFRTRingBuffer> FFRTTraceRecord::ringBuffer_ = nullptr;
 int FFRTTraceRecord::g_recordMaxWorkerNumber_[QoS::MaxNum()] = {};

@@ -999,10 +999,11 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
     auto testQueue = std::make_unique<queue>("test_queue");
     FFRT_LOGE("submit");
-    testQueue->submit([&x] { x = x + 1; FFRT_LOGE("start"); });
-    auto t = testQueue->submit_h([&x] { x = x + 1; FFRT_LOGE("delay start"); }, task_attr().delay(5000000));
-    testQueue->cancel(t);
-    testQueue->wait(t);
+    auto t1 = testQueue->submit_h([&x] { x = x + 1; FFRT_LOGE("start"); });
+    auto t2 = testQueue->submit_h([&x] { x = x + 1; FFRT_LOGE("delay start"); }, task_attr().delay(5000000));
+    testQueue->cancel(t2);
+    testQueue->wait(t1);
+    testQueue->wait(t2);
     usleep(1200000);
     FFRTFacade::GetQMInstance().timeoutUs_ = 30000000;
     EXPECT_EQ(x, 1);

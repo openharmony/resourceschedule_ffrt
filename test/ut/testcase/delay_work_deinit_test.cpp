@@ -71,21 +71,11 @@ void SendDelayedWorker(uint64_t timeoutUs)
  *              2、等待任务执行完成
  * 预期结果    ：检测是否为delayworker线程，callback函数中检查为是，主线程检查为否
  */
-HWTEST_F(DelayWorkDeinitTest, delay_work_thread_para_01, TestSize.Level0)
+HWTEST_F(DelayWorkDeinitTest, delay_work_thread_para, TestSize.Level0)
 {
     const uint64_t timeoutUs = 100;
     DelayedWorker::ThreadEnvCreate();
     SendDelayedWorker(timeoutUs);
     sleep(1);
     EXPECT_EQ(false, DelayedWorker::IsDelayerWorkerThread());
-}
-
-HWTEST_F(DelayWorkDeinitTest, delay_work_thread_para_02, TestSize.Level1)
-{
-    const uint64_t timeoutUs = 100;
-    DelayedWorker::ThreadEnvCreate();
-    SendDelayedWorker(timeoutUs);
-    sleep(1);
-    bool ret = DelayedWorker::IsDelayerWorkerThread();
-    EXPECT_EQ(ret, false);
 }

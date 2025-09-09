@@ -57,7 +57,7 @@ protected:
     }
 };
 
-HWTEST_F(DependencyTest, dependency_success_01, TestSize.Level0)
+HWTEST_F(DependencyTest, dependency_success, TestSize.Level0)
 {
     int x = 0;
     ffrt::submit([&]() { x = 2; }, {}, {&x});
@@ -66,22 +66,16 @@ HWTEST_F(DependencyTest, dependency_success_01, TestSize.Level0)
     EXPECT_EQ(x, 6);
 }
 
-HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level0)
+HWTEST_F(DependencyTest, update_qos_success, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
-    ffrt_task_attr_get_name(nullptr);
-    ffrt_task_attr_set_name(nullptr, "A");
-    ffrt_task_attr_set_qos(nullptr, static_cast<int>(ffrt::qos_user_initiated));
-    ffrt_task_attr_get_qos(nullptr);
-    ffrt_task_attr_destroy(nullptr);
-    ffrt_submit_base(nullptr, nullptr, nullptr, nullptr);
-    ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
     ffrt::submit([] {
         printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
         printf("id is  %" PRIu64 "\n", ffrt::this_task::get_id());
     });
     ffrt::this_task::get_id();
+    ffrt_restore_qos_config();
     ffrt::wait();
     ffrt_this_task_update_qos(static_cast<int>(ffrt::qos_user_initiated));
 #ifndef WITH_NO_MOCKER
@@ -89,57 +83,7 @@ HWTEST_F(DependencyTest, update_qos_success_02, TestSize.Level0)
 #endif
 }
 
-HWTEST_F(DependencyTest, update_qos_success_03, TestSize.Level0)
-{
-    int ret = ffrt_task_attr_init(nullptr);
-    EXPECT_EQ(ret, -1);
-    ffrt::submit([] {
-        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
-    });
-    ffrt_restore_qos_config();
-    ffrt::wait();
-}
-
-HWTEST_F(DependencyTest, update_qos_success_04, TestSize.Level0)
-{
-    int ret = ffrt_task_attr_init(nullptr);
-    EXPECT_EQ(ret, -1);
-    ffrt::submit([] {
-        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
-    });
-    int ret2 = ffrt_set_cpu_worker_max_num(static_cast<int>(ffrt::qos_user_initiated), 4);
-    EXPECT_EQ(ret2, 0);
-    ffrt::wait();
-}
-
-HWTEST_F(DependencyTest, update_qos_success_05, TestSize.Level0)
-{
-    int x = 0;
-    int ret = ffrt_task_attr_init(nullptr);
-    EXPECT_EQ(ret, -1);
-    ffrt_task_attr_get_name(nullptr);
-    ffrt_task_attr_set_name(nullptr, "A");
-    ffrt_task_attr_set_qos(nullptr, static_cast<int>(ffrt::qos_user_initiated));
-    ffrt_task_attr_get_qos(nullptr);
-    ffrt_task_attr_destroy(nullptr);
-    ffrt_submit_base(nullptr, nullptr, nullptr, nullptr);
-    ffrt_submit_h_base(nullptr, nullptr, nullptr, nullptr);
-    ffrt::submit([&] {
-        x++;
-        printf("return %d\n", ffrt::this_task::update_qos(static_cast<int>(ffrt::qos_user_initiated)));
-        printf("id is  %" PRIu64 "\n", ffrt::this_task::get_id());
-    });
-    ffrt_this_task_get_id();
-    ffrt::wait();
-    ffrt_this_task_update_qos(static_cast<int>(ffrt::qos_user_initiated));
-#ifndef WITH_NO_MOCKER
-    ffrt_os_sched_attr attr = {100, 10, 99, 99, 9, "2-3"};
-    ffrt_set_cgroup_attr(static_cast<int>(ffrt::qos_user_initiated), &attr);
-#endif
-    EXPECT_EQ(x, 1);
-}
-
-HWTEST_F(DependencyTest, update_qos_failed_01, TestSize.Level0)
+HWTEST_F(DependencyTest, update_qos_failed, TestSize.Level0)
 {
     int x = 0;
     int ret = ffrt_task_attr_init(nullptr);
@@ -166,7 +110,7 @@ HWTEST_F(DependencyTest, update_qos_failed_01, TestSize.Level0)
     EXPECT_EQ(x, 1);
 }
 
-HWTEST_F(DependencyTest, update_qos_failed_02, TestSize.Level0)
+HWTEST_F(DependencyTest, set_worker_max_num_invaild_qos, TestSize.Level0)
 {
     int ret = ffrt_task_attr_init(nullptr);
     EXPECT_EQ(ret, -1);
@@ -243,7 +187,7 @@ HWTEST_F(DependencyTest, ffrt_task_attr_get_name_set_notify_test, TestSize.Level
     EXPECT_EQ(x, 1);
 }
 
-HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level0)
+HWTEST_F(DependencyTest, executor_task_submit_success_cancel, TestSize.Level0)
 {
     ffrt_task_attr_t attr;
     static ffrt_executor_task_t work;
@@ -258,7 +202,7 @@ HWTEST_F(DependencyTest, executor_task_submit_success_cancel_01, TestSize.Level0
     EXPECT_EQ(ret, 0);
 }
 
-HWTEST_F(DependencyTest, executor_task_submit_cancel_02, TestSize.Level0)
+HWTEST_F(DependencyTest, executor_task_submit_delay_cancel, TestSize.Level0)
 {
     ffrt_task_attr_t attr;
     ffrt_task_attr_init(&attr);
@@ -296,8 +240,9 @@ int ThreadSafeRand(const int min, const int max)
     std::uniform_int_distribution<int> distribution(min, max);
     return distribution(generator);
 }
+
 /*
-* 测试用例名称：executor_task_submit_cancel_03
+* 测试用例名称：executor_task_submit_cancel_uv_tasks
 * 测试用例描述：uv任务正确取消
 * 预置条件    ：无
 * 操作步骤    ：1、调用注册接口，给uv任务注册一个耗时函数
@@ -307,7 +252,7 @@ int ThreadSafeRand(const int min, const int max)
                2、取消的任务数+已执行的任务数=总提交任务数
                3、取消的任务数>0，已执行的任务数<总提交任务数
 */
-HWTEST_F(DependencyTest, executor_task_submit_cancel_03, TestSize.Level0)
+HWTEST_F(DependencyTest, executor_task_submit_cancel_uv_tasks, TestSize.Level0)
 {
     const int taskCount = 10000;
     ffrt_task_attr_t attr;
@@ -366,13 +311,13 @@ void UVCbSleep(ffrt_executor_task_t* data, ffrt_qos_t qos)
 }
 
 /*
- * 测试用例名称 ：executor_task_submit_cancel_04
+ * 测试用例名称 ：executor_task_cancel_with_uv_queue
  * 测试用例描述 ：测试通过libuv视角，能够正确取消任务
  * 操作步骤     ：1.提交批量任务，让worker都阻塞，使得所有uv任务都不从Ready中取出
  *               2.判断uv__queue_empty位false时，调用ffrt_executor_task_cancel取消任务
  * 预期结果     ：能够至少取消一个任务，并且任务执行和取消等于总任务数
  */
-HWTEST_F(DependencyTest, executor_task_submit_cancel_04, TestSize.Level1)
+HWTEST_F(DependencyTest, executor_task_cancel_with_uv_queue, TestSize.Level1)
 {
     uv_result.store(0);
     constexpr int taskCount = 10000;

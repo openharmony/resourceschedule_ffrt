@@ -113,7 +113,7 @@ HWTEST_F(PollerTest, poll_once_batch_timeout, TestSize.Level0)
                 2、创建两个线程，并发PollerOnce和Unregister
  * 预期结果    ：1、任务全部从队列中清除
  */
-HWTEST_F(PollerTest, unregister_timer_001, TestSize.Level0)
+HWTEST_F(PollerTest, unregister_timer, TestSize.Level0)
 {
     LoopPoller poller;
     // 1、组装timeMap_
@@ -243,13 +243,13 @@ HWTEST_F(PollerTest, multi_timer_dependency_unregister_self, TestSize.Level0)
 }
 
 /*
- * 测试用例名称 : fetch_cached_event_unmask DoTaskFdAdd
+ * 测试用例名称 : CacheAndClearMaskWakeDataWithFd
  * 测试用例描述 : 遍历本地events缓存，并提出缓存event
  * 预置条件     : 无
  * 操作步骤     :
  * 预期结果     :
  */
-HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level0)
+HWTEST_F(PollerTest, CacheAndClearMaskWakeDataWithFd, TestSize.Level0)
 {
     LoopPoller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
@@ -288,7 +288,7 @@ HWTEST_F(PollerTest, TestCacheDelFd001, TestSize.Level0)
  * 操作步骤     :
  * 预期结果     :
  */
-HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level0)
+HWTEST_F(PollerTest, ClearAllMaskWakeDataForTask, TestSize.Level0)
 {
     LoopPoller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));
@@ -323,7 +323,7 @@ HWTEST_F(PollerTest, TestCacheDelFd002, TestSize.Level0)
  * 操作步骤     :
  * 预期结果     :
  */
-HWTEST_F(PollerTest, TestCacheDelFd003, TestSize.Level0)
+HWTEST_F(PollerTest, ClearSpecificFdFromCache, TestSize.Level0)
 {
     LoopPoller poller;
     CPUEUTask* currTask = static_cast<CPUEUTask*>(malloc(sizeof(CPUEUTask)));

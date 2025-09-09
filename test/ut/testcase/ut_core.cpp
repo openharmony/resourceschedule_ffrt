@@ -70,7 +70,7 @@ void OPTIMIZE_OFF OnePlusForTest(void* data)
 }
 } // namespace
 
-HWTEST_F(CoreTest, task_ctx_success_01, TestSize.Level0)
+HWTEST_F(CoreTest, task_ctx_success, TestSize.Level0)
 {
     auto func1 = ([]() {std::cout << std::endl << " push a task " << std::endl;});
     task_attr_private attr;
@@ -570,13 +570,13 @@ private:
 } // namespace TmTest
 
 /*
-* 测试用例名称：ffrt_task_factory_test_001
+* 测试用例名称：ffrt_task_factory_simple_allocator_test
 * 测试用例描述：测试使用SimpleAllocator时，任务能够成功申请释放
 * 预置条件    ：注册使用SimpleAllocator的内存分配函数
 * 操作步骤    ：使用TaskFactory申请一个自定义Task的实例，初始化后调用各自的DecDeleteRef释放
 * 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值小于释放前
 */
-HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level0)
+HWTEST_F(CoreTest, ffrt_task_factory_simple_allocator_test, TestSize.Level0)
 {
     ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
         ffrt::SimpleAllocator<TmTest::MyTask>::AllocMem,
@@ -592,13 +592,13 @@ HWTEST_F(CoreTest, ffrt_task_factory_test_001, TestSize.Level0)
 }
 
 /*
-* 测试用例名称：ffrt_task_factory_test_002
+* 测试用例名称：ffrt_task_factory_custom_manager_test
 * 测试用例描述：测试使用自定义管理器时，任务能够成功申请释放
 * 预置条件    ：注册自定义Task内存分配函数
 * 操作步骤    ：使用TaskFactory申请一个自定义Task的实例，初始化后调用各自的DecDeleteRef释放
 * 预期结果    ：能够正常申请和释放，释放前后GetUnFreedMem读取数组的值小于释放前
 */
-HWTEST_F(CoreTest, ffrt_task_factory_test_002, TestSize.Level0)
+HWTEST_F(CoreTest, ffrt_task_factory_custom_manager_test, TestSize.Level0)
 {
     TmTest::CustomTaskManager<TmTest::MyTask> custom_manager;
     ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
@@ -630,14 +630,14 @@ HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level0)
 }
 
 /*
- * 测试用例名称：ffrt_task_factory_test_003
- * 测试用例描述：测试使用SimpleAllocator时，UVTask的TaskFactory接口正常
- * 预置条件    ：无
- * 操作步骤    ：1.向TaskFactory申请一个UVTask实例
+* 测试用例名称：ffrt_task_factory_uv_test
+* 测试用例描述：测试使用SimpleAllocator时，UVTask的TaskFactory接口正常
+* 预置条件    ：无
+* 操作步骤    ：1.向TaskFactory申请一个UVTask实例
                2.调用TaskFactory的HasBeenFreed、Free_接口
- * 预期结果    ：任务是否释放符合预期
- */
-HWTEST_F(CoreTest, ffrt_task_factory_test_003, TestSize.Level1)
+* 预期结果    ：任务是否释放符合预期
+*/
+HWTEST_F(CoreTest, ffrt_task_factory_uv_test, TestSize.Level0)
 {
     ffrt::UVTask* task = ffrt::TaskFactory<ffrt::UVTask>::Alloc();
     EXPECT_EQ(ffrt::TaskFactory<ffrt::UVTask>::HasBeenFreed(task), false);

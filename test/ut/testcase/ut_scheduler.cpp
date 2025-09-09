@@ -243,6 +243,8 @@ HWTEST_F(SchedulerTest, sched_test, TestSize.Level1)
     auto scheduler = std::make_unique<STaskScheduler>();
     scheduler->SetTaskSchedMode(TaskSchedMode::LOCAL_TASK_SCHED_MODE);
     ffrt_executor_task_t work = {};
+    UVTask uvTask(&work, nullptr);
+    scheduler->PushTask(&uvTask);
     bool ret = scheduler->CancelUVWork(&work);
 #ifndef FFRT_GITEE
     EXPECT_EQ(ret, true);

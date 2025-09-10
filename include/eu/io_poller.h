@@ -39,7 +39,7 @@ struct TimeOutReport {
 class IOPoller : public BasePoller {
 public:
     static IOPoller& Instance();
-    virtual ~IOPoller() noexcept override;
+    ~IOPoller() noexcept override;
 
     using BasePoller::WaitFdEvent;
     void WaitFdEvent(int fd) noexcept;

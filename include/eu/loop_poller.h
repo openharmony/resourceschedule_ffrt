@@ -60,7 +60,7 @@ struct TimerDataWithCb {
 
 class LoopPoller : public BasePoller {
 public:
-    virtual ~LoopPoller() noexcept override;
+    ~LoopPoller() noexcept override;
 
     PollerRet PollOnce(int timeout = -1) noexcept;
 

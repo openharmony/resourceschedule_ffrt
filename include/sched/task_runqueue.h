@@ -16,6 +16,7 @@
 #ifndef FFRT_TASK_RUNQUEUE_HPP
 #define FFRT_TASK_RUNQUEUE_HPP
 
+#include "internal_inc/osal.h"
 #include "tm/cpu_task.h"
 #include "tm/uv_task.h"
 #include <cassert>
@@ -39,10 +40,15 @@ public:
     TaskBase* DeQueue()
     {
         if (list.Empty()) {
+            if (unlikely(size != 0)) {
+                FFRT_LOGE("size not match, current size %d, reset to 0.", size.load());
+                size = 0;
+            }
             return nullptr;
         }
         auto node = list.PopFront();
         if (node == nullptr) {
+            FFRT_LOGE("failed to pop node, current size %d.", size.load());
             return nullptr;
         }
 

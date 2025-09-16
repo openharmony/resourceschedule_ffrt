@@ -164,9 +164,7 @@ static inline void SaveKeyStatus()
 
 static inline void SaveNormalTaskStatus()
 {
-    TaskFactory<CPUEUTask>::LockMem();
     auto unfree = TaskFactory<CPUEUTask>::GetUnfreedMem();
-    TaskFactory<CPUEUTask>::UnlockMem();
     auto apply = [&](const char* tag, const std::function<bool(CPUEUTask*)>& filter) {
         std::vector<CPUEUTask*> tmp;
         for (auto task : unfree) {
@@ -255,9 +253,7 @@ static void DumpQueueTask(const char* tag, const std::vector<QueueTask*>& tasks,
 
 static inline void SaveQueueTaskStatus()
 {
-    TaskFactory<QueueTask>::LockMem();
     auto unfreeQueueTask = TaskFactory<QueueTask>::GetUnfreedMem();
-    TaskFactory<QueueTask>::UnlockMem();
     if (unfreeQueueTask.size() == 0) {
         return;
     }

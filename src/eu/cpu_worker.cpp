@@ -26,7 +26,9 @@
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
 #include "eu/blockaware.h"
 #endif
+#include "util/capability.h"
 #include "util/ffrt_facade.h"
+#include "util/white_list.h"
 #ifdef OHOS_THREAD_STACK_DUMP
 #include "dfx_dump_catcher.h"
 #endif
@@ -44,6 +46,7 @@ CPUWorker::CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize) : qos
     if (stackSize > 0) {
         pthread_attr_setstacksize(&attr_, stackSize);
     }
+    SetThreadInitPri();
 #endif
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     domain_id = (qos() <= BLOCKAWARE_DOMAIN_ID_MAX) ? qos() : BLOCKAWARE_DOMAIN_ID_MAX + 1;
@@ -86,6 +89,31 @@ CPUWorker::~CPUWorker()
     }
     Detach();
 }
+
+#ifdef FFRT_PTHREAD_ENABLE
+void CPUWorker::SetThreadInitPri()
+{
+    bool enable = WhiteList::GetInstance().IsEnabled("SetThreadInitPri", false);
+    if (!enable) {
+        return;
+    }
+
+    if (qos() != GetFuncQosMax()() - 1) {
+        return;
+    }
+
+    bool check = CheckProcCapSysNice();
+    if (!check) {
+        return;
+    }
+
+    (void)pthread_attr_setinheritsched(&attr_, PTHREAD_EXPLICIT_SCHED);
+    (void)pthread_attr_setschedpolicy(&attr_, SCHED_RR);
+    struct sched_param param {};
+    param.sched_priority = 1;
+    (void)pthread_attr_setschedparam(&attr_, &param);
+}
+#endif
 
 void CPUWorker::NativeConfig()
 {

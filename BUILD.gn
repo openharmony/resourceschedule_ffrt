@@ -201,6 +201,7 @@ ohos_shared_library("libffrt") {
       "src/tm/task_base.cpp",
       "src/tm/task_factory.cpp",
       "src/tm/uv_task.cpp",
+      "src/util/capability.cpp",
       "src/util/cpu_boost_wrapper.cpp",
       "src/util/ffrt_cpu_boost.cpp",
       "src/util/ffrt_facade.cpp",

@@ -17,6 +17,7 @@
 #include "dfx/bbox/bbox.h"
 #include <sys/syscall.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 #include <csignal>
 #include <cstdlib>
@@ -45,7 +46,7 @@ using namespace ffrt;
 
 constexpr static size_t EACH_QUEUE_TASK_DUMP_SIZE = 64;
 constexpr static unsigned int WAIT_PID_SLEEP_MS = 2;
-constexpr static unsigned int WAIT_PID_MAX_RETRIES = 1000;
+constexpr static unsigned int WAIT_TIMEOUT_SECONDS = 2;
 static std::atomic<unsigned int> g_taskPendingCounter(0);
 static std::atomic<unsigned int> g_taskWakeCounter(0);
 static TaskBase* g_cur_task;
@@ -448,9 +449,17 @@ static void HandleChildProcess()
         _exit(0);
     } else if (childPid > 0) {
         pid_t wpid;
-        unsigned int remainingRetries = WAIT_PID_MAX_RETRIES;
-        while ((wpid = waitpid(childPid, nullptr, WNOHANG)) == 0 && remainingRetries-- > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PID_SLEEP_MS));
+        struct timespec deadline;
+        clock_gettime(CLOCK_MONOTONIC, &deadline);
+        deadline.tv_sec += WAIT_TIMEOUT_SECONDS;
+        while ((wpid = waitpid(childPid, nullptr, WNOHANG)) == 0) {
+            struct timespec now;
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            if ((now.tv_sec == deadline.tv_sec && now.tv_nsec >= deadline.tv_nsec) || (now.tv_sec > deadline.tv_sec)) {
+                break;
+            }
+            struct timespec sleepTime = {0, WAIT_PID_SLEEP_MS * 1000000};
+            nanosleep(&sleepTime, nullptr);
         }
         if (wpid == 0) {
             (void)kill(childPid, SIGKILL);

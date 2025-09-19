@@ -203,6 +203,9 @@ public:
     unsigned int tick = 0;
 
 private:
+#ifdef FFRT_PTHREAD_ENABLE
+    void SetThreadInitPri();
+#endif
     void NativeConfig();
     static void WorkerLooper(CPUWorker* worker);
     static void* WrapDispatch(void* worker);

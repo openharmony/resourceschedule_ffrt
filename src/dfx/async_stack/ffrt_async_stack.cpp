@@ -20,60 +20,24 @@
 #include <dlfcn.h>
 
 #include "dfx/log/ffrt_log_api.h"
-
-using FFRTSetStackIdFunc = void(*)(uint64_t stackId);
-using FFRTCollectAsyncStackFunc = uint64_t(*)();
 namespace {
-    FFRTCollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
-    FFRTSetStackIdFunc g_setStackIdFunc = nullptr;
-    void* g_asyncStackLibHandle = nullptr;
-    bool g_enabledFFRTAsyncStack = false;
+    CollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
+    SetStackIdFunc g_setStackIdFunc = nullptr;
 }
 
-static void LoadDfxAsyncStackLib()
+void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc)
 {
     const char* debuggableEnv = getenv("HAP_DEBUGGABLE");
-    if ((debuggableEnv == nullptr) || (strcmp(debuggableEnv, "true") != 0)) {
-        return;
+    if (debuggableEnv != nullptr && strcmp(debuggableEnv, "true") == 0) {
+        g_collectAsyncStackFunc = collectAsyncStackFunc;
+        g_setStackIdFunc = setStackIdFunc;
     }
-
-    // if async stack is not enabled, the lib should not be unloaded
-    g_asyncStackLibHandle = dlopen("libasync_stack.z.so", RTLD_NOW);
-    if (g_asyncStackLibHandle == nullptr) {
-        return;
-    }
-
-    g_collectAsyncStackFunc = reinterpret_cast<FFRTCollectAsyncStackFunc>(dlsym(g_asyncStackLibHandle,
-                                                                                "CollectAsyncStack"));
-    if (g_collectAsyncStackFunc == nullptr) {
-        dlclose(g_asyncStackLibHandle);
-        g_asyncStackLibHandle = nullptr;
-        return;
-    }
-
-    g_setStackIdFunc = reinterpret_cast<FFRTSetStackIdFunc>(dlsym(g_asyncStackLibHandle, "SetStackId"));
-    if (g_setStackIdFunc == nullptr) {
-        g_collectAsyncStackFunc = nullptr;
-        dlclose(g_asyncStackLibHandle);
-        g_asyncStackLibHandle = nullptr;
-        return;
-    }
-
-    g_enabledFFRTAsyncStack = true;
-}
-
-static bool IsFFRTAsyncStackEnabled()
-{
-    static std::once_flag onceFlag;
-    std::call_once(onceFlag, LoadDfxAsyncStackLib);
-    return g_enabledFFRTAsyncStack;
 }
 
 namespace ffrt {
 uint64_t FFRTCollectAsyncStack(void)
 {
-    if (IsFFRTAsyncStackEnabled() &&
-        (g_collectAsyncStackFunc != nullptr)) {
+    if (g_collectAsyncStackFunc != nullptr) {
         return g_collectAsyncStackFunc();
     }
 
@@ -82,17 +46,8 @@ uint64_t FFRTCollectAsyncStack(void)
 
 void FFRTSetStackId(uint64_t stackId)
 {
-    if (IsFFRTAsyncStackEnabled() &&
-        (g_setStackIdFunc != nullptr)) {
+    if (g_setStackIdFunc != nullptr) {
         return g_setStackIdFunc(stackId);
-    }
-}
-
-void CloseAsyncStackLibHandle()
-{
-    if (g_asyncStackLibHandle != nullptr) {
-        dlclose(g_asyncStackLibHandle);
-        g_asyncStackLibHandle = nullptr;
     }
 }
 }

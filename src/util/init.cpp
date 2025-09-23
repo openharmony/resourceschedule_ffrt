@@ -58,9 +58,6 @@ __attribute__((constructor)) static void ffrt_init()
 }
 __attribute__((destructor)) static void FfrtDeinit(void)
 {
-#ifdef FFRT_ASYNC_STACKTRACE
-    ffrt::CloseAsyncStackLibHandle();
-#endif
 }
 
 void ffrt_child_init(void)

@@ -34,6 +34,7 @@ constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000000; // 1s
 constexpr uint64_t TASK_WAIT_COUNT = 50000; // 5s
 constexpr uint64_t INVALID_GID = 0;
+constexpr uint64_t ALLOW_ACC_ERROR_US = 10 * 1000; // 10ms
 }
 
 namespace ffrt {
@@ -489,7 +490,8 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
         }
 
         uint64_t curTaskTime = curTask->statusTime.load(std::memory_order_relaxed);
-        if (curTaskTime == 0 || CheckDelayStatus()) {
+        if (curTaskTime == 0 || CheckDelayStatus() || (curTask->curStatus == TaskStatus::ENQUEUED &&
+            curTaskTime + curTask->GetDelay() + ALLOW_ACC_ERROR_US > TimeStampCntvct())) {
             curTaskInfo.first.emplace_back(INVALID_GID);
             // Update the next inspection time if current task is delaying and there are still tasks in whenMap.
             // Otherwise, pause the monitor timer.

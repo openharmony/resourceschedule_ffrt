@@ -1677,3 +1677,37 @@ HWTEST_F(QueueTest, ffrt_eventhandler_adapter_queue_get_task_cnt, TestSize.Level
 
     testQueue = nullptr;
 }
+
+/*
+* 测试用例名称：queuetask_timeout_trigger_succ
+* 测试用例描述：主动设置timeout的队列任务超时执行回调
+* 预置条件    ：无
+* 操作步骤    ：1、设置queuetimeout和tasktimeout
+                2、提交任务超时触发回调
+* 预期结果    ：超时回调成功被执行
+*/
+HWTEST_F(QueueTest, queuetask_timeout_trigger_succ, TestSize.Level0)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_task_attr_t attr;
+    ffrt_task_attr_init(&attr);
+    ffrt_task_attr_set_timeout(&attr, 1000000);
+    ffrt_queue_attr_set_timeout(&queue_attr, 1000000);
+    int result = 0;
+
+    std::function<void()> timeoutCb = [&result]() { OnePlusForTest(static_cast<void*>(&result));
+        printf("timeout callback\n"); };
+    ffrt_queue_attr_set_callback(&queue_attr, ffrt::create_function_wrapper(timeoutCb, ffrt_function_kind_queue));
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    std::function<void()> basicFunc = []() { stall_us1(1100000); };
+
+    ffrt_task_handle_t task1 =
+        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &attr);
+    ffrt_queue_wait(task1);
+    ffrt_task_handle_destroy(task1);
+    EXPECT_EQ(result, 1);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}

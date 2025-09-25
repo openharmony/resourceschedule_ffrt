@@ -156,6 +156,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
 
     aliveStatus.store(AliveStatus::INITED, std::memory_order_relaxed);
 }
+
 CPUEUTask::~CPUEUTask()
 {
 #ifdef FFRT_TASK_LOCAL_ENABLE

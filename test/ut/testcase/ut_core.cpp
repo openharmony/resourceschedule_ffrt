@@ -28,6 +28,7 @@
 #include "tm/scpu_task.h"
 #include "tm/task_factory.h"
 #include "../common.h"
+#include "util/ref_function_header.h"
 
 using namespace std;
 using namespace testing;
@@ -731,4 +732,153 @@ HWTEST_F(CoreTest, ffrt_task_factory_deleteRef_test, TestSize.Level0)
     for (auto& t : incDeleteRefThreads) {
         t.join();
     }
+}
+
+/*
+ * 测试用例名称：DestroyFunctionWrapper_NormalInput_SuccDestroy
+ * 测试用例描述：测试DestroyFunctionWrapper接口
+ * 预置条件    ：无
+ * 操作步骤    ：创建不同类型function_wrapper并调用DestroyFunctionWrapper接口销毁
+ * 预期结果    ：成功销毁
+ */
+HWTEST_F(CoreTest, DestroyFunctionWrapper_NormalInput_SuccDestroy, TestSize.Level1)
+{
+    ffrt::DestroyFunctionWrapper(nullptr, ffrt_function_kind_queue);
+
+    std::function<void()> cbOne = []() { printf("callback\n"); };
+    ffrt_function_header_t* func1 = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_queue);
+    ffrt::DestroyFunctionWrapper(func1, ffrt_function_kind_queue);
+
+    std::function<void()> cbTwo = []() { printf("callback\n"); };
+    ffrt_function_header_t* func2 = ffrt::create_function_wrapper(cbTwo, ffrt_function_kind_general);
+    EXPECT_NE(func2, nullptr);
+    func2->destroy = nullptr;
+    ffrt::DestroyFunctionWrapper(func2, ffrt_function_kind_general);
+}
+
+/*
+ * 测试用例名称：FfrtTaskAttrSetQueuePriority_NormalAndAbnormalInput_NormalPriority
+ * 测试用例描述：测试ffrt_task_attr_set_queue_priority接口
+ * 预置条件    ：无
+ * 操作步骤    ：1、初始化attr，调用ffrt_task_attr_set_queue_priority接口，传入正常优先级
+                2、调用ffrt_task_attr_set_queue_priority接口，传入异常优先级
+                3、调用ffrt_task_attr_get_queue_priority获取优先级
+ * 预期结果    ：获取的优先级应该是第一次传入的正常值
+*/
+HWTEST_F(CoreTest, FfrtTaskAttrSetQueuePriority_NormalAndAbnormalInput_NormalPriority, TestSize.Level1)
+{
+    ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
+    ffrt_task_attr_init(attr);
+    ffrt_task_attr_set_queue_priority(attr, static_cast<ffrt_queue_priority_t>(1));
+    ffrt_task_attr_set_queue_priority(attr, static_cast<ffrt_queue_priority_t>(6));
+    ffrt_queue_priority_t queuePriority = ffrt_task_attr_get_queue_priority(attr);
+    EXPECT_EQ(queuePriority, 1);
+    free(attr);
+}
+
+/*
+ * 测试用例名称：FfrtTaskAttrGetStackSize_NormalAndAbnormalInput_StacksizeOrZero
+ * 测试用例描述：测试ffrt_task_attr_get_stack_size接口传入正常值和异常值时的返回值
+ * 预置条件    ：无
+ * 操作步骤    ：1、初始化attr，调用ffrt_task_attr_get_stack_size接口，传入正常attr
+                2、调用ffrt_task_attr_get_stack_size接口，传入异常attr
+ * 预期结果    ：参数正常返回(1 << 20)：参数异常返回0
+*/
+HWTEST_F(CoreTest, FfrtTaskAttrGetStackSize_NormalAndAbnormalInput_StacksizeOrZero, TestSize.Level1)
+{
+    ffrt_task_attr_t* attr = (ffrt_task_attr_t *) malloc(sizeof(ffrt_task_attr_t));
+    ffrt_task_attr_init(attr);
+    uint64_t stackSize = 0;
+    stackSize = ffrt_task_attr_get_stack_size(attr);
+    EXPECT_EQ(stackSize, (1 << 20));
+    free(attr);
+    stackSize = ffrt_task_attr_get_stack_size(nullptr);
+    EXPECT_EQ(stackSize, 0);
+}
+
+/*
+ * 测试用例名称：FfrtSetCgroupAttr_WhenFuncQosMapIsNull_NegativeOne
+ * 测试用例描述：测试ffrt_set_cgroup_attr接口在funcQosMap为nullptr时的返回值
+ * 预置条件    ：无
+ * 操作步骤    ：1、调用SetFuncQosMap接口，设置funcQosMap为nullptr
+                2、调用ffrt_set_cgroup_attr接口，传入正常attr
+                3、恢复原始的funcQosMap
+ * 预期结果    ：返回-1
+*/
+HWTEST_F(CoreTest, FfrtSetCgroupAttr_WhenFuncQosMapIsNull_NegativeOne, TestSize.Level1)
+{
+    FuncQosMap pre = ffrt::GetFuncQosMap();
+    ffrt::SetFuncQosMap(nullptr);
+    ffrt_os_sched_attr attr;
+    int ret = ffrt_set_cgroup_attr(static_cast<ffrt_qos_t>(1), &attr);
+    EXPECT_EQ(ret, -1);
+    ffrt::SetFuncQosMap(pre);
+}
+
+/*
+ * 测试用例名称：FfrtSetWorkerStackSize_WhenDiffThreadNum_SuccAndErr
+ * 测试用例描述：测试ffrt_set_worker_stack_size接口传入正常值，而线程数量不同时是否正常
+ * 预置条件    ：无
+ * 操作步骤    ：1、调用ffrt_set_worker_stack_size接口，传入正常值
+                2、创建并提交一个任务，调用ffrt_set_worker_stack_size接口，传入正常值
+ * 预期结果    ：无任务时返回ffrt_success,有任务时返回ffrt_error
+*/
+HWTEST_F(CoreTest, FfrtSetWorkerStackSize_WhenDiffThreadNum_SuccAndErr, TestSize.Level1)
+{
+    ffrt_error_t ret;
+    int qos = ffrt_qos_background;
+    int stackSizeMin = PTHREAD_STACK_MIN;
+    ret = ffrt_set_worker_stack_size(qos, stackSizeMin);
+
+    std::function<void()> cbOne = []() { usleep(100000); printf("callback\n"); };
+    ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
+    ffrt_submit_base(func, {}, {}, nullptr);
+    ret = ffrt_set_worker_stack_size(ffrt_qos_default, stackSizeMin);
+    EXPECT_EQ(ret, ffrt_error);
+    ffrt::wait();
+}
+
+/*
+ * 测试用例名称：FfrtExecutorTaskCancel_AbnormalInput_Zero
+ * 测试用例描述：测试ffrt_executor_task_cancel接口传入异常值时的返回值
+ * 预置条件    ：无
+ * 操作步骤    ：调用ffrt_executor_task_cancel接口，传入ffrt_qos_inherit类型的qos
+ * 预期结果    ：返回0
+*/
+HWTEST_F(CoreTest, FfrtExecutorTaskCancel_AbnormalInput_Zero, TestSize.Level1)
+{
+    ffrt_qos_t qos = ffrt_qos_inherit;
+    ffrt_executor_task_t* task = new ffrt_executor_task_t;
+    int ret = ffrt_executor_task_cancel(task, qos);
+    EXPECT_EQ(ret, 0);
+    delete task;
+}
+
+/*
+ * 测试用例名称：FfrtTaskAttrGetLocal_Abnormal_False
+ * 测试用例描述：测试ffrt_task_attr_get_local接口传入异常值时的返回值
+ * 预置条件    ：无
+ * 操作步骤    ：调用ffrt_task_attr_get_local接口，传入异常值
+ * 预期结果    ：返回false
+*/
+HWTEST_F(CoreTest, FfrtTaskAttrGetLocal_Abnormal_False, TestSize.Level1)
+{
+    bool ret = ffrt_task_attr_get_local(nullptr);
+    EXPECT_EQ(ret, false);
+}
+
+/*
+ * 测试用例名称：FfrtNotifyWorkers_AbnormalInput_None
+ * 测试用例描述：测试ffrt_notify_workers处理异常场景
+ * 预置条件    ：无
+ * 操作步骤    ：调用ffrt_notify_workers接口，传入异常值
+ * 预期结果    ：能够处理异常qos值和number值
+*/
+HWTEST_F(CoreTest, FfrtNotifyWorkers_AbnormalInput_None, TestSize.Level1)
+{
+    int qosMin = ffrt_qos_background;
+    int qosMax = ffrt::QoS::Max();
+    ffrt_notify_workers(qosMin - 1, 1);
+    ffrt_notify_workers(qosMax + 1, 1);
+    ffrt_notify_workers(qosMin, 0);
 }

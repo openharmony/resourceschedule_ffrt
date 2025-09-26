@@ -67,7 +67,7 @@ config("ffrt_config") {
     defines += [ "ASAN_MODE" ]
   }
 
-  if (use_hwasan || is_tsan) {
+  if (is_tsan) {
     defines += [ "CLOSE_COROUTINE_MODE" ]
   }
 

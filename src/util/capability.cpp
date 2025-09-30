@@ -35,4 +35,4 @@ bool CheckProcCapSysNice()
     }
     return ((cap_data_data.permitted >> CAP_SYS_NICE) & 0x1) != 0;
 }
-} //ffrt
+} // ffrt

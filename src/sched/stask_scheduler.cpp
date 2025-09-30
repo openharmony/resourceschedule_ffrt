@@ -23,27 +23,27 @@ constexpr int TASK_OVERRUN_ALARM_FREQ = 500;
 namespace ffrt {
 bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
 {
-    int taskCount = 0;
     (void)rtb; // rtb is deprecated here
     FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
 
+    int taskCount = 0;
     int level = task->GetQos();
     uint64_t gid = task->gid;
     std::string label = task->GetLabel();
 
-    FFRT_READY_MARKER(gid); // ffrt normal task ready to enqueue
+    FFRT_READY_MARKER(gid); // ffrt normal task ready to enque
     {
         std::lock_guard lg(*GetMutex());
-        // enqueue task and read size under lock-protection
         que->EnQueue(task);
         taskCount = que->Size();
     }
+
     // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
+    FFRT_LOGD("qos[%d] task[%lu], name[%s] entered q", level, gid, label.c_str());
     if (taskCount >= TASK_OVERRUN_THRESHOLD && taskCount % TASK_OVERRUN_ALARM_FREQ == 0) {
         FFRT_SYSEVENT_LOGW("qos [%d], task [%s] entered q, task count [%d] exceeds threshold.",
             level, label.c_str(), taskCount);
     }
-
     return taskCount == 1; // whether it's rising edge
 }
 

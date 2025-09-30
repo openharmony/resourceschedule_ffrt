@@ -63,17 +63,14 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
             ret = true;
         }
     }
-    // notify scenarios WaitUntilEntry `wn` is already popped
+
+    // notify scenarios `wn` is already popped
     // in addition, condition variables may be spurious woken up
     // in this case, wn needs to be removed from the linked list
     if (ret || wn->status.load(std::memory_order_acquire) != WaitEntryStatus::NOTIFYING) {
         std::lock_guard lg(wqlock);
         remove(wn);
     }
-    // note that one wn->task can be set to nullptr only either after wn is removed from the queue,
-    // i.e. after the timeout occurred, or after the notify of the condition variable.
-    // In both cases this write will be ordered after the read of `we->task` in
-    // WaitQueue::Notify (if this entry is popped) and a data-race will not occur.
     wn->task = nullptr;
     lk->lock();
     if (task) {
@@ -202,7 +199,6 @@ void WaitQueue::Notify(bool one) noexcept
     // that mean the last wait thread/co may destroy the WaitQueue.
     // all the break-out should assure the wqlock is in unlock state.
     // the continue should assure the wqlock is in lock state.
-
     std::unique_lock lock(wqlock);
     for (; ;) {
         if (empty()) {

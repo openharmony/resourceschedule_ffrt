@@ -80,7 +80,7 @@ int SpmcQueue::PushTail(void* object)
     auto tail = tail_.load(std::memory_order_acquire);
     if ((tail - head) < capacity_) {
         buf_[tail % capacity_] = object;
-        tail_.store(tail + 1, std::memory_order_acquire);
+        tail_.store(tail + 1, std::memory_order_release);
         return 0;
     }
 

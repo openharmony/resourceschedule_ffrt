@@ -148,21 +148,21 @@ public:
     virtual int PollerRegisterTimer(int qos, uint64_t timeout, void* data) = 0;
     virtual void PollerUnRegisterTimer(std::unordered_set<int>& timerHandlesToRemove) = 0;
 
-    int epFd_;
+    int epFd_;                        // epoll文件描述符
     struct PollerData wakeData_;
-    mutable spin_mutex mapMutex_;
+    mutable spin_mutex mapMutex_;     // 保护共享数据的互斥锁
 
-    std::unordered_map<int, WakeDataList> wakeDataMap_;
-    std::unordered_map<int, int> delCntMap_;
-    std::unordered_map<CoTask*, SyncData> waitTaskMap_;
-    std::unordered_map<CoTask*, EventVec> cachedTaskEvents_;
-    std::unordered_map<int, CoTask*> delFdCacheMap_;
-    std::unordered_map<CoTask*, WakeDataList> maskWakeDataMap_;
+    std::unordered_map<int, WakeDataList> wakeDataMap_; // fd到事件数据的映射
+    std::unordered_map<int, int> delCntMap_; // 删除计数
+    std::unordered_map<CoTask*, SyncData> waitTaskMap_; // 等待任务映射
+    std::unordered_map<CoTask*, EventVec> cachedTaskEvents_; // 缓存的任务事件
+    std::unordered_map<int, CoTask*> delFdCacheMap_; // 删除的fd缓存
+    std::unordered_map<CoTask*, WakeDataList> maskWakeDataMap_; // 屏蔽的事件数据
 
-    std::unique_ptr<std::thread> runner_ { nullptr };
-    bool exitFlag_ { true };
-    bool teardown_ { false };
-    std::atomic<uint64_t> pollerCount_ { 0 };
+    std::unique_ptr<std::thread> runner_; // 轮询线程
+    bool exitFlag_ { true }; // 线程退出标志
+    bool teardown_ { false }; // 析构标志
+    std::atomic<uint64_t> pollerCount_ { 0 }; // 轮询计数
     std::atomic_bool fdEmpty_ {true};
 };
 } // namespace ffrt

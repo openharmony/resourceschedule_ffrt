@@ -174,7 +174,7 @@ int BasePoller::ClearDelFdCache(int fd) noexcept
 {
     auto fdDelCacheIter = delFdCacheMap_.find(fd);
     if (fdDelCacheIter != delFdCacheMap_.end()) {
-        CoTask* task = fdDelCacheIter->second;
+        CoTask *task = fdDelCacheIter->second;
         ClearMaskWakeDataCacheWithFd(task, fd);
         delFdCacheMap_.erase(fdDelCacheIter);
     }
@@ -197,7 +197,7 @@ int BasePoller::ClearMaskWakeDataCacheWithFd(CoTask* task, int fd) noexcept
 
 int BasePoller::DelFdEvent(int fd) noexcept
 {
-    std::lock_guard lock(mapMutex_);
+    std::unique_lock lock(mapMutex_);
     ClearDelFdCache(fd);
     auto wakeDataIter = wakeDataMap_.find(fd);
     if (wakeDataIter == wakeDataMap_.end() || wakeDataIter->second.size() == 0) {
@@ -284,7 +284,7 @@ int BasePoller::WaitFdEvent(struct epoll_event* eventsVec, int maxevents, int ti
     }
     lck.unlock();
 
-    CoWait([&](CoTask *task)->bool {
+    CoWait([&](CoTask* task)->bool {
         mapMutex_.lock();
         int cachedNfds = FetchCachedEventAndDoUnmask(task, eventsVec);
         if (cachedNfds > 0) {
@@ -327,7 +327,7 @@ void BasePoller::WakeSyncTask(std::unordered_map<CoTask*, EventVec>& syncTaskEve
     for (auto& taskEventPair : syncTaskEvents) {
         CoTask* currTask = taskEventPair.first;
         auto iter = waitTaskMap_.find(currTask);
-        if (iter == waitTaskMap_.end()) { // task not in wait map
+        if (iter == waitTaskMap_.end()) {  // task not in wait map
             CacheEventsAndDoMask(currTask, taskEventPair.second);
             continue;
         }

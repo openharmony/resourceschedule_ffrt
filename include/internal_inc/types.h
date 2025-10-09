@@ -84,9 +84,9 @@ inline const char* StatusToString(TaskStatus status)
 {
     constexpr size_t STATUS_LEN = static_cast<uint8_t>(TaskStatus::CANCELED) + 1;
     constexpr const char* statusMap[STATUS_LEN] = {
-        "PENDING", "ENQUEUED", "DEQUEUED", "SUBMITTED",
-        "READY", "POPPED", "EXECUTING", "THREAD_BLOCK",
-        "COROUTINE_BLOCK", "FINISH", "WAIT_RELEASING", "CANCELED"
+        "PND", "ENQ", "DEQ", "SUB",
+        "RDY", "POP", "EXE", "THB",
+        "CRB", "FIN", "WRS", "CAN"
     };
     auto idx = static_cast<uint8_t>(status);
     return idx < STATUS_LEN ? statusMap[idx] : "UNKNOWN";

@@ -89,7 +89,7 @@ private:
     void CheckTaskStatus();
     uint64_t CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold);
     bool ControlTimeoutFreq(CPUEUTask* task);
-    void RecordTimeoutTaskInfo(CPUEUTask* task);
+    void RecordTimeoutTask(CPUEUTask* task);
     void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,
         TaskBase* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);

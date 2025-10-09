@@ -247,7 +247,7 @@ uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutTh
     uint64_t timeoutCount = task->timeoutTask.timeoutCnt;
 
     if (curTaskTime + timeoutCount * timeoutUs_ < timeoutThreshold) {
-        RecordTimeoutTaskInfo(task);
+        RecordTimeoutTask(task);
         return UINT64_MAX;
     }
     return curTaskTime;
@@ -260,7 +260,12 @@ bool WorkerMonitor::ControlTimeoutFreq(CPUEUTask* task)
         ((timoutCnt % SECOND_THRESHOLD) == 1);
 }
 
-void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
+/**
+ * @brief 记录任务超时信息并生成日志，用于监控任务执行状态和超时情况。
+ *
+ * 日志字段格式示例：label|gid|Qos|delayTime|curTaskStatus|curTime|preTaskStatus|timeoutRatio|timeoutCount
+ */
+void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task)
 {
     TaskStatus curTaskStatus = task->curStatus;
     uint64_t curTaskTime = task->statusTime.load(std::memory_order_relaxed);
@@ -282,9 +287,9 @@ void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
     std::stringstream ss;
     uint64_t time = TimeStampCntvct();
 
-    ss << "Normal task[" << task->label.c_str() << "], gid[" << task->gid << "], qos[" << task->GetQos() <<
-        "], delay[" << task->delayTime << "]us, current status[" << StatusToString(curTaskStatus) <<
-        "], start at[" << FormatDateString4SteadyClock(curTaskTime) << "]";
+    ss << task->label.c_str() << "|" << task->gid << "|" << task->GetQos() <<
+        "|" << task->delayTime << "|" << StatusToString(curTaskStatus) <<
+        "|" << FormatDateString4SteadyClock(curTaskTime, TimeUnitT::MILLISECOND, "%H:%M:%S", false);
 
     {
         std::lock_guard lock(mutex_);
@@ -294,8 +299,8 @@ void WorkerMonitor::RecordTimeoutTaskInfo(CPUEUTask* task)
         taskTimeoutInfo_.emplace_back(time, ss.str());
     }
 
-    ss << ", last status[" << StatusToString(preTaskStatus) << "], timeout for[" <<
-        timeoutUs_ / MIN_TIMEOUT_THRESHOLD_US << "]s, reported count: " << timeoutTskInfo.timeoutCnt;
+    ss << "|" << StatusToString(preTaskStatus) << "|" <<
+        timeoutUs_ / MIN_TIMEOUT_THRESHOLD_US << "|" << timeoutTskInfo.timeoutCnt;
     FFRT_LOGW("%s", ss.str().c_str());
     return;
 }

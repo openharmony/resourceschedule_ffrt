@@ -28,6 +28,7 @@
 namespace ffrt {
 class QueueTask;
 class Loop;
+class QueueHandler;
 
 enum QueueAction {
     INACTIVE = -1, // queue is nullptr or serial queue is empty
@@ -79,6 +80,12 @@ public:
 
     virtual bool HasTask(const char* name);
     virtual std::vector<QueueTask*> GetHeadTask();
+
+    inline void SetHandler(QueueHandler* handler)
+    {
+        handler_ = handler;
+    }
+
     ffrt::mutex mutex_;
 protected:
     inline uint64_t GetNow() const
@@ -103,6 +110,7 @@ protected:
     QueueStrategy<QueueTask>::DequeFunc dequeFunc_ { nullptr };
 
     ffrt::condition_variable cond_;
+    QueueHandler* handler_;
 };
 
 std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr);

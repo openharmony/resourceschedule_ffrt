@@ -27,8 +27,9 @@ typedef enum {
 } TimeUnitT;
 
 std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
-    TimeUnitT timeUnit = MILLISECOND);
-std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit = MILLISECOND);
+    TimeUnitT timeUnit = MILLISECOND, const std::string& format = "%Y-%m-%d %H:%M:%S", bool includeFraction = true);
+std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit = MILLISECOND,
+    const std::string& format = "%Y-%m-%d %H:%M:%S", bool includeFraction = true);
 std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit = MILLISECOND);
 std::string FormatDateToString(uint64_t timeStamp);
 uint64_t Arm64CntFrq(void);

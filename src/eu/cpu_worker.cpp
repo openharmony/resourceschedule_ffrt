@@ -59,6 +59,7 @@ CPUWorker::CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize) : qos
     this->cacheFreq = freq;
     this->cacheQos = static_cast<int>(qos);
 #endif
+    FFRT_TRACE_SCOPE(1, Start);
 #ifdef FFRT_PTHREAD_ENABLE
     Start(CPUWorker::WrapDispatch, this);
 #else

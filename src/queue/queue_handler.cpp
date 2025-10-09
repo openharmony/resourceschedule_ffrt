@@ -60,6 +60,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
 
     queue_ = CreateQueue(type, attr);
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", GetQueueId());
+    queue_->SetHandler(this);
 
     if (name != nullptr && std::string(name).size() <= STRING_SIZE_MAX) {
         name_ = "sq_" + std::string(name) + "_" + std::to_string(GetQueueId());
@@ -69,7 +70,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
     }
 
     FFRTFacade::GetQMInstance().RegisterQueue(this);
-    FFRT_LOGI("Ctor %s, qos %d", name_.c_str(), qos_);
+    FFRT_LOGD("Ctor %s, qos %d", name_.c_str(), qos_);
 }
 
 QueueHandler::~QueueHandler()

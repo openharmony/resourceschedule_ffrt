@@ -435,15 +435,14 @@ void BasePoller::CacheEventsAndDoMask(CoTask* task, EventVec& eventVec) noexcept
         auto& wakeData = wakeDataIter->second.back();
         std::unique_ptr<struct PollerData> maskWakeData = std::make_unique<PollerData>(currFd,
             wakeData->data, wakeData->cb, wakeData->task);
-        void* ptr = static_cast<void*>(maskWakeData.get());
-        if (ptr == nullptr || maskWakeData == nullptr) {
+        if (maskWakeData == nullptr) {
             FFRT_SYSEVENT_LOGE("CacheEventsAndDoMask Construct PollerData instance failed! or wakeData is nullptr");
             continue;
         }
         maskWakeData->monitorEvents = 0;
         maskWakeDataMap_[task].emplace_back(std::move(maskWakeData));
 
-        maskEv.data = {.ptr = ptr};
+        maskEv.data = {.ptr = static_cast<void*>(wakeData.get())};
         if (epoll_ctl(epFd_, EPOLL_CTL_MOD, currFd, &maskEv) != 0 && errno != ENOENT) {
             // ENOENT indicate fd is not in epfd, may be deleted
             FFRT_SYSEVENT_LOGW("epoll_ctl mod fd error: efd=%d, fd=%d, errorno=%d", epFd_, currFd, errno);

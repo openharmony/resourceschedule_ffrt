@@ -232,6 +232,7 @@ ohos_shared_library("libffrt") {
     }
 
     defines += [ "FFRT_ENABLE_HITRACE_CHAIN" ]
+    #defines += [ "FFRT_ENABLE_PERF_TRACE_SCOPED" ]
 
     output_extension = "so"
     symlink_target_name = [ "libffrt.z.so" ]

@@ -47,6 +47,7 @@ bool mutexPrivate::try_lock()
 
 void mutexPrivate::lock()
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, Mutex_Lock, DEFAULT_CONFIG);
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
     uint64_t task;
     uint64_t ownerTask;
@@ -203,6 +204,7 @@ void RecursiveMutexPrivate::unlock()
 
 void mutexPrivate::unlock()
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, Mutex_UnLock, DEFAULT_CONFIG);
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
     uint64_t ownerTask = owner.load(std::memory_order_relaxed);
     owner.store(0, std::memory_order_relaxed);

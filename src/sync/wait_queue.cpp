@@ -20,6 +20,7 @@
 #include "dfx/trace/ffrt_trace.h"
 #include "sync/mutex_private.h"
 #include "tm/cpu_task.h"
+#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
 TaskWithNode::TaskWithNode()
@@ -81,6 +82,7 @@ bool WaitQueue::ThreadWaitUntil(WaitUntilEntry* wn, mutexPrivate* lk, const Time
 
 void WaitQueue::SuspendAndWait(mutexPrivate* lk)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, CV_Wait, DEFAULT_CONFIG);
     ExecuteCtx* ctx = ExecuteCtx::Cur();
     TaskBase* task = ctx->task;
     if (task == nullptr || task->Block() == BlockType::BLOCK_THREAD) {
@@ -199,6 +201,7 @@ void WaitQueue::Notify(bool one) noexcept
     // that mean the last wait thread/co may destroy the WaitQueue.
     // all the break-out should assure the wqlock is in unlock state.
     // the continue should assure the wqlock is in lock state.
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, CV_Notify, DEFAULT_CONFIG);
     std::unique_lock lock(wqlock);
     for (; ;) {
         if (empty()) {

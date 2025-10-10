@@ -28,6 +28,9 @@
 #include "tm/queue_task.h"
 #include "util/slab.h"
 #include "qos.h"
+#ifdef FFRT_ENABLE_PERF_TRACE_SCOPED
+#include "dfx/trace/ffrt_trace.h"
+#endif
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif

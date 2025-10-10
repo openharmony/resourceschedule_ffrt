@@ -23,6 +23,7 @@ constexpr int TASK_OVERRUN_ALARM_FREQ = 500;
 namespace ffrt {
 bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SCHED, STaskScheduler_PushTaskGlobal, DEFAULT_CONFIG);
     (void)rtb; // rtb is deprecated here
     FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
 

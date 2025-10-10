@@ -16,6 +16,7 @@
 #ifndef FFRT_STASK_SCHEDULER_HPP
 #define FFRT_STASK_SCHEDULER_HPP
 #include "sched/task_scheduler.h"
+#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
 class STaskScheduler : public TaskScheduler {
@@ -41,12 +42,14 @@ private:
 
     TaskBase* PopTaskGlobal() override
     {
+        FFRT_PERF_TRACE_SCOPED_BY_GROUP(SCHED, STaskScheduler_PopTaskGlobal, DEFAULT_CONFIG);
         TaskBase* task = nullptr;
         {
             // pop from global queue
             std::lock_guard<std::mutex> lock(*GetMutex());
             task = que->DeQueue();
         }
+
         if (task && task->type == ffrt_uv_task) {
             return GetUVTask(task);
         }

@@ -18,14 +18,72 @@
 
 #include <atomic>
 #include <chrono>
+#include <vector>
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
+#include <linux/perf_event.h>
 
 #ifdef FFRT_OH_TRACE_ENABLE
 #include <dlfcn.h>
 #endif
 
 namespace ffrt {
+constexpr int MAX_PERF_COUNTERS = 8;
+
+enum Module {
+    CUSTOM = 0, // user define module
+    EU,
+    SCHED,
+    DM,
+    QUEUE,
+    SYNC,
+    MODULE_MAX,
+};
+
+enum ConfigGroup {
+    DEFAULT_CONFIG = 0, // cycle + instructions
+    CYCLES,             // cycles
+    CONFIG_MAX,
+};
+
+struct PerfEventConfig {
+    perf_hw_id event;
+    std::string name;
+};
+
+struct Counters {
+    unsigned long prefix;
+    unsigned long perfCnt[MAX_PERF_COUNTERS];
+};
+
+struct PerfStatus {
+    int groupFd;
+    int fds[MAX_PERF_COUNTERS];
+    struct Counters eventCounters;
+    std::string eventNames[MAX_PERF_COUNTERS];
+    int counterNum;
+};
+
+class PerfTraceScoped {
+public:
+    PerfTraceScoped(Module module, const std::string& name, const std::vector<PerfEventConfig>& configs);
+    PerfTraceScoped(Module module, const std::string& name, ConfigGroup group);
+    ~PerfTraceScoped();
+
+    static void SetEnable();
+    static void SetPerfInitOnce();
+
+private:
+    void PerfInit(const std::vector<PerfEventConfig>& configs);
+
+private:
+    std::string mName_;
+    struct PerfStatus status_ = {.groupFd = -1};
+    int err_ = 0;
+    static std::atomic<bool> moduleEnabled_[MODULE_MAX];
+    static pthread_once_t perfInitOnce_;
+};
+
 enum TraceLevel {
     TRACE_LEVEL0 = 0,
     TRACE_LEVEL1,
@@ -63,6 +121,16 @@ private:
     std::atomic<bool> isTraceEnable_;
 };
 } // namespace ffrt
+
+#ifdef FFRT_ENABLE_PERF_TRACE_SCOPED
+#define FFRT_PERF_TRACE_SCOPED_BY_GROUP(module, name, configGroup) \
+    ffrt::PerfTraceScoped ___perfTracer##name(module, #name, configGroup)
+#define FFRT_PERF_TRACE_SCOPED_BY_CONFIG(module, name, configs) \
+    ffrt::PerfTraceScoped ___perfTracer##name(module, #name, configs)
+#else
+#define FFRT_PERF_TRACE_SCOPED_BY_GROUP(module, name, configGroup)
+#define FFRT_PERF_TRACE_SCOPED_BY_CONFIG(module, name, configs)
+#endif
 
 #ifdef FFRT_OH_TRACE_ENABLE
 constexpr uint64_t HITRACE_TAG_FFRT = (1ULL << 13); // ffrt tasks.

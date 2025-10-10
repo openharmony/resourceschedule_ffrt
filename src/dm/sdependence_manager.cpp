@@ -15,6 +15,7 @@
 
 #include "sdependence_manager.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
@@ -61,6 +62,7 @@ void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles,
 void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, SDM_onSubmit, DEFAULT_CONFIG);
     // 0 check outs handle
     if (!CheckOutsHandle(outs)) {
         FFRT_SYSEVENT_LOGE("outs contain handles error");
@@ -154,6 +156,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 
 void SDependenceManager::onWait()
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, SDM_onWait, DEFAULT_CONFIG);
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
@@ -182,6 +185,7 @@ void SDependenceManager::onWait()
 
 void SDependenceManager::onWait(const ffrt_deps_t* deps)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, SDM_onWait_Deps, DEFAULT_CONFIG);
     auto ctx = ExecuteCtx::Cur();
     auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
@@ -244,6 +248,7 @@ int SDependenceManager::onExecResults(ffrt_task_handle_t handle)
 
 void SDependenceManager::onTaskDone(CPUEUTask* task)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, SDM_onTaskDone, DEFAULT_CONFIG);
     auto sTask = static_cast<SCPUEUTask*>(task);
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos());
     FFRTTraceRecord::TaskDone<ffrt_normal_task>(task->GetQos(),  task);

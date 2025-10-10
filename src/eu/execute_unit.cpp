@@ -45,6 +45,7 @@ const std::map<QoS, std::vector<std::pair<QoS, bool>>> WORKER_SHARE_CONFIG = {
     {4, {std::make_pair(0, false), std::make_pair(1, false), std::make_pair(2, false), std::make_pair(3, false)}},
     {6, {std::make_pair(5, false)}},
 };
+
 const std::set<QoS> DEFAULT_TASK_BACKLOG_CONFIG = {0, 1, 2, 3, 4, 5};
 const std::set<QoS> TASK_BACKLOG_CONFIG = {0, 2, 4, 5};
 
@@ -318,7 +319,7 @@ void ExecuteUnit::DisableWorkerMonitor(const QoS& qos, int tid)
 {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     if (IsBlockAwareInit()) {
-        ret = BlockawareUnregister();
+        int ret = BlockawareUnregister();
         if (ret != 0) {
             FFRT_SYSEVENT_LOGE("blockaware unregister fail, ret[%d]", ret);
         }
@@ -349,6 +350,7 @@ void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
 {
     CPUWorkerGroup &group = workerGroup[qos];
     std::lock_guard lg(group.lock);
+
     int increasableNumber = static_cast<int>(group.maxConcurrency) - (group.executingNum + group.sleepingNum);
     int wakeupNumber = std::min(number, group.sleepingNum);
     for (int idx = 0; idx < wakeupNumber; idx++) {
@@ -360,6 +362,7 @@ void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
         group.executingNum++;
         IncWorker(qos);
     }
+
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 

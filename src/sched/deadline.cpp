@@ -125,6 +125,7 @@ void ffrt_interval_destroy(ffrt_interval_t it)
     }
 
     delete static_cast<ffrt::QosIntervalPrivate *>(it);
+    it = nullptr;
 }
 
 API_ATTRIBUTE((visibility("default")))

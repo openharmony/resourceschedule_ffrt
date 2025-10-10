@@ -17,10 +17,10 @@
 #include "dfx/bbox/bbox.h"
 #include <sys/syscall.h>
 #include <sys/wait.h>
-#include <time.h>
 #include <unistd.h>
 #include <csignal>
 #include <cstdlib>
+#include <ctime>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -199,7 +199,7 @@ static inline void SaveNormalTaskStatus()
             }
         }
     };
-    // Do not dump tasks marked with a final status (e.g., FINISH or CANCELED),
+    // Do not dump tasks marked with a final status (e.g., FINISH or CANCELLED),
     // as they may be allocated by another submit and not initialized yet.
     apply("pending task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::SUBMITTED;
@@ -207,7 +207,7 @@ static inline void SaveNormalTaskStatus()
     apply("ready task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::READY;
     });
-    apply("POPPED task", [](CPUEUTask* t) {
+    apply("popped task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::POPPED;
     });
     apply("executing task", [](CPUEUTask* t) {
@@ -288,7 +288,7 @@ static inline void SaveQueueTaskStatus()
         DumpQueueTask("queue task ready", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::READY;
         });
-        DumpQueueTask("queue task POPPED", entry.second, [](QueueTask* t) {
+        DumpQueueTask("queue task popped", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::POPPED;
         });
         DumpQueueTask("queue task executing", entry.second, [](QueueTask* t) {
@@ -468,7 +468,7 @@ static void SignalHandler(int signo, siginfo_t* info, void* context __attribute_
     unsigned int pid = static_cast<unsigned int>(getpid());
     unsigned int tid = static_cast<unsigned int>(gettid());
     unsigned int defaultTid = 0;
-    if (g_bbox_tid_is_dealing.compare_exchange_strong(defaultTid, tid)&&
+    if (g_bbox_tid_is_dealing.compare_exchange_strong(defaultTid, tid) &&
         FFRTIsWork() && g_bbox_called_times.fetch_add(1) == 0) { // only save once
         g_cur_pid = pid;
         g_cur_tid = tid;
@@ -757,7 +757,7 @@ std::string SaveNormalTaskStatusInfo(void)
     apply("ready task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::READY;
     });
-    apply("POPPED task", [](CPUEUTask* t) {
+    apply("popped task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::POPPED;
     });
     apply("executing task", [](CPUEUTask* t) {
@@ -837,7 +837,7 @@ std::string SaveQueueTaskStatusInfo()
         DumpQueueTaskInfo(ffrtStackInfo, "queue task ready", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::READY;
         });
-        DumpQueueTaskInfo(ffrtStackInfo, "queue task POPPED", entry.second, [](QueueTask* t) {
+        DumpQueueTaskInfo(ffrtStackInfo, "queue task popped", entry.second, [](QueueTask* t) {
             return t->curStatus == TaskStatus::POPPED;
         });
         DumpQueueTaskInfo(ffrtStackInfo, "queue task executing", entry.second, [](QueueTask* t) {

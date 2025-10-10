@@ -16,10 +16,11 @@
 #include <mutex>
 #include <chrono>
 #include <iostream>
-#include "sync/timer_manager.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "sync/timer_manager.h"
 
 constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100year
+
 namespace ffrt {
 TimerManager& TimerManager::Instance()
 {
@@ -69,15 +70,15 @@ void TimerManager::InitWorkQueAndCb(int qos)
             if (timerMapValue->cb != nullptr) {
                 timerLock.unlock();
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
-            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
-                TraceChainAdapter::Instance().HiTraceChainRestoreId(&timerMapValue->traceId);
-            }
+                if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                    TraceChainAdapter::Instance().HiTraceChainRestoreId(&timerMapValue->traceId);
+                }
 #endif
                 timerMapValue->cb(timerMapValue->data);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
-            if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
-                TraceChainAdapter::Instance().HiTraceChainClearId();
-            }
+                if (timerMapValue->traceId.valid == HITRACE_ID_VALID) {
+                    TraceChainAdapter::Instance().HiTraceChainClearId();
+                }
 #endif
                 timerLock.lock();
             }
@@ -160,6 +161,7 @@ int TimerManager::UnregisterTimer(ffrt_timer_t handle) noexcept
         timerMap_.erase(it);
         return 0;
     }
+
     // timer already erased
     return 0;
 }
@@ -199,6 +201,7 @@ ffrt_timer_query_t TimerManager::GetTimerStatus(ffrt_timer_t handle) noexcept
         }
         return ffrt_timer_executed;
     }
+
     // timer has been executed or unregistered
     return ffrt_timer_executed;
 }

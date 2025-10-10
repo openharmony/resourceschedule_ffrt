@@ -67,8 +67,8 @@ enum class NestType {
  */
 enum class TaskStatus : uint8_t {
     PENDING,         // 任务创建后的初始状态
-    ENQUEUED,         // 队列任务插入队列中（串行/并发队列任务）
-    DEQUEUED,         // 队列任务从队列中取出（串行/并发队列任务）
+    ENQUEUED,        // 队列任务插入队列中（串行/并发队列任务）
+    DEQUEUED,        // 队列任务从队列中取出（串行/并发队列任务）
     SUBMITTED,       // 任务存在数据依赖
     READY,           // 任务没有依赖/依赖解除
     POPPED,           // 任务从ReadyQueue中取出，等待执行

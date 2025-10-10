@@ -58,7 +58,7 @@ constexpr size_t MAX_FRAME_NUMS = 8;
 namespace ffrt {
 WorkerMonitor::WorkerMonitor()
 {
-    recycleResourceWaitEntry_.cb = ([this]([[maybe_unused]] WaitEntry* we) {
+    recycleResourceWaitEntry_.cb = ([this](WaitEntry* we) {
         if (SetExitFlagIfNoWorkers(recycleResourceExit_)) {
             CoRoutineReleaseMem();
             WorkerStatus();
@@ -152,7 +152,7 @@ void WorkerMonitor::CheckWorkerStatus()
 {
     if (SetExitFlagIfNoWorkers(samplingTaskExit_)) {
         std::lock_guard lock(mutex_);
-        workerStatus_ = std::unordered_map<CPUWorker*, TaskTimeoutInfo>();
+        workerStatus_.clear();
         return;
     }
 
@@ -161,13 +161,7 @@ void WorkerMonitor::CheckWorkerStatus()
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
         std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
         int executingNum = 0;
-        int sleepingNum  = 0;
-        {
-            std::lock_guard lg(workerGroup.lock);
-            executingNum =  workerGroup.executingNum;
-            sleepingNum  = workerGroup.sleepingNum;
-        }
-        CoWorkerInfo coWorkerInfo(i, workerGroup.threads.size(), executingNum, sleepingNum);
+        CoWorkerInfo coWorkerInfo(i, workerGroup.threads.size(), workerGroup.executingNum, workerGroup.sleepingNum);
         for (auto& thread : workerGroup.threads) {
             CPUWorker* worker = thread.first;
             if (!worker->Monitor()) {

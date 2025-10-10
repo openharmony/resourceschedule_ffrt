@@ -140,6 +140,7 @@ void QueueHandler::Submit(QueueTask* task)
     }
 
     uint64_t gid = task->gid;
+
     task->Prepare();
 
     trafficRecord_.SubmitTraffic(this);
@@ -209,7 +210,7 @@ void QueueHandler::CancelAndWait()
         GetQueueId());
 
     {
-        std::unique_lock lock(mutex_);
+        std::lock_guard lock(mutex_);
         for (auto& curTask : curTaskVec_) {
             if (curTask != nullptr && curTask->curStatus != TaskStatus::EXECUTING) {
                 curTask = nullptr;

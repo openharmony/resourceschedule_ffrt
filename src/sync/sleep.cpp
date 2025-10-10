@@ -20,7 +20,6 @@
 #include <map>
 #include <functional>
 #include "sync/sync.h"
-
 #include "sched/execute_ctx.h"
 #include "eu/co_routine.h"
 #include "internal_inc/osal.h"

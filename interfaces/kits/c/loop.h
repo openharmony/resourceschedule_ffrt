@@ -88,7 +88,7 @@ FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
 /**
  * @brief Controls an epoll file descriptor on ffrt loop.
  *
- * @warning Do not call `exit` in `cb` - this my cause unexpected behavior.
+ * @warning Do not call `exit` in `cb` - this may cause unexpected behavior.
  *
  * @param loop Indicates a loop handle.
  * @param op Indicates operation on the target file descriptor.
@@ -105,7 +105,7 @@ FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t ev
 /**
  * @brief Starts a timer on ffrt loop.
  *
- * @warning Do not call `exit` in `cb` - this my cause unexpected behavior.
+ * @warning Do not call `exit` in `cb` - this may cause unexpected behavior.
  *
  * @param loop Indicates a loop handle.
  * @param timeout Indicates the number of milliseconds that specifies timeout.

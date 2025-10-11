@@ -19,7 +19,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "sync/timer_manager.h"
 
-constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100year
+constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
 
 namespace ffrt {
 TimerManager& TimerManager::Instance()
@@ -161,7 +161,6 @@ int TimerManager::UnregisterTimer(ffrt_timer_t handle) noexcept
         timerMap_.erase(it);
         return 0;
     }
-
     // timer already erased
     return 0;
 }
@@ -201,7 +200,6 @@ ffrt_timer_query_t TimerManager::GetTimerStatus(ffrt_timer_t handle) noexcept
         }
         return ffrt_timer_executed;
     }
-
     // timer has been executed or unregistered
     return ffrt_timer_executed;
 }

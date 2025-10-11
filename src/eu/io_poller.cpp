@@ -114,7 +114,7 @@ int IOPoller::PollOnce(int timeout) noexcept
 
     std::unordered_map<CoTask*, EventVec> syncTaskEvents;
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
-        struct PollerData* data = reinterpret_cast<struct PollerData*>(waitedEvents[i].data.ptr);
+        struct PollerData *data = reinterpret_cast<struct PollerData *>(waitedEvents[i].data.ptr);
         if (data->mode == PollerType::WAKEUP) {
             // self wakeup
             uint64_t one = 1;
@@ -157,7 +157,7 @@ int IOPoller::PollOnce(int timeout) noexcept
             epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = data->fd} };
             syncTaskEvents[data->task].push_back(ev);
             if ((waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) != 0) {
-                std::unique_lock lock(mapMutex_);
+                std::lock_guard lock(mapMutex_);
                 CacheMaskFdAndEpollDel(data->fd, data->task);
             }
         }

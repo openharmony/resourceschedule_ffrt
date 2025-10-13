@@ -22,7 +22,7 @@
 namespace ffrt {
 class EventHandlerInteractiveQueue : public BaseQueue {
 public:
-    explicit EventHandlerInteractiveQueue() {}
+    explicit EventHandlerInteractiveQueue(const char* name) : BaseQueue(name) {}
     ~EventHandlerInteractiveQueue() override;
 
     int Push(QueueTask* task) override;
@@ -69,7 +69,7 @@ protected:
     void* eventHandler_ = nullptr;
 };
 
-std::unique_ptr<BaseQueue> CreateEventHandlerInteractiveQueue(const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateEventHandlerInteractiveQueue(const ffrt_queue_attr_t* attr, const char* name);
 } // namespace ffrt
 
 #endif // FFRT_EVENTHANDLER_INTERACTIVE_QUEUE_H

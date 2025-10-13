@@ -69,7 +69,8 @@ public:
 
     inline std::string GetName()
     {
-        return name_;
+        FFRT_COND_DO_ERR((queue_ == nullptr), return "", "queue construct failed");
+        return queue_->GetQueueName();
     }
 
     inline uint32_t GetQueueId()
@@ -154,7 +155,6 @@ private:
     void UpdateCurTask(QueueTask* task);
 
     // queue info
-    std::string name_;
     int qos_ = qos_default;
     std::unique_ptr<BaseQueue> queue_ = nullptr;
     std::atomic_bool isUsed_ = false;

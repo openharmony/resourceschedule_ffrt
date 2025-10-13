@@ -283,7 +283,7 @@ void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task)
 
     ss << task->label.c_str() << "|" << task->gid << "|" << task->GetQos() <<
         "|" << task->delayTime << "|" << StatusToString(curTaskStatus) <<
-        "|" << FormatDateString4SteadyClock(curTaskTime, TimeUnitT::MILLISECOND, "%H:%M:%S", false);
+        "|" << FormatDateString4SteadyClock(curTaskTime);
 
     {
         std::lock_guard lock(mutex_);

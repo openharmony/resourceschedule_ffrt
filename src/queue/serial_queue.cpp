@@ -22,7 +22,8 @@ constexpr uint32_t MIN_OVERLOAD_INTERVAL = 16;
 constexpr uint32_t MAX_OVERLOAD_INTERVAL = 128;
 }
 namespace ffrt {
-SerialQueue::SerialQueue()
+SerialQueue::SerialQueue(const char* name)
+    : BaseQueue(name)
 {
     dequeFunc_ = QueueStrategy<QueueTask>::DequeBatch;
     overloadThreshold_ = MIN_OVERLOAD_INTERVAL;
@@ -59,11 +60,7 @@ int SerialQueue::Push(QueueTask* task)
     }
 
     if (whenMap_.size() >= overloadThreshold_) {
-        if (handler_ != nullptr) {
-            FFRT_LOGW("[%s] overload warning, size=%llu", handler_->GetName().c_str(), whenMap_.size());
-        } else {
-            FFRT_LOGW("[queueId=%u] overload warning, size=%llu", queueId_, whenMap_.size());
-        }
+        FFRT_LOGW("[%s] overload warning, size=%llu", name_.c_str(), whenMap_.size());
         overloadThreshold_ += std::min(overloadThreshold_, MAX_OVERLOAD_INTERVAL);
     }
 
@@ -100,9 +97,9 @@ QueueTask* SerialQueue::Pull()
     return dequeFunc_(queueId_, now, &whenMap_, nullptr);
 }
 
-std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr, const char* name)
 {
     (void)attr;
-    return std::make_unique<SerialQueue>();
+    return std::make_unique<SerialQueue>(name);
 }
 } // namespace ffrt

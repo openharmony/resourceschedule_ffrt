@@ -24,9 +24,10 @@
 #include "queue/base_queue.h"
 
 namespace {
+constexpr uint32_t QUEUE_NAME_SIZE_MAX = 128;
 // 0预留为非法值
 std::atomic_uint32_t g_queueId(1);
-using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(const ffrt_queue_attr_t*);
+using CreateFunc = std::unique_ptr<ffrt::BaseQueue>(*)(const ffrt_queue_attr_t*, const char* name);
 const std::unordered_map<int, CreateFunc> CREATE_FUNC_MAP = {
     { ffrt_queue_serial, ffrt::CreateSerialQueue },
     { ffrt_queue_concurrent, ffrt::CreateConcurrentQueue },
@@ -50,9 +51,15 @@ int ClearWhenMap(std::multimap<uint64_t, ffrt::QueueTask*>& whenMap, ffrt::condi
 }
 
 namespace ffrt {
-BaseQueue::BaseQueue() : queueId_(g_queueId++)
+BaseQueue::BaseQueue(const char* name) : queueId_(g_queueId++)
 {
     headTaskVec_.resize(1);
+    if (name != nullptr && std::string(name).size() <= QUEUE_NAME_SIZE_MAX) {
+        name_ = "sq_" + std::string(name) + "_" + std::to_string(queueId_);
+    } else {
+        name_ = "sq_unnamed_" + std::to_string(queueId_);
+        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", queueId_);
+    }
 }
 
 void BaseQueue::Stop()
@@ -142,12 +149,12 @@ bool BaseQueue::HasTask(const char* name, std::multimap<uint64_t, QueueTask*> wh
     return iter != whenMap.cend();
 }
 
-std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr, const char* name)
 {
     const auto iter = CREATE_FUNC_MAP.find(queueType);
     FFRT_COND_DO_ERR((iter == CREATE_FUNC_MAP.end()), return nullptr, "invalid queue type");
 
-    return iter->second(attr);
+    return iter->second(attr, name);
 }
 
 uint64_t BaseQueue::GetDueTaskCount()

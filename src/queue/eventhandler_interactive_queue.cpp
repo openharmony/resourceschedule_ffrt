@@ -46,9 +46,9 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
     return SUCC;
 }
 
-std::unique_ptr<BaseQueue> CreateEventHandlerInteractiveQueue(const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateEventHandlerInteractiveQueue(const ffrt_queue_attr_t* attr, const char* name)
 {
     (void)attr;
-    return std::make_unique<EventHandlerInteractiveQueue>();
+    return std::make_unique<EventHandlerInteractiveQueue>(name);
 }
 } // namespace ffrt

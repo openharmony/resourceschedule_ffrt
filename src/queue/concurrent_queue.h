@@ -20,8 +20,8 @@
 namespace ffrt {
 class ConcurrentQueue : public BaseQueue {
 public:
-    explicit ConcurrentQueue(const int maxConcurrency = 1)
-        : maxConcurrency_(maxConcurrency)
+    explicit ConcurrentQueue(const char* name, const int maxConcurrency = 1)
+        : BaseQueue(name), maxConcurrency_(maxConcurrency)
     {
         dequeFunc_ = QueueStrategy<QueueTask>::DequeSingleByPriority;
         headTaskVec_.resize(maxConcurrency_);
@@ -90,6 +90,6 @@ private:
     std::vector<std::pair<uint64_t, QueueTask*>> allWhenmapTask;
 };
 
-std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr, const char* name);
 } // namespace ffrt
 #endif // FFRT_CONCURRENT_QUEUE_H

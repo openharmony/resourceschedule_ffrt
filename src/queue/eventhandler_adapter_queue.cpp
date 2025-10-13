@@ -130,7 +130,7 @@ bool WhenMapVecEmpty(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec
 }
 
 namespace ffrt {
-EventHandlerAdapterQueue::EventHandlerAdapterQueue() : EventHandlerInteractiveQueue()
+EventHandlerAdapterQueue::EventHandlerAdapterQueue(const char* name) : EventHandlerInteractiveQueue(name)
 {
     dequeFunc_ = QueueStrategy<QueueTask>::DequeSingleAgainstStarvation;
     historyTasks_ = std::vector<HistoryTask>(HISTORY_TASK_NUM_POWER);
@@ -307,9 +307,9 @@ void EventHandlerAdapterQueue::PushHistoryTask(QueueTask* task, uint64_t trigger
     historyTasks_[historyTaskIndex_.fetch_add(1) & (HISTORY_TASK_NUM_POWER - 1)] = historyTask;
 }
 
-std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr, const char* name)
 {
     (void)attr;
-    return std::make_unique<EventHandlerAdapterQueue>();
+    return std::make_unique<EventHandlerAdapterQueue>(name);
 }
 } // namespace ffrt

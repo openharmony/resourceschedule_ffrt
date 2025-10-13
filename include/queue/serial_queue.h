@@ -20,7 +20,7 @@
 namespace ffrt {
 class SerialQueue : public BaseQueue {
 public:
-    SerialQueue();
+    explicit SerialQueue(const char* name);
     ~SerialQueue() override;
 
     int Push(QueueTask* task) override;
@@ -41,7 +41,7 @@ private:
     uint32_t overloadThreshold_;
 };
 
-std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateSerialQueue(const ffrt_queue_attr_t* attr, const char* name);
 } // namespace ffrt
 
 #endif // FFRT_SERIAL_QUEUE_H

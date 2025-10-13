@@ -150,7 +150,7 @@ public:
 
     int epFd_;                        // epoll文件描述符
     struct PollerData wakeData_;
-    mutable spin_mutex mapMutex_;     // 保护共享数据的互斥锁
+    mutable fast_mutex mapMutex_;     // 保护共享数据的互斥锁
 
     std::unordered_map<int, WakeDataList> wakeDataMap_; // fd到事件数据的映射
     std::unordered_map<int, int> delCntMap_; // 删除计数

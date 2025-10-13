@@ -113,7 +113,7 @@ private:
     std::unordered_map<int, TimerStatus> executedHandle_;
     std::multimap<TimePoint, TimerDataWithCb> timerMap_;
     std::atomic_bool timerEmpty_ {true};
-    mutable spin_mutex timerMutex_;
+    mutable fast_mutex timerMutex_;
 };
 
 struct PollerProxy {

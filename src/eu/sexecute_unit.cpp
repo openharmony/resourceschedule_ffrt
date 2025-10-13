@@ -203,7 +203,7 @@ void SExecuteUnit::HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS
     }
     constexpr double thresholdTaskPick = 1.0;
     CPUWorkerGroup& workerCtrl = manager->workerGroup[qos];
-    workerCtrl.lock.lock();
+    std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
 
     if (notifyType == TaskNotifyType::TASK_PICKED) {
         int wakedWorkerCount = workerCtrl.executingNum;
@@ -211,7 +211,6 @@ void SExecuteUnit::HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS
             static_cast<double>(taskCount) / static_cast<double>(wakedWorkerCount);
         if (remainingLoadRatio <= thresholdTaskPick) {
             // for task pick, wake worker when load ratio > 1
-            workerCtrl.lock.unlock();
             return;
         }
     }
@@ -223,16 +222,14 @@ void SExecuteUnit::HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS
                 notifyType, workerCtrl.executingNum, workerCtrl.maxConcurrency,
                 workerCtrl.sleepingNum, workerCtrl.deepSleepingWorkerNum);
             workerCtrl.WorkerCreate();
-            workerCtrl.lock.unlock();
+            statusLock.unlock();
             if (!manager->IncWorker(qos)) {
                 workerCtrl.RollBackCreate();
             }
         } else {
-            workerCtrl.lock.unlock();
+            statusLock.unlock();
             manager->WakeupWorkers(qos);
         }
-    } else {
-        workerCtrl.lock.unlock();
     }
 }
 
@@ -274,32 +271,28 @@ void SExecuteUnit::HandleTaskNotifyUltraConservative(SExecuteUnit* manager, cons
 void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType)
 {
     CPUWorkerGroup& workerCtrl = workerGroup[qos];
-    workerCtrl.lock.lock();
+    std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
     size_t runningNum = GetRunningNum(qos);
     size_t totalNum = static_cast<size_t>(workerCtrl.sleepingNum + workerCtrl.executingNum);
 
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
         (runningNum > TIGGER_SUPPRESS_EXECUTION_NUM) && (taskCount < runningNum);
     if (notifyType != TaskNotifyType::TASK_ADDED && notifyType != TaskNotifyType::TASK_ESCAPED && tiggerSuppression) {
-        workerCtrl.lock.unlock();
         return;
     }
 
     if ((static_cast<uint32_t>(workerCtrl.sleepingNum) > 0) && (runningNum < workerCtrl.maxConcurrency)) {
-        workerCtrl.lock.unlock();
+        statusLock.unlock();
         WakeupWorkers(qos);
     } else if ((runningNum < workerCtrl.maxConcurrency) && (totalNum < workerCtrl.hardLimit)) {
         workerCtrl.WorkerCreate();
         FFRTTraceRecord::WorkRecord(qos(), workerCtrl.executingNum);
-        workerCtrl.lock.unlock();
+        statusLock.unlock();
         if (!IncWorker(qos)) {
             workerCtrl.RollBackCreate();
         }
     } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
         SubmitEscape(qos, totalNum);
-        workerCtrl.lock.unlock();
-    } else {
-        workerCtrl.lock.unlock();
     }
 }
 
@@ -307,27 +300,25 @@ void SExecuteUnit::ExecuteEscape(int qos)
 {
     if (FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos) > 0) {
         CPUWorkerGroup& workerCtrl = workerGroup[qos];
-        workerCtrl.lock.lock();
+        std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
 
         size_t runningNum = GetRunningNum(qos);
         size_t totalNum = static_cast<size_t>(workerCtrl.sleepingNum + workerCtrl.executingNum);
         if ((workerCtrl.sleepingNum > 0) && (runningNum < workerCtrl.maxConcurrency)) {
-            workerCtrl.lock.unlock();
+            statusLock.unlock();
             WakeupWorkers(qos);
         } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
             if (IsEscapeEnable()) {
                 workerCtrl.WorkerCreate();
                 FFRTTraceRecord::WorkRecord(qos, workerCtrl.executingNum);
-                workerCtrl.lock.unlock();
+                statusLock.unlock();
                 if (!IncWorker(qos)) {
                     workerCtrl.RollBackCreate();
                 }
             } else {
-                workerCtrl.lock.unlock();
+                statusLock.unlock();
             }
             ReportEscapeEvent(qos, totalNum);
-        } else {
-            workerCtrl.lock.unlock();
         }
     }
 }

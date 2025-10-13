@@ -31,9 +31,10 @@ bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
     uint64_t gid = task->gid;
     std::string label = task->GetLabel();
 
-    FFRT_READY_MARKER(gid); // ffrt normal task ready to enque
+    FFRT_READY_MARKER(gid); // ffrt normal task ready to enqueue
     {
         std::lock_guard lg(*GetMutex());
+        // enqueue task and read size under lock-protection
         que->EnQueue(task);
         taskCount = que->Size();
     }
@@ -44,6 +45,7 @@ bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
         FFRT_SYSEVENT_LOGW("qos [%d], task [%s] entered q, task count [%d] exceeds threshold.",
             level, label.c_str(), taskCount);
     }
+
     return taskCount == 1; // whether it's rising edge
 }
 

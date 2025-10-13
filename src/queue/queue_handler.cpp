@@ -140,7 +140,6 @@ void QueueHandler::Submit(QueueTask* task)
     }
 
     uint64_t gid = task->gid;
-
     task->Prepare();
 
     trafficRecord_.SubmitTraffic(this);

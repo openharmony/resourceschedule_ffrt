@@ -199,7 +199,7 @@ static inline void SaveNormalTaskStatus()
             }
         }
     };
-    // Do not dump tasks marked with a final status (e.g., FINISH or CANCELLED),
+    // Do not dump tasks marked with a final status (e.g., FINISH or CANCELED),
     // as they may be allocated by another submit and not initialized yet.
     apply("pending task", [](CPUEUTask* t) {
         return t->curStatus == TaskStatus::SUBMITTED;

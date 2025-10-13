@@ -159,7 +159,7 @@ public:
     std::unordered_map<int, CoTask*> delFdCacheMap_; // 删除的fd缓存
     std::unordered_map<CoTask*, WakeDataList> maskWakeDataMap_; // 屏蔽的事件数据
 
-    std::unique_ptr<std::thread> runner_; // 轮询线程
+    std::unique_ptr<std::thread> runner_ { nullptr }; // 轮询线程
     bool exitFlag_ { true }; // 线程退出标志
     bool teardown_ { false }; // 析构标志
     std::atomic<uint64_t> pollerCount_ { 0 }; // 轮询计数

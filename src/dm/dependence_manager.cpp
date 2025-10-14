@@ -18,6 +18,8 @@
 #include "util/singleton_register.h"
 #include "tm/io_task.h"
 #include "tm/uv_task.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
+#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
 DependenceManager& DependenceManager::Instance()
@@ -32,6 +34,7 @@ void DependenceManager::RegistInsCb(SingleInsCB<DependenceManager>::Instance &&c
 
 void DependenceManager::onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, DM_onSubmitUV, DEFAULT_CONFIG);
     FFRT_TRACE_SCOPE(1, onSubmitUV);
     UVTask* uvTask = TaskFactory<UVTask>::Alloc();
     new(uvTask) UVTask(task, attr);

@@ -20,6 +20,7 @@
 #include <cstring>
 #include <sys/stat.h>
 #include "dfx/trace_record/ffrt_trace_record.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "eu/co_routine_factory.h"
 #include "eu/qos_interface.h"
 #include "sched/scheduler.h"
@@ -123,6 +124,7 @@ SExecuteUnit::~SExecuteUnit()
 
 WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(EU, SEU_WorkerIdleAction, DEFAULT_CONFIG);
     if (tearDown) {
         return WorkerAction::RETIRE;
     }
@@ -270,6 +272,7 @@ void SExecuteUnit::HandleTaskNotifyUltraConservative(SExecuteUnit* manager, cons
 
 void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(EU, SEU_WorkerPoke, DEFAULT_CONFIG);
     CPUWorkerGroup& workerCtrl = workerGroup[qos];
     std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
     size_t runningNum = GetRunningNum(qos);

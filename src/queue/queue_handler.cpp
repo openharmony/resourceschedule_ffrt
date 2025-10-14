@@ -19,6 +19,7 @@
 #include "eventhandler_adapter_queue.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
+#include "dfx/trace/ffrt_trace.h"
 #include "dfx/sysevent/sysevent.h"
 #include "util/event_handler_adapter.h"
 #include "util/ffrt_facade.h"
@@ -125,12 +126,15 @@ bool QueueHandler::ClearLoop()
 
 QueueTask* QueueHandler::PickUpTask()
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(QUEUE, QueuePullPickUpTask, DEFAULT_CONFIG);
     FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", GetQueueId());
     return queue_->Pull();
 }
 
 void QueueHandler::Submit(QueueTask* task)
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(QUEUE, QueueSubmit, DEFAULT_CONFIG);
+
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "cannot submit, [queueId=%u] constructed failed", GetQueueId());
     FFRT_COND_DO_ERR((task == nullptr), return, "input invalid, serial task is nullptr");
 
@@ -350,6 +354,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
 void QueueHandler::Deliver()
 {
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(QUEUE, QueuePullDeliver, DEFAULT_CONFIG);
     deliverCnt_.fetch_add(1);
     {
         // curtask has to be updated to headtask of whenmap before pull

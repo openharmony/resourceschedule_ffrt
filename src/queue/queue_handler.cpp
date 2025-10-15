@@ -299,6 +299,11 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 {
     QueueTask* nextTask = nullptr;
     for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+        if (task->traceId_.valid == HITRACE_ID_VALID) {
+            TraceChainAdapter::Instance().HiTraceChainRestoreId(&task->traceId_);
+        }
+#endif
         // dfx watchdog
         SetTimeoutMonitor(task);
         SetCurTask(task);
@@ -331,6 +336,11 @@ void QueueHandler::Dispatch(QueueTask* inTask)
             task->SetStatus(TaskStatus::FINISH);
         }
 
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+        if (task->traceId_.valid == HITRACE_ID_VALID) {
+            TraceChainAdapter::Instance().HiTraceChainRestoreId(&task->traceId_);
+        }
+#endif
         task->Finish();
         RemoveTimeoutMonitor(task);
 

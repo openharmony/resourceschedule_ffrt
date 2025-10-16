@@ -48,7 +48,7 @@ struct HistoryTask {
 
 class EventHandlerAdapterQueue : public EventHandlerInteractiveQueue {
 public:
-    explicit EventHandlerAdapterQueue();
+    explicit EventHandlerAdapterQueue(const char* name);
     ~EventHandlerAdapterQueue() override;
 
     int Push(QueueTask* task) override;
@@ -94,7 +94,7 @@ private:
     std::multimap<uint64_t, QueueTask*> whenMapVec_[5];
 };
 
-std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateEventHandlerAdapterQueue(const ffrt_queue_attr_t* attr, const char* name);
 } // namespace ffrt
 
 #endif // FFRT_EVENTHANDLER_ADAPTER_QUEUE_H

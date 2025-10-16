@@ -270,10 +270,10 @@ void ConcurrentQueue::Stop(std::multimap<uint64_t, QueueTask*>& whenMap)
     whenMap.clear();
 }
 
-std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr)
+std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr, const char* name)
 {
     int maxConcurrency = ffrt_queue_attr_get_max_concurrency(attr) <= 0 ? 1 : ffrt_queue_attr_get_max_concurrency(attr);
-    return std::make_unique<ConcurrentQueue>(maxConcurrency);
+    return std::make_unique<ConcurrentQueue>(name, maxConcurrency);
 }
 
 bool ConcurrentQueue::HasTask(const char* name)

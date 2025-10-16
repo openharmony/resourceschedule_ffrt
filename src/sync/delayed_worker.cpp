@@ -92,7 +92,7 @@ void DelayedWorker::DumpMap()
             ss << ",";
         }
     }
-    FFRT_SYSEVENT_LOGW("DumpMap:now=%lu,%s", now.time_since_epoch().count(), ss.str().c_str());
+    FFRT_SYSEVENT_LOGW("DumpMap:now=%lld,%s", now.time_since_epoch().count(), ss.str().c_str());
 }
 
 void DelayedWorker::ThreadInit()

@@ -29,7 +29,6 @@
 #include "sched/scheduler.h"
 
 namespace {
-constexpr uint32_t STRING_SIZE_MAX = 128;
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000000; // 1s
@@ -59,24 +58,16 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
     curTaskVec_.resize(maxConcurrency_);
     timeoutTaskVec_.resize(maxConcurrency_);
 
-    queue_ = CreateQueue(type, attr);
+    queue_ = CreateQueue(type, attr, name);
     FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", GetQueueId());
-    queue_->SetHandler(this);
-
-    if (name != nullptr && std::string(name).size() <= STRING_SIZE_MAX) {
-        name_ = "sq_" + std::string(name) + "_" + std::to_string(GetQueueId());
-    } else {
-        name_ += "sq_unnamed_" + std::to_string(GetQueueId());
-        FFRT_LOGW("failed to set [queueId=%u] name due to invalid name or length.", GetQueueId());
-    }
 
     FFRTFacade::GetQMInstance().RegisterQueue(this);
-    FFRT_LOGD("Ctor %s, qos %d", name_.c_str(), qos_);
+    FFRT_LOGD("Ctor %s, qos %d", queue_->GetQueueName().c_str(), qos_);
 }
 
 QueueHandler::~QueueHandler()
 {
-    FFRT_LOGD("destruct %s enter", name_.c_str());
+    FFRT_LOGD("destruct %s enter", queue_->GetQueueName().c_str());
     // clear tasks in queue
     CancelAndWait();
     FFRTFacade::GetQMInstance().DeregisterQueue(this);
@@ -102,7 +93,7 @@ QueueHandler::~QueueHandler()
         DelayedRemove(we_->tp, we_);
         SimpleAllocator<WaitUntilEntry>::FreeMem(we_);
     }
-    FFRT_LOGD("destruct %s", name_.c_str());
+    FFRT_LOGD("destruct %s", queue_->GetQueueName().c_str());
 }
 
 bool QueueHandler::SetLoop(Loop* loop)
@@ -161,7 +152,7 @@ void QueueHandler::Submit(QueueTask* task)
 
     int ret = queue_->Push(task);
     if (ret == SUCC) {
-        FFRT_LOGD("submit task[%lu] into %s", gid, name_.c_str());
+        FFRT_LOGD("submit task[%lu] into %s", gid, queue_->GetQueueName().c_str());
         return;
     }
     if (ret == FAILED) {
@@ -175,14 +166,14 @@ void QueueHandler::Submit(QueueTask* task)
 
     // activate queue
     if (task->GetDelay() == 0) {
-        FFRT_LOGD("task [%llu] activate %s", gid, name_.c_str());
+        FFRT_LOGD("task [%llu] activate %s", gid, queue_->GetQueueName().c_str());
         {
             std::lock_guard lock(mutex_);
             UpdateCurTask(task);
         }
         TransferTask(task);
     } else {
-        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", gid, task->GetDelay(), name_.c_str());
+        FFRT_LOGD("task [%llu] with delay [%llu] activate %s", gid, task->GetDelay(), queue_->GetQueueName().c_str());
         if (ret == INACTIVE) {
             queue_->Push(task);
         }
@@ -429,11 +420,11 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
         task->DecDeleteRef();
         SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe);
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
-            name_.c_str(), timeout_);
+            queue_->GetQueueName().c_str(), timeout_);
         return;
     }
 
-    FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, name_.c_str());
+    FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, queue_->GetQueueName().c_str());
 }
 
 void QueueHandler::RemoveTimeoutMonitor(QueueTask* task)
@@ -454,8 +445,8 @@ void QueueHandler::RunTimeOutCallback(QueueTask* task)
     std::stringstream ss;
     std::string processNameStr = std::string(GetCurrentProcessName());
     ss << "[Serial_Queue_Timeout_Callback] process name:[" << processNameStr << "], serial queue:[" <<
-        name_ << "], queueId:[" << GetQueueId() << "], serial task gid:[" << task->gid << "], task name:["
-        << task->label << "], execution time exceeds[" << timeout_ << "] us";
+        queue_->GetQueueName() << "], queueId:[" << GetQueueId() << "], serial task gid:[" << task->gid
+        <<"], task name:[" << task->label << "], execution time exceeds[" << timeout_ << "] us";
     FFRT_LOGE("%s", ss.str().c_str());
     if (timeoutCb_ != nullptr) {
         QueueTask* cbTask = GetQueueTaskByFuncStorageOffset(timeoutCb_);
@@ -474,7 +465,7 @@ std::string QueueHandler::GetDfxInfo(int index) const
         TaskStatus curTaskStatus = curTaskVec_[index]->curStatus;
         uint64_t curTaskTime = curTaskVec_[index]->statusTime.load(std::memory_order_relaxed);
         TaskStatus preTaskStatus = curTaskVec_[index]->preStatus.load(std::memory_order_relaxed);
-        ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], qname=[" << name_ <<
+        ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], qname=[" << queue_->GetQueueName() <<
                 "], with delay of[" <<  curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
                 "], current status[" << StatusToString(curTaskStatus) << "], start at[" <<
                 FormatDateString4SteadyClock(curTaskTime) << "], last status[" << StatusToString(preTaskStatus)

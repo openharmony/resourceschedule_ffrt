@@ -28,7 +28,6 @@
 namespace ffrt {
 class QueueTask;
 class Loop;
-class QueueHandler;
 
 enum QueueAction {
     INACTIVE = -1, // queue is nullptr or serial queue is empty
@@ -39,7 +38,7 @@ enum QueueAction {
 
 class BaseQueue : public NonCopyable {
 public:
-    BaseQueue();
+    explicit BaseQueue(const char* name);
     virtual ~BaseQueue() = default;
 
     virtual int Push(QueueTask* task) = 0;
@@ -73,6 +72,11 @@ public:
         return queueId_;
     }
 
+    inline const std::string& GetQueueName() const
+    {
+        return name_;
+    }
+
     inline bool DelayStatus()
     {
         return delayStatus_.load();
@@ -80,12 +84,6 @@ public:
 
     virtual bool HasTask(const char* name);
     virtual std::vector<QueueTask*> GetHeadTask();
-
-    inline void SetHandler(QueueHandler* handler)
-    {
-        handler_ = handler;
-    }
-
     ffrt::mutex mutex_;
 protected:
     inline uint64_t GetNow() const
@@ -110,10 +108,10 @@ protected:
     QueueStrategy<QueueTask>::DequeFunc dequeFunc_ { nullptr };
 
     ffrt::condition_variable cond_;
-    QueueHandler* handler_;
+    std::string name_;
 };
 
-std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr);
+std::unique_ptr<BaseQueue> CreateQueue(int queueType, const ffrt_queue_attr_t* attr, const char* name);
 } // namespace ffrt
 
 #endif // FFRT_BASE_QUEUE_H

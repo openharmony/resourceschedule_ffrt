@@ -101,7 +101,7 @@ uint64_t Arm64CntCt(void)
 }
 
 std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_point& timePoint,
-    TimeUnitT timeUnit, const std::string& format, bool includeFraction)
+    TimeUnitT timeUnit)
 {
     constexpr int maxMsLength = 3;
     constexpr int msPerSecond = 1000;
@@ -109,6 +109,22 @@ std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_p
     constexpr int maxUsLength = 6;
     constexpr int usPerSecond = 1000 * 1000;
 
+    std::string remainder;
+    if (timeUnit == MICROSECOND) {
+        auto tp = std::chrono::time_point_cast<std::chrono::microseconds>(timePoint);
+        auto us = tp.time_since_epoch().count() % usPerSecond;
+        remainder = std::to_string(us);
+        if (remainder.length() < maxUsLength) {
+            remainder = std::string(maxUsLength - remainder.length(), '0') + remainder;
+        }
+    } else {
+        auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
+        auto ms = tp.time_since_epoch().count() % msPerSecond;
+        remainder = std::to_string(ms);
+        if (remainder.length() < maxMsLength) {
+            remainder = std::string(maxMsLength - remainder.length(), '0') + remainder;
+        }
+    }
     auto tt = std::chrono::system_clock::to_time_t(timePoint);
     struct tm curTime;
     if (memset_s(&curTime, sizeof(curTime), 0, sizeof(curTime)) != EOK) {
@@ -117,40 +133,18 @@ std::string FormatDateString4SystemClock(const std::chrono::system_clock::time_p
     }
     localtime_r(&tt, &curTime);
     char sysTime[datetimeStringLength];
-    std::strftime(sysTime, sizeof(char) * datetimeStringLength, format.c_str(), &curTime);
-    std::string result(sysTime);
-
-    if (includeFraction) {
-        std::string fraction;
-        if (timeUnit == MICROSECOND) {
-            auto tp = std::chrono::time_point_cast<std::chrono::microseconds>(timePoint);
-            auto us = tp.time_since_epoch().count() % usPerSecond;
-            fraction = std::to_string(us);
-            if (fraction.length() < maxUsLength) {
-                fraction = std::string(maxUsLength - fraction.length(), '0') + fraction;
-            }
-        } else {
-            auto tp = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
-            auto ms = tp.time_since_epoch().count() % msPerSecond;
-            fraction = std::to_string(ms);
-            if (fraction.length() < maxMsLength) {
-                fraction = std::string(maxMsLength - fraction.length(), '0') + fraction;
-            }
-        }
-        result += "." + fraction;
-    }
-    return result;
+    std::strftime(sysTime, sizeof(char) * datetimeStringLength, "%Y-%m-%d %H:%M:%S.", &curTime);
+    return std::string(sysTime) + remainder;
 }
 
-std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit, const std::string& format,
-    bool includeFraction)
+std::string FormatDateString4SteadyClock(uint64_t steadyClockTimeStamp, TimeUnitT timeUnit)
 {
     auto referenceTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
     auto referenceTp = std::chrono::system_clock::now();
 
     std::chrono::microseconds us(static_cast<int64_t>(steadyClockTimeStamp - referenceTimeStamp));
-    return FormatDateString4SystemClock(referenceTp + us, timeUnit, format, includeFraction);
+    return FormatDateString4SystemClock(referenceTp + us, timeUnit);
 }
 
 std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit)

@@ -41,7 +41,7 @@ bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
     }
 
     // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
-    FFRT_LOGD("qos[%d] task[%lu], name[%s] entered q", level, gid, label.c_str());
+    FFRT_LOGD("qos[%d] task[%lu]", level, gid);
     if (taskCount >= TASK_OVERRUN_THRESHOLD && taskCount % TASK_OVERRUN_ALARM_FREQ == 0) {
         FFRT_SYSEVENT_LOGW("qos [%d], task [%s] entered q, task count [%d] exceeds threshold.",
             level, label.c_str(), taskCount);

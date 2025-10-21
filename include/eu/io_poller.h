@@ -58,6 +58,7 @@ private:
     struct TimeOutReport timeOutReport_;
 
     std::atomic_uint64_t syncFdCnt_ { 0 }; // record sync fd counts
+    pid_t ioPid_ { 0 }; // record io poller pid
 };
 }
 #endif

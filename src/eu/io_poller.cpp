@@ -81,6 +81,7 @@ void IOPoller::Run()
         FFRT_LOGW("[%d] set priority warn ret[%d] eno[%d]\n", pthread_self(), ret, errno);
     }
     prctl(PR_SET_NAME, IO_POLLER_NAME);
+    ioPid_ = syscall(SYS_gettid);
     while (1) {
         ret = PollOnce(30000);
         std::lock_guard lock(mapMutex_);
@@ -142,7 +143,9 @@ int IOPoller::PollOnce(int timeout) noexcept
                 TraceChainAdapter::Instance().HiTraceChainRestoreId(&data->traceId);
             }
 #endif
+            FFRT_TRACE_BEGIN("IOCB");
             data->cb(data->data, waitedEvents[i].events);
+            FFRT_TRACE_END();
             timeOutReport_.cbStartTime.store(0, std::memory_order_relaxed);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
             if (data->traceId.valid == HITRACE_ID_VALID) {
@@ -246,13 +249,13 @@ void IOPoller::MonitTimeOut()
         return (f == 1) ? 1000000 : f;
     } ();
     uint64_t diff = (now - timeOutReport_.cbStartTime) / freq;
+    uint64_t reportTime = TIMEOUT_RECORD_CYCLE_LIST[timeOutReport_.reportCount];
     if (timeOutReport_.reportCount < TIMEOUT_RECORD_CYCLE_LIST.size() &&
-        diff >= TIMEOUT_RECORD_CYCLE_LIST[timeOutReport_.reportCount]) {
+        diff >= reportTime) {
 #ifdef FFRT_OH_TRACE_ENABLE
         std::string dumpInfo;
-        static pid_t pid = syscall(SYS_gettid);
-        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, pid, 0, false)) {
-            FFRT_LOGW("IO_Poller Backtrace Info:\n%s", dumpInfo.c_str());
+        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, ioPid_, 0, false)) {
+            FFRT_LOGW("IO_Poller Backtrace Info[%lus]:\n%s", reportTime, dumpInfo.c_str());
         }
 #endif
         timeOutReport_.reportCount++;

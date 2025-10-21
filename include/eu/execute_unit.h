@@ -93,6 +93,7 @@ struct CPUWorkerGroup {
     std::vector<std::pair<QoS, bool>> workerShareConfig;
     int deepSleepingWorkerNum{0};
     bool retryBeforeDeepSleep{true};
+    std::chrono::steady_clock::time_point escapeReportTime{};
 
     inline void WorkerCreate()
     {
@@ -251,6 +252,14 @@ public:
         return workerNum.load();
     }
 
+    inline bool isEscapeStageOne(uint16_t totalWorkerNum)
+    {
+        if (totalWorkerNum < escapeConfig.oneStageWorkerNum_) {
+            return true;
+        }
+        return false;
+    }
+
     inline void SetSchedMode(const QoS qos, const sched_mode_type mode)
     {
         schedMode[qos].store(mode);
@@ -358,7 +367,7 @@ private:
     WaitUntilEntry *we_[QoS::MaxNum()] = {nullptr};
     virtual void ExecuteEscape(int qos) = 0;
 
-    inline uint64_t CalEscapeInterval(uint64_t totalWorkerNum)
+    inline uint64_t CalEscapeInterval(uint16_t totalWorkerNum)
     {
         if (totalWorkerNum < escapeConfig.oneStageWorkerNum_) {
             return escapeConfig.oneStageIntervalMs_;

@@ -1254,8 +1254,8 @@ class condition_variable;
 
 #### 描述
 
+- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
 - FFRT 提供的类似`std::condition_variable`的性能实现。
-- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
 - 该功能能够避免传统的`std::condition_variable`在条件不满足时陷入内核的问题，在使用得当的条件下将会有更好的性能。
 
 #### 方法
@@ -1387,8 +1387,8 @@ int main()
 
 #### 描述
 
+- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
 - FFRT提供的类似`std::this_thread::sleep_for`和`std::this_thread::sleep_until`的性能实现。
-- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
 - 该功能能够避免传统的`std::this_thread::sleep_for`睡眠时陷入内核的问题，在使用得当的条件下将会有更好的性能。
 - 该接口调用后实际睡眠时长不小于配置值。
 
@@ -1453,8 +1453,8 @@ static void this_task::yield();
 
 #### 描述
 
+- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
 - 当前任务主动让出CPU执行资源，让其他可以被执行的任务先执行，如果没有其他可被执行的任务，`yield`无效。
-- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
 - 此函数的确切行为取决于实现，特别是使用中的FFRT调度程序的机制和系统状态。
 
 #### 样例

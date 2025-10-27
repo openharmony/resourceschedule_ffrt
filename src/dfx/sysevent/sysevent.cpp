@@ -72,7 +72,7 @@ private:
 
         GetParameter = reinterpret_cast<GetParameterType>(dlsym(handle, "GetParameter"));
         if (GetParameter == nullptr) {
-            FFRT_LOGE("load func from %s failed", BEGETUTIL_LIB_PATH);
+            FFRT_LOGE("load func from %s failed: %s", BEGETUTIL_LIB_PATH, dlerror());
             return false;
         }
         return true;

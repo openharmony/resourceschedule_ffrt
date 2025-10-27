@@ -140,11 +140,8 @@ void FinishTrace(uint64_t label);
 void StartAsyncTrace(uint64_t label, const std::string& value, int32_t taskId, float limit = -1);
 void FinishAsyncTrace(uint64_t label, const std::string& value, int32_t taskId);
 void CountTrace(uint64_t label, const std::string& name, int64_t count);
-#ifdef APP_USE_ARM
+
 constexpr const char* TRACE_LIB_PATH = "libhitrace_meter.so";
-#else
-constexpr const char* TRACE_LIB_PATH = "libhitrace_meter.so";
-#endif
 class TraceAdapter {
 public:
     TraceAdapter()
@@ -182,7 +179,7 @@ private:
 
         handle = dlopen(TRACE_LIB_PATH, RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
         if (handle == nullptr) {
-            FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH);
+            FFRT_LOGE("load so[%s] fail: %s", TRACE_LIB_PATH, dlerror());
             return false;
         }
 

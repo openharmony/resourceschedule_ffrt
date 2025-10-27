@@ -100,13 +100,13 @@ private:
 
         handle_1 = dlopen(TRACE_LIB_PATH_1, RTLD_NOW | RTLD_LOCAL);
         if (handle_1 == nullptr) {
-            FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH_1);
+            FFRT_LOGE("load so[%s] fail: %s", TRACE_LIB_PATH_1, dlerror());
             return;
         }
 
         handle_2 = dlopen(TRACE_LIB_PATH_2, RTLD_NOW | RTLD_LOCAL);
         if (handle_2 == nullptr) {
-            FFRT_LOGE("load so[%s] fail", TRACE_LIB_PATH_2);
+            FFRT_LOGE("load so[%s] fail: %s", TRACE_LIB_PATH_2, dlerror());
             return;
         }
 

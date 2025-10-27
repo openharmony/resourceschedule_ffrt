@@ -18,11 +18,7 @@
 #include "dfx/trace/ffrt_trace_chain.h"
 #include <dlfcn.h>
 
-#ifdef APP_USE_ARM
 constexpr const char* TRACE_CHAIN_LIB_PATH = "libhitracechain.so";
-#else
-constexpr const char* TRACE_CHAIN_LIB_PATH = "libhitracechain.so";
-#endif
 
 namespace ffrt {
 
@@ -97,7 +93,7 @@ void TraceChainAdapter::Load()
 
     handle_ = dlopen(TRACE_CHAIN_LIB_PATH, RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
     if (handle_ == nullptr) {
-        FFRT_LOGE("load so[%s] fail", TRACE_CHAIN_LIB_PATH);
+        FFRT_LOGE("load so[%s] fail: %s", TRACE_CHAIN_LIB_PATH, dlerror());
         return;
     }
 

@@ -22,11 +22,7 @@
 #include "c/type_def.h"
 
 namespace ffrt {
-#if (defined(__aarch64__) || defined(__x86_64__))
 constexpr const char* EVENTHANDLER_LIB_PATH = "libeventhandler.z.so";
-#else
-constexpr const char* EVENTHANDLER_LIB_PATH = "libeventhandler.z.so";
-#endif
 
 enum class Priority : uint32_t {
     // The highest priority queue, should be distributed until the tasks in the queue are completed.
@@ -103,7 +99,7 @@ private:
 
         handle_ = dlopen(EVENTHANDLER_LIB_PATH, RTLD_NOW | RTLD_LOCAL);
         if (handle_ == nullptr) {
-            FFRT_LOGE("eventhandler lib handle is null.");
+            FFRT_LOGE("eventhandler lib handle is null, reason: %s", dlerror());
             return;
         }
 

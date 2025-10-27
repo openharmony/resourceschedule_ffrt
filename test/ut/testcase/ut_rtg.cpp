@@ -218,7 +218,7 @@ HWTEST_F(RTGTest, rtg_add_tread_test, TestSize.Level0)
     ret = RTGCtrl::Instance().UpdatePerfFreq(tgid, 960000);
     for (auto tid : tids) {
         auto [t_load, t_runtime] = RTGCtrl::Instance().UpdateAndGetLoad(tgid, tid);
-        FFRT_LOGE("Get Load %lu runtime %lu", t_load, t_runtime);
+        FFRT_LOGE("Get Load %llu runtime %llu", t_load, t_runtime);
         ret = RTGCtrl::Instance().RemoveThread(tgid, tid);
         if (!ret) {
             FFRT_LOGE("Failed To Leave Thread %d", tid);
@@ -290,7 +290,7 @@ HWTEST_F(RTGTest, rtg_update_util_test, TestSize.Level0)
 
     for (int util = 8; util <= 1024; util <<= 1) {
         auto [load, runtime] = RTGCtrl::Instance().UpdateAndGetLoad(tgid);
-        FFRT_LOGE("Get Load %lu runtime %lu", load, runtime);
+        FFRT_LOGE("Get Load %llu runtime %llu", load, runtime);
 
         ret = RTGCtrl::Instance().UpdatePerfUtil(tgid, util);
         if (!ret) {

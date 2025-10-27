@@ -152,7 +152,7 @@ void QueueHandler::Submit(QueueTask* task)
 
     int ret = queue_->Push(task);
     if (ret == SUCC) {
-        FFRT_LOGD("submit task[%lu] into %s", gid, queue_->GetQueueName().c_str());
+        FFRT_LOGD("submit task[%llu] into %s", gid, queue_->GetQueueName().c_str());
         return;
     }
     if (ret == FAILED) {

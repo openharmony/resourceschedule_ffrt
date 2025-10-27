@@ -85,7 +85,7 @@ void CPUEUTask::FreeMem()
 
 void CPUEUTask::Execute()
 {
-    FFRT_LOGD("Execute task[%lu], name[%s]", gid, label.c_str());
+    FFRT_LOGD("Execute task[%llu], name[%s]", gid, label.c_str());
     FFRTTraceRecord::TaskExecute(&executeTime);
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;

@@ -26,7 +26,7 @@ void Deadline::Update(uint64_t deadlineUs)
 
     absDeadlineNs = deadlineNs + AbsNowNs();
 
-    FFRT_LOGI("Deadline %lu Update %lu Abs %lu", deadlineUs, deadlineNs, absDeadlineNs);
+    FFRT_LOGI("Deadline %llu Update %llu Abs %llu", deadlineUs, deadlineNs, absDeadlineNs);
 }
 
 uint64_t Deadline::AbsNowNs()
@@ -56,7 +56,7 @@ PerfCtrl::~PerfCtrl()
 void PerfCtrl::Update(bool force)
 {
     if (!force && predUtil == curUtil) {
-        FFRT_LOGW("Predict Util Same as Current Util %lu", predUtil);
+        FFRT_LOGW("Predict Util Same as Current Util %llu", predUtil);
         return;
     }
 
@@ -74,11 +74,11 @@ void PerfCtrl::Update(uint64_t deadlineNs, uint64_t load, bool force)
     }
     predUtil = (load << SCHED_CAPACITY_SHIFT) / deadlineNs;
     if (predUtil > SCHED_MAX_CAPACITY) {
-        FFRT_SYSEVENT_LOGW("Predict Util %lu Exceeds Max Capacity", predUtil);
+        FFRT_SYSEVENT_LOGW("Predict Util %llu Exceeds Max Capacity", predUtil);
         predUtil = SCHED_MAX_CAPACITY;
     }
 
-    FFRT_LOGI("Update Load %lu, Deadline %lu, Util %lu\n", load, deadlineNs, predUtil);
+    FFRT_LOGI("Update Load %llu, Deadline %llu, Util %llu\n", load, deadlineNs, predUtil);
 
     Update(force);
 }

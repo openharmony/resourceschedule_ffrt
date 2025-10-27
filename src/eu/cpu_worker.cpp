@@ -39,7 +39,7 @@ const unsigned int STEAL_BUFFER_SIZE = LOCAL_QUEUE_SIZE / 2;
 }
 
 namespace ffrt {
-CPUWorker::CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize) : qos(qos), ops(ops)
+CPUWorker::CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize) : qos(qos), ops(std::move(ops))
 {
 #ifdef FFRT_PTHREAD_ENABLE
     pthread_attr_init(&attr_);

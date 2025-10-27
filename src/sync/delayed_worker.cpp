@@ -132,7 +132,7 @@ void DelayedWorker::ThreadInit()
                 itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
                 ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
                 if (ret != 0) {
-                    FFRT_SYSEVENT_LOGE("timerfd_settime error,ns=%lu,ret= %d.", ns, ret);
+                    FFRT_SYSEVENT_LOGE("timerfd_settime error,ns=%llu,ret= %d.", ns, ret);
                 }
             } else if ((result == 1) && (!preserved)) {
                 if (++noTaskDelayCount_ > 1 && ffrt::FFRTFacade::GetEUInstance().GetWorkerNum() == 0) {
@@ -319,7 +319,7 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
         itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
         int ret = timerfd_settime(timerfd_, TFD_TIMER_ABSTIME, &its, nullptr);
         if (ret != 0) {
-            FFRT_SYSEVENT_LOGE("timerfd_settime error, ns=%lu, ret= %d.", ns, ret);
+            FFRT_SYSEVENT_LOGE("timerfd_settime error, ns=%llu, ret= %d.", ns, ret);
         }
     }
     return true;

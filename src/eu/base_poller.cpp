@@ -208,7 +208,7 @@ int BasePoller::DelFdEvent(int fd) noexcept
     if (delCntIter != delCntMap_.end()) {
         int diff = static_cast<int>(wakeDataIter->second.size()) - delCntIter->second;
         if (diff == 0) {
-            FFRT_SYSEVENT_LOGW("fd:%d, addCnt:%lu, delCnt:%d has not been added to epoll, ignore", fd,
+            FFRT_SYSEVENT_LOGW("fd:%d, addCnt:%zu, delCnt:%d has not been added to epoll, ignore", fd,
                 wakeDataIter->second.size(), delCntIter->second);
             return -1;
         }

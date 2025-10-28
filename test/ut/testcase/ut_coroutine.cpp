@@ -140,7 +140,7 @@ static void testCallBack(void* token, uint32_t event)
 
 /*
  * 测试用例名称：ffrt_get_current_coroutine_stack_success
- * 测试用例描述：ffrt_get_current_coroutine_stack获取当前协程栈成功
+ * 测试用例描述：ffrt_get_current_coroutine_stack 获取当前协程栈成功
  * 预置条件    ：提交ffrt任务
  * 操作步骤    ：在ffrt任务中调用ffrt_get_current_coroutine_stack接口
  * 预期结果    ：获取协程栈地址和大小成功
@@ -173,4 +173,44 @@ HWTEST_F(CoroutineTest, ffrt_get_current_coroutine_stack_success, TestSize.Level
     ffrt_task_handle_destroy(task);
     ffrt_queue_attr_destroy(&queue_attr);
     ffrt_queue_destroy(queue_handle);
+}
+
+/*
+ * 测试用例名称：AllocNewCoRoutine_coMemFree
+ * 测试用例描述：提交多个不同stack size任务，验证任务执行成功
+ * 预置条件    ：无
+ * 操作步骤    ：1、设置任务属性为不同的stack size
+                2、创建并提交一个任务
+ * 预期结果    ：任务执行成功
+ */
+HWTEST_F(CoroutineTest, AllocNewCoRoutine_coMemFree, TestSize.Level0)
+{
+    ffrt_task_attr_t attr1;
+    ffrt_task_attr_t attr2;
+    ffrt_task_attr_t attr3;
+    ffrt_task_attr_init(&attr1);
+    ffrt_task_attr_init(&attr2);
+    ffrt_task_attr_init(&attr3);
+    ffrt_task_attr_set_stack_size(&attr1, 1 << 20);
+    ffrt_task_attr_set_stack_size(&attr2, 2 << 20);
+    ffrt_task_attr_set_stack_size(&attr3, 3 << 20);
+    int x = 0;
+
+    std::function<void()>&& basicFunc = [&]() {
+        x = x + 1;
+    };
+    ffrt_function_header_t* ffrt_header_t1 = ffrt::create_function_wrapper((basicFunc));
+    ffrt_function_header_t* ffrt_header_t2 = ffrt::create_function_wrapper((basicFunc));
+    ffrt_function_header_t* ffrt_header_t3 = ffrt::create_function_wrapper((basicFunc));
+    ffrt_submit_base(ffrt_header_t1, nullptr, nullptr, &attr1);
+    ffrt_submit_base(ffrt_header_t2, nullptr, nullptr, &attr2);
+    ffrt_submit_base(ffrt_header_t3, nullptr, nullptr, &attr3);
+
+    ffrt::wait();
+    uint64_t stackSize = 0;
+    stackSize = ffrt_task_attr_get_stack_size(&attr1);
+    EXPECT_EQ(stackSize, (1 << 20));
+    ffrt_task_attr_destroy(&attr1);
+    ffrt_task_attr_destroy(&attr2);
+    ffrt_task_attr_destroy(&attr3);
 }

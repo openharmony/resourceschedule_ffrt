@@ -545,6 +545,36 @@ HWTEST_F(PollerTest, GetTimerStatus, TestSize.Level1)
     EXPECT_EQ(poller.GetTimerStatus(0), ffrt_timer_notfound);
 }
 
+/*
+* 测试用例名称：GetTimerStatus_EXECUTING
+* 测试用例描述：创建pollertimer，调用查询接口查询到executing状态
+* 预置条件    ：无
+* 操作步骤    ：1、设置pollerhandler状态为EXECUTING
+                2、创建线程查询接口
+* 预期结果    ：查询符合预期
+*/
+HWTEST_F(PollerTest, GetTimerStatus_EXECUTING, TestSize.Level1)
+{
+    LoopPoller poller;
+    TimerDataWithCb data;
+    data.handle = 1;
+    poller.timerMap_.emplace(std::chrono::steady_clock::now(), data);
+    poller.executedHandle_[2] = TimerStatus::EXECUTING;
+    std::thread thread;
+    auto threadFunc = [&]() {
+        EXPECT_EQ(poller.GetTimerStatus(1), ffrt_timer_not_executed);
+        EXPECT_EQ(poller.GetTimerStatus(2), ffrt_timer_executed);
+    };
+    thread = std::thread(threadFunc);
+    stall_us(100000);
+    poller.executedHandle_[2] = TimerStatus::EXECUTED;
+    thread.join();
+
+    poller.flag_ = EpollStatus::TEARDOWN;
+    EXPECT_EQ(poller.RegisterTimer(0, nullptr, nullptr, false), -1);
+    EXPECT_EQ(poller.UnregisterTimer(0), -1);
+}
+
 HWTEST_F(PollerTest, FetchCachedEventAndDoUnmask, TestSize.Level1)
 {
     LoopPoller poller;

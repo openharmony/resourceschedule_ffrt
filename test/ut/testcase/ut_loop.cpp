@@ -277,3 +277,44 @@ HWTEST_F(LoopTest, ffrt_add_and_remove_fd, TestSize.Level0)
 #endif
 }
 #endif
+
+/*
+* 测试用例名称：ffrt_loop_epoll_mod
+* 测试用例描述：epoll_ctl时输入EPOLL_CTL_MOD，不支持该用法
+* 预置条件    ：无
+* 操作步骤    ：1、初始化loop
+                2、调用epoll_ctl，入参为EPOLL_CTL_MOD
+* 预期结果    ：返回-1，ctl失败
+*/
+HWTEST_F(LoopTest, ffrt_loop_epoll_mod, TestSize.Level0)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_eventhandler_interactive), "test_queue", &queue_attr);
+#ifndef WITH_NO_MOCKER
+    MOCKER(ffrt_get_main_queue).stubs().will(returnValue(queue_handle));
+#endif
+
+    EventHandlerAdapter::Instance()->AddFdListener = AddFdListener;
+    EventHandlerAdapter::Instance()->RemoveFdListener = RemoveFdListener;
+
+    ffrt_queue_t mainQueue = ffrt_get_main_queue();
+    auto loop = ffrt_loop_create(mainQueue);
+    EXPECT_TRUE(loop != nullptr);
+    ffrt_loop_run(loop);
+    int ret = 0;
+    int testFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    uint64_t expected = 0xabacadae;
+    struct TestData testData {.fd = testFd, .expected = expected};
+    ret = ffrt_loop_epoll_ctl(loop, EPOLL_CTL_MOD, testFd, EPOLLIN, (void*)(&testData), TestCallBack);
+    EXPECT_EQ(ret, -1);
+    ffrt_loop_stop(loop);
+    ffrt_loop_destroy(loop);
+    ffrt_queue_destroy(queue_handle);
+
+#ifndef WITH_NO_MOCKER
+    GlobalMockObject::reset();
+    GlobalMockObject::verify();
+#endif
+}

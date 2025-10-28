@@ -520,13 +520,152 @@ HWTEST_F(DependencyTest, onsubmit_test, TestSize.Level0)
     ffrt_task_handle_t handle = nullptr;
     std::function<void()> cbOne = []() { printf("callback\n"); };
     ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
-    auto manager = std::make_unique<ffrt::SDependenceManager>();
-    manager->onSubmit(true, handle, func, nullptr, nullptr, nullptr);
+    ffrt::FFRTFacade::GetDMInstance().onSubmit(true, handle, func, nullptr, nullptr, nullptr);
 
     const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, handle}};
     ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
-    manager->onSubmit(true, handle, func, nullptr, &wait, nullptr);
-    manager->onWait(&wait);
+    ffrt::FFRTFacade::GetDMInstance().onSubmit(true, handle, func, nullptr, &wait, nullptr);
+    ffrt::FFRTFacade::GetDMInstance().onWait(&wait);
+
     EXPECT_NE(func, nullptr);
     ffrt_task_handle_destroy(handle);
+}
+
+/*
+ * 测试用例名称：sample_nestedtask
+ * 测试用例描述：提交数据依赖任务
+ * 预置条件    ：无
+ * 操作步骤    ：1、提交数据依赖任务
+ * 预期结果    ：任务执行成功
+ */
+HWTEST_F(DependencyTest, sample_nestedtask, TestSize.Level0)
+{
+    int y = 0;
+    ffrt::submit(
+        [&]() {
+            FFRT_LOGI("task 1");
+            ffrt::submit([&]() { FFRT_LOGI("nested task 1.1"); }, {}, {});
+            ffrt::submit([&]() { FFRT_LOGI("nested task 1.2"); }, {}, {});
+            ffrt::wait();
+            FFRT_LOGI("task 1 done");
+        },
+        {}, {});
+
+    ffrt::submit(
+        [&]() {
+            FFRT_LOGI("task 2");
+            ffrt::submit([&]() { FFRT_LOGI("nested task 2.1"); }, {}, {});
+            ffrt::submit([&]() { FFRT_LOGI("nested task 2.2"); }, {}, {});
+            ffrt::wait();
+            y += 1;
+        },
+        {}, {});
+
+    ffrt::wait();
+    EXPECT_EQ(y, 1);
+}
+
+/*
+ * 测试用例名称：sample_nestedtask_with_fake_deps
+ * 测试用例描述：提交数据依赖任务,虚假数据依赖
+ * 预置条件    ：无
+ * 操作步骤    ：1、提交数据依赖任务
+ * 预期结果    ：任务执行成功
+ */
+HWTEST_F(DependencyTest, sample_nestedtask_with_fake_deps, TestSize.Level0)
+{
+    int x; // 创建一个虚假的数据依赖，for test
+    int y = 0;
+    ffrt::submit(
+        [&]() {
+            FFRT_LOGI("task 1");
+            ffrt::submit([&]() { FFRT_LOGI("nested task 1.1"); }, {}, {});
+            ffrt::submit([&]() { FFRT_LOGI("nested task 1.2"); }, {}, {});
+            ffrt::wait();
+        },
+        {}, {&x});
+
+    ffrt::submit(
+        [&]() {
+            FFRT_LOGI("task 2");
+            ffrt::submit([&]() { FFRT_LOGI("nested task 2.1"); }, {}, {});
+            ffrt::submit([&]() { FFRT_LOGI("nested task 2.2"); }, {}, {});
+            y += 1;
+            ffrt::wait();
+        },
+        {&x}, {});
+
+    ffrt::wait();
+    EXPECT_EQ(y, 1);
+}
+
+/*
+ * 测试用例名称：test_multithread_nested_case
+ * 测试用例描述：提交嵌套数据依赖任务
+ * 预置条件    ：无
+ * 操作步骤    ：1、提交嵌套数据依赖任务
+ * 预期结果    ：任务执行成功
+ */
+HWTEST_F(DependencyTest, test_multithread_nested_case, TestSize.Level0)
+{
+    auto func = []() {
+        int x = 0;
+        FFRT_LOGI("submit task 1");
+        ffrt::submit(
+            [&]() {
+                ffrt::submit(
+                    [&]() {
+                        FFRT_LOGI("x = %d", x);
+                        EXPECT_EQ(x, 0);
+                    },
+                    {&x}, {});
+                ffrt::submit(
+                    [&]() {
+                        x++;
+                        EXPECT_EQ(x, 1);
+                    },
+                    {&x}, {&x});
+                ffrt::submit(
+                    [&]() {
+                        FFRT_LOGI("x = %d", x);
+                        EXPECT_EQ(x, 1);
+                    },
+                    {&x}, {});
+                ffrt::wait();
+            },
+            {&x}, {&x});
+        FFRT_LOGI("submit task 2");
+        ffrt::submit(
+            [&]() {
+                ffrt::submit(
+                    [&]() {
+                        FFRT_LOGI("x = %d", x);
+                        EXPECT_EQ(x, 1);
+                    },
+                    {&x}, {});
+                ffrt::submit(
+                    [&]() {
+                        x++;
+                        EXPECT_EQ(x, 2);
+                    },
+                    {&x}, {&x});
+                ffrt::submit(
+                    [&]() {
+                        FFRT_LOGI("x = %d", x);
+                        EXPECT_EQ(x, 2);
+                    },
+                    {&x}, {});
+                ffrt::wait();
+            },
+            {&x}, {&x});
+        ffrt::wait();
+    };
+
+    std::vector<std::thread> ts;
+    for (auto i = 0; i < 7; i++) {
+        ts.emplace_back(func);
+    }
+    for (auto& t : ts) {
+        t.join();
+    }
 }

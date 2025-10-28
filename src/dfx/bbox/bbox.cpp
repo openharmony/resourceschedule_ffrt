@@ -607,31 +607,6 @@ void DumpNormalTaskInfo(std::ostringstream& ss, int qos, pid_t tid, TaskBase* t)
     ss << std::endl;
 }
 
-void DumpQueueTaskInfo(std::ostringstream& ss, int qos, pid_t tid, TaskBase* t)
-{
-    {
-        TaskMemScopedLock<QueueTask> lock;
-        auto queueTask = reinterpret_cast<QueueTask*>(t);
-        if (TaskFactory<QueueTask>::HasBeenFreed(queueTask)) {
-            return;
-        }
-        if (queueTask->GetFinishStatus()) {
-            return;
-        }
-        if (!IncDeleteRefIfPositive(queueTask)) {
-            return;
-        }
-    }
-    ss << "        qos " << qos
-        << ": worker tid " << tid
-        << " queue task is running, task id " << t->gid
-        << " name " << t->GetLabel().c_str()
-        << " status " << StatusToString(t->curStatus);
-    AppendTaskInfo(ss, t);
-    t->DecDeleteRef();
-    ss << std::endl;
-}
-
 void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
 {
     TaskBase* t = thread->curTask;
@@ -647,13 +622,16 @@ void DumpThreadTaskInfo(CPUWorker* thread, int qos, std::ostringstream& ss)
             return;
         }
         case ffrt_queue_task: {
-            DumpQueueTaskInfo(ss, qos, tid, t);
+            ss << "         qos " << qos
+                << ": worker tid " << tid
+                << " queue task is running"
+                << std::endl;
             return;
         }
         case ffrt_io_task: {
-            ss << "        qos "
-                << qos << ": worker tid "
-                << tid << " io task is running"
+            ss << "         qos " << qos
+                << ": worker tid " << tid
+                << " io task is running"
                 << std::endl;
             return;
         }

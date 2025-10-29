@@ -40,7 +40,7 @@ public:
     TaskBase* DeQueue()
     {
         if (list.Empty()) {
-            if (unlikely(size != 0)) {
+            if (unlikely(size.load(std::memory_order_relaxed) != 0)) {
                 FFRT_LOGE("size not match, current size %d, reset to 0.", size.load());
                 size = 0;
             }

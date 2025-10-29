@@ -165,12 +165,9 @@ void TrafficOverloadReport(std::stringstream& ss, const std::string& senarioName
 
 void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum)
 {
-    time_t cur_time = time(nullptr);
-    size_t near_gid = TaskBase::GetLastGid();
-    std::string msg = "report time: " + std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n"
-                    + ", qos: " + std::to_string(qos)
-                    + ", worker num: " + std::to_string(totalNum)
-                    + ", near gid:" + std::to_string((near_gid > 0) ? near_gid - 1 : 0);
+    std::stringstream ss;
+    ss << "qos: " << qos << ", worker num: " << totalNum;
+    std::string msg = ss.str();
     std::string eventName = "TASK_TIMEOUT";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", "Trigger_Escape",

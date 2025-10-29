@@ -311,17 +311,26 @@ void SExecuteUnit::ExecuteEscape(int qos)
             statusLock.unlock();
             WakeupWorkers(qos);
         } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
+            size_t executingNum = workerCtrl.executingNum;
             if (IsEscapeEnable()) {
                 workerCtrl.WorkerCreate();
-                FFRTTraceRecord::WorkRecord(qos, workerCtrl.executingNum);
-                statusLock.unlock();
+                executingNum++;
+                FFRTTraceRecord::WorkRecord(qos, executingNum);
+                auto curTime = std::chrono::steady_clock::now();
+                if (!isEscapeStageOne(executingNum) ||
+                    (curTime - workerCtrl.escapeReportTime) > std::chrono::seconds(1)) {
+                    workerCtrl.escapeReportTime = curTime;
+                    workerCtrl.lock.unlock();
+                    ReportEscapeEvent(qos, executingNum);
+                } else {
+                    workerCtrl.lock.unlock();
+                }
                 if (!IncWorker(qos)) {
                     workerCtrl.RollBackCreate();
                 }
             } else {
                 statusLock.unlock();
             }
-            ReportEscapeEvent(qos, totalNum);
         }
     }
 }

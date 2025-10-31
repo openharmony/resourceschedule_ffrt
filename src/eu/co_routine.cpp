@@ -59,7 +59,7 @@ static inline void CoStackCheck(CoRoutine* co)
             " or use api 'ffrt_task_attr_set_stack_size'.\n");
         if (ExecuteCtx::Cur()->task != nullptr) {
             auto curTask = ExecuteCtx::Cur()->task;
-            FFRT_SYSEVENT_LOGE("task name[%s], gid[%lu], submit_tid[%d]",
+            FFRT_SYSEVENT_LOGE("task name[%s], gid[%llu], submit_tid[%d]",
                 curTask->GetLabel().c_str(), curTask->gid, curTask->fromTid);
         }
         abort();
@@ -229,7 +229,7 @@ void TaskTsdDeconstruct(ffrt::CPUEUTask* task)
         task->tlsAttr->tsd = nullptr;
         task->tlsAttr->taskLocal = false;
     }
-    FFRT_LOGD("tsd deconstruct done, task[%lu], name[%s]", task->gid, task->GetLabel().c_str());
+    FFRT_LOGD("tsd deconstruct done, task[%llu], name[%s]", task->gid, task->GetLabel().c_str());
 }
 #endif
 
@@ -565,7 +565,8 @@ void CoWake(ffrt::CoTask* task, CoWakeType type)
             break;
         }
         default: {
-            FFRT_LOGE("CoWake unsupport task[%lu], type=%d, name[%s]", task->gid, task->type, task->GetLabel().c_str());
+            FFRT_LOGE("CoWake unsupport task[%llu], type=%d, name[%s]",
+                task->gid, task->type, task->GetLabel().c_str());
             break;
         }
     }

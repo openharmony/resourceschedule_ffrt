@@ -317,7 +317,7 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
             FFRT_API_LOGE("job initialize failed, maybe invalid stack_size");
             return 1;
         }
-        FFRT_API_LOGD("submit %lu", p->id());
+        FFRT_API_LOGD("submit %llu", p->id());
         p->local().partner = this;
         p->local().on_done = on_done;
         submit<Boost>(suspendable_job_func, p);
@@ -642,7 +642,7 @@ private:
     template<class Env>
     inline void submit_to_master(Env& e, job_t* p, const std::function<void()>& job)
     {
-        FFRT_API_LOGD("job %lu submit to master", (p ? p->id() : -1UL));
+        FFRT_API_LOGD("job %llu submit to master", (p ? p->id() : UINT64_MAX));
         p->local().master_f = &job;
         p->suspend(e, submit_to_master_suspend_func);
     }
@@ -677,8 +677,8 @@ private:
     {
         auto p = static_cast<job_t*>(p_);
         {
-            FFRT_API_LOGD("run master job %lu", p->id());
-            FFRT_API_TRACE_SCOPE("mjob%lu", p->id());
+            FFRT_API_LOGD("run master job %llu", p->id());
+            FFRT_API_TRACE_SCOPE("mjob%llu", p->id());
             (*(p->local().master_f))();
         }
         p->local().partner->partner_q->template push<1>(suspendable_job_func, p);
@@ -696,8 +696,8 @@ private:
     static void suspendable_job_func(void* p_)
     {
         auto p = (static_cast<job_t*>(p_));
-        FFRT_API_LOGD("run partner job %lu", p->id());
-        FFRT_API_TRACE_SCOPE("pjob%lu", p->id());
+        FFRT_API_LOGD("run partner job %llu", p->id());
+        FFRT_API_TRACE_SCOPE("pjob%llu", p->id());
         if (p->start()) { // job done
             p->local().partner->done_one();
             p->destroy();

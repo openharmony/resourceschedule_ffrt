@@ -100,7 +100,7 @@ static inline void SaveCurrent()
     FFRT_BBOX_LOG("signal %s triggered: source pid %d, tid %d", g_cur_signame, g_cur_pid, g_cur_tid);
     auto t = g_cur_task;
     if (t) {
-        FFRT_BBOX_LOG("task id %lu, qos %d, name %s, status %s",
+        FFRT_BBOX_LOG("task id %llu, qos %d, name %s, status %s",
             t->gid, t->qos_(), t->GetLabel().c_str(), StatusToString(t->curStatus));
     }
 }
@@ -129,7 +129,7 @@ static inline void SaveLocalFifoStatus(int qos, CPUWorker* worker)
     if (sched->GetTaskSchedMode(qos) == TaskSchedMode::DEFAULT_TASK_SCHED_MODE) { return; }
     TaskBase* t = reinterpret_cast<TaskBase*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
     while (t != nullptr) {
-        FFRT_BBOX_LOG("qos %d: worker tid %d is localFifo task id %lu name %s",
+        FFRT_BBOX_LOG("qos %d: worker tid %d is localFifo task id %llu name %s",
             qos, worker->Id(), t->gid, t->GetLabel().c_str());
         t = reinterpret_cast<TaskBase*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
     }
@@ -181,7 +181,7 @@ static inline void SaveNormalTaskStatus()
         size_t idx = 1;
         for (auto t : tmp) {
             if (t->type == ffrt_normal_task) {
-                FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx,
+                FFRT_BBOX_LOG("<%zu/%zu> id %llu qos %d name %s", idx,
                     tmp.size(), t->gid, t->qos_(), t->GetLabel().c_str());
                 idx++;
             }
@@ -235,7 +235,7 @@ static void DumpQueueTask(const char* tag, const std::vector<QueueTask*>& tasks,
     size_t idx = 1;
     for (auto t : tmp) {
         if (t->type == ffrt_queue_task) {
-            FFRT_BBOX_LOG("<%zu/%lu> id %lu qos %d name %s", idx, tmp.size(), t->gid, t->GetQos(), t->label.c_str());
+            FFRT_BBOX_LOG("<%zu/%zu> id %llu qos %d name %s", idx, tmp.size(), t->gid, t->GetQos(), t->label.c_str());
             idx++;
         }
         if (t->coRoutine && (t->coRoutine->status.load() == static_cast<int>(CoStatus::CO_NOT_FINISH))) {
@@ -364,7 +364,7 @@ void RecordDebugInfo(void)
     FFRT_BBOX_LOG("<<<=== ffrt debug log start ===>>>");
 
     if (t != nullptr) {
-        FFRT_BBOX_LOG("debug log: tid %d, task id %lu, qos %d, name %s, status %s", gettid(), t->gid, t->qos_(),
+        FFRT_BBOX_LOG("debug log: tid %d, task id %llu, qos %d, name %s, status %s", gettid(), t->gid, t->qos_(),
             t->GetLabel().c_str(), StatusToString(t->curStatus));
     }
     FFRT_BBOX_LOG("<<<=== key status ===>>>");

@@ -44,7 +44,7 @@ SCPUEUTask::SCPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const u
 void SCPUEUTask::DecDepRef()
 {
     if (--dataRefCnt.submitDep == 0) {
-        FFRT_LOGD("Undependency completed, enter ready queue, task[%lu], name[%s]", gid, label.c_str());
+        FFRT_LOGD("Undependency completed, enter ready queue, task[%llu], name[%s]", gid, label.c_str());
         FFRT_WAKE_TRACER(gid);
         Ready();
     }
@@ -69,7 +69,7 @@ void SCPUEUTask::DecChildRef()
     }
 
     if (!parent->IsRoot() && parent->curStatus == TaskStatus::WAIT_RELEASING && parent->childRefCnt == 0) {
-        FFRT_LOGD("free CPUEUTask:%s gid=%lu", parent->GetLabel().c_str(), parent->gid);
+        FFRT_LOGD("free CPUEUTask:%s gid=%llu", parent->GetLabel().c_str(), parent->gid);
         lck.unlock();
         parent->DecDeleteRef();
         return;
@@ -116,7 +116,7 @@ void SCPUEUTask::Finish()
 {
     std::unique_lock<decltype(mutex_)> lck(mutex_);
     if (childRefCnt == 0) {
-        FFRT_LOGD("free SCPUEUTask:%s gid=%lu", label.c_str(), gid);
+        FFRT_LOGD("free SCPUEUTask:%s gid=%llu", label.c_str(), gid);
         lck.unlock();
         DecDeleteRef();
     } else {

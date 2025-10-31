@@ -846,7 +846,7 @@ struct fiber : detail::non_copyable {
         new(&c->fn) std::function<void()>(std::forward<std::function<void()>>(f));
         new(&c->local_) FiberLocal;
         c->id_ = idx.fetch_add(1, std::memory_order_relaxed);
-        FFRT_API_LOGD("fiber %lu create", c->id_);
+        FFRT_API_LOGD("fiber %llu create", c->id_);
         return c;
     }
 
@@ -855,7 +855,7 @@ struct fiber : detail::non_copyable {
      */
     inline void destroy()
     {
-        FFRT_API_LOGD("fiber %lu destroy", id_);
+        FFRT_API_LOGD("fiber %llu destroy", id_);
         fn.~function<void()>();
         local_.~FiberLocal();
     }
@@ -873,9 +873,9 @@ struct fiber : detail::non_copyable {
         do {
             e.cond = nullptr;
             e.cur = this;
-            FFRT_API_LOGD("job %lu switch in", id_);
+            FFRT_API_LOGD("job %llu switch in", id_);
             ffrt_fiber_switch(&link, &fb);
-            FFRT_API_LOGD("job %lu switch out", id_);
+            FFRT_API_LOGD("job %llu switch out", id_);
             done = this->id_ == 0;
         } while (e.cond && !(e.cond)(this));
         e.cond = nullptr;

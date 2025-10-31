@@ -164,7 +164,7 @@ void SDependenceManager::onWait()
     if (task->Block() == BlockType::BLOCK_THREAD) {
         std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDependenceAdd(Dependence::CALL_DEPENDENCE);
-        FFRT_LOGD("onWait name:%s gid=%lu", task->GetLabel().c_str(), task->gid);
+        FFRT_LOGD("onWait name:%s gid=%llu", task->GetLabel().c_str(), task->gid);
         task->waitCond_.wait(lck, [task] { return task->childRefCnt == 0; });
         task->Wake();
         return;
@@ -220,7 +220,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
         dataDepFun();
         std::unique_lock<std::mutex> lck(task->mutex_);
         task->MultiDependenceAdd(Dependence::DATA_DEPENDENCE);
-        FFRT_LOGD("onWait name:%s gid=%lu", task->GetLabel().c_str(), task->gid);
+        FFRT_LOGD("onWait name:%s gid=%llu", task->GetLabel().c_str(), task->gid);
         task->waitCond_.wait(lck, [task] { return task->dataRefCnt.waitDep == 0; });
         task->Wake();
         return;
@@ -229,7 +229,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     auto pendDataDepFun = [dataDepFun](ffrt::CoTask* task) -> bool {
         auto sTask = static_cast<SCPUEUTask*>(task);
         dataDepFun();
-        FFRT_LOGD("onWait name:%s gid=%lu", sTask->GetLabel().c_str(), sTask->gid);
+        FFRT_LOGD("onWait name:%s gid=%llu", sTask->GetLabel().c_str(), sTask->gid);
         std::lock_guard<std::mutex> lck(sTask->mutex_);
         if (sTask->dataRefCnt.waitDep == 0) {
             return false;

@@ -214,9 +214,9 @@ int ExecuteUnit::SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageI
     if (oneStageIntervalMs < escapeConfig.oneStageIntervalMs_ ||
         twoStageIntervalMs < escapeConfig.twoStageIntervalMs_ ||
         threeStageIntervalMs < escapeConfig.threeStageIntervalMs_ || oneStageWorkerNum > twoStageWorkerNum) {
-        FFRT_LOGE("Setting failed, each stage interval value [%lu, %lu, %lu] "
-                  "cannot be smaller than default value [%lu, %lu, %lu], "
-                  "and one-stage worker number [%lu] cannot be larger than two-stage worker number [%lu].",
+        FFRT_LOGE("Setting failed, each stage interval value [%llu, %llu, %llu] "
+                  "cannot be smaller than default value [%llu, %llu, %llu], "
+                  "and one-stage worker number [%llu] cannot be larger than two-stage worker number [%llu].",
             oneStageIntervalMs,
             twoStageIntervalMs,
             threeStageIntervalMs,
@@ -238,8 +238,8 @@ int ExecuteUnit::SetEscapeEnable(uint64_t oneStageIntervalMs, uint64_t twoStageI
     escapeConfig.threeStageIntervalMs_ = threeStageIntervalMs;
     escapeConfig.oneStageWorkerNum_ = oneStageWorkerNum;
     escapeConfig.twoStageWorkerNum_ = twoStageWorkerNum;
-    FFRT_LOGI("Enable worker escape success, one-stage interval ms %lu, two-stage interval ms %lu, "
-              "three-stage interval ms %lu, one-stage worker number %lu, two-stage worker number %lu.",
+    FFRT_LOGI("Enable worker escape success, one-stage interval ms %llu, two-stage interval ms %llu, "
+              "three-stage interval ms %llu, one-stage worker number %llu, two-stage worker number %llu.",
         escapeConfig.oneStageIntervalMs_,
         escapeConfig.twoStageIntervalMs_,
         escapeConfig.threeStageIntervalMs_,

@@ -51,7 +51,7 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         }
     }
 
-    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%lu, prio=%d, timeout=%luus", gid, delay_, type, prio_,
+    FFRT_LOGD("ctor task [gid=%llu], delay=%lluus, type=%d, prio=%d, timeout=%lluus", gid, delay_, type, prio_,
         schedTimeout_);
 }
 
@@ -126,7 +126,7 @@ void QueueTask::Notify()
 void QueueTask::Execute()
 {
     IncDeleteRef();
-    FFRT_LOGD("Execute stask[%lu], name[%s]", gid, label.c_str());
+    FFRT_LOGD("Execute stask[%llu], name[%s]", gid, label.c_str());
     if (isFinished_.load()) {
         FFRT_SYSEVENT_LOGE("task [gid=%llu] is complete, no need to execute again", gid);
         DecDeleteRef();

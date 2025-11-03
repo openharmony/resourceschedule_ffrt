@@ -33,7 +33,7 @@ enum class PollerState {
 struct TimeOutReport {
     TimeOutReport() {}
     std::atomic<uint64_t> cbStartTime = 0; // block info report
-    uint64_t reportCount = 0;
+    std::atomic<uint64_t> reportCount = 0;
 };
 
 class IOPoller : public BasePoller {

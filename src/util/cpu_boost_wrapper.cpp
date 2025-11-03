@@ -59,7 +59,7 @@ private:
 
         handle = dlopen(CPU_BOOST_LIB_PATH, RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
-            FFRT_SYSEVENT_LOGE("load so[%s] fail", CPU_BOOST_LIB_PATH);
+            FFRT_SYSEVENT_LOGE("load so[%s] fail: %s", CPU_BOOST_LIB_PATH, dlerror());
             return false;
         }
 

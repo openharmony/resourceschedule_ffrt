@@ -249,9 +249,9 @@ void IOPoller::MonitTimeOut()
         return (f == 1) ? 1000000 : f;
     } ();
     uint64_t diff = (now - timeOutReport_.cbStartTime.load(std::memory_order_relaxed)) / freq;
-    uint64_t reportTime = TIMEOUT_RECORD_CYCLE_LIST[timeOutReport_.reportCount];
-    if (timeOutReport_.reportCount.load(std::memory_order_relaxed) < TIMEOUT_RECORD_CYCLE_LIST.size() &&
-        diff >= TIMEOUT_RECORD_CYCLE_LIST[timeOutReport_.reportCount.load(std::memory_order_relaxed)]) {
+    uint64_t reportTime = TIMEOUT_RECORD_CYCLE_LIST[timeOutReport_.reportCount.load(std::memory_order_relaxed)];
+    if (timeOutReport_.reportCount < TIMEOUT_RECORD_CYCLE_LIST.size() &&
+        diff >= reportTime) {
 #ifdef FFRT_OH_TRACE_ENABLE
         std::string dumpInfo;
         if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, ioPid_, 0, false)) {

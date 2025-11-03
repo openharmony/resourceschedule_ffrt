@@ -66,7 +66,7 @@ private:
 
         handle = dlopen(BEGETUTIL_LIB_PATH, RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
         if (handle == nullptr) {
-            FFRT_LOGE("load so[%s] fail", BEGETUTIL_LIB_PATH);
+            FFRT_LOGE("load so[%s] fail: %s", BEGETUTIL_LIB_PATH, dlerror());
             return false;
         }
 

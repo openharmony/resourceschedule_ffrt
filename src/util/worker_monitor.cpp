@@ -159,14 +159,14 @@ void WorkerMonitor::CheckWorkerStatus()
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
-        std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
         int executingNum = 0;
-        int sleepingNum  = 0;
+        int sleepingNum = 0;
         {
             std::lock_guard lg(workerGroup.lock);
-            executingNum =  workerGroup.executingNum;
-            sleepingNum  = workerGroup.sleepingNum;
+            executingNum = workerGroup.executingNum;
+            sleepingNum = workerGroup.sleepingNum;
         }
+        std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
         CoWorkerInfo coWorkerInfo(i, workerGroup.threads.size(), executingNum, sleepingNum);
         for (auto& thread : workerGroup.threads) {
             CPUWorker* worker = thread.first;

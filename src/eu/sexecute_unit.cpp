@@ -301,36 +301,38 @@ void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType n
 
 void SExecuteUnit::ExecuteEscape(int qos)
 {
-    if (FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos) > 0) {
-        CPUWorkerGroup& workerCtrl = workerGroup[qos];
-        std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
+    if (FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos) <= 0) {
+        return;
+    }
 
-        size_t runningNum = GetRunningNum(qos);
-        size_t totalNum = static_cast<size_t>(workerCtrl.sleepingNum + workerCtrl.executingNum);
-        if ((workerCtrl.sleepingNum > 0) && (runningNum < workerCtrl.maxConcurrency)) {
-            statusLock.unlock();
-            WakeupWorkers(qos);
-        } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
-            size_t executingNum = workerCtrl.executingNum;
-            if (IsEscapeEnable()) {
-                workerCtrl.WorkerCreate();
-                executingNum++;
-                FFRTTraceRecord::WorkRecord(qos, executingNum);
-                auto curTime = std::chrono::steady_clock::now();
-                if (!isEscapeStageOne(executingNum) ||
-                    (curTime - workerCtrl.escapeReportTime) > std::chrono::seconds(1)) {
-                    workerCtrl.escapeReportTime = curTime;
-                    workerCtrl.lock.unlock();
-                    ReportEscapeEvent(qos, executingNum);
-                } else {
-                    workerCtrl.lock.unlock();
-                }
-                if (!IncWorker(qos)) {
-                    workerCtrl.RollBackCreate();
-                }
+    CPUWorkerGroup& workerCtrl = workerGroup[qos];
+    std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
+
+    size_t runningNum = GetRunningNum(qos);
+    size_t totalNum = static_cast<size_t>(workerCtrl.sleepingNum + workerCtrl.executingNum);
+    if ((workerCtrl.sleepingNum > 0) && (runningNum < workerCtrl.maxConcurrency)) {
+        statusLock.unlock();
+        WakeupWorkers(qos);
+    } else if ((runningNum == 0) && (totalNum < MAX_ESCAPE_WORKER_NUM)) {
+        size_t executingNum = workerCtrl.executingNum;
+        if (IsEscapeEnable()) {
+            workerCtrl.WorkerCreate();
+            executingNum++;
+            FFRTTraceRecord::WorkRecord(qos, executingNum);
+            auto curTime = std::chrono::steady_clock::now();
+            if (!isEscapeStageOne(executingNum) ||
+                (curTime - workerCtrl.escapeReportTime) > std::chrono::seconds(1)) {
+                workerCtrl.escapeReportTime = curTime;
+                statusLock.unlock();
+                ReportEscapeEvent(qos, executingNum);
             } else {
                 statusLock.unlock();
             }
+            if (!IncWorker(qos)) {
+                workerCtrl.RollBackCreate();
+            }
+        } else {
+            statusLock.unlock();
         }
     }
 }

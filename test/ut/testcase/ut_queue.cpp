@@ -620,6 +620,65 @@ HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name, TestSize.Level0)
 }
 
 /*
+ * 测试用例名称 : ffrt_queue_cancel_all_and_cancel_by_name_concurrent
+ * 测试用例描述 : 测试并发队列 ffrt_queue_cancel_all、ffrt_queue_cancel_by_name
+ * 操作步骤     : 1、往队列中提交若干任务
+ *               2、调用ffrt_queue_cancel_by_name取消指定任务
+ *               3、调用ffrt_queue_cancel_all取消所有任务
+ * 预期结果    : 任务取消成功
+ */
+HWTEST_F(QueueTest, ffrt_queue_cancel_all_and_cancel_by_name_concurrent, TestSize.Level0)
+{
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
+    uint64_t concurrency = 1;
+    ffrt_queue_attr_set_max_concurrency(&queue_attr, concurrency);
+
+    ffrt_queue_t queue_handle = ffrt_queue_create(
+        static_cast<ffrt_queue_type_t>(ffrt_queue_concurrent), "test_queue", &queue_attr);
+    std::mutex lock;
+    lock.lock();
+    std::function<void()> basicFunc = [&]() { lock.lock(); };
+    std::function<void()> emptyFunc = []() {};
+
+    ffrt_task_attr_t task_attr;
+    ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_name(&task_attr, "basic_function");
+    ffrt_task_handle_t handle = ffrt_queue_submit_h(queue_handle,
+        create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+
+    for (int i = 0; i < 10; i++) {
+        std::string name = "empty_function_" + std::to_string(i);
+        ffrt_task_attr_set_name(&task_attr, name.c_str());
+        ffrt_queue_submit(queue_handle, create_function_wrapper(emptyFunc, ffrt_function_kind_queue), &task_attr);
+    }
+
+    // 测试ffrt_queue_cancel_by_name
+    bool hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_3");
+    EXPECT_EQ(hasEmptyTask, true);
+
+    ffrt_queue_cancel_by_name(queue_handle, "empty_function_3");
+
+    hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_3");
+    EXPECT_EQ(hasEmptyTask, false);
+
+    // 测试ffrt_queue_cancel_all
+    hasEmptyTask = ffrt_queue_has_task(queue_handle, "empty_function_.*");
+    EXPECT_EQ(hasEmptyTask, true);
+
+    ffrt_queue_cancel_all(queue_handle);
+
+    lock.unlock();
+    ffrt_queue_cancel_and_wait(queue_handle);
+    ffrt_queue_wait(handle);
+
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(handle);
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}
+
+/*
  * 测试用例名称 : ffrt_queue_submit_head
  * 测试用例描述 : 测试 ffrt_queue_submit_head
  * 操作步骤     : 1、往队列中提交若干任务

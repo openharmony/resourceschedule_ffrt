@@ -24,6 +24,8 @@
 #include "util/time_format.h"
 
 namespace {
+constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
+constexpr uint32_t NONE_TASK_ACTIVE = 0;
 constexpr uint32_t US_PER_MS = 1000;
 constexpr uint64_t ALLOW_ACC_ERROR_US = 10 * US_PER_MS; // 10ms
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000 * US_PER_MS; // 1s
@@ -86,7 +88,6 @@ void QueueMonitor::SetAlarm(uint64_t steadyUs)
 {
     we_->tp = std::chrono::steady_clock::time_point() + std::chrono::microseconds(steadyUs);
     we_->cb = ([this](WaitEntry* we) { ScheduleAlarm(); });
-
     // generally does not fail
     if (!DelayedWakeup(we_->tp, we_, we_->cb, true)) {
         FFRT_LOGW("failed to set delayedworker");

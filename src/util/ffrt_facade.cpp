@@ -29,6 +29,7 @@ char g_processName[PROCESS_NAME_BUFFER_LENGTH] {};
 std::atomic<bool> g_initFlag { false };
 std::atomic<bool> g_exitFlag { false };
 std::atomic<bool> g_delayedWorkerExitFlag { false };
+std::atomic<bool> g_betaVersionFlag { false };
 std::shared_mutex g_exitMtx;
 std::once_flag g_processNameInitFlag;
 }
@@ -68,6 +69,16 @@ bool GetDelayedWorkerExitFlag()
 void SetDelayedWorkerExitFlag()
 {
     g_delayedWorkerExitFlag.store(true);
+}
+
+bool GetBetaVersionFlag()
+{
+    return g_betaVersionFlag;
+}
+
+void SetBetaVersionFlag()
+{
+    g_betaVersionFlag.store(true);
 }
 
 class ProcessExitManager {

@@ -20,6 +20,7 @@
 #include "dm/dependence_manager.h"
 #include "dm/sdependence_manager.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/sysevent/sysevent.h"
 #include "util/singleton_register.h"
 #include "util/white_list.h"
 #include "tm/task_factory.h"
@@ -48,6 +49,13 @@ void RegistCommonTaskFactory()
 __attribute__((constructor)) static void ffrt_init()
 {
     RegistCommonTaskFactory();
+
+#ifdef FFRT_SEND_EVENT
+    if (ffrt::IsBeta()) {
+        ffrt::SetBetaVersionFlag();
+    }
+#endif
+
     ffrt::RegisterTaskFactoryCallbacks<ffrt::CPUEUTask, ffrt::SCPUEUTask>();
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::STaskScheduler(); },

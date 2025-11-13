@@ -53,6 +53,7 @@ CPUWorker::CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize) : qos
 #endif
 #ifdef FFRT_SEND_EVENT
     uint64_t freq = 1000000;
+    isBetaVersion = GetBetaVersionFlag();
 #if defined(__aarch64__)
     asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
 #endif
@@ -134,9 +135,8 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 {
     bool isNotUv = task->type == ffrt_normal_task || task->type == ffrt_queue_task;
 #ifdef FFRT_SEND_EVENT
-    static bool isBetaVersion = IsBeta();
     uint64_t startExecuteTime = 0;
-    if (isBetaVersion) {
+    if (worker->isBetaVersion) {
         startExecuteTime = TimeStamp();
         if (likely(isNotUv)) {
             worker->cacheLabel = task->GetLabel();
@@ -157,7 +157,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     worker->curTask.store(nullptr, std::memory_order_relaxed);
     worker->curTaskType_.store(ffrt_invalid_task, std::memory_order_relaxed);
 #ifdef FFRT_SEND_EVENT
-    if (isBetaVersion) {
+    if (worker->isBetaVersion) {
         uint64_t execDur = ((TimeStamp() - startExecuteTime) / worker->cacheFreq);
         TaskBlockInfoReport(execDur, isNotUv ? worker->cacheLabel : "uv_task", worker->cacheQos, worker->cacheFreq);
     }

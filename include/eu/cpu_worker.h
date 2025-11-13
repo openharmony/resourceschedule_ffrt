@@ -217,6 +217,7 @@ private:
     int cacheQos; // cache int qos
     std::string cacheLabel; // cache string label
     uint64_t cacheFreq = 1000000; // cache cpu freq
+    bool isBetaVersion;
 #endif
     std::atomic_bool exited {false};
     std::atomic<pid_t> tid {-1};

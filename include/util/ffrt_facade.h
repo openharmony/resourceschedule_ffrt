@@ -31,6 +31,8 @@ std::shared_mutex& GetExitMtx();
 const char* GetCurrentProcessName();
 bool GetDelayedWorkerExitFlag();
 void SetDelayedWorkerExitFlag();
+bool GetBetaVersionFlag();
+void SetBetaVersionFlag();
 
 class FFRTFacade {
 public:

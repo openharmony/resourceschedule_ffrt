@@ -170,15 +170,17 @@ public:
             if (taskType == ffrt_normal_task) {
                 auto baseTask = reinterpret_cast<CPUEUTask*>(task);
                 auto f = reinterpret_cast<ffrt_function_header_t*>(baseTask->func_storage);
-                baseTask->label.resize(MAX_TASK_NAME_LENGTH - 1, ' ');
-                ret = strcpy_s(stat.taskName, MAX_TASK_NAME_LENGTH, baseTask->GetLabel().c_str());
+                std::string tempLable(baseTask->label);
+                tempLable.resize(MAX_TASK_NAME_LENGTH - 1, ' ');
+                ret = strcpy_s(stat.taskName, MAX_TASK_NAME_LENGTH, tempLable.c_str());
                 stat.funcPtr = reinterpret_cast<uint64_t>(f->exec);
             }
             if (taskType == ffrt_queue_task) {
                 auto baseTask = reinterpret_cast<QueueTask*>(task);
                 auto f = reinterpret_cast<ffrt_function_header_t*>(baseTask->func_storage);
-                baseTask->label.resize(MAX_TASK_NAME_LENGTH - 1, ' ');
-                ret = strcpy_s(stat.taskName, MAX_TASK_NAME_LENGTH, baseTask->GetLabel().c_str());
+                std::string tempLable(baseTask->label);
+                tempLable.resize(MAX_TASK_NAME_LENGTH - 1, ' ');
+                ret = strcpy_s(stat.taskName, MAX_TASK_NAME_LENGTH, tempLable.c_str());
                 stat.funcPtr = reinterpret_cast<uint64_t>(f->exec);
             }
             if (ret != EOK) {

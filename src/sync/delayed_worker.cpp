@@ -351,6 +351,6 @@ void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func)
 
         func();
         asyncTaskCnt_.fetch_sub(1);
-        }, {}, {this}, ffrt::task_attr().qos(qos_background));
+        }, {}, {}, ffrt::task_attr().qos(qos_background));
 }
 } // namespace ffrt

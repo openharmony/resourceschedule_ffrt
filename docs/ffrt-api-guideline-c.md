@@ -1096,6 +1096,7 @@ void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_
 
 - 设置检测到队列任务超时后执行的回调函数。
 - 不建议在`f`中调用`exit`函数，可能导致未定义行为。
+- 任务在`timeout`约定时间点未执行完成，ffrt则会调用该`callback`函数，**需要注意的是：`callback`函数执行时，任务可能正在执行或已执行完。**
 
 ##### ffrt_queue_attr_get_callback
 

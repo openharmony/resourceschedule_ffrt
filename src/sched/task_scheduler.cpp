@@ -225,24 +225,27 @@ bool TaskScheduler::CancelUVWork(ffrt_executor_task_t* uvWork)
         return false;
     }
 
-    auto iter = std::remove_if(uvTaskWaitingQueue_.begin(), uvTaskWaitingQueue_.end(), [uvWork](UVTask* task) {
+    auto iter = std::remove_if(uvTaskWaitingQueue_.begin(), uvTaskWaitingQueue_.end(), [this, uvWork](UVTask* task) {
         if (task->uvWork == uvWork) {
+            // SetDequeued writes to user-allocated uvWork, we must ensure it wasn't previously cancelled.
+            if (cancelSet_.find(uvWork) == cancelSet_.end()) {
+                task->SetDequeued();
+            }
             return true;
         }
         return false;
     });
     if (iter != uvTaskWaitingQueue_.end()) {
         uvTaskWaitingQueue_.erase(iter, uvTaskWaitingQueue_.end());
+        if (cancelSet_.find(uvWork) != cancelSet_.end()) {
+            // We erase uvWork from set which was cancelled before to avoid memory leak.
+            cancelSet_.erase(uvWork);
+            return false;
+        }
         return true;
     }
 
-    auto it = cancelMap_.find(uvWork);
-    if (it != cancelMap_.end()) {
-        it->second++;
-    } else {
-        cancelMap_[uvWork] = 1;
-    }
-    return true;
+    return cancelSet_.insert(uvWork).second;
 }
 
 std::mutex* TaskScheduler::GetMutex()

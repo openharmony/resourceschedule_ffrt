@@ -339,6 +339,7 @@ HWTEST_F(DependencyTest, executor_task_cancel_with_uv_queue, TestSize.Level1)
         for (int i = 0; i < taskCount; i++) {
             if (!UvQueueEmpty(reinterpret_cast<UvQueue*>(&works[i].wq)) &&
                 ffrt_executor_task_cancel(&works[i], ffrt::qos_user_initiated)) {
+                EXPECT_EQ(ffrt_executor_task_cancel(&works[i], ffrt::qos_user_initiated), 0);
                 cancelCount.fetch_add(1);
                 flag.store(true, std::memory_order_relaxed);
             }

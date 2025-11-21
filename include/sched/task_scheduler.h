@@ -119,14 +119,10 @@ protected:
     {
         std::lock_guard<std::mutex> lg(uvMtx);
         UVTask* uvTask = static_cast<UVTask*>(task);
-        auto it = cancelMap_.find(uvTask->uvWork);
-        if (it != cancelMap_.end()) {
+        auto it = cancelSet_.find(uvTask->uvWork);
+        if (it != cancelSet_.end()) {
             uvTask->FreeMem();
-            // the task has been canceled, remove it
-            if (it->second == 1)
-                cancelMap_.erase(it);
-            else
-                it->second--;
+            cancelSet_.erase(it);
             return nullptr;
         }
 
@@ -137,7 +133,7 @@ protected:
 private:
     std::atomic<std::mutex*> mtx {nullptr};
     std::mutex uvMtx;
-    std::unordered_map<ffrt_executor_task_t*, uint32_t> cancelMap_;
+    std::set<ffrt_executor_task_t*> cancelSet_;
     int uvTaskConcurrency_ = 0;
     std::deque<UVTask*> uvTaskWaitingQueue_;
     std::atomic<bool> stealingInProgress { false }; /* indicates whether a stealer is in progress or not */

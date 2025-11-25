@@ -86,8 +86,8 @@ private:
 
     bool waitingAll_ = false;
     std::multimap<uint64_t, QueueTask*> waitingMap_;
-    std::multimap<uint64_t, QueueTask*> whenMapVec_[4];
-    std::vector<std::pair<uint64_t, QueueTask*>> allWhenmapTask;
+    std::multimap<uint64_t, QueueTask*> whenMapVec_[ffrt_queue_priority_idle + 1];
+    std::vector<std::pair<uint64_t, QueueTask*>> allWhenmapTask_;
 };
 
 std::unique_ptr<BaseQueue> CreateConcurrentQueue(const ffrt_queue_attr_t* attr, const char* name);

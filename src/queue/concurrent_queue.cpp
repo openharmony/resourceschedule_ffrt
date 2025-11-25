@@ -159,14 +159,9 @@ void ConcurrentQueue::Stop()
     isExit_ = true;
 
     for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
-        for (auto it = whenMapVec_[idx].begin(); it != whenMapVec_[idx].end(); it++) {
-            if (it->second) {
-                it->second->Notify();
-                it->second->Destroy();
-            }
-        }
-        whenMapVec_[idx].clear();
+        Stop(whenMapVec_[idx]);
     }
+
     Stop(waitingMap_);
     if (loop_ == nullptr) {
         cond_.notify_all();
@@ -294,24 +289,31 @@ std::vector<QueueTask*> ConcurrentQueue::GetHeadTask()
         return {};
     }
 
-    allWhenmapTask.clear();
-
+    allWhenmapTask_.clear();
+    // 将多个whenmapvec中的任务都塞入allWhenmapTask_中
     for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
-        if (!whenMapVec_[idx].empty()) {
-            for (const auto& [upTime, qtask] : whenMapVec_[idx]) {
-                allWhenmapTask.emplace_back(upTime, qtask);
+        int count = 0;
+        if (whenMapVec_[idx].empty()) {
+            continue;
+        }
+        for (const auto& [upTime, qtask] : whenMapVec_[idx]) {
+            if (count >= maxConcurrency_) {
+                break;
             }
+            allWhenmapTask_.emplace_back(upTime, qtask);
+            count++;
         }
     }
 
-    std::sort(allWhenmapTask.begin(), allWhenmapTask.end(),
-                [](const auto& lhs, const auto& rhs) {
-                    return lhs.first < rhs.first;
-                });
+    // 排序后取并发度个任务放入headtaskvec中返回
+    std::sort(allWhenmapTask_.begin(), allWhenmapTask_.end(),
+        [](const auto& lhs, const auto& rhs) {
+            return lhs.first < rhs.first;
+    });
 
-    for (size_t i = 0; i < maxConcurrency_; i++) {
-        if (i < allWhenmapTask.size()) {
-            headTaskVec_[i] = allWhenmapTask[i].second;
+    for (size_t i = 0; i < static_cast<size_t>(maxConcurrency_); i++) {
+        if (i < allWhenmapTask_.size()) {
+            headTaskVec_[i] = allWhenmapTask_[i].second;
         } else {
             headTaskVec_[i] = nullptr;
         }

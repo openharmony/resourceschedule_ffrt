@@ -50,6 +50,7 @@ public:
     * @brief 从队列首部批量取出元素后将元素批量推入目标队列尾部。
     * @param dstQueue 目标队列。
     * @param elementNum 取出元素数量。
+    * @param qos        全局队列qos等级。
     * @param func       元素入队操作。
     * @retval 返回被推入队列尾部的元素数量。
     */

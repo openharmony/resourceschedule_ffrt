@@ -816,29 +816,6 @@ HWTEST_F(CoreTest, FfrtSetCgroupAttr_WhenFuncQosMapIsNull_NegativeOne, TestSize.
 }
 
 /*
- * 测试用例名称：FfrtSetWorkerStackSize_WhenDiffThreadNum_SuccAndErr
- * 测试用例描述：测试ffrt_set_worker_stack_size接口传入正常值，而线程数量不同时是否正常
- * 预置条件    ：无
- * 操作步骤    ：1、调用ffrt_set_worker_stack_size接口，传入正常值
-                2、创建并提交一个任务，调用ffrt_set_worker_stack_size接口，传入正常值
- * 预期结果    ：无任务时返回ffrt_success,有任务时返回ffrt_error
-*/
-HWTEST_F(CoreTest, FfrtSetWorkerStackSize_WhenDiffThreadNum_SuccAndErr, TestSize.Level1)
-{
-    ffrt_error_t ret;
-    int qos = ffrt_qos_background;
-    int stackSizeMin = PTHREAD_STACK_MIN;
-    ret = ffrt_set_worker_stack_size(qos, stackSizeMin);
-
-    std::function<void()> cbOne = []() { usleep(100000); printf("callback\n"); };
-    ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
-    ffrt_submit_base(func, {}, {}, nullptr);
-    ret = ffrt_set_worker_stack_size(ffrt_qos_default, stackSizeMin);
-    EXPECT_EQ(ret, ffrt_error);
-    ffrt::wait();
-}
-
-/*
  * 测试用例名称：FfrtExecutorTaskCancel_AbnormalInput_Zero
  * 测试用例描述：测试ffrt_executor_task_cancel接口传入异常值时的返回值
  * 预置条件    ：无

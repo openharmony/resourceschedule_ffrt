@@ -61,20 +61,10 @@ public:
         // dequeue next expired task by priority
         int iterIndex = ffrt_queue_priority_idle;
         auto iterTarget = whenMapVec[iterIndex].cbegin();
-        for (int idx = ffrt_queue_priority_immediate; idx <= ffrt_queue_priority_idle; idx++) {
-            const auto& currentMap = whenMapVec[idx];
-            if (currentMap.empty()) {
-                continue;
-            }
-            if (whenMapVec[iterIndex].empty() || iterTarget->first > currentMap.cbegin()->first) {
-                iterIndex = idx;
-                iterTarget = currentMap.cbegin();
-            }
-        }
 
         for (int idx = ffrt_queue_priority_immediate; idx <= ffrt_queue_priority_idle; idx++) {
             const auto& currentMap = whenMapVec[idx];
-            if (!currentMap.empty() && currentMap.cbegin()->first < now) {
+            if (!currentMap.empty() && currentMap.cbegin()->first <= now) {
                 iterTarget = currentMap.cbegin();
                 iterIndex = idx;
                 break;
@@ -86,8 +76,7 @@ public:
 
         size_t mapCount = 0;
         for (int idx = ffrt_queue_priority_immediate; idx <= ffrt_queue_priority_idle; idx++) {
-            auto& currentMap = whenMapVec[idx];
-            mapCount += currentMap.size();
+            mapCount += whenMapVec[idx].size();
         }
         FFRT_LOGD("dequeue [gid=%llu], %u other tasks in [queueId=%u] ", head->gid, mapCount, queueId);
         return head;

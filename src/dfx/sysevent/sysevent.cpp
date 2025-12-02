@@ -141,15 +141,33 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
     }
 }
 
-void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, const std::string& senarioName)
+void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, const std::string& senarioName,
+    int tid, int qos)
 {
     std::string msg = ss.str();
-    std::string eventName = "TASK_TIMEOUT";
+    std::string eventName = "CONGESTION";
     time_t cur_time = time(nullptr);
+    int uid = getuid();
     std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
-        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", senarioName,
-        "PROCESS_NAME", processName, "MSG", sendMsg);
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
+        "PROCESS_NAME", processName, "MSG", sendMsg, "TID", static_cast<uint32_t>(tid),
+        "QOS", static_cast<uint32_t>(qos), "UID", static_cast<uint32_t>(uid));
+}
+
+void QueueTaskTimeoutReport(std::stringstream& ss, const std::string& processName, const std::string& senarioName,
+    int tid, const std::string& qname, int qos)
+{
+    std::string msg = ss.str();
+    std::string eventName = "CONGESTION";
+    time_t cur_time = time(nullptr);
+    int uid = getuid();
+    std::string queueName = qname.substr(0, qname.find_last_of('_'));
+    std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
+    HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
+        "PROCESS_NAME", processName, "MSG", sendMsg, "TID", static_cast<uint32_t>(tid),
+        "QNAME", queueName, "QOS", static_cast<uint32_t>(qos), "UID", static_cast<uint32_t>(uid));
 }
 
 void TrafficOverloadReport(std::stringstream& ss, const std::string& senarioName)
@@ -168,10 +186,11 @@ void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum
     std::stringstream ss;
     ss << "qos: " << qos << ", worker num: " << totalNum;
     std::string msg = ss.str();
-    std::string eventName = "TASK_TIMEOUT";
+    std::string eventName = "CONGESTION";
+    int uid = getuid();
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
-        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SENARIO", "Trigger_Escape",
-        "PROCESS_NAME", processName, "MSG", msg);
+        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", "Trigger_Escape",
+        "PROCESS_NAME", processName, "MSG", msg, "QOS", static_cast<uint32_t>(qos), "UID", static_cast<uint32_t>(uid));
     FFRT_LOGW("Process: %s trigger escape. %s", processName.c_str(), msg.c_str());
 }
 }

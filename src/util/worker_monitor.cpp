@@ -392,7 +392,10 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
 #ifdef FFRT_SEND_EVENT
     if (timeoutFunction.executionTime_ == HISYSEVENT_TIMEOUT_SEC) {
         std::string senarioName = "Task_Sch_Timeout";
-        TaskTimeoutReport(ss, processNameStr, senarioName);
+        int tid = timeoutFunction.workerInfo_.tid_;
+        int qos = timeoutFunction.coWorkerInfo_.qosLevel_;
+
+        TaskTimeoutReport(ss, processNameStr, senarioName, tid, qos);
     }
 #endif
 }

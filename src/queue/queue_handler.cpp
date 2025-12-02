@@ -560,7 +560,24 @@ void QueueHandler::ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss, 
 #ifdef FFRT_SEND_EVENT
     if (timeoutTaskVec_[index].timeoutCnt == 1) {
         std::string senarioName = "Serial_Queue_Timeout";
-        TaskTimeoutReport(ss, GetCurrentProcessName(), senarioName);
+        int qos = curTaskVec_[index]->GetQos();
+        std::string qname = queue_->GetQueueName();
+
+        QueueTask* queueTask = curTaskVec_[index];
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(qos);
+        int tid = 0;
+        {
+            std::lock_guard<std::shared_mutex> lck(workerGroup.tgMutex);
+            for (const auto& thread : workerGroup.threads) {
+                TaskBase* t = thread.first->curTask;
+                if (t == queueTask) {
+                    tid = thread.first->Id();
+                    std::cout << "curTask tid : " << tid << std::endl;
+                    break;
+                }
+            }
+        }
+        QueueTaskTimeoutReport(ss, GetCurrentProcessName(), senarioName, tid, qname, qos);
     }
 #endif
 }

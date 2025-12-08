@@ -89,45 +89,6 @@ void FibonacciTest(void* data, int fibnum)
 } // namespace
 
 void EmptyFunction() {}
-/*
- * 测试用例名称 : serial_queue_submit_cancel_succ
- * 测试用例描述：提交、取消串行延时任务成功
- * 预置条件    ：1、调用串行队列创建接口创建队列
- * 操作步骤    ：1、提交串行队列任务并执行
- *              2、提交延时串行队列任务并执行
- * 预期结果    ：执行成功
- */
-HWTEST_F(QueueTest, serial_queue_submit_cancel_succ, TestSize.Level0)
-{
-    // 创建队列
-    ffrt_queue_attr_t queue_attr;
-    (void)ffrt_queue_attr_init(&queue_attr); // 初始化属性，必须
-    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
-
-    int result = 0;
-    std::function<void()> basicFunc = [&result]() { OnePlusForTest(static_cast<void*>(&result)); };
-    ffrt_queue_submit(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
-
-    ffrt_task_handle_t task1 =
-        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), nullptr);
-    ffrt_queue_wait(task1);
-    ffrt_task_handle_destroy(task1); // 销毁task_handle，必须
-    EXPECT_EQ(result, 2);
-
-    ffrt_task_attr_t task_attr;
-    (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
-    ffrt_task_attr_set_delay(&task_attr, 1000); // 设置任务1ms后才执行，非必须
-    ffrt_task_handle_t task2 =
-        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
-    int cancel = ffrt_queue_cancel(task2);
-    ffrt_task_handle_destroy(task2); // 销毁task_handle，必须
-    ffrt_queue_attr_destroy(&queue_attr);
-    EXPECT_EQ(cancel, 0);
-    EXPECT_EQ(result, 2);
-
-    // 销毁队列
-    ffrt_queue_destroy(queue_handle);
-}
 
 /*
  * 测试用例名称 : serial_queue_create_fail

@@ -21,24 +21,7 @@
 #ifdef FFRT_PERF_ENABLE
 struct PerfEU {
     static constexpr size_t qos_max = 15;
-    static inline std::atomic_int worker_num[qos_max] = {0};
-    static inline const char* worker_num_tag[qos_max] = {
-        "qos0_wrk",
-        "qos1_wrk",
-        "qos2_wrk",
-        "qos3_wrk",
-        "qos4_wrk",
-        "qos5_wrk",
-        "qos6_wrk",
-        "qos7_wrk",
-        "qos8_wrk",
-        "qos9_wrk",
-        "qos10_wrk",
-        "qos11_wrk",
-        "qos12_wrk",
-        "qos13_wrk",
-        "qos14_wrk"
-    };
+    static inline std::atomic_int worker_num = {0};
 
     static inline const char* task_num_tag[qos_max] = {
         "qos0_tsk",
@@ -59,20 +42,10 @@ struct PerfEU {
     };
 };
 
-inline void FFRTPerfWorkerIdle(int qos)
-{
-    if (qos >= 0 && qos < static_cast<int>(PerfEU::qos_max)) {
-        FFRT_TRACE_COUNT(PerfEU::worker_num_tag[qos],
-            PerfEU::worker_num[qos].fetch_sub(1, std::memory_order_relaxed) - 1);
-    }
-}
-
 inline void FFRTPerfWorkerAwake(int qos)
 {
-    if (qos >= 0 && qos < static_cast<int>(PerfEU::qos_max)) {
-        FFRT_TRACE_COUNT(PerfEU::worker_num_tag[qos],
-            PerfEU::worker_num[qos].fetch_add(1, std::memory_order_relaxed) + 1);
-    }
+    (void)qos;
+    FFRT_TRACE_COUNT("wakeup", PerfEU::worker_num.fetch_add(1, std::memory_order_relaxed) + 1);
 }
 
 inline void FFRTPerfTaskNum(int qos, int taskn)
@@ -82,7 +55,7 @@ inline void FFRTPerfTaskNum(int qos, int taskn)
     }
 }
 
-#define FFRT_PERF_WORKER_IDLE(qos) FFRTPerfWorkerIdle(qos)
+#define FFRT_PERF_WORKER_IDLE(qos)
 #define FFRT_PERF_WORKER_AWAKE(qos) FFRTPerfWorkerAwake(qos)
 #define FFRT_PERF_TASK_NUM(qos, taskn) FFRTPerfTaskNum(qos, taskn)
 #else

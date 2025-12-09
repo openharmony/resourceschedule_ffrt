@@ -55,7 +55,7 @@ int SerialQueue::Push(QueueTask* task)
     if (task == whenMap_.begin()->second) {
         cond_.notify_one();
     } else if ((whenMap_.begin()->second->GetDelay() > 0) && (GetNow() > whenMap_.begin()->first)) {
-        FFRT_LOGI("push task notify cond_wait.");
+        FFRT_LOGD("push task notify cond_wait.");
         cond_.notify_one();
     }
 

@@ -35,10 +35,10 @@ void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStack
 }
 
 namespace ffrt {
-uint64_t FFRTCollectAsyncStack(void)
+uint64_t FFRTCollectAsyncStack(uint64_t taskType)
 {
     if (g_collectAsyncStackFunc != nullptr) {
-        return g_collectAsyncStackFunc();
+        return g_collectAsyncStackFunc(taskType);
     }
 
     return 0;

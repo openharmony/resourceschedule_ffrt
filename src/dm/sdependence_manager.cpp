@@ -22,6 +22,7 @@
 
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
+#include "async_stack.h"
 #endif
 
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
@@ -91,7 +92,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     FFRT_SUBMIT_MARKER(task->gid);
 #ifdef FFRT_ASYNC_STACKTRACE
     {
-        task->stackId = FFRTCollectAsyncStack();
+        task->stackId = FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_POOL);
     }
 #endif
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));

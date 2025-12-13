@@ -15,11 +15,12 @@
 #ifndef FFRT_DFX_ASYNC_STACK_H
 #define FFRT_DFX_ASYNC_STACK_H
 #include <cinttypes>
+#include "async_stack.h"
 using SetStackIdFunc = void(*)(uint64_t stackId);
-using CollectAsyncStackFunc = uint64_t(*)();
+using CollectAsyncStackFunc = uint64_t(*)(uint64_t taskType);
 extern "C" void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc);
 namespace ffrt {
-    uint64_t FFRTCollectAsyncStack(void);
+    uint64_t FFRTCollectAsyncStack(uint64_t taskType);
     void FFRTSetStackId(uint64_t stackId);
 }
 #endif /* FFRT_DFX_ASYNC_STACK_H */

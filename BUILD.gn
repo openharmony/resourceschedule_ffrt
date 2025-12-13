@@ -222,6 +222,7 @@ ohos_shared_library("libffrt") {
       "faultloggerd:libunwinder",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
+      "faultloggerd:libasync_stack"
     ]
 
     defines = []

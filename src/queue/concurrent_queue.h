@@ -15,6 +15,7 @@
 #ifndef FFRT_CONCURRENT_QUEUE_H
 #define FFRT_CONCURRENT_QUEUE_H
 
+#include <numeric>
 #include "queue/base_queue.h"
 
 namespace ffrt {
@@ -47,10 +48,12 @@ public:
         return ffrt_queue_concurrent;
     }
 
-    inline uint64_t GetMapSize() override
+    uint64_t GetMapSize() override
     {
         std::lock_guard lock(mutex_);
-        return whenMap_.size() + waitingMap_.size();
+        return std::accumulate(std::begin(whenMapVec_), std::end(whenMapVec_), 0u,
+            [] (uint64_t size, const std::multimap<uint64_t, QueueTask*>& whenMap) { return size + whenMap.size(); })
+            + waitingMap_.size();
     }
 
     bool SetLoop(Loop* loop);

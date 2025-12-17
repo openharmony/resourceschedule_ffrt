@@ -355,7 +355,7 @@ unsigned int GetBboxCalledTimes(void)
 
 bool FFRTIsWork()
 {
-    return FFRTTraceRecord::FfrtBeUsed();
+    return FFRTTraceRecord::FfrtBeUsed() && !GetExitFlag();
 }
 
 void RecordDebugInfo(void)

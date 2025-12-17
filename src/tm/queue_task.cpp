@@ -62,7 +62,7 @@ QueueTask::~QueueTask()
 
 void QueueTask::Prepare()
 {
-    SetStatus(TaskStatus::ENQUEUED);
+    SetStatus(TaskStatus::ENQUEUED, ConvertUsToCntvct(delay_));
     FFRTTraceRecord::TaskSubmit<ffrt_queue_task>(qos_, &createTime, &fromTid);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
     if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {

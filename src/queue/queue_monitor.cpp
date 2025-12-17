@@ -78,8 +78,7 @@ void QueueMonitor::DeregisterQueue(QueueHandler* queue)
 void QueueMonitor::UpdateQueueInfo()
 {
     if (suspendAlarm_.exchange(false)) {
-        uint64_t alarmTime = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now()).time_since_epoch().count()) + timeoutUs_;
+        uint64_t alarmTime = TimeStampSteady() + timeoutUs_;
         SetAlarm(alarmTime);
     }
 }
@@ -111,7 +110,7 @@ void QueueMonitor::ScheduleAlarm()
 void QueueMonitor::CheckTimeout(uint64_t& nextTaskStart)
 {
     // 未来ALLOW_ACC_ERROR_US可能超时的任务，一起上报
-    uint64_t now = TimeStampCntvct();
+    uint64_t now = TimeStampSteady();
     uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
     std::vector<std::pair<std::pair<std::vector<uint64_t>, uint64_t>, std::stringstream>> curTaskTimeInfoVec;
 

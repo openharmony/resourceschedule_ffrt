@@ -17,24 +17,18 @@
 #include <securec.h>
 #include "dfx/log/ffrt_log_api.h"
 
-namespace {
-#if defined(__aarch64__)
-const uint64_t tsc_base = ffrt::Arm64CntCt();
-const std::chrono::steady_clock::time_point steady_base = std::chrono::steady_clock::now();
-const uint64_t freq = ffrt::Arm64CntFrq();
-#endif
-}
 namespace ffrt {
 uint64_t ConvertTscToSteadyClockCount(uint64_t cntCt)
 {
 #if defined(__aarch64__)
-    const uint64_t delta_tsc = cntCt - tsc_base;
     constexpr int ratio = 1000 * 1000;
-
-    const uint64_t delta_micro = (delta_tsc * ratio) / freq;
+    const uint64_t tsc_base = Arm64CntCt();
+    static int64_t freq = static_cast<int64_t>(Arm64CntFrq());
+    int64_t timeUs = static_cast<int64_t>((static_cast<double>(cntCt) - static_cast<double>(tsc_base)) / freq) * ratio;
+    auto steady_base = std::chrono::steady_clock::now();
 
     return static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
-        steady_base + std::chrono::microseconds(delta_micro)).time_since_epoch().count());
+        steady_base + std::chrono::microseconds(timeUs)).time_since_epoch().count());
 #else
     return cntCt;
 #endif
@@ -64,13 +58,6 @@ uint64_t ConvertUsToCntvct(uint64_t time)
 #else
     return time;
 #endif
-}
-
-uint64_t TimeStampCntvct()
-{
-    // 在非arm环境下获取std的时间戳，单位微秒
-    return static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now()).time_since_epoch().count());
 }
 
 std::string FormatDateToString(uint64_t timeStamp)
@@ -151,13 +138,15 @@ std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit)
 {
     constexpr int ratio = 1000 * 1000;
 
-    int64_t referenceFreq = static_cast<int64_t>(Arm64CntFrq());
+    static int64_t referenceFreq = static_cast<int64_t>(Arm64CntFrq());
     if (referenceFreq == 0) {
         return "";
     }
     uint64_t referenceCntCt = Arm64CntCt();
+    int64_t timeUs = static_cast<int64_t>((static_cast<double>(cntCtTimeStamp) - static_cast<double>(referenceCntCt))
+        / referenceFreq) * ratio;
     auto globalTp = std::chrono::system_clock::now();
-    std::chrono::microseconds us(static_cast<int64_t>(cntCtTimeStamp - referenceCntCt) * ratio / referenceFreq);
+    std::chrono::microseconds us(timeUs);
     return FormatDateString4SystemClock(globalTp + us, timeUnit);
 }
 } // namespace ffrt

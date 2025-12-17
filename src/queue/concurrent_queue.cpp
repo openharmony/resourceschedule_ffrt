@@ -125,7 +125,7 @@ QueueTask* ConcurrentQueue::Pull()
 int ConcurrentQueue::Remove()
 {
     std::lock_guard lock(mutex_);
-    uint64_t removeCount = 0;
+    int removeCount = 0;
     for (auto& currentMap : whenMapVec_) {
         removeCount += BaseQueue::Remove(currentMap);
     }
@@ -135,7 +135,7 @@ int ConcurrentQueue::Remove()
 int ConcurrentQueue::Remove(const char* name)
 {
     std::lock_guard lock(mutex_);
-    uint64_t removeCount = 0;
+    int removeCount = 0;
     for (auto& currentMap : whenMapVec_) {
         removeCount += BaseQueue::Remove(name, currentMap);
     }

@@ -137,7 +137,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 #ifdef FFRT_SEND_EVENT
     uint64_t startExecuteTime = 0;
     if (worker->isBetaVersion) {
-        startExecuteTime = TimeStamp();
+        startExecuteTime = TimeStampCntvct();
         if (likely(isNotUv)) {
             worker->cacheLabel = task->GetLabel();
         }
@@ -158,7 +158,7 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
     worker->curTaskType_.store(ffrt_invalid_task, std::memory_order_relaxed);
 #ifdef FFRT_SEND_EVENT
     if (worker->isBetaVersion) {
-        uint64_t execDur = ((TimeStamp() - startExecuteTime) / worker->cacheFreq);
+        uint64_t execDur = ((TimeStampCntvct() - startExecuteTime) / worker->cacheFreq);
         TaskBlockInfoReport(execDur, isNotUv ? worker->cacheLabel : "uv_task", worker->cacheQos, worker->cacheFreq);
     }
 #endif

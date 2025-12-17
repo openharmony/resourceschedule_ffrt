@@ -96,7 +96,7 @@ public:
         return qos_();
     }
 
-    inline void SetStatus(TaskStatus statusIn)
+    inline void SetStatus(TaskStatus statusIn, uint64_t delaytime = 0)
     {
         /* Note this function can be called concurrently.
          * The following accesses can be interleaved.
@@ -106,7 +106,7 @@ public:
          * are only used in printing debug information
          * and don't play a role in the logic.
          */
-        statusTime.store(TimeStampCntvct(), std::memory_order_relaxed);
+        statusTime.store(TimeStampCntvct() + delaytime, std::memory_order_relaxed);
         preStatus.store(curStatus, std::memory_order_relaxed);
         curStatus.store(statusIn, std::memory_order_relaxed);
     }

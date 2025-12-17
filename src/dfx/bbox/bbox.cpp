@@ -529,7 +529,7 @@ __attribute__((constructor)) static void BBoxInit()
 std::string GetDumpPreface(void)
 {
     std::ostringstream ss;
-    ss << "|-> Launcher proc ffrt, now:" << FormatDateToString(TimeStamp()) << " pid:" << GetPid()
+    ss << "|-> Launcher proc ffrt, now:" << FormatDateToString(TimeStampCntvct()) << " pid:" << GetPid()
         << std::endl;
     return ss.str();
 }

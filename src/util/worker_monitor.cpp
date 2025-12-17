@@ -216,7 +216,7 @@ void WorkerMonitor::CheckTaskStatus()
         return;
     }
 
-    uint64_t now = TimeStampCntvct();
+    uint64_t now = TimeStampSteady();
     uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
     uint64_t curMinTimeStamp = UINT64_MAX;
 
@@ -243,7 +243,7 @@ uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutTh
         return UINT64_MAX;
     }
 
-    uint64_t curTaskTime = task->statusTime.load(std::memory_order_relaxed);
+    uint64_t curTaskTime = ConvertTscToSteadyClockCount(task->statusTime.load(std::memory_order_relaxed));
     uint64_t timeoutCount = task->timeoutTask.timeoutCnt;
 
     if (curTaskTime + timeoutCount * timeoutUs_ < timeoutThreshold) {
@@ -289,7 +289,7 @@ void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task)
 
     ss << task->label.c_str() << "|" << task->gid << "|" << task->GetQos() <<
         "|" << task->delayTime << "|" << StatusToString(curTaskStatus) <<
-        "|" << FormatDateString4SteadyClock(curTaskTime);
+        "|" << FormatDateToString(curTaskTime);
 
     {
         std::lock_guard lock(mutex_);
@@ -312,7 +312,7 @@ std::string WorkerMonitor::DumpTimeoutInfo()
     if (taskTimeoutInfo_.size() != 0) {
         for (auto it = taskTimeoutInfo_.rbegin(); it != taskTimeoutInfo_.rend(); ++it) {
             auto& record = *it;
-            ss << "{" << FormatDateString4SteadyClock(record.first) << ", " << record.second << "} \n";
+            ss << "{" << FormatDateToString(record.first) << ", " << record.second << "} \n";
         }
     } else {
         ss << "Timeout info Empty";

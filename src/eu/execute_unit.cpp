@@ -382,15 +382,18 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
     thread->SetWorkerState(WorkerStatus::DESTROYED);
     pid_t tid = thread->Id();
     int qos = static_cast<int>(thread->GetQos());
-
+    int ret = 0;
     {
         std::lock_guard<std::shared_mutex> lck(workerGroup[qos].tgMutex);
         thread->SetExited();
         thread->Detach();
-        auto worker = std::move(workerGroup[qos].threads[thread]);
-        int ret = workerGroup[qos].threads.erase(thread);
-        if (ret != 1) {
-            FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
+        if (!tearDown) {
+            auto worker = std::move(workerGroup[qos].threads[thread]);
+            ret = workerGroup[qos].threads.erase(thread);
+            if (ret != 1) {
+                FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
+            }
+            worker = nullptr;
         }
         WorkerLeaveTg(qos, tid);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -401,7 +404,6 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
             }
         }
 #endif
-        worker = nullptr;
         workerNum.fetch_sub(1);
     }
     FFRT_LOGD("to exit, qos[%d], tid[%d]", qos, tid);

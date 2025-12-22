@@ -513,29 +513,29 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
             continue;
         }
 
-        TimeoutTask& timeoutTaskInfo = timeoutTaskVec_[i];
+        TimeoutQueueTask& timeoutTaskInfo = timeoutTaskVec_[i];
         if (curTask->gid == timeoutTaskInfo.taskGid &&
             curTask->curStatus == timeoutTaskInfo.taskStatus) {
                 // Check if current timeout task needs to update timeout count.
-                uint64_t nextSchedule = curTaskTime + timeoutUs * timeoutTaskInfo.timeoutCnt;
-                if (nextSchedule < timeoutThreshold) {
+                if (timeoutTaskInfo.updateTime < timeoutThreshold) {
                     timeoutTaskInfo.timeoutCnt += 1;
+                    timeoutTaskInfo.updateTime = TimeStampCntvct();
                 } else {
                     curTaskInfo.first.emplace_back(INVALID_GID);
-                    minTime = std::min(minTime, nextSchedule);
+                    minTime = std::min(minTime, timeoutTaskInfo.updateTime);
                     continue;
                 }
         } else {
             timeoutTaskInfo.timeoutCnt = 1;
             timeoutTaskInfo.taskGid = curTask->gid;
             timeoutTaskInfo.taskStatus = curTask->curStatus;
+            timeoutTaskInfo.updateTime = TimeStampCntvct();
         }
 
         // When the same task is reported multiple times, the next inspection time is updated by adding the
         // accumulated time based on the current status time.
         curTaskInfo.first.emplace_back(timeoutTaskInfo.taskGid);
-        uint64_t nextTimeSchedule = curTaskTime + (timeoutUs * timeoutTaskInfo.timeoutCnt);
-        minTime = std::min(minTime, nextTimeSchedule);
+        minTime = std::min(minTime, timeoutTaskInfo.updateTime);
 
         if (ControlTimeoutFreq(timeoutTaskInfo.timeoutCnt)) {
             ReportTaskTimeout(timeoutUs, ss, i);

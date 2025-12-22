@@ -559,7 +559,6 @@ void QueueHandler::ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss, 
     FFRT_LOGW("%s", ss.str().c_str());
 #ifdef FFRT_SEND_EVENT
     if (timeoutTaskVec_[index].timeoutCnt == 1) {
-        std::string senarioName = "Serial_Queue_Timeout";
         int qos = curTaskVec_[index]->GetQos();
         std::string qname = queue_->GetQueueName();
 
@@ -572,12 +571,11 @@ void QueueHandler::ReportTaskTimeout(uint64_t timeoutUs, std::stringstream& ss, 
                 TaskBase* t = thread.first->curTask;
                 if (t == queueTask) {
                     tid = thread.first->Id();
-                    std::cout << "curTask tid : " << tid << std::endl;
                     break;
                 }
             }
         }
-        QueueTaskTimeoutReport(ss, GetCurrentProcessName(), senarioName, tid, qname, qos);
+        QueueTaskTimeoutReport(ss, GetCurrentProcessName(), tid, qname, qos);
     }
 #endif
 }

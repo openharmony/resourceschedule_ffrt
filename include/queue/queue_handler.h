@@ -33,6 +33,13 @@ class QueueTask;
 class SerialQueue;
 class Loop;
 
+struct TimeoutQueueTask {
+    uint64_t taskGid{0};
+    uint64_t timeoutCnt{0};
+    TaskStatus taskStatus{TaskStatus::PENDING};
+    uint64_t updateTime{0};
+};
+
 class QueueHandler {
 public:
     QueueHandler(const char* name, const ffrt_queue_attr_t* attr, const int type = ffrt_queue_serial);
@@ -165,7 +172,7 @@ private:
 
     // for timeout watchdog
     uint64_t timeout_ = 0;
-    std::vector<TimeoutTask> timeoutTaskVec_;
+    std::vector<TimeoutQueueTask> timeoutTaskVec_;
     std::atomic_int delayedCbCnt_ = {0};
     ffrt_function_header_t* timeoutCb_ = nullptr;
     TrafficRecord trafficRecord_;

@@ -21,9 +21,8 @@ namespace ffrt {
 #ifdef FFRT_SEND_EVENT
 bool IsBeta();
 void TaskBlockInfoReport(const long long passed, const std::string& task_label, int qos, uint64_t freq);
-void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, const std::string& senarioName,
-    int tid, int qos);
-void QueueTaskTimeoutReport(std::stringstream& ss, const std::string& processName, const std::string& senarioName,
+void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, int tid, int qos);
+void QueueTaskTimeoutReport(std::stringstream& ss, const std::string& processName,
     int tid, const std::string& qname, int qos);
 void TrafficOverloadReport(std::stringstream& ss, const std::string& senarioName);
 void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum);

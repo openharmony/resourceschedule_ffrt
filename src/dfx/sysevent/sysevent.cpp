@@ -147,12 +147,12 @@ void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, in
     std::string eventName = "CONGESTION";
     std::string senarioName = "Task_Sch_Timeout";
     time_t cur_time = time(nullptr);
-    int uid = getuid();
+    unsigned int uid = getuid();
     std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
         "PROCESS_NAME", processName, "MSG", sendMsg, "TID", static_cast<uint32_t>(tid),
-        "QOS", static_cast<uint32_t>(qos), "UID", static_cast<uint32_t>(uid));
+        "QOS", static_cast<uint32_t>(qos), "UID", uid);
 }
 
 void QueueTaskTimeoutReport(std::stringstream& ss, const std::string& processName,
@@ -162,13 +162,13 @@ void QueueTaskTimeoutReport(std::stringstream& ss, const std::string& processNam
     std::string eventName = "CONGESTION";
     std::string senarioName = "Serial_Queue_Timeout";
     time_t cur_time = time(nullptr);
-    int uid = getuid();
+    unsigned int uid = getuid();
     std::string queueName = qname.substr(0, qname.find_last_of('_'));
     std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
         "PROCESS_NAME", processName, "MSG", sendMsg, "TID", static_cast<uint32_t>(tid),
-        "QNAME", queueName, "QOS", static_cast<uint32_t>(qos), "UID", static_cast<uint32_t>(uid));
+        "QNAME", queueName, "QOS", static_cast<uint32_t>(qos), "UID", uid);
 }
 
 void TrafficOverloadReport(std::stringstream& ss, const std::string& senarioName)
@@ -189,10 +189,10 @@ void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum
     std::string msg = ss.str();
     std::string eventName = "CONGESTION";
     std::string senarioName = "Trigger_Escape";
-    int uid = getuid();
+    unsigned int uid = getuid();
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
-        "PROCESS_NAME", processName, "MSG", msg, "QOS", static_cast<uint32_t>(qos), "UID", static_cast<uint32_t>(uid));
+        "PROCESS_NAME", processName, "MSG", msg, "QOS", static_cast<uint32_t>(qos), "UID", uid);
     FFRT_LOGW("Process: %s trigger escape. %s", processName.c_str(), msg.c_str());
 }
 }

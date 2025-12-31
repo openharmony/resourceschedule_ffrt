@@ -31,6 +31,7 @@
 #include "eu/io_poller.h"
 #include "sync/timer_manager.h"
 #define protect public
+#include "tm/scpu_task.h"
 #include "util/ffrt_facade.h"
 #undef private
 #undef protect

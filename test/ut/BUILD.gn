@@ -100,7 +100,10 @@ ohos_unittest("frame_interval_test") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -121,7 +124,10 @@ ohos_unittest("deadline_test") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -142,7 +148,10 @@ ohos_unittest("task_ctx_test") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -163,7 +172,10 @@ ohos_unittest("ut_coroutine") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -209,7 +221,10 @@ ohos_unittest("inherit_test") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -251,7 +266,10 @@ ohos_unittest("qos_convert_test") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -271,7 +289,10 @@ ohos_unittest("qos_interface_test") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -292,7 +313,10 @@ ohos_unittest("ut_cgroup_qos") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
   cflags_cc += [ "-DWITH_NO_MOCKER" ]
@@ -335,7 +359,10 @@ ohos_unittest("ut_core") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -356,7 +383,10 @@ ohos_unittest("ut_csync") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -377,7 +407,10 @@ ohos_unittest("ut_deadline") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -398,7 +431,10 @@ ohos_unittest("ut_dependency") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -419,7 +455,10 @@ ohos_unittest("ut_execute_unit") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -440,7 +479,10 @@ ohos_unittest("ut_ffrt_io") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -485,7 +527,10 @@ ohos_unittest("ut_interval") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -553,7 +598,10 @@ ohos_unittest("ut_queue") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -595,7 +643,10 @@ ohos_unittest("ut_scheduler") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 
@@ -705,7 +756,10 @@ ohos_unittest("ut_qos_convert") {
   cflags_cc = []
 
   configs = [ ":ffrt_test_config" ]
-  include_dirs = [ "../testfunc" ]
+  include_dirs = [
+    "../testfunc",
+    "../../include/sched",
+  ]
 
   cflags_cc += ffrt_ut_base_cflags_cc
 

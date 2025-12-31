@@ -18,6 +18,7 @@
 #include "sched/task_runqueue.h"
 #include "tm/task_base.h"
 #include "util/spmc_queue.h"
+#include "tm/uv_task.h"
 
 namespace ffrt {
 extern int PLACE_HOLDER;

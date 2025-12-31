@@ -19,7 +19,7 @@
 #include "util/worker_monitor.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
-
+#include "core/entity.h"
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #include "async_stack.h"
@@ -30,6 +30,12 @@
 #endif
 
 namespace ffrt {
+inline CPUEUTask* Root()
+{
+    // Within an ffrt process, different threads may have different QoS interval
+    thread_local static RootTaskCtxWrapper rootWrapper;
+    return rootWrapper.Root();
+}
 
 SDependenceManager::SDependenceManager() : criticalMutex_(Entity::Instance()->criticalMutex_)
 {
@@ -75,7 +81,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
 
     // 2 Get current task's parent
     auto parent = (ctx->task && ctx->task->type == ffrt_normal_task) ?
-        static_cast<CPUEUTask*>(ctx->task) : DependenceManager::Root();
+        static_cast<CPUEUTask*>(ctx->task) : Root();
 
     // 2.1 Create task ctx
     SCPUEUTask* task = nullptr;
@@ -159,7 +165,7 @@ void SDependenceManager::onWait()
 {
     FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, SDM_onWait, DEFAULT_CONFIG);
     auto ctx = ExecuteCtx::Cur();
-    auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
+    auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
 
     if (task->Block() == BlockType::BLOCK_THREAD) {
@@ -188,7 +194,7 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
 {
     FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, SDM_onWait_Deps, DEFAULT_CONFIG);
     auto ctx = ExecuteCtx::Cur();
-    auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : DependenceManager::Root();
+    auto baseTask = (ctx->task && ctx->task->type == ffrt_normal_task) ? ctx->task : Root();
     auto task = static_cast<SCPUEUTask*>(baseTask);
     task->dataRefCnt.waitDep = 0;
 
@@ -240,11 +246,6 @@ void SDependenceManager::onWait(const ffrt_deps_t* deps)
     };
     FFRT_BLOCK_TRACER(task->gid, dat);
     CoWait(pendDataDepFun);
-}
-
-int SDependenceManager::onExecResults(ffrt_task_handle_t handle)
-{
-    return 0;
 }
 
 void SDependenceManager::onTaskDone(CPUEUTask* task)

@@ -18,7 +18,6 @@
 
 #include "task_base.h"
 #include "c/executor_task.h"
-#include "core/task_io.h"
 #include "core/task_attr_private.h"
 #include "tm/task_factory.h"
 #ifdef USE_OHOS_QOS

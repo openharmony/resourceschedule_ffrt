@@ -25,9 +25,7 @@
 #include "util/worker_monitor.h"
 
 namespace ffrt {
-bool GetExitFlag();
 bool GetInitFlag();
-std::shared_mutex& GetExitMtx();
 const char* GetCurrentProcessName();
 bool GetDelayedWorkerExitFlag();
 void SetDelayedWorkerExitFlag();

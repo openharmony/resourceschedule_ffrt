@@ -29,7 +29,6 @@
 #include <map>
 #include <array>
 #include "cpp/mutex.h"
-#include "sched/workgroup_internal.h"
 #include "eu/thread_group.h"
 #include "eu/cpu_worker.h"
 #include "sync/sync.h"

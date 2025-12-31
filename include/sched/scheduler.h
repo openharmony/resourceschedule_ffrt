@@ -21,7 +21,6 @@
 #include <map>
 #include <mutex>
 #include <array>
-#include "core/entity.h"
 #include "eu/execute_unit.h"
 #include "sync/sync.h"
 #include "sched/task_scheduler.h"

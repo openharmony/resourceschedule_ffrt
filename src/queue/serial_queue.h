@@ -15,7 +15,7 @@
 #ifndef FFRT_SERIAL_QUEUE_H
 #define FFRT_SERIAL_QUEUE_H
 
-#include "base_queue.h"
+#include "queue/base_queue.h"
 
 namespace ffrt {
 class SerialQueue : public BaseQueue {

@@ -39,6 +39,7 @@
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #endif
 #include "dfx/dump/dump.h"
+#include "util/capability.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
 

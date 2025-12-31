@@ -17,7 +17,6 @@
 
 #include <atomic>
 #include <regex>
-#include "queue/queue_attr_private.h"
 #include "queue/queue_handler.h"
 #include "tm/task_factory.h"
 #ifdef FFRT_ENABLE_HITRACE_CHAIN

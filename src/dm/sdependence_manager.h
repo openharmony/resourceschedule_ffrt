@@ -17,6 +17,7 @@
 #define FFRT_SDEPENDENCE_MANAGER_H
 
 #include "dm/dependence_manager.h"
+#include "core/version_ctx.h"
 
 namespace ffrt {
 class SDependenceManager : public DependenceManager {
@@ -33,8 +34,6 @@ public:
     void onWait() override;
 
     void onWait(const ffrt_deps_t* deps) override;
-
-    int onExecResults(ffrt_task_handle_t handle) override;
 
     void onTaskDone(CPUEUTask* task) override;
 

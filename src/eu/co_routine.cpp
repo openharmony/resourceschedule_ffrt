@@ -14,12 +14,14 @@
  */
 
 #include "eu/co_routine.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <securec.h>
 #include <string>
 #include <sys/mman.h>
+#include "eu/co2_context.h"
 #include "util/cpu_boost_wrapper.h"
 #include "dfx/trace/ffrt_trace.h"
 #include "dm/dependence_manager.h"
@@ -526,7 +528,7 @@ void CoYield(void)
     __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #else
     while (GetBboxEnableState() != 0) {
-        if (GetBboxEnableState() != gettid()) {
+        if (GetBboxEnableState() != static_cast<unsigned int>(gettid())) {
             BboxFreeze(); // freeze non-crash thread
             return;
         }

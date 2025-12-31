@@ -23,9 +23,10 @@
 #include "c/queue.h"
 #include "c/queue_ext.h"
 #include "cpp/task.h"
-#include "base_queue.h"
+#include "queue/base_queue.h"
+#include "queue/traffic_record.h"
 #include "sched/execute_ctx.h"
-#include "traffic_record.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #include "tm/task_base.h"
 
 namespace ffrt {

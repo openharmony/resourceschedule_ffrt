@@ -30,7 +30,6 @@
 #include "eu/co_routine.h"
 #include "core/task_attr_private.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "eu/func_manager.h"
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif

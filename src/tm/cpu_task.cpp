@@ -21,7 +21,6 @@
 #include "tm/task_factory.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
-#include "eu/func_manager.h"
 #include "cpp/task_ext.h"
 #include "util/ref_function_header.h"
 

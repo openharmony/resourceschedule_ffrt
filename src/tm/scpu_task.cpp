@@ -23,6 +23,7 @@
 #include "internal_inc/osal.h"
 #include "internal_inc/types.h"
 #include "tm/cpu_task.h"
+#include "tm/scpu_task.h"
 
 namespace ffrt {
 static inline const char* DependenceStr(Dependence d)

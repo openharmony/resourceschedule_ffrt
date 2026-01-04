@@ -266,7 +266,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_queue_cancel(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return -1, "input invalid, handle is nullptr");
-    QueueTask* task = reinterpret_cast<QueueTask*>(static_cast<CPUEUTask*>(handle));
+    QueueTask* task = static_cast<QueueTask*>(handle);
     QueueHandler* handler = task->GetHandler();
     FFRT_COND_DO_ERR((handler == nullptr), return -1, "task handler is nullptr");
     int ret = handler->Cancel(task);

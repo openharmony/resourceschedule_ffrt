@@ -31,15 +31,7 @@
 #define FFRT_C_API
 #endif
 
-/**
- * @brief Enumerates the task QoS types.
- *
- */
-typedef enum {
-    ffrt_qos_deadline_request = 4,
-    ffrt_qos_user_interactive,
-    ffrt_qos_max = ffrt_qos_user_interactive,
-} ffrt_inner_qos_default_t;
+typedef ffrt_qos_default_t ffrt_inner_qos_default_t;
 
 typedef enum {
     ffrt_stack_protect_weak,
@@ -113,11 +105,7 @@ typedef enum {
 
 #ifdef __cplusplus
 namespace ffrt {
-enum qos_inner_default {
-    qos_deadline_request = ffrt_qos_deadline_request,
-    qos_user_interactive = ffrt_qos_user_interactive,
-    qos_max = ffrt_qos_max,
-};
+typedef enum qos_default qos_inner_default;
 
 enum class stack_protect {
     weak = ffrt_stack_protect_weak,

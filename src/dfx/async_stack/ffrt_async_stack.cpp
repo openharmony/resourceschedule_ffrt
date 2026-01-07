@@ -27,27 +27,25 @@ namespace {
 
 void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc)
 {
-    const char* debuggableEnv = getenv("HAP_DEBUGGABLE");
-    if (debuggableEnv != nullptr && strcmp(debuggableEnv, "true") == 0) {
-        g_collectAsyncStackFunc = collectAsyncStackFunc;
-        g_setStackIdFunc = setStackIdFunc;
-    }
+    g_collectAsyncStackFunc = collectAsyncStackFunc;
+    g_setStackIdFunc = setStackIdFunc;
 }
 
 namespace ffrt {
 uint64_t FFRTCollectAsyncStack(uint64_t taskType)
 {
-    if (g_collectAsyncStackFunc != nullptr) {
-        return g_collectAsyncStackFunc(taskType);
+    auto func = g_collectAsyncStackFunc;
+    if (func != nullptr) {
+        return func(taskType);
     }
-
     return 0;
 }
 
 void FFRTSetStackId(uint64_t stackId)
 {
-    if (g_setStackIdFunc != nullptr) {
-        return g_setStackIdFunc(stackId);
+    auto func = g_setStackIdFunc;
+    if (func != nullptr) {
+        return func(stackId);
     }
 }
 }

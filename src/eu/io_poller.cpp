@@ -143,6 +143,9 @@ int IOPoller::PollOnce(int timeout) noexcept
                 TraceChainAdapter::Instance().HiTraceChainRestoreId(&data->traceId);
             }
 #endif
+#ifdef FFRT_ASYNC_STACKTRACE
+            FFRTSetStackId(data->stackId);
+#endif
             FFRT_TRACE_BEGIN("IOCB");
             data->cb(data->data, waitedEvents[i].events);
             FFRT_TRACE_END();

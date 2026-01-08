@@ -142,6 +142,11 @@ public:
         return threadMode_;
     }
 
+    inline int GetConcurrency()
+    {
+        return maxConcurrency_;
+    }
+
 private:
     void Deliver();
     void SetTimeoutMonitor(QueueTask* task);

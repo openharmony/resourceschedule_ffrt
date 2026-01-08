@@ -37,11 +37,6 @@ namespace {
  * currently, only the stack canary used by the ohos compiler stack protection is global
  * and is not affected by worker destruction.
  */
-#if !defined(SUPPORT_WORKER_DESTRUCT)
-constexpr int waiting_seconds = 10;
-#else
-constexpr int waiting_seconds = 5;
-#endif
 const size_t TIGGER_SUPPRESS_WORKER_COUNT = 4;
 const size_t TIGGER_SUPPRESS_EXECUTION_NUM = 2;
 const size_t MAX_ESCAPE_WORKER_NUM = 1024;
@@ -134,6 +129,11 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
     thread->SetWorkerState(WorkerStatus::SLEEPING);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     BlockawareEnterSleeping();
+#endif
+#if !defined(SUPPORT_WORKER_DESTRUCT)
+    int waiting_seconds = 10;
+#else
+    int waiting_seconds = group.executingNum < 11 ? 16 - group.executingNum : 5;
 #endif
     if (group.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(thread->GetQos());

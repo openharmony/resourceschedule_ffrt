@@ -27,6 +27,9 @@
 #include "tm/queue_task.h"
 #include "sched/scheduler.h"
 
+#ifdef FFRT_ASYNC_STACKTRACE
+#include "dfx/async_stack/ffrt_async_stack.h"
+#endif
 namespace {
 constexpr uint32_t TASK_DONE_WAIT_UNIT = 10;
 constexpr uint64_t SCHED_TIME_ACC_ERROR_US = 5000; // 5ms
@@ -140,7 +143,11 @@ void QueueHandler::Submit(QueueTask* task)
         task->fromTid = ExecuteCtx::Cur()->tid;
     }
 #endif
-
+#ifdef FFRT_ASYNC_STACKTRACE
+    {
+        task->stackId = FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_QUEUE);
+    }
+#endif
     // work after that schedule timeout is set for queue
     if (task->GetSchedTimeout() > 0) {
         AddSchedDeadline(task);
@@ -310,6 +317,10 @@ void QueueHandler::Dispatch(QueueTask* inTask)
             triggerTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
         }
+
+#ifdef FFRT_ASYNC_STACKTRACE
+        FFRTSetStackId(task->stackId);
+#endif
 
         f->exec(f);
 

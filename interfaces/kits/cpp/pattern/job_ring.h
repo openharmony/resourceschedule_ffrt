@@ -421,7 +421,7 @@ private:
 
     job_ring_attr attr_;                                            ///< Configuration attributes for the job ring.
     alignas(detail::cacheline_size) std::atomic_int32_t token{0};   ///< Atomic token to ensure single worker thread.
-    alignas(detail::cacheline_size) std::atomic_int32_t num{0};     ///< Atomic counter for pending tasks.
+    alignas(detail::cacheline_size) std::atomic_uint64_t num{0};     ///< Atomic counter for pending tasks.
     uint64_t task_num{0};                                           ///< Total count of processed tasks (profiling).
     lf_queue<MultiProducer, false, std::function<void()>> q;        ///< Lock-free queue storing pending tasks.
     atomic_wait waiter = 0;                                         ///< Synchronization primitive for wait operations.

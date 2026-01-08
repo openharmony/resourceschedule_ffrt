@@ -108,7 +108,7 @@ void WorkerMonitor::SubmitTask()
 {
     std::lock_guard submitTaskLock(submitTaskMutex_);
     if (!skipSampling_) {
-        if (samplingTaskExit_) {
+        if (samplingTaskExit_ && ffrt::GetBetaVersionFlag()) {
             SubmitSamplingTask();
             samplingTaskExit_ = false;
         }
@@ -382,12 +382,15 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
     // Set max frame nums to 8 for the first timeout level for shorter output
     int maxFrameNums = (timeoutFunction.executionTime_ == TIMEOUT_RECORD_CYCLE_LIST[0]) ? MAX_FRAME_NUMS :
         OHOS::HiviewDFX::DEFAULT_MAX_FRAME_NUM;
-    if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, 0, false, maxFrameNums)) {
-        FFRT_LOGW("%s", dumpInfo.c_str());
-        if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
-            RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);
+    if (ffrt::GetBetaVersionFlag()) {
+        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, 0, false, maxFrameNums)) {
+            FFRT_LOGW("%s", dumpInfo.c_str());
+            if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
+                RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);
+            }
         }
     }
+
 #endif
 #ifdef FFRT_SEND_EVENT
     if (timeoutFunction.executionTime_ == HISYSEVENT_TIMEOUT_SEC) {

@@ -21,6 +21,9 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
 #include "util/ffrt_facade.h"
+#ifdef FFRT_OH_TRACE_ENABLE
+#include "backtrace_local.h"
+#endif
 
 namespace {
 constexpr long long lONG_TASK_TIME_LIMIT = 1; // 1s
@@ -147,11 +150,15 @@ void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, in
     std::string eventName = "CONGESTION";
     std::string senarioName = "Task_Sch_Timeout";
     time_t cur_time = time(nullptr);
-    unsigned int uid = getuid();
+    uint32_t uid = getuid();
+    std::string stackInfo;
+#ifdef FFRT_OH_TRACE_ENABLE
+ 	OHOS::HiviewDFX::GetBacktraceStringByTid(stackInfo, tid, 0, false);
+#endif
     std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
-        "PROCESS_NAME", processName, "MSG", sendMsg, "TID", static_cast<uint32_t>(tid),
+        "PROCESS_NAME", processName, "MSG", sendMsg, "STACK", stackInfo, "TID", static_cast<uint32_t>(tid),
         "QOS", static_cast<uint32_t>(qos), "UID", uid);
 }
 
@@ -162,12 +169,16 @@ void QueueTaskTimeoutReport(std::stringstream& ss, const std::string& processNam
     std::string eventName = "CONGESTION";
     std::string senarioName = "Serial_Queue_Timeout";
     time_t cur_time = time(nullptr);
-    unsigned int uid = getuid();
+    uint32_t uid = getuid();
+    std::string stackInfo;
+#ifdef FFRT_OH_TRACE_ENABLE
+ 	OHOS::HiviewDFX::GetBacktraceStringByTid(stackInfo, tid, 0, false);
+#endif
     std::string queueName = qname.substr(0, qname.find_last_of('_'));
     std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) + "\n" + msg + "\n";
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
-        "PROCESS_NAME", processName, "MSG", sendMsg, "TID", static_cast<uint32_t>(tid),
+        "PROCESS_NAME", processName, "MSG", sendMsg, "STACK", stackInfo, "TID", static_cast<uint32_t>(tid),
         "QNAME", queueName, "QOS", static_cast<uint32_t>(qos), "UID", uid);
 }
 
@@ -189,10 +200,12 @@ void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum
     std::string msg = ss.str();
     std::string eventName = "CONGESTION";
     std::string senarioName = "Trigger_Escape";
-    unsigned int uid = getuid();
+    uint32_t uid = getuid();
+    std::string stackInfo;
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "SCENARIO", senarioName,
-        "PROCESS_NAME", processName, "MSG", msg, "QOS", static_cast<uint32_t>(qos), "UID", uid);
+        "PROCESS_NAME", processName, "MSG", msg, "STACK", stackInfo,
+        "QOS", static_cast<uint32_t>(qos), "UID", uid);
     FFRT_LOGW("Process: %s trigger escape. %s", processName.c_str(), msg.c_str());
 }
 }

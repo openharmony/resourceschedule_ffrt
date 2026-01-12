@@ -383,7 +383,8 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
     int maxFrameNums = (timeoutFunction.executionTime_ == TIMEOUT_RECORD_CYCLE_LIST[0]) ? MAX_FRAME_NUMS :
         OHOS::HiviewDFX::DEFAULT_MAX_FRAME_NUM;
     if (ffrt::GetBetaVersionFlag()) {
-        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, 0, false, maxFrameNums)) {
+        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_,
+            0, false, maxFrameNums)) {
             FFRT_LOGW("%s", dumpInfo.c_str());
             if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
                 RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);

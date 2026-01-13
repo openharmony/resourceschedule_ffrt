@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <dlfcn.h>
+#include <regex>
 #include "sched/stask_scheduler.h"
 #include "eu/co_routine.h"
 #include "eu/execute_unit.h"
@@ -27,6 +28,7 @@
 #include "tm/io_task.h"
 #include "tm/uv_task.h"
 #include "tm/queue_task.h"
+#include "dfx/sysevent/sysevent.h"
 #include "util/slab.h"
 #include "qos.h"
 #ifdef FFRT_ENABLE_PERF_TRACE_SCOPED

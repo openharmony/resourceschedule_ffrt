@@ -32,24 +32,6 @@ void DependenceManager::RegistInsCb(SingleInsCB<DependenceManager>::Instance &&c
     SingletonRegister<DependenceManager>::RegistInsCb(std::move(cb));
 }
 
-void DependenceManager::onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
-{
-    FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, DM_onSubmitUV, DEFAULT_CONFIG);
-    FFRT_TRACE_SCOPE(1, onSubmitUV);
-    UVTask* uvTask = TaskFactory<UVTask>::Alloc();
-    new(uvTask) UVTask(task, attr);
-    FFRT_EXECUTOR_TASK_SUBMIT_MARKER(uvTask->gid);
-    uvTask->Ready();
-}
-
-void DependenceManager::onSubmitIO(const ffrt_io_callable_t& work, const task_attr_private* attr)
-{
-    FFRT_TRACE_SCOPE(1, onSubmitIO);
-    IOTask* ioTask = TaskFactory<IOTask>::Alloc();
-    new (ioTask) IOTask(work, attr);
-    ioTask->Ready();
-}
-
 int DependenceManager::onSkip(ffrt_task_handle_t handle)
 {
     ffrt::CPUEUTask *task = static_cast<ffrt::CPUEUTask*>(handle);

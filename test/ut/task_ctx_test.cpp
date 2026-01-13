@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 #include <thread>
 #include "dm/dependence_manager.h"
+#include "tm/scpu_task.h"
 #ifdef USE_OHOS_QOS
 #include "qos.h"
 #else

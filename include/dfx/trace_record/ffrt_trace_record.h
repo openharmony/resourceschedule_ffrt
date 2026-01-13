@@ -20,7 +20,6 @@
 #include "internal_inc/osal.h"
 #include "tm/task_base.h"
 #include "tm/cpu_task.h"
-#include "tm/queue_task.h"
 
 #define FFRT_TRACE_RECORD_LEVEL_1 (1)
 #define FFRT_TRACE_RECORD_LEVEL_2 (2)
@@ -176,7 +175,7 @@ public:
                 stat.funcPtr = reinterpret_cast<uint64_t>(f->exec);
             }
             if (taskType == ffrt_queue_task) {
-                auto baseTask = reinterpret_cast<QueueTask*>(task);
+                auto baseTask = reinterpret_cast<CoTask*>(task);
                 auto f = reinterpret_cast<ffrt_function_header_t*>(baseTask->func_storage);
                 std::string tempLable(baseTask->label);
                 tempLable.resize(MAX_TASK_NAME_LENGTH - 1, ' ');

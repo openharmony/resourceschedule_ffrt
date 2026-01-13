@@ -17,6 +17,7 @@
 #define FFRT_STASK_SCHEDULER_HPP
 #include "sched/task_scheduler.h"
 #include "dfx/trace/ffrt_trace.h"
+#include "tm/uv_task.h"
 
 namespace ffrt {
 class STaskScheduler : public TaskScheduler {

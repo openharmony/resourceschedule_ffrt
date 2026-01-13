@@ -31,7 +31,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/watchdog/watchdog_util.h"
-#include "eu/func_manager.h"
+#include "util/func_manager.h"
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
 #include "eu/sexecute_unit.h"
@@ -48,6 +48,16 @@ constexpr uint64_t MAX_DELAY_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; /
 constexpr uint64_t MAX_TIMEOUT_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
 
 namespace ffrt {
+void OnSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
+{
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, DM_OnSubmitUV, DEFAULT_CONFIG);
+    FFRT_TRACE_SCOPE(1, OnSubmitUV);
+    UVTask* uvTask = TaskFactory<UVTask>::Alloc();
+    new(uvTask) UVTask(task, attr);
+    FFRT_EXECUTOR_TASK_SUBMIT_MARKER(uvTask->gid);
+    uvTask->Ready();
+}
+
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
@@ -591,7 +601,7 @@ void ffrt_executor_task_submit(ffrt_executor_task_t* task, const ffrt_task_attr_
     }
     ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private *>(const_cast<ffrt_task_attr_t *>(attr));
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
-        ffrt::FFRTFacade::GetDMInstance().onSubmitUV(task, p);
+        OnSubmitUV(task, p);
         return;
     }
     FFRT_LOGE("uv function does not support delay");

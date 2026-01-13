@@ -22,6 +22,7 @@
 #include "dfx/bbox/bbox.h"
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
+#include "dfx/trace/ffrt_trace_chain.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "util/common_const.h"
 #include "dump.h"

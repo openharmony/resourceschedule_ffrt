@@ -14,7 +14,7 @@
 */
 
 #include "tm/uv_task.h"
-#include "eu/func_manager.h"
+#include "util/func_manager.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/trace/ffrt_trace.h"

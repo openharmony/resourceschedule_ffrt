@@ -22,7 +22,6 @@
 #include <shared_mutex>
 #include "internal_inc/types.h"
 #include "internal_inc/osal.h"
-#include "core/version_ctx.h"
 #include "sched/execute_ctx.h"
 #ifdef USE_OHOS_QOS
 #include "qos.h"
@@ -30,9 +29,7 @@
 #include "staging_qos/sched/qos.h"
 #endif
 #include "dfx/trace/ffrt_trace.h"
-#include "sched/scheduler.h"
 #include "eu/execute_unit.h"
-#include "core/entity.h"
 #include "dfx/watchdog/watchdog_util.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "tm/cpu_task.h"
@@ -85,26 +82,13 @@ public:
     virtual void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
         const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
 
-    void onSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr);
-
-    void onSubmitIO(const ffrt_io_callable_t &work, const task_attr_private *attr);
-
     virtual void onWait() = 0;
 
     virtual void onWait(const ffrt_deps_t* deps) = 0;
 
-    virtual int onExecResults(ffrt_task_handle_t handle) = 0;
-
     virtual void onTaskDone(CPUEUTask* task) = 0;
 
     virtual int onSkip(ffrt_task_handle_t handle);
-
-    static inline CPUEUTask* Root()
-    {
-        // Within an ffrt process, different threads may have different QoS interval
-        thread_local static RootTaskCtxWrapper rootWrapper;
-        return rootWrapper.Root();
-    }
 
 protected:
     DependenceManager() {}

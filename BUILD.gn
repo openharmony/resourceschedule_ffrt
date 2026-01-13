@@ -90,6 +90,7 @@ config("ffrt_config") {
 config("ffrt_inner_config") {
   include_dirs = [
     "include",
+    "include/sched",
     "src",
     "src/dfx/log",
     "src_ext",

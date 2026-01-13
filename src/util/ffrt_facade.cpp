@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "util/ffrt_facade.h"
+#include "util/capability.h"
 #include "core/version_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "internal_inc/osal.h"
@@ -22,32 +23,21 @@
 #include "tm/uv_task.h"
 #include "util/slab.h"
 #include "util/white_list.h"
+#include "util/func_manager.h"
 
 namespace {
 constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 char g_processName[PROCESS_NAME_BUFFER_LENGTH] {};
 std::atomic<bool> g_initFlag { false };
-std::atomic<bool> g_exitFlag { false };
 std::atomic<bool> g_delayedWorkerExitFlag { false };
 std::atomic<bool> g_betaVersionFlag { false };
-std::shared_mutex g_exitMtx;
 std::once_flag g_processNameInitFlag;
 }
 
 namespace ffrt {
-bool GetExitFlag()
-{
-    return g_exitFlag.load();
-}
-
 bool GetInitFlag()
 {
     return g_initFlag.load();
-}
-
-std::shared_mutex& GetExitMtx()
-{
-    return g_exitMtx;
 }
 
 const char* GetCurrentProcessName()
@@ -98,8 +88,8 @@ private:
     ~ProcessExitManager()
     {
         FFRT_LOGW("ProcessExitManager destruction enter");
-        std::lock_guard lock(g_exitMtx);
-        g_exitFlag.store(true);
+        LockExitMtx();
+        SetExitFlag();
     }
 };
 

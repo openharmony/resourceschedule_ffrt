@@ -13,11 +13,38 @@
  * limitations under the License.
  */
 
-#include "capability.h"
+#include "util/capability.h"
+#include <atomic>
+#include <mutex>
 #include <sys/capability.h>
 #include <unistd.h>
 
+namespace {
+std::atomic<bool> g_exitFlag { false };
+std::shared_mutex g_exitMtx;
+}
+
 namespace ffrt {
+bool GetExitFlag()
+{
+    return g_exitFlag.load();
+}
+
+void SetExitFlag()
+{
+    g_exitFlag.store(true);
+}
+
+std::shared_mutex& GetExitMtx()
+{
+    return g_exitMtx;
+}
+
+void LockExitMtx()
+{
+    std::lock_guard lock(g_exitMtx);
+}
+
 bool CheckProcCapSysNice()
 {
     struct __user_cap_header_struct cap_header_data;

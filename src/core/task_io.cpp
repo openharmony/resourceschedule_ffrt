@@ -27,6 +27,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+void OnSubmitIO(const ffrt::ffrt_io_callable_t &work, const ffrt::task_attr_private *attr)
+{
+    FFRT_TRACE_SCOPE(1, OnSubmitIO);
+    ffrt::IOTask* ioTask = ffrt::TaskFactory<ffrt::IOTask>::Alloc();
+    new (ioTask) ffrt::IOTask(work, attr);
+    ioTask->Ready();
+}
+
 API_ATTRIBUTE((visibility("default")))
 void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t destroy, const ffrt_deps_t* in_deps,
     const ffrt_deps_t* out_deps, const ffrt_task_attr_t* attr)
@@ -43,7 +51,7 @@ void ffrt_submit_coroutine(void* co, ffrt_coroutine_ptr_t exec, ffrt_function_t 
     work.destroy = destroy;
     work.data = co;
     if (likely(attr == nullptr || ffrt_task_attr_get_delay(attr) == 0)) {
-        ffrt::FFRTFacade::GetDMInstance().onSubmitIO(work, p);
+        OnSubmitIO(work, p);
         return;
     }
     FFRT_LOGE("io function does not support delay");

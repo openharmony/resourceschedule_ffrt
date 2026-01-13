@@ -17,7 +17,8 @@
 #define FFRT_QUEUE_TRAFFIC_RECORD_H
 
 #include <vector>
-#include "queue/serial_queue.h"
+#include <mutex>
+#include <atomic>
 
 namespace ffrt {
 constexpr uint64_t DEFAULT_TRAFFIC_INTERVAL = 6000000;

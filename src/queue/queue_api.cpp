@@ -18,6 +18,7 @@
 #include "util/event_handler_adapter.h"
 #include "dm/dependence_manager.h"
 #include "tm/queue_task.h"
+#include "queue/queue_attr_private.h"
 #include "queue/queue_handler.h"
 #include "util/common_const.h"
 

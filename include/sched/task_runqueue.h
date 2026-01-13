@@ -18,7 +18,6 @@
 
 #include "internal_inc/osal.h"
 #include "tm/cpu_task.h"
-#include "tm/uv_task.h"
 #include <cassert>
 
 namespace ffrt {

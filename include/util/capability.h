@@ -16,12 +16,20 @@
 #ifndef _CAPABILITY_H
 #define _CAPABILITY_H
 
+#include <shared_mutex>
+
 namespace ffrt {
 // Check whether the current process enables the capability of 'CAP_SYS_NICE'.
 // 'CAP_SYS_NICE' allows processes to set higher priority as follows:
 // 1. nice less than RLIMIT_NICE(default 0);
 // 2. real-time scheduling mode: (1) SCHED_FIFO, (2) SCHED_RR.
 bool CheckProcCapSysNice();
+
+bool GetExitFlag();
+void SetExitFlag();
+
+std::shared_mutex& GetExitMtx();
+void LockExitMtx();
 } // namespace ffrt
 
 #endif /* _CAPABILITY_H */

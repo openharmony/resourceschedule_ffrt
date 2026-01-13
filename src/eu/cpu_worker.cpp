@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <sched.h>
 #include <sys/syscall.h>
-#include "eu/func_manager.h"
 #include "dm/dependence_manager.h"
 #include "dfx/perf/ffrt_perf.h"
 #include "tm/queue_task.h"

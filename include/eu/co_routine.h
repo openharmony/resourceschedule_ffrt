@@ -19,7 +19,7 @@
 #include <functional>
 #include <thread>
 #include <pthread.h>
-#include "co2_context.h"
+#include "c/type_def.h"
 
 #if defined(__aarch64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;

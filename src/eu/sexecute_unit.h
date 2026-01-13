@@ -16,7 +16,7 @@
 #ifndef FFRT_SEXECUTE_UNIT_HPP
 #define FFRT_SEXECUTE_UNIT_HPP
 
-#include "execute_unit.h"
+#include "eu/execute_unit.h"
 #include "util/ffrt_facade.h"
 
 namespace ffrt {

@@ -21,7 +21,7 @@
 #else
 #include "staging_qos/sched/qos.h"
 #endif
-#include "types.h"
+#include "internal_inc/types.h"
 
 namespace ffrt {
 constexpr int DEFAULT_MINCONCURRENCY = 4;

@@ -18,6 +18,7 @@
 #include <sstream>
 #include "queue/queue_handler.h"
 #include "dfx/sysevent/sysevent.h"
+#include "util/ffrt_facade.h"
 #include "util/time_format.h"
 
 namespace {
@@ -47,6 +48,9 @@ TrafficRecord::TrafficRecord() {}
 #ifdef FFRT_ENABLE_TRAFFIC_MONITOR
 void TrafficRecord::SetTimeInterval(const uint64_t timeInterval)
 {
+    if (!GetBetaVersionFlag()) {
+        return;
+    }
     const uint64_t& time = TimeStampCntvct();
     timeInterval_ = ConvertUsToCntvct(timeInterval);
     nextUpdateTime_ = time + timeInterval_;
@@ -54,6 +58,9 @@ void TrafficRecord::SetTimeInterval(const uint64_t timeInterval)
 
 void TrafficRecord::SubmitTraffic(QueueHandler* handler)
 {
+    if (!GetBetaVersionFlag()) {
+        return;
+    }
     submitCnt_.fetch_add(1, std::memory_order_relaxed);
 
     if (detectCnt_.fetch_add(1, std::memory_order_relaxed) < MIN_OVERLOAD_INTERVAL) {
@@ -75,11 +82,17 @@ void TrafficRecord::SubmitTraffic(QueueHandler* handler)
 
 void TrafficRecord::DoneTraffic()
 {
+    if (!GetBetaVersionFlag()) {
+        return;
+    }
     doneCnt_.fetch_add(1, std::memory_order_relaxed);
 }
 
 void TrafficRecord::DoneTraffic(uint32_t count)
 {
+    if (!GetBetaVersionFlag()) {
+        return;
+    }
     doneCnt_.fetch_add(count, std::memory_order_relaxed);
 }
 #else

@@ -92,7 +92,9 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     FFRT_SUBMIT_MARKER(task->gid);
 #ifdef FFRT_ASYNC_STACKTRACE
     {
-        task->stackId = FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_POOL);
+        if (GetBetaVersionFlag()) {
+            task->stackId = FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_POOL);
+        }
     }
 #endif
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));
@@ -106,7 +108,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     task->SetInHandles(inHandles);
 
 #ifdef FFRT_OH_WATCHDOG_ENABLE
-    if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_)) {
+    if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_) && GetBetaVersionFlag()) {
         task->isWatchdogEnable = true;
         AddTaskToWatchdog(task->gid);
         SendTimeoutWatchdog(task->gid, attr->timeout_, attr->delay_);
@@ -272,7 +274,7 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
         // VersionCtx recycling
         Entity::Instance()->RecycleVersion();
     }
-    if (task->isWatchdogEnable) {
+    if (task->isWatchdogEnable && GetBetaVersionFlag()) {
         RemoveTaskFromWatchdog(task->gid);
     }
     // Note that `DecChildRef` is going to decrement the `childRefCnt`

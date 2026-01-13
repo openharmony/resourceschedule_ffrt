@@ -181,7 +181,7 @@ int ConcurrentQueue::WaitAll()
     }
 
     waitingAll_ = true;
-    cond_.wait(lock, [this] { return concurrency_.load() == 0;}); // 是否需要加上whenMap_empty()
+    cond_.wait(lock, [this] { return concurrency_.load() == 0;});
 
     if (waitingMap_.empty()) {
         waitingAll_ = false;

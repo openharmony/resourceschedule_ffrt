@@ -24,7 +24,7 @@ uint64_t ConvertTscToSteadyClockCount(uint64_t cntCt)
     constexpr int ratio = 1000 * 1000;
     const uint64_t tsc_base = Arm64CntCt();
     static int64_t freq = static_cast<int64_t>(Arm64CntFrq());
-    int64_t timeUs = static_cast<int64_t>((static_cast<double>(cntCt) - static_cast<double>(tsc_base)) / freq) * ratio;
+    int64_t timeUs = static_cast<int64_t>((static_cast<double>(cntCt) - static_cast<double>(tsc_base)) / freq * ratio);
     auto steady_base = std::chrono::steady_clock::now();
 
     return static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
@@ -144,7 +144,7 @@ std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit)
     }
     uint64_t referenceCntCt = Arm64CntCt();
     int64_t timeUs = static_cast<int64_t>((static_cast<double>(cntCtTimeStamp) - static_cast<double>(referenceCntCt))
-        / referenceFreq) * ratio;
+        / referenceFreq * ratio);
     auto globalTp = std::chrono::system_clock::now();
     std::chrono::microseconds us(timeUs);
     return FormatDateString4SystemClock(globalTp + us, timeUnit);

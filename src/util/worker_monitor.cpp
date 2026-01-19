@@ -478,6 +478,27 @@ void WorkerMonitor::WorkerStatus()
     if (!exitedOss.str().empty()) {
         FFRT_LOGW("%s", exitedOss.str().c_str());
     }
+
+    std::ostringstream workerCountOss;
+    for (int qos = 0; qos < QoS::MaxNum(); qos++) {
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(qos);
+        uint64_t taskCount;
+        {
+            std::lock_guard lk(workerGroup.mutex);
+            taskCount = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos);
+        }
+        if (taskCount != 0) {
+            std::lock_guard lk(workerGroup.lock);
+            workerCountOss << "|" << qos << "|"
+                << "R:" << workerGroup.executingNum
+                << " S:" << workerGroup.sleepingNum
+                << " M:" << workerGroup.maxConcurrency
+                << " H:" << workerGroup.hardLimit;
+        }
+    }
+    if (!workerCountOss.str().empty()) {
+        FFRT_LOGW("%s", workerCountOss.str().c_str());
+    }
 }
 
 bool WorkerMonitor::SetExitFlagIfNoWorkers(bool& exitFlag)

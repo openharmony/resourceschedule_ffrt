@@ -449,6 +449,7 @@ int ffrt_queue_dump(ffrt_queue_t queue, const char* tag, char* buf, uint32_t len
 {
     FFRT_COND_DO_ERR((queue == nullptr), return -1, "input invalid, queue is nullptr");
     FFRT_COND_DO_ERR((tag == nullptr || buf == nullptr), return -1, "input invalid, tag or buf is nullptr");
+    FFRT_COND_DO_ERR((len == 0), return -1, "input invalid, len is 0");
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
     return handler->Dump(tag, buf, len, history_info);
 }

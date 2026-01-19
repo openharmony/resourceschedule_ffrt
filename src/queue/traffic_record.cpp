@@ -26,7 +26,7 @@ constexpr uint32_t REPORT_INTERVAL = 60000000; // 60s
 constexpr uint32_t MIN_OVERLOAD_INTERVAL = 15;
 constexpr uint32_t INITIAL_RECORD_LIMIT = 16;
 constexpr uint32_t MAX_RECORD_LIMIT = 128;
-#if defined(__arch64__)
+#if defined(__aarch64__)
 constexpr uint32_t UNIT_CONVERT = 1000000;
 #else
 constexpr uint32_t UNIT_CONVERT = 1000;

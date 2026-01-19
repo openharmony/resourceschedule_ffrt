@@ -611,6 +611,7 @@ API_ATTRIBUTE((visibility("default")))
 void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executor_task_type_t type)
 {
     FFRT_COND_DO_ERR((func == nullptr), return, "function handler should not be empty.");
+    FFRT_COND_DO_ERR((type < ffrt_normal_task || type >= ffrt_invalid_task), return, "task type is invalid.");
     ffrt::FuncManager* func_mg = ffrt::FuncManager::Instance();
     func_mg->insert(type, func);
 }
@@ -618,7 +619,7 @@ void ffrt_executor_task_register_func(ffrt_executor_task_func func, ffrt_executo
 API_ATTRIBUTE((visibility("default")))
 int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
 {
-    FFRT_COND_DO_ERR((qos == ffrt::qos_inherit), return 0, "Level incorrect");
+    FFRT_COND_DO_ERR((qos == ffrt::qos_inherit || qos > ffrt::qos_max), return 0, "Level incorrect");
     FFRT_COND_DO_ERR((task == nullptr), return 0, "libuv task is NULL");
 
     ffrt::Scheduler* sch = ffrt::FFRTFacade::GetSchedInstance();

@@ -20,6 +20,7 @@
 #include <dlfcn.h>
 
 #include "dfx/log/ffrt_log_api.h"
+#include "util/ffrt_facade.h"
 namespace {
     CollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
     SetStackIdFunc g_setStackIdFunc = nullptr;
@@ -27,6 +28,10 @@ namespace {
 
 void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc)
 {
+    if (!ffrt::GetBetaVersionFlag()) {
+        return;
+    }
+
     g_collectAsyncStackFunc = collectAsyncStackFunc;
     g_setStackIdFunc = setStackIdFunc;
 }

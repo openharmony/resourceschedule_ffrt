@@ -107,7 +107,7 @@ WorkerMonitor& WorkerMonitor::GetInstance()
 void WorkerMonitor::SubmitTask()
 {
     std::lock_guard submitTaskLock(submitTaskMutex_);
-    if (!skipSampling_) {
+    if (!skipSampling_ && GetBetaVersionFlag()) {
         if (samplingTaskExit_ && ffrt::GetBetaVersionFlag()) {
             SubmitSamplingTask();
             samplingTaskExit_ = false;
@@ -461,6 +461,9 @@ void WorkerMonitor::ProcessWorkerInfo(std::ostringstream& oss, bool& firstQos, i
 
 void WorkerMonitor::WorkerStatus()
 {
+    if (!GetBetaVersionFlag()) {
+        return;
+    }
     std::ostringstream startedOss;
     std::ostringstream exitedOss;
     bool startedFirstQos = true;

@@ -29,6 +29,7 @@
 #endif
 #include "internal_inc/osal.h"
 #include "util/white_list.h"
+#include "util/ffrt_facade.h"
 
 static int g_ffrtLogLevel = FFRT_LOG_DEBUG;
 static std::atomic<unsigned int> g_ffrtLogId(0);
@@ -73,6 +74,11 @@ static void SetLogLevel(void)
 void InitWhiteListFlag(void)
 {
     g_whiteListFlag = ffrt::WhiteList::GetInstance().IsEnabled("log_ctr", true);
+}
+
+bool GetLogBetaVersionFlag(void)
+{
+    return ffrt::GetBetaVersionFlag();
 }
 
 static __attribute__((constructor)) void LogInit(void)

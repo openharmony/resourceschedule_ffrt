@@ -40,6 +40,7 @@ unsigned int GetLogId(void);
 unsigned int GetShortLogId(void);
 bool IsInWhitelist(void);
 void InitWhiteListFlag(void);
+bool GetLogBetaVersionFlag(void);
 #ifdef FFRT_SEND_EVENT
 void ReportSysEvent(const char* format, ...);
 #endif
@@ -86,7 +87,7 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)
 #define FFRT_LOGD(format, ...) \
     do { \
-        if (unlikely(IsInWhitelist())) { \
+        if (unlikely(IsInWhitelist() && GetLogBetaVersionFlag())) { \
             constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
             HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_DEBUG, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
         } \
@@ -98,8 +99,10 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_INFO)
 #define FFRT_LOGI(format, ...) \
     do { \
-        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_INFO, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        if (GetLogBetaVersionFlag()) { \
+            constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+            HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_INFO, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        } \
     } while (0)
 #else
 #define FFRT_LOGI(format, ...)
@@ -108,8 +111,10 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_WARN)
 #define FFRT_LOGW(format, ...) \
     do { \
-        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_WARN, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        if (GetLogBetaVersionFlag()) { \
+            constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+            HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_WARN, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        } \
     } while (0)
 #else
 #define FFRT_LOGW(format, ...)
@@ -117,8 +122,10 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
 
 #define FFRT_LOGE(format, ...) \
     do { \
-        constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
-        HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_ERROR, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        if (GetLogBetaVersionFlag()) { \
+            constexpr auto fmtPub = convertFmtToPublic("%u:%s:%d " format); \
+            HILOG_IMPL_STD_ARRAY(LOG_CORE, LOG_ERROR, fmtPub, GetShortLogId(), __func__, __LINE__, ##__VA_ARGS__); \
+        } \
     } while (0)
 #else
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)

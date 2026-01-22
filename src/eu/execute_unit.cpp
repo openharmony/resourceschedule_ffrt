@@ -99,6 +99,7 @@ ExecuteUnit::~ExecuteUnit()
             we_[idx] = nullptr;
         }
     }
+    tearDownFinish = true;
 }
 
 ExecuteUnit &ExecuteUnit::Instance()
@@ -389,7 +390,7 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
         thread->SetExited();
         thread->Detach();
         std::unique_ptr<CPUWorker> worker;
-        if (!tearDown) {
+        if (!tearDownFinish) {
             worker = std::move(workerGroup[qos].threads[thread]);
             ret = workerGroup[qos].threads.erase(thread);
             if (ret != 1) {

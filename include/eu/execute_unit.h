@@ -337,6 +337,7 @@ protected:
     CPUWorkerGroup workerGroup[QoS::MaxNum()];
     std::atomic_uint64_t workerNum = 0;
     std::atomic_bool tearDown{false};
+    std::atomic_bool tearDownFinish{false};
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     bool blockAwareInit{false};
     bool stopMonitor{false};

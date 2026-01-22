@@ -530,7 +530,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
                 // Check if current timeout task needs to update timeout count.
                 if (timeoutTaskInfo.updateTime < timeoutThreshold) {
                     timeoutTaskInfo.timeoutCnt += 1;
-                    timeoutTaskInfo.updateTime = TimeStampCntvct();
+                    timeoutTaskInfo.updateTime = TimeStampSteady();
                 } else {
                     curTaskInfo.first.emplace_back(INVALID_GID);
                     minTime = std::min(minTime, timeoutTaskInfo.updateTime);
@@ -540,7 +540,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
             timeoutTaskInfo.timeoutCnt = 1;
             timeoutTaskInfo.taskGid = curTask->gid;
             timeoutTaskInfo.taskStatus = curTask->curStatus;
-            timeoutTaskInfo.updateTime = TimeStampCntvct();
+            timeoutTaskInfo.updateTime = TimeStampSteady();
         }
 
         // When the same task is reported multiple times, the next inspection time is updated by adding the

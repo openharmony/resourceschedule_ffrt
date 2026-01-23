@@ -153,7 +153,7 @@ void QueueMonitor::ReportEventTimeout(uint64_t curGid, const std::stringstream& 
             if (func) {
                 func(curGid, ssStr.c_str(), ssStr.size());
             }
-        });
+            }, {}, {}, task_attr().qos(qos_background).name("TaskTimeoutCb"));
     }
 }
 

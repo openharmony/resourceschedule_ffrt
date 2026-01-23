@@ -127,7 +127,7 @@ namespace ffrt {
                 if (func) {
                     func(gid, msg.c_str(), msg.size());
                 }
-            });
+                }, {}, {}, task_attr().qos(qos_background).name("TaskTimeoutCb"));
         }
 #endif
     }

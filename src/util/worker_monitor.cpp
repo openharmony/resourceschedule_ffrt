@@ -189,7 +189,7 @@ void WorkerMonitor::CheckWorkerStatus()
             for (const auto& timeoutFunction : timeoutFunctions) {
                 RecordSymbolAndBacktrace(timeoutFunction);
             }
-        });
+            }, {}, {this}, task_attr().qos(qos_background).name("RecordSymbolAndBacktrace"));
     }
 
     SubmitSamplingTask();

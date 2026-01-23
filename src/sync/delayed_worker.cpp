@@ -340,7 +340,8 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
     return false;
 }
 
-void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func)
+void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func, std::initializer_list<dependence> inDeps,
+    std::initializer_list<dependence> outDeps, const task_attr& attr)
 {
     asyncTaskCnt_.fetch_add(1);
     ffrt::submit([this, func = std::move(func)]() {
@@ -351,6 +352,6 @@ void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func)
 
         func();
         asyncTaskCnt_.fetch_sub(1);
-        }, {}, {}, ffrt::task_attr().qos(qos_background));
+        }, inDeps, outDeps, attr);
 }
 } // namespace ffrt

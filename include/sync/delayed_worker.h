@@ -56,7 +56,8 @@ public:
     bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup,
         bool skipTimeCheck = false);
     bool remove(const TimePoint& to, WaitEntry* we);
-    void SubmitAsyncTask(std::function<void()>&& func);
+    void SubmitAsyncTask(std::function<void()>&& func, std::initializer_list<dependence> inDeps = {},
+        std::initializer_list<dependence> outDeps = {}, const task_attr& attr = task_attr().qos(qos_background));
     void Terminate();
 
 private:

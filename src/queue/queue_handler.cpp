@@ -470,7 +470,7 @@ void QueueHandler::RunTimeOutCallback(QueueTask* task)
         FFRTFacade::GetDWInstance().SubmitAsyncTask([timeoutCb = timeoutCb_, cbTask] {
             timeoutCb->exec(timeoutCb);
             cbTask->DecDeleteRef();
-        });
+            }, {}, {}, task_attr().qos(qos_background).name("QueueTimeoutCb"));
     }
 }
 
@@ -731,7 +731,7 @@ void QueueHandler::ReportTimeout(const std::vector<std::pair<uint64_t, std::stri
             if (func) {
                 func(queueId, ssStr.c_str(), ssStr.size());
             }
-        });
+            }, {}, {}, task_attr().qos(qos_background).name("TaskTimeoutCb"));
     }
 }
 

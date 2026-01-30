@@ -408,10 +408,7 @@ void SaveTheBbox()
 
 static void ResendSignal(siginfo_t* info)
 {
-    int rc = syscall(SYS_rt_tgsigqueueinfo, getpid(), syscall(SYS_gettid), info->si_signo, info);
-    if (rc != 0) {
-        FFRT_LOGE("ffrt failed to resend signal during crash");
-    }
+    syscall(SYS_rt_tgsigqueueinfo, getpid(), syscall(SYS_gettid), info->si_signo, info);
 }
 
 static const char* GetSigName(const siginfo_t* info)

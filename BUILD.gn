@@ -245,7 +245,7 @@ ohos_shared_library("libffrt") {
       "updater",
     ]
     innerapi_tags = [
-      "chipsetsdk_sp",
+      "llndk",
       "ndk",
       "sasdk",
     ]

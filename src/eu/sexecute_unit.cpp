@@ -131,9 +131,11 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
     BlockawareEnterSleeping();
 #endif
 #if !defined(SUPPORT_WORKER_DESTRUCT)
-    int waiting_seconds = 10;
+    constexpr int waiting_seconds = 10;
 #else
-    int waiting_seconds = group.executingNum < 11 ? 16 - group.executingNum : 5;
+    // Dynamically extends worker destruction time based on the number of active workers.
+    // Maximum 16 seconds, with a minimum of 5 seconds when there are 11 or more active workers.
+    int waiting_seconds = std::max(16 - group.executingNum, 5);
 #endif
     if (group.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
         bool taskExistence = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(thread->GetQos());

@@ -181,11 +181,11 @@ int ConcurrentQueue::WaitAll()
     }
 
     waitingAll_ = true;
-    cond_.wait(lock, [this] { return concurrency_.load() == 0;});
+    cond_.wait(lock, [this] { return concurrency_.load() == 0; });
 
     if (waitingMap_.empty()) {
         waitingAll_ = false;
-        return 0 ;
+        return 0;
     }
 
     // resubmit tasks to the queue and wake up workers

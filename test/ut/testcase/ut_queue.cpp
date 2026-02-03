@@ -1737,15 +1737,12 @@ HWTEST_F(QueueTest, queuetask_timeout_trigger_succ, TestSize.Level0)
 * 测试用例描述：串行队列apply接口正常使用，重复执行同一任务
 * 预置条件    ：无
 * 操作步骤    ：1、设置任务与重复次数
-                2、apply接口提交任务
+               2、apply接口提交任务
 * 预期结果    ：串行执行指定次数的任务并等待
 */
 HWTEST_F(QueueTest, ffrt_serial_queue_apply, TestSize.Level1)
 {
     auto serialQueue = std::make_unique<ffrt::queue>("ffrt_normal_queue");
-    ffrt_task_attr_t attr;
-    ffrt_task_attr_init(&attr);
-    ffrt_task_attr_set_qos(&attr, ffrt_qos_user_initiated);
     int result = 0;
     int applyCount = 10;
     std::function<void()>&& basicFunc = [&result]() {
@@ -1755,6 +1752,7 @@ HWTEST_F(QueueTest, ffrt_serial_queue_apply, TestSize.Level1)
     };
 
     serialQueue->submit_apply(applyCount, basicFunc);
+    EXPECT_EQ(result, applyCount * 2);
     serialQueue->submit_apply(0, basicFunc);
     EXPECT_EQ(result, applyCount * 2);
 }
@@ -1764,33 +1762,32 @@ HWTEST_F(QueueTest, ffrt_serial_queue_apply, TestSize.Level1)
 * 测试用例描述：并发队列apply接口正常使用，重复执行同一任务
 * 预置条件    ：无
 * 操作步骤    ：1、设置任务与重复次数
-                2、apply接口提交任务
+               2、apply接口提交任务
 * 预期结果    ：并发队列根据并发度执行指定次数的任务并等待
 */
 HWTEST_F(QueueTest, ffrt_concurrent_queue_apply, TestSize.Level1)
 {
     auto testQueue = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
-        "concurrent_queue", ffrt::queue_attr().max_concurrency(4));
+        "concurrent_queue", ffrt::queue_attr().max_concurrency(8));
     auto testQueue1 = std::make_unique<ffrt::queue>(ffrt::queue_concurrent,
         "concurrent_queue", ffrt::queue_attr().max_concurrency(1));
-    ffrt_task_attr_t attr;
-    ffrt_task_attr_init(&attr);
-    ffrt_task_attr_set_qos(&attr, ffrt_qos_user_initiated);
-    int result = 0;
-    int applyCount = 10;
+    std::atomic<int> result = 0;
+    int applyCount = 40;
     std::function<void()>&& basicFunc = [&result]() {
-        OnePlusForTest(static_cast<void*>(&result));
-        OnePlusForTest(static_cast<void*>(&result));
+        result.fetch_add(1);
+        result.fetch_add(1);
         usleep(3000);
     };
 
     testQueue->submit_apply(applyCount, basicFunc);
+    EXPECT_EQ(result, applyCount * 2);
     testQueue1->submit_apply(applyCount, basicFunc);
+    testQueue1->submit_apply(applyCount, std::move(basicFunc));
     testQueue1->submit_apply(applyCount, [&result]() {
-        OnePlusForTest(static_cast<void*>(&result));
+        result.fetch_add(1);
     });
 
-    EXPECT_EQ(result, applyCount * 5);
+    EXPECT_EQ(result, applyCount * 7);
 }
 
 /*
@@ -1798,7 +1795,7 @@ HWTEST_F(QueueTest, ffrt_concurrent_queue_apply, TestSize.Level1)
 * 测试用例描述：串行队列apply接口正常使用，延时只等待一次
 * 预置条件    ：无
 * 操作步骤    ：1、设置任务与重复次数
-                2、apply接口提交任务
+               2、apply接口提交任务
 * 预期结果    ：串行执行apply接口延时只等待一次
 */
 HWTEST_F(QueueTest, ffrt_serial_queue_apply_delay, TestSize.Level1)

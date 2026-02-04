@@ -187,6 +187,8 @@ private:
 
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
     WaitUntilEntry* monitorWe_ = nullptr;
+    ffrt::mutex finishMutex_;
+    ffrt::condition_variable finishCond_;
 };
 } // namespace ffrt
 

@@ -116,10 +116,10 @@ void QueueTask::Destroy()
 
 void QueueTask::Notify()
 {
-    std::lock_guard lock(mutex_);
+    std::lock_guard lock(finishMutex_);
     isFinished_.store(true);
     if (onWait_) {
-        waitCond_.notify_all();
+        finishCond_.notify_all();
     }
 }
 
@@ -139,10 +139,10 @@ void QueueTask::Execute()
 
 void QueueTask::Wait()
 {
-    std::unique_lock lock(mutex_);
+    std::unique_lock lock(finishMutex_);
     onWait_ = true;
     while (!isFinished_.load()) {
-        waitCond_.wait(lock);
+        finishCond_.wait(lock);
     }
 }
 

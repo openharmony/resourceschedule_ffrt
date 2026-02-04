@@ -332,6 +332,7 @@ protected:
     virtual ~ExecuteUnit();
 
     size_t GetRunningNum(const QoS &qos);
+    size_t GetRunningNum(const QoS &qos, const CPUWorkerGroup &group);
     void ReportEscapeEvent(int qos, size_t totalNum);
 
     CPUWorkerGroup workerGroup[QoS::MaxNum()];

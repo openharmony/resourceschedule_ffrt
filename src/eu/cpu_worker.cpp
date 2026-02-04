@@ -206,23 +206,24 @@ bool CPUWorker::RunSingleTask(int qos, CPUWorker *worker)
 // work looper which inherited from history
 void CPUWorker::WorkerLooper(CPUWorker* worker)
 {
+    QoS qos = worker->GetQos();
     for (;;) {
         if (worker->Exited()) {
             break;
         }
 
-        TaskBase* task = FFRTFacade::GetSchedInstance()->PopTask(worker->GetQos());
+        TaskBase* task = Scheduler::Instance()->PopTask(qos);
         worker->tick++;
         if (task) {
-            if (FFRTFacade::GetSchedInstance()->GetTaskSchedMode(worker->GetQos()) ==
+            if (Scheduler::Instance()->GetTaskSchedMode(qos) ==
                 TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
-                FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(worker->GetQos());
+                FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(qos);
             }
             RunTask(task, worker);
             continue;
         }
         // It is about to enter the idle state.
-        if (FFRTFacade::GetEUInstance().GetSchedMode(worker->GetQos()) == sched_mode_type::sched_energy_saving_mode) {
+        if (FFRTFacade::GetEUInstance().GetSchedMode(qos) == sched_mode_type::sched_energy_saving_mode) {
             if (FFRTFacade::GetEUInstance().WorkerShare(worker, RunSingleTask)) {
                 continue;
             }

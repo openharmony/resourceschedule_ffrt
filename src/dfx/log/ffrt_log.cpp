@@ -23,8 +23,8 @@
 #include <atomic>
 #include "dfx/log/ffrt_log_api.h"
 
-#ifdef FFRT_SEND_EVENT
 #include <securec.h>
+#ifdef FFRT_SEND_EVENT
 #include "hisysevent.h"
 #endif
 #include "internal_inc/osal.h"
@@ -102,4 +102,62 @@ void ReportSysEvent(const char* format, ...)
     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, "TASK_TIMEOUT",
         OHOS::HiviewDFX::HiSysEvent::EventType::FAULT, "MSG", msg);
 }
+
+template<int logLevel>
+FFRT_NOINLINE void ffrtEventLogWrapper(const char* format, ...)
+{
+    char buffer[LOG_BUFFER_SIZE] = {0};
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf_s(buffer, LOG_BUFFER_SIZE, LOG_BUFFER_SIZE - 1, format, args);
+    va_end(args);
+    if (ret < 0) {
+        return;
+    }
+
+    if constexpr (logLevel == FFRT_LOG_DEBUG) {
+        FFRT_LOGD("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_INFO) {
+        FFRT_LOGI("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_WARN) {
+        FFRT_LOGW("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_ERROR) {
+        FFRT_LOGE("%s", buffer);
+    }
+
+    ReportSysEvent("%s", buffer);
+}
+
+template void ffrtEventLogWrapper<FFRT_LOG_DEBUG>(const char* format, ...);
+template void ffrtEventLogWrapper<FFRT_LOG_INFO>(const char* format, ...);
+template void ffrtEventLogWrapper<FFRT_LOG_WARN>(const char* format, ...);
+template void ffrtEventLogWrapper<FFRT_LOG_ERROR>(const char* format, ...);
 #endif // FFRT_SEND_EVENT
+
+template<int logLevel>
+FFRT_NOINLINE void ffrtLogWrapper(const char* format, ...)
+{
+    char buffer[LOG_BUFFER_SIZE] = {0};
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf_s(buffer, LOG_BUFFER_SIZE, LOG_BUFFER_SIZE - 1, format, args);
+    va_end(args);
+    if (ret < 0) {
+        return;
+    }
+
+    if constexpr (logLevel == FFRT_LOG_DEBUG) {
+        FFRT_LOGD("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_INFO) {
+        FFRT_LOGI("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_WARN) {
+        FFRT_LOGW("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_ERROR) {
+        FFRT_LOGE("%s", buffer);
+    }
+}
+
+template void ffrtLogWrapper<FFRT_LOG_DEBUG>(const char* format, ...);
+template void ffrtLogWrapper<FFRT_LOG_INFO>(const char* format, ...);
+template void ffrtLogWrapper<FFRT_LOG_WARN>(const char* format, ...);
+template void ffrtLogWrapper<FFRT_LOG_ERROR>(const char* format, ...);

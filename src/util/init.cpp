@@ -50,6 +50,7 @@ void RegistCommonTaskFactory()
 
 __attribute__((constructor)) static void ffrt_init()
 {
+    ffrt::ExecuteCtx::CtxEnvCreate();
     RegistCommonTaskFactory();
 
 #ifdef FFRT_SEND_EVENT

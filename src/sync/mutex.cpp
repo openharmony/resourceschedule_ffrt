@@ -31,51 +31,6 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
-bool mutexPrivate::try_lock()
-{
-    int v = sync_detail::UNLOCK;
-    bool ret = l.compare_exchange_strong(v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
-#ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    if (ret) {
-        uint64_t task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
-        MutexGraph::Instance().AddNode(task, 0, false);
-        owner.store(task, std::memory_order_relaxed);
-    }
-#endif
-    return ret;
-}
-
-void mutexPrivate::lock()
-{
-    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, Mutex_Lock, DEFAULT_CONFIG);
-#ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    uint64_t task;
-    uint64_t ownerTask;
-    task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
-    ownerTask = owner.load(std::memory_order_relaxed);
-    if (ownerTask) {
-        MutexGraph::Instance().AddNode(task, ownerTask, true);
-    } else {
-        MutexGraph::Instance().AddNode(task, 0, false);
-    }
-#endif
-    int v = sync_detail::UNLOCK;
-    if (l.compare_exchange_strong(v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed)) {
-        goto lock_out;
-    }
-    if (l.load(std::memory_order_relaxed) == sync_detail::WAIT) {
-        wait();
-    }
-    while (l.exchange(sync_detail::WAIT, std::memory_order_acquire) != sync_detail::UNLOCK) {
-        wait();
-    }
-
-lock_out:
-#ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    owner.store(task, std::memory_order_relaxed);
-#endif
-    return;
-}
 
 bool RecursiveMutexPrivate::try_lock()
 {
@@ -202,19 +157,6 @@ void RecursiveMutexPrivate::unlock()
     fMutex.unlock();
 }
 
-void mutexPrivate::unlock()
-{
-    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, Mutex_UnLock, DEFAULT_CONFIG);
-#ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    uint64_t ownerTask = owner.load(std::memory_order_relaxed);
-    owner.store(0, std::memory_order_relaxed);
-    MutexGraph::Instance().RemoveNode(ownerTask);
-#endif
-    if (l.exchange(sync_detail::UNLOCK, std::memory_order_release) == sync_detail::WAIT) {
-        wake();
-    }
-}
-
 void mutexPrivate::wait()
 {
     auto ctx = ExecuteCtx::Cur();
@@ -277,6 +219,26 @@ void mutexPrivate::wake()
         CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
     }
 }
+
+int MutexLockWait(ffrt_mutex_t* mutex)
+{
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    reinterpret_cast<ffrt::mutexPrivate*>(mutex)->lock_slow();
+    return ffrt_success;
+}
+
+int MutexUnlockWake(ffrt_mutex_t* mutex)
+{
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    reinterpret_cast<ffrt::mutexPrivate*>(mutex)->wake();
+    return ffrt_success;
+}
 } // namespace ffrt
 
 #ifdef __cplusplus
@@ -333,18 +295,20 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
 {
     if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
-    if (attr == nullptr || attr->storage == static_cast<long>(ffrt_mutex_normal)) {
+    if likely(attr == nullptr || attr->storage == static_cast<uint64_t>(ffrt_mutex_normal)) {
         static_assert(sizeof(ffrt::mutexPrivate) <= ffrt_mutex_storage_size,
         "size must be less than ffrt_mutex_storage_size");
-        new (mutex)ffrt::mutexPrivate();
+        auto mtx = new (mutex)ffrt::mutexPrivate();
+        mtx->attr = static_cast<uint64_t>(ffrt_mutex_normal);
         return ffrt_success;
-    } else if (attr->storage == static_cast<long>(ffrt_mutex_recursive)) {
+    } else if (attr->storage == static_cast<uint64_t>(ffrt_mutex_recursive)) {
         static_assert(sizeof(ffrt::RecursiveMutexPrivate) <= ffrt_mutex_storage_size,
         "size must be less than ffrt_mutex_storage_size");
-        new (mutex)ffrt::RecursiveMutexPrivate();
+        auto mtx = new (mutex)ffrt::RecursiveMutexPrivate();
+        mtx->attr = static_cast<uint64_t>(ffrt_mutex_recursive);
         return ffrt_success;
     }
     return ffrt_error_inval;
@@ -353,47 +317,64 @@ int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_lock(ffrt_mutex_t* mutex)
 {
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
-    p->lock();
+    if likely(p->attr == static_cast<uint64_t>(ffrt_mutex_normal)) {
+        reinterpret_cast<ffrt::mutexPrivate*>(p)->lock();
+    } else if (p->attr == static_cast<uint64_t>(ffrt_mutex_recursive)) {
+        reinterpret_cast<ffrt::RecursiveMutexPrivate*>(p)->lock();
+    }
     return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_unlock(ffrt_mutex_t* mutex)
 {
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
-    p->unlock();
+    if likely(p->attr == static_cast<uint64_t>(ffrt_mutex_normal)) {
+        reinterpret_cast<ffrt::mutexPrivate*>(p)->unlock();
+    } else if (p->attr == static_cast<uint64_t>(ffrt_mutex_recursive)) {
+        reinterpret_cast<ffrt::RecursiveMutexPrivate*>(p)->unlock();
+    }
     return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_trylock(ffrt_mutex_t* mutex)
 {
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
-    return p->try_lock() ? ffrt_success : ffrt_error_busy;
+    if likely(p->attr == static_cast<uint64_t>(ffrt_mutex_normal)) {
+        return reinterpret_cast<ffrt::mutexPrivate*>(p)->try_lock() ? ffrt_success : ffrt_error_busy;
+    } else if (p->attr == static_cast<uint64_t>(ffrt_mutex_recursive)) {
+        return reinterpret_cast<ffrt::RecursiveMutexPrivate*>(p)->try_lock() ? ffrt_success : ffrt_error_busy;
+    }
+    return ffrt_success;
 }
 
 API_ATTRIBUTE((visibility("default")))
 int ffrt_mutex_destroy(ffrt_mutex_t* mutex)
 {
-    if (!mutex) {
-        FFRT_LOGE("mutex should not be empty");
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::mutexBase*>(mutex);
-    p->~mutexBase();
+    if likely(p->attr == static_cast<uint64_t>(ffrt_mutex_normal)) {
+        reinterpret_cast<ffrt::mutexPrivate*>(p)->~mutexPrivate();
+    } else if (p->attr == static_cast<uint64_t>(ffrt_mutex_recursive)) {
+        reinterpret_cast<ffrt::RecursiveMutexPrivate*>(p)->~RecursiveMutexPrivate();
+    }
     return ffrt_success;
 }
 

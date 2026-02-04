@@ -16,6 +16,7 @@
 #ifndef GLOBAL_CONFIG_H
 #define GLOBAL_CONFIG_H
 
+#include <unistd.h>
 #ifdef USE_OHOS_QOS
 #include "qos.h"
 #else
@@ -36,20 +37,10 @@ public:
 
     GlobalConfig& operator=(const GlobalConfig&) = delete;
 
-    ~GlobalConfig() {}
-
     static inline GlobalConfig& Instance()
     {
         static GlobalConfig cfg;
         return cfg;
-    }
-
-    void setCpuWorkerNum(const QoS& qos, int num)
-    {
-        if ((num <= 0) || (num > DEFAULT_MAXCONCURRENCY)) {
-            num = DEFAULT_MAXCONCURRENCY;
-        }
-        this->cpu_worker_num[qos()] = static_cast<size_t>(num);
     }
 
     size_t getCpuWorkerNum(const QoS& qos)
@@ -60,14 +51,25 @@ public:
 private:
     GlobalConfig()
     {
-        for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
-            if (qos == static_cast<int>(qos_user_interactive)) {
-                this->cpu_worker_num[qos] = INTERACTIVE_MAXCONCURRENCY;
-            } else {
-                this->cpu_worker_num[qos] = DEFAULT_MAXCONCURRENCY;
+        if constexpr (USE_COROUTINE) {
+            long maxCpuCores = sysconf(_SC_NPROCESSORS_CONF);
+            if (maxCpuCores <= 0) {
+                maxCpuCores = DEFAULT_MAXCONCURRENCY;
+            }
+            maxCpuCores = std::min(maxCpuCores, static_cast<long>(DEFAULT_HARDLIMIT));
+
+            for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
+                cpu_worker_num[qos] = maxCpuCores;
+            }
+        } else {
+            for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
+                cpu_worker_num[qos] = (qos == qos_user_interactive) ?
+                    INTERACTIVE_MAXCONCURRENCY : DEFAULT_MAXCONCURRENCY;
             }
         }
     }
+
+    ~GlobalConfig() = default;
 
     size_t cpu_worker_num[QoS::MaxNum()];
 };

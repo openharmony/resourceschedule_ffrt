@@ -651,7 +651,7 @@ bool ffrt_get_current_coroutine_stack(void** stack_addr, size_t* size)
     }
 
     // init is false to avoid the crash issue caused by nested calls to malloc during initialization.
-    auto ctx = ffrt::ExecuteCtx::Cur(false);
+    auto ctx = ffrt::ExecuteCtx::Cur<false>();
     if (ctx == nullptr) {
         return false;
     }

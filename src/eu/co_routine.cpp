@@ -52,19 +52,24 @@
 
 using namespace ffrt;
 
-static inline void CoStackCheck(CoRoutine* co)
+static FFRT_NOINLINE void stack_overflow_slow_code(CoRoutine* co)
+{
+    FFRT_SYSEVENT_LOGE("sp offset:%llx.\n", co->stkMem.stk +
+        co->stkMem.size - co->ctx.storage[FFRT_REG_SP]);
+    FFRT_SYSEVENT_LOGE("stack over flow, check local variable in you tasks"
+        " or use api 'ffrt_task_attr_set_stack_size'.\n");
+    if (ExecuteCtx::Cur()->task != nullptr) {
+        auto curTask = ExecuteCtx::Cur()->task;
+        FFRT_SYSEVENT_LOGE("task name[%s], gid[%llu], submit_tid[%d]",
+           curTask->GetLabel().c_str(), curTask->gid, curTask->fromTid);
+    }
+    abort();
+}
+
+static FFRT_INLINE void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
-        FFRT_SYSEVENT_LOGE("sp offset:%llx.\n", co->stkMem.stk +
-            co->stkMem.size - co->ctx.storage[FFRT_REG_SP]);
-        FFRT_SYSEVENT_LOGE("stack over flow, check local variable in you tasks"
-            " or use api 'ffrt_task_attr_set_stack_size'.\n");
-        if (ExecuteCtx::Cur()->task != nullptr) {
-            auto curTask = ExecuteCtx::Cur()->task;
-            FFRT_SYSEVENT_LOGE("task name[%s], gid[%llu], submit_tid[%d]",
-                curTask->GetLabel().c_str(), curTask->gid, curTask->fromTid);
-        }
-        abort();
+        stack_overflow_slow_code(co);
     }
 }
 
@@ -550,8 +555,8 @@ void CoWait(const std::function<bool(ffrt::CoTask*)>& pred)
 
 void CoWake(ffrt::CoTask* task, CoWakeType type)
 {
-    if (task == nullptr) {
-        FFRT_SYSEVENT_LOGE("task is nullptr");
+    if unlikely(task == nullptr) {
+        FFRT_NOINLINE_SYSEVENT_LOGE("task is nullptr");
         return;
     }
     // Fast path: state transition without lock

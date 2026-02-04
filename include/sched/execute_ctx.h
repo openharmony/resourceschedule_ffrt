@@ -20,6 +20,7 @@
 #include <functional>
 #include <atomic>
 
+#include "internal_inc/osal.h"
 #include "util/linked_list.h"
 #include "c/executor_task.h"
 #include "util/spmc_queue.h"
@@ -102,7 +103,11 @@ struct ExecuteCtx {
     /**
      * @param init Should ExecuteCtx be initialized if it cannot be obtained
      */
+    template<bool init = true>
+    static ExecuteCtx* Cur();
     static ExecuteCtx* Cur(bool init = true);
+
+    static void CtxEnvCreate();
 };
 } // namespace ffrt
 #endif

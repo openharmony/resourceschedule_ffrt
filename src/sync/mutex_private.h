@@ -18,6 +18,7 @@
 
 #include "sync/sync.h"
 
+#include "internal_inc/osal.h"
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
 #include "util/graph_check.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -28,6 +29,7 @@
 #ifdef FFRT_OH_EVENT_RECORD
 #include "hisysevent.h"
 #endif
+
 namespace ffrt {
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
 class MutexGraph {
@@ -102,15 +104,11 @@ public:
 
 class mutexBase {
 public:
-    mutexBase() = default;
-    virtual ~mutexBase() = default;
-    virtual void lock() {}
-    virtual void unlock() {}
-    virtual bool try_lock() {return false;}
+    std::atomic<int> l = sync_detail::UNLOCK;
+    uint32_t attr;
 };
 
 class mutexPrivate : public mutexBase {
-    std::atomic<int> l;
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
     std::atomic<uintptr_t> owner;
 #endif
@@ -118,27 +116,86 @@ class mutexPrivate : public mutexBase {
     LinkedList list;
 
     void wait();
-    void wake();
-
 public:
+    void wake();
+    FFRT_NOINLINE void lock_slow()
+    {
+        if (l.load(std::memory_order_relaxed) == sync_detail::WAIT) {
+            wait();
+        }
+        while (l.exchange(sync_detail::WAIT, std::memory_order_acquire) != sync_detail::UNLOCK) {
+            wait();
+        }
+    }
+
 #ifdef FFRT_MUTEX_DEADLOCK_CHECK
-    mutexPrivate() : l(sync_detail::UNLOCK), owner(0) {}
+    mutexPrivate() : owner(0) {}
 #else
-    mutexPrivate() : l(sync_detail::UNLOCK) {}
+    mutexPrivate() {}
 #endif
     mutexPrivate(mutexPrivate const &) = delete;
     void operator = (mutexPrivate const &) = delete;
 
-    bool try_lock() override;
-    void lock() override;
-    void unlock() override;
+    FFRT_NOINLINE bool try_lock()
+    {
+        int v = sync_detail::UNLOCK;
+        bool ret = l.compare_exchange_strong(
+            v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
+    #ifdef FFRT_MUTEX_DEADLOCK_CHECK
+        if (ret) {
+            uint64_t task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
+            MutexGraph::Instance().AddNode(task, 0, false);
+            owner.store(task, std::memory_order_relaxed);
+        }
+    #endif
+        return ret;
+    }
+
+    FFRT_INLINE void lock()
+    {
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+        uint64_t task;
+        uint64_t ownerTask;
+        task = ExecuteCtx::Cur()->task ? reinterpret_cast<uint64_t>(ExecuteCtx::Cur()->task) : GetTid();
+        ownerTask = owner.load(std::memory_order_relaxed);
+        if (ownerTask) {
+            MutexGraph::Instance().AddNode(task, ownerTask, true);
+        } else {
+            MutexGraph::Instance().AddNode(task, 0, false);
+        }
+#endif
+        int v = sync_detail::UNLOCK;
+        if likely(l.compare_exchange_strong(
+            v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed)) {
+            goto lock_out;
+        }
+
+        return lock_slow();
+lock_out:
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+        owner.store(task, std::memory_order_relaxed);
+#endif
+        return;
+    }
+
+    FFRT_INLINE void unlock()
+    {
+    #ifdef FFRT_MUTEX_DEADLOCK_CHECK
+        uint64_t ownerTask = owner.load(std::memory_order_relaxed);
+        owner.store(0, std::memory_order_relaxed);
+        MutexGraph::Instance().RemoveNode(ownerTask);
+    #endif
+        if unlikely(l.exchange(sync_detail::UNLOCK, std::memory_order_release) == sync_detail::WAIT) {
+            wake();
+        }
+    }
 };
 
 class RecursiveMutexPrivate : public mutexBase {
 public:
-    void lock() override;
-    void unlock() override;
-    bool try_lock() override;
+    void lock();
+    void unlock();
+    bool try_lock();
 
     RecursiveMutexPrivate() = default;
     ~RecursiveMutexPrivate() = default;

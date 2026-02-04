@@ -106,6 +106,9 @@ HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level0)
     ret = ffrt_mutex_trylock(nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
     ffrt_mutex_destroy(nullptr);
+
+    EXPECT_EQ(ffrt::MutexLockWait(nullptr), ffrt_error_inval);
+    EXPECT_EQ(ffrt::MutexUnlockWake(nullptr), ffrt_error_inval);
 }
 
 /**

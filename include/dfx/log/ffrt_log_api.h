@@ -40,9 +40,13 @@ unsigned int GetLogId(void);
 unsigned int GetShortLogId(void);
 bool IsInWhitelist(void);
 void InitWhiteListFlag(void);
+template<int logLevel>
+void ffrtLogWrapper(const char* format, ...);
 bool GetLogBetaVersionFlag(void);
 #ifdef FFRT_SEND_EVENT
 void ReportSysEvent(const char* format, ...);
+template<int logLevel>
+void ffrtEventLogWrapper(const char* format, ...);
 #endif
 
 #ifdef OHOS_STANDARD_SYSTEM
@@ -269,4 +273,61 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
         } \
     } while (0)
 #endif // FFRT_ENG_DEBUG
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_ERROR)
+#define FFRT_NOINLINE_LOGE(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_ERROR>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGE(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_ERROR>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGE(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGE(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGE(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_WARN)
+#define FFRT_NOINLINE_LOGW(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_WARN>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGW(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_WARN>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGW(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGW(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGW(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_INFO)
+#define FFRT_NOINLINE_LOGI(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_INFO>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGI(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_INFO>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGI(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGI(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGI(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)
+#define FFRT_NOINLINE_LOGD(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_DEBUG>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGD(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_DEBUG>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGD(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGD(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGD(format, ...)
+#endif
+
 #endif // __FFRT_LOG_API_H__

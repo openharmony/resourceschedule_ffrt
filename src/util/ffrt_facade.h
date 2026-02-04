@@ -36,53 +36,55 @@ class FFRTFacade {
 public:
     static inline ExecuteUnit& GetEUInstance()
     {
-        return Instance().GetEUInstanceImpl();
+        return Instance()->GetEUInstanceImpl();
     }
 
     static inline DependenceManager& GetDMInstance()
     {
-        return Instance().GetDMInstanceImpl();
+        return Instance()->GetDMInstanceImpl();
     }
 
     static inline IOPoller& GetPPInstance()
     {
-        return Instance().GetPPInstanceImpl();
+        return Instance()->GetPPInstanceImpl();
     }
 
     static inline TimerManager& GetTMInstance()
     {
-        return Instance().GetTMInstanceImpl();
+        return Instance()->GetTMInstanceImpl();
     }
 
     static inline DelayedWorker& GetDWInstance()
     {
-        return Instance().GetDWInstanceImpl();
+        return Instance()->GetDWInstanceImpl();
     }
 
     static inline Scheduler* GetSchedInstance()
     {
-        return Instance().GetSchedInstanceImpl();
+        return Instance()->GetSchedInstanceImpl();
     }
 
     static inline CoStackAttr* GetCSAInstance()
     {
-        return Instance().GetCSAInstanceImpl();
+        return Instance()->GetCSAInstanceImpl();
     }
 
     static inline QueueMonitor& GetQMInstance()
     {
-        return Instance().GetQMInstanceImpl();
+        return Instance()->GetQMInstanceImpl();
     }
 
     static inline WorkerMonitor& GetWMInstance()
     {
-        return Instance().GetWMInstanceImpl();
+        return Instance()->GetWMInstanceImpl();
     }
 
 private:
+    static inline FFRTFacade* g_facade = nullptr;
+
     FFRTFacade();
 
-    static FFRTFacade& Instance();
+    static FFRTFacade* Instance();
 
     inline ExecuteUnit& GetEUInstanceImpl()
     {

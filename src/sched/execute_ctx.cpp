@@ -45,11 +45,30 @@ ExecuteCtx::~ExecuteCtx()
 {
 }
 
+void ExecuteCtx::CtxEnvCreate()
+{
+    pthread_once(&g_executeCtxKeyOnce, MakeExecuteCtxTlsKey);
+}
+
+template<bool init>
+FFRT_INLINE ExecuteCtx* ExecuteCtx::Cur()
+{
+    void* ctx = pthread_getspecific(g_executeCtxTlsKey);
+    if constexpr (init) {
+        if unlikely(ctx == nullptr) {
+            ctx = new ExecuteCtx();
+            pthread_setspecific(g_executeCtxTlsKey, ctx);
+        }
+    }
+    return reinterpret_cast<ExecuteCtx*>(ctx);
+}
+template ExecuteCtx* ExecuteCtx::Cur<true>();
+template ExecuteCtx* ExecuteCtx::Cur<false>();
+
 ExecuteCtx* ExecuteCtx::Cur(bool init)
 {
     ExecuteCtx* ctx = nullptr;
     pthread_once(&g_executeCtxKeyOnce, MakeExecuteCtxTlsKey);
-
     void *curTls = pthread_getspecific(g_executeCtxTlsKey);
     if (curTls != nullptr) {
         ctx = reinterpret_cast<ExecuteCtx *>(curTls);
@@ -59,5 +78,4 @@ ExecuteCtx* ExecuteCtx::Cur(bool init)
     }
     return ctx;
 }
-
 } // namespace ffrt

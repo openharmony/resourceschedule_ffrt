@@ -30,6 +30,13 @@ void InsertTask(void *task)
     ffrt::TaskBase *baseTask = reinterpret_cast<ffrt::TaskBase *>(task);
     ffrt::FFRTFacade::GetSchedInstance()->GetScheduler(baseTask->qos_).PushTaskGlobal(baseTask);
 }
+
+void UpdateWorkerTick(unsigned int* workerTickPtr)
+{
+    if (workerTickPtr != nullptr) {
+        *workerTickPtr = 1;
+    }
+}
 } // namespace
 
 namespace ffrt {
@@ -37,22 +44,18 @@ int PLACE_HOLDER = 0;
 TaskBase *TaskScheduler::PopTask()
 {
     TaskBase *task = nullptr;
-    if (GetTaskSchedMode() == TaskSchedMode::LOCAL_TASK_SCHED_MODE) {
+    if (GetTaskSchedMode() == TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
+        task = PopTaskGlobal();
+    } else if (GetTaskSchedMode() == TaskSchedMode::LOCAL_TASK_SCHED_MODE) {
         task = PopTaskLocalOrPriority();
         if (task == nullptr) {
             StealTask();
-            bool stealSuccees = false;
             if (GetLocalTaskCnt() > 0) {
-                stealSuccees = true;
                 task = reinterpret_cast<TaskBase *>(GetLocalQueue()->PopHead());
-            }
-            unsigned int *workerTickPtr = *GetWorkerTick();
-            if (stealSuccees && workerTickPtr != nullptr) {
-                *workerTickPtr = 1;
+                unsigned int *workerTickPtr = *GetWorkerTick();
+                UpdateWorkerTick(workerTickPtr);
             }
         }
-    } else if (GetTaskSchedMode() == TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
-        task = PopTaskGlobal();
     }
     if (task) {
         task->Pop();

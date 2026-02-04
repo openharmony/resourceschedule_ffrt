@@ -36,6 +36,7 @@
 #ifndef FFRT_API_CPP_MUTEX_H
 #define FFRT_API_CPP_MUTEX_H
 
+#include <atomic>
 #include "c/mutex.h"
 
 namespace ffrt {
@@ -49,6 +50,15 @@ namespace ffrt {
  *
  * @since 10
  */
+namespace mutex_detail {
+const int UNLOCK = 0;
+const int LOCK = 1;
+const int WAIT = 2;
+}
+
+int MutexLockWait(ffrt_mutex_t* mutex);
+int MutexUnlockWake(ffrt_mutex_t* mutex);
+
 class mutex : public ffrt_mutex_t {
 public:
     /**
@@ -85,7 +95,11 @@ public:
      */
     inline bool try_lock()
     {
-        return ffrt_mutex_trylock(this) == ffrt_success ? true : false;
+        int v = mutex_detail::UNLOCK;
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
+        bool ret = l.compare_exchange_strong(
+            v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
+        return ret;
     }
 
     /**
@@ -93,9 +107,15 @@ public:
      *
      * @since 10
      */
-    inline void lock()
+    void lock()
     {
-        ffrt_mutex_lock(this);
+        int v = mutex_detail::UNLOCK;
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
+        if (__builtin_expect(l.compare_exchange_strong(
+            v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed), 1)) {
+            return;
+        }
+        MutexLockWait(this);
     }
 
     /**
@@ -105,7 +125,11 @@ public:
      */
     inline void unlock()
     {
-        ffrt_mutex_unlock(this);
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
+        if (__builtin_expect(l.exchange(
+            mutex_detail::UNLOCK, std::memory_order_release) == mutex_detail::WAIT, 0)) {
+            MutexUnlockWake(this);
+        }
     }
 };
 

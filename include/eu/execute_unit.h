@@ -293,6 +293,7 @@ public:
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     void MonitorMain();
     BlockawareWakeupCond *WakeupCond(void);
+    bool IsBlockAwareInit(void);
 #endif
     void WorkerStart(int qos);
     void WorkerExit(int qos);
@@ -378,10 +379,6 @@ private:
             return escapeConfig.threeStageIntervalMs_;
         }
     }
-
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    bool IsBlockAwareInit(void);
-#endif
 };
 } // namespace ffrt
 #endif

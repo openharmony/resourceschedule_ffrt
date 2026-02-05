@@ -112,6 +112,7 @@ void DelayedWorker::ThreadInit()
         }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         pthread_setspecific(g_ffrtDelayWorkerFlagKey, reinterpret_cast<void*>(FFRT_DELAY_WORKER_MAGICNUM));
+        ffrt::FFRTFacade::GetEUInstance().WorkerInit();
         std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
         static bool preserved = IsDelayedWorkerPreserved();
         for (;;) {

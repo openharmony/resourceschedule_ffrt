@@ -38,9 +38,7 @@
 
 #include "c/mutex.h"
 
-#ifdef __has_include
-// isolate the host version, and resolve the compatibility issues between API version and ROM version.
-#if (defined(__ANDROID__) || defined(OHOS_STANDARD_SYSTEM)) && __has_include("c/mutex_ext.h")
+#if defined(OHOS_STANDARD_SYSTEM) && defined(__has_include) && __has_include("c/mutex_ext.h")
 #include <atomic>
 #include "c/mutex_ext.h"
 
@@ -51,9 +49,7 @@ constexpr int UNLOCK = 0;
 constexpr int LOCK = 1;
 constexpr int WAIT = 2;
 }
-
-#endif // __has_include("c/mutex_ext.h")
-#endif // __has_include
+#endif
 
 namespace ffrt {
 /**

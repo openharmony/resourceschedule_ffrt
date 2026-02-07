@@ -84,7 +84,7 @@ private:
 
     FFRTFacade();
 
-    static FFRT_INLINE FFRTFacade& FFRTFacade::Instance()
+    static FFRT_INLINE FFRTFacade& Instance()
     {
         if unlikely(facadeIns_ == nullptr) {
             CreateFFRTFacade();

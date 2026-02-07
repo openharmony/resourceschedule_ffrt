@@ -508,7 +508,7 @@ size_t ExecuteUnit::GetRunningNum(const QoS &qos, const CPUWorkerGroup &group)
     /* There is no need to update running num when executingNum < maxConcurrency */
     if (static_cast<size_t>(group.executingNum) >= group.maxConcurrency && blockAwareInit) {
         auto nrBlocked = BlockawareLoadSnapshotNrBlockedFast(keyPtr, qos());
-        if (static_cast<size_t>(unsigned int) >= nrBlocked) {
+        if (static_cast<unsigned int>(group.executingNum) >= nrBlocked) {
             /* nrRunning may not be updated in a timely manner */
             runningNum = group.executingNum - nrBlocked;
         } else {

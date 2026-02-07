@@ -22,7 +22,6 @@
 #include <sstream>
 #include <atomic>
 #include "dfx/log/ffrt_log_api.h"
-
 #ifdef FFRT_SEND_EVENT
 #include "hisysevent.h"
 #endif

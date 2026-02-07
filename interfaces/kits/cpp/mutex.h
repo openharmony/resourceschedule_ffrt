@@ -36,11 +36,11 @@
 #ifndef FFRT_API_CPP_MUTEX_H
 #define FFRT_API_CPP_MUTEX_H
 
-#include <atomic>
 #include "c/mutex.h"
 
 #ifdef __has_include
 #if __has_include("c/mutex_ext.h")
+#include <atomic>
 #include "c/mutex_ext.h"
 
 #define FFRT_SUPPORT_FAST_MUTEX
@@ -141,8 +141,7 @@ public:
     {
 #ifdef FFRT_SUPPORT_FAST_MUTEX
         auto& l = *reinterpret_cast<std::atomic<int>*>(this);
-        if (__builtin_expect(l.exchange(
-            mutex_detail::UNLOCK, std::memory_order_release) == mutex_detail::WAIT, 0)) {
+        if (__builtin_expect(l.exchange(mutex_detail::UNLOCK, std::memory_order_release) == mutex_detail::WAIT, 0)) {
             ffrt_mutex_unlock_wake(this);
         }
 #else

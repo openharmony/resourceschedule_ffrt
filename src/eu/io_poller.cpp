@@ -135,7 +135,7 @@ int IOPoller::PollOnce(int timeout) noexcept
         }
 
         if (data->mode == PollerType::ASYNC_CB) {
-            //async io callback
+            // async io callback
             timeOutReport_.cbStartTime.store(TimeStampCntvct(), std::memory_order_relaxed);
             timeOutReport_.reportCount.store(0, std::memory_order_relaxed);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
@@ -161,6 +161,9 @@ int IOPoller::PollOnce(int timeout) noexcept
         if (data->mode == PollerType::ASYNC_IO) {
             // async io task wait fd
             epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = data->fd} };
+            if (syncTaskEvents[data->task].empty()) {
+                syncTaskEvents[data->task].reserve(waitedEvents.size());
+            }
             syncTaskEvents[data->task].push_back(ev);
             if ((waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) != 0) {
                 std::lock_guard lock(mapMutex_);

@@ -17,7 +17,7 @@
 #define FFRT_INNER_API_C_MUTEX_EXT_H
 
 /**
- * @brief Locks a mutex throuth the slow path.
+ * @brief Locks a mutex through the slow path.
  *
  * @param mutex Indicates a pointer to the mutex.
  * @return Returns <b>ffrt_success</b> if the mutex is locked;

@@ -61,7 +61,7 @@ static FFRT_NOINLINE void StackOverflowSlowCode(CoRoutine* co)
     if (ExecuteCtx::Cur()->task != nullptr) {
         auto curTask = ExecuteCtx::Cur()->task;
         FFRT_SYSEVENT_LOGE("task name[%s], gid[%llu], submit_tid[%d]",
-           curTask->GetLabel().c_str(), curTask->gid, curTask->fromTid);
+            curTask->GetLabel().c_str(), curTask->gid, curTask->fromTid);
     }
     abort();
 }

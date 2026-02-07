@@ -39,7 +39,7 @@
 #include "c/mutex.h"
 
 #ifdef __has_include
-#if __has_include("c/mutex_ext.h")
+#if (defined(__ANDROID__) || defined(OHOS_STANDARD_SYSTEM)) && __has_include("c/mutex_ext.h")
 #include <atomic>
 #include "c/mutex_ext.h"
 

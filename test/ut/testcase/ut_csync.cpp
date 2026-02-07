@@ -22,6 +22,7 @@
 #include "ffrt_inner.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/thread.h"
+#include "c/mutex_ext.h"
 #include "c/ffrt_ipc.h"
 #include "tm/cpu_task.h"
 #include "../common.h"

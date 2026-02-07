@@ -39,6 +39,7 @@
 #include "c/mutex.h"
 
 #ifdef __has_include
+// isolate the host version, and resolve the compatibility issues between API version and ROM version.
 #if (defined(__ANDROID__) || defined(OHOS_STANDARD_SYSTEM)) && __has_include("c/mutex_ext.h")
 #include <atomic>
 #include "c/mutex_ext.h"

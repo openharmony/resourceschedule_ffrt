@@ -145,7 +145,7 @@ public:
             ffrt_mutex_unlock_wake(this);
         }
 #else
-        ffrt_mutex_unlock(this)
+        ffrt_mutex_unlock(this);
 #endif
     }
 };

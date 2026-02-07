@@ -116,62 +116,56 @@ int IOPoller::PollOnce(int timeout) noexcept
     std::unordered_map<CoTask*, EventVec> syncTaskEvents;
     for (unsigned int i = 0; i < static_cast<unsigned int>(nfds); ++i) {
         struct PollerData *data = reinterpret_cast<struct PollerData *>(waitedEvents[i].data.ptr);
-        switch (data->mode) {
-            case PollerType::WAKEUP: {
-                // self wakeup
-                uint64_t one = 1;
-                (void)::read(wakeData_.fd, &one, sizeof one);
-                break;
-            }
+        if (data->mode == PollerType::WAKEUP) {
+            // self wakeup
+            uint64_t one = 1;
+            (void)::read(wakeData_.fd, &one, sizeof one);
+            continue;
+        }
 
-            case PollerType::SYNC_IO: {
-                // sync io wait fd, del fd when waked up
-                if (epoll_ctl(epFd_, EPOLL_CTL_DEL, data->fd, nullptr) != 0) {
-                    FFRT_SYSEVENT_LOGE("epoll_ctl del fd error: fd=%d, errorno=%d", data->fd, errno);
-                    break;
-                }
-                syncFdCnt_--;
-                WakeTask(data->task);
-                break;
+        if (data->mode == PollerType::SYNC_IO) {
+            // sync io wait fd, del fd when waked up
+            if (epoll_ctl(epFd_, EPOLL_CTL_DEL, data->fd, nullptr) != 0) {
+                FFRT_SYSEVENT_LOGE("epoll_ctl del fd error: fd=%d, errorno=%d", data->fd, errno);
+                continue;
             }
+            syncFdCnt_--;
+            WakeTask(data->task);
+            continue;
+        }
 
-            case PollerType::ASYNC_CB: {
-                //async io callback
-                timeOutReport_.cbStartTime.store(TimeStampCntvct(), std::memory_order_relaxed);
-                timeOutReport_.reportCount.store(0, std::memory_order_relaxed);
+        if (data->mode == PollerType::ASYNC_CB) {
+            //async io callback
+            timeOutReport_.cbStartTime.store(TimeStampCntvct(), std::memory_order_relaxed);
+            timeOutReport_.reportCount.store(0, std::memory_order_relaxed);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
-                if (data->traceId.valid == HITRACE_ID_VALID) {
-                    TraceChainAdapter::Instance().HiTraceChainRestoreId(&data->traceId);
-                }
+            if (data->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainRestoreId(&data->traceId);
+            }
 #endif
 #ifdef FFRT_ASYNC_STACKTRACE
-                FFRTSetStackId(data->stackId);
+            FFRTSetStackId(data->stackId);
 #endif
-                FFRT_TRACE_BEGIN("IOCB");
-                data->cb(data->data, waitedEvents[i].events);
-                FFRT_TRACE_END();
-                timeOutReport_.cbStartTime.store(0, std::memory_order_relaxed);
+            FFRT_TRACE_BEGIN("IOCB");
+            data->cb(data->data, waitedEvents[i].events);
+            FFRT_TRACE_END();
+            timeOutReport_.cbStartTime.store(0, std::memory_order_relaxed);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
-                if (data->traceId.valid == HITRACE_ID_VALID) {
-                    TraceChainAdapter::Instance().HiTraceChainClearId();
-                }
+            if (data->traceId.valid == HITRACE_ID_VALID) {
+                TraceChainAdapter::Instance().HiTraceChainClearId();
+            }
 #endif
-                break;
-            }
+            continue;
+        }
 
-            case PollerType::ASYNC_IO: {
-                // async io task wait fd
-                epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = data->fd} };
-                syncTaskEvents[data->task].push_back(ev);
-                if ((waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) != 0) {
-                    std::lock_guard lock(mapMutex_);
-                    CacheMaskFdAndEpollDel(data->fd, data->task);
-                }
-                break;
+        if (data->mode == PollerType::ASYNC_IO) {
+            // async io task wait fd
+            epoll_event ev = { .events = waitedEvents[i].events, .data = {.fd = data->fd} };
+            syncTaskEvents[data->task].push_back(ev);
+            if ((waitedEvents[i].events & (EPOLLHUP | EPOLLERR)) != 0) {
+                std::lock_guard lock(mapMutex_);
+                CacheMaskFdAndEpollDel(data->fd, data->task);
             }
-
-            default:
-                break;
         }
     }
 

@@ -81,7 +81,7 @@ private:
     void ReleaseAll()
     {
         while (!empty()) {
-            FFRT_NOINLINE_LOGE("There are still tasks in cv that have not been awakened");
+            FFRT_LOGE("There are still tasks in cv that have not been awakened");
             WaitUntilEntry *wue = pop_front();
             WeNotifyProc(wue);
         }

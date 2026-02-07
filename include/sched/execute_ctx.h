@@ -100,13 +100,31 @@ struct ExecuteCtx {
     pid_t tid;
     ThreadType threadType_ = ffrt::ThreadType::USER_THREAD;
 
+    static inline pthread_key_t executeCtxTlsKey_ = 0;
+    static inline pthread_once_t executeCtxKeyOnce_ = PTHREAD_ONCE_INIT;
+
+    static FFRT_NOINLINE void CreateExecuteCtx()
+    {
+        void* ctx = new ExecuteCtx();
+        pthread_setspecific(ExecuteCtx::executeCtxTlsKey_, ctx);
+    }
+
     /**
      * @param init Should ExecuteCtx be initialized if it cannot be obtained
      */
     template<bool init = true>
-    static ExecuteCtx* Cur();
-    static ExecuteCtx* Cur(bool init = true);
+    static FFRT_INLINE ExecuteCtx* Cur()
+    {
+        void* ctx = pthread_getspecific(ExecuteCtx::executeCtxTlsKey_);
+        if constexpr (init) {
+            if unlikely(ctx == nullptr) {
+                CreateExecuteCtx();
+            }
+        }
+        return reinterpret_cast<ExecuteCtx*>(ctx);
+    }
 
+    static ExecuteCtx* Cur(bool init = true);
     static void CtxEnvCreate();
 };
 } // namespace ffrt

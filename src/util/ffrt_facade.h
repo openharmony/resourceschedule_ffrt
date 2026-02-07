@@ -36,55 +36,67 @@ class FFRTFacade {
 public:
     static inline ExecuteUnit& GetEUInstance()
     {
-        return Instance()->GetEUInstanceImpl();
+        return Instance().GetEUInstanceImpl();
     }
 
     static inline DependenceManager& GetDMInstance()
     {
-        return Instance()->GetDMInstanceImpl();
+        return Instance().GetDMInstanceImpl();
     }
 
     static inline IOPoller& GetPPInstance()
     {
-        return Instance()->GetPPInstanceImpl();
+        return Instance().GetPPInstanceImpl();
     }
 
     static inline TimerManager& GetTMInstance()
     {
-        return Instance()->GetTMInstanceImpl();
+        return Instance().GetTMInstanceImpl();
     }
 
     static inline DelayedWorker& GetDWInstance()
     {
-        return Instance()->GetDWInstanceImpl();
+        return Instance().GetDWInstanceImpl();
     }
 
     static inline Scheduler* GetSchedInstance()
     {
-        return Instance()->GetSchedInstanceImpl();
+        return Instance().GetSchedInstanceImpl();
     }
 
     static inline CoStackAttr* GetCSAInstance()
     {
-        return Instance()->GetCSAInstanceImpl();
+        return Instance().GetCSAInstanceImpl();
     }
 
     static inline QueueMonitor& GetQMInstance()
     {
-        return Instance()->GetQMInstanceImpl();
+        return Instance().GetQMInstanceImpl();
     }
 
     static inline WorkerMonitor& GetWMInstance()
     {
-        return Instance()->GetWMInstanceImpl();
+        return Instance().GetWMInstanceImpl();
     }
 
 private:
-    static inline FFRTFacade* g_facade = nullptr;
+    static inline FFRTFacade* facadeIns_ = nullptr;
 
     FFRTFacade();
 
-    static FFRTFacade* Instance();
+    static FFRT_INLINE FFRTFacade& FFRTFacade::Instance()
+    {
+        if unlikely(facadeIns_ == nullptr) {
+            CreateFFRTFacade();
+        }
+        return *facadeIns_;
+    }
+
+    static FFRT_NOINLINE void CreateFFRTFacade()
+    {
+        static FFRTFacade facade;
+        facadeIns_ = &facade;
+    }
 
     inline ExecuteUnit& GetEUInstanceImpl()
     {

@@ -506,14 +506,14 @@ size_t ExecuteUnit::GetRunningNum(const QoS &qos, const CPUWorkerGroup &group)
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     /* There is no need to update running num when executingNum < maxConcurrency */
-    if (runningNum >= group.maxConcurrency && blockAwareInit) {
+    if (static_cast<size_t>(group.executingNum) >= group.maxConcurrency && blockAwareInit) {
         auto nrBlocked = BlockawareLoadSnapshotNrBlockedFast(keyPtr, qos());
-        if (runningNum >= nrBlocked) {
+        if (static_cast<size_t>(unsigned int) >= nrBlocked) {
             /* nrRunning may not be updated in a timely manner */
-            runningNum -= nrBlocked;
+            runningNum = group.executingNum - nrBlocked;
         } else {
             FFRT_NOINLINE_SYSEVENT_LOGE(
-                "qos [%d] nrBlocked [%u] is larger than executingNum [%zu].", qos(), nrBlocked, runningNum);
+                "qos [%d] nrBlocked [%u] is larger than executingNum [%zu].", qos(), nrBlocked, group.executingNum);
         }
     }
 #endif

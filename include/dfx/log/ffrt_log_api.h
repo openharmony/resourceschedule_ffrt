@@ -23,30 +23,28 @@
 #endif
 #include <string_view>
 #include "hilog/log.h"
-#include "internal_inc/osal.h"
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #else
 #include "log_base.h"
 #endif
 #include <stdbool.h>
+#include <securec.h>
+#include "internal_inc/osal.h"
 
 #define FFRT_LOG_ERROR (0)
 #define FFRT_LOG_WARN (1)
 #define FFRT_LOG_INFO (2)
 #define FFRT_LOG_DEBUG (3)
 #define FFRT_LOG_LEVEL_MAX (FFRT_LOG_DEBUG + 1)
+constexpr int LOG_BUFFER_SIZE = 2048;
 
 unsigned int GetLogId(void);
 unsigned int GetShortLogId(void);
 bool IsInWhitelist(void);
 void InitWhiteListFlag(void);
-template<int logLevel>
-void ffrtLogWrapper(const char* format, ...);
 bool GetLogBetaVersionFlag(void);
 #ifdef FFRT_SEND_EVENT
 void ReportSysEvent(const char* format, ...);
-template<int logLevel>
-void ffrtEventLogWrapper(const char* format, ...);
 #endif
 
 #ifdef OHOS_STANDARD_SYSTEM
@@ -273,6 +271,56 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
         } \
     } while (0)
 #endif // FFRT_ENG_DEBUG
+
+template<int logLevel>
+FFRT_NOINLINE void ffrtLogWrapper(const char* format, ...)
+{
+    char buffer[LOG_BUFFER_SIZE] = {0};
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf_s(buffer, LOG_BUFFER_SIZE, LOG_BUFFER_SIZE - 1, format, args);
+    va_end(args);
+    if (ret < 0) {
+        return;
+    }
+
+    if constexpr (logLevel == FFRT_LOG_DEBUG) {
+        FFRT_LOGD("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_INFO) {
+        FFRT_LOGI("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_WARN) {
+        FFRT_LOGW("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_ERROR) {
+        FFRT_LOGE("%s", buffer);
+    }
+}
+
+#ifdef FFRT_SEND_EVENT
+template<int logLevel>
+FFRT_NOINLINE void ffrtEventLogWrapper(const char* format, ...)
+{
+    char buffer[LOG_BUFFER_SIZE] = {0};
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf_s(buffer, LOG_BUFFER_SIZE, LOG_BUFFER_SIZE - 1, format, args);
+    va_end(args);
+    if (ret < 0) {
+        return;
+    }
+
+    if constexpr (logLevel == FFRT_LOG_DEBUG) {
+        FFRT_LOGD("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_INFO) {
+        FFRT_LOGI("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_WARN) {
+        FFRT_LOGW("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_ERROR) {
+        FFRT_LOGE("%s", buffer);
+    }
+
+    ReportSysEvent("%s", buffer);
+}
+#endif
 
 #if (FFRT_LOG_LEVEL >= FFRT_LOG_ERROR)
 #define FFRT_NOINLINE_LOGE(format, ...) \

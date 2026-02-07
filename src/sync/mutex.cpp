@@ -219,26 +219,6 @@ void mutexPrivate::wake()
         CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
     }
 }
-
-int MutexLockWait(ffrt_mutex_t* mutex)
-{
-    if unlikely(!mutex) {
-        FFRT_NOINLINE_LOGE("mutex should not be empty");
-        return ffrt_error_inval;
-    }
-    reinterpret_cast<ffrt::mutexPrivate*>(mutex)->lock_slow();
-    return ffrt_success;
-}
-
-int MutexUnlockWake(ffrt_mutex_t* mutex)
-{
-    if unlikely(!mutex) {
-        FFRT_NOINLINE_LOGE("mutex should not be empty");
-        return ffrt_error_inval;
-    }
-    reinterpret_cast<ffrt::mutexPrivate*>(mutex)->wake();
-    return ffrt_success;
-}
 } // namespace ffrt
 
 #ifdef __cplusplus
@@ -343,6 +323,28 @@ int ffrt_mutex_unlock(ffrt_mutex_t* mutex)
     } else if (p->attr == static_cast<uint64_t>(ffrt_mutex_recursive)) {
         reinterpret_cast<ffrt::RecursiveMutexPrivate*>(p)->unlock();
     }
+    return ffrt_success;
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_mutex_lock_wait(ffrt_mutex_t* mutex)
+{
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    reinterpret_cast<ffrt::mutexPrivate*>(mutex)->lock_slow();
+    return ffrt_success;
+}
+
+API_ATTRIBUTE((visibility("default")))
+int ffrt_mutex_unlock_wake(ffrt_mutex_t* mutex)
+{
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    reinterpret_cast<ffrt::mutexPrivate*>(mutex)->wake();
     return ffrt_success;
 }
 

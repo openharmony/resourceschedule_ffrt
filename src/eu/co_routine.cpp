@@ -52,7 +52,7 @@
 
 using namespace ffrt;
 
-static FFRT_NOINLINE void stack_overflow_slow_code(CoRoutine* co)
+static FFRT_NOINLINE void StackOverflowSlowCode(CoRoutine* co)
 {
     FFRT_SYSEVENT_LOGE("sp offset:%llx.\n", co->stkMem.stk +
         co->stkMem.size - co->ctx.storage[FFRT_REG_SP]);
@@ -69,11 +69,10 @@ static FFRT_NOINLINE void stack_overflow_slow_code(CoRoutine* co)
 static FFRT_INLINE void CoStackCheck(CoRoutine* co)
 {
     if (unlikely(co->stkMem.magic != STACK_MAGIC)) {
-        stack_overflow_slow_code(co);
+        StackOverflowSlowCode(co);
     }
 }
 
-extern pthread_key_t g_executeCtxTlsKey;
 pthread_key_t g_coThreadTlsKey = 0;
 pthread_once_t g_coThreadTlsKeyOnce = PTHREAD_ONCE_INIT;
 void CoEnvDestructor(void* args)
@@ -133,7 +132,7 @@ bool IsTaskLocalEnable(ffrt::CoTask* task)
 
 void InitWorkerTsdValueToTask(void** taskTsd)
 {
-    const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
+    const pthread_key_t updKeyMap[] = {ExecuteCtx::executeCtxTlsKey_, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
         FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "FFRT abort: key[%u] invalid", key);
@@ -180,7 +179,7 @@ bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 
 void UpdateWorkerTsdValueToThread(void** taskTsd)
 {
-    const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
+    const pthread_key_t updKeyMap[] = {ExecuteCtx::executeCtxTlsKey_, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
         FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "FFRT abort: key[%u] invalid", key);
@@ -574,7 +573,7 @@ void CoWake(ffrt::CoTask* task, CoWakeType type)
             break;
         }
         default: {
-            FFRT_LOGE("CoWake unsupport task[%llu], type=%d, name[%s]",
+            FFRT_NOINLINE_LOGE("CoWake unsupport task[%llu], type=%d, name[%s]",
                 task->gid, task->type, task->GetLabel().c_str());
             break;
         }

@@ -21,28 +21,33 @@ namespace ffrt {
 template <typename T>
 class SingletonRegister {
 public:
-    static SingletonRegister<T> *Instance_()
+    static SingletonRegister<T>& Instance_()
     {
-        if unlikely(g_ins == nullptr) {
-            static SingletonRegister<T> ins;
-            g_ins = &ins;
+        if unlikely(ins_ == nullptr) {
+            CreateSingletonRegister();
         }
-        return g_ins;
+        return *ins_;
     }
 
-    static inline T &Instance()
+    static inline T& Instance()
     {
-        return Instance_()->cb_();
+        return Instance_().cb_();
     }
 
     static void RegistInsCb(typename SingleInsCB<T>::Instance &&cb)
     {
-        Instance_()->cb_ = std::move(cb);
+        Instance_().cb_ = std::move(cb);
     }
 
 private:
+    static FFRT_NOINLINE void CreateSingletonRegister()
+    {
+        static SingletonRegister<T> ins;
+        ins_ = &ins;
+    }
+
     typename SingleInsCB<T>::Instance cb_;
-    static inline SingletonRegister<T> *g_ins = nullptr;
+    static inline SingletonRegister<T>* ins_ = nullptr;
 };
 } // namespace ffrt
 #endif

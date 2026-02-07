@@ -39,6 +39,21 @@
 #include <atomic>
 #include "c/mutex.h"
 
+#ifdef __has_include
+#if __has_include("c/mutex_ext.h")
+#include "c/mutex_ext.h"
+
+#define FFRT_SUPPORT_FAST_MUTEX
+
+namespace mutex_detail {
+constexpr int UNLOCK = 0;
+constexpr int LOCK = 1;
+constexpr int WAIT = 2;
+}
+
+#endif // __has_include("c/mutex_ext.h")
+#endif // __has_include
+
 namespace ffrt {
 /**
  * @class mutex
@@ -50,15 +65,6 @@ namespace ffrt {
  *
  * @since 10
  */
-namespace mutex_detail {
-const int UNLOCK = 0;
-const int LOCK = 1;
-const int WAIT = 2;
-}
-
-int MutexLockWait(ffrt_mutex_t* mutex);
-int MutexUnlockWake(ffrt_mutex_t* mutex);
-
 class mutex : public ffrt_mutex_t {
 public:
     /**
@@ -95,11 +101,15 @@ public:
      */
     inline bool try_lock()
     {
+#ifdef FFRT_SUPPORT_FAST_MUTEX
         int v = mutex_detail::UNLOCK;
         auto& l = *reinterpret_cast<std::atomic<int>*>(this);
         bool ret = l.compare_exchange_strong(
             v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
         return ret;
+#else
+        return ffrt_mutex_trylock(this) == ffrt_success ? true : false;
+#endif
     }
 
     /**
@@ -107,15 +117,19 @@ public:
      *
      * @since 10
      */
-    void lock()
+    inline void lock()
     {
+#ifdef FFRT_SUPPORT_FAST_MUTEX
         int v = mutex_detail::UNLOCK;
         auto& l = *reinterpret_cast<std::atomic<int>*>(this);
         if (__builtin_expect(l.compare_exchange_strong(
             v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed), 1)) {
             return;
         }
-        MutexLockWait(this);
+        ffrt_mutex_lock_wait(this);
+#else
+        ffrt_mutex_lock(this);
+#endif
     }
 
     /**
@@ -125,11 +139,15 @@ public:
      */
     inline void unlock()
     {
+#ifdef FFRT_SUPPORT_FAST_MUTEX
         auto& l = *reinterpret_cast<std::atomic<int>*>(this);
         if (__builtin_expect(l.exchange(
             mutex_detail::UNLOCK, std::memory_order_release) == mutex_detail::WAIT, 0)) {
-            MutexUnlockWake(this);
+            ffrt_mutex_unlock_wake(this);
         }
+#else
+        ffrt_mutex_unlock(this)
+#endif
     }
 };
 

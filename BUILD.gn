@@ -128,7 +128,7 @@ ohos_shared_library("libffrt") {
     configs = [ ":ffrt_inner_config" ]
     ldflags = [
       "-Wl,-z,nodelete",
-      "-Wl,-Bsymbolic",
+      "-Wl,-Bsymbolic-functions",
     ]
 
     sources = [

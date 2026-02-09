@@ -244,7 +244,7 @@ bool TaskScheduler::CancelUVWork(ffrt_executor_task_t* uvWork)
         }
         return true;
     }
-
+    LinkedList::RemoveCur(reinterpret_cast<LinkedList*>(&uvWork->wq));
     return cancelSet_.insert(uvWork).second;
 }
 

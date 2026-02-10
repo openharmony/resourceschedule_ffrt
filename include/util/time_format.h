@@ -33,26 +33,21 @@ std::string FormatDateString4CntCt(uint64_t cntCtTimeStamp, TimeUnitT timeUnit =
 std::string FormatDateToString(uint64_t timeStamp);
 uint64_t Arm64CntFrq(void);
 uint64_t Arm64CntCt(void);
+uint64_t TimeStampCntvct();
 uint64_t ConvertCntvctToUs(uint64_t cntCt);
 uint64_t ConvertUsToCntvct(uint64_t time);
 uint64_t ConvertTscToSteadyClockCount(uint64_t cntCt);
 
-inline uint64_t TimeStampCntvct(void)
+inline uint64_t TimeStamp(void)
 {
 #if defined(__aarch64__)
-    // 在arm环境下获取当前的CPU cycle数的时间戳，单位纳秒颗粒度
-    return Arm64CntCt();
+    uint64_t tsc = 1;
+    asm volatile("mrs %0, cntvct_el0" : "=r" (tsc));
+    return tsc;
 #else
-    // 在非arm环境下获取std的时间戳，单位微秒
     return static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now()).time_since_epoch().count());
 #endif
-}
-
-inline uint64_t TimeStampSteady(void)
-{
-    return static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now()).time_since_epoch().count());
 }
 }
 #endif // UTIL_TIME_FORAMT_H

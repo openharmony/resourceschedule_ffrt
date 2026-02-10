@@ -18,7 +18,6 @@
 
 #include "internal_inc/osal.h"
 #include "tm/cpu_task.h"
-#include <cassert>
 
 namespace ffrt {
 class FIFOQueue {
@@ -33,27 +32,27 @@ public:
     void EnQueueBatch(TaskBase* first, TaskBase* last, size_t cnt)
     {
         list.PushBack(first->node, last->node);
-        size += static_cast<int>(cnt);
+        auto curSize = size.load(std::memory_order_relaxed);
+        size.store(curSize + static_cast<int>(cnt), std::memory_order_relaxed);
     }
 
     TaskBase* DeQueue()
     {
         if (list.Empty()) {
-            if (unlikely(size.load(std::memory_order_relaxed) != 0)) {
-                FFRT_LOGE("size not match, current size %d, reset to 0.", size.load());
-                size = 0;
+            if (unlikely(size.load(std::memory_order_relaxed)) != 0) {
+                FFRT_LOGE("size not match, current size %d, reset to 0.", size.load(std::memory_order_relaxed));
+                size.store(0, std::memory_order_relaxed);
             }
             return nullptr;
         }
         auto node = list.PopFront();
         if (node == nullptr) {
-            FFRT_LOGE("failed to pop node, current size %d.", size.load());
+            FFRT_LOGE("failed to pop node, current size %d.", size.load(std::memory_order_relaxed));
             return nullptr;
         }
 
         TaskBase* task = node->ContainerOf(&TaskBase::node);
         auto curSize = size.load(std::memory_order_relaxed);
-        assert(curSize > 0);
         size.store(curSize - 1, std::memory_order_relaxed);
         return task;
     }

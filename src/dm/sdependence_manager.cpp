@@ -22,7 +22,6 @@
 #include "core/entity.h"
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
-#include "async_stack.h"
 #endif
 
 #ifdef FFRT_ENABLE_HITRACE_CHAIN

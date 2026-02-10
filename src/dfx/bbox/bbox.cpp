@@ -141,7 +141,6 @@ static inline void SaveWorkerStatus()
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
     for (int i = 0; i < QoS::MaxNum(); i++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
-        std::shared_lock lck(workerGroup.tgMutex); /* acquire the lock in RO */
         for (auto& thread : workerGroup.threads) {
             SaveLocalFifoStatus(i, thread.first);
             TaskBase* t = thread.first->curTask;
@@ -429,7 +428,7 @@ static const char* GetSigName(const siginfo_t* info)
 static void HandleChildProcess()
 {
     BBoxDeInit();
-    pid_t childPid = (pid_t)syscall(SYS_clone, SIGCHLD, 0);
+    pid_t childPid = static_cast<pid_t>(syscall(SYS_clone, SIGCHLD, 0));
     if (childPid == 0) {
         // init is false to avoid deadlock occurs in the signal handling function due to memory allocation calls.
         auto ctx = ExecuteCtx::Cur(false);
@@ -527,7 +526,7 @@ __attribute__((constructor)) static void BBoxInit()
 std::string GetDumpPreface(void)
 {
     std::ostringstream ss;
-    ss << "|-> Launcher proc ffrt, now:" << FormatDateToString(TimeStampCntvct()) << " pid:" << GetPid()
+    ss << "|-> Launcher proc ffrt, now:" << FormatDateToString(TimeStamp()) << " pid:" << GetPid()
         << std::endl;
     return ss.str();
 }

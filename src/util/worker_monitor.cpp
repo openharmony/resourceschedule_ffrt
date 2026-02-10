@@ -108,7 +108,7 @@ void WorkerMonitor::SubmitTask()
 {
     std::lock_guard submitTaskLock(submitTaskMutex_);
     if (!skipSampling_ && GetBetaVersionFlag()) {
-        if (samplingTaskExit_ && ffrt::GetBetaVersionFlag()) {
+        if (samplingTaskExit_) {
             SubmitSamplingTask();
             samplingTaskExit_ = false;
         }
@@ -216,7 +216,7 @@ void WorkerMonitor::CheckTaskStatus()
         return;
     }
 
-    uint64_t now = TimeStampSteady();
+    uint64_t now = TimeStampCntvct();
     uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
     uint64_t curMinTimeStamp = UINT64_MAX;
 
@@ -243,7 +243,7 @@ uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutTh
         return UINT64_MAX;
     }
 
-    uint64_t curTaskTime = ConvertTscToSteadyClockCount(task->statusTime.load(std::memory_order_relaxed));
+    uint64_t curTaskTime = task->statusTime.load(std::memory_order_relaxed);
     uint64_t timeoutCount = task->timeoutTask.timeoutCnt;
 
     if (curTaskTime + timeoutCount * timeoutUs_ < timeoutThreshold) {
@@ -289,7 +289,7 @@ void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task)
 
     ss << task->label.c_str() << "|" << task->gid << "|" << task->GetQos() <<
         "|" << task->delayTime << "|" << StatusToString(curTaskStatus) <<
-        "|" << FormatDateToString(curTaskTime);
+        "|" << FormatDateString4SteadyClock(curTaskTime);
 
     {
         std::lock_guard lock(mutex_);
@@ -312,7 +312,7 @@ std::string WorkerMonitor::DumpTimeoutInfo()
     if (taskTimeoutInfo_.size() != 0) {
         for (auto it = taskTimeoutInfo_.rbegin(); it != taskTimeoutInfo_.rend(); ++it) {
             auto& record = *it;
-            ss << "{" << FormatDateToString(record.first) << ", " << record.second << "} \n";
+            ss << "{" << FormatDateString4SteadyClock(record.first) << ", " << record.second << "} \n";
         }
     } else {
         ss << "Timeout info Empty";
@@ -383,8 +383,8 @@ void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutF
     int maxFrameNums = (timeoutFunction.executionTime_ == TIMEOUT_RECORD_CYCLE_LIST[0]) ? MAX_FRAME_NUMS :
         OHOS::HiviewDFX::DEFAULT_MAX_FRAME_NUM;
     if (ffrt::GetBetaVersionFlag()) {
-        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_,
-            0, false, maxFrameNums)) {
+        if (OHOS::HiviewDFX::GetBacktraceStringByTid(dumpInfo, timeoutFunction.workerInfo_.tid_, 0,
+            false, maxFrameNums)) {
             FFRT_LOGW("%s", dumpInfo.c_str());
             if (timeoutFunction.executionTime_ >= RECORD_IPC_INFO_TIME_THRESHOLD) {
                 RecordIpcInfo(dumpInfo, timeoutFunction.workerInfo_.tid_);

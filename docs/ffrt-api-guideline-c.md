@@ -184,7 +184,7 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
 描述
 
 - 设置任务的调度延迟，任务会在延迟间隔之后才调度执行。不设置的情况下，默认延迟为零。
-- 注意：设置任务的调度延迟后，任务的输入输出依赖关系不再生效。
+- 设置任务的调度延迟后，任务的输入输出依赖关系不再生效。
 
 ##### ffrt_task_attr_get_delay
 
@@ -986,7 +986,7 @@ typedef struct {
 ##### ffrt_queue_attr_init
 
 ```c
-int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
+int ffrt_queue_attr_init(ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1004,7 +1004,7 @@ int ffrt_queue_attr_init(ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_destroy
 
 ```c
-void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
+void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1018,7 +1018,7 @@ void ffrt_queue_attr_destroy(ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_set_qos
 
 ```c
-void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
+void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos)
 ```
 
 参数
@@ -1033,7 +1033,7 @@ void ffrt_queue_attr_set_qos(ffrt_queue_attr_t* attr, ffrt_qos_t qos);
 ##### ffrt_queue_attr_get_qos
 
 ```c
-ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
+ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1051,7 +1051,7 @@ ffrt_qos_t ffrt_queue_attr_get_qos(const ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_set_timeout
 
 ```c
-void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
+void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us)
 ```
 
 参数
@@ -1066,7 +1066,7 @@ void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
 ##### ffrt_queue_attr_get_timeout
 
 ```c
-uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
+uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1084,7 +1084,7 @@ uint64_t ffrt_queue_attr_get_timeout(const ffrt_queue_attr_t* attr);
 ##### ffrt_queue_attr_set_callback
 
 ```c
-void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f);
+void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_t* f)
 ```
 
 参数
@@ -1096,12 +1096,12 @@ void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_
 
 - 设置检测到队列任务超时后执行的回调函数。
 - 不建议在`f`中调用`exit`函数，可能导致未定义行为。
-- 任务在`timeout`约定时间点未执行完成，ffrt则会调用该`callback`函数，**需要注意的是：`callback`函数执行时，任务可能正在执行或已执行完。**
+- 任务在`timeout`约定的时间点还未执行完成，ffrt则会调用该`callback`函数，**需要注意的是：`callback`函数执行时，任务可能正在执行或已执行完。**
 
 ##### ffrt_queue_attr_get_callback
 
 ```c
-ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr);
+ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1119,7 +1119,7 @@ ffrt_function_header_t* ffrt_queue_attr_get_callback(const ffrt_queue_attr_t* at
 ##### ffrt_queue_attr_set_max_concurrency
 
 ```c
-void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_concurrency);
+void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_concurrency)
 ```
 
 参数
@@ -1134,7 +1134,7 @@ void ffrt_queue_attr_set_max_concurrency(ffrt_queue_attr_t* attr, const int max_
 ##### ffrt_queue_attr_get_max_concurrency
 
 ```c
-int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr);
+int ffrt_queue_attr_get_max_concurrency(const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1227,7 +1227,7 @@ typedef void* ffrt_queue_t;
 ##### ffrt_queue_create
 
 ```c
-ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr);
+ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const ffrt_queue_attr_t* attr)
 ```
 
 参数
@@ -1247,7 +1247,7 @@ ffrt_queue_t ffrt_queue_create(ffrt_queue_type_t type, const char* name, const f
 ##### ffrt_queue_destroy
 
 ```c
-void ffrt_queue_destroy(ffrt_queue_t queue);
+void ffrt_queue_destroy(ffrt_queue_t queue)
 ```
 
 参数
@@ -1261,7 +1261,7 @@ void ffrt_queue_destroy(ffrt_queue_t queue);
 ##### ffrt_queue_submit
 
 ```c
-void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
 ```
 
 参数
@@ -1294,7 +1294,7 @@ void ffrt_queue_submit_f(ffrt_queue_t queue, ffrt_function_t func, void* arg, co
 ##### ffrt_queue_submit_h
 
 ```c
-ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr);
+ffrt_task_handle_t ffrt_queue_submit_h(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt_task_attr_t* attr)
 ```
 
 参数
@@ -1371,7 +1371,7 @@ ffrt_task_handle_t ffrt_queue_submit_head_h(ffrt_queue_t queue, ffrt_function_he
 ##### ffrt_queue_wait
 
 ```c
-void ffrt_queue_wait(ffrt_task_handle_t handle);
+void ffrt_queue_wait(ffrt_task_handle_t handle)
 ```
 
 参数
@@ -1385,7 +1385,7 @@ void ffrt_queue_wait(ffrt_task_handle_t handle);
 ##### ffrt_queue_cancel
 
 ```c
-int ffrt_queue_cancel(ffrt_task_handle_t handle);
+int ffrt_queue_cancel(ffrt_task_handle_t handle)
 ```
 
 参数
@@ -1432,7 +1432,7 @@ ffrt_queue_t ffrt_get_current_queue();
 ##### ffrt_queue_get_task_cnt
 
 ```c
-uint64_t ffrt_queue_get_task_cnt(ffrt_queue_t queue);
+uint64_t ffrt_queue_get_task_cnt(ffrt_queue_t queue)
 ```
 
 参数
@@ -1642,7 +1642,7 @@ int ffrt_mutex_destroy(ffrt_mutex_t* mutex);
 - C API中的同一个`ffrt_mutexattr_t`只能调用一次`ffrt_mutexattr_init`和`ffrt_mutexattr_destroy`，重复调用其行为是未定义的。
 - 用户需要在调用`ffrt_mutex_init`之后和调用`ffrt_mutex_destroy`之前显式调用`ffrt_mutexattr_destroy`。
 - 在`ffrt_mutex_destroy`之后再对`ffrt_mutex_t`进行访问，其行为是未定义的。
-- 与`pthread_mutex_t`相同，不允许对`ffrt_mutex_t`进行赋值或 `memcpy` 拷贝！必须使用 `ffrt_mutex_init` 显式初始化新的锁对象，否则行为是未定义的。
+- 与`pthread_mutex_t`相同，不允许对`ffrt_mutex_t`进行赋值或`memcpy`拷贝！必须使用`ffrt_mutex_init`显式初始化新的锁对象，否则行为是未定义的。
 
 #### 方法
 
@@ -2205,8 +2205,8 @@ FFRT_C_API int ffrt_usleep(uint64_t usec);
 
 #### 描述
 
-- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
 - FFRT提供的类似C11 sleep和Linux usleep的性能实现。
+- 该接口只能在FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
 - 该接口睡眠精度为微秒。
 - 该功能能够避免传统的`sleep`睡眠时陷入内核的问题，在使用得当的条件下将会有更好的性能。
 
@@ -2236,8 +2236,8 @@ FFRT_C_API void ffrt_yield();
 
 #### 描述
 
-- 该接口支持在FFRT任务内部调用，也支持在FFRT任务外部调用。
 - 当前任务主动让出CPU执行资源，允许其他可执行的任务运行，如果没有其他可执行的任务，`yield`无效。
+- 该接口只能在 FFRT任务内部调用，在FFRT任务外部调用存在未定义的行为。
 - 此函数的确切行为取决于实现，特别是使用中的FFRT调度程序的机制和系统状态。
 
 #### 样例

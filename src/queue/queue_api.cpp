@@ -28,7 +28,7 @@ using namespace std;
 using namespace ffrt;
 
 namespace {
-std::mutex mutex;
+std::mutex g_generalWaitMutex;
 inline void ResetTimeoutCb(ffrt::queue_attr_private* p)
 {
     if (p->timeoutCb_ == nullptr) {
@@ -56,38 +56,14 @@ inline QueueTask* ffrt_queue_submit_base(ffrt_queue_t queue, ffrt_function_heade
     return task;
 }
 
-std::vector<std::function<void()>> generateQueueApply(uint32_t n, ffrt_queue_t queue, std::function<void()> func)
+inline void QueueGeneralWait(QueueTask* task, ffrt_queue_t queue)
 {
     QueueHandler* handler = static_cast<QueueHandler*>(queue);
-    int concurrency = handler->GetConcurrency();
-    std::vector<std::function<void()>> funcVec;
-    int base = n / concurrency;
-    int rem = n % concurrency;
-
-    for (int i = 0; i < concurrency; ++i) {
-        int repeatCnt = base + (i >= concurrency - rem ? 1 : 0);
-        if (repeatCnt == 0) {
-            continue;
-        }
-        std::function<void()> funcApply = [func, repeatCnt] {
-            for (int j = 0; j < repeatCnt; ++j) {
-                func();
-            }
-        };
-        funcVec.emplace_back(funcApply);
-    }
-    return funcVec;
-}
-
-inline void ffrt_queue_general_wait(QueueTask* task, ffrt_queue_t queue)
-{
-    QueueHandler* handler = static_cast<QueueHandler*>(queue);
-    int concurrency = handler->GetConcurrency();
-    if (concurrency > 1) {
-        std::unique_lock lock(mutex);
+    if (handler->GetQueue()->GetQueueType() == ffrt_queue_concurrent) {
+        std::lock_guard lock(g_generalWaitMutex);
         ffrt_concurrent_queue_wait_all(queue);
     } else {
-        std::unique_lock lock(mutex);
+        std::lock_guard lock(g_generalWaitMutex);
         ffrt_queue_wait(static_cast<ffrt_task_handle_t>(task));
     }
 }
@@ -243,38 +219,32 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
     FFRT_COND_DO_ERR((task == nullptr), return, "failed to submit serial task");
 }
 
-void queue::submit_apply(uint32_t iter, const std::function<void()>& func, const task_attr& attr)
+void queue::submit_apply(uint32_t iterations, const std::function<void()>& func, const task_attr& attr)
 {
-    FFRT_COND_DO_ERR((unlikely(iter <= 0)), return, "input invalid, iter less or equal to zero");
-    FFRT_COND_DO_ERR((unlikely(iter > UINT16_MAX)), return, "input invalid, iter must less than UINT16_MAX");
-    ffrt_queue_t queue = this->queue_handle;
-    std::vector<std::function<void()>> funcApplyVec = generateQueueApply(iter, queue, func);
-    QueueTask* task = nullptr;
+    FFRT_COND_DO_ERR((unlikely(iterations == 0)), return, "input invalid, iteration equal to zero");
+    FFRT_COND_DO_ERR((unlikely(iterations > UINT16_MAX)), return, "input invalid, iteration must less than UINT16_MAX");
 
-    for (auto& i : funcApplyVec) {
-        task = ffrt_queue_submit_base(
-            queue, create_function_wrapper(std::move(i), ffrt_function_kind_queue), true, false, &attr);
-        FFRT_COND_DO_ERR((task == nullptr), return, "failed to submit serial task");
+    QueueTask* task = nullptr;
+    QueueHandler* handler = static_cast<QueueHandler*>(queue_handle);
+    int concur = handler->GetConcurrency();
+    int roughCnt = iterations / concur;
+    int splitCnt = concur - (iterations % concur);
+    for (int i = 0; i < concur; ++i) {
+        int repeatCnt = roughCnt + (i >= splitCnt ? 1 : 0);
+        if (repeatCnt == 0) {
+            continue;
+        }
+        std::function<void()> funcApply = [&func, repeatCnt] {
+            for (int j = 0; j < repeatCnt; ++j) {
+                func();
+            }
+        };
+        task = ffrt_queue_submit_base(queue_handle,
+            create_function_wrapper(std::move(funcApply), ffrt_function_kind_queue), i == concur - 1, false, &attr);
     }
 
-    ffrt_queue_general_wait(task, queue);
-}
-
-void queue::submit_apply(uint32_t iter, std::function<void()>&& func, const task_attr& attr)
-{
-    FFRT_COND_DO_ERR((unlikely(iter <= 0)), return, "input invalid, iter less or equal to zero");
-    FFRT_COND_DO_ERR((unlikely(iter > UINT16_MAX)), return, "input invalid, iter must less than UINT16_MAX");
-    ffrt_queue_t queue = this->queue_handle;
-    std::vector<std::function<void()>> funcApplyVec = generateQueueApply(iter, queue, std::move(func));
-    QueueTask* task = nullptr;
-
-    for (auto& i : funcApplyVec) {
-        task = ffrt_queue_submit_base(
-            queue, create_function_wrapper(std::move(i), ffrt_function_kind_queue), true, false, &attr);
-        FFRT_COND_DO_ERR((task == nullptr), return, "failed to submit serial task");
-    }
-
-    ffrt_queue_general_wait(task, queue);
+    QueueGeneralWait(task, queue_handle);
+    task->DecDeleteRef();
 }
 
 API_ATTRIBUTE((visibility("default")))

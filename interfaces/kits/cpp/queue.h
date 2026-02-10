@@ -379,24 +379,14 @@ public:
     }
 
     /**
-     * @brief Submits a task with a specified attribute to this queue and wait until its complete.
+     * @brief Submits a task to this queue, executes it a specified number of times, and waits for completion.
      *
-     * @param iter Indicates the iteraion count of the task.
+     * @param iterations Indicates the iteration count of the task.
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
      * @since 20
      */
-    void submit_apply(uint32_t iter, const std::function<void()>& func, const task_attr& attr = {});
-
-    /**
-     * @brief Submits a task with a specified attribute to this queue and wait until its complete.
-     *
-     *@param iter Indicates the iteraion count of the task.
-     * @param func Indicates a task executor function closure.
-     * @param attr Indicates a task attribute.
-     * @since 20
-     */
-    void submit_apply(uint32_t iter, std::function<void()>&& func, const task_attr& attr = {});
+    void submit_apply(uint32_t iterations, const std::function<void()>& func, const task_attr& attr = {});
 
     /**
      * @brief Cancels a task.

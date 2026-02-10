@@ -14,6 +14,7 @@
  */
 #include "dfx/async_stack/ffrt_async_stack.h"
 
+#include <atomic>
 #include <cstdlib>
 #include <mutex>
 
@@ -22,8 +23,8 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/ffrt_facade.h"
 namespace {
-    CollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
-    SetStackIdFunc g_setStackIdFunc = nullptr;
+    std::atomic<CollectAsyncStackFunc> g_collectAsyncStackFunc = nullptr;
+    std::atomic<SetStackIdFunc> g_setStackIdFunc = nullptr;
 }
 
 void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc)
@@ -32,14 +33,14 @@ void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStack
         return;
     }
 
-    g_collectAsyncStackFunc = collectAsyncStackFunc;
-    g_setStackIdFunc = setStackIdFunc;
+    g_collectAsyncStackFunc.store(collectAsyncStackFunc);
+    g_setStackIdFunc.store(setStackIdFunc);
 }
 
 namespace ffrt {
 uint64_t FFRTCollectAsyncStack(uint64_t taskType)
 {
-    auto func = g_collectAsyncStackFunc;
+    auto func = g_collectAsyncStackFunc.load();
     if (func != nullptr) {
         return func(taskType);
     }
@@ -48,7 +49,7 @@ uint64_t FFRTCollectAsyncStack(uint64_t taskType)
 
 void FFRTSetStackId(uint64_t stackId)
 {
-    auto func = g_setStackIdFunc;
+    auto func = g_setStackIdFunc.load();
     if (func != nullptr) {
         return func(stackId);
     }

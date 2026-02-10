@@ -96,7 +96,7 @@ public:
         return qos_();
     }
 
-    inline void SetStatus(TaskStatus statusIn, uint64_t delaytime = 0)
+    inline void SetStatus(TaskStatus statusIn)
     {
         /* Note this function can be called concurrently.
          * The following accesses can be interleaved.
@@ -106,7 +106,7 @@ public:
          * are only used in printing debug information
          * and don't play a role in the logic.
          */
-        statusTime.store(TimeStampCntvct() + delaytime, std::memory_order_relaxed);
+        statusTime.store(TimeStampCntvct(), std::memory_order_relaxed);
         preStatus.store(curStatus, std::memory_order_relaxed);
         curStatus.store(statusIn, std::memory_order_relaxed);
     }
@@ -147,6 +147,7 @@ public:
 #endif
 
     struct HiTraceIdStruct traceId_ = {};
+
     uint64_t createTime {0};
     uint64_t executeTime {0};
     int32_t fromTid {0};
@@ -183,6 +184,7 @@ public:
 
     bool pollerEnable = false; // set true if task call ffrt_epoll_ctl
     bool threadMode_ = false;
+
     std::string GetLabel() const override
     {
         return label;

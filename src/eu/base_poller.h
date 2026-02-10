@@ -34,9 +34,6 @@
 #include "internal_inc/non_copyable.h"
 #include "c/executor_task.h"
 #include "c/timer.h"
-#ifdef FFRT_ASYNC_STACKTRACE
-#include "dfx/async_stack/ffrt_async_stack.h"
-#endif
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
 #include "dfx/trace/ffrt_trace_chain.h"
 #endif
@@ -62,9 +59,6 @@ struct PollerData {
             mode = PollerType::ASYNC_IO;
         } else {
             mode = PollerType::ASYNC_CB;
-#ifdef FFRT_ASYNC_STACKTRACE
-            stackId = FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_POOL);
-#endif
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
             if (TraceChainAdapter::Instance().HiTraceChainGetId().valid == HITRACE_ID_VALID) {
                 traceId = TraceChainAdapter::Instance().HiTraceChainCreateSpan();
@@ -79,7 +73,6 @@ struct PollerData {
     std::function<void(void*, uint32_t)> cb = nullptr;
     CoTask* task = nullptr;
     uint32_t monitorEvents = 0;
-    uint64_t stackId = 0;
     HiTraceIdStruct traceId;
 };
 
@@ -170,7 +163,7 @@ public:
     bool exitFlag_ { true }; // 线程退出标志
     bool teardown_ { false }; // 析构标志
     std::atomic<uint64_t> pollerCount_ { 0 }; // 轮询计数
-    std::atomic_bool fdEmpty_ {true};
+    std::atomic_bool fdEmpty_ { true };
 };
 } // namespace ffrt
 #endif

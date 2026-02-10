@@ -99,7 +99,6 @@ ExecuteUnit::~ExecuteUnit()
             we_[idx] = nullptr;
         }
     }
-    tearDownFinish = true;
 }
 
 ExecuteUnit &ExecuteUnit::Instance()
@@ -384,18 +383,14 @@ void ExecuteUnit::WorkerRetired(CPUWorker *thread)
     thread->SetWorkerState(WorkerStatus::DESTROYED);
     pid_t tid = thread->Id();
     int qos = static_cast<int>(thread->GetQos());
-    int ret = 0;
     {
         std::lock_guard<std::shared_mutex> lck(workerGroup[qos].tgMutex);
         thread->SetExited();
         thread->Detach();
-        std::unique_ptr<CPUWorker> worker;
-        if (!tearDownFinish) {
-            worker = std::move(workerGroup[qos].threads[thread]);
-            ret = workerGroup[qos].threads.erase(thread);
-            if (ret != 1) {
-                FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
-            }
+        auto worker = std::move(workerGroup[qos].threads[thread]);
+        int ret = workerGroup[qos].threads.erase(thread);
+        if (ret != 1) {
+            FFRT_SYSEVENT_LOGE("erase qos[%d] thread failed, %d elements removed", qos, ret);
         }
         WorkerLeaveTg(qos, tid);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -507,8 +502,8 @@ size_t ExecuteUnit::GetRunningNum(const QoS &qos)
             /* nrRunning may not be updated in a timely manner */
             runningNum = group.executingNum - nrBlocked;
         } else {
-            FFRT_SYSEVENT_LOGE(
-                "qos [%d] nrBlocked [%u] is larger than executingNum [%d].", qos(), nrBlocked, group.executingNum);
+            FFRT_NOINLINE_SYSEVENT_LOGE(
+                "qos [%d] nrBlocked [%u] is larger than executingNum [%zu].", qos(), nrBlocked, group.executingNum);
         }
     }
 #endif

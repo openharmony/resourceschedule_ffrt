@@ -75,7 +75,7 @@ private:
 
         GetParameter = reinterpret_cast<GetParameterType>(dlsym(handle, "GetParameter"));
         if (GetParameter == nullptr) {
-            FFRT_LOGE("load func from %s failed: %s", BEGETUTIL_LIB_PATH, dlerror());
+            FFRT_LOGE("load func from %s failed", BEGETUTIL_LIB_PATH);
             return false;
         }
         return true;
@@ -118,7 +118,7 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
 {
     static std::once_flag firstCallFlag;
     if (unlikely(passed > lONG_TASK_TIME_LIMIT)) {
-        uint64_t now = TimeStampCntvct();
+        uint64_t now = TimeStamp();
         {
             std::lock_guard<std::mutex> lock(mtx);
             static uint64_t firstCallTime = 0;

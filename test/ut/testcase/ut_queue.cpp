@@ -935,7 +935,7 @@ void MyCallback(uint64_t id, const char* message, uint32_t length)
  *               2、提交多个任务占满worker，使得新串行任务等待调度
  * 预期结果    : 成功触发任务调度超时告警
  */
-HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
+HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout, TestSize.Level0)
 {
     int x = 0;
     ffrt_task_timeout_set_cb(MyCallback);

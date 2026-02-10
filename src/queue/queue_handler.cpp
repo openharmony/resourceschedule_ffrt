@@ -317,7 +317,6 @@ void QueueHandler::Dispatch(QueueTask* inTask)
             triggerTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
         }
-
 #ifdef FFRT_ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
 #endif
@@ -336,7 +335,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
         if (task->traceId_.valid == HITRACE_ID_VALID) {
-            TraceChainAdapter::Instance().HiTraceChainRestoreId(&task->traceId_);
+            TraceChainAdapter::Instance().HiTraceChainClearId();
         }
 #endif
         task->Finish();
@@ -484,7 +483,7 @@ std::string QueueHandler::GetDfxInfo(int index) const
         ss << "Queue task: tskname[" << curTaskVec_[index]->label.c_str() << "], qname=[" << queue_->GetQueueName() <<
                 "], with delay of[" <<  curTaskVec_[index]->GetDelay() << "]us, qos[" << curTaskVec_[index]->GetQos() <<
                 "], current status[" << StatusToString(curTaskStatus) << "], start at[" <<
-                FormatDateToString(curTaskTime) << "], last status[" << StatusToString(preTaskStatus)
+                FormatDateString4SteadyClock(curTaskTime) << "], last status[" << StatusToString(preTaskStatus)
                 << "], type=[" << queue_->GetQueueType() << "]";
     } else {
         ss << "Current queue or task nullptr";
@@ -506,14 +505,14 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
             continue;
         }
 
-        uint64_t evaTime = TimeStampSteady();
-        uint64_t curTaskTime = ConvertTscToSteadyClockCount(curTask->statusTime.load(std::memory_order_relaxed));
-        if (curTaskTime == 0 || CheckDelayStatus()) {
+        uint64_t curTaskTime = curTask->statusTime.load(std::memory_order_relaxed);
+        if (curTaskTime == 0 || CheckDelayStatus() || (curTask->curStatus == TaskStatus::ENQUEUED &&
+            curTaskTime + curTask->GetDelay() + ALLOW_ACC_ERROR_US > TimeStampCntvct())) {
             curTaskInfo.first.emplace_back(INVALID_GID);
             // Update the next inspection time if current task is delaying and there are still tasks in whenMap.
             // Otherwise, pause the monitor timer.
             if (whenmapTskCount > 0) {
-                minTime = std::min(minTime, evaTime);
+                minTime = std::min(minTime, TimeStampCntvct());
             }
             continue;
         }
@@ -530,7 +529,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
                 // Check if current timeout task needs to update timeout count.
                 if (timeoutTaskInfo.updateTime < timeoutThreshold) {
                     timeoutTaskInfo.timeoutCnt += 1;
-                    timeoutTaskInfo.updateTime = TimeStampSteady();
+                    timeoutTaskInfo.updateTime = TimeStampCntvct();
                 } else {
                     curTaskInfo.first.emplace_back(INVALID_GID);
                     minTime = std::min(minTime, timeoutTaskInfo.updateTime);
@@ -540,7 +539,7 @@ std::pair<std::vector<uint64_t>, uint64_t> QueueHandler::EvaluateTaskTimeout(uin
             timeoutTaskInfo.timeoutCnt = 1;
             timeoutTaskInfo.taskGid = curTask->gid;
             timeoutTaskInfo.taskStatus = curTask->curStatus;
-            timeoutTaskInfo.updateTime = TimeStampSteady();
+            timeoutTaskInfo.updateTime = TimeStampCntvct();
         }
 
         // When the same task is reported multiple times, the next inspection time is updated by adding the
@@ -615,9 +614,11 @@ void* QueueHandler::GetEventHandler()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", GetQueueId());
 
-    bool typeInvalid = (queue_->GetQueueType() != ffrt_queue_eventhandler_interactive) &&
-        (queue_->GetQueueType() != ffrt_queue_eventhandler_adapter);
-    FFRT_COND_DO_ERR(typeInvalid, return nullptr, "[queueId=%u] type invalid", GetQueueId());
+    auto queueType = queue_->GetQueueType();
+    if (queueType != ffrt_queue_eventhandler_interactive &&
+        queueType != ffrt_queue_eventhandler_adapter) {
+        return nullptr;
+    }
 
     return reinterpret_cast<EventHandlerInteractiveQueue*>(queue_.get())->GetEventHandler();
 }

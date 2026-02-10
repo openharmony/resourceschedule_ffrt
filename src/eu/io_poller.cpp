@@ -136,15 +136,12 @@ int IOPoller::PollOnce(int timeout) noexcept
 
         if (data->mode == PollerType::ASYNC_CB) {
             // async io callback
-            timeOutReport_.cbStartTime.store(TimeStampCntvct(), std::memory_order_relaxed);
+            timeOutReport_.cbStartTime.store(TimeStamp(), std::memory_order_relaxed);
             timeOutReport_.reportCount.store(0, std::memory_order_relaxed);
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
             if (data->traceId.valid == HITRACE_ID_VALID) {
                 TraceChainAdapter::Instance().HiTraceChainRestoreId(&data->traceId);
             }
-#endif
-#ifdef FFRT_ASYNC_STACKTRACE
-            FFRTSetStackId(data->stackId);
 #endif
             FFRT_TRACE_BEGIN("IOCB");
             data->cb(data->data, waitedEvents[i].events);
@@ -249,14 +246,14 @@ void IOPoller::MonitTimeOut()
     if (timeOutReport_.cbStartTime.load(std::memory_order_relaxed) == 0) {
         return;
     }
-    uint64_t now = TimeStampCntvct();
+    uint64_t now = TimeStamp();
     static const uint64_t freq = [] {
         uint64_t f = Arm64CntFrq();
         return (f == 1) ? 1000000 : f;
     } ();
     uint64_t diff = (now - timeOutReport_.cbStartTime.load(std::memory_order_relaxed)) / freq;
     uint64_t reportTime = TIMEOUT_RECORD_CYCLE_LIST[timeOutReport_.reportCount.load(std::memory_order_relaxed)];
-    if (timeOutReport_.reportCount < TIMEOUT_RECORD_CYCLE_LIST.size() &&
+    if (timeOutReport_.reportCount.load(std::memory_order_relaxed) < TIMEOUT_RECORD_CYCLE_LIST.size() &&
         diff >= reportTime) {
 #ifdef FFRT_OH_TRACE_ENABLE
         std::string dumpInfo;

@@ -16,6 +16,9 @@
 #include "tm/io_task.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "dfx/bbox/bbox.h"
+#ifdef FFRT_ASYNC_STACKTRACE
+#include "dfx/async_stack/ffrt_async_stack.h"
+#endif
 
 namespace ffrt {
 IOTask::IOTask(const ffrt_io_callable_t& work, const task_attr_private* attr)
@@ -25,6 +28,9 @@ void IOTask::Execute()
 {
     FFRTTraceRecord::TaskExecute<ffrt_io_task>(qos_);
     FFRT_EXECUTOR_TASK_BEGIN(gid);
+#ifdef FFRT_ASYNC_STACKTRACE
+    FFRTSetStackId(stackId);
+#endif
     SetStatus(TaskStatus::EXECUTING);
     ffrt_coroutine_ptr_t coroutine = work.exec;
     ffrt_coroutine_ret_t ret = coroutine(work.data);

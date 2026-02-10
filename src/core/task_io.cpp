@@ -15,6 +15,9 @@
 #include <pthread.h>
 #include "tm/io_task.h"
 #include "core/task_io.h"
+#ifdef FFRT_ASYNC_STACKTRACE
+#include "dfx/async_stack/ffrt_async_stack.h"
+#endif
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
 #include <dlfcn.h>
 #endif
@@ -32,6 +35,9 @@ void OnSubmitIO(const ffrt::ffrt_io_callable_t &work, const ffrt::task_attr_priv
     FFRT_TRACE_SCOPE(1, OnSubmitIO);
     ffrt::IOTask* ioTask = ffrt::TaskFactory<ffrt::IOTask>::Alloc();
     new (ioTask) ffrt::IOTask(work, attr);
+#ifdef FFRT_ASYNC_STACKTRACE
+    ioTask->stackId = ffrt::FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_POOL);
+#endif
     ioTask->Ready();
 }
 

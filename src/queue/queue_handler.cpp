@@ -292,6 +292,7 @@ int QueueHandler::Cancel(QueueTask* task)
 void QueueHandler::Dispatch(QueueTask* inTask)
 {
     QueueTask* nextTask = nullptr;
+    int queueType = queue_->GetQueueType();
     for (QueueTask* task = inTask; task != nullptr; task = nextTask) {
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
         if (task->traceId_.valid == HITRACE_ID_VALID) {
@@ -312,21 +313,19 @@ void QueueHandler::Dispatch(QueueTask* inTask)
             RemoveSchedDeadline(task);
         }
 
-        uint64_t triggerTime{0};
-        if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
-            triggerTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count());
-        }
 #ifdef FFRT_ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
 #endif
 
-        f->exec(f);
-
-        if (queue_->GetQueueType() == ffrt_queue_eventhandler_adapter) {
+        if (queueType == ffrt_queue_eventhandler_adapter) {
+            uint64_t triggerTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
+            f->exec(f);
             uint64_t completeTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
             reinterpret_cast<EventHandlerAdapterQueue*>(queue_.get())->PushHistoryTask(task, triggerTime, completeTime);
+        } else {
+            f->exec(f);
         }
 
         if (task != inTask) {

@@ -22,8 +22,11 @@
 #include <unistd.h>
 
 #define API_ATTRIBUTE(attr) __attribute__(attr)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
-#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     (__builtin_expect(!!(x), 0))
+#define likely(x)       (__builtin_expect(!!(x), 1))
+#define FFRT_INLINE __attribute__((always_inline)) inline
+#define FFRT_NOINLINE __attribute__((noinline))
+#define FFRT_COLD __attribute__((cold))
 
 static inline unsigned int GetPid(void)
 {

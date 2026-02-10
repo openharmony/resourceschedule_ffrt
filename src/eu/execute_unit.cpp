@@ -497,6 +497,11 @@ void ExecuteUnit::MonitorMain()
 size_t ExecuteUnit::GetRunningNum(const QoS &qos)
 {
     CPUWorkerGroup &group = workerGroup[qos()];
+    return GetRunningNum(qos, group);
+}
+
+size_t ExecuteUnit::GetRunningNum(const QoS &qos, const CPUWorkerGroup &group)
+{
     size_t runningNum = group.executingNum;
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -507,8 +512,8 @@ size_t ExecuteUnit::GetRunningNum(const QoS &qos)
             /* nrRunning may not be updated in a timely manner */
             runningNum = group.executingNum - nrBlocked;
         } else {
-            FFRT_SYSEVENT_LOGE(
-                "qos [%d] nrBlocked [%u] is larger than executingNum [%d].", qos(), nrBlocked, group.executingNum);
+            FFRT_NOINLINE_SYSEVENT_LOGE(
+                "qos [%d] nrBlocked [%u] is larger than executingNum [%zu].", qos(), nrBlocked, group.executingNum);
         }
     }
 #endif

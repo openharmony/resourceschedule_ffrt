@@ -93,11 +93,6 @@ private:
     }
 };
 
-FFRTFacade& FFRTFacade::Instance()
-{
-    static FFRTFacade facade;
-    return facade;
-}
 FFRTFacade::FFRTFacade()
 {
 // control construct sequences of singletons

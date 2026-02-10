@@ -25,29 +25,29 @@ constexpr int GLOBAL_INTERVAL = 60;
 constexpr int UV_TASK_MAX_CONCURRENCY = 8;
 constexpr unsigned int BUDGET = 10;
 
-void InsertTask(void *task)
+void InsertTask(void* task)
 {
-    ffrt::TaskBase *baseTask = reinterpret_cast<ffrt::TaskBase *>(task);
+    ffrt::TaskBase* baseTask = reinterpret_cast<ffrt::TaskBase *>(task);
     ffrt::FFRTFacade::GetSchedInstance()->GetScheduler(baseTask->qos_).PushTaskGlobal(baseTask);
 }
 } // namespace
 
 namespace ffrt {
 int PLACE_HOLDER = 0;
-TaskBase *TaskScheduler::PopTask()
+TaskBase* TaskScheduler::PopTask()
 {
-    TaskBase *task = nullptr;
+    TaskBase* task = nullptr;
     if (GetTaskSchedMode() == TaskSchedMode::LOCAL_TASK_SCHED_MODE) {
         task = PopTaskLocalOrPriority();
         if (task == nullptr) {
             StealTask();
-            bool stealSuccees = false;
+            bool stealSuccess = false;
             if (GetLocalTaskCnt() > 0) {
-                stealSuccees = true;
+                stealSuccess = true;
                 task = reinterpret_cast<TaskBase *>(GetLocalQueue()->PopHead());
             }
-            unsigned int *workerTickPtr = *GetWorkerTick();
-            if (stealSuccees && workerTickPtr != nullptr) {
+            unsigned int* workerTickPtr = *GetWorkerTick();
+            if (stealSuccess && workerTickPtr != nullptr) {
                 *workerTickPtr = 1;
             }
         }
@@ -60,19 +60,19 @@ TaskBase *TaskScheduler::PopTask()
     return task;
 }
 
-SpmcQueue *TaskScheduler::GetLocalQueue()
+SpmcQueue* TaskScheduler::GetLocalQueue()
 {
     thread_local static LocalQueue localQueue(qos, this->localQueues);
     return localQueue.localQueue;
 }
 
-void **TaskScheduler::GetPriorityTask()
+void** TaskScheduler::GetPriorityTask()
 {
     thread_local void *priorityTask{nullptr};
     return &priorityTask;
 }
 
-unsigned int **TaskScheduler::GetWorkerTick()
+unsigned int** TaskScheduler::GetWorkerTick()
 {
     thread_local unsigned int *workerTick{nullptr};
     return &workerTick;
@@ -144,11 +144,11 @@ void TaskScheduler::PushTaskLocalOrPriority(TaskBase *task)
     PushTaskGlobal(task);
 }
 
-TaskBase *TaskScheduler::PopTaskLocalOrPriority()
+TaskBase* TaskScheduler::PopTaskLocalOrPriority()
 {
-    TaskBase *task = nullptr;
+    TaskBase* task = nullptr;
     thread_local static unsigned int lifoCount = 0;
-    unsigned int *workerTickPtr = *GetWorkerTick();
+    unsigned int* workerTickPtr = *GetWorkerTick();
     if ((workerTickPtr != nullptr) && (*workerTickPtr % GLOBAL_INTERVAL == 0)) {
         *workerTickPtr = 0;
         task = PopTaskHybridProcess();
@@ -162,7 +162,7 @@ TaskBase *TaskScheduler::PopTaskLocalOrPriority()
         }
     }
     // preferentially pick up tasks from the priority unless the priority is empty or occupied
-    void **priorityTaskPtr = GetPriorityTask();
+    void** priorityTaskPtr = GetPriorityTask();
     if (*priorityTaskPtr != nullptr) {
         if (*priorityTaskPtr != &PLACE_HOLDER) {
             lifoCount++;
@@ -244,7 +244,7 @@ bool TaskScheduler::CancelUVWork(ffrt_executor_task_t* uvWork)
         }
         return true;
     }
-
+    LinkedList::RemoveCur(reinterpret_cast<LinkedList*>(&uvWork->wq));
     return cancelSet_.insert(uvWork).second;
 }
 

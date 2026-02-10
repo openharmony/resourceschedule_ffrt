@@ -20,8 +20,11 @@
 namespace ffrt {
 Scheduler* Scheduler::Instance()
 {
-    static Scheduler instance;
-    return &instance;
+    if unlikely(schedulerIns_ == nullptr) {
+        static Scheduler instance;
+        schedulerIns_ = &instance;
+    }
+    return schedulerIns_;
 }
 
 bool Scheduler::CancelUVWork(ffrt_executor_task_t* uvWork, int qos)

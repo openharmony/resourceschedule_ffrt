@@ -88,6 +88,11 @@ HWTEST_F(CVTest, conditonV_nullptr_test, TestSize.Level0)
     ret = ffrt_cond_timedwait(nullptr, nullptr, nullptr);
     EXPECT_NE(ret, 0);
     ffrt_cond_destroy(nullptr);
+
+    ffrt_cond_t cond;
+    ffrt_cond_init(&cond, nullptr);
+    EXPECT_EQ(ffrt_cond_wait(&cond, nullptr), ffrt_error_inval);
+    EXPECT_EQ(ffrt_cond_timedwait(&cond, nullptr, nullptr), ffrt_error_inval);
 }
 
 class MutexTest : public testing::Test {

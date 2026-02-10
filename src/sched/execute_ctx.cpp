@@ -15,10 +15,7 @@
 #include "sched/execute_ctx.h"
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <pthread.h>
 
-pthread_key_t g_executeCtxTlsKey = 0;
-pthread_once_t g_executeCtxKeyOnce = PTHREAD_ONCE_INIT;
 namespace ffrt {
 namespace {
 void ExecuteCtxTlsDestructor(void* args)
@@ -31,7 +28,7 @@ void ExecuteCtxTlsDestructor(void* args)
 
 void MakeExecuteCtxTlsKey()
 {
-    pthread_key_create(&g_executeCtxTlsKey, ExecuteCtxTlsDestructor);
+    pthread_key_create(&ExecuteCtx::executeCtxTlsKey_, ExecuteCtxTlsDestructor);
 }
 }
 
@@ -45,19 +42,22 @@ ExecuteCtx::~ExecuteCtx()
 {
 }
 
+void ExecuteCtx::CtxEnvCreate()
+{
+    pthread_once(&ExecuteCtx::executeCtxKeyOnce_, MakeExecuteCtxTlsKey);
+}
+
 ExecuteCtx* ExecuteCtx::Cur(bool init)
 {
     ExecuteCtx* ctx = nullptr;
-    pthread_once(&g_executeCtxKeyOnce, MakeExecuteCtxTlsKey);
-
-    void *curTls = pthread_getspecific(g_executeCtxTlsKey);
+    pthread_once(&ExecuteCtx::executeCtxKeyOnce_, MakeExecuteCtxTlsKey);
+    void *curTls = pthread_getspecific(ExecuteCtx::executeCtxTlsKey_);
     if (curTls != nullptr) {
         ctx = reinterpret_cast<ExecuteCtx *>(curTls);
     } else if (init) {
         ctx = new ExecuteCtx();
-        pthread_setspecific(g_executeCtxTlsKey, ctx);
+        pthread_setspecific(ExecuteCtx::executeCtxTlsKey_, ctx);
     }
     return ctx;
 }
-
 } // namespace ffrt

@@ -80,9 +80,23 @@ public:
     }
 
 private:
+    static inline FFRTFacade* facadeIns_ = nullptr;
+
     FFRTFacade();
 
-    static FFRTFacade& Instance();
+    static FFRT_INLINE FFRTFacade& Instance()
+    {
+        if unlikely(facadeIns_ == nullptr) {
+            CreateFFRTFacade();
+        }
+        return *facadeIns_;
+    }
+
+    static FFRT_NOINLINE void CreateFFRTFacade()
+    {
+        static FFRTFacade facade;
+        facadeIns_ = &facade;
+    }
 
     inline ExecuteUnit& GetEUInstanceImpl()
     {

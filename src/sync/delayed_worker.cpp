@@ -307,7 +307,6 @@ int DelayedWorker::HandleWork()
 bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup,
     bool skipTimeCheck)
 {
-    bool w = false;
     if (toExit) {
         FFRT_SYSEVENT_LOGE("DelayedWorker destroy, dispatch failed\n");
         return false;
@@ -322,9 +321,8 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
         exited_ = false;
     }
 
-    if (map.empty() || to < map.begin()->first) {
-        w = true;
-    }
+    bool w = map.empty() || to < map.begin()->first;
+
     map.emplace(to, DelayedWork {we, &wakeup});
     if (w) {
         uint64_t ns = static_cast<uint64_t>(to.time_since_epoch().count());

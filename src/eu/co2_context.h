@@ -20,7 +20,6 @@
 #include <stdint.h>
 #include "c/type_def.h"
 #include <assert.h>
-#include "dfx/log/ffrt_log_api.h"
 #ifdef TSAN_MODE
     #include <sanitizer/tsan_interface.h>
 #endif
@@ -72,8 +71,6 @@ static inline void co2_switch_context(ffrt_fiber_t* from, ffrt_fiber_t* to)
                 to->tsanFiber = __tsan_create_fiber(0);
             }
             assert(to->tsanFiber != from->tsanFiber);
-            FFRT_LOGD("[Before switching] TSAN from: %p to %p. TSan current fiber = %p\n",
-                from->tsanFiber, to->tsanFiber, __tsan_get_current_fiber());
             /* Switch to target fiber before the actual context switch
              * Note: Investigate if passing `__tsan_switch_to_fiber_no_sync`
              * and diabling happens before makes sense or not.

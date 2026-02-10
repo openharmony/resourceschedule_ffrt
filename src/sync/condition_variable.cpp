@@ -27,11 +27,12 @@ using condition_variable_private = WaitQueue;
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr)
 {
-    if (!cond) {
-        FFRT_LOGE("cond should not be empty");
+    if unlikely(!cond) {
+        FFRT_NOINLINE_LOGE("cond should not be empty");
         return ffrt_error_inval;
     }
     static_assert(sizeof(ffrt::condition_variable_private) <= ffrt_cond_storage_size,
@@ -44,8 +45,8 @@ int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_signal(ffrt_cond_t* cond)
 {
-    if (!cond) {
-        FFRT_LOGE("cond should not be empty");
+    if unlikely(!cond) {
+        FFRT_NOINLINE_LOGE("cond should not be empty");
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -56,8 +57,8 @@ int ffrt_cond_signal(ffrt_cond_t* cond)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_broadcast(ffrt_cond_t* cond)
 {
-    if (!cond) {
-        FFRT_LOGE("cond should not be empty");
+    if unlikely(!cond) {
+        FFRT_NOINLINE_LOGE("cond should not be empty");
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -68,8 +69,12 @@ int ffrt_cond_broadcast(ffrt_cond_t* cond)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex)
 {
-    if (!cond || !mutex) {
-        FFRT_LOGE("cond and mutex should not be empty");
+    if unlikely(!cond) {
+        FFRT_NOINLINE_LOGE("cond should not be empty");
+        return ffrt_error_inval;
+    }
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
         return ffrt_error_inval;
     }
     auto pc = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -81,8 +86,16 @@ int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex)
 API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct timespec* time_point)
 {
-    if (!cond || !mutex || !time_point) {
-        FFRT_LOGE("cond, mutex and time_point should not be empty");
+    if unlikely(!cond) {
+        FFRT_NOINLINE_LOGE("cond should not be empty");
+        return ffrt_error_inval;
+    }
+    if unlikely(!mutex) {
+        FFRT_NOINLINE_LOGE("mutex should not be empty");
+        return ffrt_error_inval;
+    }
+    if unlikely(!time_point) {
+        FFRT_NOINLINE_LOGE("time_point should not be empty");
         return ffrt_error_inval;
     }
     auto pc = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -101,7 +114,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_destroy(ffrt_cond_t* cond)
 {
     if (!cond) {
-        FFRT_LOGE("cond should not be empty");
+        FFRT_NOINLINE_LOGE("cond should not be empty");
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);

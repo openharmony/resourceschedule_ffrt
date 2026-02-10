@@ -23,18 +23,20 @@
 #endif
 #include <string_view>
 #include "hilog/log.h"
-#include "internal_inc/osal.h"
 #include "dfx/bbox/fault_logger_fd_manager.h"
 #else
 #include "log_base.h"
 #endif
 #include <stdbool.h>
+#include <securec.h>
+#include "internal_inc/osal.h"
 
 #define FFRT_LOG_ERROR (0)
 #define FFRT_LOG_WARN (1)
 #define FFRT_LOG_INFO (2)
 #define FFRT_LOG_DEBUG (3)
 #define FFRT_LOG_LEVEL_MAX (FFRT_LOG_DEBUG + 1)
+constexpr int LOG_BUFFER_SIZE = 2048;
 
 unsigned int GetLogId(void);
 unsigned int GetShortLogId(void);
@@ -269,4 +271,111 @@ constexpr auto convertFmtToPublic(const char(&str)[N])
         } \
     } while (0)
 #endif // FFRT_ENG_DEBUG
+
+template<int logLevel>
+FFRT_NOINLINE void ffrtLogWrapper(const char* format, ...)
+{
+    char buffer[LOG_BUFFER_SIZE] = {0};
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf_s(buffer, LOG_BUFFER_SIZE, LOG_BUFFER_SIZE - 1, format, args);
+    va_end(args);
+    if (ret < 0) {
+        return;
+    }
+
+    if constexpr (logLevel == FFRT_LOG_DEBUG) {
+        FFRT_LOGD("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_INFO) {
+        FFRT_LOGI("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_WARN) {
+        FFRT_LOGW("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_ERROR) {
+        FFRT_LOGE("%s", buffer);
+    }
+}
+
+#ifdef FFRT_SEND_EVENT
+template<int logLevel>
+FFRT_NOINLINE void ffrtEventLogWrapper(const char* format, ...)
+{
+    char buffer[LOG_BUFFER_SIZE] = {0};
+    va_list args;
+    va_start(args, format);
+    int ret = vsnprintf_s(buffer, LOG_BUFFER_SIZE, LOG_BUFFER_SIZE - 1, format, args);
+    va_end(args);
+    if (ret < 0) {
+        return;
+    }
+
+    if constexpr (logLevel == FFRT_LOG_DEBUG) {
+        FFRT_LOGD("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_INFO) {
+        FFRT_LOGI("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_WARN) {
+        FFRT_LOGW("%s", buffer);
+    } else if constexpr (logLevel == FFRT_LOG_ERROR) {
+        FFRT_LOGE("%s", buffer);
+    }
+
+    ReportSysEvent("%s", buffer);
+}
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_ERROR)
+#define FFRT_NOINLINE_LOGE(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_ERROR>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGE(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_ERROR>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGE(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGE(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGE(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_WARN)
+#define FFRT_NOINLINE_LOGW(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_WARN>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGW(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_WARN>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGW(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGW(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGW(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_INFO)
+#define FFRT_NOINLINE_LOGI(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_INFO>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGI(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_INFO>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGI(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGI(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGI(format, ...)
+#endif
+
+#if (FFRT_LOG_LEVEL >= FFRT_LOG_DEBUG)
+#define FFRT_NOINLINE_LOGD(format, ...) \
+    ffrtLogWrapper<FFRT_LOG_DEBUG>(format, ##__VA_ARGS__)
+#ifdef FFRT_SEND_EVENT
+#define FFRT_NOINLINE_SYSEVENT_LOGD(format, ...) \
+    ffrtEventLogWrapper<FFRT_LOG_DEBUG>(format, ##__VA_ARGS__)
+#else
+#define FFRT_NOINLINE_SYSEVENT_LOGD(format, ...)
+#endif
+#else
+#define FFRT_NOINLINE_LOGD(format, ...)
+#define FFRT_NOINLINE_SYSEVENT_LOGD(format, ...)
+#endif
+
 #endif // __FFRT_LOG_API_H__

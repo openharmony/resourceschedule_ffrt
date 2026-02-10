@@ -234,7 +234,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
             return true;
         }
         // The ownership of the task belongs to epoll, and the task cannot be accessed any more.
-        FFRT_LOGI("epoll_ctl add err:efd:=%d, fd=%d errorno = %d", epFd_, fd, errno);
+        FFRT_NOINLINE_LOGI("epoll_ctl add err:efd:=%d, fd=%d errorno = %d", epFd_, fd, errno);
         syncFdCnt_--;
         return false;
     });

@@ -432,7 +432,7 @@ static void HandleChildProcess()
     pid_t childPid = (pid_t)syscall(SYS_clone, SIGCHLD, 0);
     if (childPid == 0) {
         // init is false to avoid deadlock occurs in the signal handling function due to memory allocation calls.
-        auto ctx = ExecuteCtx::Cur(false);
+        auto ctx = ExecuteCtx::Cur<false>();
         g_cur_task = ctx != nullptr ? ctx->task : nullptr;
         g_bbox_tid_is_dealing.store(gettid());
         SaveTheBbox();

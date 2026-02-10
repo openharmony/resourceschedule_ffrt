@@ -249,7 +249,7 @@ void SExecuteUnit::HandleTaskNotifyUltraConservative(SExecuteUnit* manager, cons
     CPUWorkerGroup& workerCtrl = manager->workerGroup[qos];
     std::lock_guard lock(workerCtrl.lock);
 
-    int runningNum = static_cast<int>(manager->GetRunningNum(qos));
+    int runningNum = static_cast<int>(manager->GetRunningNum(qos, workerCtrl));
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     if (manager->blockAwareInit && !manager->stopMonitor && taskCount == runningNum) {
         return;
@@ -277,7 +277,7 @@ void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType n
     FFRT_PERF_TRACE_SCOPED_BY_GROUP(EU, SEU_WorkerPoke, DEFAULT_CONFIG);
     CPUWorkerGroup& workerCtrl = workerGroup[qos];
     std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
-    size_t runningNum = GetRunningNum(qos);
+    size_t runningNum = GetRunningNum(qos, workerCtrl);
     size_t totalNum = static_cast<size_t>(workerCtrl.sleepingNum + workerCtrl.executingNum);
 
     bool tiggerSuppression = (totalNum > TIGGER_SUPPRESS_WORKER_COUNT) &&
@@ -310,7 +310,7 @@ void SExecuteUnit::ExecuteEscape(int qos)
     CPUWorkerGroup& workerCtrl = workerGroup[qos];
     std::unique_lock<ffrt::fast_mutex> statusLock(workerCtrl.lock);
 
-    size_t runningNum = GetRunningNum(qos);
+    size_t runningNum = GetRunningNum(qos, workerCtrl);
     size_t totalNum = static_cast<size_t>(workerCtrl.sleepingNum + workerCtrl.executingNum);
     if ((workerCtrl.sleepingNum > 0) && (runningNum < workerCtrl.maxConcurrency)) {
         statusLock.unlock();

@@ -21,13 +21,15 @@ namespace ffrt {
 template <typename T>
 class SingletonRegister {
 public:
-    static SingletonRegister<T> &Instance_()
+    static SingletonRegister<T>& Instance_()
     {
-        static SingletonRegister<T> ins;
-        return ins;
+        if unlikely(ins_ == nullptr) {
+            CreateSingletonRegister();
+        }
+        return *ins_;
     }
 
-    static T &Instance()
+    static inline T& Instance()
     {
         return Instance_().cb_();
     }
@@ -38,7 +40,14 @@ public:
     }
 
 private:
+    static FFRT_NOINLINE void CreateSingletonRegister()
+    {
+        static SingletonRegister<T> ins;
+        ins_ = &ins;
+    }
+
     typename SingleInsCB<T>::Instance cb_;
+    static inline SingletonRegister<T>* ins_ = nullptr;
 };
 } // namespace ffrt
 #endif

@@ -43,6 +43,7 @@ public:
 
     // 获取调度器的单例
     static Scheduler* Instance();
+    static inline Scheduler* schedulerIns_ = nullptr;
 
     inline TaskScheduler& GetScheduler(const QoS& qos)
     {

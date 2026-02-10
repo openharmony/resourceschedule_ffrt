@@ -126,7 +126,10 @@ ohos_shared_library("libffrt") {
     branch_protector_ret = "pac_ret"
     public_configs = [ ":ffrt_config" ]
     configs = [ ":ffrt_inner_config" ]
-    ldflags = [ "-Wl,-z,nodelete" ]
+    ldflags = [
+      "-Wl,-z,nodelete",
+      "-Wl,-Bsymbolic-functions",
+    ]
 
     sources = [
       "src/core/entity.cpp",

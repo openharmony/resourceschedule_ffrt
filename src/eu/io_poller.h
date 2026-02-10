@@ -54,7 +54,6 @@ public:
 private:
     void Run() override;
     int PollOnce(int timeout = -1) noexcept;
-
     struct TimeOutReport timeOutReport_;
 
     std::atomic_uint64_t syncFdCnt_ { 0 }; // record sync fd counts

@@ -38,6 +38,19 @@
 
 #include "c/mutex.h"
 
+#if defined(OHOS_STANDARD_SYSTEM) && defined(__has_include) && __has_include("c/mutex_ext.h")
+#include <atomic>
+#include "c/mutex_ext.h"
+
+#define FFRT_SUPPORT_FAST_MUTEX
+
+namespace mutex_detail {
+constexpr int UNLOCK = 0;
+constexpr int LOCK = 1;
+constexpr int WAIT = 2;
+}
+#endif
+
 namespace ffrt {
 /**
  * @class mutex
@@ -85,7 +98,15 @@ public:
      */
     inline bool try_lock()
     {
+#ifdef FFRT_SUPPORT_FAST_MUTEX
+        int v = mutex_detail::UNLOCK;
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
+        bool ret = l.compare_exchange_strong(
+            v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
+        return ret;
+#else
         return ffrt_mutex_trylock(this) == ffrt_success ? true : false;
+#endif
     }
 
     /**
@@ -95,7 +116,17 @@ public:
      */
     inline void lock()
     {
+#ifdef FFRT_SUPPORT_FAST_MUTEX
+        int v = mutex_detail::UNLOCK;
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
+        if (__builtin_expect(l.compare_exchange_strong(
+            v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed), 1)) {
+            return;
+        }
+        ffrt_mutex_lock_wait(this);
+#else
         ffrt_mutex_lock(this);
+#endif
     }
 
     /**
@@ -105,7 +136,14 @@ public:
      */
     inline void unlock()
     {
+#ifdef FFRT_SUPPORT_FAST_MUTEX
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
+        if (__builtin_expect(l.exchange(mutex_detail::UNLOCK, std::memory_order_release) == mutex_detail::WAIT, 0)) {
+            ffrt_mutex_unlock_wake(this);
+        }
+#else
         ffrt_mutex_unlock(this);
+#endif
     }
 };
 

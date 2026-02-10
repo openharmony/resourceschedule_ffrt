@@ -22,6 +22,7 @@
 #include "ffrt_inner.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "c/thread.h"
+#include "c/mutex_ext.h"
 #include "c/ffrt_ipc.h"
 #include "tm/cpu_task.h"
 #include "../common.h"
@@ -106,6 +107,9 @@ HWTEST_F(SyncTest, mutex_nullptr_fail, TestSize.Level0)
     ret = ffrt_mutex_trylock(nullptr);
     EXPECT_EQ(ret, ffrt_error_inval);
     ffrt_mutex_destroy(nullptr);
+
+    EXPECT_EQ(ffrt_mutex_lock_wait(nullptr), ffrt_error_inval);
+    EXPECT_EQ(ffrt_mutex_unlock_wake(nullptr), ffrt_error_inval);
 }
 
 /**

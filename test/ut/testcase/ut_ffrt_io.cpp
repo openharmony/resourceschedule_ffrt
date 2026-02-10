@@ -528,3 +528,37 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_wait_test_legacy_mode, TestSize.Level0)
     auto wakeCnt = endCnt - startCnt;
     EXPECT_TRUE(wakeCnt < 10);
 }
+
+/*
+* 测试用例名称：sync_io_test
+* 测试用例描述：测试sync_io接口功能
+* 预置条件    ：无
+* 操作步骤    ：1.主线程通过sync_io接口等待fd事件完成
+               2.子线程中写入fd事件
+* 预期结果    ：sync_io正常返回
+*/
+HWTEST_F(ffrtIoTest, sync_io_test, TestSize.Level0)
+{
+    int testFd = eventfd(0, 0);
+    if (testFd < 0) {
+        return;
+    }
+
+    uint64_t expected = 0xabacadae;
+    ffrt::submit([=] {
+        usleep(100 * 1000);
+        ssize_t n = write(testFd, &expected, sizeof(uint64_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
+    });
+
+    ffrt::submit([=] {
+        ffrt::sync_io(testFd);
+        uint64_t value = 0;
+        ssize_t n = read(testFd, &value, sizeof(uint64_t));
+        EXPECT_EQ(sizeof(n), SIZEOF_BYTES);
+        EXPECT_EQ(value, expected);
+    });
+
+    ffrt::wait();
+    close(testFd);
+}

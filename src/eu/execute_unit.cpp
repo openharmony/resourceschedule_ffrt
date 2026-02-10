@@ -472,6 +472,9 @@ bool ExecuteUnit::IsBlockAwareInit()
 
 BlockawareWakeupCond *ExecuteUnit::WakeupCond(void)
 {
+    if (!blockAwareInit) {
+        return nullptr;
+    }
     return &wakeupCond;
 }
 

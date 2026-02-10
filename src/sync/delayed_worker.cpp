@@ -41,18 +41,6 @@ const int64_t EXECUTION_TIMEOUT_MILLISECONDS = 500;
 const int DUMP_MAP_MAX_COUNT = 3;
 constexpr int ASYNC_TASK_SLEEP_MS = 1;
 constexpr const char* BLUETOOTH_SERVICE = "bluetooth_service";
-void RecordBluetoothCond(BlockawareWakeupCond* condPtr)
-{
-    if (!condPtr) {
-        return;
-    }
-    std::ostringstream oss;
-    for (int i = 0; i <= BLOCKAWARE_DOMAIN_ID_MAX; i++) {
-        oss << condPtr->local[i].low << " " << condPtr->local[i].high << " ";
-    }
-    oss << condPtr->global.low << " " << condPtr->global.high << " " << condPtr->check_ahead;
-    FFRT_LOGE("%s", oss.str().c_str());
-}
 }
 
 namespace ffrt {
@@ -205,28 +193,33 @@ DelayedWorker::DelayedWorker()
     epoll_event timer_event { .events = EPOLLIN | EPOLLET, .data = { .fd = timerfd_ } };
     FFRT_COND_TERMINATE((epoll_ctl(epollfd_, EPOLL_CTL_ADD, timerfd_, &timer_event) < 0),
         "epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
-
-    DelayedWorker::ThreadEnvCreate();
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    if (ExecuteUnit::Instance().IsBlockAwareInit()) {
-        BlockawareWakeupCond* condPtr = ExecuteUnit::Instance().WakeupCond();
-        monitorfd_ = BlockawareMonitorfd(-1, condPtr);
-        if (monitorfd_ < 0) {
-            FFRT_LOGE("monitorfd create failed: monitorfd=%d", monitorfd_);
-            if (strstr(GetCurrentProcessName(), BLUETOOTH_SERVICE)) {
-                RecordBluetoothCond(condPtr);
+    BlockawareWakeupCond* condPtr = ExecuteUnit::Instance().WakeupCond();
+    if (condPtr == nullptr) {
+        FFRT_LOGE("blockAware is not initialized");
+        return;
+    }
+    monitorfd_ = BlockawareMonitorfd(-1, condPtr);
+    if (monitorfd_ < 0) {
+        FFRT_LOGE("monitorfd create failed: monitorfd=%d", monitorfd_);
+        if (strstr(GetCurrentProcessName(), BLUETOOTH_SERVICE)) {
+            std::ostringstream oss;
+            for (int i = 0; i <= BLOCKAWARE_DOMAIN_ID_MAX; i++) {
+                oss << condPtr->local[i].low << " " << condPtr->local[i].high << " ";
             }
+            oss << condPtr->global.low << " " << condPtr->global.high << " " << condPtr->check_ahead;
+            FFRT_LOGE("%s", oss.str().c_str());
         }
-        /* monitorfd does not support 'CLOEXEC', and current kernel does not inherit monitorfd after 'fork'.
-        * 1. if user calls 'exec' directly after 'fork' and does not use ffrt, it's ok.
-        * 2. if user calls 'exec' directly, the original process cannot close monitorfd automatically, and
-        * it will be fail when new program use ffrt to create monitorfd.
-        */
-        epoll_event monitor_event {.events = EPOLLIN, .data = {.fd = monitorfd_}};
-        int ret = epoll_ctl(epollfd_, EPOLL_CTL_ADD, monitorfd_, &monitor_event);
-        if (ret < 0) {
-            FFRT_SYSEVENT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
-        }
+    }
+    /* monitorfd does not support 'CLOEXEC', and current kernel does not inherit monitorfd after 'fork'.
+     * 1. if user calls 'exec' directly after 'fork' and does not use ffrt, it's ok.
+     * 2. if user calls 'exec' directly, the original process cannot close monitorfd automatically, and
+     * it will be fail when new program use ffrt to create monitorfd.
+     */
+    epoll_event monitor_event {.events = EPOLLIN, .data = {.fd = monitorfd_}};
+    int ret = epoll_ctl(epollfd_, EPOLL_CTL_ADD, monitorfd_, &monitor_event);
+    if (ret < 0) {
+        FFRT_SYSEVENT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
     }
 #endif
     FFRT_LOGD("Construction completed.");

@@ -31,5 +31,4 @@ ${TOOLCHAIN_PATH}/build-tools/cmake/bin/cmake .. \
 	-DFFRT_PERF_EVENT_ENABLE=ON \
 
 make -j ffrt
-make -j ffrt_st
 make -j

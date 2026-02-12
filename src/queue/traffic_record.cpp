@@ -27,11 +27,7 @@ constexpr uint32_t REPORT_INTERVAL = 60000000; // 60s
 constexpr uint32_t MIN_OVERLOAD_INTERVAL = 15;
 constexpr uint32_t INITIAL_RECORD_LIMIT = 16;
 constexpr uint32_t MAX_RECORD_LIMIT = 128;
-#if defined(__aarch64__)
-constexpr uint32_t UNIT_CONVERT = 1000000;
-#else
-constexpr uint32_t UNIT_CONVERT = 1000;
-#endif
+constexpr uint32_t US_TO_MS = 1000;
 }
 
 namespace ffrt {
@@ -52,7 +48,7 @@ void TrafficRecord::SetTimeInterval(const uint64_t timeInterval)
         return;
     }
     const uint64_t& time = TimeStampCntvct();
-    timeInterval_ = ConvertUsToCntvct(timeInterval);
+    timeInterval_ = timeInterval;
     nextUpdateTime_ = time + timeInterval_;
 }
 
@@ -116,7 +112,7 @@ void TrafficRecord::CalculateTraffic(QueueHandler* handler, const uint64_t& time
     if (inflows > outflows && (submitCnt_ - doneCnt_ > MIN_OVERLOAD_INTERVAL * (reportInterval / timeInterval_))
         && handler->GetTaskCnt() > MIN_OVERLOAD_INTERVAL) {
         std::stringstream ss;
-        ss << "[" << handler->GetName().c_str() << "]overload over[" << reportInterval / UNIT_CONVERT <<
+        ss << "[" << handler->GetName().c_str() << "]overload over[" << reportInterval / US_TO_MS <<
             "]ms, in[" << inflows << "], out[" << outflows << "], subcnt[" << submitCnt_.load() << "], doncnt[" <<
             doneCnt_.load() << "]";
         FFRT_LOGW("%s", ss.str().c_str());
@@ -166,7 +162,7 @@ std::string TrafficRecord::DumpTrafficInfo(bool withLock)
     if (trafficRecordInfo.size() != 0) {
         for (auto it = trafficRecordInfo.rbegin(); it != trafficRecordInfo.rend(); ++it) {
             auto& record = *it;
-            ss << "{" << FormatDateToString(record.first) << ", " << record.second << "} \n";
+            ss << "{" << FormatDateString4SteadyClock(record.first) << ", " << record.second << "} \n";
         }
     } else {
         ss << "Queue Traffic Record Empty";

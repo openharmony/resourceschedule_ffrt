@@ -124,7 +124,7 @@ public:
 
     static inline void TaskSubmit(uint64_t* createTime, int32_t* fromTid)
     {
-        *createTime = TimeStampCntvct();
+        *createTime = TimeStamp();
         *fromTid = ExecuteCtx::Cur()->tid;
     }
 
@@ -134,13 +134,13 @@ public:
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         g_recordTaskCounter_[taskType][qos].submitCounter.fetch_add(1, std::memory_order_relaxed);
 #endif
-        *createTime = TimeStampCntvct();
+        *createTime = TimeStamp();
         *fromTid = ExecuteCtx::Cur()->tid;
     }
 
     static inline void TaskExecute(uint64_t* executeTime)
     {
-        *executeTime = TimeStampCntvct();
+        *executeTime = TimeStamp();
     }
 
     template<ffrt_executor_task_type_t taskType>
@@ -163,7 +163,7 @@ public:
     static void TaskDone(int qos, TaskBase* task)
     {
         if (stat_enable_) {
-            uint64_t endTime = TimeStampCntvct();
+            uint64_t endTime = TimeStamp();
             ffrt_stat stat;
             errno_t ret;
             if (taskType == ffrt_normal_task) {
@@ -195,7 +195,7 @@ public:
         }
 
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_3)
-        auto runDuration = TimeStampCntvct() - task->executeTime;
+        auto runDuration = TimeStamp() - task->executeTime;
         g_recordTaskTime_[taskType][qos].runDuration += runDuration;
 
         if (g_recordTaskTime_[taskType][qos].maxRunDuration < runDuration) {

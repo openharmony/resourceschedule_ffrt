@@ -15,7 +15,8 @@
 #ifndef FFRT_DFX_ASYNC_STACK_H
 #define FFRT_DFX_ASYNC_STACK_H
 #include <cinttypes>
-#include "async_stack.h"
+constexpr uint64_t ASYNC_TYPE_FFRT_POOL = (1 << 8);
+constexpr uint64_t ASYNC_TYPE_FFRT_QUEUE = (1 << 9);
 using SetStackIdFunc = void(*)(uint64_t stackId);
 using CollectAsyncStackFunc = uint64_t(*)(uint64_t taskType);
 extern "C" void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc);

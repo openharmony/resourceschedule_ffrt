@@ -24,8 +24,6 @@
 #include "util/time_format.h"
 
 namespace {
-constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
-constexpr uint32_t NONE_TASK_ACTIVE = 0;
 constexpr uint32_t US_PER_MS = 1000;
 constexpr uint64_t ALLOW_ACC_ERROR_US = 10 * US_PER_MS; // 10ms
 constexpr uint64_t MIN_TIMEOUT_THRESHOLD_US = 1000 * US_PER_MS; // 1s
@@ -78,7 +76,8 @@ void QueueMonitor::DeregisterQueue(QueueHandler* queue)
 void QueueMonitor::UpdateQueueInfo()
 {
     if (suspendAlarm_.exchange(false)) {
-        uint64_t alarmTime = TimeStampSteady() + timeoutUs_;
+        uint64_t alarmTime = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now()).time_since_epoch().count()) + timeoutUs_;
         SetAlarm(alarmTime);
     }
 }
@@ -87,6 +86,7 @@ void QueueMonitor::SetAlarm(uint64_t steadyUs)
 {
     we_->tp = std::chrono::steady_clock::time_point() + std::chrono::microseconds(steadyUs);
     we_->cb = ([this](WaitEntry* we) { ScheduleAlarm(); });
+
     // generally does not fail
     if (!DelayedWakeup(we_->tp, we_, we_->cb, true)) {
         FFRT_LOGW("failed to set delayedworker");
@@ -110,7 +110,7 @@ void QueueMonitor::ScheduleAlarm()
 void QueueMonitor::CheckTimeout(uint64_t& nextTaskStart)
 {
     // 未来ALLOW_ACC_ERROR_US可能超时的任务，一起上报
-    uint64_t now = TimeStampSteady();
+    uint64_t now = TimeStampCntvct();
     uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
     std::vector<std::pair<std::pair<std::vector<uint64_t>, uint64_t>, std::stringstream>> curTaskTimeInfoVec;
 

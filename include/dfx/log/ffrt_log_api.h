@@ -16,6 +16,7 @@
 #ifndef __FFRT_LOG_API_H__
 #define __FFRT_LOG_API_H__
 
+#include <stdbool.h>
 #ifdef OHOS_STANDARD_SYSTEM
 #include <array>
 #ifdef FFRT_ENG_DEBUG
@@ -27,7 +28,6 @@
 #else
 #include "log_base.h"
 #endif
-#include <stdbool.h>
 #include <securec.h>
 #include "internal_inc/osal.h"
 

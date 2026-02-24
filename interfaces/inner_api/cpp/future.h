@@ -217,12 +217,14 @@ struct promise : private non_copyable {
 
     void set_value(const R& value) noexcept
     {
-        m_state->set_value(value);
+        const auto state = m_state;
+        state->set_value(value);
     }
 
     void set_value(R&& value) noexcept
     {
-        m_state->set_value(std::move(value));
+        const auto state = m_state;
+        state->set_value(std::move(value));
     }
 
     future<R> get_future() noexcept
@@ -259,7 +261,8 @@ struct promise<void> : private non_copyable {
 
     void set_value() noexcept
     {
-        m_state->set_value();
+        const auto state = m_state;
+        state->set_value();
     }
 
     future<void> get_future() noexcept
@@ -321,11 +324,12 @@ struct packaged_task<R(Args...)> {
 
     void operator()(Args... args)
     {
+        const auto state = m_state;
         if constexpr(!std::is_void_v<R>) {
-            m_state->set_value(m_fn(std::forward<Args>(args)...));
+            state->set_value(m_fn(std::forward<Args>(args)...));
         } else {
             m_fn(std::forward<Args>(args)...);
-            m_state->set_value();
+            state->set_value();
         }
     }
 

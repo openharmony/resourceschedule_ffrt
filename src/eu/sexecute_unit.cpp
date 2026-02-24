@@ -46,7 +46,7 @@ const std::map<std::string,
     void(*)(ffrt::SExecuteUnit*, const ffrt::QoS&, ffrt::TaskNotifyType)> NOTIFY_FUNCTION_FACTORY = {
     { "CameraDaemon", ffrt::SExecuteUnit::HandleTaskNotifyConservative },
 #ifndef HWASAN_MODE
-    { "bluetooth", ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative },
+    { "bluetooth_service", ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative },
 #endif
 };
 }

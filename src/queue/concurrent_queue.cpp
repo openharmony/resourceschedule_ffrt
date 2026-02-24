@@ -80,6 +80,7 @@ int ConcurrentQueue::Push(QueueTask* task)
         }
         return PushDelayTaskToTimer(task);
     }
+    FFRT_COND_DO_ERR(IsOnLoop(), return FAILED, "cannot push task, [queueId=%u] loop empty", queueId_);
     return PushAndCalConcurrency(task, taskPriority, lock, true);
 }
 

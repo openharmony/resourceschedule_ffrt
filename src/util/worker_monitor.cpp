@@ -238,8 +238,7 @@ void WorkerMonitor::CheckTaskStatus()
 uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold)
 {
     // 主动延时的任务不检测
-    if (!task->monitorTimeout_ || isDelayingTask(task) ||
-        (task->delayTime > 0 && task->curStatus == TaskStatus::SUBMITTED)) {
+    if (!task->monitorTimeout_ || isDelayingTask(task)) {
         return UINT64_MAX;
     }
 
@@ -288,7 +287,7 @@ void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task)
     uint64_t time = TimeStampCntvct();
 
     ss << task->label.c_str() << "|" << task->gid << "|" << task->GetQos() <<
-        "|" << task->delayTime << "|" << StatusToString(curTaskStatus) <<
+        "|" << StatusToString(curTaskStatus) <<
         "|" << FormatDateString4SteadyClock(curTaskTime);
 
     {

@@ -495,6 +495,12 @@ void ExecuteUnit::MonitorMain()
     }
     stopMonitor = true;
 }
+
+void ExecuteUnit::ExecuteSetSilentMode(const QoS &qos, unsigned int silentMode)
+{
+    struct BlockawareKinfoPageS *kinfoPage = reinterpret_cast<struct BlockawareKinfoPageS *>(keyPtr);
+    kinfoPage->pageInfo.silentMode[qos()].store(silentMode);
+}
 #endif
 
 size_t ExecuteUnit::GetRunningNum(const QoS &qos)

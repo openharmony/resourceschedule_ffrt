@@ -40,6 +40,9 @@ struct BlockawareDomainInfo {
     unsigned int nrSleeping;
     unsigned int nrBlocked;
 };
+struct BlockawarePageVendor {
+    std::atomic<unsigned int> silentMode[BLOCKAWARE_DOMAIN_ID_MAX + 1];
+};
 struct BlockawareDomainInfoArea {
     struct BlockawareDomainInfo localinfo[BLOCKAWARE_DOMAIN_ID_MAX + 1];
     struct BlockawareDomainInfo globalinfo;
@@ -56,6 +59,7 @@ struct BlockawareWakeupCond {
 struct BlockawareKinfoPageS {
     uint32_t seq;
     struct BlockawareDomainInfoArea infoArea;
+    struct BlockawarePageVendor pageInfo;
 };
 
 static inline int BlockawareInit(unsigned long *keyPtr);

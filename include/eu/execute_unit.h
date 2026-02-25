@@ -293,6 +293,7 @@ public:
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     void MonitorMain();
     BlockawareWakeupCond *WakeupCond(void);
+    void ExecuteSetSilentMode(const QoS &qos, unsigned int silentMode);
 #endif
     void WorkerStart(int qos);
     void WorkerExit(int qos);

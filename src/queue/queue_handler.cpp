@@ -350,7 +350,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
         task->DecDeleteRef();
         if (nextTask == nullptr) {
             if (!queue_->IsOnLoop()) {
-            execTaskId_.store(0);
+                execTaskId_.store(0);
                 Deliver();
             }
         }

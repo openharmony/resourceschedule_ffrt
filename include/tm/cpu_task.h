@@ -55,7 +55,6 @@ public:
     SkipStatus skipped = SkipStatus::SUBMITTED;
 
     CPUEUTask* parent = nullptr;
-    uint64_t delayTime = 0;
     TimeoutTask timeoutTask;
 
     std::vector<CPUEUTask*>* in_handles_ = nullptr;

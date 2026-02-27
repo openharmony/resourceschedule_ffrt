@@ -219,7 +219,7 @@ void ffrt_queue_submit(ffrt_queue_t queue, ffrt_function_header_t* f, const ffrt
     FFRT_COND_DO_ERR((task == nullptr), return, "failed to submit serial task");
 }
 
-void queue::submit_apply(uint32_t iterations, const std::function<void()>& func, const task_attr& attr)
+void ffrt::queue::submit_apply(uint32_t iterations, const std::function<void()>& func, const task_attr& attr)
 {
     FFRT_COND_DO_ERR((unlikely(iterations == 0)), return, "input invalid, iteration equal to zero");
     FFRT_COND_DO_ERR((unlikely(iterations > UINT16_MAX)), return, "input invalid, iteration must less than UINT16_MAX");

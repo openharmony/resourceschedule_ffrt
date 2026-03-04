@@ -334,7 +334,7 @@ void QueueHandler::Dispatch(QueueTask* inTask)
 
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
         if (task->traceId_.valid == HITRACE_ID_VALID) {
-            TraceChainAdapter::Instance().HiTraceChainRestoreId(&task->traceId_);
+            TraceChainAdapter::Instance().HiTraceChainClearId();
         }
 #endif
         task->Finish();

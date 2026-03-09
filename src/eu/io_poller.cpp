@@ -39,6 +39,11 @@ static void TimeoutProc(void* task)
     IOPoller& ins = IOPoller::Instance();
     ins.WakeTimeoutTask(reinterpret_cast<CoTask*>(task));
 }
+
+FFRT_NOINLINE void EpollCtrlAddErrorLogPrint(int epFd, int fd)
+{
+    FFRT_LOGI("epoll_ctl add err:efd=%d, fd=%d errorno = %d", epFd, fd, errno);
+}
 }
 
 int IOPoller::PollerRegisterTimer(int qos, uint64_t timeout, void *data)
@@ -234,7 +239,7 @@ void IOPoller::WaitFdEvent(int fd) noexcept
             return true;
         }
         // The ownership of the task belongs to epoll, and the task cannot be accessed any more.
-        FFRT_NOINLINE_LOGI("epoll_ctl add err:efd:=%d, fd=%d errorno = %d", epFd_, fd, errno);
+        EpollCtrlAddErrorLogPrint(epFd_, fd);
         syncFdCnt_--;
         return false;
     });
@@ -256,7 +261,7 @@ void IOPoller::MonitTimeOut()
     } ();
     uint64_t diff = (now - timeOutReport_.cbStartTime.load(std::memory_order_relaxed)) / freq;
     uint64_t reportTime = TIMEOUT_RECORD_CYCLE_LIST[timeOutReport_.reportCount.load(std::memory_order_relaxed)];
-    if (timeOutReport_.reportCount < TIMEOUT_RECORD_CYCLE_LIST.size() &&
+    if (timeOutReport_.reportCount.load(std::memory_order_relaxed) < TIMEOUT_RECORD_CYCLE_LIST.size() &&
         diff >= reportTime) {
 #ifdef FFRT_OH_TRACE_ENABLE
         std::string dumpInfo;

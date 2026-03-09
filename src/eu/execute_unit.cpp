@@ -29,6 +29,11 @@ constexpr uint64_t MAX_ESCAPE_INTERVAL_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 *
 constexpr size_t MAX_TID_SIZE = 100;
 ffrt::WorkerStatusInfo g_workerStatusInfo[ffrt::QoS::MaxNum()];
 ffrt::fast_mutex g_workerStatusMutex[ffrt::QoS::MaxNum()];
+
+FFRT_NOINLINE void ExecutingNumInvalidLogPrint(const ffrt::QoS& qos, unsigned int nrBlocked, size_t executingNum)
+{
+    FFRT_SYSEVENT_LOGE("qos [%d] nrBlocked [%u] is larger than executingNum [%zu].", qos(), nrBlocked, executingNum);
+}
 }
 
 namespace ffrt {
@@ -521,8 +526,7 @@ size_t ExecuteUnit::GetRunningNum(const QoS &qos, const CPUWorkerGroup &group)
             /* nrRunning may not be updated in a timely manner */
             runningNum = group.executingNum - nrBlocked;
         } else {
-            FFRT_NOINLINE_SYSEVENT_LOGE(
-                "qos [%d] nrBlocked [%u] is larger than executingNum [%zu].", qos(), nrBlocked, group.executingNum);
+            ExecutingNumInvalidLogPrint(qos, nrBlocked, group.executingNum);
         }
     }
 #endif

@@ -58,8 +58,8 @@ static FFRT_NOINLINE void StackOverflowSlowCode(CoRoutine* co)
         co->stkMem.size - co->ctx.storage[FFRT_REG_SP]);
     FFRT_SYSEVENT_LOGE("stack over flow, check local variable in you tasks"
         " or use api 'ffrt_task_attr_set_stack_size'.\n");
-    if (ExecuteCtx::Cur()->task != nullptr) {
-        auto curTask = ExecuteCtx::Cur()->task;
+    if (ExecuteCtx::Cur<true>()->task != nullptr) {
+        auto curTask = ExecuteCtx::Cur<true>()->task;
         FFRT_SYSEVENT_LOGE("task name[%s], gid[%llu], submit_tid[%d]",
             curTask->GetLabel().c_str(), curTask->gid, curTask->fromTid);
     }
@@ -108,6 +108,18 @@ CoRoutineEnv* GetCoRoutineEnv()
     return GetCoEnv();
 }
 
+namespace {
+FFRT_NOINLINE void TaskNullptrLogPrint()
+{
+    FFRT_SYSEVENT_LOGE("task is nullptr");
+}
+
+FFRT_NOINLINE void CoWakeUnsupportLogPrint(const ffrt::CoTask* task)
+{
+    FFRT_LOGE("CoWake unsupport task[%llu], type=%d, name[%s]", task->gid, task->type, task->GetLabel().c_str());
+}
+}
+
 #ifdef FFRT_TASK_LOCAL_ENABLE
 namespace {
 bool IsTaskLocalEnable(ffrt::CoTask* task)
@@ -132,7 +144,7 @@ bool IsTaskLocalEnable(ffrt::CoTask* task)
 
 void InitWorkerTsdValueToTask(void** taskTsd)
 {
-    const pthread_key_t updKeyMap[] = {ExecuteCtx::executeCtxTlsKey_, g_coThreadTlsKey};
+    const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
         FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "FFRT abort: key[%u] invalid", key);
@@ -179,7 +191,7 @@ bool SwitchTsdAddrToThread(ffrt::CPUEUTask* task)
 
 void UpdateWorkerTsdValueToThread(void** taskTsd)
 {
-    const pthread_key_t updKeyMap[] = {ExecuteCtx::executeCtxTlsKey_, g_coThreadTlsKey};
+    const pthread_key_t updKeyMap[] = {g_executeCtxTlsKey, g_coThreadTlsKey};
     auto threadTsd = pthread_gettsd();
     for (const auto& key : updKeyMap) {
         FFRT_UNLIKELY_COND_DO_ABORT(key <= 0, "FFRT abort: key[%u] invalid", key);
@@ -555,7 +567,7 @@ void CoWait(const std::function<bool(ffrt::CoTask*)>& pred)
 void CoWake(ffrt::CoTask* task, CoWakeType type)
 {
     if unlikely(task == nullptr) {
-        FFRT_NOINLINE_SYSEVENT_LOGE("task is nullptr");
+        TaskNullptrLogPrint();
         return;
     }
     // Fast path: state transition without lock
@@ -573,8 +585,7 @@ void CoWake(ffrt::CoTask* task, CoWakeType type)
             break;
         }
         default: {
-            FFRT_NOINLINE_LOGE("CoWake unsupport task[%llu], type=%d, name[%s]",
-                task->gid, task->type, task->GetLabel().c_str());
+            CoWakeUnsupportLogPrint(task);
             break;
         }
     }

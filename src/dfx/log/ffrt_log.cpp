@@ -23,8 +23,10 @@
 #include <atomic>
 #include "dfx/log/ffrt_log_api.h"
 #ifdef FFRT_SEND_EVENT
+#include <securec.h>
 #include "hisysevent.h"
 #endif
+#include "internal_inc/osal.h"
 #include "util/white_list.h"
 #include "util/ffrt_facade.h"
 
@@ -32,7 +34,8 @@ static int g_ffrtLogLevel = FFRT_LOG_DEBUG;
 static std::atomic<unsigned int> g_ffrtLogId(0);
 static bool g_whiteListFlag = false;
 namespace {
-constexpr unsigned int LOG_ID_MAX = 100;
+    constexpr int LOG_BUFFER_SIZE = 2048;
+    constexpr unsigned int LOG_ID_MAX = 100;
 }
 
 unsigned int GetLogId(void)

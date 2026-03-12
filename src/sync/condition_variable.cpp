@@ -20,6 +20,18 @@
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
 
+namespace {
+FFRT_NOINLINE void CondEmptyLogPrint()
+{
+    FFRT_LOGE("cond should not be empty");
+}
+
+FFRT_NOINLINE void TimePointEmptyLogPrint()
+{
+    FFRT_LOGE("time_point should not be empty");
+}
+}
+
 namespace ffrt {
 using condition_variable_private = WaitQueue;
 }
@@ -32,7 +44,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr)
 {
     if unlikely(!cond) {
-        FFRT_NOINLINE_LOGE("cond should not be empty");
+        CondEmptyLogPrint();
         return ffrt_error_inval;
     }
     static_assert(sizeof(ffrt::condition_variable_private) <= ffrt_cond_storage_size,
@@ -46,7 +58,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_signal(ffrt_cond_t* cond)
 {
     if unlikely(!cond) {
-        FFRT_NOINLINE_LOGE("cond should not be empty");
+        CondEmptyLogPrint();
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -58,7 +70,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_broadcast(ffrt_cond_t* cond)
 {
     if unlikely(!cond) {
-        FFRT_NOINLINE_LOGE("cond should not be empty");
+        CondEmptyLogPrint();
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -70,11 +82,11 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex)
 {
     if unlikely(!cond) {
-        FFRT_NOINLINE_LOGE("cond should not be empty");
+        CondEmptyLogPrint();
         return ffrt_error_inval;
     }
     if unlikely(!mutex) {
-        FFRT_NOINLINE_LOGE("mutex should not be empty");
+        MutexEmptyLogPrint();
         return ffrt_error_inval;
     }
     auto pc = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -87,15 +99,15 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct timespec* time_point)
 {
     if unlikely(!cond) {
-        FFRT_NOINLINE_LOGE("cond should not be empty");
+        CondEmptyLogPrint();
         return ffrt_error_inval;
     }
     if unlikely(!mutex) {
-        FFRT_NOINLINE_LOGE("mutex should not be empty");
+        MutexEmptyLogPrint();
         return ffrt_error_inval;
     }
     if unlikely(!time_point) {
-        FFRT_NOINLINE_LOGE("time_point should not be empty");
+        TimePointEmptyLogPrint();
         return ffrt_error_inval;
     }
     auto pc = reinterpret_cast<ffrt::condition_variable_private *>(cond);
@@ -114,7 +126,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_cond_destroy(ffrt_cond_t* cond)
 {
     if (!cond) {
-        FFRT_NOINLINE_LOGE("cond should not be empty");
+        CondEmptyLogPrint();
         return ffrt_error_inval;
     }
     auto p = reinterpret_cast<ffrt::condition_variable_private *>(cond);

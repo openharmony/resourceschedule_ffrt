@@ -613,9 +613,11 @@ void* QueueHandler::GetEventHandler()
 {
     FFRT_COND_DO_ERR((queue_ == nullptr), return nullptr, "[queueId=%u] constructed failed", GetQueueId());
 
-    bool typeInvalid = (queue_->GetQueueType() != ffrt_queue_eventhandler_interactive) &&
-        (queue_->GetQueueType() != ffrt_queue_eventhandler_adapter);
-    FFRT_COND_DO_ERR(typeInvalid, return nullptr, "[queueId=%u] type invalid", GetQueueId());
+    auto queueType = queue_->GetQueueType();
+    if (queueType != ffrt_queue_eventhandler_interactive &&
+        queueType != ffrt_queue_eventhandler_adapter) {
+        return nullptr;
+    }
 
     return reinterpret_cast<EventHandlerInteractiveQueue*>(queue_.get())->GetEventHandler();
 }

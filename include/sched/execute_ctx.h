@@ -30,6 +30,9 @@
 #include "staging_qos/sched/qos.h"
 #endif
 
+extern pthread_key_t g_executeCtxTlsKey;
+extern pthread_once_t g_executeCtxKeyOnce;
+
 namespace ffrt {
 using TimePoint = std::chrono::steady_clock::time_point;
 
@@ -100,13 +103,10 @@ struct ExecuteCtx {
     pid_t tid;
     ThreadType threadType_ = ffrt::ThreadType::USER_THREAD;
 
-    static inline pthread_key_t executeCtxTlsKey_ = 0;
-    static inline pthread_once_t executeCtxKeyOnce_ = PTHREAD_ONCE_INIT;
-
     static FFRT_NOINLINE void CreateExecuteCtx()
     {
         void* ctx = new ExecuteCtx();
-        pthread_setspecific(ExecuteCtx::executeCtxTlsKey_, ctx);
+        pthread_setspecific(g_executeCtxTlsKey, ctx);
     }
 
     /**
@@ -115,7 +115,7 @@ struct ExecuteCtx {
     template<bool init = true>
     static FFRT_INLINE ExecuteCtx* Cur()
     {
-        void* ctx = pthread_getspecific(ExecuteCtx::executeCtxTlsKey_);
+        void* ctx = pthread_getspecific(g_executeCtxTlsKey);
         if constexpr (init) {
             if unlikely(ctx == nullptr) {
                 CreateExecuteCtx();

@@ -84,19 +84,7 @@ private:
 
     FFRTFacade();
 
-    static FFRT_INLINE FFRTFacade& Instance()
-    {
-        if unlikely(facadeIns_ == nullptr) {
-            CreateFFRTFacade();
-        }
-        return *facadeIns_;
-    }
-
-    static FFRT_NOINLINE void CreateFFRTFacade()
-    {
-        static FFRTFacade facade;
-        facadeIns_ = &facade;
-    }
+    static FFRTFacade& Instance();
 
     inline ExecuteUnit& GetEUInstanceImpl()
     {

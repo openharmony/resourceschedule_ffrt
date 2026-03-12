@@ -93,6 +93,15 @@ private:
     }
 };
 
+FFRTFacade& FFRTFacade::Instance()
+{
+    if unlikely(facadeIns_ == nullptr) {
+        static FFRTFacade facade;
+        facadeIns_ = &facade;
+    }
+    return *facadeIns_;
+}
+
 FFRTFacade::FFRTFacade()
 {
 // control construct sequences of singletons

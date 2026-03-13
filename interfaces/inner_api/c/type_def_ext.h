@@ -117,6 +117,12 @@ enum class sched_mode_type : uint8_t {
     sched_performance_mode = ffrt_sched_performance_mode,
     sched_energy_saving_mode = ffrt_sched_energy_saving_mode,
 };
+
+enum SkipStatus : uint8_t {
+    SUBMITTED,
+    EXECUTED,
+    SKIPPED,
+};
 }
 #endif
 #endif

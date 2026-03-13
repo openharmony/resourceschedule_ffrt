@@ -37,6 +37,16 @@ public:
 
     void onTaskDone(CPUEUTask* task) override;
 
+    uint32_t DecTaskRef(ffrt_task_handle_t handle) override
+    {
+        ffrt::CPUEUTask* cpuHandle = static_cast<ffrt::CPUEUTask*>(handle);
+        if (unlikely(cpuHandle->type == ffrt_xpu_task)) {
+            FFRT_LOGE("can't exec hcs callback in soft mode");
+            return UINT_MAX;
+        }
+        return cpuHandle->DecDeleteRef();
+    }
+
 private:
     SDependenceManager();
     ~SDependenceManager() override;

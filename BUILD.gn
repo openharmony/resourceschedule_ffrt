@@ -116,6 +116,7 @@ config("ffrt_inner_config") {
     "-DUSE_OHOS_QOS",
     "-DOHOS_STANDARD_SYSTEM",
     "-DTASKSTAT_LOG_ENABLE=0",
+    "-fvisibility=hidden",
   ]
 
   cflags_cc = ffrt_inner_cflags

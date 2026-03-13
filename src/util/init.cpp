@@ -74,6 +74,7 @@ __attribute__((destructor)) static void FfrtDeinit(void)
 {
 }
 
+API_ATTRIBUTE((visibility("default")))
 void ffrt_child_init(void)
 {
     ffrt_init();

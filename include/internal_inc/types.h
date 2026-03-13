@@ -116,11 +116,6 @@ enum class SpecTaskType {
     SPEC_TASK_MAX,
 };
 
-enum SkipStatus : uint8_t {
-    SUBMITTED,
-    EXECUTED,
-    SKIPPED,
-};
 #ifndef _MSC_VER
 #define FFRT_LIKELY(x) (__builtin_expect(!!(x), 1))
 #define FFRT_UNLIKELY(x) (__builtin_expect(!!(x), 0))

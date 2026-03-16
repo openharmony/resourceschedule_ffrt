@@ -152,9 +152,9 @@ public:
 
 class RecursiveMutexPrivate : public mutexBase {
 public:
-    void lock();
-    void unlock();
-    bool try_lock();
+    void lock() override;
+    void unlock() override;
+    bool try_lock() override;
 
     RecursiveMutexPrivate() = default;
     ~RecursiveMutexPrivate() = default;

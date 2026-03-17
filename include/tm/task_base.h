@@ -130,12 +130,14 @@ public:
     // returns the current g_taskId value
     static uint32_t GetLastGid();
 
-    // properties
+    /***** Do Not Revise Attributes Below *****/
     LinkedList node; // used on fifo fast que
     ffrt_executor_task_type_t type;
     const uint64_t gid; // global unique id in this process
     QoS qos_ = qos_default;
     std::atomic_uint32_t rc = 1; // reference count for delete
+    /***** Do Not Revise Attributes Above *****/
+
     std::atomic<TaskStatus> preStatus = TaskStatus::PENDING;
     std::atomic<TaskStatus> curStatus = TaskStatus::PENDING;
     std::atomic<uint64_t> statusTime = TimeStampCntvct();

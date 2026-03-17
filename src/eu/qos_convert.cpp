@@ -19,6 +19,7 @@
 constexpr int ERROR_NUM = -1;
 
 namespace ffrt {
+API_ATTRIBUTE((visibility("default")))
 int GetStaticQos(qos &static_qos)
 {
     struct QosCtrlData data;
@@ -31,6 +32,7 @@ int GetStaticQos(qos &static_qos)
     return ret;
 }
 
+API_ATTRIBUTE((visibility("default")))
 int GetDynamicQos(qos &dynamic_qos)
 {
     struct QosCtrlData data;

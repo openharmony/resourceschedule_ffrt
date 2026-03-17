@@ -34,22 +34,116 @@ ffrt_ut_base_cflags_cc = [
 ffrt_ut_base_deps = [ "../..:libffrt" ]
 
 ffrt_ut_base_external_deps = [
+  "bounds_checking_function:libsec_shared",
   "c_utils:utils",
   "faultloggerd:libbacktrace_local",
   "faultloggerd:libdfx_dumpcatcher",
+  "faultloggerd:libfaultloggerd",
+  "faultloggerd:libunwinder",
   "faultloggerd:libasync_stack",
   "googletest:gtest",
   "hilog:libhilog",
   "hisysevent:libhisysevent",
 ]
 
+ffrt_ut_base_sources = [
+  "../../src/core/entity.cpp",
+  "../../src/core/task.cpp",
+  "../../src/core/task_io.cpp",
+  "../../src/core/loop_api.cpp",
+  "../../src/core/poller_api.cpp",
+  "../../src/core/timer_api.cpp",
+  "../../src/core/version_ctx.cpp",
+  "../../src/dfx/bbox/bbox.cpp",
+  "../../src/dfx/bbox/fault_logger_fd_manager.cpp",
+  "../../src/dfx/dump/dump.cpp",
+  "../../src/dfx/log/ffrt_log.cpp",
+  "../../src/dfx/sysevent/sysevent.cpp",
+  "../../src/dfx/trace/ffrt_trace.cpp",
+  "../../src/dfx/trace/ffrt_trace_chain.cpp",
+  "../../src/dfx/trace_record/ffrt_trace_record.cpp",
+  "../../src/dfx/watchdog/watchdog_util.cpp",
+  "../../src/dfx/async_stack/ffrt_async_stack.cpp",
+  "../../src/dm/dependence_manager.cpp",
+  "../../src/dm/sdependence_manager.cpp",
+  "../../src/eu/co2_context.c",
+  "../../src/eu/co_routine.cpp",
+  "../../src/eu/co_routine_factory.cpp",
+  "../../src/eu/worker_thread.cpp",
+  "../../src/eu/cpu_worker.cpp",
+  "../../src/eu/execute_unit.cpp",
+  "../../src/eu/base_poller.cpp",
+  "../../src/eu/io_poller.cpp",
+  "../../src/eu/loop_poller.cpp",
+  "../../src/eu/loop.cpp",
+  "../../src/eu/osattr_manager.cpp",
+  "../../src/eu/qos_convert.cpp",
+  "../../src/eu/qos_interface.cpp",
+  "../../src/eu/rtg_ioctl.cpp",
+  "../../src/eu/rtg_perf_ctrl.cpp",
+  "../../src/eu/sexecute_unit.cpp",
+  "../../src/ipc/ipc.cpp",
+  "../../src/queue/queue_monitor.cpp",
+  "../../src/queue/queue_handler.cpp",
+  "../../src/queue/base_queue.cpp",
+  "../../src/queue/serial_queue.cpp",
+  "../../src/queue/concurrent_queue.cpp",
+  "../../src/queue/eventhandler_interactive_queue.cpp",
+  "../../src/queue/eventhandler_adapter_queue.cpp",
+  "../../src/queue/queue_api.cpp",
+  "../../src/queue/traffic_record.cpp",
+  "../../src/sched/deadline.cpp",
+  "../../src/sched/execute_ctx.cpp",
+  "../../src/sched/frame_interval.cpp",
+  "../../src/sched/interval.cpp",
+  "../../src/sched/load_tracking.cpp",
+  "../../src/sched/multi_workgroup.cpp",
+  "../../src/sched/qos.cpp",
+  "../../src/sched/sched_deadline.cpp",
+  "../../src/sched/scheduler.cpp",
+  "../../src/sched/task_scheduler.cpp",
+  "../../src/sched/stask_scheduler.cpp",
+  "../../src/sync/condition_variable.cpp",
+  "../../src/sync/delayed_worker.cpp",
+  "../../src/sync/timer_manager.cpp",
+  "../../src/sync/mutex.cpp",
+  "../../src/sync/shared_mutex.cpp",
+  "../../src/sync/perf_counter.cpp",
+  "../../src/sync/sleep.cpp",
+  "../../src/sync/sync.cpp",
+  "../../src/sync/thread.cpp",
+  "../../src/sync/wait_queue.cpp",
+  "../../src/tm/task_base.cpp",
+  "../../src/tm/cpu_task.cpp",
+  "../../src/tm/scpu_task.cpp",
+  "../../src/tm/queue_task.cpp",
+  "../../src/tm/io_task.cpp",
+  "../../src/tm/uv_task.cpp",
+  "../../src/tm/task_factory.cpp",
+  "../../src/util/capability.cpp",
+  "../../src/util/cpu_boost_wrapper.cpp",
+  "../../src/util/ffrt_cpu_boost.cpp",
+  "../../src/util/ffrt_facade.cpp",
+  "../../src/util/graph_check.cpp",
+  "../../src/util/init.cpp",
+  "../../src/util/spmc_queue.cpp",
+  "../../src/util/time_format.cpp",
+  "../../src/util/white_list.cpp",
+  "../../src/util/worker_monitor.cpp",
+]
+
 config("ffrt_test_config") {
   include_dirs = [
+    "../../interfaces/kits",
+    "../../interfaces/inner_api",
     "../../src",
+    "../../src/dfx/async_stack",
     "../../src/dfx/log",
     "../../src/dfx/trace",
     "../../src/dfx/trace_record",
     "../../src/sched",
+    "../../include/sched",
+    "../../include",
   ]
 
   cflags = [
@@ -108,6 +202,7 @@ ohos_unittest("frame_interval_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "frame_interval_test.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -132,6 +227,7 @@ ohos_unittest("deadline_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "deadline_test.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -156,6 +252,7 @@ ohos_unittest("task_ctx_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "task_ctx_test.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -180,6 +277,7 @@ ohos_unittest("ut_coroutine") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_coroutine.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -205,6 +303,7 @@ ohos_unittest("ut_cpu_worker") {
   sources = [
       "testcase/ut_cpu_worker.cpp",
   ]
+  sources += ffrt_ut_base_sources
   deps += ffrt_ut_base_deps
   external_deps += ffrt_ut_base_external_deps
 
@@ -229,6 +328,7 @@ ohos_unittest("inherit_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/inherit_test.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -250,6 +350,7 @@ ohos_unittest("multi_workgroup_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "multi_workgroup_test.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -274,6 +375,7 @@ ohos_unittest("qos_convert_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "qos_convert_test.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -297,6 +399,7 @@ ohos_unittest("qos_interface_test") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "qos_interface_test.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -322,6 +425,7 @@ ohos_unittest("ut_cgroup_qos") {
   cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_cgroup_qos.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -343,6 +447,7 @@ ohos_unittest("ut_condition") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_condition.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -367,6 +472,7 @@ ohos_unittest("ut_core") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_core.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -391,6 +497,7 @@ ohos_unittest("ut_csync") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_csync.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -415,6 +522,7 @@ ohos_unittest("ut_deadline") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_deadline.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -439,6 +547,7 @@ ohos_unittest("ut_dependency") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_dependency.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -463,6 +572,7 @@ ohos_unittest("ut_execute_unit") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_execute_unit.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -490,6 +600,7 @@ ohos_unittest("ut_ffrt_io") {
     "testcase/ut_ffrt_io.cpp",
     "testcase/ut_poller.cpp",
   ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -511,6 +622,7 @@ ohos_unittest("ut_graphCheck") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_graphCheck.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -535,6 +647,7 @@ ohos_unittest("ut_interval") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_interval.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -558,6 +671,7 @@ ohos_unittest("ut_whitelist") {
   sources = [
     "testcase/ut_whitelist.cpp",
   ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -580,6 +694,7 @@ ohos_unittest("ut_loop") {
   cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_loop.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = []
   external_deps += ffrt_ut_base_external_deps
@@ -606,6 +721,7 @@ ohos_unittest("ut_queue") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_queue.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -627,6 +743,7 @@ ohos_unittest("ut_rtg") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_rtg.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -651,6 +768,7 @@ ohos_unittest("ut_scheduler") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_scheduler.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -672,6 +790,7 @@ ohos_unittest("ut_thread") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_thread.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -698,6 +817,7 @@ ohos_unittest("ut_mem") {
     "../testfunc/util.cpp",
     "testcase/ut_mem.cpp",
   ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -719,6 +839,7 @@ ohos_unittest("ut_queue_dump") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_queue_dump.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -740,6 +861,7 @@ ohos_unittest("ut_dump") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_dump.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -764,6 +886,7 @@ ohos_unittest("ut_qos_convert") {
   cflags_cc += ffrt_ut_base_cflags_cc
 
   sources = [ "testcase/ut_qos_convert.cpp" ]
+  sources += ffrt_ut_base_sources
   deps = ffrt_ut_base_deps
   external_deps = ffrt_ut_base_external_deps
 
@@ -790,6 +913,7 @@ ohos_unittest("ut_cpu_boost") {
   cflags_cc += [ "-DWITH_NO_MOCKER" ]
 
   sources = [ "testcase/ut_cpu_boost.cpp" ]
+  sources += ffrt_ut_base_sources
   deps += ffrt_ut_base_deps
   external_deps += ffrt_ut_base_external_deps
 

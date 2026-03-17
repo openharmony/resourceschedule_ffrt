@@ -33,6 +33,7 @@
 #include "dfx/watchdog/watchdog_util.h"
 #include "dfx/trace_record/ffrt_trace_record.h"
 #include "tm/cpu_task.h"
+#include "limits.h"
 
 namespace ffrt {
 #define OFFSETOF(TYPE, MEMBER) (reinterpret_cast<size_t>(&((reinterpret_cast<TYPE *>(0))->MEMBER)))
@@ -65,7 +66,7 @@ inline void InsDedup(std::vector<CPUEUTask*> &in_handles, std::vector<const void
     for (uint32_t i = 0; i < ins->len; i++) {
         if (std::find(outsNoDup.begin(), outsNoDup.end(), ins->items[i].ptr) == outsNoDup.end()) {
             if ((ins->items[i].type == ffrt_dependence_task) && (ins->items[i].ptr != nullptr)) {
-                static_cast<ffrt::CPUEUTask*>(const_cast<void*>(ins->items[i].ptr))->IncDeleteRef();
+                ffrt_task_handle_inc_ref(const_cast<void*>(ins->items[i].ptr));
                 in_handles.emplace_back(static_cast<ffrt::CPUEUTask*>(const_cast<void*>(ins->items[i].ptr)));
             }
             insNoDup.push_back(ins->items[i].ptr);
@@ -89,6 +90,8 @@ public:
     virtual void onTaskDone(CPUEUTask* task) = 0;
 
     virtual int onSkip(ffrt_task_handle_t handle);
+
+    virtual uint32_t DecTaskRef(ffrt_task_handle_t handle) = 0;
 
 protected:
     DependenceManager() {}

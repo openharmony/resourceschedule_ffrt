@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <vector>
+#include <climits>
 
 #include "ffrt_inner.h"
 #include "internal_inc/osal.h"
@@ -64,6 +65,7 @@ inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_functi
     FFRTFacade::GetDMInstance().onSubmit(has_handle, handle, f, ins, outs, attr);
 }
 
+API_ATTRIBUTE((visibility("default")))
 void DestroyFunctionWrapper(ffrt_function_header_t* f,
     ffrt_function_kind_t kind = ffrt_function_kind_general)
 {
@@ -403,7 +405,7 @@ uint32_t ffrt_task_handle_inc_ref(ffrt_task_handle_t handle)
 {
     if (handle == nullptr) {
         FFRT_LOGE("input task handle is invalid");
-        return -1;
+        return UINT_MAX;
     }
     return static_cast<ffrt::CPUEUTask*>(handle)->IncDeleteRef();
 }
@@ -413,9 +415,9 @@ uint32_t ffrt_task_handle_dec_ref(ffrt_task_handle_t handle)
 {
     if (handle == nullptr) {
         FFRT_LOGE("input task handle is invalid");
-        return -1;
+        return UINT_MAX;
     }
-    return static_cast<ffrt::CPUEUTask*>(handle)->DecDeleteRef();
+    return ffrt::DependenceManager::Instance().DecTaskRef(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -428,7 +430,7 @@ API_ATTRIBUTE((visibility("default")))
 uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return 0, "input task handle is invalid");
-    return static_cast<ffrt::TaskBase*>(handle)->gid;
+    return static_cast<ffrt::CPUEUTask*>(handle)->gid;
 }
 
 // wait
@@ -733,6 +735,26 @@ void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
         return;
     }
     ffrt::FFRTFacade::GetEUInstance().SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_group(ffrt_task_attr_t *attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return;
+    }
+    (reinterpret_cast<ffrt::task_attr_private *>(attr))->groupRoot_ = true;
+}
+
+API_ATTRIBUTE((visibility("default")))
+bool ffrt_task_attr_get_group(ffrt_task_attr_t *attr)
+{
+    if (unlikely(!attr)) {
+        FFRT_LOGE("attr should be a valid address");
+        return false;
+    }
+    return (reinterpret_cast<ffrt::task_attr_private *>(attr))->groupRoot_;
 }
 #ifdef __cplusplus
 }

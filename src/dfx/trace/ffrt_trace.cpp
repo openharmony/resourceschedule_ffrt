@@ -41,7 +41,6 @@ static const std::vector<PerfEventConfig> configGroupList[CONFIG_MAX] = {
         {PERF_COUNT_HW_STALLED_CYCLES_FRONTEND, "stalled-cycles-frontend"},
         {PERF_COUNT_HW_STALLED_CYCLES_BACKEND, "stalled-cycles-backend"},
         {PERF_COUNT_HW_REF_CPU_CYCLES, "ref-cycles"},
-
     } // CYCLES
 };
 

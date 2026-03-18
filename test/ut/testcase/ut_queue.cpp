@@ -1816,3 +1816,81 @@ HWTEST_F(QueueTest, ffrt_serial_queue_apply_delay, TestSize.Level1)
     EXPECT_EQ(result, applyCount * 2);
     EXPECT_LE(delay, end - start);
 }
+
+/*
+ * 测试用例名称 : perf_count_case_01
+ * 测试用例描述：提交100000个简单串行队列任务所用的耗时
+ * 操作步骤    ：1、提交任务，计算耗时
+ * 预期结果    ：无
+ */
+void WarmUp(ffrt::queue* testQueue)
+{
+    int x = 0;
+    for (int i = 0; i < 9; ++i) {
+        testQueue->submit([&x] { x += 10; });
+    }
+    task_handle h = testQueue->submit_h([&x] { x += 10; });
+    testQueue->wait(h);
+}
+
+HWTEST_F(QueueTest, queue_submit_perf_count, TestSize.Level0)
+{
+    ffrt::queue* testQueue = new ffrt::queue("test_queue");
+    WarmUp(testQueue);
+    uint64_t start = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now()).time_since_epoch().count());
+    std::string startime = FormatDateString4CntCt(start);
+    FFRT_LOGI("perf_count_case_01 begin, %llu, %s\n", start, startime.c_str());
+    int x = 0;
+    for (int i = 0; i < 1000; ++i) {
+        testQueue->submit([&x] { x += 10; });
+    }
+    uint64_t end = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now()).time_since_epoch().count());
+    auto handle = testQueue->submit_h([&] { FFRT_LOGI("perf_count_case_01 end, %llu, submit 1k cost %llu us\n",
+        end, end - start); });
+    testQueue->wait(handle);
+    EXPECT_EQ(x, 10000);
+    delete testQueue;
+}
+
+/* 测试用例名称：ffrt_queue_task_double_execute
+ * 测试用例描述：测试已执行的队列任务不会再次被执行
+ * 预置条件    ：无
+ * 操作步骤    ：1、提交执行一个队列任务，功能是x+1
+                2、同时在闭包中为当前任务增加引用计数防止释放
+                3、等待任务执行完成
+                4、再次直接调用任务的Execute函数
+ * 预期结果    ：闭包只被执行一次
+ */
+HWTEST_F(QueueTest, ffrt_queue_task_double_execute, TestSize.Level0)
+{
+    int x = 0;
+    ffrt_queue_attr_t queue_attr;
+    (void)ffrt_queue_attr_init(&queue_attr);
+    ffrt_queue_t queue_handle = ffrt_queue_create(ffrt_queue_serial, "test_queue", &queue_attr);
+
+    QueueTask* task;
+    std::function<void()> basicFunc = [&]() {
+        task = reinterpret_cast<QueueTask*>(ExecuteCtx::Cur()->task);
+        task->IncDeleteRef();
+        x += 1;
+    };
+
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr);
+    ffrt_task_attr_set_delay(&task_attr, 1000);
+    ffrt_task_handle_t h =
+        ffrt_queue_submit_h(queue_handle, create_function_wrapper(basicFunc, ffrt_function_kind_queue), &task_attr);
+
+    ffrt_queue_wait(h);
+
+    task->Execute();
+
+    EXPECT_EQ(x, 1);
+
+    task->DecDeleteRef();
+
+    ffrt_queue_attr_destroy(&queue_attr);
+    ffrt_queue_destroy(queue_handle);
+}

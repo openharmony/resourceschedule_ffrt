@@ -14,17 +14,20 @@
  */
 
 #include <gtest/gtest.h>
+#include <chrono>
 
 #define private public
 #define protected public
 
 #include "ffrt_inner.h"
 #include "ffrt.h"
+#include "tm/task_base.h"
 #include "tm/scpu_task.h"
 #include "eu/sexecute_unit.h"
 #include "sched/stask_scheduler.h"
-#include "../common.h"
+#include "util/capability.h"
 #include "util/worker_monitor.h"
+#include "../common.h"
 
 using namespace std;
 using namespace testing;
@@ -453,4 +456,200 @@ HWTEST_F(ExecuteUnitTest, ffrt_disable_worker_monitor, TestSize.Level1)
         // busy wait for the worker thread to be done.
         // delay the destruction of main thread till the retirement of the worker.
     }
+}
+
+/*
+ * 测试用例名称：ffrt_handle_task_notify_conservative
+ * 测试用例描述：ffrt保守调度策略
+ * 预置条件    ：创建SCPUWorkerManager，策略设置为HandleTaskNotifyConservative
+ * 操作步骤    ：调用SCPUWorkerManager的Notify方法
+ * 预期结果    ：成功执行HandleTaskNotifyConservative方法
+ */
+HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyConservative;
+
+    ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
+    sch->PushTask(ffrt::QoS(2), task);
+
+    int executingNum = manager->GetWorkerGroup(ffrt::QoS(2)).executingNum;
+    manager->GetWorkerGroup(2).executingNum = 20;
+    manager->NotifyTask<ffrt::TaskNotifyType::TASK_PICKED>(ffrt::QoS(2));
+    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
+    sch->PopTask(ffrt::QoS(2));
+
+    delete manager;
+    delete task;
+}
+
+/*
+ * 测试用例名称：ffrt_handle_task_notify_ultra_conservative
+ * 测试用例描述：ffrt特别保守调度策略
+ * 预置条件    ：创建SCPUWorkerManager，策略设置为HandleTaskNotifyUltraConservative
+ * 操作步骤    ：调用SCPUWorkerManager的Notify方法
+ * 预期结果    ：成功执行HandleTaskNotifyUltraConservative方法
+ */
+HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.Level1)
+{
+    ffrt::SExecuteUnit* manager = new ffrt::SExecuteUnit();
+    manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative;
+
+    ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
+    sch->PushTask(ffrt::QoS(2), task);
+
+    int executingNum = manager->GetWorkerGroup(2).executingNum;
+    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = 20;
+    manager->NotifyTask<ffrt::TaskNotifyType::TASK_ADDED>(ffrt::QoS(2));
+    manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = executingNum;
+    sch->PopTask(ffrt::QoS(2));
+
+    delete manager;
+    delete task;
+}
+
+/*
+ * 测试用例名称：ffrt_task_get_tid_test
+ * 测试用例描述：测试ffrt_task_get_tid接口
+ * 预置条件    ：创建SCPUEUTask
+ * 操作步骤    ：调用ffrt_task_get_tid方法，入参分别为SCPUEUTask对象和空指针
+ * 预期结果    ：ffrt_task_get_tid功能正常，传入空指针时返回0
+ */
+HWTEST_F(ExecuteUnitTest, ffrt_task_get_tid_test, TestSize.Level1)
+{
+    ffrt::CPUEUTask* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    task->runningTid.store(pthread_self());
+    pthread_t tid = ffrt_task_get_tid(task);
+    EXPECT_EQ(tid, pthread_self());
+
+    tid = ffrt_task_get_tid(nullptr);
+    EXPECT_EQ(tid, 0);
+}
+
+/*
+ * 测试用例名称：ffrt_set_sched_mode
+ * 测试用例描述：ffrt_set_sched_mode EU调度模式设置
+ * 预置条件    ：NA
+ * 操作步骤    ：在非ffrt任务中调用ffrt_set_sched_mode接口
+ * 预期结果    ：设置EU调度策略为默认模式、性能模式或节能模式
+ */
+HWTEST_F(ExecuteUnitTest, ffrt_set_sched_mode, TestSize.Level1)
+{
+    ffrt::sched_mode_type sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
+
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_energy_saving_mode);
+    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_energy_saving_mode));
+
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_performance_mode);
+    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_performance_mode));
+    ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_default_mode);
+}
+
+/*
+ * 测试用例名称：worker_escape_stage_one_report
+ * 测试用例描述：触发ffrt一阶段逃生事件上报频率符合超过1s再上报
+ * 预置条件    ：NA
+ * 操作步骤    ：在ffrt任务中提交阻塞任务使ffrt创建超过16个worker
+ * 预期结果    ：触发逃生且逃生事件上报时间更新
+ */
+HWTEST_F(ExecuteUnitTest, worker_escape_stage_one_report, TestSize.Level0)
+{
+    ffrt::disable_worker_escape();
+    const int stageOneWorkerNum = 20; // 一阶段worker数量
+    const int firstBatchNum = 17;    // 第一批任务数, 17个worker刚好触发逃生，新增1个worker
+    const int secondBatchNum = 3;   // 第二批任务数
+    bool blockTaskFlag = true;
+    int completedCount = 0;
+    std::mutex mtx;
+    std::condition_variable cv;
+
+    // escape使能并初始化
+    int ret = ffrt::enable_worker_escape(10, 1000, 10000, stageOneWorkerNum, 1024);
+    EXPECT_EQ(ret, 0);
+
+    auto curTime = std::chrono::steady_clock::now();
+    ffrt::CPUWorkerGroup& workerGroup = ffrt::FFRTFacade::GetEUInstance().GetWorkerGroup(ffrt_qos_default);
+
+    auto submitTasks = [&](int taskNum) {
+        for (int i = 0; i < taskNum; i++) {
+            ffrt::submit([&] {
+                std::unique_lock lock(mtx);
+                completedCount++;
+                if (blockTaskFlag) {
+                    cv.wait(lock);
+                }
+            });
+        }
+    };
+
+    // 提交第一批任务
+    submitTasks(firstBatchNum);
+    ffrt::this_task::sleep_for(1000000us);
+    // 等待1s后提交第二批任务
+    submitTasks(secondBatchNum);
+    ffrt::this_task::sleep_for(500000us);
+    {
+        std::lock_guard lg(mtx);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        EXPECT_EQ(completedCount, stageOneWorkerNum); // 校验是否触发逃生
+        EXPECT_TRUE(workerGroup.escapeReportTime >= curTime); // 校验逃生上报时间是否更新
+#endif
+        blockTaskFlag = false;
+    }
+    cv.notify_all();
+    ffrt::wait();
+
+    EXPECT_EQ(completedCount, stageOneWorkerNum);
+}
+
+/*
+ * 测试用例名称：worker_escape_stage_two_report
+ * 测试用例描述：触发ffrt二阶段逃生且逃生事件上报
+ * 预置条件    ：NA
+ * 操作步骤    ：在ffrt任务中提交阻塞任务使ffrt创建超过16个worker
+ * 预期结果    ：触发逃生且逃生事件上报时间更新
+ */
+HWTEST_F(ExecuteUnitTest, worker_escape_stage_two_report, TestSize.Level0)
+{
+    ffrt::disable_worker_escape();
+    const int totalTaskNum = 50;
+    const int stageTwoWorkerNum = 30;
+    bool blockTaskFlag = true;
+    int completedCount = 0;
+    std::mutex mtx;
+    std::condition_variable cv;
+    int ret = ffrt::enable_worker_escape(10000, 100, 10000, 0, stageTwoWorkerNum);
+    EXPECT_EQ(ret, 0);
+
+    ffrt::CPUWorkerGroup& workerGroup = ffrt::FFRTFacade::GetEUInstance().GetWorkerGroup(ffrt_qos_default);
+    auto curTime = std::chrono::steady_clock::now();
+
+    // 提交任务触发二阶段逃生
+    for (int i = 0; i < totalTaskNum; i++) {
+        ffrt::submit([&] {
+            std::unique_lock lock(mtx);
+            completedCount++;
+            if (blockTaskFlag) {
+                cv.wait(lock);
+            }
+        });
+    }
+    ffrt::this_task::sleep_for(1500000us);
+    {
+        std::lock_guard lg(mtx);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        EXPECT_GE(completedCount, stageTwoWorkerNum);
+        EXPECT_TRUE(workerGroup.escapeReportTime >= curTime); // 校验逃生上报时间是否更新
+#endif
+        blockTaskFlag = false;
+    }
+    cv.notify_all();
+    ffrt::wait();
+
+    EXPECT_EQ(completedCount, totalTaskNum);
 }

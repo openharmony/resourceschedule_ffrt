@@ -27,7 +27,10 @@
 #include "sched/scheduler.h"
 #include "core/task_attr_private.h"
 #include "tm/scpu_task.h"
+#include "tm/task_base.h"
+#include "tm/io_task.h"
 #include "sched/stask_scheduler.h"
+#include "util/ffrt_facade.h"
 #include "../common.h"
 
 using namespace std;
@@ -253,4 +256,141 @@ HWTEST_F(SchedulerTest, sched_test, TestSize.Level1)
     scheduler->PushTask(task);
     scheduler->GetPriorityTaskCnt();
     scheduler->PushTaskLocalOrPriority(task);
+}
+
+/*
+ * 测试用例名称：priority_task_0001
+ * 测试用例描述：测试优先槽任务自己提交自己会不会导致其他任务不执行
+ * 预置条件    ：NA
+ * 操作步骤    ：1、设置TaskScheduler开启本地队列模式
+                2、提交一个普通任务，不创建worker
+                3、提交一个自己提交自己的优先槽任务，不唤醒worker
+                4、通过notify，创建一个worker
+ * 预期结果    ：不会导致其他任务饿死
+ */
+typedef struct {
+    std::atomic<int> count;
+    std::mutex lock;
+} StacklessCoroutine1;
+
+ffrt_coroutine_ret_t stackless_coroutine_3(void *co)
+{
+    static_cast<void*>(co);
+    ffrt::TaskBase* wakedTask = static_cast<ffrt::TaskBase*>(ffrt_get_current_task());
+    FFRTFacade::GetSchedInstance()->GetScheduler(2).PushTaskToPriorityStack(wakedTask);
+    return ffrt_coroutine_pending;
+}
+
+ffrt_coroutine_ret_t exec_stackless_coroutine_3(void *co)
+{
+    static_cast<void*>(co);
+    return stackless_coroutine_3(co);
+}
+
+void DestoryStacklessCoroutine3(void *co)
+{
+    static_cast<void*>(co);
+}
+
+HWTEST_F(SchedulerTest, priority_task_0001, TestSize.Level0)
+{
+    ffrt_set_cpu_worker_max_num(ffrt::QoS(2), 1);
+    ffrt::Scheduler* scheduler = ffrt::FFRTFacade::GetSchedInstance();
+    ffrt::TaskScheduler& taskScheduler = scheduler->GetScheduler(ffrt::QoS(2));
+    taskScheduler.taskSchedMode = TaskSchedMode::LOCAL_TASK_SCHED_MODE;
+
+    StacklessCoroutine1 co1 = {0};
+
+    ffrt_task_attr_t attr;
+    ffrt_task_attr_init(&attr);
+    ffrt_task_attr_set_name(&attr, "stackless_coroutine_3");
+
+    ffrt::task_attr_private *p = reinterpret_cast<ffrt::task_attr_private *>(static_cast<ffrt_task_attr_t *>(&attr));
+    ffrt::ffrt_io_callable_t work;
+    work.exec = exec_stackless_coroutine_3;
+    work.destroy = DestoryStacklessCoroutine3;
+    work.data = &co1;
+    IOTask* ioTask = TaskFactory<IOTask>::Alloc();
+    new (ioTask) IOTask(work, p);
+
+    int result = 0;
+    ffrt_task_attr_t task_attr;
+    (void)ffrt_task_attr_init(&task_attr); // 初始化task属性，必须
+    ffrt_task_attr_set_notify_worker(&task_attr, false);
+
+    double t;
+    std::function<void()>&& OnePlusFunc = [&result]() { result += 1; };
+    std::function<void()>&& SetPriorityPtrFunc = [&]() {
+        *(FFRTFacade::GetSchedInstance()->GetScheduler(2).GetPriorityTask()) = ioTask;
+    };
+
+    ffrt_task_handle_t oneTask = ffrt_submit_h_base(
+        ffrt::create_function_wrapper(SetPriorityPtrFunc), {}, {}, &task_attr);
+    ffrt_task_handle_t towTask = ffrt_submit_h_base(ffrt::create_function_wrapper(OnePlusFunc), {}, {}, &task_attr);
+
+    ffrt_notify_workers(ffrt_qos_default, 1);
+    const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, towTask}};
+    ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
+    ffrt_wait_deps(&wait);
+
+    EXPECT_EQ(result, 1);
+    ffrt_task_attr_destroy(&task_attr);
+    ffrt_task_handle_destroy(oneTask);
+    ffrt_task_handle_destroy(towTask);
+    taskScheduler.taskSchedMode = TaskSchedMode::DEFAULT_TASK_SCHED_MODE;
+}
+
+/*
+ * 测试用例名称：ffrt_task_handle_copy_test_001
+ * 测试用例描述：ffrt的handle拷贝构造和拷贝赋值设置
+ * 预置条件    ：NA
+ * 操作步骤    ：在ffrt任务中调用拷贝构造和拷贝赋值接口
+ * 预期结果    ：task_handle引用计数增减符合预期，task_handle析构符合预期
+ */
+HWTEST_F(SchedulerTest, ffrt_task_handle_copy_test_001, TestSize.Level0)
+{
+    int data = 0;
+    int count = 1000;
+    std::atomic_bool enable = true;
+
+    ffrt::task_handle t1 = ffrt::submit_h([&]() {
+        data += 2;
+        while (enable) {
+            usleep(10);
+        }
+    });
+    ffrt_task_handle_t p1 = t1;
+    auto task1 = static_cast<ffrt::CPUEUTask*>(p1);
+    EXPECT_EQ(task1->rc.load(), 2); // 任务尚未结束，预期rc为2
+
+    enable = false;
+
+    ffrt::wait();
+
+    // 任务完成以后，handle引用计数释放是异步流程，添加等待延时，等待引用计数减1
+    while (task1->rc.load() != 1 && count > 0) {
+        usleep(1000);
+        count--;
+    }
+
+    EXPECT_GT(count, 0);
+    EXPECT_EQ(task1->rc.load(), 1); // 任务已经结束，预期rc为1
+
+    ffrt::task_handle t2 = t1; // 调用拷贝构造函数
+    ffrt_task_handle_t p2 = t2;
+    auto task2 = static_cast<ffrt::CPUEUTask*>(p2);
+    EXPECT_EQ(task1->rc.load(), 2); // 拷贝构造函数调用成功，rc值加1
+    EXPECT_EQ(task1->rc.load(), task2->rc.load());
+
+    ffrt::task_handle t3 = nullptr;
+    t3 = t2; // 调用拷贝赋值
+    ffrt_task_handle_t p3 = t3;
+    auto task3 = static_cast<ffrt::CPUEUTask*>(p3);
+    EXPECT_EQ(task1->rc.load(), 3); // 拷贝赋值调用成功，rc值加1
+
+    ffrt_task_handle_destroy(t1);
+    EXPECT_EQ(task1->rc.load(), 2);
+    ffrt_task_handle_destroy(t2);
+    EXPECT_EQ(task2->rc.load(), 1);
+    ffrt_task_handle_destroy(t3);
 }

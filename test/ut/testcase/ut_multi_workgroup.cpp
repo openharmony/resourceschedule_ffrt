@@ -20,7 +20,6 @@
 #include <atomic>
 
 #include <gtest/gtest.h>
-
 #include <sched/workgroup_internal.h>
 #include "eu/rtg_ioctl.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -168,5 +167,4 @@ TEST_F(MultiWorkgroupTest, RS_WorkgroupClearTest)
         EXPECT_TRUE(ret);
     }
 }
-
 #endif

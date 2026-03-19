@@ -15,8 +15,11 @@
 
 #include <gtest/gtest.h>
 #include <chrono>
+#include <regex>
+#include "securec.h"
 #include "ffrt_inner.h"
 #include "dfx/bbox/bbox.h"
+#include "dfx/trace_record/ffrt_trace_record.h"
 #define private public
 #include "util/worker_monitor.h"
 #include "eu/loop_poller.h"
@@ -30,6 +33,7 @@ using namespace ffrt;
 
 extern void SaveTheBbox();
 extern void RecordDebugInfo();
+static const int g_logBufferSize = 120000;
 
 using namespace testing;
 #ifdef HWTEST_TESTING_EXT_ENABLE
@@ -380,3 +384,78 @@ HWTEST_F(DfxTest, hitrace_test_poller, TestSize.Level1)
     TraceChainAdapter::Instance().HiTraceChainEnd(&traceId);
 #endif
 }
+
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
+HWTEST_F(DfxTest, task_statistic_info_dump, TestSize.Level1)
+{
+    char* buf = new char[g_logBufferSize];
+    for (int i = 0; i < 100; i++) {
+        ffrt::submit([&]() {ffrt_usleep(10 * 1000);}, task_attr().name(("taskA" + std::to_string(i)).c_str())
+            .qos(qos_user_interactive));
+    }
+    ffrt::wait();
+    int ret = ffrt_dump(DUMP_TASK_STATISTIC_INFO, buf, g_logBufferSize);
+    EXPECT_TRUE(ret > 0);
+    std::string str1(buf);
+    std::cout << str1 << std::endl;
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_3)
+    std::regex pattern1(R"(---
+Qos TaskType SubmitNum EnueueNum CoSwitchNum   DoneNum FinishNum MaxWorkerNum MaxWaitTime\(us\)
+    MaxRunDuration\(us\) AvgWaitTime\(us\) avgRunDuration\(us\) TotalWaitTime\(us\) TotalRunnDuration\(us\)
+    5   normal       100       100         100       100       100    (\s*\d+)*
+---
+)");
+#else
+    std::regex pattern1(R"(---
+Qos TaskType SubmitNum EnueueNum CoSwitchNum   DoneNum FinishNum
+    5   normal       100       100         100       100       100
+---
+)");
+#endif
+    // 预期dump信息:
+    // 1.qos 5任务提交数量为100、入队数量为100、协程切换数量为100、任务完成数量为100、任务终止数量为100
+    EXPECT_TRUE(std::regex_match(str1, pattern1));
+
+    for (int i = 0; i < 100; i++) {
+        ffrt::submit([&]() {std::this_thread::sleep_for(10ms);}, task_attr().name(("taskB" + std::to_string(i)).c_str())
+            .qos(qos_deadline_request));
+    }
+    ffrt::wait();
+    memset_s(buf, sizeof(char) * g_logBufferSize, 0, sizeof(char) * g_logBufferSize);
+    ret = ffrt_dump(DUMP_TASK_STATISTIC_INFO, buf, g_logBufferSize);
+    std::string str2(buf);
+#if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_3)
+    std::regex pattern2(R"(---
+Qos TaskType SubmitNum EnueueNum CoSwitchNum   DoneNum FinishNum MaxWorkerNum MaxWaitTime\(us\)
+    MaxRunDuration\(us\) AvgWaitTime\(us\) avgRunDuration\(us\) TotalWaitTime\(us\) TotalRunnDuration\(us\)
+    4   normal       100       100           0       100       100    (\s*\d+)*
+    5   normal       100       100         100       100       100    (\s*\d+)*
+---
+)");
+#else
+    std::regex pattern2(R"(---
+Qos TaskType SubmitNum EnueueNum CoSwitchNum   DoneNum FinishNum
+    4   normal       100       100           0       100       100
+    5   normal       100       100         100       100       100
+---
+)");
+#endif
+    // 预期dump信息:
+    // 1.qos 4任务提交数量为100、入队数量为100、协程切换数量为0、任务完成数量为100、任务终止数量为100
+    // 2.qos 5任务提交数量为100、入队数量为100、协程切换数量为100、任务完成数量为100、任务终止数量为100
+    // 3.提交计数为200
+    // 4.入队计数为200
+    // 5.运行计数为300
+    // 6.完成计数为200
+    // 7.协程切换计数为100
+    // 8.终止计数为200
+    EXPECT_TRUE(std::regex_match(str2, pattern2));
+    EXPECT_EQ(ffrt::FFRTTraceRecord::GetSubmitCount(), 200);
+    EXPECT_EQ(ffrt::FFRTTraceRecord::GetEnqueueCount(), 200);
+    EXPECT_EQ(ffrt::FFRTTraceRecord::GetRunCount(), 300);
+    EXPECT_EQ(ffrt::FFRTTraceRecord::GetDoneCount(), 200);
+    EXPECT_EQ(ffrt::FFRTTraceRecord::GetCoSwitchCount(), 100);
+    EXPECT_EQ(ffrt::FFRTTraceRecord::GetFinishCount(), 200);
+    delete[] buf;
+}
+#endif

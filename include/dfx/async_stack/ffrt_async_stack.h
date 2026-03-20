@@ -17,9 +17,7 @@
 #include <cinttypes>
 constexpr uint64_t ASYNC_TYPE_FFRT_POOL = (1 << 8);
 constexpr uint64_t ASYNC_TYPE_FFRT_QUEUE = (1 << 9);
-using SetStackIdFunc = void(*)(uint64_t stackId);
-using CollectAsyncStackFunc = uint64_t(*)(uint64_t taskType);
-extern "C" void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc);
+
 namespace ffrt {
     uint64_t FFRTCollectAsyncStack(uint64_t taskType);
     void FFRTSetStackId(uint64_t stackId);

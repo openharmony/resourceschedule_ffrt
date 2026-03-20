@@ -21,11 +21,13 @@
 
 #include "dfx/log/ffrt_log_api.h"
 #include "util/ffrt_facade.h"
+#include "c/ffrt_dump.h"
 namespace {
     CollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
     SetStackIdFunc g_setStackIdFunc = nullptr;
 }
 
+API_ATTRIBUTE((visibility("default")))
 void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc)
 {
     if (!ffrt::GetBetaVersionFlag()) {

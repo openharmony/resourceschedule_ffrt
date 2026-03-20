@@ -36,6 +36,9 @@ typedef struct ffrt_stat {
 
 typedef void(*ffrt_task_timeout_cb)(uint64_t gid, const char *msg, uint32_t size);
 
+typedef void (*SetStackIdFunc)(uint64_t stackId);
+typedef uint64_t (*CollectAsyncStackFunc)(uint64_t taskType);
+
 /**
  * @brief dump ffrt信息，包括task、queue、worker相关信息.
  *
@@ -69,4 +72,5 @@ FFRT_C_API uint32_t ffrt_task_timeout_get_threshold(void);
  * @since 10
  */
 FFRT_C_API void ffrt_task_timeout_set_threshold(uint32_t threshold_ms);
+FFRT_C_API void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc);
 #endif /* FFRT_API_C_FFRT_DUMP_H */

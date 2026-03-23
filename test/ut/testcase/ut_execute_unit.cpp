@@ -14,7 +14,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <chrono>
 
 #define private public
 #define protected public
@@ -589,10 +588,10 @@ HWTEST_F(ExecuteUnitTest, worker_escape_stage_one_report, TestSize.Level0)
 
     // 提交第一批任务
     submitTasks(firstBatchNum);
-    ffrt::this_task::sleep_for(1000000us);
+    usleep(1000000);
     // 等待1s后提交第二批任务
     submitTasks(secondBatchNum);
-    ffrt::this_task::sleep_for(500000us);
+    usleep(500000);
     {
         std::lock_guard lg(mtx);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -605,6 +604,7 @@ HWTEST_F(ExecuteUnitTest, worker_escape_stage_one_report, TestSize.Level0)
     ffrt::wait();
 
     EXPECT_EQ(completedCount, stageOneWorkerNum);
+    ffrt::disable_worker_escape();
 }
 
 /*
@@ -639,7 +639,7 @@ HWTEST_F(ExecuteUnitTest, worker_escape_stage_two_report, TestSize.Level0)
             }
         });
     }
-    ffrt::this_task::sleep_for(1500000us);
+    usleep(1500000);
     {
         std::lock_guard lg(mtx);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -652,4 +652,5 @@ HWTEST_F(ExecuteUnitTest, worker_escape_stage_two_report, TestSize.Level0)
     ffrt::wait();
 
     EXPECT_EQ(completedCount, totalTaskNum);
+    ffrt::disable_worker_escape();
 }

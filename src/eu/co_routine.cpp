@@ -21,6 +21,7 @@
 #include <securec.h>
 #include <string>
 #include <sys/mman.h>
+#include <sys/prctl.h>
 #include "eu/co2_context.h"
 #include "util/cpu_boost_wrapper.h"
 #include "dfx/trace/ffrt_trace.h"
@@ -318,6 +319,8 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
             FFRT_SYSEVENT_LOGE("memory mmap failed.");
             return nullptr;
         }
+        // Set VMA name for the mapped memory
+        prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, co, stackSize, "ffrt_coroutine_stack");
     }
     if (!co) {
         FFRT_SYSEVENT_LOGE("memory not enough");

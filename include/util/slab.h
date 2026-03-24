@@ -25,6 +25,7 @@
 #include <unordered_set>
 #endif
 #include <sys/mman.h>
+#include <sys/prctl.h>
 #include "sync/sync.h"
 #include "dfx/log/ffrt_log_api.h"
 
@@ -289,6 +290,8 @@ class QSimpleAllocator {
                 return false;
             }
         }
+        // Set VMA name for the mapped memory
+        prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, p, MmapSz, "ffrt_coroutine_stack");
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             cache.push_back(reinterpret_cast<T*>(p + i));
         }

@@ -43,8 +43,8 @@
  * @brief Suspends the calling thread for a given duration.
  *
  * @param usec Indicates the duration that the calling thread is suspended, in microseconds.
- * @return Returns <b>ffrt_success</b> if the thread is suspended;
-           returns <b>ffrt_error</b> otherwise.
+ * @return <b>ffrt_success</b> if the thread is suspended;
+ *         <b>ffrt_error</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_usleep(uint64_t usec);

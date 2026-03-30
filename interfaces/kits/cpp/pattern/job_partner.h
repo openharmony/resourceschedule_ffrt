@@ -211,7 +211,7 @@ struct job_partner_attr {
         return *this;
     }
 private:
-    std::atomic_int qos_ = static_cast<int>(ffrt::qos_user_initiated);  ///< QoS level///< QoS level.
+    std::atomic_int qos_ = static_cast<int>(ffrt::qos_user_initiated);  ///< QoS level.
     std::atomic_uint64_t max_parallelism_ = default_max_parallelism;    ///< Max partner count.
     std::atomic_uint64_t ratio_ = default_partner_ratio;                ///< Scaling ratio.
     std::atomic_uint64_t threshold_ = default_partner_threshold;        ///< Activation threshold.
@@ -305,7 +305,7 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * @param stack Pointer to preallocated stack memory.
      * @param stack_size Size of the stack memory (must be valid for fiber execution).
      * @param on_done Callback invoked when the job completes (optional).
-     * @return 0 on success; 1 if job initialization fails (e.g., invalid stack size).
+     * @return <b>0</b> if succeeds; <b>1</b> if job initialization fails (e.g., invalid stack size).
      * @since 20
      */
     template <bool Boost = true>
@@ -577,7 +577,7 @@ private:
      * Uses the Linux syscall SYS_gettid to get the thread ID, with thread-local storage
      * to avoid repeated syscalls.
      *
-     * @return uint64_t The current thread's ID.
+     * @return The current thread's ID.
      */
     static uint64_t tid()
     {

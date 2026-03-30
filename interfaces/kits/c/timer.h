@@ -40,16 +40,16 @@
 #include "type_def.h"
 
 /**
- * @brief Starts a timer on ffrt worker
+ * @brief Starts a timer on an ffrt worker.
  *
  * @warning Do not call `exit` in `cb` - this may cause unexpected behavior.
  *
- * @param qos Indicates qos of the worker that runs timer.
+ * @param qos Indicates the QoS of the worker that runs timer.
  * @param timeout Indicates the number of milliseconds that specifies timeout.
  * @param data Indicates user data used in cb.
  * @param cb Indicates user cb which will be executed when timeout.
  * @param repeat Indicates whether to repeat this timer.
- * @return Returns a timer handle.
+ * @return A timer handle.
  * @since 12
  */
 FFRT_C_API ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
@@ -61,10 +61,10 @@ FFRT_C_API ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void*
  *       When the callback corresponding to the provided handle is executing,
  *       this function will wait for the callback to complete before continuing.
  *
- * @param qos Indicates qos of the worker that runs timer.
+ * @param qos Indicates the QoS of the worker that runs timer.
  * @param handle Indicates the target timer handle.
- * @return Returns 0 if success;
-           returns -1 otherwise.
+ * @return <b>0</b> if success;
+ *         <b>-1</b> otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);

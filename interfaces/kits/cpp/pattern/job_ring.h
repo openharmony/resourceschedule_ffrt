@@ -408,7 +408,7 @@ private:
      * returning the count of processed tasks. Used by worker threads and helping
      * threads during wait() operations.
      *
-     * @return uint64_t Number of tasks processed in this invocation.
+     * @return Number of tasks processed in this invocation.
      */
     inline uint64_t drain()
     {

@@ -43,8 +43,8 @@
  * @brief Initializes a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns <b>0</b> if the task attribute is initialized;
-           returns <b>-1</b> otherwise.
+ * @return <b>0</b> if the task attribute is initialized;
+ *         <b>-1</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_task_attr_init(ffrt_task_attr_t* attr);
@@ -62,8 +62,8 @@ FFRT_C_API void ffrt_task_attr_set_name(ffrt_task_attr_t* attr, const char* name
  * @brief Gets the name of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns a non-null pointer to the task name if the name is obtained;
-           returns a null pointer otherwise.
+ * @return A non-null pointer to the task name if the name is obtained;
+ *         a null pointer otherwise.
  * @since 10
  */
 FFRT_C_API const char* ffrt_task_attr_get_name(const ffrt_task_attr_t* attr);
@@ -89,7 +89,7 @@ FFRT_C_API void ffrt_task_attr_set_qos(ffrt_task_attr_t* attr, ffrt_qos_t qos);
  * @brief Gets the QoS of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns the QoS, which is <b>ffrt_qos_default</b> by default.
+ * @return The QoS, which is ffrt_qos_default by default.
  * @since 10
  */
 FFRT_C_API ffrt_qos_t ffrt_task_attr_get_qos(const ffrt_task_attr_t* attr);
@@ -107,7 +107,7 @@ FFRT_C_API void ffrt_task_attr_set_delay(ffrt_task_attr_t* attr, uint64_t delay_
  * @brief Gets the delay time of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns the delay time.
+ * @return The delay time.
  * @since 10
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_delay(const ffrt_task_attr_t* attr);
@@ -125,7 +125,7 @@ FFRT_C_API void ffrt_task_attr_set_queue_priority(ffrt_task_attr_t* attr, ffrt_q
  * @brief Gets the priority of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns the priority of concurrent queue task.
+ * @return The priority of concurrent queue task.
  * @since 12
  */
 FFRT_C_API ffrt_queue_priority_t ffrt_task_attr_get_queue_priority(const ffrt_task_attr_t* attr);
@@ -143,7 +143,7 @@ FFRT_C_API void ffrt_task_attr_set_stack_size(ffrt_task_attr_t* attr, uint64_t s
  * @brief Gets the stack size of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns the task stack size, unit is byte.
+ * @return The task stack size, unit is byte.
  * @since 12
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
@@ -162,7 +162,7 @@ FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t time
  * @brief Gets the schedule timeout of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns the task schedule timeout.
+ * @return The task schedule timeout.
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
 
@@ -170,8 +170,8 @@ FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
  * @brief Updates the QoS of this task.
  *
  * @param qos Indicates the new QoS.
- * @return Returns <b>0</b> if the QoS is updated;
-           returns <b>-1</b> otherwise.
+ * @return <b>0</b> if the QoS is updated;
+ *         <b>-1</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
@@ -179,7 +179,7 @@ FFRT_C_API int ffrt_this_task_update_qos(ffrt_qos_t qos);
 /**
  * @brief Gets the QoS of this task.
  *
- * @return Returns the task qos.
+ * @return The task QoS.
  * @since 12
  */
 FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
@@ -187,7 +187,7 @@ FFRT_C_API ffrt_qos_t ffrt_this_task_get_qos(void);
 /**
  * @brief Gets the ID of this task.
  *
- * @return Returns the task ID.
+ * @return The task ID.
  * @since 10
  */
 FFRT_C_API uint64_t ffrt_this_task_get_id(void);
@@ -196,8 +196,8 @@ FFRT_C_API uint64_t ffrt_this_task_get_id(void);
  * @brief Applies memory for the function execution structure.
  *
  * @param kind Indicates the type of the function execution structure, which can be common or queue.
- * @return Returns a non-null pointer if the memory is allocated;
-           returns a null pointer otherwise.
+ * @return A non-null pointer if the memory is allocated;
+ *         a null pointer otherwise.
  * @since 10
  */
 FFRT_C_API void *ffrt_alloc_auto_managed_function_storage_base(ffrt_function_kind_t kind);
@@ -221,8 +221,8 @@ FFRT_C_API void ffrt_submit_base(ffrt_function_header_t* f, const ffrt_deps_t* i
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ * @return A non-null task handle if the task is submitted;
+ *         a null pointer otherwise.
  * @since 10
  */
 FFRT_C_API ffrt_task_handle_t ffrt_submit_h_base(ffrt_function_header_t* f, const ffrt_deps_t* in_deps,
@@ -262,8 +262,8 @@ FFRT_C_API void ffrt_submit_f(ffrt_function_t func, void* arg, const ffrt_deps_t
  * @param in_deps Indicates a pointer to the input dependencies.
  * @param out_deps Indicates a pointer to the output dependencies.
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns a non-null task handle if the task is submitted;
-           returns a null pointer otherwise.
+ * @return A non-null task handle if the task is submitted;
+ *         a null pointer otherwise.
  * @see ffrt_submit_h_base
  * @since 20
  */
@@ -274,7 +274,7 @@ FFRT_C_API ffrt_task_handle_t ffrt_submit_h_f(ffrt_function_t func, void* arg, c
  * @brief Increases reference count of a task.
  *
  * @param handle Indicates a task handle.
- * @return Returns the task handle original reference count.
+ * @return The task handle original reference count.
  * @since 12
  */
 FFRT_C_API uint32_t ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
@@ -283,7 +283,7 @@ FFRT_C_API uint32_t ffrt_task_handle_inc_ref(ffrt_task_handle_t handle);
  * @brief Decreases reference count of a task.
  *
  * @param handle Indicates a task handle.
- * @return Returns the task handle original reference count.
+ * @return The task handle original reference count.
  * @since 12
  */
 FFRT_C_API uint32_t ffrt_task_handle_dec_ref(ffrt_task_handle_t handle);
@@ -320,10 +320,10 @@ FFRT_C_API void ffrt_wait(void);
 FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size);
 
 /**
- * @brief Gets gid of a task.
+ * @brief Gets the gid of a task.
  *
  * @param handle Indicates a task handle.
- * @return Returns gid.
+ * @return The gid.
  */
 FFRT_C_API uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle);
 

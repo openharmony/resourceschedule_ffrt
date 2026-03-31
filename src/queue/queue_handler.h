@@ -154,7 +154,7 @@ private:
     void RemoveTimeoutMonitor(QueueTask* task);
     void RunTimeOutCallback(QueueTask* task);
 
-    void ReportTimeout(const std::vector<std::pair<uint64_t, std::string>>& timeoutTaskInfo);
+    void ReportTimeout(const std::vector<std::tuple<uint64_t, std::string, ffrt_function_header_t*>>& timeoutTaskInfo);
     bool ControlTimeoutFreq(uint64_t timeoutCnt);
     void CheckSchedDeadline();
     bool CheckExecutingTask();
@@ -185,7 +185,7 @@ private:
     uint64_t trafficRecordInterval_ = DEFAULT_TRAFFIC_INTERVAL;
 
     ffrt::mutex mutex_;
-    bool initSchedTimer_ = false;
+    TimePoint nextTp_; // next scheduled timeout check time
     WaitUntilEntry* we_ = nullptr;
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
     std::atomic_int deliverCnt_ = {0};

@@ -113,10 +113,10 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     task->SetInHandles(inHandles);
 
 #ifdef FFRT_OH_WATCHDOG_ENABLE
-    if (attr != nullptr && IsValidTimeout(task->gid, attr->timeout_) && GetBetaVersionFlag()) {
+    if (attr != nullptr && attr->timeout_ != 0) {
         task->isWatchdogEnable = true;
         AddTaskToWatchdog(task->gid);
-        SendTimeoutWatchdog(task->gid, attr->timeout_, attr->delay_);
+        SendTimeoutWatchdog(task->gid, attr->timeout_, attr->delay_, attr->timeoutCb_);
     }
 #endif
     if (has_handle) {
@@ -273,9 +273,6 @@ void SDependenceManager::onTaskDone(CPUEUTask* task)
         }
         // VersionCtx recycling
         Entity::Instance()->RecycleVersion();
-    }
-    if (task->isWatchdogEnable && GetBetaVersionFlag()) {
-        RemoveTaskFromWatchdog(task->gid);
     }
     // Note that `DecChildRef` is going to decrement the `childRefCnt`
     // of the parent task. And if the parent happens to be

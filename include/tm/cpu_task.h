@@ -34,6 +34,10 @@
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
 
+#define GetCPUTaskByFuncStorageOffset(f) \
+    (reinterpret_cast<ffrt::CPUEUTask*>(static_cast<uintptr_t>(static_cast<size_t>(reinterpret_cast<uintptr_t>(f)) - \
+        (reinterpret_cast<size_t>(&((reinterpret_cast<ffrt::CPUEUTask*>(0))->func_storage))))))
+
 namespace ffrt {
 constexpr int CO_CREATE_RETRY_INTERVAL = 500 * 1000;
 constexpr uint64_t MASK_FOR_HCS_TASK = 0xFF000000000000;
@@ -65,6 +69,7 @@ public:
     bool isWatchdogEnable = false;
     bool notifyWorker_ = true;
     bool isDelaying = false;
+    ffrt_function_header_t* timeoutCb_ = nullptr;
 
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskLocalAttr* tlsAttr = nullptr;
@@ -134,6 +139,11 @@ public:
             return BlockType::BLOCK_THREAD;
         }
         return blockType;
+    }
+
+    virtual void Finish() override
+    {
+        // Empty implementation, only support class instantiation to manage timeout callback reference counting
     }
 };
 

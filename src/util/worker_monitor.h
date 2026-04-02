@@ -87,9 +87,9 @@ private:
     void SubmitRecycleResource();
     void CheckWorkerStatus();
     void CheckTaskStatus();
-    uint64_t CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold);
+    uint64_t CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold, uint64_t timeoutUs);
     bool ControlTimeoutFreq(CPUEUTask* task);
-    void RecordTimeoutTask(CPUEUTask* task);
+    void RecordTimeoutTask(CPUEUTask* task, uint64_t timeoutUs);
     void RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, CPUWorker* worker,
         TaskBase* workerTask, std::vector<TimeoutFunctionInfo>& timeoutFunctions);
     void RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction);
@@ -99,12 +99,13 @@ private:
         const std::deque<pid_t>& tids);
     void WorkerStatus();
     bool SetExitFlagIfNoWorkers(bool& exitFlag);
+    void UpdateTimeoutUs();
 
 private:
     std::mutex mutex_;
     std::mutex submitTaskMutex_;
     bool skipSampling_ = false;
-    uint64_t timeoutUs_ = 0;
+    std::atomic<uint64_t> timeoutUs_{0};
     std::deque<std::pair<uint64_t, std::string>> taskTimeoutInfo_;
     WaitUntilEntry watchdogWaitEntry_;
     WaitUntilEntry tskMonitorWaitEntry_;

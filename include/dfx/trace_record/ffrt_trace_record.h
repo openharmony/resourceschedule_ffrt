@@ -33,6 +33,7 @@ typedef struct ffrt_record_task_counter {
     alignas(cacheline_size) std::atomic<unsigned int> runCounter{0};
     alignas(cacheline_size) std::atomic<unsigned int> doneCounter{0};
     alignas(cacheline_size) std::atomic<unsigned int> cancelCounter{0};
+    alignas(cacheline_size) std::atomic<int> CoCounterInSwitch{0};
 } ffrt_record_task_counter_t;
 
 typedef struct ffrt_record_task_time {
@@ -238,6 +239,20 @@ public:
 #if (FFRT_TRACE_RECORD_LEVEL >= FFRT_TRACE_RECORD_LEVEL_2)
         g_recordTaskCounter_[task->type][task->GetQos()].coSwitchCounter.fetch_add(1, std::memory_order_relaxed);
 #endif
+    }
+
+    static inline void TaskCoSwitchAdd(TaskBase* task)
+    {
+        if (task->type == ffrt_normal_task) {
+            g_recordTaskCounter_[task->type][task->GetQos()].CoCounterInSwitch.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+
+    static inline void TaskCoSwitchDel(TaskBase* task)
+    {
+        if (task->type == ffrt_normal_task) {
+            g_recordTaskCounter_[task->type][task->GetQos()].CoCounterInSwitch.fetch_sub(1, std::memory_order_relaxed);
+        }
     }
 
     static inline void WorkRecord(int qos, int workerNum)

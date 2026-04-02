@@ -106,6 +106,7 @@ WorkerMonitor& WorkerMonitor::GetInstance()
 
 void WorkerMonitor::SubmitTask()
 {
+    UpdateTimeoutUs();
     std::lock_guard submitTaskLock(submitTaskMutex_);
     if (!skipSampling_ && GetBetaVersionFlag()) {
         if (samplingTaskExit_ && ffrt::GetBetaVersionFlag()) {
@@ -113,7 +114,7 @@ void WorkerMonitor::SubmitTask()
             samplingTaskExit_ = false;
         }
         if (taskMonitorExit_) {
-            SubmitTaskMonitor(timeoutUs_);
+            SubmitTaskMonitor(timeoutUs_.load(std::memory_order_acquire));
             taskMonitorExit_ = false;
         }
     }
@@ -215,13 +216,15 @@ void WorkerMonitor::CheckTaskStatus()
         taskTimeoutInfo_.clear();
         return;
     }
+    UpdateTimeoutUs();
+    uint64_t timeoutUs = timeoutUs_.load(std::memory_order_acquire);
 
     uint64_t now = TimeStampCntvct();
-    uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
+    uint64_t minStart = now - ((timeoutUs - ALLOW_ACC_ERROR_US));
     uint64_t curMinTimeStamp = UINT64_MAX;
 
     for (auto task : activeTask) {
-        uint64_t curTimeStamp = CalculateTaskTimeout(task, minStart);
+        uint64_t curTimeStamp = CalculateTaskTimeout(task, minStart, timeoutUs);
         curMinTimeStamp = curTimeStamp < curMinTimeStamp ? curTimeStamp : curMinTimeStamp;
     }
     for (auto& task : unfree) {
@@ -229,13 +232,13 @@ void WorkerMonitor::CheckTaskStatus()
     }
 
     // 下次检查时间为所有当前任务中的最小状态时间
-    uint64_t nextTimeout = (curMinTimeStamp == UINT64_MAX) ? timeoutUs_ :
-        std::min(timeoutUs_, timeoutUs_ - (now - curMinTimeStamp));
+    uint64_t nextTimeout = (curMinTimeStamp == UINT64_MAX) ? timeoutUs :
+        std::min(timeoutUs, timeoutUs - (now - curMinTimeStamp));
 
     SubmitTaskMonitor(nextTimeout);
 }
 
-uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold)
+uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutThreshold, uint64_t timeoutUs)
 {
     // 主动延时的任务不检测
     if (!task->monitorTimeout_ || isDelayingTask(task)) {
@@ -245,8 +248,8 @@ uint64_t WorkerMonitor::CalculateTaskTimeout(CPUEUTask* task, uint64_t timeoutTh
     uint64_t curTaskTime = task->statusTime.load(std::memory_order_relaxed);
     uint64_t timeoutCount = task->timeoutTask.timeoutCnt;
 
-    if (curTaskTime + timeoutCount * timeoutUs_ < timeoutThreshold) {
-        RecordTimeoutTask(task);
+    if (curTaskTime + timeoutCount * timeoutUs < timeoutThreshold) {
+        RecordTimeoutTask(task, timeoutUs);
         return UINT64_MAX;
     }
     return curTaskTime;
@@ -264,7 +267,7 @@ bool WorkerMonitor::ControlTimeoutFreq(CPUEUTask* task)
  *
  * 日志字段格式示例：label|gid|Qos|delayTime|curTaskStatus|curTime|preTaskStatus|timeoutRatio|timeoutCount
  */
-void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task)
+void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task, uint64_t timeoutUs)
 {
     TaskStatus curTaskStatus = task->curStatus;
     uint64_t curTaskTime = task->statusTime.load(std::memory_order_relaxed);
@@ -299,7 +302,7 @@ void WorkerMonitor::RecordTimeoutTask(CPUEUTask* task)
     }
 
     ss << "|" << StatusToString(preTaskStatus) << "|" <<
-        timeoutUs_ / MIN_TIMEOUT_THRESHOLD_US << "|" << timeoutTskInfo.timeoutCnt;
+        timeoutUs / MIN_TIMEOUT_THRESHOLD_US << "|" << timeoutTskInfo.timeoutCnt;
     FFRT_LOGW("%s", ss.str().c_str());
     return;
 }
@@ -521,5 +524,10 @@ bool WorkerMonitor::SetExitFlagIfNoWorkers(bool& exitFlag)
         }
     }
     return noWorkerThreads;
+}
+
+void WorkerMonitor::UpdateTimeoutUs()
+{
+    timeoutUs_.store(ffrt_task_timeout_get_threshold() * US_PER_MS, std::memory_order_release);
 }
 }

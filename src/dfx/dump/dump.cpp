@@ -54,7 +54,7 @@ struct TimeoutCfg {
         return &inst;
     }
 
-    uint32_t timeout = DEFAULT_TIMEOUT_MS;
+    std::atomic<uint32_t> timeout{DEFAULT_TIMEOUT_MS};
     ffrt_task_timeout_cb callback = nullptr;
 };
 
@@ -206,17 +206,17 @@ void ffrt_task_timeout_set_cb(ffrt_task_timeout_cb cb)
 API_ATTRIBUTE((visibility("default")))
 uint32_t ffrt_task_timeout_get_threshold(void)
 {
-    return ffrt::TimeoutCfg::Instance()->timeout;
+    return ffrt::TimeoutCfg::Instance()->timeout.load(std::memory_order_acquire);
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_timeout_set_threshold(uint32_t threshold_ms)
 {
     if (threshold_ms < ONE_THOUSAND) {
-        ffrt::TimeoutCfg::Instance()->timeout = ONE_THOUSAND;
+        ffrt::TimeoutCfg::Instance()->timeout.store(ONE_THOUSAND, std::memory_order_release);
         return;
     }
-    ffrt::TimeoutCfg::Instance()->timeout = threshold_ms;
+    ffrt::TimeoutCfg::Instance()->timeout.store(threshold_ms, std::memory_order_release);
 }
 #ifdef __cplusplus
 }

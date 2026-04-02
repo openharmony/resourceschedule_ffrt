@@ -283,7 +283,9 @@ FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t time
 
 描述
 
-- 设置任务的调度超时时间，仅针对队列任务生效，当队列任务超过该时间还未调度执行时，打印告警信息。不设置的情况下，默认没有调度超时限制。
+- 设置任务的调度超时时间（以微秒为单位），无默认值。
+- 对于队列/普通CPU任务，设置下限为100毫秒，低于下限将自动设为下限。
+- 若队列或普通CPU任务在超时时间内还未调度执行，且对应任务超时回调已设置，则打印超时信息并触发自定义超时回调，否则仅打印超时信息。
 
 ##### ffrt_task_attr_get_timeout
 
@@ -302,6 +304,41 @@ FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
 描述
 
 - 获取设置的超时时间。
+
+##### ffrt_task_attr_set_timeout_callback
+
+```c
+void ffrt_task_attr_set_timeout_callback(ffrt_task_attr_t* attr, ffrt_function_header_t* f)
+```
+
+参数
+
+- `attr`：任务属性指针。
+- `f`：是任务执行器的指针，描述了该CPU任务如何执行和销毁。
+
+描述
+
+- 设置检测到队列或普通CPU任务调度超时后执行的回调函数。
+- 不建议在`f`中调用`exit`函数，可能导致未定义行为。
+- 任务在`timeout`约定的时间点还未调度执行，ffrt则会调用该`callback`函数， **需要注意的是：`callback`函数执行时，任务可能正在执行或已执行完。**
+
+##### ffrt_task_attr_get_timeout_callback
+
+```c
+ffrt_function_header_t* ffrt_task_attr_get_timeout_callback(const ffrt_task_attr_t* attr)
+```
+
+参数
+
+- `attr`：任务属性指针。
+
+返回值
+
+- 返回任务执行器的指针，描述了该CPU任务如何执行和销毁。
+
+描述
+
+- 获取当前属性中设置的超时回调函数。
 
 #### 样例
 
@@ -1061,7 +1098,9 @@ void ffrt_queue_attr_set_timeout(ffrt_queue_attr_t* attr, uint64_t timeout_us);
 
 描述
 
-- 设置队列的超时时间（以微秒为单位）。
+- 设置队列任务的执行超时时间（以微秒为单位），无默认值。
+- 设置下限为100毫秒，低于下限将自动设置为下限。
+- 若队列任务执行时间超过该限制，且对应队列超时回调已设置，则打印超时信息并触发自定义超时回调，否则仅打印超时信息。
 
 ##### ffrt_queue_attr_get_timeout
 
@@ -1094,9 +1133,9 @@ void ffrt_queue_attr_set_callback(ffrt_queue_attr_t* attr, ffrt_function_header_
 
 描述
 
-- 设置检测到队列任务超时后执行的回调函数。
+- 设置检测到队列任务执行超时后执行的回调函数。
 - 不建议在`f`中调用`exit`函数，可能导致未定义行为。
-- 任务在`timeout`约定时间点未执行完成，ffrt则会调用该`callback`函数，**需要注意的是：`callback`函数执行时，任务可能正在执行或已执行完。**
+- 队列任务在`timeout`约定的时间点还未执行完成，ffrt则会调用该`callback`函数，**需要注意的是：`callback`函数执行时，任务可能正在执行或已执行完。**
 
 ##### ffrt_queue_attr_get_callback
 

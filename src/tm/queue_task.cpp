@@ -44,10 +44,11 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
         qos_ = attr->qos_;
         uptime_ += delay_;
         prio_ = attr->prio_;
-        if (delay_ && attr->timeout_) {
-            FFRT_SYSEVENT_LOGW("task [gid=%llu] not support delay and timeout at the same time, timeout ignored", gid);
-        } else if (attr->timeout_) {
-            schedTimeout_ = std::max(attr->timeout_, MIN_SCHED_TIMEOUT); // min 0.1s
+        schedTimeout_ = attr->timeout_;
+        if (attr->timeoutCb_ != nullptr) {
+            timeoutScheduleCb_ = attr->timeoutCb_;
+            CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutScheduleCb_);
+            cbTask->IncDeleteRef();
         }
     }
 
@@ -57,6 +58,11 @@ QueueTask::QueueTask(QueueHandler* handler, const task_attr_private* attr, bool 
 
 QueueTask::~QueueTask()
 {
+    if (timeoutScheduleCb_ != nullptr) {
+        CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutScheduleCb_);
+        cbTask->DecDeleteRef();
+        timeoutScheduleCb_ = nullptr;
+    }
     FFRT_LOGD("dtor task [gid=%llu]", gid);
 }
 

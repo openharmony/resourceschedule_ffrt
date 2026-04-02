@@ -362,6 +362,8 @@ bool FFRTIsWork()
 void RecordDebugInfo(void)
 {
     auto t = ExecuteCtx::Cur()->task;
+    std::ostringstream oss;
+    int switchCount = 0;
     FFRT_BBOX_LOG("<<<=== ffrt debug log start ===>>>");
 
     if (t != nullptr) {
@@ -374,6 +376,16 @@ void RecordDebugInfo(void)
     } else {
         FFRT_BBOX_LOG("%s", saveKeyStatusInfo().c_str());
     }
+
+    FFRT_BBOX_LOG("<<<=== CoSwitch info ===>>>");
+    for (int i = 0; i < QoS::MaxNum(); i++) {
+        int switchCountTemp = FFRTTraceRecord::g_recordTaskCounter_[ffrt_normal_task][i].CoCounterInSwitch.load();
+        oss << " CoSwitchCounter Info: qos " << i << " Counter " << switchCountTemp << std::endl;
+        switchCount += switchCountTemp;
+    }
+    oss << "Sum CoSwitchCounter is " << switchCount << std::endl;
+    FFRT_BBOX_LOG("%s", oss.str().c_str());
+
     FFRT_BBOX_LOG("<<<=== ffrt debug log finish ===>>>");
 }
 

@@ -518,7 +518,9 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-            FFRTTraceRecord::TaskCoSwitchAdd(task);
+            if (ffrt::GetBetaVersionFlag()) {
+                FFRTTraceRecord::TaskCoSwitchAdd(task);
+            }
             return 0;
         }
         FFRT_WAKE_TRACER(task->gid); // fast path wk
@@ -574,7 +576,9 @@ void CoWake(ffrt::CoTask* task, CoWakeType type)
         TaskNullptrLogPrint();
         return;
     }
-    FFRTTraceRecord::TaskCoSwitchDel(task);
+    if (ffrt::GetBetaVersionFlag()) {
+        FFRTTraceRecord::TaskCoSwitchDel(task);
+    }
     // Fast path: state transition without lock
     task->coWakeType = type;
     FFRT_WAKE_TRACER(task->gid);

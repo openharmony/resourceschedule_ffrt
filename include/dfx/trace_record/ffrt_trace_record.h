@@ -240,7 +240,6 @@ public:
         g_recordTaskCounter_[task->type][task->GetQos()].coSwitchCounter.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
-
     static inline void TaskCoSwitchAdd(TaskBase* task)
     {
         if (task->type == ffrt_normal_task) {

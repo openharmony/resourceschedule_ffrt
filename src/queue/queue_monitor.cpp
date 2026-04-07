@@ -76,8 +76,9 @@ void QueueMonitor::DeregisterQueue(QueueHandler* queue)
 void QueueMonitor::UpdateQueueInfo()
 {
     if (suspendAlarm_.exchange(false)) {
+        UpdateTimeoutUs();
         uint64_t alarmTime = static_cast<uint64_t>(std::chrono::time_point_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now()).time_since_epoch().count()) + timeoutUs_;
+            std::chrono::steady_clock::now()).time_since_epoch().count()) + timeoutUs_.load(std::memory_order_acquire);
         SetAlarm(alarmTime);
     }
 }
@@ -98,26 +99,28 @@ void QueueMonitor::ScheduleAlarm()
     uint64_t nextTaskStart = UINT64_MAX;
     CheckTimeout(nextTaskStart);
     FFRT_LOGD("queue monitor checked, going next");
+    UpdateTimeoutUs();
     // 所有队列都没有任务，暂停定时器
     if (nextTaskStart == UINT64_MAX) {
         suspendAlarm_.exchange(true);
         return;
     }
 
-    SetAlarm(nextTaskStart + timeoutUs_);
+    SetAlarm(nextTaskStart + timeoutUs_.load(std::memory_order_acquire));
 }
 
 void QueueMonitor::CheckTimeout(uint64_t& nextTaskStart)
 {
     // 未来ALLOW_ACC_ERROR_US可能超时的任务，一起上报
+    uint64_t timeoutUs = timeoutUs_.load(std::memory_order_acquire);
     uint64_t now = TimeStampCntvct();
-    uint64_t minStart = now - ((timeoutUs_ - ALLOW_ACC_ERROR_US));
+    uint64_t minStart = now - ((timeoutUs - ALLOW_ACC_ERROR_US));
     std::vector<std::pair<std::pair<std::vector<uint64_t>, uint64_t>, std::stringstream>> curTaskTimeInfoVec;
 
     {
         std::shared_lock lock(infoMutex_);
         for (auto& queueInfo : queuesInfo_) {
-            auto curTaskTimeStamp = queueInfo->EvaluateTaskTimeout(minStart, timeoutUs_,
+            auto curTaskTimeStamp = queueInfo->EvaluateTaskTimeout(minStart, timeoutUs,
             timeoutMSG_);
             curTaskTimeInfoVec.emplace_back(std::make_pair(curTaskTimeStamp, timeoutMSG_.str()));
         }
@@ -174,6 +177,6 @@ std::string QueueMonitor::DumpQueueTimeoutInfo()
 
 void QueueMonitor::UpdateTimeoutUs()
 {
-    timeoutUs_ = ffrt_task_timeout_get_threshold() * US_PER_MS;
+    timeoutUs_.store(ffrt_task_timeout_get_threshold() * US_PER_MS, std::memory_order_release);
 }
 } // namespace ffrt

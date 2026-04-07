@@ -18,10 +18,10 @@
 #include "tm/cpu_task.h"
 
 namespace ffrt {
-    bool IsValidTimeout(uint64_t gid, uint64_t timeout_us);
     void AddTaskToWatchdog(uint64_t gid);
     void RemoveTaskFromWatchdog(uint64_t gid);
-    bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout, uint64_t delay);
-    void RunTimeOutCallback(uint64_t gid, uint64_t timeout);
+    bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout,
+        uint64_t delay, ffrt_function_header_t* timeoutCb = nullptr);
+    void RunTimeOutCallback(uint64_t gid, uint64_t timeout, ffrt_function_header_t* timeoutCb = nullptr);
 }
 #endif /* WATCHDOG_UTIL_H */

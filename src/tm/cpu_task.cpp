@@ -88,6 +88,11 @@ void CPUEUTask::Execute()
     FFRTTraceRecord::TaskExecute(&executeTime);
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     auto exp = ffrt::SkipStatus::SUBMITTED;
+#ifdef FFRT_OH_WATCHDOG_ENABLE
+    if (isWatchdogEnable) {
+        RemoveTaskFromWatchdog(gid);
+    }
+#endif
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
         SetStatus(TaskStatus::EXECUTING);
@@ -139,6 +144,11 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         if (attr->qos_ == qos_inherit && !IsRoot()) {
             qos_ = parent->qos_;
         }
+        if (attr->timeoutCb_ != nullptr) {
+            timeoutCb_ = attr->timeoutCb_;
+            CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutCb_);
+            cbTask->IncDeleteRef();
+        }
 #ifdef FFRT_TASK_LOCAL_ENABLE
         if (attr->taskLocal_) {
             tlsAttr = new TaskLocalAttr;
@@ -167,6 +177,11 @@ CPUEUTask::~CPUEUTask()
     if (in_handles_ != nullptr) {
         delete in_handles_;
         in_handles_ = nullptr;
+    }
+    if (timeoutCb_ != nullptr) {
+        CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutCb_);
+        cbTask->DecDeleteRef();
+        timeoutCb_ = nullptr;
     }
     aliveStatus.store(AliveStatus::RELEASED, std::memory_order_relaxed);
 }

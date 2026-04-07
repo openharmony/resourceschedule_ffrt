@@ -173,6 +173,11 @@ public:
         return blockType;
     }
 
+    inline ffrt_function_header_t *GetTimeoutScheduleCb()
+    {
+        return timeoutScheduleCb_;
+    }
+
 private:
     uint64_t uptime_;
     QueueHandler* handler_;
@@ -189,6 +194,7 @@ private:
     WaitUntilEntry* monitorWe_ = nullptr;
     ffrt::mutex finishMutex_;
     ffrt::condition_variable finishCond_;
+    ffrt_function_header_t* timeoutScheduleCb_ = nullptr;
 };
 } // namespace ffrt
 

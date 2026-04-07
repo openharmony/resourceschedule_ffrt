@@ -24,45 +24,28 @@
 #include "util/ffrt_facade.h"
 #include "util/slab.h"
 namespace {
-constexpr uint64_t VALID_TIMEOUT_MIN = 10000;
-constexpr uint64_t VALID_TIMEOUT_MAX = 30000;
 constexpr uint32_t CONVERT_TIME_UNIT = 1000;
 constexpr int SEND_COUNT_MIN = 1;
 constexpr int SEND_COUNT_MAX = 3;
 }
 
 namespace ffrt {
-    static std::map<uint64_t, int> taskStatusMap;
+    static std::unordered_set<uint64_t> taskStatusSet;
     static std::mutex lock;
-
-
-    bool IsValidTimeout(uint64_t gid, uint64_t timeout_us)
-    {
-        // us convert to ms
-        uint64_t timeout_ms = timeout_us / CONVERT_TIME_UNIT;
-        // 当前有效的并行任务timeout时间范围是10-30s
-        if (timeout_ms >= VALID_TIMEOUT_MIN && timeout_ms <= VALID_TIMEOUT_MAX) {
-            FFRT_LOGD("task gid=%llu with timeout [%llu ms] is valid", gid, timeout_ms);
-            return true;
-        } else if (timeout_ms > 0) {
-            FFRT_LOGD("task gid=%llu with timeout [%llu ms] is invalid", gid, timeout_ms);
-        }
-        return false;
-    }
 
     void AddTaskToWatchdog(uint64_t gid)
     {
         std::lock_guard<decltype(lock)> l(lock);
-        taskStatusMap.insert(std::make_pair(gid, SEND_COUNT_MIN));
+        taskStatusSet.insert(gid);
     }
 
     void RemoveTaskFromWatchdog(uint64_t gid)
     {
         std::lock_guard<decltype(lock)> l(lock);
-        taskStatusMap.erase(gid);
+        taskStatusSet.erase(gid);
     }
 
-    bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout, uint64_t delay)
+    bool SendTimeoutWatchdog(uint64_t gid, uint64_t timeout, uint64_t delay, ffrt_function_header_t* timeoutCb)
     {
 #ifdef FFRT_OH_WATCHDOG_ENABLE
         // us convert to ms
@@ -71,32 +54,19 @@ namespace ffrt {
         auto now = std::chrono::steady_clock::now();
         WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
         // set dealyedworker callback
-        we->cb = ([gid, timeout_ms](WaitEntry* we) {
+        we->cb = ([gid, timeout_ms, timeoutCb](WaitEntry* we) {
             bool taskFinished = true;
             {
                 std::lock_guard<decltype(lock)> l(lock);
-                if (taskStatusMap.count(gid) > 0) {
-                    int sendCount = taskStatusMap[gid];
-                    if (sendCount > SEND_COUNT_MAX) {
-                        FFRT_LOGE("parallel task gid=%llu send watchdog delaywork failed, the count more than %d times",
-                            gid, SEND_COUNT_MAX);
-                        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
-                        return;
-                    }
-                    taskStatusMap[gid] = (++sendCount);
+                if (taskStatusSet.count(gid) > 0) {
                     taskFinished = false;
                 }
             }
 
             if (!taskFinished) {
-                RunTimeOutCallback(gid, timeout_ms);
-                if (!SendTimeoutWatchdog(gid, timeout_ms * CONVERT_TIME_UNIT, 0)) {
-                    FFRT_LOGE("parallel task gid=%llu send next watchdog delaywork failed", gid);
-                    SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
-                    return;
-                };
+                RunTimeOutCallback(gid, timeout_ms, timeoutCb);
             } else {
-                FFRT_LOGI("task gid=%llu has finished", gid);
+                FFRT_LOGI("task gid=%llu has executed", gid);
             }
             SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
         });
@@ -113,7 +83,7 @@ namespace ffrt {
         return true;
     }
 
-    void RunTimeOutCallback(uint64_t gid, uint64_t timeout)
+    void RunTimeOutCallback(uint64_t gid, uint64_t timeout, ffrt_function_header_t* timeoutCb)
     {
 #ifdef FFRT_OH_WATCHDOG_ENABLE
         std::stringstream ss;
@@ -121,13 +91,13 @@ namespace ffrt {
         std::string msg = ss.str();
         FFRT_LOGE("%s", msg.c_str());
 
-        if (ffrt_task_timeout_get_cb()) {
-            FFRTFacade::GetDWInstance().SubmitAsyncTask([gid, msg] {
-                ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
-                if (func) {
-                    func(gid, msg.c_str(), msg.size());
-                }
-                }, {}, {}, task_attr().qos(qos_background).name("TaskTimeoutCb"));
+        if (timeoutCb != nullptr) {
+            CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutCb);
+            cbTask->IncDeleteRef();
+            FFRTFacade::GetDWInstance().SubmitAsyncTask([timeoutCb, cbTask] {
+                timeoutCb->exec(timeoutCb);
+                cbTask->DecDeleteRef();
+            });
         }
 #endif
     }

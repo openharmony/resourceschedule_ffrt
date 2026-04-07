@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 #include <chrono>
 #include <regex>
+#include <climits>
 #include "securec.h"
 #include "ffrt_inner.h"
 #include "dfx/bbox/bbox.h"
@@ -23,6 +24,7 @@
 #define private public
 #include "util/worker_monitor.h"
 #include "eu/loop_poller.h"
+#include "queue/queue_monitor.h"
 #undef private
 #include "c/queue_ext.h"
 #include "../common.h"
@@ -59,6 +61,31 @@ protected:
     }
 };
 
+static inline void stall_us_impl(size_t us)
+{
+    auto start = std::chrono::system_clock::now();
+    size_t passed = 0;
+    while (passed < us) {
+        passed = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - start).count();
+    }
+}
+
+void stall_us(size_t us)
+{
+    stall_us_impl(us);
+}
+
+std::string getSelfExePath()
+{
+    char path[PATH_MAX] = {0};
+    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if (len != -1) {
+        return std::string(path);
+    }
+    return "";
+}
+
 HWTEST_F(DfxTest, tracetest, TestSize.Level0)
 {
     int x = 0;
@@ -71,6 +98,178 @@ HWTEST_F(DfxTest, tracetest, TestSize.Level0)
     ffrt::wait();
     EXPECT_EQ(x, 1);
 }
+
+/*
+* 测试用例名称：FfrtSetTaskTimeoutCallback
+* 测试用例描述：FFRT能正常设置并获取任务超时回调
+* 操作步骤    ：1. 使用ffrt_task_attr_set_timeout_callback/callback(const std::function<void()>& func)接口设置超时回调
+*              2.使用ffrt_task_attr_get_timeout_callback/ callback()获取回调
+*              3. 使用get到的函数指针执行对应函数，校验结果
+*              4.ffrt_task_attr_set_timeout_callback/callback(const std::function<void()>& func)接口重新设置超时回调（对同一个attr）
+*              5.使用ffrt_task_attr_get_timeout_callback/ callback()获取回调
+*              6. 使用get到的函数指针执行对应函数，校验结果
+* 预期结果    ：1、所有校验均成功
+*/
+HWTEST_F(DfxTest, ffrt_set_timeout_callback_test, TestSize.Level0)
+{
+    int x = 0;
+    std::function<void()>&& ScheduleTimeoutCallBack = [&]() {
+        std::cout << "timeout execute!" << std::endl;
+        x++;
+    };
+    ffrt_task_attr_t cAttr;
+    ffrt_task_attr_init(&cAttr);
+    ffrt_task_attr_set_timeout_callback(&cAttr,
+        ffrt::create_function_wrapper(ScheduleTimeoutCallBack, ffrt_function_kind_general));
+    auto cf = ffrt_task_attr_get_timeout_callback(&cAttr);
+    cf->exec(cf);
+    ffrt_task_attr_destroy(&cAttr);
+
+    ffrt::task_attr cppAttr;
+    cppAttr.timeout_callback(ScheduleTimeoutCallBack);
+    auto cppf = cppAttr.timeout_callback();
+    cppf->exec(cppf);
+
+    EXPECT_EQ(x, 2);
+}
+
+HWTEST_F(DfxTest, ffrt_dfx_process_test, TestSize.Level0)
+{
+    printf("Parent process [%d]: starting serial child test\n", getpid());
+    std::vector<std::string> testCases = {
+        "--gtest_filter=DfxTest.water_line_test",
+        "--gtest_filter=DfxTest.ffrt_queue_dfx_timeout",
+        "--gtest_filter=DfxTest.ffrt_worker_dfx_timeout"
+    };
+    bool allSuccess = true;
+    for (const auto& testCase : testCases) {
+        pid_t pid = fork();
+        if (pid < 0) {
+            perror("fork failed");
+            allSuccess = false;
+            continue;
+        }
+        if (pid == 0) {
+            std::string self = getSelfExePath();
+            if (self.empty()) {
+                fprintf(stderr, "Child: failed to get self path\n");
+                _exit(1);
+            }
+            setenv("FFRT_RUN_ONLY_DFX_TEST", "1", 1);
+            printf("Child [%d]: exec to run %s\n", getpid(), testCase.c_str());
+            execl(self.c_str(),
+                    "ffrt_ut",
+                    testCase.c_str(),
+                    static_cast<char*>(nullptr));
+            perror("execl failed");
+            _exit(1);
+        }
+
+        int status;
+        pid_t waited_pid = waitpid(pid, &status, 0);
+        if (waited_pid == -1) {
+            perror("waitpid failed");
+            allSuccess = false;
+            continue;
+        }
+
+        printf("Parent: Child %d (test case: %s) has finished.\n", waited_pid, testCase.c_str());
+        if (WIFEXITED(status)) {
+            int exitCode = WEXITSTATUS(status);
+            printf("Child %d exited with code %d\n", waited_pid, exitCode);
+            if (exitCode != 0) {
+                allSuccess = false;
+            }
+        } else {
+            printf("Child %d terminated abnormally\n", waited_pid);
+            allSuccess = false;
+        }
+    }
+    EXPECT_EQ(true, allSuccess);
+}
+
+/*
+* 用例名称：FftsTaskOverWaterLineBySubmit
+* 用例描述：FFTS资源被submit后维测是否正常
+* 操作步骤：
+*   1.提交10个通路一协程睡眠3s任务；
+*   2.提交FFTS_NORMAL_WORKER_CNT_WATERLINE-10个通路一正常任务，输入依赖为上一个提交的睡眠任务；
+*   3.测试线程睡眠1秒，等待任务全部调度起来
+*   4.校验FFRTTraceRecord::g_recordTaskTime_[ffrt_normal_task][2]中的CoCounterInSwitch是否为10
+*   5.等待所有任务执行结束
+*   6.校验提交任务是否正常执行
+*   7.校验FFRTTraceRecord::g_recordTaskTime_[ffrt_normal_task][2]中的CoCounterInSwitch是否为0
+* 预期结果：校验通过
+*/
+HWTEST_F(DfxTest, water_line_test, TestSize.Level0)
+{
+    if (getenv("FFRT_RUN_ONLY_DFX_TEST") == nullptr) {
+        return;
+    }
+    int switchNum = 10;
+    std::atomic<int> x{0};
+    ffrt::task_handle sleepHandle;
+    for (int i = 0; i < switchNum; i++) {
+        sleepHandle = ffrt::submit_h([]() { ffrt::this_task::sleep_for(std::chrono::seconds(3)); });
+    }
+    ffrt::this_task::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(ffrt::FFRTTraceRecord::g_recordTaskCounter_[0][2].CoCounterInSwitch.load(), switchNum);
+    ffrt::wait();
+    EXPECT_EQ(ffrt::FFRTTraceRecord::g_recordTaskCounter_[0][2].CoCounterInSwitch.load(), 0);
+    _exit(0);
+}
+
+#ifdef FFRT_WORKER_MONITOR
+HWTEST_F(DfxTest, ffrt_queue_dfx_timeout, TestSize.Level0)
+{
+    if (getenv("FFRT_RUN_ONLY_DFX_TEST") == nullptr) {
+        return;
+    }
+    uint32_t timeoutMs = ffrt_task_timeout_get_threshold();
+    EXPECT_EQ(timeoutMs, 30000);
+    ffrt_task_timeout_set_threshold(1500);
+    timeoutMs = ffrt_task_timeout_get_threshold();
+    EXPECT_EQ(timeoutMs, 1500);
+    ffrt::QueueMonitor::GetInstance().suspendAlarm_ = true;
+    ffrt::queue serialQueue = ffrt::queue("FfrtQueueChangeDfxTimeout", {});
+    ffrt::task_handle handle = serialQueue.submit_h([&]() {
+        stall_us(3000 * 1000);
+    });
+    EXPECT_EQ(ffrt::QueueMonitor::GetInstance().timeoutUs_, 1500 * 1000);
+    serialQueue.wait(handle);
+    _exit(0);
+}
+
+/*
+* 测试用例名称：FfrtWorkerChangeDfxTimeout
+* 测试用例描述：运行时改变Worker HivewDfx的超时时间，等待一会后查看超时时间修改是否生效
+* 操作步骤    ：0. 该用例需要fork一个单独的进程
+*              1. 校验ffrt_task_timeout_get_threshold接口返回值是否为30000默认值；
+*              2.使用ffrt_task_timeout_set_threshold接口设置超时时长为1.5s
+*              3.校验ffrt_task_timeout_get_threshold接口返回值是否为1500（1.5s）
+*              4.提交一个通路一自旋3秒的任务
+*              5.校验WorkerMonitor的timeoutUs_变量是否被修改为1500000
+*              6.等待所有任务结束
+* 预期结果    ：1、所有校验均成功
+*/
+HWTEST_F(DfxTest, ffrt_worker_dfx_timeout, TestSize.Level0)
+{
+    if (getenv("FFRT_RUN_ONLY_DFX_TEST") == nullptr) {
+        return;
+    }
+    uint32_t timeoutMs = ffrt_task_timeout_get_threshold();
+    EXPECT_EQ(timeoutMs, 30000);
+    ffrt_task_timeout_set_threshold(1500);
+    timeoutMs = ffrt_task_timeout_get_threshold();
+    EXPECT_EQ(timeoutMs, 1500);
+    ffrt::submit([&]() {
+        stall_us(3000 * 1000);
+    });
+    EXPECT_EQ(ffrt::WorkerMonitor::GetInstance().timeoutUs_, 1500 * 1000);
+    ffrt::wait();
+    _exit(0);
+}
+#endif
 
 static struct sigaction s_oldSa[SIGSYS + 1]; // SIGSYS = 31
 
@@ -196,21 +395,6 @@ HWTEST_F(DfxTest, dfx_bbox_save_record, TestSize.Level0)
     });
     ffrt::wait();
     EXPECT_EQ(x, 1);
-}
-
-static inline void stall_us_impl(size_t us)
-{
-    auto start = std::chrono::system_clock::now();
-    size_t passed = 0;
-    while (passed < us) {
-        passed = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::system_clock::now() - start).count();
-    }
-}
-
-void stall_us(size_t us)
-{
-    stall_us_impl(us);
 }
 
 /*

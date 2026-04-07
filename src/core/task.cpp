@@ -47,8 +47,19 @@
 
 constexpr uint64_t MAX_DELAY_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
 constexpr uint64_t MAX_TIMEOUT_US_COUNT = 1000000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+constexpr uint64_t MIN_TIMEOUT_US_COUNT = 100 * 1000; // 100 ms
 
 namespace ffrt {
+inline void ResetTaskTimeoutCb(ffrt::task_attr_private* p)
+{
+    if (p->timeoutCb_ == nullptr) {
+        return;
+    }
+    CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(p->timeoutCb_);
+    cbTask->DecDeleteRef();
+    p->timeoutCb_ = nullptr;
+}
+
 void OnSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
 {
     FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, DM_OnSubmitUV, DEFAULT_CONFIG);
@@ -148,6 +159,7 @@ void ffrt_task_attr_destroy(ffrt_task_attr_t *attr)
         return;
     }
     auto p = reinterpret_cast<ffrt::task_attr_private *>(attr);
+    ResetTaskTimeoutCb(p);
     p->~task_attr_private();
 }
 
@@ -231,8 +243,8 @@ void ffrt_task_attr_set_timeout(ffrt_task_attr_t *attr, uint64_t timeout_us)
         FFRT_LOGE("attr should be a valid address");
         return;
     }
-    if (timeout_us < ONE_THOUSAND) {
-        (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = ONE_THOUSAND;
+    if (timeout_us < MIN_TIMEOUT_US_COUNT) {
+        (reinterpret_cast<ffrt::task_attr_private *>(attr))->timeout_ = MIN_TIMEOUT_US_COUNT;
         return;
     }
 
@@ -755,6 +767,27 @@ bool ffrt_task_attr_get_group(ffrt_task_attr_t *attr)
         return false;
     }
     return (reinterpret_cast<ffrt::task_attr_private *>(attr))->groupRoot_;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_timeout_callback(ffrt_task_attr_t* attr, ffrt_function_header_t* f)
+{
+    FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
+    FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, f == nullptr");
+    ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private*>(attr);
+    ResetTaskTimeoutCb(p);
+    p->timeoutCb_ = f;
+    // the memory of timeoutCb are managed in the form of CPUEUTask
+    ffrt::CPUEUTask* task = GetCPUTaskByFuncStorageOffset(f);
+    new (task)ffrt::CPUEUTask(nullptr, nullptr, 0);
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_function_header_t* ffrt_task_attr_get_timeout_callback(const ffrt_task_attr_t* attr)
+{
+    FFRT_COND_DO_ERR((attr == nullptr), return nullptr, "input invalid, attr == nullptr");
+    ffrt_task_attr_t* p = const_cast<ffrt_task_attr_t*>(attr);
+    return (reinterpret_cast<ffrt::task_attr_private*>(p))->timeoutCb_;
 }
 #ifdef __cplusplus
 }

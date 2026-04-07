@@ -42,6 +42,10 @@
 #include "c/task.h"
 
 namespace ffrt {
+template<class T>
+inline ffrt_function_header_t* create_function_wrapper(T&& func,
+    ffrt_function_kind_t kind = ffrt_function_kind_general);
+
 /**
  * @class task_attr
  * @brief Represents the attributes of a task, such as its name, QoS level, delay, priority, and timeout.
@@ -213,9 +217,10 @@ public:
     /**
      * @brief Sets the task schedule timeout.
      *
-     * The lower limit of timeout value is 1 ms, if the value is less than 1 ms, it will be set to 1 ms.
+     * For QUEUE/CPU tasks, minimum 100 milliseconds; For values under the lower threshold, set them to the threshold.
      *
      * @param timeout_us task scheduler timeout.
+     * @since 24
      */
     inline task_attr& timeout(uint64_t timeout_us)
     {
@@ -227,10 +232,37 @@ public:
      * @brief Obtains the task schedule timeout.
      *
      * @return The task scheduler timeout.
+     * @since 24
      */
     inline uint64_t timeout() const
     {
         return ffrt_task_attr_get_timeout(this);
+    }
+
+    /**
+     * @brief Sets the timeout callback function for this task attribute.
+     *
+     * @warning Do not call `exit` in `func` - this may cause unexpected behavior.
+     *
+     * @param func Indicates the callback function.
+     * @return Returns the current task_attr object for chaining.
+     * @since 24
+     */
+    inline task_attr& timeout_callback(const std::function<void()>& func)
+    {
+        ffrt_task_attr_set_timeout_callback(this, create_function_wrapper(func, ffrt_function_kind_general));
+        return *this;
+    }
+
+    /**
+     * @brief Gets the timeout callback function of this task attribute.
+     *
+     * @return Returns a pointer to the callback function header.
+     * @since 24
+     */
+    inline ffrt_function_header_t* timeout_callback() const
+    {
+        return ffrt_task_attr_get_timeout_callback(this);
     }
 };
 
@@ -523,7 +555,7 @@ void destroy_function_wrapper(void* t)
  */
 template<class T>
 inline ffrt_function_header_t* create_function_wrapper(T&& func,
-    ffrt_function_kind_t kind = ffrt_function_kind_general)
+    ffrt_function_kind_t kind)
 {
     using function_type = function<std::decay_t<T>>;
     static_assert(sizeof(function_type) <= ffrt_auto_managed_function_storage_size,

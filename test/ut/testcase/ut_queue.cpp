@@ -732,7 +732,7 @@ HWTEST_F(QueueTest, ffrt_get_main_queue, TestSize.Level0)
 HWTEST_F(QueueTest, get_main_queue, TestSize.Level1)
 {
     auto serialQueue = std::make_unique<ffrt::queue>("ffrt_normal_queue");
-    queue* mainQueue = ffrt::queue::get_main_queue();
+    ffrt::queue* mainQueue = ffrt::queue::get_main_queue();
     int result = 0;
     std::function<void()>&& basicFunc = [&result]() {
         OnePlusForTest(static_cast<void*>(&result));
@@ -949,7 +949,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_schedule_timeout111, TestSize.Level0)
             usleep(1100000);
         }, {}, {});
     }
-    auto testQueue = std::make_unique<queue>("test_queue");
+    ffrt::queue* testQueue = new ffrt::queue("test_queue");
 
     auto t = testQueue->submit_h([&x] {
         FFRT_LOGE("task start"); x = x + 1;}, {});
@@ -972,7 +972,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_execute_timeout, TestSize.Level0)
     ffrt_task_timeout_set_threshold(1000);
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
-    auto testQueue = std::make_unique<queue>("test_queue");
+    ffrt::queue* testQueue = new ffrt::queue("test_queue");
     auto t = testQueue->submit_h([&x] { x = x + 1; usleep(2000000); FFRT_LOGE("done");}, {});
     FFRT_LOGE("submitted");
     testQueue->wait(t);
@@ -994,7 +994,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_delay_timeout, TestSize.Level0)
     ffrt_task_timeout_set_threshold(1000);
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
-    auto testQueue = std::make_unique<queue>("test_queue");
+    ffrt::queue* testQueue = new ffrt::queue("test_queue");
     FFRT_LOGE("submit");
     auto t = testQueue->submit_h([&x] { FFRT_LOGE("delay end"); usleep(2100000);
         x = x + 1;}, task_attr().delay(1200000));
@@ -1017,7 +1017,7 @@ HWTEST_F(QueueTest, ffrt_queue_monitor_cancel_timeout, TestSize.Level0)
     ffrt_task_timeout_set_threshold(1000);
     FFRTFacade::GetDMInstance();
     FFRTFacade::GetQMInstance().timeoutUs_ = 1000000;
-    auto testQueue = std::make_unique<queue>("test_queue");
+    ffrt::queue* testQueue = new ffrt::queue("test_queue");
     FFRT_LOGE("submit");
     auto t1 = testQueue->submit_h([&x] { x = x + 1; FFRT_LOGE("start"); });
     auto t2 = testQueue->submit_h([&x] { x = x + 1; FFRT_LOGE("delay start"); }, task_attr().delay(5000000));

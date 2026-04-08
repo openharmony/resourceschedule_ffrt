@@ -33,6 +33,7 @@
 #include "tm/task_factory.h"
 #include "eu/execute_unit.h"
 #include "util/time_format.h"
+#include "util/ffrt_facade.h"
 #include "tm/uv_task.h"
 #include "tm/io_task.h"
 #ifdef OHOS_STANDARD_SYSTEM
@@ -377,14 +378,16 @@ void RecordDebugInfo(void)
         FFRT_BBOX_LOG("%s", saveKeyStatusInfo().c_str());
     }
 
-    FFRT_BBOX_LOG("<<<=== CoSwitch info ===>>>");
-    for (int i = 0; i < QoS::MaxNum(); i++) {
-        int switchCountTemp = FFRTTraceRecord::g_recordTaskCounter_[ffrt_normal_task][i].CoCounterInSwitch.load();
-        oss << " CoSwitchCounter Info: qos " << i << " Counter " << switchCountTemp << std::endl;
-        switchCount += switchCountTemp;
+    if (ffrt::GetBetaVersionFlag()) {
+        FFRT_BBOX_LOG("<<<=== CoSwitch info ===>>>");
+        for (int i = 0; i < QoS::MaxNum(); i++) {
+            int switchCountTemp = FFRTTraceRecord::g_recordTaskCounter_[ffrt_normal_task][i].CoCounterInSwitch.load();
+            oss << " CoSwitchCounter Info: qos " << i << "Counter " << switchCountTemp << std::endl;
+            switchCount += switchCountTemp;
+        }
+        oss << "Sum CoSwitchCounter is " << switchCount << std::endl;
+        FFRT_BBOX_LOG("%s", oss.str().c_str());
     }
-    oss << "Sum CoSwitchCounter is " << switchCount << std::endl;
-    FFRT_BBOX_LOG("%s", oss.str().c_str());
 
     FFRT_BBOX_LOG("<<<=== ffrt debug log finish ===>>>");
 }

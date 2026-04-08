@@ -18,8 +18,9 @@
 #include <atomic>
 #include <chrono>
 #include <map>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <string>
 #include "c/queue.h"
 #include "cpp/condition_variable.h"
 #include "internal_inc/non_copyable.h"

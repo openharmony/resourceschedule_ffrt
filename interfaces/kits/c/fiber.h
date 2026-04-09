@@ -48,12 +48,11 @@
  * @param arg Indicates the argument to be passed to the entry point function.
  * @param stack Indicates the pointer to the memory region to be used as the fiber's stack.
  * @param stack_size Indicates the size of the stack in bytes.
- * @return Returns <b>ffrt_success</b> if the fiber is initialized;
-           returns <b>ffrt_error</b> otherwise.
+ * @return <b>ffrt_success</b> if the fiber is initialized;
+ *         <b>ffrt_error</b> otherwise.
  * @since 20
  */
 FFRT_C_API int ffrt_fiber_init(ffrt_fiber_t* fiber, void(*func)(void*), void* arg, void* stack, size_t stack_size);
-
 
 /**
  * @brief Switch execution context between two fibers.

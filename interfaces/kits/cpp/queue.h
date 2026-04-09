@@ -108,7 +108,7 @@ public:
     /**
      * @brief Gets the QoS level of this queue attribute.
      *
-     * @return Returns the QoS level.
+     * @return The QoS level.
      * @since 10
      */
     inline int qos() const
@@ -122,7 +122,7 @@ public:
      * The lower limit of timeout value is 1 ms, if the value is less than 1 ms, it will be set to 1 ms.
      *
      * @param timeout_us Indicates the timeout value in microseconds.
-     * @return Returns the current queue_attr object for chaining.
+     * @return The current queue_attr object for chaining.
      * @since 10
      */
     inline queue_attr& timeout(uint64_t timeout_us)
@@ -134,7 +134,7 @@ public:
     /**
      * @brief Gets the timeout value of this queue attribute.
      *
-     * @return Returns the timeout value in microseconds.
+     * @return The timeout value in microseconds.
      * @since 10
      */
     inline uint64_t timeout() const
@@ -148,7 +148,7 @@ public:
      * @warning Do not call `exit` in `func` - this may cause unexpected behavior.
      *
      * @param func Indicates the callback function.
-     * @return Returns the current queue_attr object for chaining.
+     * @return The current queue_attr object for chaining.
      * @since 10
      */
     inline queue_attr& callback(const std::function<void()>& func)
@@ -160,7 +160,7 @@ public:
     /**
      * @brief Gets the timeout callback function of this queue attribute.
      *
-     * @return Returns a pointer to the callback function header.
+     * @return A pointer to the callback function header.
      * @since 10
      */
     inline ffrt_function_header_t* callback() const
@@ -172,7 +172,7 @@ public:
      * @brief Sets the maximum concurrency level for this queue attribute.
      *
      * @param max_concurrency Indicates the maximum concurrency level.
-     * @return Returns the current queue_attr object for chaining.
+     * @return The current queue_attr object for chaining.
      * @since 12
      */
     inline queue_attr& max_concurrency(const int max_concurrency)
@@ -184,7 +184,7 @@ public:
     /**
      * @brief Gets the maximum concurrency level of this queue attribute.
      *
-     * @return Returns the maximum concurrency level.
+     * @return The maximum concurrency level.
      * @since 12
      */
     inline int max_concurrency() const
@@ -195,8 +195,8 @@ public:
     /**
      * @brief Sets the mode of this queue attribute.
      *
-     * @param legacy_mode Indicates the queue mode.
-     * @return Returns the current queue_attr object for chaining.
+     * @param mode Indicates the queue mode.
+     * @return The current queue_attr object for chaining.
      * @since 20
      */
     inline queue_attr& thread_mode(bool mode)
@@ -208,7 +208,7 @@ public:
     /**
      * @brief Gets the mode of this queue attribute.
      *
-     * @return Returns the queue mode.
+     * @return The queue mode.
      * @since 20
      */
     inline bool thread_mode() const
@@ -305,8 +305,8 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @return Returns a non-null task handle if the task is submitted;
-     *         returns a null pointer otherwise.
+     * @return A non-null task handle if the task is submitted;
+     *         a null pointer otherwise.
      * @since 10
      */
     inline task_handle submit_h(const std::function<void()>& func, const task_attr& attr = {})
@@ -319,8 +319,8 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @return Returns a non-null task handle if the task is submitted;
-     *         returns a null pointer otherwise.
+     * @return A non-null task handle if the task is submitted;
+     *         a null pointer otherwise.
      * @since 10
      */
     inline task_handle submit_h(std::function<void()>&& func, const task_attr& attr = {})
@@ -356,8 +356,8 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @return Returns a non-null task handle if the task is submitted;
-     *         returns a null pointer otherwise.
+     * @return A non-null task handle if the task is submitted;
+     *         a null pointer otherwise.
      */
     inline task_handle submit_head_h(const std::function<void()>& func, const task_attr& attr = {})
     {
@@ -369,8 +369,8 @@ public:
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
-     * @return Returns a non-null task handle if the task is submitted;
-     *         returns a null pointer otherwise.
+     * @return A non-null task handle if the task is submitted;
+     *         a null pointer otherwise.
      */
     inline task_handle submit_head_h(std::function<void()>&& func, const task_attr& attr = {})
     {
@@ -392,7 +392,7 @@ public:
      * @brief Cancels a task.
      *
      * @param handle Indicates a task handle.
-     * @return Returns 0 if the task is canceled; -1 otherwise.
+     * @return <b>0</b> if the task is canceled; <b>-1</b> otherwise.
      * @since 10
      */
     inline int cancel(const task_handle& handle)
@@ -415,7 +415,7 @@ public:
      * @brief Get queue task count.
      *
      * @param queue Indicates a queue handle.
-     * @return Returns the queue task count.
+     * @return The queue task count.
      */
     inline uint64_t get_task_cnt()
     {
@@ -425,7 +425,7 @@ public:
     /**
      * @brief Get application main thread queue.
      *
-     * @return Returns application main thread queue.
+     * @return The application main thread queue.
      * @since 12
      */
     static inline queue* get_main_queue()

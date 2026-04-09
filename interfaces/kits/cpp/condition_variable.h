@@ -103,7 +103,7 @@ public:
      * @param lk A unique lock on the associated mutex.
      * @param tp The time point when the wait should time out.
      * @param pred The predicate to be satisfied.
-     * @return true if the predicate was satisfied before the timeout, false otherwise.
+     * @return true if the predicate was satisfied before the timeout; false otherwise.
      * @since 10
      */
     template <typename Clock, typename Duration, typename Pred>
@@ -159,7 +159,7 @@ public:
      * @param lk A unique lock on the associated mutex.
      * @param sleepTime The duration to wait for.
      * @param pred The predicate to be satisfied.
-     * @return true if the predicate was satisfied before the timeout, false otherwise.
+     * @return true if the predicate was satisfied before the timeout; false otherwise.
      * @since 10
      */
     template <typename Rep, typename Period, typename Pred>

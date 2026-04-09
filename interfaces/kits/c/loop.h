@@ -51,8 +51,8 @@ typedef void* ffrt_loop_t;
  * @brief Creates a loop.
  *
  * @param queue Indicates a queue.
- * @return Returns a non-null loop handle if the loop is created;
-           returns a null pointer otherwise.
+ * @return A non-null loop handle if the loop is created;
+ *         a null pointer otherwise.
  * @since 12
  */
 FFRT_C_API ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
@@ -61,8 +61,8 @@ FFRT_C_API ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
  * @brief Destroys a loop, the user needs to invoke this interface.
  *
  * @param loop Indicates a loop handle.
- * @return Returns 0 if the loop is destroyed;
-           returns -1 otherwise.
+ * @return <b>0</b> if the loop is destroyed;
+ *         <b>-1</b> otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
@@ -71,8 +71,8 @@ FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
  * @brief Starts a loop run.
  *
  * @param loop Indicates a loop handle.
- * @return Returns -1 if loop run fail;
-           returns 0 otherwise.
+ * @return <b>-1</b> if the loop run fails;
+ *         <b>0</b> otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_loop_run(ffrt_loop_t loop);
@@ -96,8 +96,8 @@ FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
  * @param events Indicates the event type associated with the target file descriptor.
  * @param data Indicates user data used in cb.
  * @param cb Indicates user cb which will be executed when the target fd is polled.
- * @return Returns 0 if success;
-           returns -1 otherwise.
+ * @return <b>0</b> if the operation succeeds;
+ *         <b>-1</b> otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb);
@@ -112,7 +112,7 @@ FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t ev
  * @param data Indicates user data used in cb.
  * @param cb Indicates user cb which will be executed when timeout.
  * @param repeat Indicates whether to repeat this timer.
- * @return Returns a timer handle.
+ * @return The timer handle.
  * @since 12
  */
 FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(
@@ -123,8 +123,8 @@ FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(
  *
  * @param loop Indicates a loop handle.
  * @param handle Indicates the target timer handle.
- * @return Returns 0 if success;
-           returns -1 otherwise.
+ * @return <b>0</b> if the operation succeeds;
+ *         <b>-1</b> otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);

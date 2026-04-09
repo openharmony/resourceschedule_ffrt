@@ -42,8 +42,8 @@
  * @brief Initializes a mutex attribute.
  *
  * @param attr Indicates a pointer to the mutex attribute.
- * @return Returns <b>ffrt_success</b> if the mutex attribute is initialized;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the mutex attribute is initialized;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
@@ -52,10 +52,10 @@ FFRT_C_API int ffrt_mutexattr_init(ffrt_mutexattr_t* attr);
  * @brief Sets the type of a mutex attribute.
  *
  * @param attr Indicates a pointer to the mutex attribute.
- * @param type Indicates a int to the mutex type.
- * @return Returns <b>ffrt_success</b> if the mutex attribute type is set successfully;
-           returns <b>ffrt_error_inval</b> if <b>attr</b> is a null pointer or
-           the mutex attribute type is not <b>ffrt_mutex_normal</b> or <b>ffrt_mutex_recursive</b>.
+ * @param type Indicates an int to the mutex type.
+ * @return <b>ffrt_success</b> if the mutex attribute type is set successfully;
+ *         <b>ffrt_error_inval</b> if attr is a null pointer or
+ *         the mutex attribute type is not ffrt_mutex_normal or ffrt_mutex_recursive.
  * @since 12
  */
 FFRT_C_API int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type);
@@ -65,8 +65,8 @@ FFRT_C_API int ffrt_mutexattr_settype(ffrt_mutexattr_t* attr, int type);
  *
  * @param attr Indicates a pointer to the mutex attribute.
  * @param type Indicates a pointer to the mutex type.
- * @return Returns <b>ffrt_success</b> if the mutex attribute type is get successfully;
-           returns <b>ffrt_error_inval</b> if <b>attr</b> or <b>type</b> is a null pointer.
+ * @return <b>ffrt_success</b> if the mutex attribute type is retrieved successfully;
+ *         <b>ffrt_error_inval</b> if attr or type is a null pointer.
  * @since 12
  */
 FFRT_C_API int ffrt_mutexattr_gettype(ffrt_mutexattr_t* attr, int* type);
@@ -75,8 +75,8 @@ FFRT_C_API int ffrt_mutexattr_gettype(ffrt_mutexattr_t* attr, int* type);
  * @brief Destroys a mutex attribute, the user needs to invoke this interface.
  *
  * @param attr Indicates a pointer to the mutex attribute.
- * @return Returns <b>ffrt_success</b> if the mutex attribute is destroyed;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the mutex attribute is destroyed;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr);
@@ -86,8 +86,8 @@ FFRT_C_API int ffrt_mutexattr_destroy(ffrt_mutexattr_t* attr);
  *
  * @param mutex Indicates a pointer to the mutex.
  * @param attr Indicates a pointer to the mutex attribute.
- * @return Returns <b>ffrt_success</b> if the mutex is initialized;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the mutex is initialized;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr);
@@ -96,8 +96,8 @@ FFRT_C_API int ffrt_mutex_init(ffrt_mutex_t* mutex, const ffrt_mutexattr_t* attr
  * @brief Locks a mutex.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_success</b> if the mutex is locked;
-           returns <b>ffrt_error_inval</b> or blocks the calling thread otherwise.
+ * @return <b>ffrt_success</b> if the mutex is locked;
+ *         <b>ffrt_error_inval</b> or blocks the calling thread otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_mutex_lock(ffrt_mutex_t* mutex);
@@ -106,8 +106,8 @@ FFRT_C_API int ffrt_mutex_lock(ffrt_mutex_t* mutex);
  * @brief Unlocks a mutex.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_success</b> if the mutex is unlocked;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the mutex is unlocked;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_mutex_unlock(ffrt_mutex_t* mutex);
@@ -116,8 +116,8 @@ FFRT_C_API int ffrt_mutex_unlock(ffrt_mutex_t* mutex);
  * @brief Attempts to lock a mutex.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_success</b> if the mutex is locked;
-           returns <b>ffrt_error_inval</b> or <b>ffrt_error_busy</b> otherwise.
+ * @return <b>ffrt_success</b> if the mutex is locked;
+ *         <b>ffrt_error_inval</b> or <b>ffrt_error_busy</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
@@ -126,8 +126,8 @@ FFRT_C_API int ffrt_mutex_trylock(ffrt_mutex_t* mutex);
  * @brief Destroys a mutex, the user needs to invoke this interface.
  *
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_success</b> if the mutex is destroyed;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the mutex is destroyed;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_mutex_destroy(ffrt_mutex_t* mutex);

@@ -44,8 +44,8 @@
  *
  * @param cond Indicates a pointer to the condition variable.
  * @param attr Indicates a pointer to the condition variable attribute.
- * @return Returns <b>ffrt_success</b> if the condition variable is initialized;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the condition variable is initialized;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
@@ -54,8 +54,8 @@ FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
  * @brief Unblocks at least one of the threads that are blocked on a condition variable.
  *
  * @param cond Indicates a pointer to the condition variable.
- * @return Returns <b>ffrt_success</b> if the thread is unblocked;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the thread is unblocked;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
@@ -64,8 +64,8 @@ FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
  * @brief Unblocks all threads currently blocked on a condition variable.
  *
  * @param cond Indicates a pointer to the condition variable.
- * @return Returns <b>ffrt_success</b> if the threads are unblocked;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the threads are unblocked;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
@@ -75,8 +75,8 @@ FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
  *
  * @param cond Indicates a pointer to the condition variable.
  * @param mutex Indicates a pointer to the mutex.
- * @return Returns <b>ffrt_success</b> if the thread is unblocked after being blocked;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the thread is unblocked after being blocked;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
@@ -90,9 +90,9 @@ FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
  * @param cond Indicates a pointer to the condition variable.
  * @param mutex Indicates a pointer to the mutex.
  * @param time_point Indicates the maximum duration that the thread is blocked.
- * @return Returns <b>ffrt_success</b> if the thread is unblocked after being blocked;
-           returns <b>ffrt_error_timedout</b> if the maximum duration reaches;
-           returns <b>ffrt_error_inval</b> if the blocking fails.
+ * @return <b>ffrt_success</b> if the thread is unblocked after being blocked;
+ *         <b>ffrt_error_timedout</b> if the maximum duration reaches;
+ *         <b>ffrt_error_inval</b> if the blocking fails.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct timespec* time_point);
@@ -101,8 +101,8 @@ FFRT_C_API int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const
  * @brief Destroys a condition variable, the user needs to invoke this interface.
  *
  * @param cond Indicates a pointer to the condition variable.
- * @return Returns <b>ffrt_success</b> if the condition variable is destroyed;
-           returns <b>ffrt_error_inval</b> otherwise.
+ * @return <b>ffrt_success</b> if the condition variable is destroyed;
+ *         <b>ffrt_error_inval</b> otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_destroy(ffrt_cond_t* cond);

@@ -151,11 +151,10 @@ FFRT_C_API uint64_t ffrt_task_attr_get_stack_size(const ffrt_task_attr_t* attr);
 /**
  * @brief Sets the schedule timeout of a task attribute.
  *
- * For QUEUE/CPU tasks, minimum 100 milliseconds; For values under the lower threshold, set them to the threshold.
+ * The lower limit of timeout value is 100 ms, if the value is less than 100 ms, it will be set to 100 ms.
  *
  * @param attr Indicates a pointer to the task attribute.
  * @param timeout_us task scheduler timeout.
- * @since 24
  */
 FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t timeout_us);
 
@@ -163,10 +162,25 @@ FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t time
  * @brief Gets the schedule timeout of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return The task schedule timeout.
- * @since 24
+ * @return Returns The task schedule timeout.
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
+
+/**
+ * @brief Sets the timeout callback function of a task attribute.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @param f Indicates the function to execute after scheduling timeout.
+ */
+FFRT_C_API void ffrt_task_attr_set_timeout_callback(ffrt_task_attr_t* attr, ffrt_function_header_t* f);
+
+/**
+ * @brief Gets the timeout callback function of a task attribute.
+ *
+ * @param attr Indicates a pointer to the task attribute.
+ * @return The task scheduling timeout callback function.
+ */
+FFRT_C_API ffrt_function_header_t* ffrt_task_attr_get_timeout_callback(const ffrt_task_attr_t* attr);
 
 /**
  * @brief Updates the QoS of this task.
@@ -328,24 +342,6 @@ FFRT_C_API ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_
  * @return The gid.
  */
 FFRT_C_API uint64_t ffrt_task_handle_get_id(ffrt_task_handle_t handle);
-
-/**
- * @brief Set scheduling timeout callback of a task.
- *
- * @param attr Indicates a pointer to the task attribute.
- * @param f Indicates the function need to be executed after scheduling timeout.
- * @since 24
- */
-FFRT_C_API void ffrt_task_attr_set_timeout_callback(ffrt_task_attr_t* attr, ffrt_function_header_t* f);
-
-/**
- * @brief Get scheduling timeout callback of a task.
- *
- * @param attr Indicates a pointer to the task attribute.
- * @return Returns the function need to be executed after scheduling timeout.
- * @since 24
- */
-FFRT_C_API ffrt_function_header_t* ffrt_task_attr_get_timeout_callback(const ffrt_task_attr_t* attr);
 
 #endif // FFRT_API_C_TASK_H
 /** @} */

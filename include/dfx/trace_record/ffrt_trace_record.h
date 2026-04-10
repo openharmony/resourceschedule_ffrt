@@ -240,11 +240,9 @@ public:
         g_recordTaskCounter_[task->type][task->GetQos()].coSwitchCounter.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
-    static inline void TaskCoSwitchAdd(TaskBase* task)
+    static inline void TaskCoSwitchAdd(int qos)
     {
-        if (task->type == ffrt_normal_task) {
-            g_recordTaskCounter_[task->type][task->GetQos()].CoCounterInSwitch.fetch_add(1, std::memory_order_relaxed);
-        }
+        g_recordTaskCounter_[ffrt_normal_task][qos].CoCounterInSwitch.fetch_add(1, std::memory_order_relaxed);
     }
 
     static inline void TaskCoSwitchDel(TaskBase* task)

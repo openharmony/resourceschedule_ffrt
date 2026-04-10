@@ -268,6 +268,26 @@ uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t *attr)
     return (reinterpret_cast<ffrt::task_attr_private *>(p))->timeout_;
 }
 
+API_ATTRIBUTE((visibility("default")))
+void ffrt_task_attr_set_timeout_callback(ffrt_task_attr_t* attr, ffrt_function_header_t* f)
+{
+    FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
+    FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, f == nullptr");
+    ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private*>(attr);
+    ResetTaskTimeoutCb(p);
+    p->timeoutCb_ = f;
+    // the memory of timeoutCb are managed in the form of CPUEUTask
+    ffrt::CPUEUTask* task = GetCPUTaskByFuncStorageOffset(f);
+    new (task)ffrt::CPUEUTask(nullptr, nullptr, 0);
+}
+
+API_ATTRIBUTE((visibility("default")))
+ffrt_function_header_t* ffrt_task_attr_get_timeout_callback(const ffrt_task_attr_t* attr)
+{
+    FFRT_COND_DO_ERR((attr == nullptr), return nullptr, "input invalid, attr == nullptr");
+    ffrt_task_attr_t* p = const_cast<ffrt_task_attr_t*>(attr);
+    return (reinterpret_cast<ffrt::task_attr_private*>(p))->timeoutCb_;
+}
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_task_attr_set_notify_worker(ffrt_task_attr_t* attr, bool notify)
@@ -767,27 +787,6 @@ bool ffrt_task_attr_get_group(ffrt_task_attr_t *attr)
         return false;
     }
     return (reinterpret_cast<ffrt::task_attr_private *>(attr))->groupRoot_;
-}
-
-API_ATTRIBUTE((visibility("default")))
-void ffrt_task_attr_set_timeout_callback(ffrt_task_attr_t* attr, ffrt_function_header_t* f)
-{
-    FFRT_COND_DO_ERR((attr == nullptr), return, "input invalid, attr == nullptr");
-    FFRT_COND_DO_ERR((f == nullptr), return, "input invalid, f == nullptr");
-    ffrt::task_attr_private* p = reinterpret_cast<ffrt::task_attr_private*>(attr);
-    ResetTaskTimeoutCb(p);
-    p->timeoutCb_ = f;
-    // the memory of timeoutCb are managed in the form of CPUEUTask
-    ffrt::CPUEUTask* task = GetCPUTaskByFuncStorageOffset(f);
-    new (task)ffrt::CPUEUTask(nullptr, nullptr, 0);
-}
-
-API_ATTRIBUTE((visibility("default")))
-ffrt_function_header_t* ffrt_task_attr_get_timeout_callback(const ffrt_task_attr_t* attr)
-{
-    FFRT_COND_DO_ERR((attr == nullptr), return nullptr, "input invalid, attr == nullptr");
-    ffrt_task_attr_t* p = const_cast<ffrt_task_attr_t*>(attr);
-    return (reinterpret_cast<ffrt::task_attr_private*>(p))->timeoutCb_;
 }
 #ifdef __cplusplus
 }

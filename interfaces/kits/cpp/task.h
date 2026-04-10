@@ -42,9 +42,81 @@
 #include "c/task.h"
 
 namespace ffrt {
+
+/**
+ * @struct function
+ * @brief Represents a function wrapper for task execution.
+ *
+ * This template struct is used to wrap a function closure for task execution.
+ *
+ * @tparam T The type of the function closure.
+ * @since 10
+ */
+template<class T>
+struct function {
+    ffrt_function_header_t header;
+    T closure;
+};
+
+/**
+ * @brief Executes a function wrapper.
+ *
+ * This function is used to execute a function wrapper.
+ *
+ * @tparam T The type of the function closure.
+ * @param t A pointer to the function wrapper.
+ * @since 10
+ */
+template<class T>
+void exec_function_wrapper(void* t)
+{
+    auto f = reinterpret_cast<function<std::decay_t<T>>*>(t);
+    f->closure();
+}
+
+/**
+ * @brief Destroys a function wrapper.
+ *
+ * This function is used to destroy a function wrapper.
+ *
+ * @tparam T The type of the function closure.
+ * @param t A pointer to the function wrapper.
+ * @since 10
+ */
+template<class T>
+void destroy_function_wrapper(void* t)
+{
+    auto f = reinterpret_cast<function<std::decay_t<T>>*>(t);
+    f->closure = nullptr;
+}
+
+/**
+ * @brief Creates a function wrapper.
+ *
+ * This function is used to create a function wrapper for task submission.
+ *
+ * @tparam T The type of the function closure.
+ * @param func The function closure.
+ * @param kind The function kind (optional).
+ * @return Returns a pointer to the function wrapper header.
+ * @since 10
+ */
 template<class T>
 inline ffrt_function_header_t* create_function_wrapper(T&& func,
-    ffrt_function_kind_t kind = ffrt_function_kind_general);
+    ffrt_function_kind_t kind = ffrt_function_kind_general)
+{
+    using function_type = function<std::decay_t<T>>;
+    static_assert(sizeof(function_type) <= ffrt_auto_managed_function_storage_size,
+        "size of function must be less than ffrt_auto_managed_function_storage_size");
+
+    auto p = ffrt_alloc_auto_managed_function_storage_base(kind);
+    auto f = new (p)function_type;
+    f->header.exec = exec_function_wrapper<T>;
+    f->header.destroy = destroy_function_wrapper<T>;
+    f->header.reserve[0] = 0;
+    f->closure = std::forward<T>(func);
+    return reinterpret_cast<ffrt_function_header_t*>(f);
+}
 
 /**
  * @class task_attr
@@ -217,10 +289,9 @@ public:
     /**
      * @brief Sets the task schedule timeout.
      *
-     * For QUEUE/CPU tasks, minimum 100 milliseconds; For values under the lower threshold, set them to the threshold.
+     * The lower limit of timeout value is 100 ms, if the value is less than 100 ms, it will be set to 100 ms.
      *
      * @param timeout_us task scheduler timeout.
-     * @since 24
      */
     inline task_attr& timeout(uint64_t timeout_us)
     {
@@ -245,8 +316,7 @@ public:
      * @warning Do not call `exit` in `func` - this may cause unexpected behavior.
      *
      * @param func Indicates the callback function.
-     * @return Returns the current task_attr object for chaining.
-     * @since 24
+     * @return The current task_attr object for chaining.
      */
     inline task_attr& timeout_callback(const std::function<void()>& func)
     {
@@ -257,8 +327,7 @@ public:
     /**
      * @brief Gets the timeout callback function of this task attribute.
      *
-     * @return Returns a pointer to the callback function header.
-     * @since 24
+     * @return A pointer to the callback function header.
      */
     inline ffrt_function_header_t* timeout_callback() const
     {
@@ -494,81 +563,6 @@ struct dependence : ffrt_dependence_t {
         }
     }
 };
-
-/**
- * @struct function
- * @brief Represents a function wrapper for task execution.
- *
- * This template struct is used to wrap a function closure for task execution.
- *
- * @tparam T The type of the function closure.
- * @since 10
- */
-template<class T>
-struct function {
-    ffrt_function_header_t header;
-    T closure;
-};
-
-/**
- * @brief Executes a function wrapper.
- *
- * This function is used to execute a function wrapper.
- *
- * @tparam T The type of the function closure.
- * @param t A pointer to the function wrapper.
- * @since 10
- */
-template<class T>
-void exec_function_wrapper(void* t)
-{
-    auto f = reinterpret_cast<function<std::decay_t<T>>*>(t);
-    f->closure();
-}
-
-/**
- * @brief Destroys a function wrapper.
- *
- * This function is used to destroy a function wrapper.
- *
- * @tparam T The type of the function closure.
- * @param t A pointer to the function wrapper.
- * @since 10
- */
-template<class T>
-void destroy_function_wrapper(void* t)
-{
-    auto f = reinterpret_cast<function<std::decay_t<T>>*>(t);
-    f->closure = nullptr;
-}
-
-/**
- * @brief Creates a function wrapper.
- *
- * This function is used to create a function wrapper for task submission.
- *
- * @tparam T The type of the function closure.
- * @param func The function closure.
- * @param kind The function kind (optional).
- * @return A pointer to the function wrapper header.
- * @since 10
- */
-template<class T>
-inline ffrt_function_header_t* create_function_wrapper(T&& func,
-    ffrt_function_kind_t kind)
-{
-    using function_type = function<std::decay_t<T>>;
-    static_assert(sizeof(function_type) <= ffrt_auto_managed_function_storage_size,
-        "size of function must be less than ffrt_auto_managed_function_storage_size");
-
-    auto p = ffrt_alloc_auto_managed_function_storage_base(kind);
-    auto f = new (p)function_type;
-    f->header.exec = exec_function_wrapper<T>;
-    f->header.destroy = destroy_function_wrapper<T>;
-    f->header.reserve[0] = 0;
-    f->closure = std::forward<T>(func);
-    return reinterpret_cast<ffrt_function_header_t*>(f);
-}
 
 /**
  * @brief Submits a task without input and output dependencies.

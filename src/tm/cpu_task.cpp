@@ -71,6 +71,9 @@ void CPUEUTask::FreeMem()
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
 #endif
+#ifdef FFRT_ASYNC_STACKTRACE
+    FFRTReleaseStackId(stackId);
+#endif
     auto f = reinterpret_cast<ffrt_function_header_t*>(func_storage);
     if ((f->reserve[0] & MASK_FOR_HCS_TASK) != MASK_FOR_HCS_TASK) {
         TaskFactory<CPUEUTask>::Free(this);

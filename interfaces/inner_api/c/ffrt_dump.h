@@ -73,4 +73,5 @@ FFRT_C_API uint32_t ffrt_task_timeout_get_threshold(void);
  */
 FFRT_C_API void ffrt_task_timeout_set_threshold(uint32_t threshold_ms);
 FFRT_C_API void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc);
+FFRT_C_API void FFRTSetAsyncStackReleaseFunc(SetStackIdFunc releaseFunc);
 #endif /* FFRT_API_C_FFRT_DUMP_H */

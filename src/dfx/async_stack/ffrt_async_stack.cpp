@@ -25,6 +25,7 @@
 namespace {
     CollectAsyncStackFunc g_collectAsyncStackFunc = nullptr;
     SetStackIdFunc g_setStackIdFunc = nullptr;
+    SetStackIdFunc g_releaseStackIdFunc = nullptr;
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -36,6 +37,16 @@ void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStack
 
     g_collectAsyncStackFunc = collectAsyncStackFunc;
     g_setStackIdFunc = setStackIdFunc;
+}
+
+API_ATTRIBUTE((visibility("default")))
+void FFRTSetAsyncStackReleaseFunc(SetStackIdFunc releaseFunc)
+{
+    if (!ffrt::GetBetaVersionFlag()) {
+        return;
+    }
+
+    g_releaseStackIdFunc = releaseFunc;
 }
 
 namespace ffrt {
@@ -52,7 +63,15 @@ void FFRTSetStackId(uint64_t stackId)
 {
     auto func = g_setStackIdFunc;
     if (func != nullptr) {
-        return func(stackId);
+        func(stackId);
+    }
+}
+
+void FFRTReleaseStackId(uint64_t stackId)
+{
+    auto func = g_releaseStackIdFunc;
+    if (func != nullptr) {
+        func(stackId);
     }
 }
 }

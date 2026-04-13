@@ -98,7 +98,7 @@ void destroy_function_wrapper(void* t)
  * @tparam T The type of the function closure.
  * @param func The function closure.
  * @param kind The function kind (optional).
- * @return Returns a pointer to the function wrapper header.
+ * @return A pointer to the function wrapper header.
  * @since 10
  */
 template<class T>

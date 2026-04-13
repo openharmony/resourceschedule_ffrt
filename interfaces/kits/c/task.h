@@ -162,7 +162,7 @@ FFRT_C_API void ffrt_task_attr_set_timeout(ffrt_task_attr_t* attr, uint64_t time
  * @brief Gets the schedule timeout of a task attribute.
  *
  * @param attr Indicates a pointer to the task attribute.
- * @return Returns The task schedule timeout.
+ * @return The task schedule timeout.
  */
 FFRT_C_API uint64_t ffrt_task_attr_get_timeout(const ffrt_task_attr_t* attr);
 

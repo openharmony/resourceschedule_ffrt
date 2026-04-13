@@ -456,8 +456,10 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         return -1;
     }
     auto co = task->coRoutine;
+    auto taskQos = task->GetQos();
+    auto taskType = task->type;
 
-    FFRTTraceRecord::TaskRun(task->GetQos(), task);
+    FFRTTraceRecord::TaskRun(taskQos, task);
     for (;;) {
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef FFRT_ASYNC_STACKTRACE
@@ -518,8 +520,8 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-            if (ffrt::GetBetaVersionFlag()) {
-                FFRTTraceRecord::TaskCoSwitchAdd(task);
+            if (ffrt::GetBetaVersionFlag() && taskType == ffrt_normal_task) {
+                FFRTTraceRecord::TaskCoSwitchAdd(taskQos);
             }
             return 0;
         }

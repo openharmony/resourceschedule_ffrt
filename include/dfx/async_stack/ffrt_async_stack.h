@@ -21,5 +21,6 @@ constexpr uint64_t ASYNC_TYPE_FFRT_QUEUE = (1 << 9);
 namespace ffrt {
     uint64_t FFRTCollectAsyncStack(uint64_t taskType);
     void FFRTSetStackId(uint64_t stackId);
+    void FFRTReleaseStackId(uint64_t stackId);
 }
 #endif /* FFRT_DFX_ASYNC_STACK_H */

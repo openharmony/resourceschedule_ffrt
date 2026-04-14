@@ -106,6 +106,9 @@ void QueueTask::FreeMem()
     if (pollerEnable) {
         FFRTFacade::GetPPInstance().ClearCachedEvents(this);
     }
+#ifdef FFRT_ASYNC_STACKTRACE
+    FFRTReleaseStackId(stackId);
+#endif
     TaskFactory<QueueTask>::Free(this);
 }
 

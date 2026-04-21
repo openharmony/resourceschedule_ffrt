@@ -303,7 +303,6 @@ public:
      * @brief Obtains the task schedule timeout.
      *
      * @return The task scheduler timeout.
-     * @since 24
      */
     inline uint64_t timeout() const
     {

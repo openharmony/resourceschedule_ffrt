@@ -42,7 +42,6 @@
 #include "c/task.h"
 
 namespace ffrt {
-
 /**
  * @struct function
  * @brief Represents a function wrapper for task execution.

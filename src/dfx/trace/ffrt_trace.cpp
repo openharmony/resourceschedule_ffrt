@@ -21,6 +21,7 @@
 #include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
+#ifdef FFRT_ENABLE_PERF_TRACE_SCOPED
 static const std::string moduleList[MODULE_MAX] = {
     "PerfTraceScopedCustom",
     "PerfTraceScopedEu",
@@ -148,7 +149,7 @@ void PerfTraceScoped::PerfInit(const std::vector<PerfEventConfig>& configs)
     ioctl(status_.groupFd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
     ioctl(status_.groupFd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
 }
-
+#endif
 TraceLevelManager::TraceLevelManager()
 {
     traceLevel_ = FFRT_TRACE_LEVEL;

@@ -58,7 +58,7 @@ static void spin()
 #if defined(__x86_64__)
     asm volatile("pause");
 #elif defined(__aarch64__)
-    asm volatile("isb sy");
+    asm volatile("yield" ::: "memory");
 #elif defined(__arm__)
     asm volatile("yield");
 #endif

@@ -18,13 +18,10 @@
 #include "util/ffrt_facade.h"
 
 namespace ffrt {
-Scheduler* Scheduler::Instance()
+void Scheduler::CreateInstance()
 {
-    if unlikely(schedulerIns_ == nullptr) {
-        static Scheduler instance;
-        schedulerIns_ = &instance;
-    }
-    return schedulerIns_;
+    static Scheduler instance;
+    schedulerIns_ = &instance;
 }
 
 bool Scheduler::CancelUVWork(ffrt_executor_task_t* uvWork, int qos)

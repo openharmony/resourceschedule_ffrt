@@ -42,7 +42,13 @@ public:
     }
 
     // 获取调度器的单例
-    static Scheduler* Instance();
+    static inline Scheduler* Instance()
+    {
+        if unlikely(schedulerIns_ == nullptr) {
+            CreateInstance();
+        }
+        return schedulerIns_;
+    }
     static inline Scheduler* schedulerIns_ = nullptr;
 
     inline TaskScheduler& GetScheduler(const QoS& qos)
@@ -102,6 +108,7 @@ private:
             GetScheduler(i).SetQos(qos);
         }
     }
+    static FFRT_NOINLINE void CreateInstance();
 };
 } // namespace ffrt
 #endif

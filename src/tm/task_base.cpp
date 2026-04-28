@@ -49,7 +49,7 @@ void ExecuteTask(TaskBase* task)
     } else {
     // run task on thread
 #ifdef FFRT_ASYNC_STACKTRACE
-        if (isCoTask && GetBetaVersionFlag()) {
+        if (isCoTask) {
             FFRTSetStackId(task->stackId);
         }
 #endif

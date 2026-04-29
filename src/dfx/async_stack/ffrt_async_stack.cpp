@@ -31,10 +31,6 @@ namespace {
 API_ATTRIBUTE((visibility("default")))
 void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStackIdFunc setStackIdFunc)
 {
-    if (!ffrt::GetBetaVersionFlag()) {
-        return;
-    }
-
     g_collectAsyncStackFunc = collectAsyncStackFunc;
     g_setStackIdFunc = setStackIdFunc;
 }
@@ -42,10 +38,6 @@ void FFRTSetAsyncStackFunc(CollectAsyncStackFunc collectAsyncStackFunc, SetStack
 API_ATTRIBUTE((visibility("default")))
 void FFRTSetAsyncStackReleaseFunc(SetStackIdFunc releaseFunc)
 {
-    if (!ffrt::GetBetaVersionFlag()) {
-        return;
-    }
-
     g_releaseStackIdFunc = releaseFunc;
 }
 

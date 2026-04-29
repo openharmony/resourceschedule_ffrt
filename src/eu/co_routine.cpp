@@ -463,9 +463,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
     for (;;) {
         ffrt::TaskLoadTracking::Begin(task);
 #ifdef FFRT_ASYNC_STACKTRACE
-        if (GetBetaVersionFlag()) {
-            FFRTSetStackId(task->stackId);
-        }
+        FFRTSetStackId(task->stackId);
 #endif
         FFRT_TASK_BEGIN(task->label, task->gid);
         CoSwitchInTransaction(task);

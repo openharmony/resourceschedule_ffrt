@@ -97,9 +97,7 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
     FFRT_SUBMIT_MARKER(task->gid);
 #ifdef FFRT_ASYNC_STACKTRACE
     {
-        if (GetBetaVersionFlag()) {
-            task->stackId = FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_POOL);
-        }
+        task->stackId = FFRTCollectAsyncStack(ASYNC_TYPE_FFRT_POOL);
     }
 #endif
     QoS qos = (attr == nullptr ? QoS() : QoS(attr->qos_));

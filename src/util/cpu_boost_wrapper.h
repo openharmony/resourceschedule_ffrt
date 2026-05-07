@@ -23,4 +23,6 @@ int CpuBoostSave(int ctxId);
 
 int CpuBoostRestore(int ctxId);
 
+int CpuBoostDestroy(int ctxId);
+
 #endif

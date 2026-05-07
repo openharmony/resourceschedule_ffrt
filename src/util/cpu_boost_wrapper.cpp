@@ -23,6 +23,7 @@ int cpu_boost_start(int ctx_id);
 int cpu_boost_end(int ctx_id);
 int cpu_boost_save(int ctx_id);
 int cpu_boost_restore(int ctx_id);
+int cpu_boost_destroy(int ctx_id);
 constexpr const char* CPU_BOOST_LIB_PATH = "lib_cpuboost.so";
 class CPUBoostAdapter {
 public:
@@ -47,6 +48,7 @@ public:
     REG_FUNC(cpu_boost_end);
     REG_FUNC(cpu_boost_save);
     REG_FUNC(cpu_boost_restore);
+    REG_FUNC(cpu_boost_destroy);
 #undef REG_FUNC
 
 private:
@@ -74,6 +76,7 @@ private:
             LOAD_FUNC(cpu_boost_end);
             LOAD_FUNC(cpu_boost_save);
             LOAD_FUNC(cpu_boost_restore);
+            LOAD_FUNC(cpu_boost_destroy);
 #undef LOAD_FUNC
         return loadFlag;
     }
@@ -127,5 +130,12 @@ int CpuBoostRestore(int ctxId)
 {
     int ret = 0;
     EXECUTE_CPU_BOOST_FUNC(cpu_boost_restore, ctxId, ret);
+    return ret;
+}
+
+int CpuBoostDestroy(int ctxId)
+{
+    int ret = 0;
+    EXECUTE_CPU_BOOST_FUNC(cpu_boost_destroy, ctxId, ret);
     return ret;
 }

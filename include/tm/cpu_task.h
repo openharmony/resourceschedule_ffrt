@@ -141,7 +141,7 @@ public:
         return blockType;
     }
 
-    virtual void Finish() override
+    void Finish() override
     {
         // Empty implementation, only support class instantiation to manage timeout callback reference counting
     }

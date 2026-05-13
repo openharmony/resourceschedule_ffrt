@@ -19,7 +19,6 @@
 | FFRT_EXAMPLE       | 在 CMakeList 中用于控制是否编译 ffrt examples                                                                                                                   |
 | FFRT_BENCHMARKS    | 在 CMakeList 中用于控制是否编译 ffrt benchmarks                                                                                                                 |
 | FFRT_TEST_ENABLE   | 在 CMakeList 中用于控制是否编译 ffrt unittest cases                                                                                                             |
-| FFRT_CLANG_COMPILE | 在 CMakeList 中用于控制是否使用 clang 编译                                                                                                                      |
 | FFRT_SANITIZE      | 在 CMakeList 中用于控制是否开启 sanitizer 检测                                                                                                                  |
 | FFRT_BBOX_ENABLE   | 在 CMakeList 中用于控制是否开启 FFRT 黑匣子，用于记录发生 crash 时 FFRT 线程、协程的状态                                                                        |
 | FFRT_LOG_LEVEL     | 在 CMakeList&BUILD.gn 中用于动态设置 FFRT 默认日志级别，支持 0-3，依次为 ERROR，WARN，INFO，DEBUG，例如需要打开 DEBUG 及以上级别的日志，设置 `FFRT_LOG_LEVEL=3` |
@@ -39,10 +38,25 @@ ffrt 代码根目录下的 CMakeList
 使用 CMake 编译：
 
 ```shell
-mkdir -p build
-cd build && cmake .. -DFFRT_EXAMPLE=ON
-cmake --build . -j                      # add `-j` for parallel compilation
-./examples/ffrt_submit                  # run some ffrt examples
+cmake -B build -DFFRT_EXAMPLE=ON
+cmake --build build -j                  # add `-j` for parallel compilation
+./build/examples/ffrt_submit            # run some ffrt examples
+```
+
+可以通过标准的 CMake 变量或系统环境变量来指定使用 Clang 或特定版本的 GCC 进行编译：
+
+```shell
+# 方式一：使用 CMake 变量指定 Clang 编译器
+cmake -B build -DCMAKE_C_COMPILER=clang-15 -DCMAKE_CXX_COMPILER=clang++-15
+
+# 方式二：使用环境变量指定 Clang 编译器
+CC=clang-15 CXX=clang++-15 cmake -B build
+
+# 方式三：使用 CMake 变量指定特定版本的 GCC
+cmake -B build -DCMAKE_C_COMPILER=gcc-13 -DCMAKE_CXX_COMPILER=g++-13
+
+# 方式四：使用环境变量指定特定版本的 GCC
+CC=gcc-13 CXX=g++-13 cmake -B build
 ```
 
 或者直接使用代码仓中的 shell 脚本：

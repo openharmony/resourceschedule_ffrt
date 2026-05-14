@@ -25,14 +25,9 @@
 #include <sys/syscall.h>
 #include <linux/futex.h>
 #include "sched/execute_ctx.h"
+#include "cpp/fast_mutex.h"
 
 namespace ffrt {
-namespace sync_detail {
-const int UNLOCK = 0;
-const int LOCK = 1;
-const int WAIT = 2;
-} // namespace sync_detail
-
 class spin_mutex {
     std::atomic<int> l;
     void lock_contended();
@@ -55,40 +50,6 @@ public:
     void unlock()
     {
         l.store(sync_detail::UNLOCK, std::memory_order_release);
-    }
-};
-
-class fast_mutex {
-    int l;
-    void lock_contended();
-
-public:
-    fast_mutex() : l(sync_detail::UNLOCK)
-    {
-    }
-    fast_mutex(fast_mutex const&) = delete;
-    void operator=(fast_mutex const&) = delete;
-
-    void lock()
-    {
-        int v = sync_detail::UNLOCK;
-        if (__atomic_compare_exchange_n(&l, &v, sync_detail::LOCK, 0, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
-            return;
-        }
-        lock_contended();
-    }
-
-    bool try_lock()
-    {
-        int v = sync_detail::UNLOCK;
-        return __atomic_compare_exchange_n(&l, &v, sync_detail::LOCK, 0, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED);
-    }
-
-    void unlock()
-    {
-        if (__atomic_exchange_n(&l, sync_detail::UNLOCK, __ATOMIC_RELEASE) == sync_detail::WAIT) {
-            syscall(SYS_futex, &l, FUTEX_WAKE_PRIVATE, 1, nullptr, nullptr, 0);
-        }
     }
 };
 

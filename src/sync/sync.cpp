@@ -52,43 +52,4 @@ void spin_mutex::lock_contended()
         }
     } while (!l.compare_exchange_weak(v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed));
 }
-
-static void spin()
-{
-#if defined(__x86_64__)
-    asm volatile("pause");
-#elif defined(__aarch64__)
-    asm volatile("yield" ::: "memory");
-#elif defined(__arm__)
-    asm volatile("yield");
-#endif
-}
-
-void fast_mutex::lock_contended()
-{
-    int v = 0;
-    // lightly contended
-    for (uint32_t n = static_cast<uint32_t>(1 + rand() % 4); n <= 64; n <<= 1) {
-        for (uint32_t i = 0; i < n; ++i) {
-            spin();
-        }
-        v = __atomic_load_n(&l, __ATOMIC_RELAXED);
-        if (v == sync_detail::WAIT) {
-            break;
-        }
-        if (v == sync_detail::UNLOCK) {
-            if (__atomic_compare_exchange_n(&l, &v, sync_detail::LOCK, 0, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
-                return;
-            }
-            break;
-        }
-    }
-    // heavily contended
-    if (v == sync_detail::WAIT) {
-        syscall(SYS_futex, &l, FUTEX_WAIT_PRIVATE, sync_detail::WAIT, nullptr, nullptr, 0);
-    }
-    while (__atomic_exchange_n(&l, sync_detail::WAIT, __ATOMIC_ACQUIRE) != sync_detail::UNLOCK) {
-        syscall(SYS_futex, &l, FUTEX_WAIT_PRIVATE, sync_detail::WAIT, nullptr, nullptr, 0);
-    }
-}
 } // namespace ffrt

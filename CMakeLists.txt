@@ -11,34 +11,27 @@
 # CMake version
 cmake_minimum_required (VERSION 3.10)
 
+# Project name
+project(ffrt)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # build options
 option(FFRT_BBOX_ENABLE "Enables ffrt black box" ON)
 option(FFRT_EXAMPLE "Enables ffrt examples compile" ON)
 option(FFRT_BENCHMARKS "Enables ffrt Benchmarks" OFF)
 option(FFRT_TEST_ENABLE "Enables ffrt test" OFF)
-option(FFRT_CLANG_COMPILE "use clang/clang++ for compiling" OFF)
 option(FFRT_SANITIZE "enable address or thread sanitizer" OFF)
 option(FFRT_USE_COROUTINE "Use coroutine mode" ON)
 
-# set compiler clang or gcc, must before project(ffrt)
-if(FFRT_CLANG_COMPILE STREQUAL ON)
-  set(CMAKE_C_COMPILER clang)
-  set(CMAKE_CXX_COMPILER clang++)
-else()
-  set(CMAKE_C_COMPILER gcc)
-  set(CMAKE_CXX_COMPILER g++)
-endif()
-
-# Project name
-project(ffrt)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-#cmake build type settings,release or debug
+# cmake build type settings, release or debug
 if(CMAKE_BUILD_TYPE STREQUAL Release)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFFRT_RELEASE -DFFRT_LOG_LEVEL=0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -DFFRT_RELEASE -DFFRT_LOG_LEVEL=0")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFFRT_LOG_LEVEL=3")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DFFRT_LOG_LEVEL=3")
 endif()
 
 # project-specific variables
@@ -72,12 +65,7 @@ elseif(FFRT_SANITIZE STREQUAL thread)
 endif()
 
 if(FFRT_UT_ENABLE STREQUAL OFF AND FFRT_ST_ENABLE STREQUAL OFF)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
-endif()
-if(CMAKE_BUILD_TYPE STREQUAL Release)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O2 -fPIC")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g -O0 -fPIC")
+  set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 endif()
 
 # add the binary tree to the search path for include files
@@ -89,12 +77,12 @@ include_directories(${FFRT_CODE_PATH})
 include_directories(${TRACE_PATH})
 include_directories(${QOS_PATH})
 
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
 message(STATUS "FFRT_BBOX_ENABLE: " ${FFRT_BBOX_ENABLE})
 message(STATUS "FFRT_EXAMPLE: " ${FFRT_EXAMPLE})
 message(STATUS "FFRT_BENCHMARKS: " ${FFRT_BENCHMARKS})
 message(STATUS "FFRT_TEST_ENABLE: " ${FFRT_TEST_ENABLE})
-message(STATUS "FFRT_CLANG_COMPILE: " ${FFRT_CLANG_COMPILE})
 message(STATUS "FFRT_SANITIZE: " ${FFRT_SANITIZE})
 
 # PR_SET_VMA

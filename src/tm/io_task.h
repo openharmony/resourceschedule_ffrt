@@ -33,7 +33,8 @@ public:
         QoS taskQos = qos_;
         FFRTTraceRecord::TaskSubmit<ffrt_io_task>(taskQos);
         SetStatus(TaskStatus::READY);
-        FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushTaskGlobal(this, false);
+
+        FFRTFacade::GetSchedInstance()->PushTask(this, false);
         FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(taskQos);
         FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_LOCAL>(taskQos);
     }

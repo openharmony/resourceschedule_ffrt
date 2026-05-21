@@ -49,12 +49,6 @@ enum class WorkerAction {
     MAX,
 };
 
-enum class WorkerStatus {
-    EXECUTING = 0,
-    SLEEPING,
-    DESTROYED,
-};
-
 class CPUWorker;
 struct CpuWorkerOps {
     std::function<WorkerAction (CPUWorker*)> WorkerIdleAction;
@@ -67,6 +61,8 @@ struct CpuWorkerOps {
 
 class CPUWorker {
 public:
+    CPUWorker() = default;
+
     explicit CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize);
     ~CPUWorker();
 
@@ -87,19 +83,19 @@ public:
         return tid;
     }
 
+    void SetId(pid_t id)
+    {
+        tid = id;
+    }
+
     const QoS& GetQos() const
     {
         return qos;
     }
 
-    const WorkerStatus& GetWorkerState() const
+    void SetQos(const QoS& newQos)
     {
-        return state;
-    }
-
-    void SetWorkerState(const WorkerStatus& newState)
-    {
-        this->state = newState;
+        this->qos = newQos;
     }
 
     void SetWorkerMonitorStatus(bool monitor)
@@ -202,6 +198,15 @@ public:
     uint64_t curTaskGid_ = UINT64_MAX;
     unsigned int tick = 0;
 
+protected:
+    QoS qos;
+#ifdef FFRT_PTHREAD_ENABLE
+    pthread_t thread_{0};
+    pthread_attr_t attr_;
+#else
+    std::thread thread;
+#endif
+
 private:
 #ifdef FFRT_PTHREAD_ENABLE
     void SetThreadInitPri();
@@ -221,16 +226,9 @@ private:
 #endif
     std::atomic_bool exited {false};
     std::atomic<pid_t> tid {-1};
-    QoS qos;
+
     CpuWorkerOps ops;
-    WorkerStatus state {WorkerStatus::EXECUTING};
     bool monitor_ = true;
-#ifdef FFRT_PTHREAD_ENABLE
-    pthread_t thread_{0};
-    pthread_attr_t attr_;
-#else
-    std::thread thread;
-#endif
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     unsigned int domain_id;
 #endif

@@ -89,11 +89,8 @@ void ffrt_wake_coroutine(void* task)
     ffrt::TaskBase* wakedTask = static_cast<ffrt::TaskBase*>(task);
     wakedTask->SetStatus(ffrt::TaskStatus::READY);
     int qos = wakedTask->qos_;
-    ffrt::FFRTFacade::GetSchedInstance()->GetScheduler(wakedTask->qos_).PushTaskGlobal(wakedTask, false);
-    if (ffrt::FFRTFacade::GetSchedInstance()->GetTaskSchedMode(qos)
-        == ffrt::TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
-        ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(qos);
-    }
+    ffrt::FFRTFacade::GetSchedInstance()->PushTask(wakedTask, false);
+    ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(qos);
 }
 #ifdef __cplusplus
 }

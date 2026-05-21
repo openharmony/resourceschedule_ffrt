@@ -21,9 +21,9 @@ constexpr int TASK_OVERRUN_ALARM_FREQ = 500;
 }
 
 namespace ffrt {
-bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
+bool STaskScheduler::PushTask(TaskBase* task, bool rtb)
 {
-    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SCHED, STaskScheduler_PushTaskGlobal, DEFAULT_CONFIG);
+    FFRT_PERF_TRACE_SCOPED_BY_GROUP(SCHED, STaskScheduler_PushTask, DEFAULT_CONFIG);
     (void)rtb; // rtb is deprecated here
     FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
 
@@ -48,37 +48,5 @@ bool STaskScheduler::PushTaskGlobal(TaskBase* task, bool rtb)
     }
 
     return taskCount == 1; // whether it's rising edge
-}
-
-TaskBase* STaskScheduler::PopTaskHybridProcess()
-{
-    TaskBase *task = PopTaskGlobal();
-    if (task == nullptr) {
-        return nullptr;
-    }
-    int wakedWorkerNum = FFRTFacade::GetEUInstance().GetWorkerGroup(qos).executingNum;
-    // when there is only one worker, the global queue is equivalent to the local queue
-    // prevents local queue tasks that cannot be executed due to blocking tasks
-    if (wakedWorkerNum <= 1) {
-        return task;
-    }
-
-    SpmcQueue *queue = GetLocalQueue();
-    int expectedTask = GetGlobalTaskCnt() / wakedWorkerNum - 1;
-    for (int i = 0; i < expectedTask; i++) {
-        if (queue->GetLength() == queue->GetCapacity()) {
-            return task;
-        }
-
-        TaskBase *task2local = PopTaskGlobal();
-        if (task2local == nullptr) {
-            return task;
-        }
-        queue->PushTail(task2local);
-    }
-    if (NeedNotifyWorker(task)) {
-        FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(qos);
-    }
-    return task;
 }
 }

@@ -15,83 +15,33 @@
 
 #ifndef FFRT_TASK_SCHEDULER_HPP
 #define FFRT_TASK_SCHEDULER_HPP
+
 #include "sched/task_runqueue.h"
 #include "tm/task_base.h"
 #include "util/spmc_queue.h"
 #include "tm/uv_task.h"
 
 namespace ffrt {
-extern int PLACE_HOLDER;
-
-enum class TaskSchedMode : uint8_t {
-    DEFAULT_TASK_SCHED_MODE = 0, // only use global queue
-    LOCAL_TASK_SCHED_MODE, // only use local queue and priority slot
-};
-
 class TaskScheduler {
 public:
     TaskScheduler() = default;
     virtual ~TaskScheduler() {}
 
-    void PushTask(TaskBase *task)
-    {
-        if (GetTaskSchedMode() == TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
-            PushTaskGlobal(task);
-        } else if (GetTaskSchedMode() == TaskSchedMode::LOCAL_TASK_SCHED_MODE) {
-            PushTaskLocalOrPriority(task);
-        }
-    }
+    virtual bool PushTask(TaskBase* task, bool rtb) = 0;
 
-    TaskBase* PopTask();
+    virtual TaskBase* PopTask() = 0;
 
     virtual void SetQos(QoS &q) = 0;
 
     int qos {0};
 
-    int StealTask();
-    void RemoveLocalQueue(SpmcQueue* localQueue);
-    SpmcQueue* GetLocalQueue();
-    void** GetPriorityTask();
-    unsigned int** GetWorkerTick();
-
     // global_queue.size + totalLocalTaskCnt, not include the PriorityTaskCnt
-    uint64_t GetTotalTaskCnt()
+    virtual uint64_t GetTotalTaskCnt()
     {
-        uint64_t totalTaskCnt = GetGlobalTaskCnt();
-        for (auto &localQueue : localQueues) {
-            totalTaskCnt += localQueue.second->GetLength();
-        }
-        return totalTaskCnt;
+        return GetGlobalTaskCnt();
     }
     // global_queue.size
     virtual uint64_t GetGlobalTaskCnt() = 0;
-
-    // thread_local local_queue.size, not totalLocalTaskCnt
-    inline uint64_t GetLocalTaskCnt()
-    {
-        return GetLocalQueue()->GetLength();
-    }
-    // thread_local priority.size, not totalPriorityTaskCnt
-    uint64_t GetPriorityTaskCnt();
-
-    inline void SetTaskSchedMode(const TaskSchedMode& mode)
-    {
-        taskSchedMode = mode;
-    }
-
-    inline const TaskSchedMode& GetTaskSchedMode()
-    {
-        return taskSchedMode;
-    }
-
-    inline SpmcQueue* GetWorkerLocalQueue(pid_t pid)
-    {
-        std::lock_guard lg(*GetMutex());
-        return localQueues[pid];
-    }
-
-    virtual bool PushTaskGlobal(TaskBase* task, bool rtb = true) = 0;
-    virtual TaskBase* PopTaskGlobal() = 0;
 
     bool CancelUVWork(ffrt_executor_task_t* uvWork);
     bool PushUVTaskToWaitingQueue(UVTask* task);
@@ -106,15 +56,6 @@ public:
     }
 
 protected:
-    std::unordered_map<pid_t, SpmcQueue*> localQueues;
-    TaskSchedMode taskSchedMode = TaskSchedMode::DEFAULT_TASK_SCHED_MODE;
-
-    void PushTaskLocalOrPriority(TaskBase* task);
-    TaskBase* PopTaskLocalOrPriority();
-
-    // global queue -> local queue -> priority slot
-    virtual TaskBase* PopTaskHybridProcess() = 0;
-    bool PushTaskToPriorityStack(TaskBase *executorTask);
 
     TaskBase* GetUVTask(TaskBase* task)
     {
@@ -166,13 +107,6 @@ public:
 private:
     AllocCB alloc_;
     RecycleCB recycle_;
-};
-
-struct LocalQueue {
-    explicit LocalQueue(int qos, std::unordered_map<pid_t, SpmcQueue*> localQueues);
-    ~LocalQueue();
-    int qos {0};
-    SpmcQueue* localQueue;
 };
 } // namespace ffrt
 

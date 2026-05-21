@@ -33,6 +33,34 @@
 #define GET_TID() syscall(SYS_gettid)
 #endif
 
+class FFRTQoSCtrlNode {
+public:
+    FFRTQoSCtrlNode()
+    {
+        static const char fileName[] = "/proc/thread-self/sched_qos_ctrl";
+        fd = open(fileName, O_RDWR);
+        if (fd < 0) {
+            FFRT_SYSEVENT_LOGW("pid %d belong to user %d open qos node warn, fd:%d, eno:%d, %s\n",
+                getpid(), getuid(), fd, errno, strerror(errno));
+        }
+    }
+
+    ~FFRTQoSCtrlNode()
+    {
+        if (fd >= 0) {
+            close(fd);
+        }
+    }
+
+    int GetQosCtrlNode() const
+    {
+        return fd;
+    }
+
+private:
+    int fd { -1 };
+};
+
 static int TrivalOpenRtgNode(void)
 {
     char fileName[] = "/proc/self/sched_rtg_ctrl";
@@ -57,14 +85,18 @@ static int TrivalOpenAuthCtrlNode(void)
 
 static int TrivalOpenQosCtrlNode(void)
 {
+#ifdef OHOS_STANDARD_SYSTEM
+    thread_local FFRTQoSCtrlNode workerQoSCtrlNode;
+    return workerQoSCtrlNode.GetQosCtrlNode();
+#else
     char fileName[] = "/proc/thread-self/sched_qos_ctrl";
     int fd = open(fileName, O_RDWR);
     if (fd < 0) {
         FFRT_SYSEVENT_LOGW("pid %d belong to user %d open qos node warn, fd:%d, eno:%d, %s\n",
             getpid(), getuid(), fd, errno, strerror(errno));
     }
-
     return fd;
+#endif
 }
 
 int FFRTEnableRtg(bool flag)
@@ -214,15 +246,6 @@ int FFRTAuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status)
     return ret;
 }
 
-int FFRTQosApply(unsigned int level)
-{
-    int tid = GET_TID();
-    int ret;
-
-    ret = FFRTQosApplyForOther(level, tid);
-    return ret;
-}
-
 int FFRTQosApplyForOther(unsigned int level, int tid)
 {
     struct QosCtrlData data;
@@ -243,8 +266,18 @@ int FFRTQosApplyForOther(unsigned int level, int tid)
     if (ret < 0) {
         FFRT_LOGD("tid %d, ret:%d, eno:%d\n", tid, ret, errno);
     }
+#ifndef OHOS_STANDARD_SYSTEM
     close(fd);
+#endif
     return ret;
+}
+
+int FFRTQosApply(unsigned int level)
+{
+    int tid = GET_TID();
+    int ret;
+
+    return FFRTQosApplyForOther(level, tid);
 }
 
 int FFRTQosLeave(void)
@@ -265,8 +298,9 @@ int FFRTQosLeave(void)
     if (ret < 0) {
         FFRT_SYSEVENT_LOGE("qos leave failed for task %d\n", getpid());
     }
-
+#ifndef OHOS_STANDARD_SYSTEM
     close(fd);
+#endif
     return ret;
 }
 
@@ -288,7 +322,9 @@ int FFRTQosLeaveForOther(int tid)
     if (ret < 0) {
         FFRT_SYSEVENT_LOGE("qos leave failed for task %d\n", tid);
     }
+#ifndef OHOS_STANDARD_SYSTEM
     close(fd);
+#endif
     return ret;
 }
 
@@ -306,8 +342,9 @@ int QosPolicy(struct QosPolicyDatas *policyDatas)
     if (ret < 0) {
         FFRT_SYSEVENT_LOGE("set qos policy failed for task %d\n", getpid());
     }
-
+#ifndef OHOS_STANDARD_SYSTEM
     close(fd);
+#endif
     return ret;
 }
 
@@ -324,8 +361,9 @@ int FFRTThreadCtrl(int tid, struct ThreadAttrCtrl &ctrlDatas)
     if (ret < 0) {
         FFRT_LOGE("set thread ctrl data failed for task %d, this func is not enable in OHOS\n", getpid());
     }
-
+#ifndef OHOS_STANDARD_SYSTEM
     close(fd);
+#endif
     return ret;
 }
 
@@ -352,8 +390,9 @@ int FFRTQosGetForOther(int tid, struct QosCtrlData &data)
     if (ret < 0) {
         FFRT_SYSEVENT_LOGE("%s: qos get failed for thread %d, return %d", __func__, tid, ret);
     }
+#ifndef OHOS_STANDARD_SYSTEM
     close(fd);
-
+#endif
     return ret;
 }
 

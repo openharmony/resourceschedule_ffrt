@@ -386,7 +386,6 @@ bool ExecuteUnit::WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWork
 
 void ExecuteUnit::WorkerRetired(CPUWorker *thread)
 {
-    thread->SetWorkerState(WorkerStatus::DESTROYED);
     pid_t tid = thread->Id();
     int qos = static_cast<int>(thread->GetQos());
     int ret = 0;

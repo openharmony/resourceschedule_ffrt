@@ -65,9 +65,7 @@ private:
     }
     void PokeLocal(const QoS& qos) override
     {
-        if (!FFRTFacade::GetSchedInstance()->GetScheduler(qos).IsStealerActive()) {
-            handleTaskNotify(this, qos, TaskNotifyType::TASK_LOCAL);
-        }
+        handleTaskNotify(this, qos, TaskNotifyType::TASK_LOCAL);
     }
     void PokeEscape(const QoS& qos, bool isPollWait) override
     {

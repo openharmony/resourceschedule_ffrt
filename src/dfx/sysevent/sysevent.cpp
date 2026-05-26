@@ -34,84 +34,10 @@ constexpr const char* BEGETUTIL_LIB_PATH = "libbegetutil.z.so";
 
 namespace ffrt {
 std::mutex mtx;
-class LibbegetutilAdapter {
-public:
-    LibbegetutilAdapter()
-    {
-        if (!Load()) {
-            FFRT_LOGD("Failed to load the library in constructor.");
-        }
-    }
-
-    ~LibbegetutilAdapter()
-    {
-        if (!UnLoad()) {
-            FFRT_LOGD("Failed to unload the library in destructor.");
-        }
-    }
-
-    static LibbegetutilAdapter* Instance()
-    {
-        static LibbegetutilAdapter instance;
-        return &instance;
-    }
-
-    using GetParameterType = int (*)(const char *, const char *, char *, uint32_t);
-    GetParameterType GetParameter = nullptr;
-
-private:
-    bool Load()
-    {
-        if (handle != nullptr) {
-            FFRT_LOGD("handle exits");
-            return true;
-        }
-
-        handle = dlopen(BEGETUTIL_LIB_PATH, RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
-        if (handle == nullptr) {
-            FFRT_LOGE("load so[%s] fail: %s", BEGETUTIL_LIB_PATH, dlerror());
-            return false;
-        }
-
-        GetParameter = reinterpret_cast<GetParameterType>(dlsym(handle, "GetParameter"));
-        if (GetParameter == nullptr) {
-            FFRT_LOGE("load func from %s failed", BEGETUTIL_LIB_PATH);
-            return false;
-        }
-        return true;
-    }
-
-    bool UnLoad()
-    {
-        if (handle != nullptr) {
-            if (dlclose(handle) != 0) {
-                FFRT_LOGE("Failed to close the handle.");
-                return false;
-            }
-            handle = nullptr;
-            return true;
-        }
-        return true;
-    }
-
-    void* handle = nullptr;
-};
 
 bool IsBeta()
 {
-    LibbegetutilAdapter* adapter = LibbegetutilAdapter::Instance();
-    constexpr int versionTypeLen = 32;
-    char retValue[versionTypeLen] = {0};
-    if (adapter->GetParameter != nullptr) {
-        int ret = adapter->GetParameter("const.logsystem.versiontype", "false", retValue, versionTypeLen);
-        if (ret > 0) {
-            int result = strcmp(retValue, "beta");
-            if (result == 0) {
-                return true;
-            }
-        }
-    }
-    return false;
+    return true;
 }
 
 void TaskBlockInfoReport(const long long passed, const std::string& task_label, int qos, uint64_t freq)

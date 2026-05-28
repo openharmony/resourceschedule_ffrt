@@ -177,11 +177,11 @@ struct EscapeConfig {
 
 class ExecuteUnit {
 public:
-    static ExecuteUnit &Instance();
+    static ExecuteUnit& Instance();
 
-    static void RegistInsCb(SingleInsCB<ExecuteUnit>::Instance &&cb);
+    static void RegistInsCb(SingleInsCB<ExecuteUnit>::Instance&& cb);
 
-    ThreadGroup *BindTG(QoS& qos);
+    ThreadGroup* BindTG(QoS& qos);
     void UnbindTG(QoS& qos);
     void BindWG(QoS& qos);
 
@@ -204,12 +204,12 @@ public:
 
     // dfx op
     virtual void WorkerInit() = 0;
-    CPUWorkerGroup &GetWorkerGroup(int qos)
+    virtual CPUWorkerGroup &GetWorkerGroup(int qos)
     {
         return workerGroup[qos];
     }
 
-    inline int SetWorkerMaxNum(const QoS &qos, uint32_t num)
+    virtual inline int SetWorkerMaxNum(const QoS &qos, uint32_t num)
     {
         CPUWorkerGroup &group = workerGroup[qos];
         std::lock_guard lk(group.lock);
@@ -283,10 +283,11 @@ public:
         }
     }
 
-    void DisableWorkerMonitor(const QoS& qos, int tid);
+    virtual void DisableWorkerMonitor(const QoS& qos, int tid);
     void RestoreThreadConfig();
 
-    void NotifyWorkers(const QoS &qos, int number);
+    virtual void NotifyWorkers(const QoS &qos, int number);
+
     // used for worker sharing
     bool WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWorker*)> taskFunction);
 // worker dynamic scaling
@@ -294,6 +295,7 @@ public:
     void MonitorMain();
     BlockawareWakeupCond *WakeupCond(void);
     void ExecuteSetSilentMode(const QoS &qos, unsigned int silentMode);
+
 #endif
     void WorkerStart(int qos);
     void WorkerExit(int qos);
@@ -333,6 +335,7 @@ protected:
     virtual ~ExecuteUnit();
 
     size_t GetRunningNum(const QoS &qos);
+
     size_t GetRunningNum(const QoS &qos, const CPUWorkerGroup &group);
     void ReportEscapeEvent(int qos, size_t totalNum);
 

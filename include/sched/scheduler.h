@@ -56,11 +56,12 @@ public:
         return *taskSchedulers[static_cast<unsigned short>(qos)];
     }
 
-    void PushTask(const QoS& qos, TaskBase* task)
+    bool PushTask(TaskBase* task, bool rtb = true)
     {
         if (!tearDown && task) {
-            taskSchedulers[qos]->PushTask(task);
+            return taskSchedulers[task->qos_]->PushTask(task, rtb);
         }
+        return false;
     }
 
     TaskBase* PopTask(const QoS& qos)
@@ -68,7 +69,13 @@ public:
         if (tearDown) {
             return nullptr;
         }
-        return taskSchedulers[qos]->PopTask();
+
+        TaskBase* task = nullptr;
+        task = taskSchedulers[qos]->PopTask();
+        if (task) {
+            task->Pop();
+        }
+        return task;
     }
 
     inline uint64_t GetTotalTaskCnt(const QoS& qos)
@@ -81,17 +88,7 @@ public:
         return taskSchedulers[static_cast<unsigned short>(qos)]->GetGlobalTaskCnt();
     }
 
-    inline const TaskSchedMode& GetTaskSchedMode(const QoS& qos)
-    {
-        return taskSchedulers[static_cast<unsigned short>(qos)]->GetTaskSchedMode();
-    }
-
     bool CancelUVWork(ffrt_executor_task_t* uvWork, int qos);
-
-    inline SpmcQueue* GetWorkerLocalQueue(const QoS& qos, pid_t pid)
-    {
-        return taskSchedulers[static_cast<unsigned short>(qos)]->GetWorkerLocalQueue(pid);
-    }
 
     bool CheckUVTaskConcurrency(ffrt_executor_task_t* task, const QoS& qos);
     ffrt_executor_task_t* PickWaitingUVTask(const QoS& qos);

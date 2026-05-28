@@ -126,7 +126,6 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
     auto& group = workerGroup[thread->GetQos()];
     std::unique_lock lk(group.mutex);
     IntoSleep(thread->GetQos());
-    thread->SetWorkerState(WorkerStatus::SLEEPING);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     BlockawareEnterSleeping();
 #endif
@@ -142,7 +141,6 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
         return tearDown || taskExistence;
         })) {
         workerGroup[thread->GetQos()].OutOfSleep();
-        thread->SetWorkerState(WorkerStatus::EXECUTING);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
         BlockawareLeaveSleeping();
 #endif
@@ -159,7 +157,6 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
                 FFRTFacade::GetSchedInstance()->GetTotalTaskCnt(thread->GetQos()) > 0;
         });
         workerGroup[thread->GetQos()].OutOfDeepSleep();
-        thread->SetWorkerState(WorkerStatus::EXECUTING);
         return WorkerAction::RETRY;
 #else
         workerGroup[thread->GetQos()].WorkerDestroy();

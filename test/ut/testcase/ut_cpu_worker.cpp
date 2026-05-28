@@ -25,7 +25,6 @@
 #include "c/thread.h"
 #include "sync/perf_counter.h"
 #include "sync/wait_queue.h"
-
 #define private public
 #include "eu/cpu_worker.h"
 #include "util/white_list.h"
@@ -130,40 +129,6 @@ bool IsBlockAwareInit()
     return true;
 }
 #endif
-
-HWTEST_F(CpuWorkerTest, WorkerStatusTest, TestSize.Level1)
-{
-    CpuWorkerOps ops;
-    ops.WorkerIdleAction = WorkerIdleAction;
-    ops.WorkerRetired = WorkerRetired;
-    ops.WorkerPrepare = WorkerPrepare;
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    ops.IsBlockAwareInit = IsBlockAwareInit;
-#endif
-    workerDone = false;
-    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
-    WorkerStatus status = worker->GetWorkerState();
-    EXPECT_EQ(WorkerStatus::EXECUTING, status);
-    worker->SetExited();
-    WaitForWorker();
-}
-
-HWTEST_F(CpuWorkerTest, SetWorkerStatusTest, TestSize.Level1)
-{
-    CpuWorkerOps ops;
-    ops.WorkerIdleAction = WorkerIdleAction;
-    ops.WorkerRetired = WorkerRetired;
-    ops.WorkerPrepare = WorkerPrepare;
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    ops.IsBlockAwareInit = IsBlockAwareInit;
-#endif
-    workerDone = false;
-    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
-    worker->SetWorkerState(WorkerStatus::SLEEPING);
-    EXPECT_EQ(WorkerStatus::SLEEPING, worker->state);
-    worker->SetExited();
-    WaitForWorker();
-}
 
 HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level1)
 {

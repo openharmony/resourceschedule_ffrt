@@ -37,13 +37,11 @@ public:
         return que->Size();
     }
 
-private:
-    bool PushTaskGlobal(TaskBase* task, bool rtb) override;
-    TaskBase* PopTaskHybridProcess() override;
+    bool PushTask(TaskBase* task, bool rtb) override;
 
-    TaskBase* PopTaskGlobal() override
+    TaskBase* PopTask() override
     {
-        FFRT_PERF_TRACE_SCOPED_BY_GROUP(SCHED, STaskScheduler_PopTaskGlobal, DEFAULT_CONFIG);
+        FFRT_PERF_TRACE_SCOPED_BY_GROUP(SCHED, STaskScheduler_PopTask, DEFAULT_CONFIG);
         TaskBase* task = nullptr;
         {
             // pop from global queue

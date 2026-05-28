@@ -180,7 +180,6 @@ void CPUWorker::Dispatch(CPUWorker* worker)
     auto ctx = ExecuteCtx::Cur();
     ctx->qos = qos;
     ctx->threadType_ = ffrt::ThreadType::FFRT_WORKER;
-    *(FFRTFacade::GetSchedInstance()->GetScheduler(qos).GetWorkerTick()) = &(worker->tick);
 
     worker->ops.WorkerPrepare(worker);
 #ifndef OHOS_STANDARD_SYSTEM
@@ -215,10 +214,7 @@ void CPUWorker::WorkerLooper(CPUWorker* worker)
         TaskBase* task = Scheduler::Instance()->PopTask(qos);
         worker->tick++;
         if (task) {
-            if (Scheduler::Instance()->GetTaskSchedMode(qos) ==
-                TaskSchedMode::DEFAULT_TASK_SCHED_MODE) {
-                FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(qos);
-            }
+            FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(qos);
             RunTask(task, worker);
             continue;
         }

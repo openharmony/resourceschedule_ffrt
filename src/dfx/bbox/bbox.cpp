@@ -125,26 +125,14 @@ static inline void SaveTaskCounter()
 }
 #endif
 
-static inline void SaveLocalFifoStatus(int qos, CPUWorker* worker)
-{
-    auto sched = FFRTFacade::GetSchedInstance();
-    if (sched->GetTaskSchedMode(qos) == TaskSchedMode::DEFAULT_TASK_SCHED_MODE) { return; }
-    TaskBase* t = reinterpret_cast<TaskBase*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
-    while (t != nullptr) {
-        FFRT_BBOX_LOG("qos %d: worker tid %d is localFifo task id %llu name %s",
-            qos, worker->Id(), t->gid, t->GetLabel().c_str());
-        t = reinterpret_cast<TaskBase*>(sched->GetWorkerLocalQueue(qos, worker->Id())->PopHead());
-    }
-}
-
 static inline void SaveWorkerStatus()
 {
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
-    for (int i = 0; i < QoS::MaxNum(); i++) {
+    int workerGroupCnt = QoS::MaxNum();
+    for (int i = 0; i < workerGroupCnt; i++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
         std::shared_lock lck(workerGroup.tgMutex); /* acquire the lock in RO */
         for (auto& thread : workerGroup.threads) {
-            SaveLocalFifoStatus(i, thread.first);
             TaskBase* t = thread.first->curTask;
             if (t == nullptr) {
                 FFRT_BBOX_LOG("qos %d: worker tid %d is running nothing", i, thread.first->Id());

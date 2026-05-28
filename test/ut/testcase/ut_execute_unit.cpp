@@ -470,8 +470,9 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
     manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyConservative;
 
     ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    task->qos_ = ffrt::QoS(2);
     ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task);
+    sch->PushTask(task);
 
     int executingNum = manager->GetWorkerGroup(ffrt::QoS(2)).executingNum;
     manager->GetWorkerGroup(2).executingNum = 20;
@@ -496,8 +497,9 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.L
     manager->handleTaskNotify = ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative;
 
     ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
+    task->qos_ = ffrt::QoS(2);
     ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
-    sch->PushTask(ffrt::QoS(2), task);
+    sch->PushTask(task);
 
     int executingNum = manager->GetWorkerGroup(2).executingNum;
     manager->GetWorkerGroup(ffrt::QoS(2)).executingNum = 20;

@@ -703,6 +703,7 @@ void QueueHandler::AddSchedDeadline(QueueTask* task)
         return;
     }
 
+    std::lock_guard lock(mutex_);
     uint64_t taskTimeout = task->GetSchedTimeout() + task->GetUptime();
     TimePoint tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(
         std::chrono::steady_clock::time_point() + std::chrono::microseconds(taskTimeout));

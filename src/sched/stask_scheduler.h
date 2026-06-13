@@ -37,6 +37,16 @@ public:
         return que->Size();
     }
 
+    virtual uint64_t GetRTQTaskCnt() override
+    {
+        return que->Size();
+    }
+
+    virtual bool GlobalTaskEmpty() override
+    {
+        return que->Empty();
+    }
+
     bool PushTask(TaskBase* task, bool rtb) override;
 
     TaskBase* PopTask() override

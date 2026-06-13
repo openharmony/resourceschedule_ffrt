@@ -275,8 +275,6 @@ int FFRTQosApplyForOther(unsigned int level, int tid)
 int FFRTQosApply(unsigned int level)
 {
     int tid = GET_TID();
-    int ret;
-
     return FFRTQosApplyForOther(level, tid);
 }
 

@@ -88,6 +88,16 @@ public:
         return taskSchedulers[static_cast<unsigned short>(qos)]->GetGlobalTaskCnt();
     }
 
+    inline uint64_t GetRTQTaskCnt(const QoS& qos)
+    {
+        return taskSchedulers[static_cast<unsigned short>(qos)]->GetRTQTaskCnt();
+    }
+
+    inline bool GlobalTaskEmpty(const QoS& qos)
+    {
+        return taskSchedulers[static_cast<unsigned short>(qos)]->GlobalTaskEmpty();
+    }
+
     bool CancelUVWork(ffrt_executor_task_t* uvWork, int qos);
 
     bool CheckUVTaskConcurrency(ffrt_executor_task_t* task, const QoS& qos);

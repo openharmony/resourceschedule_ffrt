@@ -25,10 +25,10 @@ namespace ffrt {
 class WhiteList {
 public:
     static WhiteList &GetInstance();
+    void LoadFromFile();
     bool IsEnabled(const std::string& functionName, bool defaultWhenAbnormal);
 private:
     WhiteList();
-    void LoadFromFile();
     bool TryRefreshWhiteListOnInit();
     WhiteList(const WhiteList&) = delete;
     WhiteList& operator=(const WhiteList&) = delete;

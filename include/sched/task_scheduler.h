@@ -43,6 +43,12 @@ public:
     // global_queue.size
     virtual uint64_t GetGlobalTaskCnt() = 0;
 
+    // global_queue.size
+    virtual uint64_t GetRTQTaskCnt() = 0;
+
+    // global_queue is empty?
+    virtual bool GlobalTaskEmpty() = 0;
+
     bool CancelUVWork(ffrt_executor_task_t* uvWork);
     bool PushUVTaskToWaitingQueue(UVTask* task);
     bool CheckUVTaskConcurrency(UVTask* task);

@@ -55,6 +55,7 @@ bool WhiteList::IsEnabled(const std::string& functionName, bool defaultWhenAbnor
 
 void WhiteList::LoadFromFile()
 {
+    whiteList_.clear();
     char processNameChar[PROCESS_NAME_BUFFER_LENGTH] {};
     GetProcessName(processNameChar, PROCESS_NAME_BUFFER_LENGTH);
     if (strlen(processNameChar) == 0) {

@@ -487,12 +487,12 @@ void WorkerMonitor::WorkerStatus()
     std::ostringstream workerCountOss;
     for (int qos = 0; qos < QoS::MaxNum(); qos++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(qos);
-        uint64_t taskCount;
+        bool isGlobalTaskEmpty = true;
         {
             std::lock_guard lk(workerGroup.mutex);
-            taskCount = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos);
+            isGlobalTaskEmpty = FFRTFacade::GetSchedInstance()->GlobalTaskEmpty(qos);
         }
-        if (taskCount != 0) {
+        if (!isGlobalTaskEmpty) {
             std::lock_guard lk(workerGroup.lock);
             workerCountOss << "|" << qos << "|"
                 << "R:" << workerGroup.executingNum

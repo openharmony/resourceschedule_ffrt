@@ -45,9 +45,7 @@ const int SEXECUTE_DESTRY_SLEEP_TIME = 1000;
 const std::map<std::string,
     void(*)(ffrt::SExecuteUnit*, const ffrt::QoS&, ffrt::TaskNotifyType)> NOTIFY_FUNCTION_FACTORY = {
     { "CameraDaemon", ffrt::SExecuteUnit::HandleTaskNotifyConservative },
-#ifndef HWASAN_MODE
     { "bluetooth_service", ffrt::SExecuteUnit::HandleTaskNotifyUltraConservative },
-#endif
 };
 }
 

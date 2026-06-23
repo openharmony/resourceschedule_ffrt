@@ -327,7 +327,7 @@ void ExecuteUnit::DisableWorkerMonitor(const QoS& qos, int tid)
     if (IsBlockAwareInit()) {
         int ret = BlockawareUnregister();
         if (ret != 0) {
-            FFRT_SYSEVENT_LOGE("blockaware unregister fail, ret[%d]", ret);
+            FFRT_SYSEVENT_LOGI("blockaware unregister fail, ret[%d]", ret);
         }
     }
 #endif

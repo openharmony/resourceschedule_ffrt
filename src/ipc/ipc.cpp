@@ -49,7 +49,7 @@ void ffrt_this_task_set_legacy_mode(bool mode)
 
     if (task->GetLabel() == EXCLUSIVE_MODE_TASK_NAME) {
         task->monitorTimeout_ = false;
-        ffrt::FFRTFacade::GetEUInstance().DisableWorkerMonitor(task->GetQos(), ffrt::ExecuteCtx::Cur()->tid);
+        ffrt::FFRTFacade::GetExecuteUnit().DisableWorkerMonitor(task->GetQos(), ffrt::ExecuteCtx::Cur()->tid);
     }
 }
 

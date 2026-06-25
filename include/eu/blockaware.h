@@ -177,6 +177,11 @@ static inline unsigned long GetTlsPtr(void)
     return 0;
 }
 
+static inline unsigned long *curr_thread_tls_blockaware_slot_of(void)
+{
+    return nullptr;
+}
+
 static inline int BlockawareEnterSleeping(void)
 {
     return 0;

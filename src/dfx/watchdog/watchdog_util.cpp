@@ -50,7 +50,7 @@ namespace ffrt {
 #ifdef FFRT_OH_WATCHDOG_ENABLE
         // us convert to ms
         uint64_t timeout_ms = timeout / CONVERT_TIME_UNIT;
-        FFRT_LOGI("start to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout_ms);
+        FFRT_LOGD("start to set watchdog for task gid=%llu with timeout [%llu ms] ", gid, timeout_ms);
         auto now = std::chrono::steady_clock::now();
         WaitUntilEntry* we = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
         // set dealyedworker callback
@@ -66,7 +66,7 @@ namespace ffrt {
             if (!taskFinished) {
                 RunTimeOutCallback(gid, timeout_ms, timeoutCb);
             } else {
-                FFRT_LOGI("task gid=%llu has executed", gid);
+                FFRT_LOGD("task gid=%llu has executed", gid);
             }
             SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
         });
@@ -94,7 +94,7 @@ namespace ffrt {
         if (timeoutCb != nullptr) {
             CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutCb);
             cbTask->IncDeleteRef();
-            FFRTFacade::GetDWInstance().SubmitAsyncTask([timeoutCb, cbTask] {
+            FFRTFacade::GetDelayedWorker().SubmitAsyncTask([timeoutCb, cbTask] {
                 timeoutCb->exec(timeoutCb);
                 cbTask->DecDeleteRef();
             });

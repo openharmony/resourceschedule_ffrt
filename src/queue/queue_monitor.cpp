@@ -151,7 +151,7 @@ void QueueMonitor::ReportEventTimeout(uint64_t curGid, const std::stringstream& 
 {
     std::string ssStr = ss.str();
     if (ffrt_task_timeout_get_cb()) {
-        FFRTFacade::GetDWInstance().SubmitAsyncTask([curGid, ssStr] {
+        FFRTFacade::GetDelayedWorker().SubmitAsyncTask([curGid, ssStr] {
             ffrt_task_timeout_cb func = ffrt_task_timeout_get_cb();
             if (func) {
                 func(curGid, ssStr.c_str(), ssStr.size());

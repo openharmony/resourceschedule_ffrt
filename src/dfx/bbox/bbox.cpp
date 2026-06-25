@@ -130,7 +130,7 @@ static inline void SaveWorkerStatus()
     FFRT_BBOX_LOG("<<<=== worker status ===>>>");
     int workerGroupCnt = QoS::MaxNum();
     for (int i = 0; i < workerGroupCnt; i++) {
-        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetExecuteUnit().GetWorkerGroup(i);
         std::shared_lock lck(workerGroup.tgMutex); /* acquire the lock in RO */
         for (auto& thread : workerGroup.threads) {
             TaskBase* t = thread.first->curTask;
@@ -295,8 +295,8 @@ static inline void SaveTimeoutTask()
 {
     FFRT_BBOX_LOG("<<<=== Timeout Task Info ===>>>");
 
-    std::string normaltskTimeoutInfo = FFRTFacade::GetWMInstance().DumpTimeoutInfo();
-    std::string queueTimeoutInfo = FFRTFacade::GetQMInstance().DumpQueueTimeoutInfo();
+    std::string normaltskTimeoutInfo = FFRTFacade::GetWorkerMonitor().DumpTimeoutInfo();
+    std::string queueTimeoutInfo = FFRTFacade::GetQueueMonitor().DumpQueueTimeoutInfo();
     std::stringstream ss;
     ss << normaltskTimeoutInfo << queueTimeoutInfo;
     FFRT_BBOX_LOG("%s", ss.str().c_str());
@@ -370,7 +370,7 @@ void RecordDebugInfo(void)
         FFRT_BBOX_LOG("<<<=== CoSwitch info ===>>>");
         for (int i = 0; i < QoS::MaxNum(); i++) {
             int switchCountTemp = FFRTTraceRecord::g_recordTaskCounter_[ffrt_normal_task][i].CoCounterInSwitch.load();
-            oss << " CoSwitchCounter Info: qos " << i << "Counter " << switchCountTemp << std::endl;
+            oss << " CoSwitchCounter Info: qos " << i << " Counter " << switchCountTemp << std::endl;
             switchCount += switchCountTemp;
         }
         oss << "Sum CoSwitchCounter is " << switchCount << std::endl;
@@ -574,7 +574,7 @@ std::string SaveKeyInfo(void)
 {
     std::ostringstream oss;
 
-    ffrt::FFRTFacade::GetEUInstance().WorkerInit();
+    ffrt::FFRTFacade::GetExecuteUnit().WorkerInit();
     oss << "    |-> key status" << std::endl;
     if (saveKeyStatusInfo == nullptr) {
         oss << "no key status info" << std::endl;
@@ -657,7 +657,7 @@ std::string SaveWorkerStatusInfo(void)
     ss << "    |-> worker status" << std::endl;
     for (int i = 0; i < QoS::MaxNum(); i++) {
         std::vector<int> tidArr;
-        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetExecuteUnit().GetWorkerGroup(i);
         std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
         for (auto& thread : workerGroup.threads) {
             tidArr.push_back(thread.first->Id());
@@ -840,8 +840,8 @@ std::string SaveTimeoutTaskInfo()
     std::ostringstream ss;
     ss << "<<<=== Timeout Task Info ===>>>" << std::endl;
     ffrtStackInfo += ss.str();
-    std::string timeoutInfo = FFRTFacade::GetWMInstance().DumpTimeoutInfo();
-    std::string queueTimeoutInfo = FFRTFacade::GetQMInstance().DumpQueueTimeoutInfo();
+    std::string timeoutInfo = FFRTFacade::GetWorkerMonitor().DumpTimeoutInfo();
+    std::string queueTimeoutInfo = FFRTFacade::GetQueueMonitor().DumpQueueTimeoutInfo();
     ffrtStackInfo += timeoutInfo;
     ffrtStackInfo += queueTimeoutInfo;
     return ffrtStackInfo;

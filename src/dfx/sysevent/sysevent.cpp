@@ -135,8 +135,7 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
                         + std::to_string(passed) + " s, qos:" + std::to_string(qos);
                     HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT,
                                     eventName, OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
-                                    "SENARIO", "Long_Task", "PROCESS_NAME", std::string(GetCurrentProcessName()),
-                                    "MSG", buffer);
+                                    "SENARIO", "Long_Task", "PROCESS_NAME", GetCurrentProcessName(), "MSG", buffer);
                     lastEventTime = now;
                 }
             }

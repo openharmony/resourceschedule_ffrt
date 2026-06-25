@@ -34,12 +34,12 @@ namespace ffrt {
 bool DelayedWakeup(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup,
     bool skipTimeCheck)
 {
-    return FFRTFacade::GetDWInstance().dispatch(to, we, wakeup, skipTimeCheck);
+    return FFRTFacade::GetDelayedWorker().dispatch(to, we, wakeup, skipTimeCheck);
 }
 
 bool DelayedRemove(const TimePoint& to, WaitEntry* we)
 {
-    return FFRTFacade::GetDWInstance().remove(to, we);
+    return FFRTFacade::GetDelayedWorker().remove(to, we);
 }
 
 void spin_mutex::lock_contended()

@@ -18,7 +18,6 @@
 
 #include <new>
 #include <vector>
-#include <deque>
 #include <mutex>
 #include <securec.h>
 #ifdef FFRT_BBOX_ENABLE
@@ -100,7 +99,7 @@ public:
         return Instance()->SimpleAllocatorUnLock();
     }
 private:
-    std::deque<T*> primaryCache;
+    std::vector<T*> primaryCache;
 #ifdef FFRT_BBOX_ENABLE
     std::unordered_set<T*> secondaryCache;
 #endif
@@ -175,6 +174,7 @@ private:
         char* p = reinterpret_cast<char*>(std::calloc(1, MmapSz));
         FFRT_COND_TERMINATE((p == nullptr), "p calloc failed");
         count = MmapSz / TSize;
+        primaryCache.reserve(count);
         for (std::size_t i = 0; i + TSize <= MmapSz; i += TSize) {
             primaryCache.push_back(reinterpret_cast<T*>(p + i));
         }
@@ -196,8 +196,8 @@ private:
             }
             init();
         }
-        t = primaryCache.front();
-        primaryCache.pop_front();
+        t = primaryCache.back();
+        primaryCache.pop_back();
         count--;
         return t;
     }

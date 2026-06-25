@@ -15,7 +15,7 @@
 
 #ifndef FFRT_TASK_SCHEDULER_HPP
 #define FFRT_TASK_SCHEDULER_HPP
-
+#include <deque>
 #include "sched/task_runqueue.h"
 #include "tm/task_base.h"
 #include "util/spmc_queue.h"
@@ -54,23 +54,25 @@ public:
     bool CheckUVTaskConcurrency(UVTask* task);
     UVTask* PickWaitingUVTask();
 
-    std::mutex* GetMutex();
-
     inline bool IsStealerActive()
     {
         return stealingInProgress.load(std::memory_order_relaxed);
     }
 
 protected:
+    FFRT_NOINLINE void RemoveUVTaskSlowPath(UVTask* uvTask)
+    {
+        auto it = cancelSet_.find(uvTask->uvWork);
+        uvTask->FreeMem();
+        cancelSet_.erase(it);
+    }
 
     TaskBase* GetUVTask(TaskBase* task)
     {
         std::lock_guard<std::mutex> lg(uvMtx);
         UVTask* uvTask = static_cast<UVTask*>(task);
-        auto it = cancelSet_.find(uvTask->uvWork);
-        if (it != cancelSet_.end()) {
-            uvTask->FreeMem();
-            cancelSet_.erase(it);
+        if FFRT_UNLIKELY(cancelSet_.find(uvTask->uvWork) != cancelSet_.end()) {
+            RemoveUVTaskSlowPath(uvTask);
             return nullptr;
         }
 
@@ -78,8 +80,10 @@ protected:
         return task;
     }
 
+protected:
+    std::mutex* mtx {nullptr}; // global sched mutex(per qos) shared with EU and Scheduler
+
 private:
-    std::atomic<std::mutex*> mtx {nullptr};
     std::mutex uvMtx;
     std::set<ffrt_executor_task_t*> cancelSet_;
     int uvTaskConcurrency_ = 0;
@@ -89,8 +93,8 @@ private:
 
 class SchedulerFactory {
 public:
-    using AllocCB = std::function<TaskScheduler*()>;
-    using RecycleCB = std::function<void (TaskScheduler*)>;
+    using AllocCB = TaskScheduler*(*)(void);
+    using RecycleCB = void(*)(TaskScheduler*);
 
     static SchedulerFactory& Instance();
 

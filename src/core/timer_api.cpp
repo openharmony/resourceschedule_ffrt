@@ -44,7 +44,7 @@ ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt
         FFRT_LOGE("[Timer] cb cannot be null");
         return -1;
     }
-    return ffrt::FFRTFacade::GetTMInstance().RegisterTimer(convertQos, timeout, data, cb, repeat);
+    return ffrt::FFRTFacade::GetTimerManager().RegisterTimer(convertQos, timeout, data, cb, repeat);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -55,7 +55,7 @@ int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle)
         return -1;
     }
 
-    return ffrt::FFRTFacade::GetTMInstance().UnregisterTimer(handle);
+    return ffrt::FFRTFacade::GetTimerManager().UnregisterTimer(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -66,5 +66,5 @@ ffrt_timer_query_t ffrt_timer_query(ffrt_qos_t qos, ffrt_timer_t handle)
         return ffrt_timer_notfound;
     }
 
-    return ffrt::FFRTFacade::GetTMInstance().GetTimerStatus(handle);
+    return ffrt::FFRTFacade::GetTimerManager().GetTimerStatus(handle);
 }

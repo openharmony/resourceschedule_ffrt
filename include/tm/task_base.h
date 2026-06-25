@@ -73,7 +73,10 @@ public:
     // lifecycle actions
     virtual void Prepare() = 0;
     virtual void Ready() = 0;
-    virtual void Pop() = 0;
+    void Pop()
+    {
+        SetStatus<TaskStatus::POPPED>();
+    }
     // must be called by a sync primitive when blocking this task.
     // return value indicates this task need to be blocked on thread or yield from it's coroutine.
     virtual BlockType Block() = 0;
@@ -96,7 +99,8 @@ public:
         return qos_();
     }
 
-    inline void SetStatus(TaskStatus statusIn)
+    template<TaskStatus statusIn>
+    inline void SetStatus()
     {
         /* Note this function can be called concurrently.
          * The following accesses can be interleaved.

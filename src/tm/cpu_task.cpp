@@ -31,12 +31,9 @@ const int TSD_SIZE = 128;
 namespace ffrt {
 void CPUEUTask::SetQos(const QoS& newQos)
 {
+    if (qos_ == newQos) return;
     if (newQos == qos_inherit) {
-        if (!IsRoot()) {
-            qos_ = parent->qos_;
-        } else {
-            qos_ = QoS();
-        }
+        qos_ = (!IsRoot()) ? parent->qos_ : QoS();
     } else {
         qos_ = newQos;
     }
@@ -45,7 +42,7 @@ void CPUEUTask::SetQos(const QoS& newQos)
 
 void CPUEUTask::Prepare()
 {
-    this->SetStatus(TaskStatus::SUBMITTED);
+    this->SetStatus<TaskStatus::SUBMITTED>();
     FFRTTraceRecord::TaskSubmit<ffrt_normal_task>(qos_, &createTime, &fromTid);
 }
 
@@ -53,11 +50,11 @@ void CPUEUTask::Ready()
 {
     int qos = qos_();
     bool notifyWorker = notifyWorker_;
-    this->SetStatus(TaskStatus::READY);
-    bool isRisingEdge = FFRTFacade::GetSchedInstance()->PushTask(this, false);
+    this->SetStatus<TaskStatus::READY>();
+    bool isRisingEdge = FFRTFacade::GetScheduler().PushTask(this, false);
     FFRTTraceRecord::TaskEnqueue<ffrt_normal_task>(qos);
     if (notifyWorker) {
-        FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED_RTQ>(qos, false, isRisingEdge);
+        FFRTFacade::GetExecuteUnit().NotifyTask<TaskNotifyType::TASK_ADDED_RTQ>(qos, false, isRisingEdge);
     }
 }
 
@@ -66,7 +63,7 @@ void CPUEUTask::FreeMem()
     BboxCheckAndFreeze();
     // only tasks which called ffrt_poll_ctl may have cached events
     if (pollerEnable) {
-        FFRTFacade::GetPPInstance().ClearCachedEvents(this);
+        FFRTFacade::GetIOPoller().ClearCachedEvents(this);
     }
 #ifdef FFRT_TASK_LOCAL_ENABLE
     TaskTsdDeconstruct(this);
@@ -98,7 +95,7 @@ void CPUEUTask::Execute()
 #endif
     if (likely(__atomic_compare_exchange_n(&skipped, &exp, ffrt::SkipStatus::EXECUTED, 0,
         __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))) {
-        SetStatus(TaskStatus::EXECUTING);
+        SetStatus<TaskStatus::EXECUTING>();
         f->exec(f);
     }
     if ((f->reserve[0] & MASK_FOR_HCS_TASK) != MASK_FOR_HCS_TASK) {
@@ -109,10 +106,10 @@ void CPUEUTask::Execute()
     FFRT_TASKDONE_MARKER(gid);
     // skipped task can not be marked as finish
     if (curStatus == TaskStatus::EXECUTING) {
-        SetStatus(TaskStatus::FINISH);
+        SetStatus<TaskStatus::FINISH>();
     }
     if (!USE_COROUTINE) {
-        FFRTFacade::GetDMInstance().onTaskDone(this);
+        FFRTFacade::GetDependenceManager().onTaskDone(this);
     } else {
         /*
             if we call onTaskDone inside coroutine, the memory of task may be recycled.
@@ -147,6 +144,7 @@ CPUEUTask::CPUEUTask(const task_attr_private *attr, CPUEUTask *parent, const uin
         if (attr->qos_ == qos_inherit && !IsRoot()) {
             qos_ = parent->qos_;
         }
+
         if (attr->timeoutCb_ != nullptr) {
             timeoutCb_ = attr->timeoutCb_;
             CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutCb_);

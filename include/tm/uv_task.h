@@ -52,22 +52,17 @@ public:
 
     void Ready() override;
 
-    void Pop() override
-    {
-        SetStatus(TaskStatus::POPPED);
-    }
-
     void Execute() override;
 
     BlockType Block() override
     {
-        SetStatus(TaskStatus::THREAD_BLOCK);
+        SetStatus<TaskStatus::THREAD_BLOCK>();
         return BlockType::BLOCK_THREAD;
     }
 
     void Wake() override
     {
-        SetStatus(TaskStatus::EXECUTING);
+        SetStatus<TaskStatus::EXECUTING>();
     }
 
     void Finish() override {}

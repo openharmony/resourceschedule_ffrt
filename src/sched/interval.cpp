@@ -42,14 +42,14 @@ PerfCtrl::PerfCtrl(const QoS& qos) : qos(qos)
         return;
     }
 
-    tg = FFRTFacade::GetEUInstance().BindTG(this->qos);
+    tg = FFRTFacade::GetExecuteUnit().BindTG(this->qos);
 }
 
 PerfCtrl::~PerfCtrl()
 {
     if (tg) {
         tg = nullptr;
-        FFRTFacade::GetEUInstance().UnbindTG(qos);
+        FFRTFacade::GetExecuteUnit().UnbindTG(qos);
     }
 }
 

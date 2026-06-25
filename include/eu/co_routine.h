@@ -20,6 +20,7 @@
 #include <thread>
 #include <pthread.h>
 #include "c/type_def.h"
+#include "internal_inc/osal.h"
 
 #if defined(__aarch64__)
 constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
@@ -33,7 +34,7 @@ constexpr size_t STACK_MAGIC = 0x7BCDABCDABCDABCD;
 #define FFRT_STACK_SIZE (1 << 20)
 #endif
 
-#ifdef ASAN_MODE
+#ifdef FFRT_ASAN_MODE
 extern "C" void __sanitizer_start_switch_fiber(void **fake_stack_save, const void *bottom, size_t size);
 extern "C" void __sanitizer_finish_switch_fiber(void *fake_stack_save, const void **bottom_old, size_t *size_old);
 extern "C" void __asan_handle_no_return();
@@ -86,7 +87,7 @@ struct CoRoutine {
     std::atomic_int status {static_cast<int>(CoStatus::CO_UNINITIALIZED)};
     CoRoutineEnv* thEnv;
     ffrt::CoTask* task;
-#ifdef ASAN_MODE
+#ifdef FFRT_ASAN_MODE
     void *asanFakeStack = nullptr;  // not finished, need further verification
     const void *asanFiberAddr = nullptr;
     size_t asanFiberSize = 0;
@@ -118,24 +119,29 @@ public:
     }
 };
 
-class CoRoutineFactory {
-public:
-    using CowakeCB = std::function<void (ffrt::CoTask*, CoWakeType)>;
+extern pthread_key_t g_coThreadTlsKey;
+void CoEnvCreate(void);
 
-    static CoRoutineFactory &Instance();
+static FFRT_NOINLINE void* CreateCoEnv()
+{
+    void* coEnv = new CoRoutineEnv();
+    pthread_setspecific(g_coThreadTlsKey, coEnv);
+    return coEnv;
+}
 
-    static void CoWakeFunc(ffrt::CoTask* task, CoWakeType type)
-    {
-        return Instance().cowake_(task, type);
+static FFRT_INLINE CoRoutineEnv* GetCoEnv()
+{
+    void* coTls = pthread_getspecific(g_coThreadTlsKey);
+    if unlikely(coTls == nullptr) {
+        coTls = CreateCoEnv();
     }
+    return reinterpret_cast<CoRoutineEnv*>(coTls);
+}
 
-    static void RegistCb(const CowakeCB &cowake)
-    {
-        Instance().cowake_ = cowake;
-    }
-private:
-    CowakeCB cowake_;
-};
+FFRT_INLINE CoRoutineEnv* GetCoRoutineEnv(void)
+{
+    return GetCoEnv();
+}
 
 void CoStackFree(void);
 void CoWorkerExit(void);

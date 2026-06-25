@@ -23,8 +23,10 @@ constexpr int PROCESS_NAME_BUFFER_LENGTH = 1024;
 }
 
 namespace ffrt {
+
 WhiteList::WhiteList()
 {
+    whiteListArray_.fill(-1);
     LoadFromFile();
 }
 
@@ -34,28 +36,27 @@ WhiteList& WhiteList::GetInstance()
     return instance;
 }
 
-bool WhiteList::IsEnabled(const std::string& functionName, bool defaultWhenAbnormal)
+bool WhiteList::IsEnabled(WhiteListKey key, bool defaultWhenAbnormal)
 {
     if (TryRefreshWhiteListOnInit()) {
-        auto it = whiteList_.find(functionName);
-        if (it != whiteList_.end()) {
-            return it->second;
+        if (key != WhiteListKey::UNKNOWN &&
+            whiteListArray_[static_cast<size_t>(key)] != -1) {
+            return whiteListArray_[static_cast<size_t>(key)];
         }
     } else {
         std::unique_lock lock(whitelistMutex_);
-        auto it = whiteList_.find(functionName);
-        if (it != whiteList_.end()) {
-            return it->second;
+        if (key != WhiteListKey::UNKNOWN &&
+            whiteListArray_[static_cast<size_t>(key)] != -1) {
+            return whiteListArray_[static_cast<size_t>(key)];
         }
     }
 
-    // 若白名单加载失败或不在白名单中的默认返回值
     return defaultWhenAbnormal;
 }
 
 void WhiteList::LoadFromFile()
 {
-    whiteList_.clear();
+    whiteListArray_.fill(0);
     char processNameChar[PROCESS_NAME_BUFFER_LENGTH] {};
     GetProcessName(processNameChar, PROCESS_NAME_BUFFER_LENGTH);
     if (strlen(processNameChar) == 0) {
@@ -66,31 +67,30 @@ void WhiteList::LoadFromFile()
 #ifdef OHOS_STANDARD_SYSTEM
     std::string whiteProcess;
     std::ifstream file(CONF_FILEPATH);
-    std::string functionName;
+    size_t sectionIndex = 0;
     if (file.is_open()) {
         while (std::getline(file, whiteProcess)) {
-            size_t pos = whiteProcess.find("{");
-            if (pos != std::string::npos) {
-                functionName = whiteProcess.substr(0, pos - 1);
-                whiteList_[functionName] = false;
-            } else if ((whiteProcess != "}" && whiteProcess != "") &&
+            if (whiteProcess.find("{") != std::string::npos) {
+                whiteListArray_[sectionIndex] = false;
+                continue;
+            }
+            if ((whiteProcess != "}" && whiteProcess != "") && sectionIndex < KEY_COUNT &&
                 processName.find(whiteProcess.substr(INDENT_SPACE_NUM)) != std::string::npos) {
-                whiteList_[functionName] = true;
+                whiteListArray_[sectionIndex] = true;
+            } else if (whiteProcess == "}") {
+                sectionIndex++;
             }
         }
     } else {
-        // 当文件不存在或者无权限时默认都关
         FFRT_LOGW("white_list.conf does not exist or file permission denied");
     }
 #else
-    whiteList_["IsInSFFRTList"] = false;
+    whiteListArray_[static_cast<size_t>(WhiteListKey::IsInSFFRTList)] = false;
     if (processName.find("zygote") != std::string::npos) {
-        whiteList_["IsInSFFRTList"] = true;
+        whiteListArray_[static_cast<size_t>(WhiteListKey::IsInSFFRTList)] = true;
     }
     if (processName.find("CameraDaemon") != std::string::npos) {
-        whiteList_["SetThreadAttr"] = true;
-        whiteList_["CreateCPUWorker"] = true;
-        whiteList_["HandleTaskNotifyConservative"] = true;
+        whiteListArray_[static_cast<size_t>(WhiteListKey::SetThreadAttr)] = true;
     }
 #endif // OHOS_STANDARD_SYSTEM
 }

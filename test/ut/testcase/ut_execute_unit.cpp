@@ -64,15 +64,15 @@ protected:
  */
 HWTEST_F(ExecuteUnitTest, coroutine_release_task_test, TestSize.Level1)
 {
-    FFRTFacade::GetWMInstance().taskTimeoutInfo_.push_back({1, "test1"});
-    FFRTFacade::GetWMInstance().taskTimeoutInfo_.push_back({2, "test2"});
-    FFRTFacade::GetWMInstance().CheckTaskStatus();
-    int x = FFRTFacade::GetWMInstance().taskTimeoutInfo_.size();
+    FFRTFacade::GetWorkerMonitor().taskTimeoutInfo_.push_back({1, "test1"});
+    FFRTFacade::GetWorkerMonitor().taskTimeoutInfo_.push_back({2, "test2"});
+    FFRTFacade::GetWorkerMonitor().CheckTaskStatus();
+    int x = FFRTFacade::GetWorkerMonitor().taskTimeoutInfo_.size();
     EXPECT_EQ(x, 0);
 }
 
 /*
- * 测试用例名称：coroutine_release_task_test
+ * 测试用例名称：coroutine_release_worker_test
  * 测试用例描述：无效线程状态清理操作
  * 预置条件    ：无
  * 操作步骤    ：1.提交一个耗时2s的任务
@@ -86,14 +86,14 @@ HWTEST_F(ExecuteUnitTest, coroutine_release_worker_test, TestSize.Level1)
         usleep(2000000);
     });
     usleep(1000000);
-    FFRTFacade::GetWMInstance().CheckWorkerStatus();
-    int x1 = FFRTFacade::GetWMInstance().workerStatus_.size();
+    FFRTFacade::GetWorkerMonitor().CheckWorkerStatus();
+    int x1 = FFRTFacade::GetWorkerMonitor().workerStatus_.size();
     EXPECT_NE(x1, 0);
 
     ffrt::wait();
     usleep(2000000);
-    FFRTFacade::GetWMInstance().CheckWorkerStatus();
-    int x2 = FFRTFacade::GetWMInstance().workerStatus_.size();
+    FFRTFacade::GetWorkerMonitor().CheckWorkerStatus();
+    int x2 = FFRTFacade::GetWorkerMonitor().workerStatus_.size();
     EXPECT_GE(x2, 0);
 }
 
@@ -178,7 +178,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_inc_worker_abnormal, TestSize.Level0)
 HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level0)
 {
     auto qos1 = std::make_unique<QoS>();
-    FFRTFacade::GetEUInstance().BindWG(*qos1);
+    FFRTFacade::GetExecuteUnit().BindWG(*qos1);
     EXPECT_EQ(*qos1, qos_default);
 }
 
@@ -190,7 +190,7 @@ HWTEST_F(ExecuteUnitTest, BindWG, TestSize.Level0)
 HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level0)
 {
     auto qos1 = std::make_unique<QoS>();
-    FFRTFacade::GetEUInstance().UnbindTG(*qos1);
+    FFRTFacade::GetExecuteUnit().UnbindTG(*qos1);
     EXPECT_EQ(*qos1, qos_default);
 }
 
@@ -202,36 +202,20 @@ HWTEST_F(ExecuteUnitTest, UnbindTG, TestSize.Level0)
 HWTEST_F(ExecuteUnitTest, BindTG, TestSize.Level0)
 {
     auto qos1 = std::make_unique<QoS>();
-    ThreadGroup* it = FFRTFacade::GetEUInstance().BindTG(*qos1);
+    ThreadGroup* it = FFRTFacade::GetExecuteUnit().BindTG(*qos1);
     EXPECT_EQ(*qos1, qos_default);
 }
 
 HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
 {
-    std::atomic<bool> done = false;
-    CpuWorkerOps ops{
-        [](CPUWorker* thread) { return WorkerAction::RETIRE; },
-        [&done](CPUWorker* thread) {
-            // prevent thread leak and UAF
-            // by sync. via done and detaching the thread
-            thread->SetExited();
-            thread->Detach();
-            done = true;
-        },
-        [](CPUWorker* thread) {},
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        []() { return false; },
-#endif
-    };
-
     const auto qos = QoS(5);
     auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(qos);
     workerCtrl.workerShareConfig.push_back({qos, true});
-    auto worker = std::make_unique<CPUWorker>(qos, std::move(ops), 0);
+    auto worker = std::make_unique<CPUWorker>(qos, 0);
 
-    std::function<bool(int, CPUWorker*)> trueFunc = [](int qos, CPUWorker* worker) { return true; };
-    std::function<bool(int, CPUWorker*)> falseFunc = [](int qos, CPUWorker* worker) { return false; };
+    bool (*trueFunc)(int, CPUWorker*) = [](int qos, CPUWorker* worker) { return true; };
+    bool (*falseFunc)(int, CPUWorker*) = [](int qos, CPUWorker* worker) { return false; };
 
 #ifndef FFRT_GITEE
     EXPECT_EQ(manager->WorkerShare(worker.get(), trueFunc), true);
@@ -241,10 +225,6 @@ HWTEST_F(ExecuteUnitTest, WorkerShare, TestSize.Level0)
     workerCtrl.workerShareConfig[0].second = false;
     EXPECT_EQ(manager->WorkerShare(worker.get(), trueFunc), true);
     EXPECT_EQ(manager->WorkerShare(worker.get(), falseFunc), false);
-    while (!done) {
-        // busy wait for the worker thread to be done.
-        // delay the destruction of main thread till the retirement of the worker.
-    }
 }
 
 HWTEST_F(ExecuteUnitTest, HandleTaskNotifyConservative, TestSize.Level0)
@@ -425,36 +405,15 @@ HWTEST_F(ExecuteUnitTest, SetCgroupAttr, TestSize.Level0)
 */
 HWTEST_F(ExecuteUnitTest, ffrt_disable_worker_monitor, TestSize.Level1)
 {
-    std::atomic<bool> done = false;
-    CpuWorkerOps ops {
-        [](CPUWorker* thread) { return WorkerAction::RETIRE; },
-        [&done](CPUWorker* thread) {
-            // prevent thread leak and UAF
-            // by sync. via done and detaching the thread
-            thread->SetExited();
-            thread->Detach();
-            done = true;
-        },
-        [](CPUWorker* thread) {},
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        []() { return false; },
-#endif
-    };
-
     const auto qos = QoS(5);
     auto manager = std::make_unique<SExecuteUnit>();
     CPUWorkerGroup& workerCtrl = manager->GetWorkerGroup(qos);
-    CPUWorker* worker = new CPUWorker(qos, std::move(ops), 0);
+    CPUWorker* worker = new CPUWorker(qos, 0);
     workerCtrl.threads[worker] = std::unique_ptr<CPUWorker>(worker);
     EXPECT_TRUE(worker->monitor_);
 
     manager->DisableWorkerMonitor(qos, worker->Id());
     EXPECT_FALSE(worker->monitor_);
-
-    while (!done) {
-        // busy wait for the worker thread to be done.
-        // delay the destruction of main thread till the retirement of the worker.
-    }
 }
 
 /*
@@ -471,7 +430,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_conservative, TestSize.Level1)
 
     ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
     task->qos_ = ffrt::QoS(2);
-    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
+    ffrt::Scheduler* sch = &ffrt::FFRTFacade::GetScheduler();
     sch->PushTask(task);
 
     int executingNum = manager->GetWorkerGroup(ffrt::QoS(2)).executingNum;
@@ -498,7 +457,7 @@ HWTEST_F(ExecuteUnitTest, ffrt_handle_task_notify_ultra_conservative, TestSize.L
 
     ffrt::TaskBase* task = new ffrt::SCPUEUTask(nullptr, nullptr, 0);
     task->qos_ = ffrt::QoS(2);
-    ffrt::Scheduler* sch = ffrt::Scheduler::Instance();
+    ffrt::Scheduler* sch = &ffrt::FFRTFacade::GetScheduler();
     sch->PushTask(task);
 
     int executingNum = manager->GetWorkerGroup(2).executingNum;
@@ -538,15 +497,15 @@ HWTEST_F(ExecuteUnitTest, ffrt_task_get_tid_test, TestSize.Level1)
  */
 HWTEST_F(ExecuteUnitTest, ffrt_set_sched_mode, TestSize.Level1)
 {
-    ffrt::sched_mode_type sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    ffrt::sched_mode_type sched_type = ffrt::FFRTFacade::GetExecuteUnit().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
 
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_energy_saving_mode);
-    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    sched_type = ffrt::FFRTFacade::GetExecuteUnit().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_energy_saving_mode));
 
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_performance_mode);
-    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    sched_type = ffrt::FFRTFacade::GetExecuteUnit().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_performance_mode));
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_default_mode);
 }
@@ -574,7 +533,7 @@ HWTEST_F(ExecuteUnitTest, worker_escape_stage_one_report, TestSize.Level0)
     EXPECT_EQ(ret, 0);
 
     auto curTime = std::chrono::steady_clock::now();
-    ffrt::CPUWorkerGroup& workerGroup = ffrt::FFRTFacade::GetEUInstance().GetWorkerGroup(ffrt_qos_default);
+    ffrt::CPUWorkerGroup& workerGroup = ffrt::FFRTFacade::GetExecuteUnit().GetWorkerGroup(ffrt_qos_default);
 
     auto submitTasks = [&](int taskNum) {
         for (int i = 0; i < taskNum; i++) {
@@ -628,7 +587,7 @@ HWTEST_F(ExecuteUnitTest, worker_escape_stage_two_report, TestSize.Level0)
     int ret = ffrt::enable_worker_escape(10000, 100, 10000, 0, stageTwoWorkerNum);
     EXPECT_EQ(ret, 0);
 
-    ffrt::CPUWorkerGroup& workerGroup = ffrt::FFRTFacade::GetEUInstance().GetWorkerGroup(ffrt_qos_default);
+    ffrt::CPUWorkerGroup& workerGroup = ffrt::FFRTFacade::GetExecuteUnit().GetWorkerGroup(ffrt_qos_default);
     auto curTime = std::chrono::steady_clock::now();
 
     // 提交任务触发二阶段逃生

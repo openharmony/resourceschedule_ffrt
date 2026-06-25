@@ -87,10 +87,10 @@ void ffrt_wake_coroutine(void* task)
 #endif
 
     ffrt::TaskBase* wakedTask = static_cast<ffrt::TaskBase*>(task);
-    wakedTask->SetStatus(ffrt::TaskStatus::READY);
+    wakedTask->SetStatus<ffrt::TaskStatus::READY>();
     int qos = wakedTask->qos_;
-    ffrt::FFRTFacade::GetSchedInstance()->PushTask(wakedTask, false);
-    ffrt::FFRTFacade::GetEUInstance().NotifyTask<ffrt::TaskNotifyType::TASK_LOCAL>(qos);
+    bool isRisingEdge = ffrt::FFRTFacade::GetScheduler().PushTask(wakedTask, false);
+    ffrt::FFRTFacade::GetExecuteUnit().NotifyTask<ffrt::TaskNotifyType::TASK_ADDED_RTQ>(qos, false, isRisingEdge);
 }
 #ifdef __cplusplus
 }

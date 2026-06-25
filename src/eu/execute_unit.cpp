@@ -56,13 +56,14 @@ const std::set<QoS> TASK_BACKLOG_CONFIG = {0, 2, 4, 5};
 
 ExecuteUnit::ExecuteUnit()
 {
-    ffrt::CoRoutineInstance(CoStackAttr::Instance()->size);
+    ffrt::CoRoutineInstance(FFRTFacade::GetCoStackAttr().size);
 
     workerGroup[qos_deadline_request].tg = std::make_unique<ThreadGroup>();
 
     for (auto qos = QoS::Min(); qos < QoS::Max(); ++qos) {
         workerGroup[qos].hardLimit = DEFAULT_HARDLIMIT;
         workerGroup[qos].maxConcurrency = GlobalConfig::Instance().getCpuWorkerNum(qos);
+        workerGroup[qos].mutex = &g_schedMtx[qos];
     }
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     memset_s(&domainInfoMonitor, sizeof(domainInfoMonitor), 0, sizeof(domainInfoMonitor));
@@ -315,7 +316,7 @@ bool ExecuteUnit::IncWorker(const QoS &qos)
     }
 create_success:
 #ifdef FFRT_WORKER_MONITOR
-    FFRTFacade::GetWMInstance().SubmitTask();
+    FFRTFacade::GetWorkerMonitor().SubmitTask();
 #endif
     FFRTTraceRecord::UseFfrt();
     return true;
@@ -327,7 +328,7 @@ void ExecuteUnit::DisableWorkerMonitor(const QoS& qos, int tid)
     if (IsBlockAwareInit()) {
         int ret = BlockawareUnregister();
         if (ret != 0) {
-            FFRT_SYSEVENT_LOGE("blockaware unregister fail, ret[%d]", ret);
+            FFRT_SYSEVENT_LOGI("blockaware unregister fail, ret[%d]", ret);
         }
     }
 #endif
@@ -370,7 +371,7 @@ void ExecuteUnit::NotifyWorkers(const QoS &qos, int number)
     FFRT_LOGD("qos[%d] inc [%d] workers, wakeup [%d] workers", static_cast<int>(qos), incNumber, wakeupNumber);
 }
 
-bool ExecuteUnit::WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWorker*)> taskFunction)
+bool ExecuteUnit::WorkerShare(CPUWorker* worker, bool(*taskFunction)(int, CPUWorker*))
 {
     for (const auto& pair : workerGroup[worker->GetQos()].workerShareConfig) {
         int shareQos = pair.first;
@@ -455,17 +456,7 @@ void ExecuteUnit::WorkerLeaveTg(const QoS &qos, pid_t pid)
 
 CPUWorker *ExecuteUnit::CreateCPUWorker(const QoS &qos)
 {
-    // default strategy of worker ops
-    CpuWorkerOps ops{
-        [this](CPUWorker *thread) { return this->WorkerIdleAction(thread); },
-        [this](CPUWorker *thread) { this->WorkerRetired(thread); },
-        [this](CPUWorker *thread) { this->WorkerPrepare(thread); },
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        [this]() { return this->IsBlockAwareInit(); },
-#endif
-    };
-
-    return new (std::nothrow) CPUWorker(qos, std::move(ops), workerGroup[qos].workerStackSize);
+    return new (std::nothrow) CPUWorker(qos, workerGroup[qos].workerStackSize);
 }
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
@@ -506,12 +497,6 @@ void ExecuteUnit::ExecuteSetSilentMode(const QoS &qos, unsigned int silentMode)
     kinfoPage->pageInfo.silentMode[qos()].store(silentMode);
 }
 #endif
-
-size_t ExecuteUnit::GetRunningNum(const QoS &qos)
-{
-    CPUWorkerGroup &group = workerGroup[qos()];
-    return GetRunningNum(qos, group);
-}
 
 size_t ExecuteUnit::GetRunningNum(const QoS &qos, const CPUWorkerGroup &group)
 {

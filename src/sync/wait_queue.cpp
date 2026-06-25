@@ -151,7 +151,7 @@ int WaitQueue::SuspendAndWaitUntil(mutexPrivate* lk, const TimePoint& tp) noexce
             }
         }
         FFRT_LOGD("task(%d) time is up", task->gid);
-        CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::TIMEOUT_WAKE);
+        CoWake(static_cast<CoTask*>(task), CoWakeType::TIMEOUT_WAKE);
     });
     FFRT_BLOCK_TRACER(task->gid, cnt);
     CoWait([&](CoTask* task) -> bool {
@@ -226,7 +226,7 @@ void WaitQueue::Notify(bool one) noexcept
         } else {
             WeNotifyProc(we);
             lock.unlock();
-            CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
+            CoWake(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
         }
         if (isEmpty || one) {
             break;

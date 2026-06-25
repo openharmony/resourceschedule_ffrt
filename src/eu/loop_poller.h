@@ -37,7 +37,7 @@ enum class TimerStatus {
 
 struct TimerDataWithCb {
     TimerDataWithCb() {}
-    TimerDataWithCb(void* dataVal, std::function<void(void*)> cbVal, CoTask* taskVal, bool repeat, uint64_t timeout)
+    TimerDataWithCb(void* dataVal, ffrt_timer_cb cbVal, CoTask* taskVal, bool repeat, uint64_t timeout)
         : data(dataVal), cb(cbVal), task(taskVal), repeat(repeat), timeout(timeout)
     {
         if (cb != nullptr) {
@@ -50,7 +50,7 @@ struct TimerDataWithCb {
     }
 
     void* data = nullptr;
-    std::function<void(void*)> cb = nullptr;
+    ffrt_timer_cb cb = nullptr;
     int handle = -1;
     CoTask* task = nullptr;
     bool repeat = false;
@@ -114,19 +114,6 @@ private:
     std::multimap<TimePoint, TimerDataWithCb> timerMap_;
     std::atomic_bool timerEmpty_ {true};
     mutable fast_mutex timerMutex_;
-};
-
-struct PollerProxy {
-public:
-    static PollerProxy& Instance();
-
-    LoopPoller& GetPoller(const QoS& qos = QoS(ffrt_qos_default))
-    {
-        return qosPollers[static_cast<size_t>(qos())];
-    }
-
-private:
-    std::array<LoopPoller, QoS::MaxNum()> qosPollers;
 };
 } // namespace ffrt
 #endif

@@ -103,10 +103,11 @@ struct ExecuteCtx {
     pid_t tid;
     ThreadType threadType_ = ffrt::ThreadType::USER_THREAD;
 
-    static FFRT_NOINLINE void CreateExecuteCtx()
+    static FFRT_NOINLINE void* CreateExecuteCtx()
     {
         void* ctx = new ExecuteCtx();
         pthread_setspecific(g_executeCtxTlsKey, ctx);
+        return ctx;
     }
 
     /**
@@ -118,13 +119,12 @@ struct ExecuteCtx {
         void* ctx = pthread_getspecific(g_executeCtxTlsKey);
         if constexpr (init) {
             if unlikely(ctx == nullptr) {
-                CreateExecuteCtx();
+                ctx = CreateExecuteCtx();
             }
         }
         return reinterpret_cast<ExecuteCtx*>(ctx);
     }
 
-    static ExecuteCtx* Cur(bool init = true);
     static void CtxEnvCreate();
 };
 } // namespace ffrt

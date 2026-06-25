@@ -57,6 +57,7 @@ protected:
 
     static void TearDownTestCase()
     {
+        ffrt::FFRTFacade::GetTimerManager().timerHandle_ = -1;
     }
 
     void SetUp() override
@@ -140,12 +141,12 @@ HWTEST_F(ffrtIoTest, ffrt_timer_start_fail_cb_null, TestSize.Level0)
 HWTEST_F(ffrtIoTest, ffrt_timer_start_fail_flag_teardown, TestSize.Level0)
 {
     ffrt::QoS qos = ffrt::ExecuteCtx::Cur()->qos;
-    ffrt::FFRTFacade::GetTMInstance().teardown = true;
+    ffrt::FFRTFacade::GetTimerManager().teardown = true;
     uint64_t timeout = 20;
     void* data = nullptr;
 
     EXPECT_EQ(-1, ffrt_timer_start(qos, timeout, data, cb, false));
-    ffrt::FFRTFacade::GetTMInstance().teardown = false;
+    ffrt::FFRTFacade::GetTimerManager().teardown = false;
 }
 
 HWTEST_F(ffrtIoTest, ffrt_timer_stop_fail, TestSize.Level0)
@@ -376,7 +377,7 @@ HWTEST_F(ffrtIoTest, ffrt_epoll_get_count, TestSize.Level0)
      * Note: In general, it is a better idea to make test run oblivious and function independently from
      * each-other.
      */
-    ffrt::FFRTFacade::GetPPInstance().PollOnce(0);
+    ffrt::FFRTFacade::GetIOPoller().PollOnce(0);
     int ret = ffrt_epoll_get_count(qos);
     EXPECT_NE(ret, 0);
 }

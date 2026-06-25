@@ -29,6 +29,14 @@ public:
         size.store(curSize + 1, std::memory_order_relaxed);
     }
 
+    int EnQueueAndRetSize(TaskBase* task)
+    {
+        list.PushBack(task->node);
+        int old = size.load(std::memory_order_relaxed);
+        size.store(old + 1, std::memory_order_relaxed);
+        return old;
+    }
+
     void EnQueueBatch(TaskBase* first, TaskBase* last, size_t cnt)
     {
         list.PushBack(first->node, last->node);

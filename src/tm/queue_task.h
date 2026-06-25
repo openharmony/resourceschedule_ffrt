@@ -122,13 +122,7 @@ public:
     // dequeue means task has been pulled out from it's queue
     inline void Dequeue()
     {
-        SetStatus(TaskStatus::DEQUEUED);
-    }
-
-    // pop means task has been popped from scheduler
-    void Pop() override
-    {
-        SetStatus(TaskStatus::POPPED);
+        SetStatus<TaskStatus::DEQUEUED>();
     }
 
     void Execute() override;
@@ -137,17 +131,17 @@ public:
     {
         if (USE_COROUTINE && !threadMode_ && legacyCountNum <= 0 && (handler_ && !handler_->IsOnLoop())) {
             blockType = BlockType::BLOCK_COROUTINE;
-            SetStatus(TaskStatus::COROUTINE_BLOCK);
+            SetStatus<TaskStatus::COROUTINE_BLOCK>();
         } else {
             blockType = BlockType::BLOCK_THREAD;
-            SetStatus(TaskStatus::THREAD_BLOCK);
+            SetStatus<TaskStatus::THREAD_BLOCK>();
         }
         return blockType;
     }
 
     void Wake() override
     {
-        SetStatus(TaskStatus::EXECUTING);
+        SetStatus<TaskStatus::EXECUTING>();
         blockType = BlockType::BLOCK_COROUTINE;
     }
 
@@ -156,7 +150,7 @@ public:
     void Cancel() override
     {
         FFRT_LOGD("cancel task[%llu] %s succ", gid, label.c_str());
-        SetStatus(TaskStatus::CANCELED);
+        SetStatus<TaskStatus::CANCELED>();
         Notify();
         Destroy();
     }

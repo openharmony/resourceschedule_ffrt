@@ -102,7 +102,7 @@ public:
     {
 #if FFRT_SUPPORT_FAST_MUTEX
         int v = mutex_detail::UNLOCK;
-        auto& l = *reinterpret_cast<std::atomic<int>*>(reinterpret_cast<char*>(this) + sizeof(void*));
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
         bool ret = l.compare_exchange_strong(
             v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
         return ret;
@@ -120,7 +120,7 @@ public:
     {
 #if FFRT_SUPPORT_FAST_MUTEX
         int v = mutex_detail::UNLOCK;
-        auto& l = *reinterpret_cast<std::atomic<int>*>(reinterpret_cast<char*>(this) + sizeof(void*));
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
         if (__builtin_expect(l.compare_exchange_strong(
             v, mutex_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed), 1)) {
             return;
@@ -139,7 +139,7 @@ public:
     inline void unlock()
     {
 #if FFRT_SUPPORT_FAST_MUTEX
-        auto& l = *reinterpret_cast<std::atomic<int>*>(reinterpret_cast<char*>(this) + sizeof(void*));
+        auto& l = *reinterpret_cast<std::atomic<int>*>(this);
         if (__builtin_expect(l.exchange(
             mutex_detail::UNLOCK, std::memory_order_release) == mutex_detail::WAIT, 0)) {
             ffrt_mutex_unlock_wake(this);

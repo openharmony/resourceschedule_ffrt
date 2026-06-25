@@ -98,88 +98,6 @@ static void* TempFunc(void *)
     return nullptr;
 }
 
-WorkerAction WorkerIdleAction(CPUWorker *thread)
-{
-    return WorkerAction::RETRY;
-}
- /* a flag used to stall main thread till the worker is done. This prevents UAF */
-std::atomic<bool> workerDone = false;
-void WorkerRetired(CPUWorker* thread)
-{
-    thread->SetExited();
-    thread->Detach();
-    /* worker is done, set flag to true */
-    workerDone = true;
-}
-void WaitForWorker()
-{
-    /* Stall till worker is done to prevent UAF */
-    while (!workerDone) {
-        // spin till the worker is done
-    }
-}
-
-void WorkerPrepare(CPUWorker* thread)
-{
-}
-
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-bool IsBlockAwareInit()
-{
-    return true;
-}
-#endif
-
-HWTEST_F(CpuWorkerTest, ExitedTest, TestSize.Level1)
-{
-    CpuWorkerOps ops;
-    ops.WorkerIdleAction = WorkerIdleAction;
-    ops.WorkerRetired = WorkerRetired;
-    ops.WorkerPrepare = WorkerPrepare;
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    ops.IsBlockAwareInit = IsBlockAwareInit;
-#endif
-    workerDone = false;
-    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
-    bool ret = worker->Exited();
-    EXPECT_FALSE(ret);
-    worker->SetExited();
-    WaitForWorker();
-}
-
-HWTEST_F(CpuWorkerTest, SetExitedTest, TestSize.Level1)
-{
-    CpuWorkerOps ops;
-    ops.WorkerIdleAction = WorkerIdleAction;
-    ops.WorkerRetired = WorkerRetired;
-    ops.WorkerPrepare = WorkerPrepare;
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    ops.IsBlockAwareInit = IsBlockAwareInit;
-#endif
-    workerDone = false;
-    auto worker = std::make_unique<CPUWorker>(QoS(6), std::move(ops), 1024);
-    worker->SetExited();
-    EXPECT_TRUE(worker->exited.load());
-    WaitForWorker();
-}
-
-HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level1)
-{
-    CpuWorkerOps ops;
-    ops.WorkerIdleAction = WorkerIdleAction;
-    ops.WorkerRetired = WorkerRetired;
-    ops.WorkerPrepare = WorkerPrepare;
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    ops.IsBlockAwareInit = IsBlockAwareInit;
-#endif
-    workerDone = false;
-    auto qos = QoS(6);
-    auto worker = std::make_unique<CPUWorker>(qos, std::move(ops), 1024);
-    EXPECT_EQ(worker->GetQos(), qos);
-    worker->SetExited();
-    WaitForWorker();
-}
-
 /*
  * 测试用例名称：SetCameraThread_Normal_True
  * 测试用例描述：SetThreadAttr进入camera分支
@@ -190,8 +108,8 @@ HWTEST_F(CpuWorkerTest, GetQosTest, TestSize.Level1)
  */
 HWTEST_F(CpuWorkerTest, SetCameraThread_Normal_True, TestSize.Level0)
 {
-    WhiteList::GetInstance().whiteList_["SetThreadAttr"] = true;
-    EXPECT_EQ(WhiteList::GetInstance().IsEnabled("SetThreadAttr", false), true);
+    WhiteList::GetInstance().whiteListArray_[static_cast<size_t>(WhiteListKey::SetThreadAttr)] = true;
+    EXPECT_EQ(WhiteList::GetInstance().IsEnabled(WhiteListKey::SetThreadAttr, false), true);
     stall_us(5000000);
     std::atomic<int> result = 0;
     for (int i = 0; i < 100; ++i) {
@@ -200,5 +118,5 @@ HWTEST_F(CpuWorkerTest, SetCameraThread_Normal_True, TestSize.Level0)
     ffrt_wait();
     EXPECT_EQ(result, 100);
 
-    WhiteList::GetInstance().whiteList_["SetThreadAttr"] = false;
+    WhiteList::GetInstance().whiteListArray_[static_cast<size_t>(WhiteListKey::SetThreadAttr)] = false;
 }

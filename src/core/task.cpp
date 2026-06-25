@@ -73,7 +73,7 @@ void OnSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
-    FFRTFacade::GetDMInstance().onSubmit(has_handle, handle, f, ins, outs, attr);
+    FFRTFacade::GetDependenceManager().onSubmit(has_handle, handle, f, ins, outs, attr);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -99,7 +99,7 @@ void DestroyFunctionWrapper(ffrt_function_header_t* f,
 API_ATTRIBUTE((visibility("default")))
 void sync_io(int fd)
 {
-    FFRTFacade::GetPPInstance().WaitFdEvent(fd);
+    FFRTFacade::GetIOPoller().WaitFdEvent(fd);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -449,7 +449,7 @@ uint32_t ffrt_task_handle_dec_ref(ffrt_task_handle_t handle)
         FFRT_LOGE("input task handle is invalid");
         return UINT_MAX;
     }
-    return ffrt::DependenceManager::Instance().DecTaskRef(handle);
+    return ffrt::FFRTFacade::GetDependenceManager().DecTaskRef(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -478,13 +478,13 @@ void ffrt_wait_deps(const ffrt_deps_t *deps)
         v[i] = deps->items[i];
     }
     ffrt_deps_t d = { deps->len, v.data() };
-    ffrt::FFRTFacade::GetDMInstance().onWait(&d);
+    ffrt::FFRTFacade::GetDependenceManager().onWait(&d);
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_wait()
 {
-    ffrt::FFRTFacade::GetDMInstance().onWait();
+    ffrt::FFRTFacade::GetDependenceManager().onWait();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -505,7 +505,7 @@ int ffrt_set_cgroup_attr(ffrt_qos_t qos, ffrt_os_sched_attr *attr)
 API_ATTRIBUTE((visibility("default")))
 void ffrt_restore_qos_config()
 {
-    ffrt::FFRTFacade::GetEUInstance().RestoreThreadConfig();
+    ffrt::FFRTFacade::GetExecuteUnit().RestoreThreadConfig();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -524,7 +524,7 @@ int ffrt_set_cpu_worker_max_num(ffrt_qos_t qos, uint32_t num)
         FFRT_LOGE("qos[%d] is invalid.", qos);
         return -1;
     }
-    return ffrt::FFRTFacade::GetEUInstance().SetWorkerMaxNum(_qos, num);
+    return ffrt::FFRTFacade::GetExecuteUnit().SetWorkerMaxNum(_qos, num);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -535,7 +535,7 @@ void ffrt_notify_workers(ffrt_qos_t qos, int number)
         return;
     }
 
-    ffrt::FFRTFacade::GetEUInstance().NotifyWorkers(qos, number);
+    ffrt::FFRTFacade::GetExecuteUnit().NotifyWorkers(qos, number);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -546,7 +546,7 @@ ffrt_error_t ffrt_set_worker_stack_size(ffrt_qos_t qos, size_t stack_size)
         return ffrt_error_inval;
     }
 
-    if (ffrt::FFRTFacade::GetEUInstance().SetWorkerStackSize(ffrt::QoS(qos), stack_size) != 0) {
+    if (ffrt::FFRTFacade::GetExecuteUnit().SetWorkerStackSize(ffrt::QoS(qos), stack_size) != 0) {
         return ffrt_error;
     }
 
@@ -623,7 +623,7 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_skip(ffrt_task_handle_t handle)
 {
     FFRT_COND_DO_ERR((handle == nullptr), return ffrt_error_inval, "input ffrt task handle is invalid.");
-    return ffrt::FFRTFacade::GetDMInstance().onSkip(handle);
+    return ffrt::FFRTFacade::GetDependenceManager().onSkip(handle);
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -656,7 +656,7 @@ int ffrt_executor_task_cancel(ffrt_executor_task_t* task, const ffrt_qos_t qos)
     FFRT_COND_DO_ERR((qos == ffrt::qos_inherit || qos > ffrt::qos_max), return 0, "Level incorrect");
     FFRT_COND_DO_ERR((task == nullptr), return 0, "libuv task is NULL");
 
-    ffrt::Scheduler* sch = ffrt::FFRTFacade::GetSchedInstance();
+    ffrt::Scheduler* sch = &ffrt::FFRTFacade::GetScheduler();
     bool ret = sch->CancelUVWork(task, qos);
     if (ret) {
         ffrt::FFRTTraceRecord::TaskCancel<ffrt_uv_task>(qos);
@@ -749,14 +749,14 @@ API_ATTRIBUTE((visibility("default")))
 int ffrt_enable_worker_escape(uint64_t one_stage_interval_ms, uint64_t two_stage_interval_ms,
     uint64_t three_stage_interval_ms, uint64_t one_stage_worker_num, uint64_t two_stage_worker_num)
 {
-    return ffrt::FFRTFacade::GetEUInstance().SetEscapeEnable(one_stage_interval_ms, two_stage_interval_ms,
+    return ffrt::FFRTFacade::GetExecuteUnit().SetEscapeEnable(one_stage_interval_ms, two_stage_interval_ms,
         three_stage_interval_ms, one_stage_worker_num, two_stage_worker_num);
 }
 
 API_ATTRIBUTE((visibility("default")))
 void ffrt_disable_worker_escape(void)
 {
-    ffrt::FFRTFacade::GetEUInstance().SetEscapeDisable();
+    ffrt::FFRTFacade::GetExecuteUnit().SetEscapeDisable();
 }
 
 API_ATTRIBUTE((visibility("default")))
@@ -766,7 +766,7 @@ void ffrt_set_sched_mode(ffrt_qos_t qos, ffrt_sched_mode mode)
         FFRT_LOGE("Currently, the energy saving mode is unavailable or qos [%d] is invalid..", qos);
         return;
     }
-    ffrt::FFRTFacade::GetEUInstance().SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));
+    ffrt::FFRTFacade::GetExecuteUnit().SetSchedMode(ffrt::QoS(qos), static_cast<ffrt::sched_mode_type>(mode));
 }
 
 API_ATTRIBUTE((visibility("default")))

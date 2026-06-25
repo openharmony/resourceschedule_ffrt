@@ -18,6 +18,7 @@
 #include "sched/task_scheduler.h"
 #include "dfx/trace/ffrt_trace.h"
 #include "tm/uv_task.h"
+#include "util/ffrt_facade.h"
 
 namespace ffrt {
 class STaskScheduler : public TaskScheduler {
@@ -30,6 +31,7 @@ public:
     void SetQos(QoS &q) override
     {
         qos = q;
+        mtx = &g_schedMtx[qos];
     }
 
     uint64_t GetGlobalTaskCnt() override
@@ -47,7 +49,37 @@ public:
         return que->Empty();
     }
 
-    bool PushTask(TaskBase* task, bool rtb) override;
+    bool PushTask(TaskBase* task, bool rtb) override
+    {
+        constexpr int TASK_OVERRUN_THRESHOLD = 1000;
+        constexpr int TASK_OVERRUN_ALARM_FREQ = 500;
+        FFRT_PERF_TRACE_SCOPED_BY_GROUP(SCHED, STaskScheduler_PushTaskGlobal, DEFAULT_CONFIG);
+        (void)rtb; // rtb is deprecated here
+        FFRT_COND_DO_ERR((task == nullptr), return false, "task is nullptr");
+
+        int taskCount = 0;
+        int level = task->GetQos();
+        uint64_t gid = task->gid;
+        std::string label = task->GetLabel();
+
+        FFRT_READY_MARKER(gid); // ffrt normal task ready to enqueue
+        {
+            std::lock_guard lg(*mtx);
+            // enqueue task and read size under lock-protection
+            que->EnQueue(task);
+            taskCount = que->Size();
+        }
+
+        // The ownership of the task belongs to ReadyTaskQueue, and the task cannot be accessed any more.
+        FFRT_LOGD("qos[%d] task[%llu], name[%s] entered q", level, gid, label.c_str());
+
+        if (taskCount >= TASK_OVERRUN_THRESHOLD && taskCount % TASK_OVERRUN_ALARM_FREQ == 0) {
+            FFRT_SYSEVENT_LOGW("qos [%d], task [%s] entered q, task count [%d] exceeds threshold.",
+                level, label.c_str(), taskCount);
+        }
+
+        return taskCount == 1; // whether it's rising edge
+    }
 
     TaskBase* PopTask() override
     {
@@ -55,7 +87,7 @@ public:
         TaskBase* task = nullptr;
         {
             // pop from global queue
-            std::lock_guard<std::mutex> lock(*GetMutex());
+            std::lock_guard<std::mutex> lock(*mtx);
             task = que->DeQueue();
         }
 

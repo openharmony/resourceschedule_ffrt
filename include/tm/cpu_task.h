@@ -100,34 +100,29 @@ public:
     void Prepare() override;
     void Ready() override;
 
-    void Pop() override
-    {
-        SetStatus(TaskStatus::POPPED);
-    }
-
     void Execute() override;
 
     BlockType Block() override
     {
         if (USE_COROUTINE && !IsRoot() && legacyCountNum <= 0) {
             blockType = BlockType::BLOCK_COROUTINE;
-            SetStatus(TaskStatus::COROUTINE_BLOCK);
+            SetStatus<TaskStatus::COROUTINE_BLOCK>();
         } else {
             blockType = BlockType::BLOCK_THREAD;
-            SetStatus(TaskStatus::THREAD_BLOCK);
+            SetStatus<TaskStatus::THREAD_BLOCK>();
         }
         return blockType;
     }
 
     void Wake() override
     {
-        SetStatus(TaskStatus::EXECUTING);
+        SetStatus<TaskStatus::EXECUTING>();
         blockType = BlockType::BLOCK_COROUTINE;
     }
 
     void Cancel() override
     {
-        SetStatus(TaskStatus::CANCELED);
+        SetStatus<TaskStatus::CANCELED>();
     }
 
     void FreeMem() override;

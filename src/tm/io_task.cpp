@@ -31,11 +31,11 @@ void IOTask::Execute()
 #ifdef FFRT_ASYNC_STACKTRACE
     FFRTSetStackId(stackId);
 #endif
-    SetStatus(TaskStatus::EXECUTING);
+    SetStatus<TaskStatus::EXECUTING>();
     ffrt_coroutine_ptr_t coroutine = work.exec;
     ffrt_coroutine_ret_t ret = coroutine(work.data);
     if (ret == ffrt_coroutine_ready) {
-        SetStatus(TaskStatus::FINISH);
+        SetStatus<TaskStatus::FINISH>();
         work.destroy(work.data);
         DecDeleteRef();
         FFRT_TASK_END();
@@ -43,7 +43,7 @@ void IOTask::Execute()
         return;
     }
     FFRT_BLOCK_MARKER(gid);
-    SetStatus(TaskStatus::PENDING);
+    SetStatus<TaskStatus::PENDING>();
 #ifdef FFRT_BBOX_ENABLE
     TaskPendingCounterInc();
 #endif

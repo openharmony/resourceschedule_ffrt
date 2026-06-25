@@ -19,21 +19,48 @@
 #include <iostream>
 #include <mutex>
 #include <string>
-#include <unordered_map>
+#include <array>
 
 namespace ffrt {
+
+enum class WhiteListKey : uint8_t {
+    log_ctr,
+    worker_monitor,
+    SetThreadAttr,
+    IsDelayedWorkerPreserved,
+    IsInSFFRTListOHOS,
+    IsInSFFRTList,
+    WhiteListTest,
+    PerfTraceScopedAll,
+    PerfTraceScopedCustom,
+    PerfTraceScopedEu,
+    PerfTraceScopedSched,
+    PerfTraceScopedDm,
+    PerfTraceScopedQueue,
+    PerfTraceScopedSync,
+    DisableLIFOFutex,
+    SetThreadInitPri,
+    EnableSchedQss,
+    BlackListQss,
+    UNKNOWN,
+    KEY_MAX = UNKNOWN
+};
+
 class WhiteList {
 public:
-    static WhiteList &GetInstance();
+    static WhiteList& GetInstance();
     void LoadFromFile();
-    bool IsEnabled(const std::string& functionName, bool defaultWhenAbnormal);
+    bool IsEnabled(WhiteListKey key, bool defaultWhenAbnormal);
+
 private:
     WhiteList();
     bool TryRefreshWhiteListOnInit();
+
     WhiteList(const WhiteList&) = delete;
     WhiteList& operator=(const WhiteList&) = delete;
 
-    std::unordered_map<std::string, bool> whiteList_;
+    static constexpr size_t KEY_COUNT = static_cast<size_t>(WhiteListKey::KEY_MAX);
+    std::array<int, KEY_COUNT> whiteListArray_{};
     std::mutex whitelistMutex_;
     bool whitelistInited_ = false;
 };

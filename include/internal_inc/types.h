@@ -19,7 +19,7 @@
 #include <cstdint>
 
 namespace ffrt {
-#ifdef CLOSE_COROUTINE_MODE
+#ifdef FFRT_CLOSE_COROUTINE_MODE
 constexpr bool USE_COROUTINE = false;
 #else
 constexpr bool USE_COROUTINE = true;

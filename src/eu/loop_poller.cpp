@@ -39,12 +39,6 @@ LoopPoller::~LoopPoller() noexcept
     flag_ = EpollStatus::TEARDOWN;
 }
 
-PollerProxy& PollerProxy::Instance()
-{
-    static PollerProxy pollerInstance;
-    return pollerInstance;
-}
-
 void LoopPoller::ProcessWaitedFds(int nfds, std::unordered_map<CoTask*, EventVec>& syncTaskEvents,
     std::array<epoll_event, EPOLL_EVENT_SIZE>& waitedEvents) noexcept
 {

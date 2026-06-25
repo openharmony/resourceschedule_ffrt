@@ -18,6 +18,7 @@
 #include <sstream>
 #include "dfx/log/ffrt_log_api.h"
 #include "util/time_format.h"
+#include "util/ffrt_facade.h"
 
 namespace {
 constexpr int MAX_DUMP_SIZE = 500;
@@ -103,21 +104,6 @@ void DumpUnexecutedTaskInfo(const char* tag,
     oss << tag << " Total event size : " << total << "\n";
 }
 
-uint64_t GetMinMapTime(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
-{
-    uint64_t minTime = std::numeric_limits<uint64_t>::max();
-
-    for (int idx = 0; idx <= ffrt_inner_queue_priority_idle; idx++) {
-        if (!whenMapVec[idx].empty()) {
-            auto it = whenMapVec[idx].begin();
-            if (it->first < minTime) {
-                minTime = it->first;
-            }
-        }
-    }
-    return minTime;
-}
-
 bool WhenMapVecEmpty(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
 {
     for (int idx = 0; idx <= ffrt_inner_queue_priority_idle; idx++) {
@@ -182,20 +168,20 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     std::unique_lock lock(mutex_);
     // wait for delay task
     uint64_t now = GetNow();
-    uint64_t minMaptime = GetMinMapTime(whenMapVec_);
-    while (!WhenMapVecEmpty(whenMapVec_) && now < minMaptime && !isExit_) {
-        uint64_t diff = minMaptime - now;
+    GetWhenMapVecStats(whenMapVec_);
+    while (!isEmpty_ && now < minTime_ && !isExit_) {
+        uint64_t diff = minTime_ - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
         delayStatus_.store(true);
         cond_.wait_for(lock, std::chrono::microseconds(diff));
         delayStatus_.store(false);
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
-        minMaptime = GetMinMapTime(whenMapVec_);
+        GetWhenMapVecStats(whenMapVec_);
     }
 
     // abort dequeue in abnormal scenarios
-    if (WhenMapVecEmpty(whenMapVec_)) {
+    if (isEmpty_) {
         FFRT_LOGD("[queueId=%u] switch into inactive", queueId_);
         isActiveState_.store(false);
         return nullptr;

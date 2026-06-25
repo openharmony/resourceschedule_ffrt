@@ -58,7 +58,7 @@ void BasePoller::WakeTask(CoTask* task)
         task->waitCond_.notify_one();
     } else {
         lck.unlock();
-        CoRoutineFactory::CoWakeFunc(task, CoWakeType::NO_TIMEOUT_WAKE);
+        CoWake(task, CoWakeType::NO_TIMEOUT_WAKE);
     }
 }
 

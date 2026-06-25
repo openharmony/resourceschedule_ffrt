@@ -14,6 +14,9 @@
  */
 #ifndef UTIL_FFRTFACADE_HPP
 #define UTIL_FFRTFACADE_HPP
+#include <functional>
+#include <mutex>
+#include "internal_inc/non_copyable.h"
 #include "sched/scheduler.h"
 #include "eu/co_routine.h"
 #include "eu/execute_unit.h"
@@ -23,6 +26,8 @@
 #include "eu/io_poller.h"
 #include "sync/timer_manager.h"
 #include "util/worker_monitor.h"
+#include "dfx/trace/ffrt_trace_chain.h"
+#include "dfx/trace/ffrt_trace.h"
 
 namespace ffrt {
 bool GetInitFlag();
@@ -32,104 +37,59 @@ void SetDelayedWorkerExitFlag();
 bool GetBetaVersionFlag();
 void SetBetaVersionFlag();
 
-class FFRTFacade {
+// global scheduler mutexs per qos
+inline std::mutex g_schedMtx[QoS::MaxNum()];
+
+// xmacro of singletons that can only fetch by Facade
+#ifdef FFRT_OH_TRACE_ENABLE
+#define SINGLETON_LIST \
+    SINGLETON(DependenceManager) \
+    SINGLETON(IOPoller) \
+    SINGLETON(TimerManager) \
+    SINGLETON(Scheduler) \
+    SINGLETON(WorkerMonitor) \
+    SINGLETON(ExecuteUnit) \
+    SINGLETON(DelayedWorker) \
+    SINGLETON(CoStackAttr) \
+    SINGLETON(QueueMonitor) \
+    SINGLETON(TraceChainAdapter) \
+    SINGLETON(TraceAdapter)
+#else
+#define SINGLETON_LIST \
+    SINGLETON(DependenceManager) \
+    SINGLETON(IOPoller) \
+    SINGLETON(TimerManager) \
+    SINGLETON(Scheduler) \
+    SINGLETON(WorkerMonitor) \
+    SINGLETON(ExecuteUnit) \
+    SINGLETON(DelayedWorker) \
+    SINGLETON(CoStackAttr) \
+    SINGLETON(QueueMonitor) \
+    SINGLETON(TraceChainAdapter)
+#endif
+
+// global ptr for fast-path singleton get
+#define SINGLETON(TypeName) \
+    inline TypeName* g##TypeName { nullptr };
+SINGLETON_LIST
+#undef SINGLETON
+
+class FFRTFacade : public NonCopyable {
 public:
-    static inline ExecuteUnit& GetEUInstance()
-    {
-        return Instance().GetEUInstanceImpl();
+#define SINGLETON(TypeName) \
+    static TypeName& Get##TypeName() \
+    { \
+        if FFRT_UNLIKELY(!g##TypeName) { \
+            LazyInstance(); \
+        } \
+        return *g##TypeName; \
     }
-
-    static inline DependenceManager& GetDMInstance()
-    {
-        return Instance().GetDMInstanceImpl();
-    }
-
-    static inline IOPoller& GetPPInstance()
-    {
-        return Instance().GetPPInstanceImpl();
-    }
-
-    static inline TimerManager& GetTMInstance()
-    {
-        return Instance().GetTMInstanceImpl();
-    }
-
-    static inline DelayedWorker& GetDWInstance()
-    {
-        return Instance().GetDWInstanceImpl();
-    }
-
-    static inline Scheduler* GetSchedInstance()
-    {
-        return Instance().GetSchedInstanceImpl();
-    }
-
-    static inline CoStackAttr* GetCSAInstance()
-    {
-        return Instance().GetCSAInstanceImpl();
-    }
-
-    static inline QueueMonitor& GetQMInstance()
-    {
-        return Instance().GetQMInstanceImpl();
-    }
-
-    static inline WorkerMonitor& GetWMInstance()
-    {
-        return Instance().GetWMInstanceImpl();
-    }
+SINGLETON_LIST
+#undef SINGLETON
 
 private:
-    static inline FFRTFacade* facadeIns_ = nullptr;
-
+    static FFRTFacade& LazyInstance();
     FFRTFacade();
-
-    static FFRTFacade& Instance();
-
-    inline ExecuteUnit& GetEUInstanceImpl()
-    {
-        return ExecuteUnit::Instance();
-    }
-
-    inline DependenceManager& GetDMInstanceImpl()
-    {
-        return DependenceManager::Instance();
-    }
-
-    inline IOPoller& GetPPInstanceImpl()
-    {
-        return IOPoller::Instance();
-    }
-
-    inline TimerManager& GetTMInstanceImpl()
-    {
-        return TimerManager::Instance();
-    }
-
-    inline DelayedWorker& GetDWInstanceImpl()
-    {
-        return DelayedWorker::GetInstance();
-    }
-
-    inline Scheduler* GetSchedInstanceImpl()
-    {
-        return Scheduler::Instance();
-    }
-
-    inline CoStackAttr* GetCSAInstanceImpl()
-    {
-        return CoStackAttr::Instance();
-    }
-
-    inline QueueMonitor& GetQMInstanceImpl()
-    {
-        return QueueMonitor::GetInstance();
-    }
-
-    inline WorkerMonitor& GetWMInstanceImpl()
-    {
-        return WorkerMonitor::GetInstance();
-    }
 };
 
 } // namespace FFRT

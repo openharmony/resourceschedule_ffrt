@@ -58,7 +58,7 @@ protected:
 HWTEST_F(WhiteListTest, whiteList_enable, TestSize.Level1)
 {
     int x = 0;
-    if (WhiteList::GetInstance().IsEnabled("WhiteListTest", true)) {
+    if (WhiteList::GetInstance().IsEnabled(WhiteListKey::WhiteListTest, true)) {
         x += 1;
     }
     EXPECT_EQ(x, 1);
@@ -73,11 +73,11 @@ HWTEST_F(WhiteListTest, whiteList_enable, TestSize.Level1)
 HWTEST_F(WhiteListTest, whiteList_default, TestSize.Level1)
 {
     int x = 0;
-    if (WhiteList::GetInstance().IsEnabled("WhiteListTest", true)) {
+    if (WhiteList::GetInstance().IsEnabled(WhiteListKey::WhiteListTest, true)) {
         x += 1;
     }
 
-    if (WhiteList::GetInstance().IsEnabled("WhiteListTest123", true)) {
+    if (WhiteList::GetInstance().IsEnabled(WhiteListKey::UNKNOWN, true)) {
         x += 1;
     }
     EXPECT_EQ(x, 2);
@@ -92,7 +92,7 @@ HWTEST_F(WhiteListTest, whiteList_default, TestSize.Level1)
 HWTEST_F(WhiteListTest, whiteList_default_reverse, TestSize.Level1)
 {
     int x = 0;
-    if (WhiteList::GetInstance().IsEnabled("WhiteListTest1", false)) {
+    if (WhiteList::GetInstance().IsEnabled(WhiteListKey::UNKNOWN, false)) {
         x += 1;
     }
     EXPECT_EQ(x, 0);

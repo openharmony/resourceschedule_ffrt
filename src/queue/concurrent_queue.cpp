@@ -18,23 +18,11 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "tm/queue_task.h"
 #include "eu/loop.h"
+#include "util/ffrt_facade.h"
 
 namespace {
-uint64_t GetMinMapTime(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
-{
-    uint64_t minTime = std::numeric_limits<uint64_t>::max();
 
-    for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
-        if (!whenMapVec[idx].empty()) {
-            auto it = whenMapVec[idx].begin();
-            if (it->first < minTime) {
-                minTime = it->first;
-            }
-        }
-    }
-    return minTime;
-}
-
+// Kept for GetHeadTask() which is not a hot path - single traversal only
 bool WhenMapVecEmpty(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
 {
     for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
@@ -64,7 +52,7 @@ int ConcurrentQueue::Push(QueueTask* task)
     ffrt_queue_priority_t taskPriority = task->GetPriority();
     if (taskPriority > ffrt_queue_priority_idle) {
         task->SetPriority(ffrt_queue_priority_low);
-        taskPriority = task->GetPriority();
+        taskPriority = ffrt_queue_priority_low;
     }
 
     if (waitingAll_) {
@@ -89,27 +77,28 @@ QueueTask* ConcurrentQueue::Pull()
     std::unique_lock lock(mutex_);
     // wait for delay task
     uint64_t now = GetNow();
+    GetWhenMapVecStats(whenMapVec_);
     if (loop_ != nullptr) {
-        if (!WhenMapVecEmpty(whenMapVec_) && now >= GetMinMapTime(whenMapVec_) && !isExit_) {
+        if (!isEmpty_ && now >= minTime_ && !isExit_) {
             return dequeFunc_(queueId_, now, whenMapVec_, nullptr);
         }
         return nullptr;
     }
 
-    uint64_t minMaptime = GetMinMapTime(whenMapVec_);
-    while (!WhenMapVecEmpty(whenMapVec_) && now < minMaptime && !isExit_) {
-        uint64_t diff = minMaptime - now;
+    while (!isEmpty_ && now < minTime_ && !isExit_) {
+        uint64_t diff = minTime_ - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
         delayStatus_.store(true);
         cond_.wait_for(lock, std::chrono::microseconds(diff));
         delayStatus_.store(false);
         FFRT_LOGD("[queueId=%u] wakeup from wait", queueId_);
         now = GetNow();
-        minMaptime = GetMinMapTime(whenMapVec_);
+        // OPT: single traversal instead of two separate calls
+        GetWhenMapVecStats(whenMapVec_);
     }
 
     // abort dequeue in abnormal scenarios
-    if (WhenMapVecEmpty(whenMapVec_)) {
+    if (isEmpty_) {
         int oldValue = concurrency_.fetch_sub(1); // 取不到后继的task，当前这个task正式退出
         FFRT_LOGD("concurrency[%d] - 1 [queueId=%u] switch into inactive", oldValue, queueId_);
         if (oldValue == 1) {
@@ -162,8 +151,8 @@ void ConcurrentQueue::Stop()
     for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
         Stop(whenMapVec_[idx]);
     }
-
     Stop(waitingMap_);
+
     if (loop_ == nullptr) {
         cond_.notify_all();
     }

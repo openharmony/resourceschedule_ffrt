@@ -31,14 +31,14 @@
 #include "util/white_list.h"
 
 namespace {
-const uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
-const int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
-const int EPOLL_WAIT_TIMEOUT_MILLISECONDS = 3 * 60 * 1000;
-const int NS_PER_SEC = 1000 * 1000 * 1000;
-const int FAKE_WAKE_UP_ERROR = 4;
-const int WAIT_EVENT_SIZE = 5;
-const int64_t EXECUTION_TIMEOUT_MILLISECONDS = 500;
-const int DUMP_MAP_MAX_COUNT = 3;
+constexpr uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
+constexpr int FFRT_DELAY_WORKER_IDLE_TIMEOUT_SECONDS = 3 * 60;
+constexpr int EPOLL_WAIT_TIMEOUT_MILLISECONDS = 3 * 60 * 1000;
+constexpr int NS_PER_SEC = 1000 * 1000 * 1000;
+constexpr int FAKE_WAKE_UP_ERROR = 4;
+constexpr int WAIT_EVENT_SIZE = 5;
+constexpr int64_t EXECUTION_TIMEOUT_MILLISECONDS = 500;
+constexpr int DUMP_MAP_MAX_COUNT = 3;
 constexpr int ASYNC_TASK_SLEEP_MS = 1;
 constexpr const char* BLUETOOTH_SERVICE = "bluetooth_service";
 }
@@ -68,7 +68,7 @@ bool DelayedWorker::IsDelayerWorkerThread()
 
 bool IsDelayedWorkerPreserved()
 {
-    return WhiteList::GetInstance().IsEnabled("IsDelayedWorkerPreserved", false);
+    return WhiteList::GetInstance().IsEnabled(WhiteListKey::IsDelayedWorkerPreserved, false);
 }
 
 void DelayedWorker::DumpMap()
@@ -112,9 +112,9 @@ void DelayedWorker::ThreadInit()
         }
         prctl(PR_SET_NAME, DELAYED_WORKER_NAME);
         pthread_setspecific(g_ffrtDelayWorkerFlagKey, reinterpret_cast<void*>(FFRT_DELAY_WORKER_MAGICNUM));
-        ffrt::FFRTFacade::GetEUInstance().WorkerInit();
+        ffrt::FFRTFacade::GetExecuteUnit().WorkerInit();
         std::array<epoll_event, WAIT_EVENT_SIZE> waitedEvents;
-        static bool preserved = IsDelayedWorkerPreserved();
+        bool preserved = IsDelayedWorkerPreserved();
         for (;;) {
             std::unique_lock lk(lock);
             if (toExit) {
@@ -122,12 +122,8 @@ void DelayedWorker::ThreadInit()
                 FFRT_LOGW("delayedWorker exit");
                 break;
             }
+
             int result = HandleWork();
-            if (toExit) {
-                exited_ = true;
-                FFRT_LOGW("delayedWorker exit");
-                break;
-            }
             if (result == 0) {
                 uint64_t ns = map.begin()->first.time_since_epoch().count();
                 itimerspec its = { {0, 0}, {static_cast<long>(ns / NS_PER_SEC), static_cast<long>(ns % NS_PER_SEC)} };
@@ -136,7 +132,7 @@ void DelayedWorker::ThreadInit()
                     FFRT_SYSEVENT_LOGE("timerfd_settime error,ns=%llu,ret= %d.", ns, ret);
                 }
             } else if ((result == 1) && (!preserved)) {
-                if (++noTaskDelayCount_ > 1 && ffrt::FFRTFacade::GetEUInstance().GetWorkerNum() == 0) {
+                if (++noTaskDelayCount_ > 1 && ffrt::FFRTFacade::GetExecuteUnit().GetWorkerNum() == 0) {
                     exited_ = true;
                     FFRT_LOGW("delayedWorker exit");
                     break;
@@ -146,6 +142,10 @@ void DelayedWorker::ThreadInit()
                 if (ret != 0) {
                     FFRT_SYSEVENT_LOGE("timerfd_settime error, ret= %d.", ret);
                 }
+            } else if (result == -1) {
+                exited_ = true;
+                FFRT_LOGW("delayedWorker exit");
+                break;
             }
             lk.unlock();
 
@@ -167,7 +167,7 @@ void DelayedWorker::ThreadInit()
                     char buffer;
                     size_t n = ::read(monitorfd_, &buffer, sizeof buffer);
                     if (n == 1) {
-                        ExecuteUnit::Instance().MonitorMain();
+                        FFRTFacade::GetExecuteUnit().MonitorMain();
                     } else {
                         FFRT_SYSEVENT_LOGE("monitor read fail:%d, %d", n, errno);
                     }
@@ -194,7 +194,7 @@ DelayedWorker::DelayedWorker()
     FFRT_COND_TERMINATE((epoll_ctl(epollfd_, EPOLL_CTL_ADD, timerfd_, &timer_event) < 0),
         "epoll_ctl add tfd error: efd=%d, fd=%d, errorno=%d", epollfd_, timerfd_, errno);
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    BlockawareWakeupCond* condPtr = ExecuteUnit::Instance().WakeupCond();
+    BlockawareWakeupCond* condPtr = FFRTFacade::GetExecuteUnit().WakeupCond();
     if (condPtr == nullptr) {
         FFRT_LOGE("blockAware is not initialized");
         return;
@@ -270,24 +270,34 @@ void CheckTimeInterval(const TimePoint& startTp, const TimePoint& endTp)
     }
 }
 
-int DelayedWorker::HandleWork()
+FFRT_NOINLINE int DelayedWorker::HandleWorkImpl(
+    std::multimap<TimePoint, DelayedWork>::iterator& cur, TimePoint& startTp)
+{
+    DelayedWork w = cur->second;
+    map.erase(cur);
+    lock.unlock();
+    (*w.cb)(w.we);
+    lock.lock();
+    FFRT_COND_DO_ERR(toExit, return -1, "HandleWork exit, map size:%d", map.size());
+    TimePoint endTp = std::chrono::steady_clock::now();
+    if (GetBetaVersionFlag()) {
+        CheckTimeInterval(startTp, endTp);
+    }
+    startTp = std::move(endTp);
+    return 0;
+}
+
+FFRT_INLINE int DelayedWorker::HandleWork()
 {
     if (!map.empty()) {
         noTaskDelayCount_ = 0;
         TimePoint startTp = std::chrono::steady_clock::now();
         do {
             auto cur = map.begin();
-            if (!toExit && cur != map.end() && cur->first <= startTp) {
-                DelayedWork w = cur->second;
-                map.erase(cur);
-                lock.unlock();
-                std::function<void(WaitEntry*)> workCb = *w.cb;
-                (workCb)(w.we);
-                lock.lock();
-                FFRT_COND_DO_ERR(toExit, return -1, "HandleWork exit, map size:%d", map.size());
-                TimePoint endTp = std::chrono::steady_clock::now();
-                CheckTimeInterval(startTp, endTp);
-                startTp = std::move(endTp);
+            if (cur->first <= startTp && !toExit) {
+                if (HandleWorkImpl(cur, startTp) != 0) {
+                    return -1;
+                }
             } else {
                 return 0;
             }
@@ -331,6 +341,10 @@ bool DelayedWorker::dispatch(const TimePoint& to, WaitEntry* we, const std::func
 bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
 {
     std::lock_guard lg(lock);
+
+    if FFRT_UNLIKELY(toExit) {
+        return false;
+    }
 
     auto range = map.equal_range(to);
     for (auto it = range.first; it != range.second; ++it) {

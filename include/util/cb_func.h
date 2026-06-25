@@ -25,14 +25,14 @@ struct SingleInsCB {
 
 template <typename T>
 struct TaskAllocCB {
-    using Alloc = std::function<T *()>;
-    using Free = std::function<void (T *)>;
-    using Free_ = std::function<void (T *)>;
-    using GetUnfreedMem = std::function<std::vector<void *> ()>;
-    using GetUnfreedMemSize = std::function<std::size_t ()>;
-    using HasBeenFreed = std::function<bool (T *)>;
-    using LockMem = std::function<void ()>;
-    using UnlockMem = std::function<void ()>;
+    using Alloc = T *(*)();
+    using Free = void (*)(T *);
+    using Free_ = void (*)(T *);
+    using GetUnfreedMem = std::vector<void *> (*)();
+    using GetUnfreedMemSize = std::size_t (*)();
+    using HasBeenFreed = bool (*)(T *);
+    using LockMem = void (*)();
+    using UnlockMem = void (*)();
 };
 
 #endif /* FFRT_CB_FUNC_H_ */

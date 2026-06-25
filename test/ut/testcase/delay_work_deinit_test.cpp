@@ -60,7 +60,7 @@ void SendDelayedWorker(uint64_t timeoutUs)
 
     g_delayWorkerThreadTestWe.tp = delay;
     g_delayWorkerThreadTestWe.cb = ([](ffrt::WaitEntry* we) { CheckCallBackThreadName(); });
-    FFRTFacade::GetDWInstance().dispatch(g_delayWorkerThreadTestWe.tp,
+    FFRTFacade::GetDelayedWorker().dispatch(g_delayWorkerThreadTestWe.tp,
         &g_delayWorkerThreadTestWe, g_delayWorkerThreadTestWe.cb);
 }
 

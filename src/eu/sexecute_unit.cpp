@@ -89,7 +89,7 @@ SExecuteUnit::~SExecuteUnit()
         int try_cnt = MANAGER_DESTRUCT_TIMESOUT;
         while (try_cnt-- > 0) {
             {
-                std::lock_guard lk(workerGroup[qos].mutex);
+                std::lock_guard lk(*workerGroup[qos].mutex);
                 workerGroup[qos].cv.notify_all();
             }
             {
@@ -111,7 +111,7 @@ SExecuteUnit::~SExecuteUnit()
     // alive when that happens. Hence, we
     // delay the destruction till we ensure
     // this access cannot happen.
-    FFRTFacade::GetDWInstance().Terminate();
+    FFRTFacade::GetDelayedWorker().Terminate();
     FFRT_LOGD("Destruction completed.");
 }
 
@@ -122,7 +122,7 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
         return WorkerAction::RETIRE;
     }
     auto& group = workerGroup[thread->GetQos()];
-    std::unique_lock lk(group.mutex);
+    std::unique_lock lk(*group.mutex);
     IntoSleep(thread->GetQos());
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     BlockawareEnterSleeping();
@@ -135,7 +135,7 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
     int waiting_seconds = std::max(16 - group.executingNum, 5);
 #endif
     if (group.cv.wait_for(lk, std::chrono::seconds(waiting_seconds), [this, thread] {
-        bool taskExistence = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(thread->GetQos());
+        bool taskExistence = FFRTFacade::GetScheduler().GetGlobalTaskCnt(thread->GetQos());
         return tearDown || taskExistence;
         })) {
         workerGroup[thread->GetQos()].OutOfSleep();
@@ -152,7 +152,7 @@ WorkerAction SExecuteUnit::WorkerIdleAction(CPUWorker* thread)
         }
         group.cv.wait(lk, [this, thread] {
             return tearDown ||
-                FFRTFacade::GetSchedInstance()->GetTotalTaskCnt(thread->GetQos()) > 0;
+                FFRTFacade::GetScheduler().GetTotalTaskCnt(thread->GetQos()) > 0;
         });
         workerGroup[thread->GetQos()].OutOfDeepSleep();
         return WorkerAction::RETRY;
@@ -175,7 +175,7 @@ void SExecuteUnit::WakeupWorkers(const QoS& qos)
 // default strategy which is kind of radical for poking workers
 void SExecuteUnit::HandleTaskNotifyDefault(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType)
 {
-    size_t taskCount = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos);
+    size_t taskCount = FFRTFacade::GetScheduler().GetGlobalTaskCnt(qos);
     switch (notifyType) {
         case TaskNotifyType::TASK_ADDED:
         case TaskNotifyType::TASK_PICKED:
@@ -183,9 +183,6 @@ void SExecuteUnit::HandleTaskNotifyDefault(SExecuteUnit* manager, const QoS& qos
             if (taskCount > 0) {
                 manager->PokeImpl(qos, taskCount, notifyType);
             }
-            break;
-        case TaskNotifyType::TASK_LOCAL:
-                manager->PokeImpl(qos, taskCount, notifyType);
             break;
         default:
             break;
@@ -195,7 +192,7 @@ void SExecuteUnit::HandleTaskNotifyDefault(SExecuteUnit* manager, const QoS& qos
 // conservative strategy for poking workers
 void SExecuteUnit::HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType)
 {
-    int taskCount = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos);
+    int taskCount = FFRTFacade::GetScheduler().GetGlobalTaskCnt(qos);
     if (taskCount == 0) {
         // no available task in global queue, skip
         return;
@@ -235,7 +232,7 @@ void SExecuteUnit::HandleTaskNotifyConservative(SExecuteUnit* manager, const QoS
 void SExecuteUnit::HandleTaskNotifyUltraConservative(SExecuteUnit* manager, const QoS& qos, TaskNotifyType notifyType)
 {
     (void)notifyType;
-    int taskCount = FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos);
+    int taskCount = FFRTFacade::GetScheduler().GetGlobalTaskCnt(qos);
     if (taskCount == 0) {
         // no available task in global queue, skip
         return;
@@ -298,7 +295,7 @@ void SExecuteUnit::PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType n
 
 void SExecuteUnit::ExecuteEscape(int qos)
 {
-    if (FFRTFacade::GetSchedInstance()->GetGlobalTaskCnt(qos) <= 0) {
+    if (FFRTFacade::GetScheduler().GetGlobalTaskCnt(qos) <= 0) {
         return;
     }
 

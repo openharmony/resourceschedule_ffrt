@@ -98,34 +98,34 @@ public:
     }
 
     static void RegistCb(
-        typename TaskAllocCB<T>::Alloc &&alloc,
-        typename TaskAllocCB<T>::Free &&free,
-        typename TaskAllocCB<T>::Free_ &&free_ = nullptr,
-        typename TaskAllocCB<T>::GetUnfreedMem &&getUnfreedMem = nullptr,
-        typename TaskAllocCB<T>::GetUnfreedMemSize &&getUnfreedMemSize = nullptr,
-        typename TaskAllocCB<T>::HasBeenFreed &&hasBeenFreed = nullptr,
-        typename TaskAllocCB<T>::LockMem &&lockMem = nullptr,
-        typename TaskAllocCB<T>::UnlockMem &&unlockMem = nullptr)
+        typename TaskAllocCB<T>::Alloc alloc,
+        typename TaskAllocCB<T>::Free free,
+        typename TaskAllocCB<T>::Free_ free_ = nullptr,
+        typename TaskAllocCB<T>::GetUnfreedMem getUnfreedMem = nullptr,
+        typename TaskAllocCB<T>::GetUnfreedMemSize getUnfreedMemSize = nullptr,
+        typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed = nullptr,
+        typename TaskAllocCB<T>::LockMem lockMem = nullptr,
+        typename TaskAllocCB<T>::UnlockMem unlockMem = nullptr)
     {
-        Instance().alloc_ = std::move(alloc);
-        Instance().free_ = std::move(free);
-        Instance().free__ = std::move(free_);
-        Instance().getUnfreedMem_ = std::move(getUnfreedMem);
-        Instance().getUnfreedMemSize_ = std::move(getUnfreedMemSize);
-        Instance().hasBeenFreed_ = std::move(hasBeenFreed);
-        Instance().lockMem_ = std::move(lockMem);
-        Instance().unlockMem_ = std::move(unlockMem);
+        Instance().alloc_ = alloc;
+        Instance().free_ = free;
+        Instance().free__ = free_;
+        Instance().getUnfreedMem_ = getUnfreedMem;
+        Instance().getUnfreedMemSize_ = getUnfreedMemSize;
+        Instance().hasBeenFreed_ = hasBeenFreed;
+        Instance().lockMem_ = lockMem;
+        Instance().unlockMem_ = unlockMem;
     }
 
 private:
-    typename TaskAllocCB<T>::Alloc alloc_;
-    typename TaskAllocCB<T>::Free free_;
-    typename TaskAllocCB<T>::Free_ free__;
-    typename TaskAllocCB<T>::GetUnfreedMem getUnfreedMem_;
-    typename TaskAllocCB<T>::GetUnfreedMemSize getUnfreedMemSize_;
-    typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed_;
-    typename TaskAllocCB<T>::LockMem lockMem_;
-    typename TaskAllocCB<T>::UnlockMem unlockMem_;
+    typename TaskAllocCB<T>::Alloc alloc_ = nullptr;
+    typename TaskAllocCB<T>::Free free_ = nullptr;
+    typename TaskAllocCB<T>::Free_ free__ = nullptr;
+    typename TaskAllocCB<T>::GetUnfreedMem getUnfreedMem_ = nullptr;
+    typename TaskAllocCB<T>::GetUnfreedMemSize getUnfreedMemSize_ = nullptr;
+    typename TaskAllocCB<T>::HasBeenFreed hasBeenFreed_ = nullptr;
+    typename TaskAllocCB<T>::LockMem lockMem_ = nullptr;
+    typename TaskAllocCB<T>::UnlockMem unlockMem_ = nullptr;
 };
 
 template <typename T>

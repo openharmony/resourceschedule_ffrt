@@ -49,21 +49,14 @@ enum class WorkerAction {
     MAX,
 };
 
-class CPUWorker;
-struct CpuWorkerOps {
-    std::function<WorkerAction (CPUWorker*)> WorkerIdleAction;
-    std::function<void (CPUWorker*)> WorkerRetired;
-    std::function<void (CPUWorker*)> WorkerPrepare;
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    std::function<bool (void)> IsBlockAwareInit;
-#endif
-};
+class Scheduler; // forward declaration
+class ExecuteUnit; // forward declaration
 
 class CPUWorker {
 public:
-    CPUWorker() = default;
+    CPUWorker();
 
-    explicit CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize);
+    explicit CPUWorker(const QoS& qos, size_t stackSize);
     ~CPUWorker();
 
     bool Exited() const
@@ -191,12 +184,29 @@ public:
     }
 #endif
 
+    void EnterSleeping()
+    {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        *blockaware_slot += 1;
+#endif
+    }
+
+    void LeaveSleeping()
+    {
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+        if (*blockaware_slot > 0) {
+            *blockaware_slot -= 1;
+        }
+#endif
+    }
+
     void SetThreadAttr(const QoS& newQos);
     std::atomic<TaskBase*> curTask = nullptr;
     std::atomic<uintptr_t> curTaskType_ {ffrt_invalid_task};
     std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值
     uint64_t curTaskGid_ = UINT64_MAX;
-    unsigned int tick = 0;
+
+    void WorkerLooper();
 
 protected:
     QoS qos;
@@ -212,7 +222,6 @@ private:
     void SetThreadInitPri();
 #endif
     void NativeConfig();
-    static void WorkerLooper(CPUWorker* worker);
     static void* WrapDispatch(void* worker);
     void WorkerSetup();
     static void Dispatch(CPUWorker* worker);
@@ -226,12 +235,13 @@ private:
 #endif
     std::atomic_bool exited {false};
     std::atomic<pid_t> tid {-1};
-
-    CpuWorkerOps ops;
     bool monitor_ = true;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     unsigned int domain_id;
+    unsigned long* blockaware_slot { nullptr }; // ptr to tls slot
 #endif
+    Scheduler& schedIns;
+    ExecuteUnit& euIns;
 };
 } // namespace ffrt
 #endif

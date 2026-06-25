@@ -419,15 +419,15 @@ HWTEST_F(CoreTest, ffrt_this_task_get_qos_test, TestSize.Level0)
  */
 HWTEST_F(CoreTest, ffrt_set_sched_mode, TestSize.Level1)
 {
-    ffrt::sched_mode_type sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    ffrt::sched_mode_type sched_type = ffrt::FFRTFacade::GetExecuteUnit().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_default_mode));
 
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_energy_saving_mode);
-    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    sched_type = ffrt::FFRTFacade::GetExecuteUnit().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_energy_saving_mode));
 
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_performance_mode);
-    sched_type = ffrt::ExecuteUnit::Instance().GetSchedMode(ffrt::QoS(ffrt::qos_default));
+    sched_type = ffrt::FFRTFacade::GetExecuteUnit().GetSchedMode(ffrt::QoS(ffrt::qos_default));
     EXPECT_EQ(static_cast<int>(sched_type), static_cast<int>(ffrt::sched_mode_type::sched_performance_mode));
     ffrt_set_sched_mode(ffrt::QoS(ffrt::qos_default), ffrt_sched_default_mode);
 }
@@ -473,7 +473,6 @@ private:
     void FreeMem() override { ffrt::TaskFactory<MyTask>::Free(this); }
     void Prepare() override {}
     void Ready() override {}
-    void Pop() override {}
     void Cancel() override {}
     void Finish() override {}
     void Execute() override {}
@@ -568,6 +567,48 @@ private:
     std::mutex mutex;
     std::set<T*> allocedTask;
 };
+static CustomTaskManager<MyTask>* g_customTaskManager = nullptr;
+
+MyTask* CustomAlloc()
+{
+    return g_customTaskManager == nullptr ? nullptr : g_customTaskManager->Alloc();
+}
+
+void CustomFree(MyTask* task)
+{
+    if (g_customTaskManager != nullptr) {
+        g_customTaskManager->Free(task);
+    }
+}
+
+std::vector<void*> CustomGetUnfreedMem()
+{
+    return g_customTaskManager == nullptr ? std::vector<void*>() : g_customTaskManager->GetUnfreedMem();
+}
+
+std::size_t CustomGetUnfreedMemSize()
+{
+    return g_customTaskManager == nullptr ? 0 : g_customTaskManager->GetUnfreedMemSize();
+}
+
+bool CustomHasBeenFreed(MyTask* task)
+{
+    return g_customTaskManager == nullptr || g_customTaskManager->HasBeenFreed(task);
+}
+
+void CustomLockMem()
+{
+    if (g_customTaskManager != nullptr) {
+        g_customTaskManager->LockMem();
+    }
+}
+
+void CustomUnlockMem()
+{
+    if (g_customTaskManager != nullptr) {
+        g_customTaskManager->UnlockMem();
+    }
+}
 } // namespace TmTest
 
 /*
@@ -602,17 +643,19 @@ HWTEST_F(CoreTest, ffrt_task_factory_simple_allocator_test, TestSize.Level0)
 HWTEST_F(CoreTest, ffrt_task_factory_custom_manager_test, TestSize.Level0)
 {
     TmTest::CustomTaskManager<TmTest::MyTask> custom_manager;
+    TmTest::g_customTaskManager = &custom_manager;
     ffrt::TaskFactory<TmTest::MyTask>::RegistCb(
-        [&] () -> TmTest::MyTask* { return custom_manager.Alloc(); },
-        [&] (TmTest::MyTask* task) { custom_manager.Free(task); },
-        [&] (TmTest::MyTask* task) { custom_manager.Free(task); },
-        [&] () -> std::vector<void*> { return custom_manager.GetUnfreedMem(); },
-        [&] () -> std::size_t { return custom_manager.GetUnfreedMemSize(); },
-        [&] (TmTest::MyTask* task) { return custom_manager.HasBeenFreed(task); },
-        [&] () { custom_manager.LockMem(); },
-        [&] () { custom_manager.UnlockMem(); });
+        TmTest::CustomAlloc,
+        TmTest::CustomFree,
+        TmTest::CustomFree,
+        TmTest::CustomGetUnfreedMem,
+        TmTest::CustomGetUnfreedMemSize,
+        TmTest::CustomHasBeenFreed,
+        TmTest::CustomLockMem,
+        TmTest::CustomUnlockMem);
 
     TmTest::TestTaskFactory(false);
+    TmTest::g_customTaskManager = nullptr;
 }
 
 HWTEST_F(CoreTest, ffrt_submit_h_f, TestSize.Level0)

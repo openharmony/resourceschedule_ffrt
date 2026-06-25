@@ -71,8 +71,8 @@ public:
 
     inline bool IsValidForLoop()
     {
-        return !isUsed_.load() && (queue_->GetQueueType() == ffrt_queue_concurrent
-               || queue_->GetQueueType() == ffrt_queue_eventhandler_interactive);
+        return !isUsed_.load() && (queueType_ == ffrt_queue_concurrent
+               || queueType_ == ffrt_queue_eventhandler_interactive);
     }
 
     inline std::string GetName()
@@ -135,7 +135,7 @@ public:
 
     inline int GetType()
     {
-        return queue_->GetQueueType();
+        return queueType_;
     }
 
     inline bool GetMode()
@@ -190,6 +190,8 @@ private:
     std::unordered_map<QueueTask*, uint64_t> schedDeadline_;
     std::atomic_int deliverCnt_ = {0};
     bool threadMode_ = false;
+    int queueType_;
+    std::atomic_bool isOnLoop_ = false;
 };
 } // namespace ffrt
 

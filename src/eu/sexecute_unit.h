@@ -63,10 +63,6 @@ private:
     {
         handleTaskNotify(this, qos, TaskNotifyType::TASK_PICKED);
     }
-    void PokeLocal(const QoS& qos) override
-    {
-        handleTaskNotify(this, qos, TaskNotifyType::TASK_LOCAL);
-    }
     void PokeEscape(const QoS& qos, bool isPollWait) override
     {
         handleTaskNotify(this, qos, TaskNotifyType::TASK_ESCAPED);
@@ -81,7 +77,7 @@ private:
     void PokeImpl(const QoS& qos, uint32_t taskCount, TaskNotifyType notifyType);
     void ExecuteEscape(int qos) override;
 
-    std::function<void (SExecuteUnit*, const QoS&, TaskNotifyType)> handleTaskNotify { nullptr };
+    void(*handleTaskNotify)(SExecuteUnit*, const QoS&, TaskNotifyType) { nullptr };
 };
 } // namespace ffrt
 #endif

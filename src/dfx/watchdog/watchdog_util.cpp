@@ -94,7 +94,7 @@ namespace ffrt {
         if (timeoutCb != nullptr) {
             CPUEUTask* cbTask = GetCPUTaskByFuncStorageOffset(timeoutCb);
             cbTask->IncDeleteRef();
-            FFRTFacade::GetDWInstance().SubmitAsyncTask([timeoutCb, cbTask] {
+            FFRTFacade::GetDelayedWorker().SubmitAsyncTask([timeoutCb, cbTask] {
                 timeoutCb->exec(timeoutCb);
                 cbTask->DecDeleteRef();
             });

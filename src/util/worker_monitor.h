@@ -71,11 +71,12 @@ struct TimeoutFunctionInfo {
 
 class WorkerMonitor {
 public:
-    static WorkerMonitor &GetInstance();
     void SubmitTask();
     std::string DumpTimeoutInfo();
 
 private:
+    friend class FFRTFacade;
+    static WorkerMonitor &GetInstance(); // use FFRTFacade::GetWorkerMonitor to get WM Instance
     WorkerMonitor();
     ~WorkerMonitor();
     WorkerMonitor(const WorkerMonitor &) = delete;

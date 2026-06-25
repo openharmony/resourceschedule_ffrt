@@ -95,23 +95,6 @@ bool TaskScheduler::CancelUVWork(ffrt_executor_task_t* uvWork)
     return cancelSet_.insert(uvWork).second;
 }
 
-std::mutex* TaskScheduler::GetMutex()
-{
-    /* We use acquire on load and release on store to enforce the
-     * happens-before relationship between the mutex implicit
-     * initialization and the publication of its address.
-     * i.e. if a thread reads the address of the mutex then
-     * it has been already initialized by the thread that published
-     * its address.
-     */
-    auto curMtx = mtx.load(std::memory_order_acquire);
-    if (curMtx == nullptr) {
-        curMtx = &FFRTFacade::GetEUInstance().GetWorkerGroup(qos).mutex;
-        mtx.store(curMtx, std::memory_order_release);
-    }
-    return curMtx;
-}
-
 SchedulerFactory &SchedulerFactory::Instance()
 {
     static SchedulerFactory fac;

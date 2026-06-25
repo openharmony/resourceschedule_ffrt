@@ -36,25 +36,25 @@ namespace ffrt {
 namespace {
 static void TimeoutProc(void* task)
 {
-    IOPoller& ins = IOPoller::Instance();
+    IOPoller& ins = FFRTFacade::GetIOPoller();
     ins.WakeTimeoutTask(reinterpret_cast<CoTask*>(task));
 }
 
 FFRT_NOINLINE void EpollCtrlAddErrorLogPrint(int epFd, int fd)
 {
-    FFRT_LOGI("epoll_ctl add err:efd=%d, fd=%d errorno = %d", epFd, fd, errno);
+    FFRT_LOGI("epoll_ctl add err:efd:=%d, fd=%d errorno = %d", epFd, fd, errno);
 }
 }
 
 int IOPoller::PollerRegisterTimer(int qos, uint64_t timeout, void *data)
 {
-    return FFRTFacade::GetTMInstance().RegisterTimer(qos, timeout, data, TimeoutProc);
+    return FFRTFacade::GetTimerManager().RegisterTimer(qos, timeout, data, TimeoutProc);
 }
 
 void IOPoller::PollerUnRegisterTimer(std::unordered_set<int>& timerHandlesToRemove)
 {
     for (auto timerHandle : timerHandlesToRemove) {
-        FFRTFacade::GetTMInstance().UnregisterTimer(timerHandle);
+        FFRTFacade::GetTimerManager().UnregisterTimer(timerHandle);
     }
 }
 

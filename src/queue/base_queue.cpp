@@ -185,4 +185,20 @@ std::vector<QueueTask*> BaseQueue::GetHeadTask()
     headTaskVec_[0] = whenMap_.begin()->second;
     return headTaskVec_;
 }
+
+void BaseQueue::GetWhenMapVecStats(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec)
+{
+    minTime_ = std::numeric_limits<uint64_t>::max();
+
+    for (int idx = 0; idx <= ffrt_queue_priority_idle; idx++) {
+        if (!whenMapVec[idx].empty()) {
+            auto it = whenMapVec[idx].begin();
+            if (it->first < minTime_) {
+                minTime_ = it->first;
+            }
+        }
+    }
+
+    isEmpty_ = (minTime_ == std::numeric_limits<uint64_t>::max());
+}
 } // namespace ffrt

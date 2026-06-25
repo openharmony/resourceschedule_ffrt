@@ -127,7 +127,7 @@ void SharedMutexPrivate::NotifyOne(LinkedList& wList)
             std::lock_guard<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
+            CoWake(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
         }
     }
 }
@@ -143,7 +143,7 @@ void SharedMutexPrivate::NotifyAll(LinkedList& wList)
             std::lock_guard<std::mutex> lk(wue->wl);
             wue->cv.notify_one();
         } else {
-            CoRoutineFactory::CoWakeFunc(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
+            CoWake(static_cast<CoTask*>(task), CoWakeType::NO_TIMEOUT_WAKE);
         }
 
         if (we->wtType == SharedMutexWaitType::READ) {

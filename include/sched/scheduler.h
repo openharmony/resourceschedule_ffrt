@@ -41,16 +41,6 @@ public:
         }
     }
 
-    // 获取调度器的单例
-    static inline Scheduler* Instance()
-    {
-        if unlikely(schedulerIns_ == nullptr) {
-            CreateInstance();
-        }
-        return schedulerIns_;
-    }
-    static inline Scheduler* schedulerIns_ = nullptr;
-
     inline TaskScheduler& GetScheduler(const QoS& qos)
     {
         return *taskSchedulers[static_cast<unsigned short>(qos)];
@@ -106,6 +96,16 @@ public:
     std::atomic_bool tearDown { false };
 
 private:
+    friend class FFRTFacade;
+    static inline Scheduler* Instance()
+    {
+        if unlikely(schedulerIns_ == nullptr) {
+            CreateInstance();
+        }
+        return schedulerIns_;
+    }
+    static inline Scheduler* schedulerIns_ = nullptr;
+
     std::array<TaskScheduler*, QoS::MaxNum()> taskSchedulers;
     Scheduler()
     {

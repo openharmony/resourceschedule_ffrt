@@ -71,7 +71,7 @@ WorkerMonitor::WorkerMonitor()
         }
         SubmitRecycleResource();
     });
-    if (WhiteList::GetInstance().IsEnabled("worker_monitor", false)) {
+    if (WhiteList::GetInstance().IsEnabled(WhiteListKey::worker_monitor, false)) {
         FFRT_SYSEVENT_LOGW("Skip worker monitor.");
         skipSampling_ = true;
         return;
@@ -86,7 +86,7 @@ WorkerMonitor::WorkerMonitor()
     watchdogWaitEntry_.cb = ([this](WaitEntry* we) {
         (void)we;
         CheckWorkerStatus();
-        FFRTFacade::GetPPInstance().MonitTimeOut();
+        FFRTFacade::GetIOPoller().MonitTimeOut();
     });
     tskMonitorWaitEntry_.cb = ([this](WaitEntry* we) { CheckTaskStatus(); });
 }
@@ -159,7 +159,7 @@ void WorkerMonitor::CheckWorkerStatus()
 
     std::vector<TimeoutFunctionInfo> timeoutFunctions;
     for (int i = 0; i < QoS::MaxNum(); i++) {
-        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetExecuteUnit().GetWorkerGroup(i);
         int executingNum = 0;
         int sleepingNum = 0;
         {
@@ -186,7 +186,7 @@ void WorkerMonitor::CheckWorkerStatus()
     }
 
     if (timeoutFunctions.size() > 0) {
-        FFRTFacade::GetDWInstance().SubmitAsyncTask([this, timeoutFunctions] {
+        FFRTFacade::GetDelayedWorker().SubmitAsyncTask([this, timeoutFunctions] {
             for (const auto& timeoutFunction : timeoutFunctions) {
                 RecordSymbolAndBacktrace(timeoutFunction);
             }
@@ -360,7 +360,7 @@ void WorkerMonitor::RecordTimeoutFunctionInfo(const CoWorkerInfo& coWorkerInfo, 
 void WorkerMonitor::RecordSymbolAndBacktrace(const TimeoutFunctionInfo& timeoutFunction)
 {
     std::stringstream ss;
-    std::string processNameStr = std::string(GetCurrentProcessName());
+    std::string processNameStr = GetCurrentProcessName();
     ss << "Process:" << processNameStr << ",Tid:" << timeoutFunction.workerInfo_.tid_ <<
         ",Qos:" << timeoutFunction.coWorkerInfo_.qosLevel_ << ",CWorker:" <<
         timeoutFunction.coWorkerInfo_.coWorkerCount_ << ",EWorker:" <<
@@ -471,8 +471,8 @@ void WorkerMonitor::WorkerStatus()
     bool startedFirstQos = true;
     bool exitedFirstQos = true;
 
-    for (int qos = 0; qos < QoS::MaxNum(); qos++) {
-        auto workerStatusInfo = FFRTFacade::GetEUInstance().GetWorkerStatusInfoAndReset(qos);
+    for (int qos = 0; qos < QoS::Max(); qos++) {
+        auto workerStatusInfo = FFRTFacade::GetExecuteUnit().GetWorkerStatusInfoAndReset(qos);
         ProcessWorkerInfo(startedOss, startedFirstQos, qos, workerStatusInfo.startedCnt, workerStatusInfo.startedTids);
         ProcessWorkerInfo(exitedOss, exitedFirstQos, qos, workerStatusInfo.exitedCnt, workerStatusInfo.exitedTids);
     }
@@ -485,12 +485,12 @@ void WorkerMonitor::WorkerStatus()
     }
 
     std::ostringstream workerCountOss;
-    for (int qos = 0; qos < QoS::MaxNum(); qos++) {
-        CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(qos);
+    for (int qos = 0; qos < QoS::Max(); qos++) {
+        CPUWorkerGroup& workerGroup = FFRTFacade::GetExecuteUnit().GetWorkerGroup(qos);
         bool isGlobalTaskEmpty = true;
         {
-            std::lock_guard lk(workerGroup.mutex);
-            isGlobalTaskEmpty = FFRTFacade::GetSchedInstance()->GlobalTaskEmpty(qos);
+            std::lock_guard lk(*workerGroup.mutex);
+            isGlobalTaskEmpty = FFRTFacade::GetScheduler().GlobalTaskEmpty(qos);
         }
         if (!isGlobalTaskEmpty) {
             std::lock_guard lk(workerGroup.lock);
@@ -512,7 +512,7 @@ bool WorkerMonitor::SetExitFlagIfNoWorkers(bool& exitFlag)
     {
         std::lock_guard submitTaskLock(submitTaskMutex_);
         for (int i = 0; i < QoS::MaxNum(); i++) {
-            CPUWorkerGroup& workerGroup = FFRTFacade::GetEUInstance().GetWorkerGroup(i);
+            CPUWorkerGroup& workerGroup = FFRTFacade::GetExecuteUnit().GetWorkerGroup(i);
             std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
             if (!workerGroup.threads.empty()) {
                 noWorkerThreads = false;

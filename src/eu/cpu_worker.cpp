@@ -38,7 +38,11 @@ const unsigned int STEAL_BUFFER_SIZE = LOCAL_QUEUE_SIZE / 2;
 }
 
 namespace ffrt {
-CPUWorker::CPUWorker(const QoS& qos, CpuWorkerOps&& ops, size_t stackSize) : qos(qos), ops(std::move(ops))
+CPUWorker::CPUWorker() : schedIns(FFRTFacade::GetScheduler()), euIns(FFRTFacade::GetExecuteUnit()) {}
+
+CPUWorker::CPUWorker(const QoS& qos, size_t stackSize) : qos(qos),
+    schedIns(FFRTFacade::GetScheduler()),
+    euIns(FFRTFacade::GetExecuteUnit())
 {
 #ifdef FFRT_PTHREAD_ENABLE
     pthread_attr_init(&attr_);
@@ -94,7 +98,7 @@ CPUWorker::~CPUWorker()
 #ifdef FFRT_PTHREAD_ENABLE
 void CPUWorker::SetThreadInitPri()
 {
-    bool enable = WhiteList::GetInstance().IsEnabled("SetThreadInitPri", false);
+    bool enable = WhiteList::GetInstance().IsEnabled(WhiteListKey::SetThreadInitPri, false);
     if (!enable) {
         return;
     }
@@ -166,35 +170,39 @@ void CPUWorker::RunTask(TaskBase* task, CPUWorker* worker)
 void CPUWorker::Dispatch(CPUWorker* worker)
 {
     QoS qos = worker->GetQos();
-    FFRTFacade::GetEUInstance().WorkerStart(qos());
+    auto& eu = FFRTFacade::GetExecuteUnit();
+
+    eu.WorkerStart(qos());
     worker->WorkerSetup();
 
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    if (worker->ops.IsBlockAwareInit()) {
+    if (eu.IsBlockAwareInit()) {
         int ret = BlockawareRegister(worker->GetDomainId());
         if (ret != 0) {
             FFRT_SYSEVENT_LOGE("blockaware register fail, ret[%d]", ret);
         }
+        // tls slot is always valid for pthread no matter register succ or fail
+        worker->blockaware_slot = curr_thread_tls_blockaware_slot_of();
     }
 #endif
     auto ctx = ExecuteCtx::Cur();
     ctx->qos = qos;
     ctx->threadType_ = ffrt::ThreadType::FFRT_WORKER;
 
-    worker->ops.WorkerPrepare(worker);
+    eu.WorkerPrepare(worker);
 #ifndef OHOS_STANDARD_SYSTEM
     FFRT_LOGI("qos[%d] thread start succ", static_cast<int>(qos));
 #endif
     FFRT_PERF_WORKER_AWAKE(static_cast<int>(qos));
-    WorkerLooper(worker);
+    worker->WorkerLooper();
     CoWorkerExit();
-    FFRTFacade::GetEUInstance().WorkerExit(qos());
-    worker->ops.WorkerRetired(worker);
+    eu.WorkerExit(qos());
+    eu.WorkerRetired(worker);
 }
 
 bool CPUWorker::RunSingleTask(int qos, CPUWorker *worker)
 {
-    TaskBase *task = FFRTFacade::GetSchedInstance()->PopTask(qos);
+    TaskBase *task = FFRTFacade::GetScheduler().PopTask(qos);
     if (task) {
         RunTask(task, worker);
         return true;
@@ -202,33 +210,28 @@ bool CPUWorker::RunSingleTask(int qos, CPUWorker *worker)
     return false;
 }
 
-// work looper which inherited from history
-void CPUWorker::WorkerLooper(CPUWorker* worker)
+void CPUWorker::WorkerLooper()
 {
-    QoS qos = worker->GetQos();
     for (;;) {
-        if (worker->Exited()) {
+        if (Exited()) {
             break;
         }
 
-        TaskBase* task = Scheduler::Instance()->PopTask(qos);
-        worker->tick++;
+        TaskBase* task = schedIns.PopTask(qos);
         if (task) {
-            FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_PICKED>(qos);
-            RunTask(task, worker);
+            euIns.NotifyTask<TaskNotifyType::TASK_PICKED>(qos);
+            RunTask(task, this);
             continue;
         }
-        // It is about to enter the idle state.
-        if (FFRTFacade::GetEUInstance().GetSchedMode(qos) == sched_mode_type::sched_energy_saving_mode) {
-            if (FFRTFacade::GetEUInstance().WorkerShare(worker, RunSingleTask)) {
+
+        if (euIns.GetSchedMode(qos) == sched_mode_type::sched_energy_saving_mode) {
+            if (euIns.WorkerShare(this, RunSingleTask)) {
                 continue;
             }
         }
-        FFRT_PERF_WORKER_IDLE(static_cast<int>(worker->qos));
-        auto action = worker->ops.WorkerIdleAction(worker);
+
+        auto action = euIns.WorkerIdleAction(this);
         if (action == WorkerAction::RETRY) {
-            FFRT_PERF_WORKER_AWAKE(static_cast<int>(worker->qos));
-            worker->tick = 0;
             continue;
         } else if (action == WorkerAction::RETIRE) {
             break;

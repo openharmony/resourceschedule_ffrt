@@ -40,6 +40,10 @@ int EventHandlerInteractiveQueue::Push(QueueTask* task)
     int msPerSecond = 1000;
     ffrt::TaskOptions taskOptions(
         task->label, delayUs / msPerSecond, static_cast<Priority>(prio), static_cast<uintptr_t>(task->gid));
+    if (unlikely(EventHandlerAdapter::Instance()->PostTask == nullptr)) {
+        FFRT_LOGE("failed to load PostTask Func.");
+        return FAILED;
+    }
     bool taskStatus = EventHandlerAdapter::Instance()->PostTask(eventHandler_, func, taskOptions);
     FFRT_COND_DO_ERR((!taskStatus), return FAILED, "post task fail");
 

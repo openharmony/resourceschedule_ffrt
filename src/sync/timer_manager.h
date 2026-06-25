@@ -40,7 +40,7 @@ enum class TimerState {
 };
 
 struct TimerData {
-    TimerData(void *dataVal, std::function<void(void *)> cbVal, bool repeat, int qos, uint64_t timeout)
+    TimerData(void *dataVal, ffrt_timer_cb cbVal, bool repeat, int qos, uint64_t timeout)
         : data(dataVal), cb(cbVal), repeat(repeat), qos(qos), timeout(timeout)
     {
         if (cb != nullptr) {
@@ -53,7 +53,7 @@ struct TimerData {
     }
 
     void* data;
-    std::function<void(void*)> cb;
+    ffrt_timer_cb cb;
     bool repeat;
     int qos;
     uint64_t timeout;
@@ -65,13 +65,14 @@ struct TimerData {
 class TimerManager : private NonCopyable {
 public:
     ~TimerManager();
-    static TimerManager& Instance();
 
     ffrt_timer_t RegisterTimer(int qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat = false) noexcept;
     int UnregisterTimer(ffrt_timer_t handle) noexcept;
     ffrt_timer_query_t GetTimerStatus(ffrt_timer_t handle) noexcept;
 
 private:
+    friend class FFRTFacade;
+    static TimerManager& Instance(); // use FFRTFacade::GetTimerManager to get TimerMgr Instance
     TimerManager();
 
     void InitWorkQueAndCb(int qos);

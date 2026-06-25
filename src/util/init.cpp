@@ -37,6 +37,7 @@
 #ifdef FFRT_ASYNC_STACKTRACE
 #include "dfx/async_stack/ffrt_async_stack.h"
 #endif
+#include "util/ffrt_facade.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,6 +52,7 @@ void RegistCommonTaskFactory()
 __attribute__((constructor)) static void ffrt_init()
 {
     ffrt::ExecuteCtx::CtxEnvCreate();
+    CoEnvCreate();
     RegistCommonTaskFactory();
 
 #ifdef FFRT_SEND_EVENT
@@ -63,8 +65,7 @@ __attribute__((constructor)) static void ffrt_init()
     ffrt::SchedulerFactory::RegistCb(
         [] () -> ffrt::TaskScheduler* { return new ffrt::STaskScheduler(); },
         [] (ffrt::TaskScheduler* schd) { delete schd; });
-    CoRoutineFactory::RegistCb(
-        [] (ffrt::CoTask* task, CoWakeType type) -> void {CoWake(task, type);});
+
     ffrt::DependenceManager::RegistInsCb(ffrt::SDependenceManager::Instance);
     ffrt::ExecuteUnit::RegistInsCb(ffrt::SExecuteUnit::Instance);
     ffrt::SetFuncQosMap(ffrt::QoSMap);

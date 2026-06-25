@@ -99,12 +99,15 @@ protected:
     int Remove(const char* name, std::multimap<uint64_t, QueueTask*>& whenMap);
     bool HasTask(const char* name, std::multimap<uint64_t, QueueTask*> whenMap);
     uint64_t GetDueTaskCount(std::multimap<uint64_t, QueueTask*>& whenMap);
+    void GetWhenMapVecStats(const std::multimap<uint64_t, ffrt::QueueTask*>* whenMapVec);
 
     const uint32_t queueId_;
     std::atomic_bool delayStatus_ { false };
     bool isExit_ { false };
     std::atomic_bool isActiveState_ { false };
     std::multimap<uint64_t, QueueTask*> whenMap_;
+    bool isEmpty_;
+    uint64_t minTime_;
     std::vector<QueueTask*> headTaskVec_;
     QueueStrategy<QueueTask>::DequeFunc dequeFunc_ { nullptr };
 

@@ -296,7 +296,7 @@ struct UvQueue {
 // libuv's uv__queue_empty
 inline int UvQueueEmpty(const struct UvQueue* q)
 {
-    std::lock_guard lg(ffrt::FFRTFacade::GetSchedInstance()->GetScheduler(ffrt::qos_user_initiated).uvMtx);
+    std::lock_guard lg(ffrt::FFRTFacade::GetScheduler().GetScheduler(ffrt::qos_user_initiated).uvMtx);
     return q == q->next || q != q->next->prev;
 }
 
@@ -521,12 +521,12 @@ HWTEST_F(DependencyTest, onsubmit_test, TestSize.Level0)
     ffrt_task_handle_t handle = nullptr;
     std::function<void()> cbOne = []() { printf("callback\n"); };
     ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
-    ffrt::FFRTFacade::GetDMInstance().onSubmit(true, handle, func, nullptr, nullptr, nullptr);
+    ffrt::FFRTFacade::GetDependenceManager().onSubmit(true, handle, func, nullptr, nullptr, nullptr);
 
     const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, handle}};
     ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
-    ffrt::FFRTFacade::GetDMInstance().onSubmit(true, handle, func, nullptr, &wait, nullptr);
-    ffrt::FFRTFacade::GetDMInstance().onWait(&wait);
+    ffrt::FFRTFacade::GetDependenceManager().onSubmit(true, handle, func, nullptr, &wait, nullptr);
+    ffrt::FFRTFacade::GetDependenceManager().onWait(&wait);
 
     EXPECT_NE(func, nullptr);
     ffrt_task_handle_destroy(handle);

@@ -43,10 +43,10 @@ class DelayedWorker {
 #endif
     std::atomic<int> asyncTaskCnt_ {0};
     int HandleWork(void);
+    int HandleWorkImpl(std::multimap<TimePoint, DelayedWork>::iterator& cur, TimePoint& startTp);
     void ThreadInit();
 
 public:
-    static DelayedWorker &GetInstance();
     static void ThreadEnvCreate();
     static bool IsDelayerWorkerThread();
 
@@ -61,6 +61,8 @@ public:
     void Terminate();
 
 private:
+    friend class FFRTFacade;
+    static DelayedWorker &GetInstance(); // use FFRTFacade::GetDelayedWorker to get DW Instance
     DelayedWorker();
     void DumpMap();
     ~DelayedWorker();

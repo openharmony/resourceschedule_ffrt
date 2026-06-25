@@ -55,7 +55,7 @@ struct PollerData {
     {
         mode = PollerType::SYNC_IO;
     }
-    PollerData(int fdVal, void* dataVal, std::function<void(void*, uint32_t)> cbVal, CoTask* taskVal)
+    PollerData(int fdVal, void* dataVal, ffrt_poller_cb cbVal, CoTask* taskVal)
         : fd(fdVal), data(dataVal), cb(cbVal), task(taskVal)
     {
         if (cb == nullptr) {
@@ -76,7 +76,7 @@ struct PollerData {
     PollerType mode;
     int fd = 0;
     void* data = nullptr;
-    std::function<void(void*, uint32_t)> cb = nullptr;
+    ffrt_poller_cb cb = nullptr;
     CoTask* task = nullptr;
     uint32_t monitorEvents = 0;
     uint64_t stackId = 0;

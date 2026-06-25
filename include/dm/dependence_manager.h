@@ -76,8 +76,6 @@ inline void InsDedup(std::vector<CPUEUTask*> &in_handles, std::vector<const void
 
 class DependenceManager : public NonCopyable {
 public:
-    static DependenceManager& Instance();
-
     static void RegistInsCb(SingleInsCB<DependenceManager>::Instance &&cb);
 
     virtual void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
@@ -96,6 +94,10 @@ public:
 protected:
     DependenceManager() {}
     virtual ~DependenceManager() {}
+
+private:
+    friend class FFRTFacade;
+    static DependenceManager& Instance(); // use FFRTFacade::GetDependenceManager to get DM Instance
 };
 
 } // namespace ffrt

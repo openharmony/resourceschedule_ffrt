@@ -22,13 +22,13 @@
 
 namespace ffrt {
 #ifdef FFRT_ENABLE_PERF_TRACE_SCOPED
-static const std::string moduleList[MODULE_MAX] = {
-    "PerfTraceScopedCustom",
-    "PerfTraceScopedEu",
-    "PerfTraceScopedSched",
-    "PerfTraceScopedDm",
-    "PerfTraceScopedQueue",
-    "PerfTraceScopedSync"
+static const WhiteListKey moduleKeys[MODULE_MAX] = {
+    WhiteListKey::PerfTraceScopedCustom,
+    WhiteListKey::PerfTraceScopedEu,
+    WhiteListKey::PerfTraceScopedSched,
+    WhiteListKey::PerfTraceScopedDm,
+    WhiteListKey::PerfTraceScopedQueue,
+    WhiteListKey::PerfTraceScopedSync
 };
 
 static const std::vector<PerfEventConfig> configGroupList[CONFIG_MAX] = {
@@ -93,16 +93,16 @@ PerfTraceScoped::~PerfTraceScoped()
 
 void PerfTraceScoped::SetEnable()
 {
-    if (WhiteList::GetInstance().IsEnabled("PerfTraceScopedAll", false)) {
+    if (WhiteList::GetInstance().IsEnabled(WhiteListKey::PerfTraceScopedAll, false)) {
         for (int i = 0; i < MODULE_MAX; i++) {
             moduleEnabled_[i] = true;
         }
         FFRT_LOGI("Set all modules enable");
     } else {
         for (int i = 0; i < MODULE_MAX; i++) {
-            moduleEnabled_[i] = WhiteList::GetInstance().IsEnabled(moduleList[i], false);
+            moduleEnabled_[i] = WhiteList::GetInstance().IsEnabled(moduleKeys[i], false);
             if (moduleEnabled_[i]) {
-                FFRT_LOGI("Set %s enable", moduleList[i].c_str());
+                FFRT_LOGI("Set %s enable", moduleKeys[i]);
             }
         }
     }

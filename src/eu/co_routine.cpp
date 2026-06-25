@@ -86,27 +86,16 @@ void CoEnvDestructor(void* args)
 
 void MakeCoEnvTlsKey()
 {
-    pthread_key_create(&g_coThreadTlsKey, CoEnvDestructor);
-}
-
-static inline CoRoutineEnv* GetCoEnv()
-{
-    CoRoutineEnv* coEnv = nullptr;
-    pthread_once(&g_coThreadTlsKeyOnce, MakeCoEnvTlsKey);
-
-    void *curTls = pthread_getspecific(g_coThreadTlsKey);
-    if (curTls != nullptr) {
-        coEnv = reinterpret_cast<CoRoutineEnv *>(curTls);
-    } else {
-        coEnv = new CoRoutineEnv();
-        pthread_setspecific(g_coThreadTlsKey, coEnv);
+    int ret = pthread_key_create(&g_coThreadTlsKey, CoEnvDestructor);
+    if (ret != 0) {
+        FFRT_SYSEVENT_LOGE("pthread_key_create failed, ret[%d]", ret);
+        abort();
     }
-    return coEnv;
 }
 
-CoRoutineEnv* GetCoRoutineEnv()
+void CoEnvCreate()
 {
-    return GetCoEnv();
+    pthread_once(&g_coThreadTlsKeyOnce, MakeCoEnvTlsKey);
 }
 
 namespace {
@@ -210,12 +199,8 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
     }
 }
 
-void SwitchTsdToThread(ffrt::CoTask* task)
+static FFRT_NOINLINE void SwitchTsdToThreadSlowPath(CoTask* task)
 {
-    if (!IsTaskLocalEnable(task)) {
-        return;
-    }
-
     CPUEUTask* cpuTask = static_cast<CPUEUTask*>(task);
 
     if (!SwitchTsdAddrToThread(cpuTask)) {
@@ -226,6 +211,15 @@ void SwitchTsdToThread(ffrt::CoTask* task)
 
     cpuTask->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
+}
+
+void SwitchTsdToThread(ffrt::CoTask* task)
+{
+    if FFRT_LIKELY(!IsTaskLocalEnable(task)) {
+        return;
+    }
+
+    SwitchTsdToThreadSlowPath(task);
 }
 
 void TaskTsdRunDtors(ffrt::CPUEUTask* task)
@@ -268,7 +262,7 @@ static inline void CoExit(CoRoutine* co, bool isNormalTask)
     }
 #endif
     CoStackCheck(co);
-#ifdef ASAN_MODE
+#ifdef FFRT_ASAN_MODE
     /* co to thread start */
     __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, co->asanFiberAddr, co->asanFiberSize);
     /* clear remaining shadow stack */
@@ -281,7 +275,7 @@ static inline void CoExit(CoRoutine* co, bool isNormalTask)
 static inline void CoStartEntry(void* arg)
 {
     CoRoutine* co = reinterpret_cast<CoRoutine*>(arg);
-#ifdef ASAN_MODE
+#ifdef FFRT_ASAN_MODE
     /* thread to co finish first */
     __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
@@ -308,7 +302,7 @@ static void CoSetStackProt(CoRoutine* co, int prot)
 
 static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
 {
-    std::size_t defaultStackSize = FFRTFacade::GetCSAInstance()->size;
+    std::size_t defaultStackSize = FFRTFacade::GetCoStackAttr().size;
     CoRoutine* co = nullptr;
     if (likely(stackSize == defaultStackSize)) {
         co = ffrt::CoRoutineAllocMem(stackSize);
@@ -330,7 +324,7 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
     co->allocatedSize = stackSize;
     co->stkMem.size = static_cast<uint64_t>(stackSize - sizeof(CoRoutine) + 8);
     co->stkMem.magic = STACK_MAGIC;
-    if (FFRTFacade::GetCSAInstance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
+    if (FFRTFacade::GetCoStackAttr().type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_READ);
     }
     return co;
@@ -338,10 +332,10 @@ static inline CoRoutine* AllocNewCoRoutine(size_t stackSize)
 
 static inline void CoMemFree(CoRoutine* co)
 {
-    if (FFRTFacade::GetCSAInstance()->type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
+    if (FFRTFacade::GetCoStackAttr().type == CoStackProtectType::CO_STACK_STRONG_PROTECT) {
         CoSetStackProt(co, PROT_WRITE | PROT_READ);
     }
-    std::size_t defaultStackSize = FFRTFacade::GetCSAInstance()->size;
+    std::size_t defaultStackSize = FFRTFacade::GetCoStackAttr().size;
     #if defined(TSAN_MODE)
         assert(co->ctx.tsanFiber != nullptr);
         __tsan_destroy_fiber(co->ctx.tsanFiber);
@@ -370,17 +364,15 @@ void CoWorkerExit(void)
     CoStackFree();
 }
 
-static inline void BindNewCoRoutione(ffrt::CoTask* task)
+static inline void BindNewCoRoutione(ffrt::CoTask* task, CoRoutineEnv* coEnv)
 {
-    CoRoutineEnv* coEnv = GetCoEnv();
     task->coRoutine = coEnv->runningCo;
     task->coRoutine->task = task;
     task->coRoutine->thEnv = coEnv;
 }
 
-static inline int CoAlloc(ffrt::CoTask* task)
+static inline int CoAlloc(ffrt::CoTask* task, CoRoutineEnv* coEnv)
 {
-    CoRoutineEnv* coEnv = GetCoEnv();
     if (task->coRoutine) { // use allocated coroutine stack
         if (coEnv->runningCo) { // free cached stack if it exist
             CoMemFree(coEnv->runningCo);
@@ -400,17 +392,17 @@ static inline int CoAlloc(ffrt::CoTask* task)
 }
 
 // call CoCreate when task create
-static inline int CoCreate(ffrt::CoTask* task)
+static inline int CoCreate(ffrt::CoTask* task, CoRoutineEnv* coEnv)
 {
-    CoAlloc(task);
-    if (GetCoEnv()->runningCo == nullptr) { // retry once if alloc failed
-        CoAlloc(task);
+    CoAlloc(task, coEnv);
+    if (coEnv->runningCo == nullptr) { // retry once if alloc failed
+        CoAlloc(task, coEnv);
         if (GetCoEnv()->runningCo == nullptr) { // retry still failed
             FFRT_LOGE("alloc co routine failed");
             return -1;
         }
     }
-    BindNewCoRoutione(task);
+    BindNewCoRoutione(task, coEnv);
     auto co = task->coRoutine;
     if (co->status.load() == static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
         ffrt_fiber_init(&co->ctx, CoStartEntry, static_cast<void*>(co), co->stkMem.stk, co->stkMem.size);
@@ -427,17 +419,24 @@ static inline void CoSwitchInTransaction(ffrt::CoTask* task)
 
 static inline void CoSwitchOutTransaction(ffrt::CoTask* task)
 {
-    if (task->cpuBoostCtxId >= 0) {
+    if FFRT_UNLIKELY(task->cpuBoostCtxId >= 0) {
         CpuBoostSave(task->cpuBoostCtxId);
+    }
+}
+
+static FFRT_NOINLINE void CoBboxPreCheckSlowPath()
+{
+    if (GetBboxEnableState() != 0) {
+        FFRT_SYSEVENT_LOGE("executed by worker suddenly, ignore backtrace");
     }
 }
 
 static inline bool CoBboxPreCheck(ffrt::CoTask* task)
 {
-    if (task->coRoutine) {
-        int ret = task->coRoutine->status.exchange(static_cast<int>(CoStatus::CO_RUNNING));
-        if (ret == static_cast<int>(CoStatus::CO_RUNNING) && GetBboxEnableState() != 0) {
-            FFRT_SYSEVENT_LOGE("executed by worker suddenly, ignore backtrace");
+    constexpr int STATUS_CO_RUNNING = static_cast<int>(CoStatus::CO_RUNNING);
+    if FFRT_LIKELY(task->coRoutine) {
+        if FFRT_UNLIKELY(task->coRoutine->status.exchange(STATUS_CO_RUNNING) == STATUS_CO_RUNNING) {
+            CoBboxPreCheckSlowPath();
             return false;
         }
     }
@@ -452,16 +451,20 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         return 0;
     }
 
-    if (CoCreate(task) != 0) {
+    CoRoutineEnv* coEnv = GetCoEnv();
+    if FFRT_UNLIKELY(CoCreate(task, coEnv) != 0) {
         return -1;
     }
     auto co = task->coRoutine;
     auto taskQos = task->GetQos();
     auto taskType = task->type;
 
+    bool isBetaVersion = GetBetaVersionFlag();
     FFRTTraceRecord::TaskRun(taskQos, task);
     for (;;) {
+#ifdef PER_TASK_LOAD_TRACKING
         ffrt::TaskLoadTracking::Begin(task);
+#endif
 #ifdef FFRT_ASYNC_STACKTRACE
         FFRTSetStackId(task->stackId);
 #endif
@@ -472,36 +475,38 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
 #endif
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
         if (task->traceId_.valid == HITRACE_ID_VALID) {
-            TraceChainAdapter::Instance().HiTraceChainRestoreId(&task->traceId_);
+            FFRTFacade::GetTraceChainAdapter().HiTraceChainRestoreId(&task->traceId_);
         }
 #endif
-#ifdef ASAN_MODE
+#ifdef FFRT_ASAN_MODE
         /* thread to co start */
         __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, GetCoStackAddr(co), co->stkMem.size);
 #endif
         // mark tasks as EXECUTING which waked by CoWakeFunc that blocked by CoWait before
-        task->SetStatus(TaskStatus::EXECUTING);
+        task->SetStatus<TaskStatus::EXECUTING>();
         /* thread switch to co */
         CoSwitch(&co->thEnv->schCtx, &co->ctx);
-#ifdef ASAN_MODE
+#ifdef FFRT_ASAN_MODE
         /* co to thread finish */
         __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
 #endif
         FFRT_TASK_END();
 #ifdef FFRT_ENABLE_HITRACE_CHAIN
         if (co->status.load() != static_cast<int>(CoStatus::CO_UNINITIALIZED)) {
-            task->traceId_ = TraceChainAdapter::Instance().HiTraceChainGetId();
+            task->traceId_ = FFRTFacade::GetTraceChainAdapter().HiTraceChainGetId();
             if (task->traceId_.valid == HITRACE_ID_VALID) {
-                TraceChainAdapter::Instance().HiTraceChainClearId();
+                FFRTFacade::GetTraceChainAdapter().HiTraceChainClearId();
             }
         }
 #endif
+#ifdef PER_TASK_LOAD_TRACKING
         ffrt::TaskLoadTracking::End(task); // Todo: deal with CoWait()
+#endif
         CoStackCheck(co);
 
         // 1. coroutine task done, exit normally, need to exec next coroutine task
         if (co->isTaskDone) {
-            ffrt::FFRTFacade::GetDMInstance().onTaskDone(static_cast<CPUEUTask*>(task));
+            ffrt::FFRTFacade::GetDependenceManager().onTaskDone(static_cast<CPUEUTask*>(task));
             co->isTaskDone = false;
             return 0;
         }
@@ -518,7 +523,7 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
         if ((*pending)(task)) {
             // The ownership of the task belongs to other host(cv/mutex/epoll etc)
             // And the task cannot be accessed any more.
-            if (ffrt::GetBetaVersionFlag() && taskType == ffrt_normal_task) {
+            if (isBetaVersion && taskType == ffrt_normal_task) {
                 FFRTTraceRecord::TaskCoSwitchAdd(taskQos);
             }
             return 0;
@@ -528,29 +533,8 @@ int CoStart(ffrt::CoTask* task, CoRoutineEnv* coRoutineEnv)
     }
 }
 
-// called by thread work
-void CoYield(void)
+static FFRT_NOINLINE void CoWaitBboxCheckSlowPath(CoRoutine* co)
 {
-    CoRoutineEnv* coEnv = GetCoEnv();
-    CoRoutine* co = static_cast<CoRoutine*>(coEnv->runningCo);
-    co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
-    coEnv->runningCo = nullptr;
-    CoSwitchOutTransaction(co->task);
-    FFRT_BLOCK_MARKER(co->task->gid);
-#ifdef FFRT_TASK_LOCAL_ENABLE
-    SwitchTsdToThread(co->task);
-#endif
-    CoStackCheck(co);
-#ifdef ASAN_MODE
-    /* co to thread start */
-    __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, co->asanFiberAddr, co->asanFiberSize);
-#endif
-    /* co switch to thread */
-    CoSwitch(&co->ctx, &GetCoEnv()->schCtx);
-#ifdef ASAN_MODE
-    /* thread to co finish */
-    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
-#else
     while (GetBboxEnableState() != 0) {
         if (GetBboxEnableState() != static_cast<unsigned int>(gettid())) {
             BboxFreeze(); // freeze non-crash thread
@@ -561,13 +545,35 @@ void CoYield(void)
         co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH)); // recovery to old state
         CoExit(co, co->task->type == ffrt_normal_task);
     }
-#endif
 }
 
 void CoWait(const std::function<bool(ffrt::CoTask*)>& pred)
 {
-    GetCoEnv()->pending = &pred;
-    CoYield();
+    CoRoutineEnv* coEnv = GetCoEnv();
+    coEnv->pending = &pred;
+    CoRoutine* co = static_cast<CoRoutine*>(coEnv->runningCo);
+    co->status.store(static_cast<int>(CoStatus::CO_NOT_FINISH));
+    coEnv->runningCo = nullptr;
+    CoSwitchOutTransaction(co->task);
+    FFRT_BLOCK_MARKER(co->task->gid);
+#ifdef FFRT_TASK_LOCAL_ENABLE
+    SwitchTsdToThread(co->task);
+#endif
+    CoStackCheck(co);
+#ifdef FFRT_ASAN_MODE
+    /* co to thread start */
+    __sanitizer_start_switch_fiber((void **)&co->asanFakeStack, co->asanFiberAddr, co->asanFiberSize);
+#endif
+    /* co switch to thread */
+    CoSwitch(&co->ctx, &coEnv->schCtx);
+#ifdef FFRT_ASAN_MODE
+    /* thread to co finish */
+    __sanitizer_finish_switch_fiber(co->asanFakeStack, (const void**)&co->asanFiberAddr, &co->asanFiberSize);
+#else
+    if FFRT_UNLIKELY(GetBboxEnableState() != 0) {
+        CoWaitBboxCheckSlowPath(co);
+    }
+#endif
 }
 
 void CoWake(ffrt::CoTask* task, CoWakeType type)
@@ -598,10 +604,4 @@ void CoWake(ffrt::CoTask* task, CoWakeType type)
             break;
         }
     }
-}
-
-CoRoutineFactory &CoRoutineFactory::Instance()
-{
-    static CoRoutineFactory fac;
-    return fac;
 }

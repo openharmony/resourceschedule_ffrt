@@ -38,7 +38,6 @@ struct TimeOutReport {
 
 class IOPoller : public BasePoller {
 public:
-    static IOPoller& Instance();
     ~IOPoller() noexcept override;
 
     using BasePoller::WaitFdEvent;
@@ -52,6 +51,8 @@ public:
     void PollerUnRegisterTimer(std::unordered_set<int>& timerHandlesToRemove) override;
 
 private:
+    friend class FFRTFacade;
+    static IOPoller& Instance(); // use FFRTFacade::GetIOPoller to get IOPoller Instance
     void Run() override;
     int PollOnce(int timeout = -1) noexcept;
     struct TimeOutReport timeOutReport_;

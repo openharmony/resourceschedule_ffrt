@@ -25,14 +25,16 @@ void UVTask::Ready()
 {
     QoS taskQos = qos_;
     FFRTTraceRecord::TaskSubmit<ffrt_uv_task>(taskQos);
-    if (FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PushUVTaskToWaitingQueue(this)) {
+    if (FFRTFacade::GetScheduler().GetScheduler(taskQos).PushUVTaskToWaitingQueue(this)) {
         FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(taskQos);
         return;
     }
-    SetStatus(TaskStatus::READY);
-    bool isRisingEdge = FFRTFacade::GetSchedInstance()->PushTask(this, false);
+
+    SetStatus<TaskStatus::READY>();
+    bool isRisingEdge = FFRTFacade::GetScheduler().PushTask(this, false);
+
     FFRTTraceRecord::TaskEnqueue<ffrt_uv_task>(taskQos);
-    FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_ADDED_RTQ>(taskQos, false, isRisingEdge);
+    FFRTFacade::GetExecuteUnit().NotifyTask<TaskNotifyType::TASK_ADDED_RTQ>(taskQos, false, isRisingEdge);
 }
 
 void UVTask::Execute()
@@ -44,7 +46,7 @@ void UVTask::Execute()
     }
 
     // if the concurrency reaches the upper limit, this worker cannot execute UV tasks.
-    if (!FFRTFacade::GetSchedInstance()->GetScheduler(qos_).CheckUVTaskConcurrency(this)) {
+    if (!FFRTFacade::GetScheduler().GetScheduler(qos_).CheckUVTaskConcurrency(this)) {
         return;
     }
 
@@ -65,7 +67,7 @@ void UVTask::ExecuteImpl(UVTask* task, ffrt_executor_task_func func)
     while (task != nullptr) {
         ctx->task = task;
         ctx->lastGid_ = task->gid;
-        task->SetStatus(TaskStatus::EXECUTING);
+        task->SetStatus<TaskStatus::EXECUTING>();
         FFRTTraceRecord::TaskExecute<ffrt_uv_task>(taskQos);
         FFRT_EXECUTOR_TASK_BEGIN(task->gid);
         func(task->uvWork, taskQos);
@@ -73,7 +75,7 @@ void UVTask::ExecuteImpl(UVTask* task, ffrt_executor_task_func func)
         FFRT_TASKDONE_MARKER(task->gid); // task finish marker for uv task
         FFRTTraceRecord::TaskDone<ffrt_uv_task>(taskQos);
         task->DecDeleteRef();
-        task = FFRTFacade::GetSchedInstance()->GetScheduler(taskQos).PickWaitingUVTask();
+        task = FFRTFacade::GetScheduler().GetScheduler(taskQos).PickWaitingUVTask();
     }
 }
 } // namespace ffrt

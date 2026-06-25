@@ -32,29 +32,25 @@ public:
     {
         QoS taskQos = qos_;
         FFRTTraceRecord::TaskSubmit<ffrt_io_task>(taskQos);
-        SetStatus(TaskStatus::READY);
 
-        FFRTFacade::GetSchedInstance()->PushTask(this, false);
+        SetStatus<TaskStatus::READY>();
+        bool isRisingEdge = FFRTFacade::GetScheduler().PushTask(this, false);
+
         FFRTTraceRecord::TaskEnqueue<ffrt_io_task>(taskQos);
-        FFRTFacade::GetEUInstance().NotifyTask<TaskNotifyType::TASK_LOCAL>(taskQos);
-    }
-
-    void Pop() override
-    {
-        SetStatus(TaskStatus::POPPED);
+        FFRTFacade::GetExecuteUnit().NotifyTask<TaskNotifyType::TASK_ADDED_RTQ>(taskQos, false, isRisingEdge);
     }
 
     void Execute() override;
 
     BlockType Block() override
     {
-        SetStatus(TaskStatus::THREAD_BLOCK);
+        SetStatus<TaskStatus::THREAD_BLOCK>();
         return BlockType::BLOCK_THREAD;
     }
 
     void Wake() override
     {
-        SetStatus(TaskStatus::EXECUTING);
+        SetStatus<TaskStatus::EXECUTING>();
     }
 
     void Finish() override {}

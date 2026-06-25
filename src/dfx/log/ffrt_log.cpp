@@ -72,7 +72,7 @@ static void SetLogLevel(void)
 
 void InitWhiteListFlag(void)
 {
-    g_whiteListFlag = ffrt::WhiteList::GetInstance().IsEnabled("log_ctr", true);
+    g_whiteListFlag = ffrt::WhiteList::GetInstance().IsEnabled(ffrt::WhiteListKey::log_ctr, true);
 }
 
 bool GetLogBetaVersionFlag(void)

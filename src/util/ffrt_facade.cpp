@@ -95,20 +95,20 @@ private:
     }
 };
 
-FFRTFacade& FFRTFacade::Instance()
+FFRTFacade& FFRTFacade::LazyInstance()
 {
-    if unlikely(facadeIns_ == nullptr) {
-        static FFRTFacade facade;
-        facadeIns_ = &facade;
-    }
-    return *facadeIns_;
+    static FFRTFacade ins;
+    return ins;
 }
 
 FFRTFacade::FFRTFacade()
 {
 // control construct sequences of singletons
 #ifdef FFRT_OH_TRACE_ENABLE
-    TraceAdapter::Instance();
+    gTraceAdapter = TraceAdapter::Instance();
+#endif
+#ifdef FFRT_ENABLE_HITRACE_CHAIN
+    gTraceChainAdapter = &TraceChainAdapter::Instance();
 #endif
     SimpleAllocator<QueueTask>::Instance();
     SimpleAllocator<IOTask>::Instance();
@@ -119,13 +119,13 @@ FFRTFacade::FFRTFacade()
     TaskFactory<QueueTask>::Instance();
     TaskFactory<IOTask>::Instance();
     TaskFactory<UVTask>::Instance();
-    DependenceManager::Instance();
-    QSimpleAllocator<CoRoutine>::Instance(CoStackAttr::Instance()->size);
-    CoRoutineFactory::Instance();
-    TimerManager::Instance();
-    Scheduler::Instance();
+    gDependenceManager = &DependenceManager::Instance();
+    gCoStackAttr = CoStackAttr::Instance();
+    QSimpleAllocator<CoRoutine>::Instance(gCoStackAttr->size);
+    gTimerManager = &TimerManager::Instance();
+    gScheduler = Scheduler::Instance();
 #ifdef FFRT_WORKER_MONITOR
-    WorkerMonitor::GetInstance();
+    gWorkerMonitor = &WorkerMonitor::GetInstance();
 #endif
     /* By calling `FuncManager::Instance()` we force the construction
      * of FunManager singleton static object to complete before static object `SExecuteUnit` construction.
@@ -143,20 +143,21 @@ FFRTFacade::FFRTFacade()
      * be alive. `DelayedWorker` destructor waits for all async tasks to complete first, so the
      * order will be (completion of async tasks) -> `~DelayedWorker()` -> `~SDependenceManager`.
      */
-    DelayedWorker::GetInstance();
+    gDelayedWorker = &DelayedWorker::GetInstance();
     /* Same argument as above for ExecuteUnit. ExecuteUnit destructor is what waits on all
      * threads to be done and delays destruction of main objects. It also initiates the
      * tearDown. We must avoid the situation where detached threads or timer tasks
      * are calling `SDependenceManager::onTaskDone` on destroyed SDependenceManager object.
      */
-    ExecuteUnit::Instance();
+    gExecuteUnit = &ExecuteUnit::Instance();
+    gQueueMonitor = &QueueMonitor::GetInstance();
     /* Ensure that IOPoller is destructed after SExecuteUnit.
      * We need to make sure that the runner in IOPoller is not
      * going to call `SExecuteUnit::WakeupWorkers`
      * or `ffrt::SExecuteUnit::PokeImpl`, while SExecuteUnit
      * is being destroyed.
      */
-    IOPoller::Instance();
+    gIOPoller = &IOPoller::Instance();
     ProcessExitManager::Instance();
     g_initFlag.store(true);
     InitWhiteListFlag();

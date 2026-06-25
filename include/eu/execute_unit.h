@@ -51,7 +51,6 @@ namespace ffrt {
 enum class TaskNotifyType {
     TASK_PICKED = 0,
     TASK_ADDED,
-    TASK_LOCAL,
     TASK_ESCAPED,
     TASK_ADDED_RTQ,
 };
@@ -75,7 +74,7 @@ struct CPUWorkerGroup {
     size_t workerStackSize{0};
     bool setWorkerMaxNum{false};
     std::unordered_map<CPUWorker *, std::unique_ptr<CPUWorker>> threads;
-    std::mutex mutex;
+    std::mutex* mutex; // global sched mutex(per qos) shared with EU and Scheduler
     std::condition_variable cv;
 
     // group status parameters
@@ -177,9 +176,7 @@ struct EscapeConfig {
 
 class ExecuteUnit {
 public:
-    static ExecuteUnit& Instance();
-
-    static void RegistInsCb(SingleInsCB<ExecuteUnit>::Instance&& cb);
+    static void RegistInsCb(SingleInsCB<ExecuteUnit>::Instance &&cb);
 
     ThreadGroup* BindTG(QoS& qos);
     void UnbindTG(QoS& qos);
@@ -195,8 +192,6 @@ public:
             PokePick(qos);
         } else if constexpr (TYPE == TaskNotifyType::TASK_ESCAPED) {
             PokeEscape(qos, isPollWait);
-        } else if constexpr (TYPE == TaskNotifyType::TASK_LOCAL) {
-            PokeLocal(qos);
         } else if constexpr (TYPE == TaskNotifyType::TASK_ADDED_RTQ) {
             PokeAddRtq(qos, isRisingEdge);
         }
@@ -289,7 +284,7 @@ public:
     virtual void NotifyWorkers(const QoS &qos, int number);
 
     // used for worker sharing
-    bool WorkerShare(CPUWorker* worker, std::function<bool(int, CPUWorker*)> taskFunction);
+    bool WorkerShare(CPUWorker* worker, bool(*taskFunction)(int, CPUWorker*));
 // worker dynamic scaling
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     void MonitorMain();
@@ -299,16 +294,19 @@ public:
 #endif
     void WorkerStart(int qos);
     void WorkerExit(int qos);
+    virtual WorkerAction WorkerIdleAction(CPUWorker *thread) = 0;
+    virtual void WorkerPrepare(CPUWorker *thread) = 0;
+    void WorkerRetired(CPUWorker *thread);
     WorkerStatusInfo GetWorkerStatusInfoAndReset(int qos);
+#ifdef FFRT_WORKERS_DYNAMIC_SCALING
+    bool IsBlockAwareInit(void);
+#endif
 
 protected:
     virtual void WakeupWorkers(const QoS &qos) = 0;
 
     // worker manipulate op
     bool IncWorker(const QoS &qos);
-    virtual void WorkerPrepare(CPUWorker *thread) = 0;
-    virtual WorkerAction WorkerIdleAction(CPUWorker *thread) = 0;
-    void WorkerRetired(CPUWorker *thread);
 
     // worker rtg config
     void WorkerJoinTg(const QoS &qos, pid_t pid);
@@ -334,8 +332,6 @@ protected:
     ExecuteUnit();
     virtual ~ExecuteUnit();
 
-    size_t GetRunningNum(const QoS &qos);
-
     size_t GetRunningNum(const QoS &qos, const CPUWorkerGroup &group);
     void ReportEscapeEvent(int qos, size_t totalNum);
 
@@ -355,11 +351,12 @@ protected:
     // eu sched task bacllog array
     bool taskBacklogConfig[QoS::MaxNum()] = {};
 private:
+    friend class FFRTFacade;
+    static ExecuteUnit &Instance(); // use FFRTFacade::GetExecuteUnit to get EU Instance
     CPUWorker *CreateCPUWorker(const QoS &qos);
 
     virtual void PokeAdd(const QoS &qos) = 0;
     virtual void PokePick(const QoS &qos) = 0;
-    virtual void PokeLocal(const QoS &qos) = 0;
     virtual void PokeEscape(const QoS &qos, bool isPollWait) = 0;
     virtual void PokeAddRtq(const QoS &qos, bool isRisingEdge) = 0;
 
@@ -383,10 +380,6 @@ private:
             return escapeConfig.threeStageIntervalMs_;
         }
     }
-
-#ifdef FFRT_WORKERS_DYNAMIC_SCALING
-    bool IsBlockAwareInit(void);
-#endif
 };
 } // namespace ffrt
 #endif

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "util/ffrt_facade.h"
+#include <linux/futex.h>
 #include "util/capability.h"
 #include "core/version_ctx.h"
 #include "dfx/log/ffrt_log_api.h"
@@ -32,6 +33,7 @@ std::atomic<bool> g_initFlag { false };
 std::atomic<bool> g_delayedWorkerExitFlag { false };
 std::atomic<bool> g_betaVersionFlag { false };
 std::once_flag g_processNameInitFlag;
+constexpr unsigned long FUTEX_FLAG_WAIT_ENQUEUE = 0x400UL;
 }
 
 namespace ffrt {

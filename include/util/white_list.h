@@ -50,6 +50,7 @@ class WhiteList {
 public:
     static WhiteList& GetInstance();
     void LoadFromFile();
+
     bool IsEnabled(WhiteListKey key, bool defaultWhenAbnormal);
 
 private:

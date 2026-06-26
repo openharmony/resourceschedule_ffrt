@@ -39,12 +39,12 @@ public:
         return que->Size();
     }
 
-    virtual uint64_t GetRTQTaskCnt() override
+    uint64_t GetRTQTaskCnt() override
     {
         return que->Size();
     }
 
-    virtual bool GlobalTaskEmpty() override
+    bool GlobalTaskEmpty() override
     {
         return que->Empty();
     }

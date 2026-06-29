@@ -96,6 +96,7 @@ config("ffrt_inner_config") {
     "FFRT_CO_BACKTRACE_OH_ENABLE",
     "FFRT_OH_TRACE_ENABLE",
     "FFRT_TRACE_LEVEL=1",
+    "FFRT_WORKER_MONITOR",
     "FFRT_TRACE_RECORD_LEVEL=1",
     "FFRT_SEND_EVENT",
     "FFRT_ALLOCATOR_MMAP_SIZE=${ffrt_allocator_mmap_size}",

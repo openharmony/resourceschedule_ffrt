@@ -171,8 +171,18 @@ config("ffrt_test_config") {
     "FFRT_ENABLE_HITRACE_CHAIN",
     "FFRT_GITEE",
     "FFRT_PTHREAD_ENABLE",
-    "FFRT_OH_WATCHDOG_ENABLE",
     "FFRT_PARSE_XML_USE_STUB",
+    "FFRT_LOG_LEVEL=3",
+    "FFRT_BBOX_ENABLE",
+    "FFRT_OH_EVENT_RECORD",
+    "FFRT_CO_BACKTRACE_OH_ENABLE",
+    "FFRT_OH_TRACE_ENABLE",
+    "FFRT_OH_WATCHDOG_ENABLE",
+    "FFRT_WORKER_MONITOR",
+    "FFRT_TRACE_RECORD_LEVEL=1",
+    "FFRT_SEND_EVENT",
+    "FFRT_ALLOCATOR_MMAP_SIZE=${ffrt_allocator_mmap_size}",
+    "FFRT_STACK_SIZE=${ffrt_stack_size}",
     "FFRT_TRACE_LEVEL=1",
     "QOS_WORKER_FRAME_RTG",
     "USE_OHOS_QOS",
@@ -185,6 +195,24 @@ config("ffrt_test_config") {
   if (ffrt_async_stack_enable) {
     defines += [ "FFRT_ASYNC_STACKTRACE" ]
   }
+
+  if (is_asan && !use_hwasan) {
+    defines += [ "FFRT_ASAN_MODE" ]
+  }
+
+  if (is_tsan) {
+    defines += [ "FFRT_CLOSE_COROUTINE_MODE" ]
+  }
+
+  if (is_ohos && !ffrt_task_local_enable) {
+    defines += [ "FFRT_TASK_LOCAL_ENABLE" ]
+  }
+
+  # build_variant is root/user, default user
+  if (build_variant == "root") {
+    defines += [ "FFRT_ENG_DEBUG" ]
+  }
+
   if (target_cpu == "arm") {
     defines += [ "APP_USE_ARM" ]
   }

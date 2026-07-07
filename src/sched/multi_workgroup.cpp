@@ -86,7 +86,11 @@ WorkGroup* CreateRSWorkGroup(uint64_t interval, int qos)
         if (rsWorkGroup == nullptr) {
             CTC_QUERY_INTERVAL(QUERY_RENDER_SERVICE_RENDER, rs);
             if (rs.rtgId > 0) {
-                rsWorkGroup = new struct WorkGroup();
+                rsWorkGroup = new (std::nothrow) struct WorkGroup();
+                if (rsWorkGroup == nullptr) {
+                    FFRT_SYSEVENT_LOGE("[RSWorkGroup] rsWorkGroup malloc failed!");
+                    return nullptr;
+                }
                 WorkgroupInit(rsWorkGroup, interval, rs.rtgId, qos);
                 wgCount++;
             }
@@ -197,7 +201,11 @@ struct WorkGroup* WorkgroupCreate(uint64_t interval, int qos)
     FFRT_LOGI("[WorkGroup] create rtg group %d success", rtgId);
 
     WorkGroup* wg = nullptr;
-    wg = new struct WorkGroup();
+    wg = new (std::nothrow) struct WorkGroup();
+    if (wg == nullptr) {
+        FFRT_SYSEVENT_LOGE("[WorkGroup] workgroup malloc failed!");
+        return nullptr;
+    }
     WorkgroupInit(wg, interval, rtgId);
     {
         std::lock_guard<std::mutex> lck(wgLock);

@@ -131,7 +131,7 @@ static inline void SaveWorkerStatus()
     int workerGroupCnt = QoS::MaxNum();
     for (int i = 0; i < workerGroupCnt; i++) {
         CPUWorkerGroup& workerGroup = FFRTFacade::GetExecuteUnit().GetWorkerGroup(i);
-        std::shared_lock lck(workerGroup.tgMutex); /* acquire the lock in RO */
+        std::shared_lock<std::shared_mutex> lck(workerGroup.tgMutex);
         for (auto& thread : workerGroup.threads) {
             TaskBase* t = thread.first->curTask;
             if (t == nullptr) {

@@ -127,6 +127,7 @@ extern "C" {
 API_ATTRIBUTE((visibility("default")))
 int dump_info_all(char *buf, uint32_t len)
 {
+    FFRT_COND_RETURN_ERROR(buf == nullptr || len < 1, -1, "buf is nullptr or len is less than 1, len %u", len);
 #ifdef FFRT_CO_BACKTRACE_OH_ENABLE
     if (FFRTIsWork()) {
         std::string dumpInfo;

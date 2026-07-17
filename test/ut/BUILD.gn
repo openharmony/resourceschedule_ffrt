@@ -25,7 +25,7 @@ ffrt_ut_base_cflags_cc = [
   "-frtti",
   "-Xclang",
   "-fcxx-exceptions",
-  "-std=c++11",
+  "-std=c++17",
   "-DFFRT_PERF_EVENT_ENABLE",
   "-DFFRT_WORKER_MONITOR",
   "-DFFRT_BBOX_ENABLE",

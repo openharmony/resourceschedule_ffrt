@@ -23,6 +23,7 @@
 
 namespace ffrt {
 
+// 更新WhiteListKey时注意同时修改.conf文件
 enum class WhiteListKey : uint8_t {
     log_ctr,
     worker_monitor,
@@ -40,7 +41,7 @@ enum class WhiteListKey : uint8_t {
     PerfTraceScopedSync,
     DisableLIFOFutex,
     SetThreadInitPri,
-    EnableSchedQss,
+    EnableSchedQSS,
     BlackListQss,
     UNKNOWN,
     KEY_MAX = UNKNOWN
@@ -50,13 +51,11 @@ class WhiteList {
 public:
     static WhiteList& GetInstance();
     void LoadFromFile();
-
     bool IsEnabled(WhiteListKey key, bool defaultWhenAbnormal);
 
 private:
     WhiteList();
     bool TryRefreshWhiteListOnInit();
-
     WhiteList(const WhiteList&) = delete;
     WhiteList& operator=(const WhiteList&) = delete;
 

@@ -20,7 +20,12 @@
 
 #include "internal_inc/osal.h"
 #include "dfx/log/ffrt_log_api.h"
-#include "dfx/trace/ffrt_trace.h"
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+#include "util/graph_check.h"
+#include "tm/cpu_task.h"
+
+#define TID_MAX (0x400000)
+#endif
 #ifdef FFRT_OH_EVENT_RECORD
 #include "hisysevent.h"
 #endif
@@ -31,13 +36,91 @@ static FFRT_NOINLINE void MutexEmptyLogPrint()
 }
 
 namespace ffrt {
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+class MutexGraph {
+    std::mutex mutex;
+    GraphCheckCyclic graph;
+
+public:
+    static MutexGraph& Instance()
+    {
+        static MutexGraph mgraph;
+        return mgraph;
+    }
+
+    void SendEvent(const std::string &msg, const std::string& eventName)
+    {
+#ifdef FFRT_OH_EVENT_RECORD
+        int32_t pid = getpid();
+        int32_t gid = getgid();
+        int32_t uid = getuid();
+        time_t cur_time = time(nullptr);
+        std::string sendMsg = std::string((ctime(&cur_time) == nullptr) ? "" : ctime(&cur_time)) +
+                                "\n" + msg + "\n";
+
+        HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::FFRT, eventName,
+                        OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
+                        "PID", pid,
+                        "TGID", gid,
+                        "UID", uid,
+                        "MODULE_NAME", "ffrt",
+                        "PROCESS_NAME", "ffrt",
+                        "MSG", sendMsg);
+        FFRT_LOGE("send event [FRAMEWORK,%s], msg=%s", eventName.c_str(), msg.c_str());
+#endif
+    }
+
+    void AddNode(uint64_t task, uint64_t ownerTask, bool edge)
+    {
+        std::lock_guard<std::mutex> lg{mutex};
+        graph.AddVetexByLabel(task);
+        if (edge) {
+            graph.AddEdgeByLabel(ownerTask, task);
+            if (graph.IsCyclic()) {
+                std::string dlockInfo = "A possible mutex deadlock detected!\n";
+                for (uint64_t taskId : {ownerTask, task}) {
+                    CPUEUTask* taskCtx = nullptr;
+                    if (taskId >= TID_MAX) {
+                        taskCtx = reinterpret_cast<CPUEUTask*>(taskId);
+#ifdef FFRT_CO_BACKTRACE_OH_ENABLE
+                        std::string dumpInfo;
+                        CPUEUTask::DumpTask(taskCtx, dumpInfo, 1);
+                        dlockInfo += dumpInfo;
+#endif
+                    } else {
+                        std::string threadInfo = "The linux thread id is ";
+                        threadInfo += std::to_string(taskId);
+                        threadInfo.append("\n");
+                        dlockInfo += threadInfo;
+                    }
+                }
+                SendEvent(dlockInfo, "TASK_DEADLOCK");
+            }
+        }
+    }
+
+    void RemoveNode(uint64_t task)
+    {
+        std::lock_guard<std::mutex> lg{mutex};
+        graph.RemoveEdgeByLabel(task);
+    }
+};
+#endif
+
 class mutexBase {
 public:
-    std::atomic<int> l = sync_detail::UNLOCK;
-    uint32_t attr_;
+    mutexBase() = default;
+    virtual ~mutexBase() = default;
+    virtual void lock() {}
+    virtual void unlock() {}
+    virtual bool try_lock() { return false; }
 };
 
 class mutexPrivate : public mutexBase {
+    std::atomic<int> l = sync_detail::UNLOCK;
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    std::atomic<uintptr_t> owner;
+#endif
     fast_mutex wlock;
     LinkedList list;
 
@@ -54,47 +137,24 @@ public:
         }
     }
 
+#ifdef FFRT_MUTEX_DEADLOCK_CHECK
+    mutexPrivate() : owner(0) {}
+#else
     mutexPrivate() {}
+#endif
     mutexPrivate(mutexPrivate const &) = delete;
     void operator = (mutexPrivate const &) = delete;
 
-    FFRT_INLINE bool try_lock()
-    {
-        int v = sync_detail::UNLOCK;
-        bool ret = l.compare_exchange_strong(
-            v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed);
-        return ret;
-    }
-
-    FFRT_INLINE void lock()
-    {
-        FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, Mutex_Lock, DEFAULT_CONFIG);
-        int v = sync_detail::UNLOCK;
-        if likely(l.compare_exchange_strong(
-            v, sync_detail::LOCK, std::memory_order_acquire, std::memory_order_relaxed)) {
-            goto lock_out;
-        }
-
-        return lock_slow();
-
-lock_out:
-        return;
-    }
-
-    FFRT_INLINE void unlock()
-    {
-        FFRT_PERF_TRACE_SCOPED_BY_GROUP(SYNC, Mutex_UnLock, DEFAULT_CONFIG);
-        if unlikely(l.exchange(sync_detail::UNLOCK, std::memory_order_release) == sync_detail::WAIT) {
-            wake();
-        }
-    }
+    bool try_lock() override;
+    void lock() override;
+    void unlock() override;
 };
 
 class RecursiveMutexPrivate : public mutexBase {
 public:
-    void lock();
-    void unlock();
-    bool try_lock();
+    void lock() override;
+    void unlock() override;
+    bool try_lock() override;
 
     RecursiveMutexPrivate() = default;
     ~RecursiveMutexPrivate() = default;

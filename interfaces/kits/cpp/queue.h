@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C++ APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 10
  */
@@ -25,7 +29,7 @@
 /**
  * @file queue.h
  *
- * @brief Declares the queue interfaces in C++.
+ * @brief Declares the {@link ffrt::queue}, {@link ffrt::queue_attr}, and {@link ffrt::queue_type} interfaces in C++.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -48,7 +52,7 @@ namespace ffrt {
  */
 enum queue_type {
     queue_serial = ffrt_queue_serial,         ///< A serial queue that processes tasks sequentially.
-    queue_concurrent = ffrt_queue_concurrent, ///< A concurrent queue that processes tasks in parallel.
+    queue_concurrent = ffrt_queue_concurrent, ///< A concurrent queue that processes tasks concurrently.
     queue_max = ffrt_queue_max,               ///< Defines the maximum type for validation.
 };
 
@@ -96,7 +100,7 @@ public:
     /**
      * @brief Sets the QoS for this queue attribute.
      *
-     * @param attr Indicates the QoS.
+     * @param qos_ Indicates the QoS.
      * @since 10
      */
     inline queue_attr& qos(qos qos_)
@@ -330,7 +334,7 @@ public:
     }
 
     /**
-     * @brief Submits a task with a specified attribute to this queue.
+     * @brief Submits a task to the head of this queue, ahead of tasks with the same delay.
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
@@ -341,7 +345,7 @@ public:
     }
 
     /**
-     * @brief Submits a task with a specified attribute to this queue.
+     * @brief Submits a task to the head of this queue, ahead of tasks with the same delay.
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
@@ -352,7 +356,7 @@ public:
     }
 
     /**
-     * @brief Submits a task with a specified attribute to this queue, and obtains a task handle.
+     * @brief Submits a task to the head of this queue, ahead of tasks with the same delay, and obtains a task handle.
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
@@ -365,7 +369,7 @@ public:
     }
 
     /**
-     * @brief Submits a task with a specified attribute to this queue, and obtains a task handle.
+     * @brief Submits a task to the head of this queue, ahead of tasks with the same delay, and obtains a task handle.
      *
      * @param func Indicates a task executor function closure.
      * @param attr Indicates a task attribute.
@@ -391,8 +395,12 @@ public:
     /**
      * @brief Cancels a task.
      *
+     * Tasks that have already started executing cannot be canceled.
+     *
      * @param handle Indicates a task handle.
-     * @return <b>0</b> if the task is canceled; <b>-1</b> otherwise.
+     * @return `0` if the task is canceled;
+     *         `1` if the task has already been executed or removed from the queue;
+     *         `-1` if `handle` is a null pointer.
      * @since 10
      */
     inline int cancel(const task_handle& handle)
@@ -408,14 +416,13 @@ public:
      */
     inline void wait(const task_handle& handle)
     {
-        return ffrt_queue_wait(handle);
+        ffrt_queue_wait(handle);
     }
 
     /**
-     * @brief Get queue task count.
+     * @brief Gets the queue task count.
      *
-     * @param queue Indicates a queue handle.
-     * @return The queue task count.
+     * @return The number of tasks currently in the queue.
      */
     inline uint64_t get_task_cnt()
     {
@@ -423,7 +430,7 @@ public:
     }
 
     /**
-     * @brief Get application main thread queue.
+     * @brief Gets the application main thread queue.
      *
      * @return The application main thread queue.
      * @since 12

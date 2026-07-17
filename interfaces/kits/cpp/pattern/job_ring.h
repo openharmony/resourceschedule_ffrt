@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C++ APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 20
  */
@@ -25,7 +29,7 @@
 /**
  * @file job_ring.h
  *
- * @brief Declares the job_ring interfaces in C++.
+ * @brief Declares the {@link ffrt::job_ring_attr} and {@link ffrt::job_ring} interfaces in C++.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -35,6 +39,7 @@
 
 #ifndef FFRT_JOB_RING_H
 #define FFRT_JOB_RING_H
+
 #include <functional>
 #include <string>
 #include <atomic>
@@ -52,9 +57,9 @@ namespace ffrt {
  */
 struct job_ring_attr {
     /**
-     * @brief Set the Quality of Service (QoS) level for ring workers.
+     * @brief Sets the Quality of Service (QoS) level for ring workers.
      *
-     * @param v QoS value (e.g., ffrt::qos_user_initiated).
+     * @param v Indicates the QoS value (e.g., ffrt::qos_user_initiated).
      * @return Reference to the updated job_ring_attr object.
      */
     inline job_ring_attr& qos(int v)
@@ -64,9 +69,9 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Set the task count threshold for activating a worker.
+     * @brief Sets the task count threshold for activating a worker.
      *
-     * @param v Threshold value (≥ 0). Workers are activated when tasks exceed this value.
+     * @param v Indicates the threshold value (≥ 0). Workers are activated when tasks exceed this value.
      * @return Reference to the updated job_ring_attr object.
      */
     inline job_ring_attr& threshold(uint64_t v)
@@ -76,9 +81,9 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Set the busy wait time for the last active worker before exiting.
+     * @brief Sets the busy wait time for the last active worker before exiting.
      *
-     * @param us Busy wait duration in microseconds (≥ 0). Reduces worker churn.
+     * @param us Indicates the busy wait duration in microseconds (≥ 0). Reduces worker churn.
      * @return Reference to the updated job_ring_attr object.
      */
     inline job_ring_attr& busy(uint64_t us)
@@ -88,7 +93,7 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Get the current QoS level.
+     * @brief Gets the current QoS level.
      *
      * @return QoS value.
      */
@@ -98,7 +103,7 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Get the task threshold.
+     * @brief Gets the task threshold.
      *
      * @return Threshold value.
      */
@@ -108,7 +113,7 @@ struct job_ring_attr {
     }
 
     /**
-     * @brief Get the busy wait time.
+     * @brief Gets the busy wait time.
      *
      * @return Busy wait duration in microseconds.
      */
@@ -173,8 +178,8 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     /**
      * @brief Create a new job_ring instance.
      *
-     * @param attr Configuration attributes (default: default values).
-     * @param depth Queue capacity (must be a power of two, default: 1024).
+     * @param attr Indicates the configuration attributes (default: default values).
+     * @param depth Indicates the queue capacity (must be a power of two, default: 1024).
      * @return ptr to the new job_ring.
      * @since 20
      */
@@ -189,7 +194,7 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
      * Retries with exponential backoff if the queue is full. Activates a worker if the
      * task count exceeds the threshold.
      *
-     * @param job The task function to execute.
+     * @param job Indicates the task function to execute.
      * @since 20
      */
     inline void submit(std::function<void()>&& job)
@@ -211,7 +216,7 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     /**
      * @brief Try to submit a non-suspendable task (non-blocking, no retries).
      *
-     * @param job The task function to execute.
+     * @param job Indicates the task function to execute.
      * @return true if the task was queued; false if the queue is full.
      * @since 20
      */
@@ -285,7 +290,7 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Wait for all submitted tasks to complete.
+     * @brief Waits for all submitted tasks to complete.
      *
      * @tparam HelpWorker If true, the calling thread helps process tasks while waiting.
      * @tparam BusyWaitUS Duration (us) to busy-wait before sleeping (default: 100).
@@ -336,7 +341,7 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Get the configuration attributes of the job_ring.
+     * @brief Gets the configuration attributes of the job_ring.
      *
      * Provides mutable access to the current attributes (QoS, thresholds, busy-wait duration)
      * allowing runtime modification of job_ring behavior.
@@ -350,7 +355,7 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     }
 
     /**
-     * @brief Get the count of processed tasks for profiling and monitoring.
+     * @brief Gets the count of processed tasks for profiling and monitoring.
      *
      * Returns a mutable reference to the counter tracking the total number of tasks
      * that have been executed. Useful for performance analysis and debugging.
@@ -367,13 +372,13 @@ private:
     /**
      * @brief Private constructor for job_ring.
      *
-     * @param attr Configuration attributes for the job ring
-     * @param depth Capacity of the internal lock-free queue (must be a power of two)
+     * @param attr Indicates the configuration attributes for the job ring.
+     * @param depth Indicates the capacity of the internal lock-free queue (must be a power of two).
      */
     job_ring(const job_ring_attr& attr = {}, uint64_t depth = 1024) : attr_(attr), q(depth) {}
 
     /**
-     * @brief Check if all submitted tasks have been completed.
+     * @brief Checks if all submitted tasks have been completed.
      *
      * Determines if there are no pending or currently executing tasks by checking
      * the atomic task counter with acquire memory order for proper synchronization.
@@ -386,12 +391,12 @@ private:
     }
 
     /**
-     * @brief Execute a single task with tracing and cleanup.
+     * @brief Executes a single task with tracing and cleanup.
      *
      * Wraps task execution with tracing macros for performance analysis and
      * clears the function object after execution to release resources.
      *
-     * @param f Reference to the std::function containing the task to execute.
+     * @param f Indicates a reference to the std::function containing the task to execute.
      */
     static void run_one(std::function<void()>& f)
     {
@@ -421,7 +426,7 @@ private:
 
     job_ring_attr attr_;                                            ///< Configuration attributes for the job ring.
     alignas(detail::cacheline_size) std::atomic_int32_t token{0};   ///< Atomic token to ensure single worker thread.
-    alignas(detail::cacheline_size) std::atomic_uint64_t num{0};     ///< Atomic counter for pending tasks.
+    alignas(detail::cacheline_size) std::atomic_uint64_t num{0};    ///< Atomic counter for pending tasks.
     uint64_t task_num{0};                                           ///< Total count of processed tasks (profiling).
     lf_queue<MultiProducer, false, std::function<void()>> q;        ///< Lock-free queue storing pending tasks.
     atomic_wait waiter = 0;                                         ///< Synchronization primitive for wait operations.

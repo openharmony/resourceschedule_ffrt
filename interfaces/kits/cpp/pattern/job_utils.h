@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C++ APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 20
  */
@@ -25,7 +29,7 @@
 /**
  * @file job_utils.h
  *
- * @brief Declares utilities for job scheduling, synchronization, and fiber management in FFRT.
+ * @brief Declares utilities for job scheduling, synchronization, and fiber management.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -122,7 +126,7 @@ static inline void sev()
 /**
  * @brief Aligns a value to the next power of two.
  *
- * @param x Input value.
+ * @param x Indicates the input value.
  * @return The next power of two greater than or equal to x.
  */
 static inline constexpr uint64_t align2n(uint64_t x)
@@ -144,8 +148,8 @@ struct futex {
     /**
      * @brief Waits on a futex address until its value changes.
      *
-     * @param uaddr Address to wait on.
-     * @param val Expected value.
+     * @param uaddr Indicates the address to wait on.
+     * @param val Indicates the expected value.
      */
     static inline void wait(int* uaddr, int val)
     {
@@ -158,8 +162,8 @@ struct futex {
     /**
      * @brief Wakes up threads waiting on a futex address.
      *
-     * @param uaddr Address to wake.
-     * @param num Number of threads to wake.
+     * @param uaddr Indicates the address to wake.
+     * @param num Indicates the number of threads to wake.
      */
     static inline void wake(int* uaddr, int num)
     {
@@ -197,7 +201,7 @@ struct atomic_wait : std::atomic<int> {
     /**
      * @brief Waits until the atomic value changes from val.
      *
-     * @param val Expected value.
+     * @param val Indicates the expected value.
      */
     inline void wait(int val)
     {
@@ -249,7 +253,7 @@ struct ref_obj {
         /**
          * @brief Constructs from a raw pointer, taking ownership.
          *
-         * @param p Raw pointer to the managed object.
+         * @param p Indicates the raw pointer to the managed object.
          */
         ptr(void* p) : p(static_cast<T*>(p)) {}
 
@@ -264,7 +268,7 @@ struct ref_obj {
         /**
          * @brief Copy constructor. Increases the reference count.
          *
-         * @param h The smart pointer to copy from.
+         * @param h Indicates the smart pointer to copy from.
          */
         inline ptr(ptr const& h)
         {
@@ -274,7 +278,7 @@ struct ref_obj {
         /**
          * @brief Copy assignment operator. Increases the reference count.
          *
-         * @param h The smart pointer to assign from.
+         * @param h Indicates the smart pointer to assign from.
          * @return Reference to this pointer.
          */
         inline ptr& operator=(ptr const& h)
@@ -294,7 +298,7 @@ struct ref_obj {
         /**
          * @brief Move constructor. Transfers ownership without increasing the reference count.
          *
-         * @param h The smart pointer to move from.
+         * @param h Indicates the smart pointer to move from.
          */
         inline ptr(ptr&& h)
         {
@@ -304,7 +308,7 @@ struct ref_obj {
         /**
          * @brief Move assignment operator. Transfers ownership without increasing the reference count.
          *
-         * @param h The smart pointer to move from.
+         * @param h Indicates the smart pointer to move from.
          * @return Reference to this pointer.
          */
         inline ptr& operator=(ptr&& h)
@@ -439,7 +443,7 @@ struct mpmc_queue : detail::non_copyable {
     /**
      * @brief Constructs a queue with the given capacity.
      *
-     * @param cap Capacity of the queue.
+     * @param cap Indicates the capacity of the queue.
      */
     mpmc_queue(uint64_t cap) : capacity(align2n(cap)), mask(capacity - 1)
     {
@@ -490,7 +494,7 @@ struct mpmc_queue : detail::non_copyable {
      * @brief Attempts to push an element into the queue.
      *
      * @tparam Data The type of data to be pushed into the queue. Must be movable.
-     * @param data Element to push.
+     * @param data Indicates the element to push.
      * @return true if successful, false otherwise.
      */
     template <class Data>
@@ -516,7 +520,7 @@ struct mpmc_queue : detail::non_copyable {
      * @brief Attempts to pop an element from the queue.
      *
      * @tparam R The type of data to be popped from the queue. Must be assignable from the queue's element type.
-     * @param result Output parameter for the popped element.
+     * @param result Indicates the output parameter for the popped element.
      * @return true if successful, false otherwise.
      */
     template <class R>
@@ -571,7 +575,7 @@ struct spsc_queue : detail::non_copyable {
     /**
      * @brief Constructs a queue with the given capacity.
      *
-     * @param cap Capacity of the queue.
+     * @param cap Indicates the capacity of the queue.
      */
     spsc_queue(uint64_t cap) : capacity(align2n(cap)), mask(capacity - 1)
     {
@@ -612,7 +616,7 @@ struct spsc_queue : detail::non_copyable {
      * @brief Attempts to push an element into the queue.
      *
      * @tparam Data The type of data to be pushed into the queue. Must be movable.
-     * @param data Element to push.
+     * @param data Indicates the element to push.
      * @return true if successful, false otherwise.
      */
     template <class Data>
@@ -638,7 +642,7 @@ struct spsc_queue : detail::non_copyable {
      * @brief Attempts to pop an element from the queue.
      *
      * @tparam R The type of data to be popped from the queue. Must be assignable from the queue's element type.
-     * @param result Output parameter for the popped element.
+     * @param result Indicates the output parameter for the popped element.
      * @return true if successful, false otherwise.
      */
     template <class R>
@@ -690,7 +694,7 @@ private:
  * @tparam MultiConsumer If true, queue supports multiple consumer threads.
  * @tparam T Type of elements stored in the queue.
  */
-template <bool MultiProducer, bool multi_consumer, typename T>
+template <bool MultiProducer, bool MultiConsumer, typename T>
 struct lf_queue: mpmc_queue<T> {
     using mpmc_queue<T>::mpmc_queue;
 };
@@ -924,7 +928,7 @@ struct fiber : detail::non_copyable {
     }
 
     /**
-     * @brief Get the unique identifier of the fiber.
+     * @brief Gets the unique identifier of the fiber.
      *
      * @return Unique identifier of the fiber.
      */
@@ -951,6 +955,7 @@ private:
     std::function<void()> fn; ///< Function to be executed by the fiber.
     uint64_t id_;             ///< Fiber identifier.
     FiberLocal local_;        ///< Fiber-local storage.
+
     static inline std::atomic_uint64_t idx{1}; ///< Atomic counter for generating unique fiber IDs.
 };
 #endif
@@ -1007,10 +1012,9 @@ struct job_promise_obj : ref_obj<job_promise_obj<R>> {
     }
 
     /**
-     * @brief Check if the job has completed and the result is available.
+     * @brief Checks if the job has completed and the result is available.
      *
-     * @return true if the job is complete (status is ready).
-     * @return false if the job is still pending or executing.
+     * @return true if the job is complete (status is ready), false if the job is still pending or executing.
      */
     inline bool is_ready() const
     {
@@ -1018,7 +1022,7 @@ struct job_promise_obj : ref_obj<job_promise_obj<R>> {
     }
 
     /**
-     * @brief Retrieve the job result, waiting if necessary.
+     * @brief Retrieves the job result, waiting if necessary.
      *
      * Blocks until the job completes (if not already ready) and returns the result. Supports
      * optional busy waiting, callback-based waiting, and automatic execution of the job if
@@ -1045,13 +1049,13 @@ struct job_promise_obj : ref_obj<job_promise_obj<R>> {
     }
 
     /**
-     * @brief Attempt to execute the job if it's still pending.
+     * @brief Attempts to execute the job if it's still pending.
      *
      * Atomically checks if the job is in the pending state and, if so, transitions it to executing,
      * runs the job, and marks it as ready. Returns false if the job is already executing or completed.
      *
-     * @return true if the job was successfully executed.
-     * @return false if the job could not be executed (already in progress or completed).
+     * @return true if the job was successfully executed, false if the job could not be
+     *         executed (already in progress or completed).
      */
     inline bool try_execute()
     {
@@ -1066,14 +1070,14 @@ struct job_promise_obj : ref_obj<job_promise_obj<R>> {
     void* owner;  ///< Opaque pointer to the owner of this job promise (implementation-defined).
 private:
     /**
-     * @brief Construct a job_promise_obj with a callable task.
+     * @brief Constructs a job_promise_obj with a callable task.
      *
      * @param func The job task to execute, returning a value of type R.
      */
     job_promise_obj(std::function<R()>&& func) : func(std::forward<std::function<R()>>(func)) {}
 
     /**
-     * @brief Atomically attempt to acquire the job for execution.
+     * @brief Atomically attempts to acquire the job for execution.
      *
      * @return true if the state was successfully transitioned to executing, false otherwise.
      */
@@ -1084,7 +1088,7 @@ private:
     }
 
     /**
-     * @brief Mark the job as completed and notify waiters.
+     * @brief Marks the job as completed and notify waiters.
      */
     inline void release()
     {
@@ -1097,7 +1101,7 @@ private:
     }
 
     /**
-     * @brief Execute the job and store its result.
+     * @brief Executes the job and stores its result.
      */
     inline void call()
     {
@@ -1109,7 +1113,7 @@ private:
     }
 
     /**
-     * @brief Wait for the job to complete with configurable waiting strategies.
+     * @brief Waits for the job to complete with configurable waiting strategies.
      *
      * @tparam TryRun If true, attempts to execute the job if pending.
      * @tparam BusyWaitUS Duration (in microseconds) for busy waiting.
@@ -1199,13 +1203,12 @@ struct job_promise : public job_promise_obj<R>::ptr {
     job_promise(const Base& p) : Base(p) {}
 
     /**
-     * @brief Check if the associated job has completed.
+     * @brief Checks if the associated job has completed.
      *
      * Delegates to the underlying `job_promise_obj<R>::is_ready()` method to determine
      * if the job has finished execution and its result (if any) is available.
      *
-     * @return true if the job is complete and result is ready.
-     * @return false if the job is still pending or executing.
+     * @return true if the job is complete and result is ready, false if the job is still pending or executing.
      */
     inline bool is_ready() const
     {
@@ -1213,7 +1216,7 @@ struct job_promise : public job_promise_obj<R>::ptr {
     }
 
     /**
-     * @brief Retrieve the job result, waiting if necessary.
+     * @brief Retrieves the job result, waiting if necessary.
      *
      * Forwards to the underlying `job_promise_obj<R>::get()` method to retrieve the job result,
      * blocking until completion if the result is not yet available. Supports the same template
@@ -1232,10 +1235,9 @@ struct job_promise : public job_promise_obj<R>::ptr {
     }
 
     /**
-     * @brief Attempt to execute the pending job.
+     * @brief Attempts to execute the pending job.
      *
-     * @return true if the job was successfully executed.
-     * @return false if the job was already executing or completed.
+     * @return true if the job was successfully executed, false if the job was already executing or completed.
      */
     inline bool try_execute()
     {

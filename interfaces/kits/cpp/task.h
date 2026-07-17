@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C++ APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 10
  */
@@ -25,7 +29,8 @@
 /**
  * @file task.h
  *
- * @brief Declares the task interfaces in C++.
+ * @brief Declares the {@link ffrt::task_attr}, {@link ffrt::task_handle}, {@link ffrt::dependence},
+ *        {@link ffrt::submit}, {@link ffrt::wait}, and {@link ffrt::this_task} interfaces in C++.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -196,7 +201,7 @@ public:
     /**
      * @brief Sets the QoS for this task.
      *
-     * @param qos Indicates the QoS.
+     * @param qos_ Indicates the QoS.
      * @since 10
      */
     inline task_attr& qos(qos qos_)
@@ -242,7 +247,7 @@ public:
     /**
      * @brief Sets the priority for this task.
      *
-     * @param priority Indicates the execute priority of concurrent queue task.
+     * @param prio Indicates the priority of a concurrent queue task.
      * @since 12
      */
     inline task_attr& priority(ffrt_queue_priority_t prio)
@@ -254,7 +259,7 @@ public:
     /**
      * @brief Obtains the priority of this task.
      *
-     * @return The priority of concurrent queue task.
+     * @return The priority of a concurrent queue task.
      * @since 12
      */
     inline ffrt_queue_priority_t priority() const
@@ -313,7 +318,7 @@ public:
      *
      * @warning Do not call `exit` in `func` - this may cause unexpected behavior.
      *
-     * @param func Indicates the callback function.
+     * @param func Indicates a pointer to the function to execute after a scheduling timeout.
      * @return The current task_attr object for chaining.
      */
     inline task_attr& timeout_callback(const std::function<void()>& func)
@@ -418,9 +423,10 @@ public:
     }
 
     /**
-     * @brief get gid from task handle.
+     * @brief Gets the ID of the task identified by a handle.
      *
-     * @return Return gid.
+     * @return The ID of the task identified by the handle.
+     * @see ffrt::this_task::get_id
      */
     inline uint64_t get_id() const
     {
@@ -921,13 +927,13 @@ static inline void wait(const std::vector<dependence>& deps)
 }
 
 /**
- * @brief Sets the thread stack size of a specified QoS level.
+ * @brief Sets the worker thread stack size of a specified QoS level.
  *
  * @param qos_ Indicates the QoS.
- * @param stack_size Indicates the thread stack size.
- * @return <b>ffrt_success</b> if the stack size set success;
- *         <b>ffrt_error_inval</b> if qos_ or stack_size invalid;
- *         <b>ffrt_error</b> otherwise.
+ * @param stack_size Indicates the worker thread stack size.
+ * @return `ffrt_success` if the stack size set success;
+ *         `ffrt_error_inval` if qos_ or stack_size invalid;
+ *         `ffrt_error` otherwise.
  */
 static inline ffrt_error_t set_worker_stack_size(qos qos_, size_t stack_size)
 {
@@ -943,7 +949,10 @@ namespace this_task {
  * @brief Updates the QoS level of the currently executing task.
  *
  * @param qos_ The new QoS level.
- * @return The updated QoS level.
+ * @return `0` if the QoS is updated, or if the new QoS is the same as the current QoS;
+ *         `1` if the QoS map is not registered, the current task is null, or the
+ *         current task is not a general-type task (i.e., not submitted through
+ *         {@link ffrt::submit} or {@link ffrt::submit_h}).
  * @since 10
  */
 static inline int update_qos(qos qos_)

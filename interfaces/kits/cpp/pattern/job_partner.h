@@ -252,11 +252,15 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * @return Reference to the main thread's job_partner smart pointer.
      * @since 20
      */
-    static __attribute__((noinline)) auto& get_main_partner()
+#ifdef FFRT_MULTI_DSO_EXTERN_MAIN_PARTNER
+    static __attribute__((visibility("default"), noinline)) auto& get_main_partner();
+#else
+    static __attribute__((visibility("default"), noinline)) auto& get_main_partner()
     {
         static auto s = ref_obj<job_partner<UsageId>>::make(getpid());
         return s;
     }
+#endif
 
     /**
      * @brief Gets the main thread's job_partner instance with updated attributes.
@@ -278,11 +282,15 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * @return Reference to the current thread's job_partner smart pointer.
      * @since 20
      */
-    static __attribute__((noinline)) auto& get_partner_of_this_thread()
+#ifdef FFRT_MULTI_DSO_EXTERN_THREAD_PARTNER
+    static __attribute__((visibility("default"), noinline)) auto& get_partner_of_this_thread();
+#else
+    static __attribute__((visibility("default"), noinline)) auto& get_partner_of_this_thread()
     {
         static thread_local auto s = ref_obj<job_partner<UsageId>>::make(tid());
         return s;
     }
+#endif
 
     /**
      * @brief Gets the current thread's job_partner instance with updated attributes.
@@ -338,14 +346,20 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * - If called outside a job context (no current task), the job executes directly.
      * - If the master thread queue is full, it retries until successful submission.
      *
-     * @param job The task function to be executed by the master thread.
+     * @tparam AllowRunOnCallerStack If true, @p job may be executed inline on the caller's current
+     *         stack when the caller is the master fiber (skipping suspend/queue/resume); enable only
+     *         if @p job is safe on a fiber (coroutine) stack, which the caller's stack may be. If
+     *         false (default), @p job never runs on a fiber stack: it runs inline only when there is
+     *         no current task (native stack), else on the master thread's native stack.
+     * @param job Indicates the task function to be executed by the master thread.
      * @since 20
      */
+    template <bool AllowRunOnCallerStack = false>
     static inline void submit_to_master(const std::function<void()>& job)
     {
         auto& e = job_t::env();
         auto j = e.cur;
-        if (j == nullptr || j->local().partner->token == e.tl.thread_id) {
+        if (j == nullptr || (AllowRunOnCallerStack && j->local().partner->token == e.tl.thread_id)) {
             return job();
         }
         j->local().partner->submit_to_master(e, j, job);

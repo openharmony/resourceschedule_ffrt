@@ -224,7 +224,6 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
     {
         FFRT_API_LOGD("ring_try_submit %" X_PUBLIC "p", this);
         FFRT_API_TRACE_SCOPE("ring_try_submit");
-        uint64_t us = 1;
         if (!q.try_push(std::forward<std::function<void()>>(job))) {
             return false;
         }
@@ -307,11 +306,14 @@ struct job_ring : ref_obj<job_ring<MultiProducer>> {
         if (HelpWorker) {
             int32_t exp_in = 0;
             while (token.compare_exchange_strong(exp_in, 1, std::memory_order_acquire)) {
-                num.fetch_sub(drain(), std::memory_order_relaxed);
+                num.fetch_sub(drain(), std::memory_order_release);
                 int32_t exp_out = 1;
                 if (token.compare_exchange_strong(exp_out, 0, std::memory_order_release)) {
                     if (!all_done()) { // have new task enqueue
                         continue;
+                    }
+                    if (waiter.exchange(0) == 1) {
+                        waiter.notify_all();
                     }
                     return;
                 }

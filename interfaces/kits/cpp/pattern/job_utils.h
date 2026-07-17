@@ -56,16 +56,16 @@
 #endif
 
 #ifndef FFRT_API_LOGE
-#define FFRT_API_LOGE(fmt, ...)
+#define FFRT_API_LOGE(...)
 #endif
 #ifndef FFRT_API_LOGD
-#define FFRT_API_LOGD(fmt, ...)
+#define FFRT_API_LOGD(...)
 #endif
 #ifndef FFRT_API_TRACE_INT64
 #define FFRT_API_TRACE_INT64(name, value)
 #endif
 #ifndef FFRT_API_TRACE_SCOPE
-#define FFRT_API_TRACE_SCOPE(fmt, ...)
+#define FFRT_API_TRACE_SCOPE(...)
 #endif
 
 namespace ffrt {
@@ -284,12 +284,13 @@ struct ref_obj {
         inline ptr& operator=(ptr const& h)
         {
             if (this != &h) {
-                if (p) {
-                    p->dec_ref();
-                }
+                T* op = p;
                 p = h.p;
                 if (p) {
                     p->inc_ref();
+                }
+                if (op) {
+                    op->dec_ref();
                 }
             }
             return *this;
@@ -314,11 +315,12 @@ struct ref_obj {
         inline ptr& operator=(ptr&& h)
         {
             if (this != &h) {
-                if (p) {
-                    p->dec_ref();
-                }
+                T* op = p;
                 p = h.p;
                 h.p = nullptr;
+                if (op) {
+                    op->dec_ref();
+                }
             }
             return *this;
         }
@@ -504,7 +506,7 @@ struct mpmc_queue : detail::non_copyable {
         auto iwrite = iwrite_.load(std::memory_order_relaxed);
         for (;;) {
             i = &q[iwrite & mask];
-            if (i->iwrite_exp.load(std::memory_order_relaxed) != iwrite) {
+            if (i->iwrite_exp.load(std::memory_order_acquire) != iwrite) {
                 return false;
             }
             if ((iwrite_.compare_exchange_weak(iwrite, iwrite + 1, std::memory_order_relaxed))) {
@@ -530,7 +532,7 @@ struct mpmc_queue : detail::non_copyable {
         auto iread = iread_.load(std::memory_order_relaxed);
         for (;;) {
             i = &q[iread & mask];
-            if (i->iread_exp.load(std::memory_order_relaxed) != iread) {
+            if (i->iread_exp.load(std::memory_order_acquire) != iread) {
                 return false;
             }
             if (iread_.compare_exchange_weak(iread, iread + 1, std::memory_order_relaxed)) {
@@ -826,19 +828,23 @@ struct fiber : detail::non_copyable {
     /**
      * @brief Returns the thread-local environment.
      */
-    static __attribute__((noinline)) thread_env& env()
+#ifdef FFRT_MULTI_DSO_EXTERN_FIBER_ENV
+    static __attribute__((visibility("default"), noinline)) thread_env& env();
+#else
+    static __attribute__((visibility("default"), noinline)) thread_env& env()
     {
         static thread_local thread_env ctx;
         return ctx;
     }
+#endif
 
     /**
      * @brief Initializes a fiber with a function and stack.
      *
      * @param f Function to run.
      * @param stack Stack memory.
-     * @param stack_size Stack size.
-     * @return Pointer to the created fiber.
+     * @param stack_size Stack size. Must be large enough to hold both the fiber header and the fiber context.
+     * @return Pointer to the created fiber; `nullptr` if `stack_size` is too small.
      */
     static fiber* init(std::function<void()>&& f, void* stack, size_t stack_size)
     {
@@ -873,7 +879,16 @@ struct fiber : detail::non_copyable {
     {
         bool done;
         auto& e = fiber::env();
-
+        // Save the fiber that was running on this thread before switching in.
+        // `e.cur` is thread-local state read by suspend() and submit_to_master() to
+        // identify the running fiber. start() may be (re)entered while another fiber is
+        // already in flight on this thread — via a nested start() (a fiber's body starts
+        // a child fiber) or a cross-thread resume (a partner worker restarts a suspended
+        // fiber through suspendable_job_func). We must restore, not reset, `cur`;
+        // otherwise the outer fiber resumes with a stale/null `cur`, making a later
+        // suspend() dereference null or submit_to_master() run its job inline on a
+        // fiber stack.
+        auto saved_cur = e.cur;
         do {
             e.cond = nullptr;
             e.cur = this;
@@ -883,6 +898,7 @@ struct fiber : detail::non_copyable {
             done = this->id_ == 0;
         } while (e.cond && !(e.cond)(this));
         e.cond = nullptr;
+        e.cur = saved_cur; // resume the outer fiber, or nullptr if entered from a native stack
         return done;
     }
 
@@ -902,7 +918,9 @@ struct fiber : detail::non_copyable {
         } else {
             e.cond = cond;
         }
-        e.cur = nullptr;
+        // `e.cur` is intentionally left unchanged: its lifecycle is owned by start(),
+        // which saves/restores it around each switch-in. Clearing it here would drop
+        // the outer fiber's identity on a nested or cross-thread resume (see start()).
 
         ffrt_fiber_switch(&j->fb, &j->link);
     }

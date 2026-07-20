@@ -44,6 +44,7 @@
 #include <climits>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <linux/futex.h>
 #include <functional>
 #include <string>
 #include <thread>
@@ -52,14 +53,6 @@
 #if __has_include("c/fiber.h")
 #include "c/fiber.h"
 #define _ffrt_has_fiber_feature
-#endif
-
-// Stable FUTEX ABI; avoids <linux/futex.h>, which needs __user to be defined.
-#ifndef FUTEX_WAIT_PRIVATE
-#define FUTEX_WAIT_PRIVATE 128   // FUTEX_WAIT(0) | FUTEX_PRIVATE_FLAG(128)
-#endif
-#ifndef FUTEX_WAKE_PRIVATE
-#define FUTEX_WAKE_PRIVATE 129   // FUTEX_WAKE(1) | FUTEX_PRIVATE_FLAG(128)
 #endif
 
 #ifndef FFRT_API_LOGE
@@ -862,7 +855,7 @@ struct fiber : detail::non_copyable {
         }
         new(&c->fn) std::function<void()>(std::forward<std::function<void()>>(f));
         new(&c->local_) FiberLocal;
-        c->id_ = next_idx().fetch_add(1, std::memory_order_relaxed);
+        c->id_ = idx.fetch_add(1, std::memory_order_relaxed);
         FFRT_API_LOGD("fiber %llu create", c->id_);
         return c;
     }
@@ -981,16 +974,7 @@ private:
     uint64_t id_;             ///< Fiber identifier.
     FiberLocal local_;        ///< Fiber-local storage.
 
-    /**
-     * @brief Gets the atomic counter used to assign unique fiber IDs.
-     *
-     * @return Reference to the process-wide counter, initialized to 1.
-     */
-    static std::atomic_uint64_t& next_idx()
-    {
-        static std::atomic_uint64_t counter{1};
-        return counter;
-    }
+    static inline std::atomic_uint64_t idx{1}; ///< Atomic counter for generating unique fiber IDs.
 };
 #endif
 

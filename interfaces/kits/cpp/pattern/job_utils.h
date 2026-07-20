@@ -44,7 +44,6 @@
 #include <climits>
 #include <unistd.h>
 #include <sys/syscall.h>
-#include <linux/futex.h>
 #include <functional>
 #include <string>
 #include <thread>
@@ -53,6 +52,14 @@
 #if __has_include("c/fiber.h")
 #include "c/fiber.h"
 #define _ffrt_has_fiber_feature
+#endif
+
+// Stable FUTEX ABI; avoids <linux/futex.h>, which needs __user to be defined.
+#ifndef FUTEX_WAIT_PRIVATE
+#define FUTEX_WAIT_PRIVATE 128   // FUTEX_WAIT(0) | FUTEX_PRIVATE_FLAG(128)
+#endif
+#ifndef FUTEX_WAKE_PRIVATE
+#define FUTEX_WAKE_PRIVATE 129   // FUTEX_WAKE(1) | FUTEX_PRIVATE_FLAG(128)
 #endif
 
 #ifndef FFRT_API_LOGE

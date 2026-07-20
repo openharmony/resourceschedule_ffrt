@@ -862,7 +862,7 @@ struct fiber : detail::non_copyable {
         }
         new(&c->fn) std::function<void()>(std::forward<std::function<void()>>(f));
         new(&c->local_) FiberLocal;
-        c->id_ = idx.fetch_add(1, std::memory_order_relaxed);
+        c->id_ = next_idx().fetch_add(1, std::memory_order_relaxed);
         FFRT_API_LOGD("fiber %llu create", c->id_);
         return c;
     }
@@ -981,7 +981,16 @@ private:
     uint64_t id_;             ///< Fiber identifier.
     FiberLocal local_;        ///< Fiber-local storage.
 
-    static inline std::atomic_uint64_t idx{1}; ///< Atomic counter for generating unique fiber IDs.
+    /**
+     * @brief Gets the atomic counter used to assign unique fiber IDs.
+     *
+     * @return Reference to the process-wide counter, initialized to 1.
+     */
+    static std::atomic_uint64_t& next_idx()
+    {
+        static std::atomic_uint64_t counter{1};
+        return counter;
+    }
 };
 #endif
 

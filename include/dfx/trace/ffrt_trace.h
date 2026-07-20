@@ -302,7 +302,7 @@ static inline FFRT_NOINLINE void FFRTTaskBeginSlowPath(const std::string& tag, u
 static inline FFRT_NOINLINE void FFRTBlockTracerSlowPath(uint64_t gid, const std::string& tag)
 {
     char buf[128];
-    snprintf_s(buf, sizeof(buf), sizeof(buf) - 1, "FFBK%s|%d", tag.c_str(), gid);
+    snprintf_s(buf, sizeof(buf), sizeof(buf) - 1, "FFBK%s|%llu", tag.c_str(), gid);
     _StartTrace(HITRACE_TAG_FFRT, buf, -1);
 }
 

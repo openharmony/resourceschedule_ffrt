@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 12
  */
@@ -25,7 +29,7 @@
 /**
  * @file loop.h
  *
- * @brief Declares the loop interfaces in C.
+ * @brief Declares the event loop interfaces in C.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -41,14 +45,14 @@
 #include "queue.h"
 
 /**
- * @brief Defines the loop handle, which identifies different loops.
+ * @brief Loop handle, which identifies different loops.
  *
  * @since 12
  */
 typedef void* ffrt_loop_t;
 
 /**
- * @brief Creates a loop.
+ * @brief Creates a loop on the specified queue for running an event loop.
  *
  * @param queue Indicates a queue.
  * @return A non-null loop handle if the loop is created;
@@ -58,11 +62,13 @@ typedef void* ffrt_loop_t;
 FFRT_C_API ffrt_loop_t ffrt_loop_create(ffrt_queue_t queue);
 
 /**
- * @brief Destroys a loop, the user needs to invoke this interface.
+ * @brief Destroys a loop.
+ *
+ * Call this interface to release the resources associated with the loop.
  *
  * @param loop Indicates a loop handle.
- * @return <b>0</b> if the loop is destroyed;
- *         <b>-1</b> otherwise.
+ * @return `0` if the loop is destroyed;
+ *         `-1` otherwise.
  * @since 12
  */
 FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
@@ -70,9 +76,13 @@ FFRT_C_API int ffrt_loop_destroy(ffrt_loop_t loop);
 /**
  * @brief Starts a loop run.
  *
+ * This function occupies the calling thread, running the event loop synchronously on the
+ * current thread until {@link ffrt_loop_stop} is invoked.
+ *
  * @param loop Indicates a loop handle.
- * @return <b>-1</b> if the loop run fails;
- *         <b>0</b> otherwise.
+ * @return `0` if the loop run succeeds;
+ *         `-1` otherwise.
+ * @see ffrt_loop_stop
  * @since 12
  */
 FFRT_C_API int ffrt_loop_run(ffrt_loop_t loop);
@@ -80,7 +90,10 @@ FFRT_C_API int ffrt_loop_run(ffrt_loop_t loop);
 /**
  * @brief Stops a loop run.
  *
+ * After this call, the thread executing {@link ffrt_loop_run} stops the loop and returns.
+ *
  * @param loop Indicates a loop handle.
+ * @see ffrt_loop_run
  * @since 12
  */
 FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
@@ -88,31 +101,33 @@ FFRT_C_API void ffrt_loop_stop(ffrt_loop_t loop);
 /**
  * @brief Controls an epoll file descriptor on ffrt loop.
  *
- * @warning Do not call `exit` in `cb` - this may cause unexpected behavior.
+ * Adds, modifies, or deletes the monitored events on the target file descriptor.
  *
  * @param loop Indicates a loop handle.
- * @param op Indicates operation on the target file descriptor.
+ * @param op Indicates the operation type on the target file descriptor, such as add, modify, or delete.
  * @param fd Indicates the target file descriptor on which to perform the operation.
- * @param events Indicates the event type associated with the target file descriptor.
+ * @param events Indicates the event type to monitor on the target file descriptor
+ *               (such as readable, writable, and so on), and can be combined by bitwise OR.
  * @param data Indicates user data used in cb.
  * @param cb Indicates user cb which will be executed when the target fd is polled.
- * @return <b>0</b> if the operation succeeds;
- *         <b>-1</b> otherwise.
+ * @return `0` if the operation succeeds;
+ *         `-1` otherwise.
  * @since 12
  */
-FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void *data, ffrt_poller_cb cb);
+FFRT_C_API int ffrt_loop_epoll_ctl(ffrt_loop_t loop, int op, int fd, uint32_t events, void* data, ffrt_poller_cb cb);
 
 /**
  * @brief Starts a timer on ffrt loop.
  *
- * @warning Do not call `exit` in `cb` - this may cause unexpected behavior.
+ * The callback is invoked after the timeout elapses, and is repeated if `repeat` is `true`.
  *
  * @param loop Indicates a loop handle.
- * @param timeout Indicates the number of milliseconds that specifies timeout.
+ * @param timeout Indicates the number of milliseconds that specifies timeout. The value range is [0, +∞).
  * @param data Indicates user data used in cb.
  * @param cb Indicates user cb which will be executed when timeout.
- * @param repeat Indicates whether to repeat this timer.
- * @return The timer handle.
+ * @param repeat Indicates whether to repeat this timer. `true` to repeat the timer, `false` to run it once.
+ * @return The timer handle; `-1` if `loop` or `cb` is null.
+ * @see ffrt_loop_timer_stop
  * @since 12
  */
 FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(
@@ -121,10 +136,13 @@ FFRT_C_API ffrt_timer_t ffrt_loop_timer_start(
 /**
  * @brief Stops a timer on ffrt loop.
  *
+ * After this call, the timer no longer fires.
+ *
  * @param loop Indicates a loop handle.
- * @param handle Indicates the target timer handle.
- * @return <b>0</b> if the operation succeeds;
- *         <b>-1</b> otherwise.
+ * @param handle Indicates the timer handle returned by {@link ffrt_loop_timer_start}.
+ * @return `0` if the operation succeeds;
+ *         `-1` otherwise.
+ * @see ffrt_loop_timer_start
  * @since 12
  */
 FFRT_C_API int ffrt_loop_timer_stop(ffrt_loop_t loop, ffrt_timer_t handle);

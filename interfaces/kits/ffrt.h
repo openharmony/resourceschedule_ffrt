@@ -12,8 +12,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * @addtogroup FFRT
+ * @{
+ *
+ * @brief Provides Function Flow Runtime (FFRT) C and C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
+ *
+ * @since 10
+ */
+
+/**
+ * @file ffrt.h
+ *
+ * @brief Includes the FFRT C or C++ interfaces depending on the source language.
+ *
+ * When compiled as C++, this header includes the C++ wrapper headers. Otherwise, it
+ * includes the underlying C headers.
+ *
+ * @library libffrt.z.so
+ * @kit FunctionFlowRuntimeKit
+ * @syscap SystemCapability.Resourceschedule.Ffrt.Core
+ * @since 10
+ */
+
 #ifndef FFRT_API_FFRT_H
 #define FFRT_API_FFRT_H
+
 #ifdef __cplusplus
 #include "cpp/task.h"
 #include "cpp/mutex.h"
@@ -35,4 +64,6 @@
 #include "c/loop.h"
 #include "c/fiber.h"
 #endif
+
 #endif
+/** @} */

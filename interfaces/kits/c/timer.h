@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 12
  */
@@ -26,6 +30,9 @@
  * @file timer.h
  *
  * @brief Declares the timer interfaces in C.
+ *
+ * Provides timer capabilities based on QoS levels, supporting callback execution after a specified timeout.
+ * It can be used for delayed task scheduling and other scenarios.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -40,31 +47,33 @@
 #include "type_def.h"
 
 /**
- * @brief Starts a timer on an ffrt worker.
+ * @brief Starts a timer on an FFRT worker.
  *
- * @warning Do not call `exit` in `cb` - this may cause unexpected behavior.
+ * Avoid calling `exit` or {@link ffrt_timer_stop} in `cb` to prevent undefined behavior or deadlock.
  *
  * @param qos Indicates the QoS of the worker that runs timer.
  * @param timeout Indicates the number of milliseconds that specifies timeout.
  * @param data Indicates user data used in cb.
  * @param cb Indicates user cb which will be executed when timeout.
- * @param repeat Indicates whether to repeat this timer.
- * @return A timer handle.
+ * @param repeat Indicates whether to repeat this timer. `true` to repeat the timer, `false` to run it once.
+ * @return A timer handle; `-1` if the callback function is a null pointer or the QoS mapping is not registered.
+ * @see ffrt_timer_stop
  * @since 12
  */
 FFRT_C_API ffrt_timer_t ffrt_timer_start(ffrt_qos_t qos, uint64_t timeout, void* data, ffrt_timer_cb cb, bool repeat);
 
 /**
- * @brief Stops a timer on ffrt worker.
+ * @brief Stops a timer on an FFRT worker.
  *
- * @note Blocking interface. Avoid using in callbacks to prevent deadlock or synchronization issues.
- *       When the callback corresponding to the provided handle is executing,
- *       this function will wait for the callback to complete before continuing.
+ * This is a blocking interface. Avoid calling it inside the callback function to prevent deadlock
+ * or synchronization issues. If the callback associated with `handle` is currently running,
+ * this function waits for the callback to complete before returning.
  *
- * @param qos Indicates the QoS of the worker that runs timer.
- * @param handle Indicates the target timer handle.
- * @return <b>0</b> if success;
- *         <b>-1</b> otherwise.
+ * @param qos Indicates the QoS of the worker that runs the timer. Must match the QoS used in {@link ffrt_timer_start}.
+ * @param handle Indicates the target timer handle returned by {@link ffrt_timer_start}.
+ * @return `0` if success;
+ *         `-1` otherwise.
+ * @see ffrt_timer_start
  * @since 12
  */
 FFRT_C_API int ffrt_timer_stop(ffrt_qos_t qos, ffrt_timer_t handle);

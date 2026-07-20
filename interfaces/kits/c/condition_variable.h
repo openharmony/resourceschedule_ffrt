@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 10
  */
@@ -42,10 +46,12 @@
 /**
  * @brief Initializes a condition variable.
  *
+ * The condition variable must later be destroyed by {@link ffrt_cond_destroy} when no longer in use.
+ *
  * @param cond Indicates a pointer to the condition variable.
  * @param attr Indicates a pointer to the condition variable attribute.
- * @return <b>ffrt_success</b> if the condition variable is initialized;
- *         <b>ffrt_error_inval</b> otherwise.
+ * @return `ffrt_success` if the condition variable is initialized;
+ *         `ffrt_error_inval` otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
@@ -54,8 +60,9 @@ FFRT_C_API int ffrt_cond_init(ffrt_cond_t* cond, const ffrt_condattr_t* attr);
  * @brief Unblocks at least one of the threads that are blocked on a condition variable.
  *
  * @param cond Indicates a pointer to the condition variable.
- * @return <b>ffrt_success</b> if the thread is unblocked;
- *         <b>ffrt_error_inval</b> otherwise.
+ * @return `ffrt_success` if the thread is unblocked;
+ *         `ffrt_error_inval` otherwise.
+ * @see ffrt_cond_wait
  * @since 10
  */
 FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
@@ -64,45 +71,62 @@ FFRT_C_API int ffrt_cond_signal(ffrt_cond_t* cond);
  * @brief Unblocks all threads currently blocked on a condition variable.
  *
  * @param cond Indicates a pointer to the condition variable.
- * @return <b>ffrt_success</b> if the threads are unblocked;
- *         <b>ffrt_error_inval</b> otherwise.
+ * @return `ffrt_success` if the threads are unblocked;
+ *         `ffrt_error_inval` otherwise.
+ * @see ffrt_cond_wait
  * @since 10
  */
 FFRT_C_API int ffrt_cond_broadcast(ffrt_cond_t* cond);
 
 /**
- * @brief Blocks the calling thread.
+ * @brief Blocks the calling thread on a condition variable.
+ *
+ * The mutex must be held by the calling thread on entry. It is atomically released
+ * while the thread is blocked, and re-acquired before the function returns, so the
+ * caller regains ownership of the mutex on wakeup. The thread is unblocked by a
+ * call to {@link ffrt_cond_signal} or {@link ffrt_cond_broadcast} from another thread.
+ * The caller is responsible for re-checking the predicate after wakeup to guard
+ * against spurious wakeups.
  *
  * @param cond Indicates a pointer to the condition variable.
- * @param mutex Indicates a pointer to the mutex.
- * @return <b>ffrt_success</b> if the thread is unblocked after being blocked;
- *         <b>ffrt_error_inval</b> otherwise.
+ * @param mutex Indicates a pointer to the mutex held by the calling thread.
+ * @return `ffrt_success` if the thread is unblocked after being blocked;
+ *         `ffrt_error_inval` otherwise.
+ * @see ffrt_cond_timedwait
+ * @see ffrt_cond_signal
+ * @see ffrt_cond_broadcast
  * @since 10
  */
 FFRT_C_API int ffrt_cond_wait(ffrt_cond_t* cond, ffrt_mutex_t* mutex);
 
 /**
- * @brief Blocks the calling thread for a given duration.
+ * @brief Blocks the calling thread until a given time point.
  *
- * If <b>ffrt_cond_signal</b> or <b>ffrt_cond_broadcast</b> is not called to unblock the thread
- * when the maximum duration reaches, the thread is automatically unblocked.
+ * If {@link ffrt_cond_signal} or {@link ffrt_cond_broadcast} is not called to unblock the thread
+ * before `time_point` is reached, the thread is automatically unblocked.
  *
  * @param cond Indicates a pointer to the condition variable.
  * @param mutex Indicates a pointer to the mutex.
- * @param time_point Indicates the maximum duration that the thread is blocked.
- * @return <b>ffrt_success</b> if the thread is unblocked after being blocked;
- *         <b>ffrt_error_timedout</b> if the maximum duration reaches;
- *         <b>ffrt_error_inval</b> if the blocking fails.
+ * @param time_point Indicates the absolute time point at which the wait expires.
+ * @return `ffrt_success` if the thread is unblocked after being blocked;
+ *         `ffrt_error_timedout` if `time_point` is reached without being signaled;
+ *         `ffrt_error_inval` if any of `cond`, `mutex`, or `time_point` is null.
+ * @see ffrt_cond_wait
+ * @see ffrt_cond_signal
+ * @see ffrt_cond_broadcast
  * @since 10
  */
 FFRT_C_API int ffrt_cond_timedwait(ffrt_cond_t* cond, ffrt_mutex_t* mutex, const struct timespec* time_point);
 
 /**
- * @brief Destroys a condition variable, the user needs to invoke this interface.
+ * @brief Destroys a condition variable.
+ *
+ * The condition variable must have been initialized by {@link ffrt_cond_init} and
+ * must not be referenced by any thread on entry.
  *
  * @param cond Indicates a pointer to the condition variable.
- * @return <b>ffrt_success</b> if the condition variable is destroyed;
- *         <b>ffrt_error_inval</b> otherwise.
+ * @return `ffrt_success` if the condition variable is destroyed;
+ *         `ffrt_error_inval` otherwise.
  * @since 10
  */
 FFRT_C_API int ffrt_cond_destroy(ffrt_cond_t* cond);

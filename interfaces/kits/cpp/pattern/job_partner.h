@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C++ APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 20
  */
@@ -25,7 +29,7 @@
 /**
  * @file job_partner.h
  *
- * @brief Declares the job partner interfaces in C++.
+ * @brief Declares the {@link ffrt::job_partner_attr} and {@link ffrt::job_partner} interfaces in C++.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -74,9 +78,9 @@ namespace ffrt {
  */
 struct job_partner_attr {
     /**
-     * @brief Set the Quality of Service (QoS) level for partner workers.
+     * @brief Sets the Quality of Service (QoS) level for partner workers.
      *
-     * @param v QoS value (e.g., ffrt::qos_user_initiated).
+     * @param v Indicates the QoS value (e.g., ffrt::qos_user_initiated).
      * @return Reference to the updated job_partner_attr object.
      */
     inline job_partner_attr& qos(int v)
@@ -86,9 +90,9 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Set the maximum number of partner workers allowed.
+     * @brief Sets the maximum number of partner workers allowed.
      *
-     * @param v Maximum parallelism (≥ 1).
+     * @param v Indicates the maximum parallelism (≥ 1).
      * @return Reference to the updated job_partner_attr object.
      */
     inline job_partner_attr& max_parallelism(uint64_t v)
@@ -98,9 +102,9 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Set the ratio for scaling partner count relative to job count.
+     * @brief Sets the ratio for scaling partner count relative to job count.
      *
-     * @param v Ratio value (≥ 1). Higher values reduce partner growth rate.
+     * @param v Indicates the ratio value (≥ 1). Higher values reduce partner growth rate.
      * @return Reference to the updated job_partner_attr object.
      */
     inline job_partner_attr& ratio(uint64_t v)
@@ -110,9 +114,9 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Set the job count threshold for activating the first partner.
+     * @brief Sets the job count threshold for activating the first partner.
      *
-     * @param v Threshold value (≥ 0). No partners are spawned below this threshold.
+     * @param v Indicates the threshold value (≥ 0). No partners are spawned below this threshold.
      * @return Reference to the updated job_partner_attr object.
      */
     inline job_partner_attr& threshold(uint64_t v)
@@ -122,9 +126,10 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Set the busy wait time for the last active partner before exiting.
+     * @brief Sets the busy wait time for the last active partner before exiting.
      *
-     * @param us Busy wait duration in microseconds (≥ 0). Prevents frequent worker creation/destruction.
+     * @param us Indicates the busy wait duration in microseconds (≥ 0).
+     *           Prevents frequent worker creation/destruction.
      * @return Reference to the updated job_partner_attr object.
      */
     inline job_partner_attr& busy(uint64_t us)
@@ -134,7 +139,7 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Get the current QoS level.
+     * @brief Gets the current QoS level.
      *
      * @return QoS value.
      */
@@ -144,7 +149,7 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Get the maximum parallelism.
+     * @brief Gets the maximum parallelism.
      *
      * @return Maximum number of partner workers.
      */
@@ -154,7 +159,7 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Get the scaling ratio.
+     * @brief Gets the scaling ratio.
      *
      * @return Ratio value.
      */
@@ -164,7 +169,7 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Get the job count threshold.
+     * @brief Gets the job count threshold.
      *
      * @return Threshold value.
      */
@@ -174,7 +179,7 @@ struct job_partner_attr {
     }
 
     /**
-     * @brief Get the busy wait time.
+     * @brief Gets the busy wait time.
      *
      * @return Busy wait duration in microseconds.
      */
@@ -242,21 +247,25 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
     using ptr = typename ref_obj<job_partner<UsageId>>::ptr;
 
     /**
-     * @brief Get the main thread's job_partner instance (creates if not exists).
+     * @brief Gets the main thread's job_partner instance (creates if not exists).
      *
      * @return Reference to the main thread's job_partner smart pointer.
      * @since 20
      */
-    static __attribute__((noinline)) auto& get_main_partner()
+#ifdef FFRT_MULTI_DSO_EXTERN_MAIN_PARTNER
+    static __attribute__((visibility("default"), noinline)) auto& get_main_partner();
+#else
+    static __attribute__((visibility("default"), noinline)) auto& get_main_partner()
     {
         static auto s = ref_obj<job_partner<UsageId>>::make(getpid());
         return s;
     }
+#endif
 
     /**
-     * @brief Get the main thread's job_partner instance with updated attributes.
+     * @brief Gets the main thread's job_partner instance with updated attributes.
      *
-     * @param attr New attributes to apply.
+     * @param attr Indicates the new attributes to apply.
      * @return Reference to the main thread's job_partner smart pointer.
      * @since 20
      */
@@ -268,21 +277,25 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
     }
 
     /**
-     * @brief Get the current thread's job_partner instance (creates if not exists).
+     * @brief Gets the current thread's job_partner instance (creates if not exists).
      *
      * @return Reference to the current thread's job_partner smart pointer.
      * @since 20
      */
-    static __attribute__((noinline)) auto& get_partner_of_this_thread()
+#ifdef FFRT_MULTI_DSO_EXTERN_THREAD_PARTNER
+    static __attribute__((visibility("default"), noinline)) auto& get_partner_of_this_thread();
+#else
+    static __attribute__((visibility("default"), noinline)) auto& get_partner_of_this_thread()
     {
         static thread_local auto s = ref_obj<job_partner<UsageId>>::make(tid());
         return s;
     }
+#endif
 
     /**
-     * @brief Get the current thread's job_partner instance with updated attributes.
+     * @brief Gets the current thread's job_partner instance with updated attributes.
      *
-     * @param attr New attributes to apply.
+     * @param attr Indicates the new attributes to apply.
      * @return Reference to the current thread's job_partner smart pointer.
      * @since 20
      */
@@ -301,11 +314,11 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * Retries if the queue is full.
      *
      * @tparam Boost If true, dynamically adds workers to handle the job.
-     * @param suspendable_job The job function (may be suspended/resumed).
-     * @param stack Pointer to preallocated stack memory.
-     * @param stack_size Size of the stack memory (must be valid for fiber execution).
-     * @param on_done Callback invoked when the job completes (optional).
-     * @return <b>0</b> if succeeds; <b>1</b> if job initialization fails (e.g., invalid stack size).
+     * @param suspendable_job Indicates the job function (may be suspended/resumed).
+     * @param stack Indicates a pointer to the preallocated stack memory.
+     * @param stack_size Indicates the size of the stack memory (must be valid for fiber execution).
+     * @param on_done Indicates the callback invoked when the job completes (optional).
+     * @return `0` if succeeds; `1` if job initialization fails (e.g., invalid stack size).
      * @since 20
      */
     template <bool Boost = true>
@@ -333,14 +346,20 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * - If called outside a job context (no current task), the job executes directly.
      * - If the master thread queue is full, it retries until successful submission.
      *
-     * @param job The task function to be executed by the master thread.
+     * @tparam AllowRunOnCallerStack If true, @p job may be executed inline on the caller's current
+     *         stack when the caller is the master fiber (skipping suspend/queue/resume); enable only
+     *         if @p job is safe on a fiber (coroutine) stack, which the caller's stack may be. If
+     *         false (default), @p job never runs on a fiber stack: it runs inline only when there is
+     *         no current task (native stack), else on the master thread's native stack.
+     * @param job Indicates the task function to be executed by the master thread.
      * @since 20
      */
+    template <bool AllowRunOnCallerStack = false>
     static inline void submit_to_master(const std::function<void()>& job)
     {
         auto& e = job_t::env();
         auto j = e.cur;
-        if (j == nullptr || j->local().partner->token == e.tl.thread_id) {
+        if (j == nullptr || (AllowRunOnCallerStack && j->local().partner->token == e.tl.thread_id)) {
             return job();
         }
         j->local().partner->submit_to_master(e, j, job);
@@ -351,8 +370,7 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      *
      * Compares the current thread's ID with the master thread token stored in the job_partner.
      *
-     * @return true If the current thread is the master thread.
-     * @return false If the current thread is not the master thread.
+     * @return true if the current thread is the master thread, false otherwise.
      * @since 20
      */
     inline bool this_thread_is_master()
@@ -370,7 +388,7 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      *
      * @tparam Boost If true, dynamically scales the number of partner workers to handle the job load;
      *               if false, uses existing workers only
-     * @param non_suspendable_job Rvalue reference to the task function (std::function<void()>)
+     * @param non_suspendable_job Indicates an rvalue reference to the task function (std::function<void()>).
      * @since 20
      */
     template <bool Boost = true>
@@ -390,7 +408,7 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      *
      * @tparam Boost If true, enables dynamic worker scaling; if false, uses existing workers only
      * @tparam Function Type of the task function (deduced automatically)
-     * @param non_suspendable_job The task function to execute (returns a value of type R)
+     * @param non_suspendable_job Indicates the task function to execute (returns a value of type R).
      * @return A job_promise object that can be used to access the task's result
      * @since 20
      */
@@ -503,8 +521,8 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * job_partner's queue when its own queue is empty.
      *
      * @tparam StealPartnerJob If true, steals from the partner queue; if false, steals from the master queue
-     * @return true If a task was successfully stolen and executed
-     * @return false If no task was available to steal (queue was empty)
+     * @return true if a task was successfully stolen and executed,
+     *         false if no task was available to steal (queue was empty).
      * @since 20
      */
     template<bool StealPartnerJob = true>
@@ -523,7 +541,7 @@ struct job_partner : ref_obj<job_partner<UsageId>>, detail::non_copyable {
      * Reinitializes the internal task queues with new depths. Must only be called when
      * both queues are empty (e.g., before submitting first tasks or after waiting for all tasks).
      *
-     * @param partner_queue_depth Capacity of the partner worker queue (default: 1024)
+     * @param partner_queue_depth Indicates the capacity of the partner worker queue (default: 1024).
      * @param master_queue_depth Capacity of the master thread queue (default: 1024)
      * @warning Calling this with non-empty queues will result in undefined behavior
      * @since 20
@@ -591,7 +609,7 @@ private:
      * Adds the task to the partner queue, updates concurrency metrics, and triggers
      * worker thread creation if needed (based on Boost template parameter).
      *
-     * @tparam boost If true, enables dynamic worker scaling; if false, skips scaling
+     * @tparam Boost If true, enables dynamic worker scaling; if false, skips scaling
      * @param f Function pointer to the task executor (handles task execution).
      * @param p Pointer to task data (passed to the executor function).
      */
@@ -755,8 +773,7 @@ private:
      *
      * @tparam Boost If true, allows scaling up to max_parallelism; if false, only adds workers if none exist.
      * @tparam IgnoreThreshold If true, uses 0 as the task threshold; if false, uses attr_.threshold().
-     * @return true If new workers should be added.
-     * @return false If no new workers are needed.
+     * @return true if new workers should be added, false otherwise.
      */
     template <bool Boost, bool IgnoreThreshold = false>
     inline bool try_add_partner()
@@ -823,8 +840,7 @@ private:
      * @tparam HelpPartner If true, master thread will check both master and partner queues;
      *                     if false, master thread only checks its own queue
      * @param is_master True if the current thread is the master thread
-     * @return true If there are pending tasks for the current thread
-     * @return false If no tasks are available for the current thread
+     * @return true if there are pending tasks for the current thread, false otherwise.
      */
     template<bool HelpPartner>
     inline bool has_job(bool is_master)
@@ -838,8 +854,7 @@ private:
      * Uses the atomic job counter to determine if there are no active or pending tasks
      * in either the master or partner queues.
      *
-     * @return true If all tasks have completed
-     * @return false If there are active or pending tasks
+     * @return true if all tasks have completed, false if there are active or pending tasks.
      */
     inline bool all_done()
     {

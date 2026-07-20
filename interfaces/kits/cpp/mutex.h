@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C++ APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 10
  */
@@ -25,7 +29,7 @@
 /**
  * @file mutex.h
  *
- * @brief Declares the mutex interfaces in C++.
+ * @brief Declares the {@link ffrt::mutex} and {@link ffrt::recursive_mutex} interfaces in C++.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit

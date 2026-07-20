@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 10
  */
@@ -25,7 +29,7 @@
 /**
  * @file sleep.h
  *
- * @brief Declares the sleep and yield interfaces in C.
+ * @brief Declares the {@link ffrt_usleep} and {@link ffrt_yield} interfaces in C.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit
@@ -42,9 +46,10 @@
 /**
  * @brief Suspends the calling thread for a given duration.
  *
+ * If `usec` exceeds the maximum supported value, it is clamped to that maximum.
+ *
  * @param usec Indicates the duration that the calling thread is suspended, in microseconds.
- * @return <b>ffrt_success</b> if the thread is suspended;
- *         <b>ffrt_error</b> otherwise.
+ * @return `ffrt_success`. The function does not fail.
  * @since 10
  */
 FFRT_C_API int ffrt_usleep(uint64_t usec);

@@ -17,7 +17,11 @@
  * @addtogroup FFRT
  * @{
  *
- * @brief Provides FFRT C++ APIs.
+ * @brief Provides Function Flow Runtime (FFRT) C++ APIs.
+ *
+ * FFRT is a task-based concurrent runtime library that automatically schedules
+ * tasks according to their dependencies, eliminating the need for manual
+ * thread management.
  *
  * @since 10
  */
@@ -25,7 +29,8 @@
 /**
  * @file sleep.h
  *
- * @brief Declares the sleep and yield interfaces in C++.
+ * @brief Declares the {@link ffrt::this_task::yield}, {@link ffrt::this_task::sleep_for},
+ *        and {@link ffrt::this_task::sleep_until} interfaces in C++.
  *
  * @library libffrt.z.so
  * @kit FunctionFlowRuntimeKit

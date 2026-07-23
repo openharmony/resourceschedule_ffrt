@@ -195,7 +195,7 @@ int FFRTAuthDelete(unsigned int uid);
 int FFRTAuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status);
 int FFRTAuthSwitch(unsigned int uid, unsigned int rtgFlag, unsigned int qosFlag, unsigned int status);
 int FFRTQosApply(unsigned int level);
-int FFRTQosApplyForOther(unsigned int level, int tid);
+int FFRTQosApplyForOther(unsigned int level, int tid, int fd = -1);
 int FFRTQosLeave(void);
 int FFRTQosLeaveForOther(int tid);
 int FFRTQosGet(struct QosCtrlData &data);

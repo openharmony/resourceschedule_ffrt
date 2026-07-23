@@ -199,8 +199,12 @@ void UpdateWorkerTsdValueToThread(void** taskTsd)
     }
 }
 
-static FFRT_NOINLINE void SwitchTsdToThreadSlowPath(CoTask* task)
+void SwitchTsdToThread(ffrt::CoTask* task)
 {
+    if FFRT_LIKELY(!IsTaskLocalEnable(task)) {
+        return;
+    }
+
     CPUEUTask* cpuTask = static_cast<CPUEUTask*>(task);
 
     if (!SwitchTsdAddrToThread(cpuTask)) {
@@ -211,15 +215,6 @@ static FFRT_NOINLINE void SwitchTsdToThreadSlowPath(CoTask* task)
 
     cpuTask->runningTid.store(0);
     FFRT_LOGD("switch tsd to thread Success");
-}
-
-void SwitchTsdToThread(ffrt::CoTask* task)
-{
-    if FFRT_LIKELY(!IsTaskLocalEnable(task)) {
-        return;
-    }
-
-    SwitchTsdToThreadSlowPath(task);
 }
 
 void TaskTsdRunDtors(ffrt::CPUEUTask* task)

@@ -15,6 +15,7 @@
 
 #include "eu/cpu_worker.h"
 #include <algorithm>
+#include <fcntl.h>
 #include <sched.h>
 #include <sys/syscall.h>
 #include "dm/dependence_manager.h"
@@ -73,6 +74,10 @@ CPUWorker::CPUWorker(const QoS& qos, size_t stackSize) : qos(qos),
 
 CPUWorker::~CPUWorker()
 {
+    if (qosCtrlFd_ >= 0) {
+        close(qosCtrlFd_);
+        qosCtrlFd_ = -1;
+    }
     if (!exited) {
 #ifdef OHOS_THREAD_STACK_DUMP
         FFRT_LOGW("CPUWorker enter destruction but not exited");
@@ -124,7 +129,28 @@ void CPUWorker::NativeConfig()
 {
     pid_t pid = syscall(SYS_gettid);
     this->tid = pid;
+    OpenQosCtrlFd();
     SetThreadAttr(qos);
+}
+
+void CPUWorker::OpenQosCtrlFd()
+{
+    char fileName[] = "/proc/thread-self/sched_qos_ctrl";
+    int fd = open(fileName, O_RDWR);
+    if (fd < 0) {
+        FFRT_SYSEVENT_LOGW("pid %d belong to user %d open qos node warn, fd:%d, eno:%d, %s\n",
+            getpid(), getuid(), fd, errno, strerror(errno));
+        qosCtrlFd_ = -1;
+        return;
+    }
+    // Move to a high fd number to avoid FDSAN conflicts with user code fds (e.g., sqlite/file IO)
+    int highFd = fcntl(fd, F_DUPFD_CLOEXEC, 1000);
+    if (highFd >= 0) {
+        close(fd);
+        qosCtrlFd_ = highFd;
+    } else {
+        qosCtrlFd_ = fd;
+    }
 }
 
 void* CPUWorker::WrapDispatch(void* worker)

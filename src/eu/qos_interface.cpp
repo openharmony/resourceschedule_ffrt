@@ -246,29 +246,20 @@ int FFRTAuthGet(unsigned int uid, unsigned int *uaFlag, unsigned int *status)
     return ret;
 }
 
-int FFRTQosApplyForOther(unsigned int level, int tid)
+int FFRTQosApplyForOther(unsigned int level, int tid, int fd)
 {
-    struct QosCtrlData data;
-    int fd;
-
-    int ret;
-
-    fd = TrivalOpenQosCtrlNode();
     if (fd < 0) {
-        return fd;
+        fd = TrivalOpenQosCtrlNode();
     }
-
+    struct QosCtrlData data;
     data.level = level;
     data.type = QOS_APPLY;
     data.pid = tid;
 
-    ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
+    int ret = ioctl(fd, QOS_CTRL_BASIC_OPERATION, &data);
     if (ret < 0) {
         FFRT_LOGD("tid %d, ret:%d, eno:%d\n", tid, ret, errno);
     }
-#ifndef OHOS_STANDARD_SYSTEM
-    close(fd);
-#endif
     return ret;
 }
 

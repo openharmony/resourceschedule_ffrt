@@ -62,16 +62,17 @@ int SetCpuAffinity(unsigned long affinity, int tid)
         }
     }
     int ret = syscall(__NR_sched_setaffinity, tid, sizeof(mask), &mask);
-    if (ret < 0) {
-        FFRT_SYSEVENT_LOGW("set qos affinity failed for tid %d\n", tid);
+    if (ret != 0) {
+        FFRT_SYSEVENT_LOGE("set qos affinity failed for tid %d, ret:%d\n", tid, ret);
     }
     return ret;
 }
 
 void SetDefaultThreadAttr(CPUWorker* thread, const QoS& qos)
 {
+    int fd = thread->GetQosCtrlFd();
     if (qos() <= qos_max) {
-        FFRTQosApplyForOther(qos(), thread->Id());
+        FFRTQosApplyForOther(qos(), thread->Id(), fd);
         FFRT_LOGD("qos apply tid[%d] level[%d]\n", thread->Id(), qos());
     }
 }

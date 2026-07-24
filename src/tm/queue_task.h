@@ -28,6 +28,25 @@
         (reinterpret_cast<size_t>(&((reinterpret_cast<QueueTask*>(0))->func_storage))))))
 
 namespace ffrt {
+struct QueueMonitorWe {
+    void IncRef()
+    {
+        refCnt_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void DecRef()
+    {
+        if (refCnt_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            if (monitorWe_ != nullptr) {
+                SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(monitorWe_));
+                monitorWe_ = nullptr;
+            }
+        }
+    }
+    WaitUntilEntry* monitorWe_ { nullptr };
+    std::atomic<int> refCnt_ { 0 };
+};
+
 class QueueTask : public CoTask {
 public:
     explicit QueueTask(QueueHandler* handler, const task_attr_private* attr = nullptr, bool insertHead = false);
@@ -97,12 +116,23 @@ public:
 
     inline void SetMonitorTask(WaitUntilEntry* monitorWe)
     {
-        monitorWe_ = monitorWe;
+        monitorWe_.monitorWe_ = monitorWe;
+        monitorWe_.IncRef();
     }
 
     inline WaitUntilEntry* GetMonitorTask()
     {
-        return monitorWe_;
+        return monitorWe_.monitorWe_;
+    }
+
+    inline void IncMonitorTaskRef()
+    {
+        monitorWe_.IncRef();
+    }
+
+    inline void DecMonitorTaskRef()
+    {
+        monitorWe_.DecRef();
     }
 
     inline void MonitorTaskStart()
@@ -185,7 +215,7 @@ private:
     std::atomic_bool isWeStart_ = {false};
 
     ffrt_queue_priority_t prio_ = ffrt_queue_priority_low;
-    WaitUntilEntry* monitorWe_ = nullptr;
+    QueueMonitorWe monitorWe_;
     ffrt::mutex finishMutex_;
     ffrt::condition_variable finishCond_;
     ffrt_function_header_t* timeoutScheduleCb_ = nullptr;

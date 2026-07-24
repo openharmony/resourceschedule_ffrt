@@ -438,39 +438,48 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
         }
         delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(timeoutWe));
+        task->DecMonitorTaskRef();
     });
 
     // set delayed worker wakeup time
     std::chrono::microseconds timeout(timeout_);
     auto now = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now());
     timeoutWe->tp = std::chrono::time_point_cast<std::chrono::steady_clock::duration>(now + timeout);
+    // means task success to get We, need set Ref to 1
     task->SetMonitorTask(timeoutWe);
-
     delayedCbCnt_.fetch_add(1);
     if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb, true)) {
         delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(timeoutWe);
+        // means delayworker fail to set, need delete we
+        task->DecMonitorTaskRef();
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
             queue_->GetQueueName().c_str(), timeout_);
         return;
     }
-
+    // means delayworker success to get We, need add Ref to 2
+    task->IncMonitorTaskRef();
     FFRT_LOGD("set watchdog of task gid=%llu of %s succ", task->gid, queue_->GetQueueName().c_str());
 }
 
 void QueueHandler::RemoveTimeoutMonitor(QueueTask* task)
 {
-    if (timeout_ <= 0 || task->IsMonitorTaskStart()) {
+    if (timeout_ <= 0) {
+        return;
+    }
+    if (task->IsMonitorTaskStart()) {
+        // timeout CB done or doing, dec 1 ref
+        task->DecMonitorTaskRef();
         return;
     }
 
     if (DelayedRemove(task->GetMonitorTask()->tp, task->GetMonitorTask())) {
         delayedCbCnt_.fetch_sub(1);
         task->DecDeleteRef();
-        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(task->GetMonitorTask()));
+        // timeout CB haven't did, dec 1 ref
+        task->DecMonitorTaskRef();
     }
+    task->DecMonitorTaskRef();
 }
 
 void QueueHandler::RunTimeOutCallback(QueueTask* task)

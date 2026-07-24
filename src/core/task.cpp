@@ -73,7 +73,7 @@ void OnSubmitUV(ffrt_executor_task_t *task, const task_attr_private *attr)
 inline void submit_impl(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
     const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
 {
-    FFRTFacade::GetDependenceManager().onSubmit(has_handle, handle, f, ins, outs, attr);
+    FFRTFacade::GetDependenceManager().onSubmit(has_handle, handle, f, ins, outs, attr, false);
 }
 
 API_ATTRIBUTE((visibility("default")))

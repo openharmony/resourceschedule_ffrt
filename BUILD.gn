@@ -52,6 +52,10 @@ config("ffrt_config") {
     defines += [ "APP_USE_ARM" ]
   }
 
+  if (use_hwasan) {
+    defines += [ "HWASAN_MODE" ]
+  }
+
   #defines += ffrt_release_defines
 }
 

@@ -43,6 +43,7 @@ enum class WhiteListKey : uint8_t {
     SetThreadInitPri,
     EnableSchedQSS,
     BlackListQss,
+    CrossPrioRun,
     UNKNOWN,
     KEY_MAX = UNKNOWN
 };

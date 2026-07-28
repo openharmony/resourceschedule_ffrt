@@ -295,11 +295,13 @@ int QueueHandler::Cancel(QueueTask* task)
     int ret = queue_->Remove(task);
     if (ret == SUCC) {
         FFRT_LOGD("cancel task[%llu] %s succ", task->gid, task->label.c_str());
-        for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
+        {
             std::lock_guard lock(mutex_);
-            if (curTaskVec_[i] == task) {
-                curTaskVec_[i] = nullptr;
-                break;
+            for (int i = 0; i < static_cast<int>(curTaskVec_.size()); i++) {
+                if (curTaskVec_[i] == task) {
+                    curTaskVec_[i] = nullptr;
+                    break;
+                }
             }
         }
         trafficRecord_.DoneTraffic();

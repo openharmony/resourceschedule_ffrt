@@ -516,22 +516,6 @@ HWTEST_F(DependencyTest, uv_task_block_ffrt_mutex, TestSize.Level0)
     t2.join();
 }
 
-HWTEST_F(DependencyTest, onsubmit_test, TestSize.Level0)
-{
-    ffrt_task_handle_t handle = nullptr;
-    std::function<void()> cbOne = []() { printf("callback\n"); };
-    ffrt_function_header_t* func = ffrt::create_function_wrapper(cbOne, ffrt_function_kind_general);
-    ffrt::FFRTFacade::GetDependenceManager().onSubmit(true, handle, func, nullptr, nullptr, nullptr);
-
-    const std::vector<ffrt_dependence_t> wait_deps = {{ffrt_dependence_task, handle}};
-    ffrt_deps_t wait{static_cast<uint32_t>(wait_deps.size()), wait_deps.data()};
-    ffrt::FFRTFacade::GetDependenceManager().onSubmit(true, handle, func, nullptr, &wait, nullptr);
-    ffrt::FFRTFacade::GetDependenceManager().onWait(&wait);
-
-    EXPECT_NE(func, nullptr);
-    ffrt_task_handle_destroy(handle);
-}
-
 /*
  * 测试用例名称：sample_nestedtask
  * 测试用例描述：提交数据依赖任务

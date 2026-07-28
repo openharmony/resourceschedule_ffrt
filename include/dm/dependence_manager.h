@@ -78,8 +78,8 @@ class DependenceManager : public NonCopyable {
 public:
     static void RegistInsCb(SingleInsCB<DependenceManager>::Instance &&cb);
 
-    virtual void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr) = 0;
+    virtual bool onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+        const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr, bool isNeedRetry) = 0;
 
     virtual void onWait() = 0;
 

@@ -122,7 +122,6 @@ FFRTFacade::FFRTFacade()
     gDependenceManager = &DependenceManager::Instance();
     gCoStackAttr = CoStackAttr::Instance();
     QSimpleAllocator<CoRoutine>::Instance(gCoStackAttr->size);
-    gTimerManager = &TimerManager::Instance();
     gScheduler = Scheduler::Instance();
 #ifdef FFRT_WORKER_MONITOR
     gWorkerMonitor = &WorkerMonitor::GetInstance();
@@ -144,6 +143,9 @@ FFRTFacade::FFRTFacade()
      * order will be (completion of async tasks) -> `~DelayedWorker()` -> `~SDependenceManager`.
      */
     gDelayedWorker = &DelayedWorker::GetInstance();
+    // TimerManager必须在DelayedWorker之后初始化，确保析构时DelayedWorker仍然存活
+    gTimerManager = &TimerManager::Instance();
+
     /* Same argument as above for ExecuteUnit. ExecuteUnit destructor is what waits on all
      * threads to be done and delays destruction of main objects. It also initiates the
      * tearDown. We must avoid the situation where detached threads or timer tasks

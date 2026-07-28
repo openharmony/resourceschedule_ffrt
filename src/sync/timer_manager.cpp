@@ -17,9 +17,11 @@
 #include <chrono>
 #include <iostream>
 #include "dfx/log/ffrt_log_api.h"
+#include "util/ffrt_facade.h"
 #include "sync/timer_manager.h"
 
 constexpr uint64_t MAX_TIMER_MS_COUNT = 1000ULL * 100 * 60 * 60 * 24 * 365; // 100 year
+constexpr int TIMER_DESTRUCT_TIMESOUT = 1000;
 
 namespace ffrt {
 TimerManager& TimerManager::Instance()
@@ -37,8 +39,37 @@ TimerManager::TimerManager()
 
 TimerManager::~TimerManager()
 {
-    std::lock_guard lock(timerMutex_);
-    teardown = true;
+    {
+        std::lock_guard lock(timerMutex_);
+        teardown = true;
+        for (auto& [handle, timerData] : timerMap_) {
+            if (timerData->state == TimerState::NOT_EXECUTED) {
+                DelayedRemove(timerData->nextDispatchTime, reinterpret_cast<WaitEntry*>(handle));
+            }
+        }
+    }
+
+    // Wait for all EXECUTING callbacks to complete before destroying.
+    int try_cnt = TIMER_DESTRUCT_TIMESOUT;
+    while (try_cnt-- > 0) {
+        std::unique_lock lock(timerMutex_);
+        bool hasExecuting = false;
+        for (auto& [handle, timerData] : timerMap_) {
+            if (timerData->state == TimerState::EXECUTING) {
+                hasExecuting = true;
+                break;
+            }
+        }
+        if (!hasExecuting) {
+            timerMap_.clear();
+            break;
+        }
+        lock.unlock();
+        usleep(1000);
+    }
+    if (try_cnt <= 0) {
+        FFRT_SYSEVENT_LOGE("erase timer failed");
+    }
 }
 
 void TimerManager::InitWorkQueAndCb(int qos)
@@ -52,7 +83,7 @@ void TimerManager::InitWorkQueAndCb(int qos)
         }
 
         int handle = (int)reinterpret_cast<uint64_t>(we);
-        submit([this, handle]() {
+        std::function<void()>&& cbFunc = [this, handle]() {
             std::unique_lock timerLock(timerMutex_);
             if (teardown) {
                 return;
@@ -91,8 +122,30 @@ void TimerManager::InitWorkQueAndCb(int qos)
                 // delete timer data
                 timerMap_.erase(it);
             }
-        },
-            {}, {&workQueDeps[qos]}, ffrt::task_attr().qos(qos));
+        };
+
+        ffrt_task_handle_t taskHandle;
+        ffrt_dependence_t outDependence = {ffrt_dependence_data, &workQueDeps[qos]};
+        ffrt_deps_t outDep = {1, &outDependence};
+        task_attr attr;
+        attr.qos(qos);
+        task_attr_private* attrPriv = reinterpret_cast<task_attr_private*>(static_cast<ffrt_task_attr_t*>(&attr));
+        ffrt_function_header_t* funcWrapper = ffrt::create_function_wrapper(std::move(cbFunc));
+        bool submitSuccess = FFRTFacade::GetDependenceManager().onSubmit(
+            false, taskHandle, funcWrapper, nullptr, &outDep, attrPriv, true);
+        if (unlikely(!submitSuccess)) {
+            {
+                std::lock_guard lock(timerMutex_);
+                if (teardown) {
+                    return;
+                }
+            }
+            FFRT_LOGW("timer retry after %u ms", TIMER_RETRY_INTERVAL);
+            TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(TIMER_RETRY_INTERVAL);
+            if (!DelayedWakeup(absoluteTime, reinterpret_cast<WaitEntry*>(handle), workCb[qos], true)) {
+                FFRT_LOGW("timer retry failed, process may be exiting now");
+            }
+        }
     };
 }
 
@@ -119,6 +172,7 @@ ffrt_timer_t TimerManager::RegisterTimer(int qos, uint64_t timeout, void* data, 
 void TimerManager::RegisterTimerImpl(std::shared_ptr<TimerData> data)
 {
     TimePoint absoluteTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(data->timeout);
+    data->nextDispatchTime = absoluteTime;
     if (!DelayedWakeup(absoluteTime, reinterpret_cast<WaitEntry*>(data->handle), workCb[data->qos], true)) {
         FFRT_LOGW("timer start failed, process may be exiting now");
     }

@@ -52,6 +52,7 @@ void RegistCommonTaskFactory()
 __attribute__((constructor)) static void ffrt_init()
 {
     ffrt::ExecuteCtx::CtxEnvCreate();
+    ffrt::DelayedWorker::ThreadEnvCreate();
     CoEnvCreate();
     RegistCommonTaskFactory();
 

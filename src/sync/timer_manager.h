@@ -39,6 +39,8 @@ enum class TimerState {
     INVALID
 };
 
+constexpr uint32_t TIMER_RETRY_INTERVAL = 32;
+
 struct TimerData {
     TimerData(void *dataVal, ffrt_timer_cb cbVal, bool repeat, int qos, uint64_t timeout)
         : data(dataVal), cb(cbVal), repeat(repeat), qos(qos), timeout(timeout)
@@ -57,6 +59,7 @@ struct TimerData {
     bool repeat;
     int qos;
     uint64_t timeout;
+    TimePoint nextDispatchTime;
     int handle;
     TimerState state {TimerState::NOT_EXECUTED};
     HiTraceIdStruct traceId;

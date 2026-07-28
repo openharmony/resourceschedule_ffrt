@@ -28,8 +28,8 @@ public:
         return ins;
     }
 
-    void onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f, const ffrt_deps_t *ins,
-        const ffrt_deps_t *outs, const task_attr_private *attr) override;
+    bool onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f, const ffrt_deps_t *ins,
+        const ffrt_deps_t *outs, const task_attr_private *attr, [[maybe_unused]] bool isNeedRetry) override;
 
     void onWait() override;
 

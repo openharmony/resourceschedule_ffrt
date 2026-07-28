@@ -17,9 +17,11 @@
 #define _DELAYED_WORKER_H_
 
 #include <map>
+#include <vector>
 #include <functional>
 #include <thread>
 #include "cpp/sleep.h"
+#include "core/task_attr_private.h"
 #include "sched/execute_ctx.h"
 namespace ffrt {
 using TimePoint = std::chrono::steady_clock::time_point;
@@ -56,11 +58,18 @@ public:
     bool dispatch(const TimePoint& to, WaitEntry* we, const std::function<void(WaitEntry*)>& wakeup,
         bool skipTimeCheck = false);
     bool remove(const TimePoint& to, WaitEntry* we);
-    void SubmitAsyncTask(std::function<void()>&& func, std::initializer_list<dependence> inDeps = {},
-        std::initializer_list<dependence> outDeps = {}, const task_attr& attr = task_attr().qos(qos_background));
+    void SubmitAsyncTask(std::function<void()>&& func, std::vector<dependence> inDeps = {},
+        std::vector<dependence> outDeps = {}, const task_attr& attr = task_attr().qos(qos_background));
+    void SubmitAsyncTask(std::function<void()>&& func, std::vector<dependence> inDeps,
+        std::vector<dependence> outDeps, const task_attr_private* attrPriv);
     void Terminate();
 
 private:
+    void SubmitAsyncTaskImpl(std::function<void()>&& func,
+        std::vector<dependence> inDeps, std::vector<dependence> outDeps,
+        const task_attr_private* attrPriv);
+    void RetryAsyncSubmit(std::function<void()>&& func, std::vector<dependence> inDeps,
+        std::vector<dependence> outDeps, const task_attr_private* attrPriv);
     friend class FFRTFacade;
     static DelayedWorker &GetInstance(); // use FFRTFacade::GetDelayedWorker to get DW Instance
     DelayedWorker();

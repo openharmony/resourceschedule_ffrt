@@ -65,14 +65,14 @@ void SDependenceManager::RemoveRepeatedDeps(std::vector<CPUEUTask*>& in_handles,
     }
 }
 
-void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
-    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr)
+bool SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, ffrt_function_header_t *f,
+    const ffrt_deps_t *ins, const ffrt_deps_t *outs, const task_attr_private *attr, [[maybe_unused]] bool isNeedRetry)
 {
     FFRT_PERF_TRACE_SCOPED_BY_GROUP(DM, SDM_onSubmit, DEFAULT_CONFIG);
     // 0 check outs handle
     if (!CheckOutsHandle(outs)) {
         FFRT_SYSEVENT_LOGE("outs contain handles error");
-        return;
+        return true;
     }
 
     // 1 Init eu and scheduler
@@ -152,12 +152,13 @@ void SDependenceManager::onSubmit(bool has_handle, ffrt_task_handle_t &handle, f
         if (task->dataRefCnt.submitDep != 0) {
             FFRT_BLOCK_TRACER(task->gid, dep);
             FFRT_TRACE_END();
-            return;
+            return true;
         }
     }
 
     task->Ready();
     FFRT_TRACE_END();
+    return true;
 }
 
 void SDependenceManager::onWait()

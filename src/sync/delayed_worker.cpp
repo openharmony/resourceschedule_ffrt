@@ -29,6 +29,9 @@
 #include "sched/scheduler.h"
 #include "util/ffrt_facade.h"
 #include "util/white_list.h"
+#include "util/capability.h"
+#include "cpp/task.h"
+#include "sync/sync.h"
 
 namespace {
 constexpr uintptr_t FFRT_DELAY_WORKER_MAGICNUM = 0x5aa5;
@@ -40,6 +43,7 @@ constexpr int WAIT_EVENT_SIZE = 5;
 constexpr int64_t EXECUTION_TIMEOUT_MILLISECONDS = 500;
 constexpr int DUMP_MAP_MAX_COUNT = 3;
 constexpr int ASYNC_TASK_SLEEP_MS = 1;
+constexpr uint32_t ASYNC_TASK_RETRY_INTERVAL_MS = 32;
 constexpr const char* BLUETOOTH_SERVICE = "bluetooth_service";
 }
 
@@ -222,6 +226,9 @@ DelayedWorker::DelayedWorker()
         FFRT_SYSEVENT_LOGE("monitor:%d add fail, ret:%d, errno:%d, %s", monitorfd_, ret, errno, strerror(errno));
     }
 #endif
+    // 单例构造函数被static保护，不可能并发，因此可以不加锁
+    ThreadInit();
+    exited_ = false;
     FFRT_LOGD("Construction completed.");
 }
 
@@ -357,18 +364,77 @@ bool DelayedWorker::remove(const TimePoint& to, WaitEntry* we)
     return false;
 }
 
-void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func, std::initializer_list<dependence> inDeps,
-    std::initializer_list<dependence> outDeps, const task_attr& attr)
+__attribute__((always_inline)) inline void DelayedWorker::SubmitAsyncTaskImpl(std::function<void()>&& func,
+    std::vector<dependence> inDeps, std::vector<dependence> outDeps,
+    const task_attr_private* attrPriv)
 {
     asyncTaskCnt_.fetch_add(1);
-    ffrt::submit([this, func = std::move(func)]() {
+
+    std::function<void()> wrappedFunc = [this, f = func]() {
         if (toExit) {
             asyncTaskCnt_.fetch_sub(1);
             return;
         }
-
-        func();
+        f();
         asyncTaskCnt_.fetch_sub(1);
-        }, inDeps, outDeps, attr);
+    };
+
+    ffrt_function_header_t* funcWrapper = ffrt::create_function_wrapper(std::move(wrappedFunc));
+    ffrt_deps_t inDepsStruct = {static_cast<uint32_t>(inDeps.size()), inDeps.data()};
+    ffrt_deps_t outDepsStruct = {static_cast<uint32_t>(outDeps.size()), outDeps.data()};
+
+    ffrt_task_handle_t taskHandle;
+    bool submitSuccess = FFRTFacade::GetDependenceManager().onSubmit(false, taskHandle, funcWrapper,
+        &inDepsStruct, &outDepsStruct, attrPriv, true);
+    if (likely(submitSuccess)) {
+        return;
+    }
+    RetryAsyncSubmit(std::move(func), std::move(inDeps), std::move(outDeps), attrPriv);
+}
+
+void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func,
+    std::vector<dependence> inDeps, std::vector<dependence> outDeps, const task_attr& attr)
+{
+    auto* attrPriv = reinterpret_cast<task_attr_private*>(
+        const_cast<ffrt_task_attr_t*>(static_cast<const ffrt_task_attr_t*>(&attr)));
+    SubmitAsyncTaskImpl(std::move(func), std::move(inDeps), std::move(outDeps), attrPriv);
+}
+
+void DelayedWorker::SubmitAsyncTask(std::function<void()>&& func,
+    std::vector<dependence> inDeps, std::vector<dependence> outDeps, const task_attr_private* attrPriv)
+{
+    SubmitAsyncTaskImpl(std::move(func), std::move(inDeps), std::move(outDeps), attrPriv);
+}
+
+__attribute__((noinline, cold)) void DelayedWorker::RetryAsyncSubmit(
+    std::function<void()>&& func, std::vector<dependence> inDeps,
+    std::vector<dependence> outDeps, const task_attr_private* attrPriv)
+{
+    if (toExit) {
+        asyncTaskCnt_.fetch_sub(1);
+        return;
+    }
+    asyncTaskCnt_.fetch_sub(1);
+    FFRT_LOGW("async task retry after %u ms", ASYNC_TASK_RETRY_INTERVAL_MS);
+    TimePoint retryTime = std::chrono::steady_clock::now()
+        + std::chrono::milliseconds(ASYNC_TASK_RETRY_INTERVAL_MS);
+
+    // 拷贝 attrPriv 到闭包，重试时指针已失效
+    task_attr_private savedAttr = *attrPriv;
+    // 当delayworker析构也就意味着线程退出，此时是否执行对应的
+    auto retryWe = new (SimpleAllocator<WaitUntilEntry>::AllocMem()) WaitUntilEntry();
+    retryWe->cb = [this, func = std::move(func),
+                   inDeps = std::move(inDeps),
+                   outDeps = std::move(outDeps),
+                   savedAttr = std::move(savedAttr)](WaitEntry* we) mutable {
+        SubmitAsyncTask(std::move(func), std::move(inDeps), std::move(outDeps), &savedAttr);
+        SimpleAllocator<WaitUntilEntry>::FreeMem(static_cast<WaitUntilEntry*>(we));
+    };
+    retryWe->tp = retryTime;
+
+    if (!DelayedWakeup(retryWe->tp, retryWe, retryWe->cb, true)) {
+        SimpleAllocator<WaitUntilEntry>::FreeMem(retryWe);
+        FFRT_LOGW("async task retry failed, process may be exiting now");
+    }
 }
 } // namespace ffrt

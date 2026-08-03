@@ -437,8 +437,8 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
             RunTimeOutCallback(task);
         }
         delayedCbCnt_.fetch_sub(1);
-        task->DecDeleteRef();
         task->DecMonitorTaskRef();
+        task->DecDeleteRef();
     });
 
     // set delayed worker wakeup time
@@ -450,9 +450,9 @@ void QueueHandler::SetTimeoutMonitor(QueueTask* task)
     delayedCbCnt_.fetch_add(1);
     if (!DelayedWakeup(timeoutWe->tp, timeoutWe, timeoutWe->cb, true)) {
         delayedCbCnt_.fetch_sub(1);
-        task->DecDeleteRef();
         // means delayworker fail to set, need delete we
         task->DecMonitorTaskRef();
+        task->DecDeleteRef();
         FFRT_LOGW("failed to set watchdog for task gid=%llu in %s with timeout [%llu us] ", task->gid,
             queue_->GetQueueName().c_str(), timeout_);
         return;
@@ -475,9 +475,9 @@ void QueueHandler::RemoveTimeoutMonitor(QueueTask* task)
 
     if (DelayedRemove(task->GetMonitorTask()->tp, task->GetMonitorTask())) {
         delayedCbCnt_.fetch_sub(1);
-        task->DecDeleteRef();
         // timeout CB haven't did, dec 1 ref
         task->DecMonitorTaskRef();
+        task->DecDeleteRef();
     }
     task->DecMonitorTaskRef();
 }

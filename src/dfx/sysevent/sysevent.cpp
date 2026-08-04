@@ -145,6 +145,11 @@ void TaskBlockInfoReport(const long long passed, const std::string& task_label, 
 
 void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, int tid, int qos)
 {
+    static bool isReported = false;
+    if (isReported) {
+        return;
+    }
+    isReported = true;
     std::string msg = ss.str();
     std::string eventName = "CONGESTION";
     std::string senarioName = "Task_Sch_Timeout";
@@ -164,6 +169,11 @@ void TaskTimeoutReport(std::stringstream& ss, const std::string& processName, in
 void QueueTaskTimeoutReport(std::stringstream& ss, const std::string& processName,
     int tid, const std::string& qname, int qos)
 {
+    static bool isReported = false;
+    if (isReported) {
+        return;
+    }
+    isReported = true;
     std::string msg = ss.str();
     std::string eventName = "CONGESTION";
     std::string senarioName = "Serial_Queue_Timeout";
@@ -194,6 +204,11 @@ void TrafficOverloadReport(std::stringstream& ss, const std::string& senarioName
 
 void WorkerEscapeReport(const std::string& processName, int qos, size_t totalNum)
 {
+    static bool isReported = false;
+    if (isReported) {
+        return;
+    }
+    isReported = true;
     std::stringstream ss;
     ss << "qos: " << qos << ", worker num: " << totalNum;
     std::string msg = ss.str();

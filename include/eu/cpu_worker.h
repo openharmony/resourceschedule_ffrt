@@ -201,12 +201,19 @@ public:
     }
 
     void SetThreadAttr(const QoS& newQos);
+
+    int GetQosCtrlFd() const
+    {
+        return qosCtrlFd_;
+    }
+
     std::atomic<TaskBase*> curTask = nullptr;
     std::atomic<uintptr_t> curTaskType_ {ffrt_invalid_task};
     std::string curTaskLabel_ = ""; // 需要打开宏WORKER_CAHCE_NAMEID才会赋值
     uint64_t curTaskGid_ = UINT64_MAX;
 
     void WorkerLooper();
+    void OpenQosCtrlFd();
 
 protected:
     QoS qos;
@@ -235,6 +242,7 @@ private:
 #endif
     std::atomic_bool exited {false};
     std::atomic<pid_t> tid {-1};
+    int qosCtrlFd_ = -1;
     bool monitor_ = true;
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
     unsigned int domain_id;

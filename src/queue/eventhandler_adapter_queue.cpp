@@ -19,6 +19,7 @@
 #include "dfx/log/ffrt_log_api.h"
 #include "util/time_format.h"
 #include "util/ffrt_facade.h"
+#include "util/capability.h"
 
 namespace {
 constexpr int MAX_DUMP_SIZE = 500;
@@ -170,6 +171,10 @@ QueueTask* EventHandlerAdapterQueue::Pull()
     uint64_t now = GetNow();
     GetWhenMapVecStats(whenMapVec_);
     while (!isEmpty_ && now < minTime_ && !isExit_) {
+        if (GetExitFlag()) {
+            FFRT_LOGW("[queueId=%u] process has exited", queueId_);
+            return nullptr;
+        }
         uint64_t diff = minTime_ - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
         delayStatus_.store(true);

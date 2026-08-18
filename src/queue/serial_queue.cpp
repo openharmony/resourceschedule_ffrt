@@ -16,6 +16,7 @@
 #include "queue/serial_queue.h"
 #include "dfx/log/ffrt_log_api.h"
 #include "tm/queue_task.h"
+#include "util/capability.h"
 
 namespace {
 constexpr uint32_t MIN_OVERLOAD_INTERVAL = 16;
@@ -73,6 +74,10 @@ QueueTask* SerialQueue::Pull()
     // wait for delay task
     uint64_t now = GetNow();
     while (!whenMap_.empty() && now < whenMap_.begin()->first && !isExit_) {
+        if (GetExitFlag()) {
+            FFRT_LOGW("[queueId=%u] process has exited", queueId_);
+            return nullptr;
+        }
         uint64_t diff = whenMap_.begin()->first - now;
         FFRT_LOGD("[queueId=%u] stuck in %llu us wait", queueId_, diff);
         delayStatus_.store(true);

@@ -187,14 +187,16 @@ public:
     void EnterSleeping()
     {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        *blockaware_slot += 1;
+        if (blockaware_slot != nullptr) {
+            *blockaware_slot += 1;
+        }
 #endif
     }
 
     void LeaveSleeping()
     {
 #ifdef FFRT_WORKERS_DYNAMIC_SCALING
-        if (*blockaware_slot > 0) {
+        if (blockaware_slot != nullptr && *blockaware_slot > 0) {
             *blockaware_slot -= 1;
         }
 #endif

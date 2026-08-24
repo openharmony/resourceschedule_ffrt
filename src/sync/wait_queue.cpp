@@ -33,6 +33,7 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, TaskBase* task)
 {
     {
         std::lock_guard lg(wqlock);
+        wn->status.store(WaitEntryStatus::INIT, std::memory_order_release);
         wn->task = task;
         push_back(wn);
     }
@@ -40,6 +41,10 @@ void WaitQueue::ThreadWait(WaitUntilEntry* wn, mutexPrivate* lk, TaskBase* task)
         std::unique_lock<std::mutex> nl(wn->wl);
         lk->unlock();
         wn->cv.wait(nl);
+    }
+    if (unlikely(wn->status.load(std::memory_order_acquire) != WaitEntryStatus::NOTIFYING)) {
+        std::lock_guard lg(wqlock);
+        remove(wn);
     }
     wn->task = nullptr;
     lk->lock();

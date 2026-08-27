@@ -27,6 +27,7 @@
 #include "hisysevent.h"
 #endif
 #include "internal_inc/osal.h"
+#include "internal_inc/parse_env_int.h"
 #include "util/white_list.h"
 #include "util/ffrt_facade.h"
 
@@ -62,9 +63,9 @@ static void SetLogLevel(void)
 {
     std::string envLogStr = GetEnv("FFRT_LOG_LEVEL");
     if (envLogStr.size() != 0) {
-        int level = std::stoi(envLogStr);
-        if (level < FFRT_LOG_LEVEL_MAX && level >= FFRT_LOG_ERROR) {
-            g_ffrtLogLevel = level;
+        auto level = ParseEnvInt(envLogStr);
+        if (level.has_value() && *level < FFRT_LOG_LEVEL_MAX && *level >= FFRT_LOG_ERROR) {
+            g_ffrtLogLevel = *level;
             return;
         }
     }

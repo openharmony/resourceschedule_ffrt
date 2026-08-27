@@ -15,6 +15,7 @@
 
 #include <sys/ioctl.h>
 #include "internal_inc/osal.h"
+#include "internal_inc/parse_env_int.h"
 #include "securec.h"
 #include "pthread.h"
 #include "util/white_list.h"
@@ -158,7 +159,11 @@ TraceLevelManager::TraceLevelManager()
         return;
     }
 
-    int traceLevel = std::stoi(trace);
+    auto parsed = ParseEnvInt(trace);
+    if (!parsed.has_value()) {
+        return;
+    }
+    int traceLevel = *parsed;
     if (traceLevel >= TRACE_LEVEL_MAX || traceLevel < TRACE_LEVEL0) {
         FFRT_LOGE("get invalid trace level, %d", traceLevel);
         return;

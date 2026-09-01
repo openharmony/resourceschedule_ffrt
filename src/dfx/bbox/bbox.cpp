@@ -55,6 +55,7 @@ static TaskBase* g_cur_task;
 static unsigned int g_cur_pid;
 static unsigned int g_cur_tid;
 static const char* g_cur_signame;
+static bool g_secondWait = false;
 
 static struct sigaction s_oldSa[SIGSYS + 1]; // SIGSYS = 31
 
@@ -460,6 +461,9 @@ static void HandleChildProcess()
         }
         if (wpid == 0) {
             (void)kill(childPid, SIGKILL);
+            if (g_secondWait) {
+                (void)waitpid(childPid, nullptr, 0);
+            }
         }
     }
 }
@@ -516,6 +520,10 @@ static void SignalReg(int signo)
 
 __attribute__((constructor)) static void BBoxInit()
 {
+    if (strstr(GetCurrentProcessName(), "CameraDaemon")) {
+        g_secondWait = true;
+    }
+
     SignalReg(SIGABRT);
     SignalReg(SIGBUS);
     SignalReg(SIGFPE);

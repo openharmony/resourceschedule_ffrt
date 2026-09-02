@@ -100,18 +100,18 @@ private:
 bool IsBeta()
 {
     LibbegetutilAdapter* adapter = LibbegetutilAdapter::Instance();
-    constexpr int versionTypeLen = 32;
-    char retValue[versionTypeLen] = {0};
+    constexpr int retValueLen = 32;
+    char retValueVersion[retValueLen] = {0};
+    char retValueStage[retValueLen] = {0};
     if (adapter->GetParameter != nullptr) {
-        int ret = adapter->GetParameter("const.logsystem.versiontype", "false", retValue, versionTypeLen);
-        if (ret > 0) {
-            int result = strcmp(retValue, "beta");
-            if (result == 0) {
-                return true;
-            }
-        }
+        int retVersion = adapter->GetParameter("const.logsystem.versiontype", "false", retValueVersion, retValueLen);
+        int retStage = adapter->GetParameter("const.product.dfx.fans.stage", "false", retValueStage, retValueLen);
+        bool resultVersion = retVersion > 0 ? strcmp(retValueVersion, "commercial") != 0 : true;
+        bool resultStage = retStage > 0 ? strcmp(retValueStage, "1") == 0 : false;
+        // (const.logsystem.versiontype为commercial)&&(const.product.dfx.fans.stage不为1)才返回false
+        return resultVersion || resultStage;
     }
-    return false;
+    return true;
 }
 
 void TaskBlockInfoReport(const long long passed, const std::string& task_label, int qos, uint64_t freq)

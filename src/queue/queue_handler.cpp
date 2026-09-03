@@ -71,6 +71,7 @@ QueueHandler::QueueHandler(const char* name, const ffrt_queue_attr_t* attr, cons
 
 QueueHandler::~QueueHandler()
 {
+    FFRT_COND_DO_ERR((queue_ == nullptr), return, "[queueId=%u] constructed failed", GetQueueId());
     FFRT_LOGD("destruct %s enter", queue_->GetQueueName().c_str());
     // clear tasks in queue
     CancelAndWait();

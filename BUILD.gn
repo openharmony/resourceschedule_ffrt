@@ -255,6 +255,8 @@ ohos_shared_library("libffrt") {
       "ndk",
       "sasdk",
     ]
+
+    version_script = "libffrt.map"
   }
 }
 

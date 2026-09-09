@@ -1,0 +1,10 @@
+{
+  global:
+    *;
+  local:
+    _init;
+    _fini;
+    _ZTVNSt3__h*;
+    _ZTCNSt3__h*;
+    _ZTTNSt3__h*;
+};
